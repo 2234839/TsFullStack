@@ -24,9 +24,13 @@ export const startServer = async () => {
     const method = request.url;
     const params = request.body as Array<any>;
 
+    const startTime = Date.now();
     const p = Effect.gen(function* () {
-      console.log('call:', method, request.body);
-      const result = yield* Effect.tryPromise(() => serverRPC.RC(method.slice(5), params));
+      const result = yield* Effect.tryPromise(() =>
+        serverRPC.RC(method.slice(/** 移除 '/api/'  */ 5), params),
+      );
+      const endTime = Date.now();
+      console.log(`call:[${endTime - startTime}ms]`, method, request.body);
       if (Effect.isEffect(result)) {
         const res = yield* result;
         return res;
@@ -46,10 +50,7 @@ export const startServer = async () => {
   try {
     const listening = await fastify.listen({ port: 5209, host: '0.0.0.0' });
     console.log(`Server listening on ${listening}`);
-
   } catch (err) {
     console.log('[err]', err);
   }
 };
-
-
