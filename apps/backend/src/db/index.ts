@@ -5,6 +5,11 @@ import ModelMeta from '@zenstackhq/runtime/model-meta';
 /** 尽量不要使用这个对象，除非你确定不需要鉴权。否则应该使用 getPrisma 函数 */
 export const prisma = new PrismaClient();
 
+/** 获取所有模型名称   */
+const modelsName = Object.keys(ModelMeta.models) as (keyof typeof ModelMeta.models)[];
+/** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表 */
+const allowedMethods = ['$transaction', ...modelsName] as const;
+
 /** 获取zenstack 生成的增强 Prisma 客户端实例，用于鉴权操作  */
 export async function getPrisma({ userId }: { userId: string }) {
   const user = await prisma.user.findUnique({
@@ -19,13 +24,7 @@ export async function getPrisma({ userId }: { userId: string }) {
     throw new Error('User not found');
   }
 
-  /** 获取所有模型名称   */
-  const modelsName = Object.keys(ModelMeta.models) as (keyof typeof ModelMeta.models)[];
-
   const db = enhance(prisma, { user });
-
-  /** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表 */
-  const allowedMethods = ['$transaction', ...modelsName] satisfies (keyof typeof db)[];
 
   /** 代理对象，限制对 Prisma 客户端的访问方法  */
   const dbProxy = new Proxy(db, {
