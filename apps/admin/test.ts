@@ -32,8 +32,10 @@ async function main() {
         });
     },
   });
-  RC('',[])
+
+
+
   const r = await API.a.b(2);
-  console.log('[r2]', r);
+
 }
 main();
