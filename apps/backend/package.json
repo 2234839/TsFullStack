@@ -3,10 +3,11 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsup",
-		"build:lib": "tsup --config tsup-lib.config.ts",
 		"dev": "tsup --watch & pnpm start:w",
 		"start": "node --enable-source-maps ./dist/index.js",
-		"start:w": "nodemon --enable-source-maps ./dist/index.js"
+		"start:w": "nodemon --enable-source-maps ./dist/index.js",
+		"build:lib": "tsup --config tsup-lib.config.ts",
+		"build:lib:w": "tsup --watch --config tsup-lib.config.ts"
 	},
 	"main": "./dist-lib/index.js",
 	"types": "./dist-lib/index.d.ts",
