@@ -1,12 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import { enhance } from '@zenstackhq/runtime/edge';
+import ModelMeta from '@zenstackhq/runtime/model-meta';
 
-const prisma = new PrismaClient();
-
-const adminUser = {
-  email: 'admin@example.com',
-  password: 'adminpassword123', // Ensure this is hashed in a real application
-};
+/** 尽量不要使用这个对象，除非你确定不需要鉴权。否则应该使用 getPrisma 函数 */
+export const prisma = new PrismaClient();
 
 /** 获取zenstack 生成的增强 Prisma 客户端实例，用于鉴权操作  */
 export async function getPrisma({ userId }: { userId: string }) {
@@ -22,30 +19,23 @@ export async function getPrisma({ userId }: { userId: string }) {
     throw new Error('User not found');
   }
 
+  /** 获取所有模型名称   */
+  const modelsName = Object.keys(ModelMeta.models) as (keyof typeof ModelMeta.models)[];
+
   const db = enhance(prisma, { user });
 
-  /** 阻断这些可能击穿 ZenStack 的方法 */
-  const blockedMethods = [
-    '$connect',
-    '$disconnect',
-    '$executeRaw',
-    '$executeRawUnsafe',
-    '$extends',
-    '$on',
-    '$queryRaw',
-    '$queryRawUnsafe',
-    '$use',
-  ] as const; // 使用 const 断言确保类型安全
+  /** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表 */
+  const allowedMethods = ['$transaction', ...modelsName] satisfies (keyof typeof db)[];
 
-  // 创建代理对象，并保留类型推断
+  /** 代理对象，限制对 Prisma 客户端的访问方法  */
   const dbProxy = new Proxy(db, {
     get(target, prop: string | symbol, receiver) {
-      if (typeof prop === 'string' && blockedMethods.includes(prop as any)) {
-        throw new Error(`Method '${prop}' is blocked.`);
+      if (typeof prop === 'string' && !allowedMethods.includes(prop as any)) {
+        throw new Error(`Method '${prop}' is not allowed.`);
       }
       return Reflect.get(target, prop, receiver);
     },
-  }) as Omit<typeof db, (typeof blockedMethods)[number]>;
+  }) as Pick<typeof db, (typeof allowedMethods)[number]>;
   return {
     db: dbProxy,
     user: {
@@ -54,41 +44,4 @@ export async function getPrisma({ userId }: { userId: string }) {
       password: undefined,
     },
   };
-}
-
-/** 对数据库进行一些初始化设置 */
-export async function seedDB() {
-  await seedAdmin();
-}
-
-/** 创建管理员账户及其角色 */
-async function seedAdmin() {
-  let admin = await prisma.user.findUnique({
-    where: {
-      email: adminUser.email,
-    },
-    include: {
-      role: true,
-    },
-  });
-
-  if (!admin) {
-    admin = await prisma.user.create({
-      data: {
-        email: adminUser.email,
-        password: adminUser.password,
-        role: {
-          connectOrCreate: {
-            where: { name: 'admin' },
-            create: { name: 'admin' },
-          },
-        },
-      },
-      include: {
-        role: true,
-      },
-    });
-  }
-
-  // console.log('[admin]', admin);
 }
