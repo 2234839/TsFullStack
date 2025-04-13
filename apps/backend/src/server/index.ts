@@ -1,9 +1,11 @@
-import { Effect } from 'effect';
+import { Effect, Logger } from 'effect';
 import Fastify from 'fastify';
 import { Readable } from 'stream';
 import { apis, type API } from '../api';
 import { createRPC } from '../rpc';
 import fastifyCors from '@fastify/cors';
+import { AuthService } from '../service';
+import { appApis } from '../api/appApi';
 
 const fastify = Fastify({
   logger: false,
@@ -19,34 +21,45 @@ fastify.addContentTypeParser('application/octet-stream', async function (request
   return webStream;
 });
 
+//#region 自定义日志打印
+const logger = Logger.make(({ logLevel, message }) => {
+  globalThis.console.log(`[${logLevel.label}]`, ...(Array.isArray(message) ? message : [message]));
+});
+const layer = Logger.replace(Logger.defaultLogger, logger);
+//#endregion 自定义日志打印
+
 export const startServer = async () => {
   fastify.all('/api/*', async (request, reply) => {
     const method = request.url;
     const params = request.body as Array<any>;
 
-    const startTime = Date.now();
-    const p = Effect.gen(function* () {
-      const result = yield* Effect.tryPromise(() =>
-        serverRPC.RC(method.slice(/** 移除 '/api/'  */ 5), params),
-      );
-      const endTime = Date.now();
-      console.log(`call:[${endTime - startTime}ms]`, method, request.body);
-      if (Effect.isEffect(result)) {
-        const res = yield* result;
-        return res;
-      } else {
-        return result;
-      }
-    });
-    const result = await Effect.runPromise(p);
-    reply.send({ result });
-  });
-  const serverRPC = await createRPC('apiProvider', {
-    genApiModule: async () => {
-      return apis;
-    },
-  });
+    const x_token_id = request.headers['x-token-id'];
+    if (typeof x_token_id !== 'string') {
+      reply.status(401).send({ error: 'Unauthorized' });
+      return;
+    }
 
+    const program = callServerApi(method.slice('/api/'.length), params);
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provide(layer),
+        Effect.provideService(AuthService, {
+          x_token_id,
+        }),
+      ),
+    );
+
+    reply.send(result);
+  });
+  fastify.all('/app-api/*', async (request, reply) => {
+    const method = request.url;
+    const params = request.body as Array<any>;
+
+    const program = callAppApi(method.slice('/app-api/'.length), params);
+    const result = await Effect.runPromise(program.pipe(Effect.provide(layer)));
+
+    reply.send(result);
+  });
   try {
     const listening = await fastify.listen({ port: 5209, host: '0.0.0.0' });
     console.log(`Server listening on ${listening} ^-^`);
@@ -54,3 +67,51 @@ export const startServer = async () => {
     console.log('[err]', err);
   }
 };
+
+const serverApiRPC = createRPC('apiProvider', {
+  genApiModule: async () => {
+    return apis;
+  },
+});
+
+function callServerApi(method: string, params: any[]) {
+  const startTime = Date.now();
+  return Effect.gen(function* () {
+    const authInfo = yield* AuthService;
+    yield* Effect.log('[authInfo]', authInfo);
+    const result = yield* Effect.tryPromise(() => serverApiRPC.RC(method, params));
+    const endTime = Date.now();
+
+    yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
+
+    if (Effect.isEffect(result)) {
+      const res = yield* result;
+      return res;
+    } else {
+      return result;
+    }
+  });
+}
+
+const appApiRPC = createRPC('apiProvider', {
+  genApiModule: async () => {
+    return appApis;
+  },
+});
+
+function callAppApi(method: string, params: any[]) {
+  const startTime = Date.now();
+  return Effect.gen(function* () {
+    const result = yield* Effect.tryPromise(() => appApiRPC.RC(method, params));
+    const endTime = Date.now();
+
+    yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
+
+    if (Effect.isEffect(result)) {
+      const res = yield* result;
+      return res;
+    } else {
+      return result;
+    }
+  });
+}

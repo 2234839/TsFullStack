@@ -1,6 +1,12 @@
-import { createRPC, type API as __API__ } from 'tsfullstack-backend';
-export const { API, RC } = createRPC<__API__>('apiConsumer', {
-  remoteCall(method, data) {
+import { createRPC, type API as __API__, type AppAPI as __AppAPI__ } from 'tsfullstack-backend';
+export const { API } = createRPC<__API__>('apiConsumer', {
+  remoteCall: genRemoteCall('http://localhost:5209/api/'),
+});
+export const { API: AppAPI } = createRPC<__AppAPI__>('apiConsumer', {
+  remoteCall: genRemoteCall('http://localhost:5209/app-api/'),
+});
+function genRemoteCall(baseUrl: string) {
+  function remoteCall(method: string, data: any[]) {
     let body: ReadableStream | string;
     // 如果第一参数是 ReadableStream 的时候，直接使用 ReadableStream 作为 body，不用考虑其他参数，因为这种情况只支持一个参数
     let content_type;
@@ -11,7 +17,7 @@ export const { API, RC } = createRPC<__API__>('apiConsumer', {
       body = JSON.stringify(data);
       content_type = 'application/json';
     }
-    return fetch(`http://localhost:5209/api/${method}`, {
+    return fetch(`${baseUrl}${method}`, {
       method: 'POST',
       body,
       headers: {
@@ -28,5 +34,6 @@ export const { API, RC } = createRPC<__API__>('apiConsumer', {
         }
         return r.result;
       });
-  },
-});
+  }
+  return remoteCall;
+}
