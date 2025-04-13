@@ -2,3 +2,4 @@ node_modules
 .zenstack_repl_history
 /prisma
 /dist
+/dist-*

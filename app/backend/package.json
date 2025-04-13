@@ -1,8 +1,9 @@
 {
 	"scripts": {
 		"build": "tsup",
+		"build:lib": "tsup --config tsup-lib.config.ts",
 		"dev": "tsup --watch",
-		"start": "node ./dist/index.mjs"
+		"start": "node --enable-source-maps ./dist/index.mjs"
 	},
 	"devDependencies": {
 		"prisma": "6.5.0",
@@ -12,6 +13,7 @@
 		"zenstack": "2.13.3"
 	},
 	"dependencies": {
+		"@fastify/cors": "^11.0.1",
 		"@prisma/client": "6.5.0",
 		"@zenstackhq/runtime": "2.13.3",
 		"effect": "^3.14.8",

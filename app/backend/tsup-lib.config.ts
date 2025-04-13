@@ -2,9 +2,9 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   // 入口文件，根据你的项目结构调整
-  entry: ['src/index.ts'],
+  entry: ['src/lib/index.ts'],
   // 输出目录
-  outDir: 'dist',
+  outDir: 'dist-lib',
   // 生成类型声明文件
   dts: true,
   // 打包格式
