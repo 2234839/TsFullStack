@@ -8,7 +8,6 @@ const adminUser = {
   password: 'adminpassword123', // Ensure this is hashed in a real application
 };
 
-
 /** 自动创建管理员账户 */
 async function seedAdmin() {
   let admin = await prisma.user.findUnique({
@@ -38,7 +37,7 @@ async function seedAdmin() {
     });
   }
 
-  console.log('[admin]', admin);
+  // console.log('[admin]', admin);
 }
 
 /** 获取zenstack 生成的增强 Prisma 客户端实例，用于鉴权操作  */
@@ -55,21 +54,20 @@ async function getPrisma({ userId }: { userId: string }) {
     throw new Error('User not found');
   }
 
-  return enhance(prisma, { user });
+  return {
+    db: enhance(prisma, { user }),
+    user,
+  };
 }
 
 async function main() {
   await seedAdmin();
-  const db = await getPrisma({ userId: 'cm9fj9kn20000ebnqc5hmbaf6' });
-  db.user
-  const user = await db.user.findFirst({
-    include: {
-      role: true,
-    },
-  });
-  console.log('[user?.role]', user?.role);
-  // 此字段不会输出
-  console.log('[user?.password]', user?.password);
+  // 管理员账户
+  // const db = await getPrisma({ userId: 'cm9fj9kn20000ebnqc5hmbaf6' });
+  // 测试帐号
+  const { db, user } = await getPrisma({ userId: 'cm9fg8dfc0000ebdqtdlf8jwp' });
+
+  console.log('[user]', user);
   console.log(await db.user.findMany());
 }
 main();
