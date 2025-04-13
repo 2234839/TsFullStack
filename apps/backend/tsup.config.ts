@@ -24,5 +24,6 @@ export default defineConfig({
     options.target = 'node16';
   },
   // 开发模式下排除所有npm包依赖
-  external: [/node_modules/],
+  // external: [/node_modules/],
+  noExternal: [],
 });
