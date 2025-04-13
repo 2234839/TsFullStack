@@ -18,7 +18,7 @@ importers:
         version: 2.13.3(@prisma/client@6.5.0(prisma@6.5.0(typescript@5.8.3))(typescript@5.8.3))
     devDependencies:
       prisma:
-        specifier: 6.5.x
+        specifier: 6.5.0
         version: 6.5.0(typescript@5.8.3)
       regexp-to-ast:
         specifier: ^0.5.0

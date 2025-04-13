@@ -10,19 +10,25 @@ generator client {
     provider = "prisma-client-js"
 }
 
+/// 角色
+model Role {
+    id    Int    @id @default(autoincrement())
+    name  String @unique
+    users User[]
+}
+
 /// User model
 model User {
     id       String @id @default(cuid())
     email    String @unique @email @length(6, 32)
     password String @password @omit
     posts    Post[]
+    role     Role[]
 
-    // everybody can signup
-    @@allow('create', true)
-
-    // full access by self
-    // @@allow('all', auth() == this)
-    @@allow('all', true)
+    /// 允许用户读取和更新自己的信息
+    @@allow('read,update', auth() == this)
+    /// 通过多对多的关系来实现用户角色的鉴权，允许管理员角色进行所有操作
+    @@allow('all', auth().role?[name == 'admin'])
 }
 
 /// Post model

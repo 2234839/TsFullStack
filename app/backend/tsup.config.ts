@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
   // 入口文件，根据你的项目结构调整
@@ -8,7 +8,7 @@ export default defineConfig({
   // 生成类型声明文件
   dts: true,
   // 打包格式
-  format: ['esm', 'cjs'],
+  format: ['esm'],
   // 代码分割
   splitting: false,
   // 生成 sourcemap
@@ -20,9 +20,9 @@ export default defineConfig({
   // 适用于 Prisma 的特殊配置
   esbuildOptions: (options) => {
     // 如果你的项目使用 Prisma，需要添加以下配置
-    options.platform = 'node'
-    options.target = 'node16'
+    options.platform = 'node';
+    options.target = 'node16';
   },
   // 外部依赖（如 Prisma 等）
   external: ['@prisma/client', 'zenstack'],
-})
+});
