@@ -56,7 +56,11 @@ async function getPrisma({ userId }: { userId: string }) {
 
   return {
     db: enhance(prisma, { user }),
-    user,
+    user: {
+      ...user,
+      /** 移除密码字段，避免泄露敏感信息   */
+      password: undefined,
+    },
   };
 }
 
