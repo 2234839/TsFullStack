@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    /* 基础选项 */
+    "target": "ES2022",                  // 指定编译目标为较新的 ECMAScript 版本
+    "module": "ESNext",                  // 使用 ESM 模块系统
+    "moduleResolution": "bundler",      // 与 Node.js 的模块解析策略兼容
+    "outDir": "./dist",                  // 输出目录
+    "rootDir": "./src",                  // 源代码目录
+    "sourceMap": true,                   // 生成 source map 便于调试
+    "declaration": true,                 // 生成类型声明文件 (.d.ts)
+    "strict": true,                      // 启用所有严格类型检查选项
+
+    /* 严格模式扩展选项 */
+    "noImplicitAny": true,               // 禁止隐式 any 类型
+    "strictNullChecks": true,            // 严格的 null 和 undefined 检查
+    "strictFunctionTypes": true,         // 严格的函数类型检查
+    "strictBindCallApply": true,         // 严格的 bind/call/apply 检查
+    "noImplicitThis": true,              // 禁止隐式 this 类型
+    "alwaysStrict": true,                // 在解析时启用严格模式
+
+    /* 其他推荐选项 */
+    "esModuleInterop": true,             // 允许兼容 CommonJS 和 ESM 导入
+    "skipLibCheck": true,                // 跳过库文件的类型检查（提升性能）
+    "forceConsistentCasingInFileNames": true, // 强制文件名大小写一致
+    "noUnusedLocals": false,              // 检查未使用的局部变量
+    "noUnusedParameters": false,          // 检查未使用的函数参数
+    "noFallthroughCasesInSwitch": true,  // 防止 switch 语句的 case 穿透
+    "noImplicitReturns": true,           // 确保函数有显式返回
+    "noUncheckedIndexedAccess": true     // 索引访问时检查 undefined
+  },
+  "include": ["src/**/*"],               // 包含 src 目录下的所有文件
+  "exclude": ["node_modules", "dist"]    // 排除 node_modules 和 dist 目录
+}

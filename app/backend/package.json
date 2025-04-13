@@ -1,0 +1,13 @@
+{
+	"devDependencies": {
+		"prisma": "6.5.x",
+		"regexp-to-ast": "^0.5.0",
+		"tsup": "^8.4.0",
+		"typescript": "^5.8.3",
+		"zenstack": "2.13.3"
+	},
+	"dependencies": {
+		"@prisma/client": "6.5.0",
+		"@zenstackhq/runtime": "2.13.3"
+	}
+}
