@@ -49,7 +49,7 @@ export const startServer = async () => {
 
   try {
     const listening = await fastify.listen({ port: 5209, host: '0.0.0.0' });
-    console.log(`Server listening on ${listening}`);
+    console.log(`Server listening on ${listening} ^-^`);
   } catch (err) {
     console.log('[err]', err);
   }
