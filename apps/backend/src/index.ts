@@ -1,8 +1,10 @@
 import { getPrisma } from './db';
 import { seedDB } from './db/seed';
+import { startServer } from './server';
 
 async function main() {
   await seedDB();
+  await startServer();
 
   const { db, user } = await getPrisma({
     // 测试帐号
@@ -13,4 +15,3 @@ async function main() {
   console.log(`${user.email} 可访问的用户列表:  `, await db.user.findMany());
 }
 main();
-// startServer();

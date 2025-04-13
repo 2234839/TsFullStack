@@ -10,7 +10,8 @@
 	"main": "./dist-lib/index.js",
 	"types": "./dist-lib/index.d.ts",
 	"files": [
-		"dist-lib"
+		"dist-lib",
+		"./src/lib/index.ts"
 	],
 	"devDependencies": {
 		"prisma": "6.5.0",

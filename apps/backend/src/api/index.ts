@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+import { ModelMeta } from '../db/model-meta';
 
 export const apis = {
   a: {
@@ -11,6 +12,11 @@ export const apis = {
   },
   b() {
     return 5 as const;
+  },
+  system: {
+    getModelMeta() {
+      return ModelMeta;
+    },
   },
 };
 export type API = typeof apis;
