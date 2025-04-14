@@ -7,14 +7,18 @@
   <DataTable
     :loading="tableData.isLoading.value"
     :value="tableData.state.value.list"
-    tableStyle="min-width: 50rem;font-size: .8rem"
+    tableStyle="--p-datatable-body-cell-sm-padding:0"
+    :size="'small'"
+    showGridlines
+    stripedRows
+    editMode="cell"
     :rows="pageSize"
     :first="(currentPage - 1) * pageSize"
     :totalRecords="tableData.state.value.count"
     @page="onPageChange">
     <Column :field="field.name" :header="field.name" v-for="field of selectModelMeta?.fields">
       <template #body="{ data }">
-        <AutoColumn :row="data" :field="field as any" />
+        <AutoColumn :row="data" :field="(field as any)" />
       </template>
     </Column>
     <template #footer>
@@ -31,8 +35,8 @@
   import { Column, DataTable, Paginator, SelectButton } from 'primevue';
   import { computed, ref, watchEffect } from 'vue';
   import { API } from '../../api';
-  import type { ModelMeta, modelNames } from './type';
   import AutoColumn from './AutoColumn.vue';
+  import type { ModelMeta, modelNames } from './type';
 
   const modelMeta = useAsyncState(() => API.system.getModelMeta(), undefined);
   const models = computed<ModelMeta['models']>(() => {
