@@ -1,4 +1,6 @@
 import { createRPC, type API as __API__, type AppAPI as __AppAPI__ } from 'tsfullstack-backend';
+import superjson from 'superjson';
+
 export const { API } = createRPC<__API__>('apiConsumer', {
   remoteCall: genRemoteCall('http://localhost:5209/api/'),
 });
@@ -14,7 +16,7 @@ function genRemoteCall(baseUrl: string) {
       body = data[0];
       content_type = 'application/octet-stream';
     } else {
-      body = JSON.stringify(data);
+      body = superjson.stringify(data);
       content_type = 'application/json';
     }
     return fetch(`${baseUrl}${method}`, {
@@ -28,11 +30,12 @@ function genRemoteCall(baseUrl: string) {
     })
       .then((res) => res.json())
       .then((r) => {
-        if (r.error) {
-          console.log('[err]', r);
-          throw r.error;
+        const res = superjson.deserialize(r) as any;
+        if (res.error) {
+          console.log('[err]', res);
+          throw res.error;
         }
-        return r.result;
+        return res.result;
       });
   }
   return remoteCall;

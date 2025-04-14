@@ -61,6 +61,7 @@
   import Checkbox from 'primevue/checkbox';
   import { useToast } from 'primevue/usetoast';
   import { API, AppAPI } from '../api';
+  import { authInfo } from '../storage';
 
   const toast = useToast();
   const router = useRouter();
@@ -71,8 +72,8 @@
   }
 
   const form = ref<LoginForm>({
-    username: '',
-    password: '',
+    username: 'admin@example.com',
+    password: 'adminpassword123',
   });
 
   const rememberMe = ref(false);
@@ -83,6 +84,7 @@
     try {
       const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
       console.log('[res]', res);
+      //   authInfo.value = { userId: res.userId, token: res.token };
       toast.add({
         severity: 'success',
         summary: '登录成功',

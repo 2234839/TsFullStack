@@ -8,6 +8,7 @@ import { createRPC } from '../rpc';
 import { AuthService } from '../service';
 import { UnknownException } from 'effect/Cause';
 import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
+import superjson from 'superjson';
 
 const fastify = Fastify({
   logger: false,
@@ -33,7 +34,7 @@ const layer = Logger.replace(Logger.defaultLogger, logger);
 export const startServer = async () => {
   fastify.all('/api/*', async (request, reply) => {
     const method = request.url;
-    const params = request.body as Array<any>;
+    const params = request.body as any;
 
     const x_token_id = request.headers['x-token-id'];
     if (typeof x_token_id !== 'string') {
@@ -41,7 +42,7 @@ export const startServer = async () => {
       return;
     }
 
-    const program = callServerApi(method.slice('/api/'.length), params);
+    const program = callServerApi(method.slice('/api/'.length), superjson.deserialize(params));
     const res = await Effect.runPromise(
       errorHandel(program).pipe(
         Effect.provide(layer),
@@ -55,9 +56,9 @@ export const startServer = async () => {
   });
   fastify.all('/app-api/*', async (request, reply) => {
     const method = request.url;
-    const params = request.body as Array<any>;
+    const params = request.body as any;
 
-    const program = callAppApi(method.slice('/app-api/'.length), params);
+    const program = callAppApi(method.slice('/app-api/'.length), superjson.deserialize(params));
 
     const res = await Effect.runPromise(errorHandel(program).pipe(Effect.provide(layer))).catch(
       (e) => {
@@ -65,7 +66,7 @@ export const startServer = async () => {
       },
     );
 
-    reply.send(res);
+    reply.send(superjson.serialize(res));
   });
   try {
     const listening = await fastify.listen({ port: 5209, host: '0.0.0.0' });
@@ -80,6 +81,7 @@ function errorHandel<A, E, R>(program: Effect.Effect<A, E, R>) {
     const failureOrSuccess = yield* Effect.either(program);
     if (Either.isLeft(failureOrSuccess)) {
       const error = failureOrSuccess.left;
+
       if (typeof error === 'string') {
         return { error: { message: error } };
       }
@@ -98,7 +100,7 @@ function errorHandel<A, E, R>(program: Effect.Effect<A, E, R>) {
           return { error: { message: '数据模型调用错误' } };
         }
       }
-
+      yield* Effect.log(error);
       if (error instanceof Error) {
         return { error };
       }
