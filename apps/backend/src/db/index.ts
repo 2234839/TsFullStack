@@ -1,4 +1,5 @@
 import { PrismaClient } from '../../prisma/client';
+import type { PrismaClient as PrismaClientType } from '@zenstackhq/runtime';
 import { enhance } from '@zenstackhq/runtime/edge';
 import __ModelMeta from '@zenstackhq/runtime/model-meta';
 import { modelsName } from './model-meta';
@@ -11,12 +12,13 @@ export const prisma = new PrismaClient({ log: ['info'] });
 
 /** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表 */
 const allowedMethods = ['$transaction', ...modelsName] as const;
-
+export type safePrisma = Pick<PrismaClientType, (typeof allowedMethods)[number]>;
 /** 获取zenstack 生成的增强 Prisma 客户端实例，用于鉴权操作  */
-export async function getPrisma({ userId }: { userId: string }) {
-  const user = await prisma.user.findUnique({
+export async function getPrisma(opt: { userId?: string; x_token_id?: string }) {
+  const user = await prisma.user.findFirst({
     where: {
-      id: userId,
+      id: opt.userId,
+      OR: [{ userSession: { some: { token: opt.x_token_id } } }],
     },
     include: {
       role: true,
@@ -36,8 +38,7 @@ export async function getPrisma({ userId }: { userId: string }) {
       }
       return Reflect.get(target, prop, receiver);
     },
-  }) as Pick<typeof db, (typeof allowedMethods)[number]>;
-
+  }) as safePrisma;
   return {
     db: dbProxy,
     user: {

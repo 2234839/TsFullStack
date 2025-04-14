@@ -1,20 +1,8 @@
 import { Effect } from 'effect';
-import { ModelMeta } from '../db/model-meta';
-
-
+import { ModelMeta, modelsName } from '../db/model-meta';
+import type { PrismaClient } from '@zenstackhq/runtime';
 
 export const apis = {
-  a: {
-    b(n: number) {
-      return Effect.succeed((n + 2) as 3);
-    },
-    c(n: number) {
-      return Effect.succeed((n + 2) as 3);
-    },
-  },
-  b() {
-    return 5 as const;
-  },
   system: {
     getModelMeta() {
       return ModelMeta;
@@ -25,4 +13,7 @@ export const apis = {
     return Effect.succeed('test');
   },
 };
-export type API = typeof apis;
+
+const allowedMethods = ['$transaction', ...modelsName] as const;
+export type safePrisma = Pick<PrismaClient, (typeof allowedMethods)[number]>;
+export type API = typeof apis & { db: safePrisma };

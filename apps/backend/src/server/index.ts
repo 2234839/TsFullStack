@@ -2,13 +2,14 @@ import fastifyCors from '@fastify/cors';
 import { Effect, Either, Logger } from 'effect';
 import Fastify from 'fastify';
 import { Readable } from 'stream';
-import { apis } from '../api';
+import { apis, type API } from '../api';
 import { appApis } from '../api/appApi';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service';
 import { UnknownException } from 'effect/Cause';
 import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
 import superjson from 'superjson';
+import { getPrisma } from '../db';
 
 const fastify = Fastify({
   logger: false,
@@ -41,18 +42,50 @@ export const startServer = async () => {
       reply.status(401).send({ error: 'Unauthorized' });
       return;
     }
+    const { db, user } = await getPrisma({ x_token_id }).catch((e) => {
+      console.log('[e]', e);
+      throw e;
+    });
 
+    const serverApiRPC = createRPC('apiProvider', {
+      genApiModule: async () => {
+        return {
+          ...apis,
+          /** 这里是为了防止 Effct 的类型体统提示循环引用报错 */
+          db: db as unknown as undefined,
+        };
+      },
+    });
+
+    function callServerApi(method: string, params: any[]) {
+      const startTime = Date.now();
+      return Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => serverApiRPC.RC(method, params));
+        const endTime = Date.now();
+
+        yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
+
+        if (Effect.isEffect(result)) {
+          const res = yield* result;
+          return res;
+        } else {
+          return result;
+        }
+      });
+    }
     const program = callServerApi(method.slice('/api/'.length), superjson.deserialize(params));
     const res = await Effect.runPromise(
       errorHandel(program).pipe(
         Effect.provide(layer),
         Effect.provideService(AuthService, {
           x_token_id,
+          db,
+          user,
         }),
       ),
     );
 
-    reply.send(res);
+    reply.send(superjson.serialize(res));
   });
   fastify.all('/app-api/*', async (request, reply) => {
     const method = request.url;
@@ -107,31 +140,6 @@ function errorHandel<A, E, R>(program: Effect.Effect<A, E, R>) {
       return Effect.fail('错误的 fail 值');
     } else {
       return { result: failureOrSuccess.right };
-    }
-  });
-}
-
-const serverApiRPC = createRPC('apiProvider', {
-  genApiModule: async () => {
-    return apis;
-  },
-});
-
-function callServerApi(method: string, params: any[]) {
-  const startTime = Date.now();
-  return Effect.gen(function* () {
-    const authInfo = yield* AuthService;
-    yield* Effect.log('[authInfo]', authInfo);
-    const result = yield* Effect.tryPromise(() => serverApiRPC.RC(method, params));
-    const endTime = Date.now();
-
-    yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
-
-    if (Effect.isEffect(result)) {
-      const res = yield* result;
-      return res;
-    } else {
-      return result;
     }
   });
 }
