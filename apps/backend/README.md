@@ -5,7 +5,6 @@ pnpm zenstack generate
 
 pnpm zenstack repl
 
-pnpm prisma generate
 pnpm prisma migrate dev
 <!-- 将应用部署到集成环境 -->
 pnpm prisma migrate deploy

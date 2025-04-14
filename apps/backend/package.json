@@ -17,7 +17,7 @@
 	],
 	"devDependencies": {
 		"nodemon": "^3.1.9",
-		"prisma": "6.5.0",
+		"prisma": "^6.6.0",
 		"regexp-to-ast": "^0.5.0",
 		"tsup": "^8.4.0",
 		"typescript": "^5.8.3",
@@ -25,7 +25,7 @@
 	},
 	"dependencies": {
 		"@fastify/cors": "^11.0.1",
-		"@prisma/client": "6.5.0",
+		"@prisma/client": "^6.6.0",
 		"@types/node": "^22.14.1",
 		"@zenstackhq/runtime": "2.13.3",
 		"effect": "^3.14.8",

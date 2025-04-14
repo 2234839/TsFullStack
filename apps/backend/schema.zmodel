@@ -8,17 +8,24 @@ datasource db {
 
 generator client {
     provider = "prisma-client-js"
+    output   = "node_modules/@prisma/client"
+}
+
+/// 所有模型的基类，包含创建时间和更新时间字段。
+abstract model Common {
+    created DateTime @default(now())
+    updated DateTime @updatedAt
 }
 
 /// 角色
-model Role {
+model Role extends Common {
     id    Int    @id @default(autoincrement())
     name  String @unique
     users User[]
 }
 
 /// User model
-model User {
+model User extends Common {
     id       String @id @default(cuid())
     email    String @unique @email @length(6, 32)
     password String @password @omit
@@ -32,7 +39,7 @@ model User {
 }
 
 /// Post model
-model Post {
+model Post  extends Common {
     id        String   @id @default(cuid())
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
