@@ -1,7 +1,6 @@
 <style scoped></style>
 <template>
   智能表格
-  {{ users.state }}
   <div class="flex space-x-1">
     <div v-for="(model, modelName) of models">
       {{ modelName }}
@@ -15,8 +14,8 @@
     <Column field="quantity" header="Quantity"></Column>
   </DataTable>
 
-  <div v-for="user of users.state">
-    {{ user }}
+  <div v-for="user of users.state.value">
+    {{ user.email }}
   </div>
 </template>
 <script setup lang="ts">
