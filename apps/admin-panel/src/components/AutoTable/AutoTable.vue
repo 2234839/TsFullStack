@@ -2,21 +2,17 @@
 <template>
   智能表格
   <div class="flex space-x-1">
-    <SelectButton v-model="selectModel" :options="Object.keys(models)" />
+    <SelectButton v-model="selectModelName" :options="Object.keys(models)" />
   </div>
-
   <DataTable
     :loading="tableData.isLoading.value"
     :value="tableData.state.value.list"
-    tableStyle="min-width: 50rem"
+    tableStyle="min-width: 50rem;font-size: .8rem"
     :rows="pageSize"
     :first="(currentPage - 1) * pageSize"
     :totalRecords="tableData.state.value.count"
     @page="onPageChange">
-    <Column field="id" header="id"></Column>
-    <Column field="name" header="Name"></Column>
-    <Column field="category" header="Category"></Column>
-    <Column field="quantity" header="Quantity"></Column>
+    <Column :field="col.name" :header="col.name" v-for="col of selectModelMeta?.fields"></Column>
     <template #footer>
       <Paginator
         :rows="pageSize"
@@ -31,16 +27,19 @@
   import { Column, DataTable, Paginator, SelectButton } from 'primevue';
   import { computed, ref, watchEffect } from 'vue';
   import { API } from '../../api';
+  import type { ModelMeta, modelNames } from './type';
 
-  type ModelMeta = Awaited<ReturnType<typeof API.system.getModelMeta>>;
-  type modelNames = keyof ModelMeta['models'];
   const modelMeta = useAsyncState(() => API.system.getModelMeta(), undefined);
-  const models = computed(() => {
+  const models = computed<ModelMeta['models']>(() => {
     const meta = modelMeta.state.value;
-    return meta?.models ?? ({} as ModelMeta);
+    return meta?.models ?? ({} as ModelMeta['models']);
   });
 
-  const selectModel = ref<modelNames>();
+  const selectModelName = ref<modelNames>();
+  const selectModelMeta = computed(() => {
+    if (!selectModelName.value) return undefined;
+    return models.value[selectModelName.value];
+  });
   const currentPage = ref(1);
   const pageSize = ref(10);
   const firstRecord = ref(0);
@@ -61,12 +60,12 @@
     {},
   );
 
-  const onPageChange = (event: any) => {
+  const onPageChange = (event: { page: number; first: number }) => {
     currentPage.value = event.page + 1;
     firstRecord.value = event.first;
-    if (selectModel.value) {
+    if (selectModelName.value) {
       tableData.execute(200, {
-        model: selectModel.value,
+        model: selectModelName.value,
         page: currentPage.value,
         pageSize: pageSize.value,
       });
@@ -74,9 +73,9 @@
   };
 
   watchEffect(() => {
-    if (!selectModel.value) return;
+    if (!selectModelName.value) return;
     tableData.execute(200, {
-      model: selectModel.value,
+      model: selectModelName.value,
       page: currentPage.value,
       pageSize: pageSize.value,
     });
