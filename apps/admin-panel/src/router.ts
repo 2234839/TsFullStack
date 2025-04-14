@@ -15,7 +15,7 @@ export const routeMap = {
   },
   admin: {
     path: '/admin',
-    component: () => import('./pages/AdminLayout.vue'),
+    component: () => import('./pages/admin/AdminLayout.vue'),
     child: {
       index: {
         path: '',
