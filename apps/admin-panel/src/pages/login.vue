@@ -60,6 +60,7 @@
   import Button from 'primevue/button';
   import Checkbox from 'primevue/checkbox';
   import { useToast } from 'primevue/usetoast';
+  import { API, AppAPI } from '../api';
 
   const toast = useToast();
   const router = useRouter();
@@ -80,13 +81,8 @@
   const handleLogin = async () => {
     loading.value = true;
     try {
-      // 这里替换为实际的登录API调用
-      // const response = await loginApi(form.value);
-      console.log('登录信息:', form.value);
-
-      // 模拟API延迟
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
+      const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
+      console.log('[res]', res);
       toast.add({
         severity: 'success',
         summary: '登录成功',
@@ -99,7 +95,7 @@
       toast.add({
         severity: 'error',
         summary: '登录失败',
-        detail: '用户名或密码错误',
+        detail: (error as Error).message,
         life: 3000,
       });
     } finally {

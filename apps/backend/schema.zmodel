@@ -8,7 +8,7 @@ datasource db {
 
 generator client {
     provider = "prisma-client-js"
-    output   = "node_modules/@prisma/client"
+    output   = "client"
 }
 
 /// 所有模型的基类，包含创建时间和更新时间字段。
@@ -26,16 +26,28 @@ model Role extends Common {
 
 /// User model
 model User extends Common {
-    id       String @id @default(cuid())
-    email    String @unique @email @length(6, 32)
-    password String @password @omit
-    posts    Post[]
-    role     Role[]
+    id           String         @id @default(cuid())
+    email        String         @unique @email @length(6, 32)
+    password     String         @password @omit
+    posts        Post[]
+    role         Role[]
 
+    userSession UserSession[]
     /// 允许用户读取和更新自己的信息
     @@allow('read,update', auth() == this)
     /// 通过多对多的关系来实现用户角色的鉴权，允许管理员角色进行所有操作
     @@allow('all', auth().role?[name == 'admin'])
+
+}
+
+/// 用户会话模型，用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
+model UserSession extends Common {
+    id        String   @id @default(cuid())
+    token     String   @default(cuid())
+    expiresAt DateTime
+
+    userId    String
+    user      User     @relation(fields: [userId], references: [id])
 }
 
 /// Post model

@@ -8,7 +8,7 @@ export default defineConfig({
   // 生成类型声明文件
   dts: true,
   // 打包格式
-  format: ['esm'],
+  format: 'cjs',
   // 代码分割
   splitting: false,
   // 生成 sourcemap

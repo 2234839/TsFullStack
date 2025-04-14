@@ -29,8 +29,8 @@ function genRemoteCall(baseUrl: string) {
       .then((res) => res.json())
       .then((r) => {
         if (r.error) {
-          console.log('[r]', r);
-          throw new Error();
+          console.log('[err]', r);
+          throw r.error;
         }
         return r.result;
       });

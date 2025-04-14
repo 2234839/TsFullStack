@@ -1,11 +1,13 @@
-import { Effect, Logger } from 'effect';
+import fastifyCors from '@fastify/cors';
+import { Effect, Either, Logger } from 'effect';
 import Fastify from 'fastify';
 import { Readable } from 'stream';
-import { apis, type API } from '../api';
-import { createRPC } from '../rpc';
-import fastifyCors from '@fastify/cors';
-import { AuthService } from '../service';
+import { apis } from '../api';
 import { appApis } from '../api/appApi';
+import { createRPC } from '../rpc';
+import { AuthService } from '../service';
+import { UnknownException } from 'effect/Cause';
+import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
 
 const fastify = Fastify({
   logger: false,
@@ -40,8 +42,8 @@ export const startServer = async () => {
     }
 
     const program = callServerApi(method.slice('/api/'.length), params);
-    const result = await Effect.runPromise(
-      program.pipe(
+    const res = await Effect.runPromise(
+      errorHandel(program).pipe(
         Effect.provide(layer),
         Effect.provideService(AuthService, {
           x_token_id,
@@ -49,16 +51,21 @@ export const startServer = async () => {
       ),
     );
 
-    reply.send({ result });
+    reply.send(res);
   });
   fastify.all('/app-api/*', async (request, reply) => {
     const method = request.url;
     const params = request.body as Array<any>;
 
     const program = callAppApi(method.slice('/app-api/'.length), params);
-    const result = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
-    reply.send({ result });
+    const res = await Effect.runPromise(errorHandel(program).pipe(Effect.provide(layer))).catch(
+      (e) => {
+        console.log('[e]', e);
+      },
+    );
+
+    reply.send(res);
   });
   try {
     const listening = await fastify.listen({ port: 5209, host: '0.0.0.0' });
@@ -67,6 +74,40 @@ export const startServer = async () => {
     console.log('[err]', err);
   }
 };
+
+function errorHandel<A, E, R>(program: Effect.Effect<A, E, R>) {
+  return Effect.gen(function* () {
+    const failureOrSuccess = yield* Effect.either(program);
+    if (Either.isLeft(failureOrSuccess)) {
+      const error = failureOrSuccess.left;
+      if (typeof error === 'string') {
+        return { error: { message: error } };
+      }
+      if (error instanceof UnknownException) {
+        const targetErr = error.error;
+
+        if (targetErr instanceof Error && targetErr.name === 'PrismaClientKnownRequestError') {
+          const err = targetErr as PrismaClientKnownRequestError;
+          if (err?.meta && 'reason' in err.meta) {
+            if (err.meta?.reason === 'ACCESS_POLICY_VIOLATION') {
+              return { error: { message: '权限不足' } };
+            }
+            return { error: { message: err.meta.reason } };
+          }
+          yield* Effect.logError('数据模型调用错误', targetErr);
+          return { error: { message: '数据模型调用错误' } };
+        }
+      }
+
+      if (error instanceof Error) {
+        return { error };
+      }
+      return Effect.fail('错误的 fail 值');
+    } else {
+      return { result: failureOrSuccess.right };
+    }
+  });
+}
 
 const serverApiRPC = createRPC('apiProvider', {
   genApiModule: async () => {
