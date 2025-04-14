@@ -49,7 +49,7 @@ export const startServer = async () => {
       ),
     );
 
-    reply.send(result);
+    reply.send({ result });
   });
   fastify.all('/app-api/*', async (request, reply) => {
     const method = request.url;
@@ -58,7 +58,7 @@ export const startServer = async () => {
     const program = callAppApi(method.slice('/app-api/'.length), params);
     const result = await Effect.runPromise(program.pipe(Effect.provide(layer)));
 
-    reply.send(result);
+    reply.send({ result });
   });
   try {
     const listening = await fastify.listen({ port: 5209, host: '0.0.0.0' });
