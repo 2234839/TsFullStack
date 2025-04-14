@@ -12,7 +12,11 @@
     :first="(currentPage - 1) * pageSize"
     :totalRecords="tableData.state.value.count"
     @page="onPageChange">
-    <Column :field="col.name" :header="col.name" v-for="col of selectModelMeta?.fields"></Column>
+    <Column :field="field.name" :header="field.name" v-for="field of selectModelMeta?.fields">
+      <template #body="{ data }">
+        <AutoColumn :row="data" :field="field as any" />
+      </template>
+    </Column>
     <template #footer>
       <Paginator
         :rows="pageSize"
@@ -28,6 +32,7 @@
   import { computed, ref, watchEffect } from 'vue';
   import { API } from '../../api';
   import type { ModelMeta, modelNames } from './type';
+  import AutoColumn from './AutoColumn.vue';
 
   const modelMeta = useAsyncState(() => API.system.getModelMeta(), undefined);
   const models = computed<ModelMeta['models']>(() => {
