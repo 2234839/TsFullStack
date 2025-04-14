@@ -1,6 +1,6 @@
 import {
-  createMemoryHistory,
   createRouter,
+  createWebHistory,
   type RouteLocationRaw,
   type Router,
   type RouteRecordRaw,
@@ -53,7 +53,7 @@ function transformRoutes(tree?: RouteTree): RouteRecordRaw[] {
 
 const routes: RouteRecordRaw[] = transformRoutes(routeMap);
 export const router = createRouter({
-  history: createMemoryHistory(),
+  history: createWebHistory(),
   routes,
 });
 

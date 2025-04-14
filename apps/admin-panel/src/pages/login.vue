@@ -44,7 +44,12 @@
           </div>
         </div>
 
-        <div>
+        <div class="space-y-1">
+          <Button
+            v-if="authInfo_isLogin"
+            label="已处于登录状态, 点击跳转首页"
+            @click="routerUtil.push(routeMap.admin, {})"
+            class="w-full justify-center" />
           <Button type="submit" label="登录" class="w-full justify-center" :loading="loading" />
         </div>
       </form>
@@ -53,18 +58,17 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
-  import { useRouter } from 'vue-router';
-  import InputText from 'primevue/inputtext';
-  import Password from 'primevue/password';
   import Button from 'primevue/button';
   import Checkbox from 'primevue/checkbox';
+  import InputText from 'primevue/inputtext';
+  import Password from 'primevue/password';
   import { useToast } from 'primevue/usetoast';
-  import { API, AppAPI } from '../api';
-  import { authInfo } from '../storage';
+  import { ref } from 'vue';
+  import { AppAPI } from '../api';
+  import { routeMap, routerUtil } from '../router';
+  import { authInfo, authInfo_isLogin } from '../storage';
 
   const toast = useToast();
-  const router = useRouter();
 
   interface LoginForm {
     username: string;
@@ -83,8 +87,8 @@
     loading.value = true;
     try {
       const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
-      console.log('[res]', res);
-      //   authInfo.value = { userId: res.userId, token: res.token };
+
+      authInfo.value = { userId: res.userId, token: res.token, expiresAt: res.expiresAt.getTime() };
       toast.add({
         severity: 'success',
         summary: '登录成功',
@@ -92,7 +96,7 @@
         life: 3000,
       });
 
-      router.push('/dashboard');
+      routerUtil.push(routeMap.admin, {});
     } catch (error) {
       toast.add({
         severity: 'error',

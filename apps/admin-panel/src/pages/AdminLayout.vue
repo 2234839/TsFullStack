@@ -4,11 +4,11 @@
 </template>
 <script setup lang="ts">
   import { onMounted } from 'vue';
-  import { authInfo } from '../storage';
   import { routeMap, routerUtil } from '../router';
+  import { authInfo_isLogin } from '../storage';
 
   onMounted(() => {
-    if (!authInfo.value) {
+    if (!authInfo_isLogin.value) {
       routerUtil.push(routeMap.login, {});
     }
   });
