@@ -5,4 +5,4 @@
 ## 特性
 
 - 使用 zenstack 来实现数据库建模（prisma 来实现）和 Row Level Security 。
-- 具有类 prisma studio 的管理面板，简单功能不再需要写管理后端的代码。
+- 具有类 prisma studio 的管理面板（一定程度上可以作为他的开源替代方案），简单功能不再需要写管理后端的代码。
