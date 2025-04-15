@@ -4,6 +4,7 @@
   <div class="flex space-x-1">
     <SelectButton v-model="selectModelName" :options="Object.keys(models)" />
   </div>
+  <Button @click="saveChanges">保存修改结果</Button>
   <DataTable
     :loading="tableData.isLoading.value"
     :value="tableData.state.value.list"
@@ -35,11 +36,11 @@
 </template>
 <script setup lang="ts">
   import { useAsyncState } from '@vueuse/core';
-  import { Column, DataTable, Paginator, SelectButton } from 'primevue';
+  import { Button, Column, DataTable, Paginator, SelectButton } from 'primevue';
   import { computed, ref, watchEffect } from 'vue';
   import { API } from '../../api';
   import AutoColumn from './AutoColumn.vue';
-  import type { ModelMeta, modelNames } from './type';
+  import type { Field, ModelMeta, modelNames } from './type';
 
   const modelMeta = useAsyncState(() => API.system.getModelMeta(), undefined);
   const models = computed<ModelMeta['models']>(() => {
@@ -52,9 +53,23 @@
     if (!selectModelName.value) return undefined;
     return models.value[selectModelName.value];
   });
+
+  //#region 表格分页
   const currentPage = ref(1);
   const pageSize = ref(10);
   const firstRecord = ref(0);
+  const onPageChange = (event: { page: number; first: number }) => {
+    currentPage.value = event.page + 1;
+    firstRecord.value = event.first;
+    if (selectModelName.value) {
+      tableData.execute(200, {
+        model: selectModelName.value,
+        page: currentPage.value,
+        pageSize: pageSize.value,
+      });
+    }
+  };
+  //#endregion 表格分页
 
   /** 编辑数据的临时存储，用于保存每行的编辑结果  */
   const editData = ref<Array<Record<string, any>>>([]);
@@ -75,17 +90,13 @@
     {},
   );
 
-  const onPageChange = (event: { page: number; first: number }) => {
-    currentPage.value = event.page + 1;
-    firstRecord.value = event.first;
-    if (selectModelName.value) {
-      tableData.execute(200, {
-        model: selectModelName.value,
-        page: currentPage.value,
-        pageSize: pageSize.value,
-      });
-    }
-  };
+  function reloadTableData() {
+    tableData.execute(200, {
+      model: selectModelName.value!,
+      page: currentPage.value,
+      pageSize: pageSize.value,
+    });
+  }
 
   watchEffect(() => {
     if (!selectModelName.value) return;
@@ -95,4 +106,35 @@
       pageSize: pageSize.value,
     });
   });
+
+  async function saveChanges() {
+    if (!selectModelName.value) return;
+
+    /** 查找一个可以用于更新指定记录的唯一主键字段  */
+    const idField = Object.values(selectModelMeta.value?.fields ?? []).find(
+      (el) => (el as Field).isId,
+    );
+    if (!idField) return console.error('No ID field found in the model');
+
+    for (let index = 0; index < editData.value.length; index++) {
+      const editRow = editData.value[index];
+      const editFields = Object.keys(editRow);
+      if (editFields.length === 0) continue;
+
+      const rawRow = tableData.state.value.list[index];
+      const updateRes = await API.db[selectModelName.value].update({
+        data: editRow,
+        // @ts-ignore
+        where: {
+          // @ts-ignore
+          [idField.name]: rawRow[idField.name],
+        },
+        select: {
+          [idField.name]: true,
+        },
+      });
+      console.log('[updateRes]', updateRes);
+    }
+    reloadTableData();
+  }
 </script>

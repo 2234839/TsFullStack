@@ -1,6 +1,6 @@
 <style scoped></style>
 <template>
-  <div class="text-nowrap py-1" @click="editMode = true" v-if="!editMode">
+  <div class="text-nowrap p-1" @click="editMode = true" v-if="!editMode">
     <template v-if="field.type === 'DateTime'">
       {{ formatDate(cellData, 'YYYY-MM-DD HH:mm:ss') }}
     </template>
