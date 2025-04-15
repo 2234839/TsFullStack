@@ -93,6 +93,7 @@
   };
   //#endregion 表格分页
 
+  //#region 表格数据存储及加载
   /** 编辑数据的临时存储，用于保存每行的编辑结果  */
   const editData = ref<Array<Record<string, any>>>([] as rowsType[]);
   type rowsType = Awaited<ReturnType<(typeof API.db)[DBmodelNames]['findMany']>>;
@@ -141,6 +142,7 @@
       pageSize: pageSize.value,
     });
   }
+  //#endregion
 
   /** 切换模型时触发更新 */
   watchEffect(() => {
