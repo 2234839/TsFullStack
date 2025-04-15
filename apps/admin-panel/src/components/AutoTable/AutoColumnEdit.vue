@@ -14,10 +14,10 @@
   import { InputText } from 'primevue';
   import DatePicker from 'primevue/datepicker';
   import { computed } from 'vue';
-  import type { Field } from './type';
+  import type { FieldInfo } from './type';
 
   const props = defineProps<{
-    field: Field;
+    field: FieldInfo;
     row: { [fieldName: string]: any };
   }>();
   const cellData = computed(() => props.row[props.field.name]);

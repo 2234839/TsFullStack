@@ -4,18 +4,22 @@
     <template v-if="field.type === 'DateTime'">
       {{ formatDate(cellData, 'YYYY-MM-DD HH:mm:ss') }}
     </template>
+    <template v-else-if="field.isDataModel">
+      <template v-if="field.isArray">{{ cellData.length }} 条记录</template>
+      <template v-else> ref </template>
+    </template>
     <template v-else>{{ cellData }}</template>
   </div>
   <AutoColumnEdit ref="__editEl" v-model="editValue" v-else :field="field" :row="props.row" />
 </template>
 <script setup lang="ts">
   import { computed, ref, useTemplateRef } from 'vue';
-  import type { Field } from './type';
+  import type { FieldInfo } from './type';
   import { formatDate, onClickOutside } from '@vueuse/core';
   import AutoColumnEdit from './AutoColumnEdit.vue';
 
   const props = defineProps<{
-    field: Field;
+    field: FieldInfo;
     row: { [fieldName: string]: any };
   }>();
 
@@ -27,7 +31,7 @@
 
   /** 实现如果值未修改，点击外部时关闭编辑模式 */
   onClickOutside(editEl, () => {
-    if (editValue.value === undefined ) {
+    if (editValue.value === undefined) {
       editMode.value = false;
     }
   });

@@ -1,7 +1,7 @@
 <style scoped></style>
 <template>
   <div class="flex space-x-1 my-1">
-    <SelectButton v-model="selectModelName" :options="Object.keys(models)" />
+    <SelectButton v-model="selectModelName" :options="Object.values(models).map((el) => el.name)" />
     <div class="flex items-center space-x-2" v-if="editRows.length">
       <Button @click="saveChanges">保存修改结果</Button>
       <Button @click="discardChanges" severity="secondary">丢弃修改</Button>
@@ -21,7 +21,7 @@
     :first="(currentPage - 1) * pageSize"
     :totalRecords="tableData.state.value.count"
     @page="onPageChange">
-    <Column :field="field.name" :header="field.name" v-for="field of selectModelMeta?.fields">
+    <Column :field="field.name" :header="field.name" v-for="field of selectModelMeta?.model.fields">
       <template #body="{ data, index }">
         <AutoColumn
           :row="data"
@@ -44,18 +44,26 @@
   import { computed, ref, watchEffect } from 'vue';
   import { API } from '../../api';
   import AutoColumn from './AutoColumn.vue';
-  import type { Field, ModelMeta, modelNames } from './type';
+  import type { DBmodelNames, FieldInfo, ModelMeta } from './type';
+  import { findIdField, getModelKey } from './util';
 
-  const modelMeta = useAsyncState(() => API.system.getModelMeta(), undefined);
-  const models = computed<ModelMeta['models']>(() => {
+  const modelMeta = useAsyncState(() => API.system.getModelMeta() as Promise<ModelMeta>, undefined);
+  const models = computed(() => {
     const meta = modelMeta.state.value;
-    return meta?.models ?? ({} as ModelMeta['models']);
+    return meta?.models ?? {};
   });
 
-  const selectModelName = ref<modelNames>();
+  const selectModelName = ref<string>('User');
   const selectModelMeta = computed(() => {
     if (!selectModelName.value) return undefined;
-    return models.value[selectModelName.value];
+    return Object.entries(models.value)
+      .map(([modelKey, model]) => {
+        return {
+          modelKey,
+          model,
+        };
+      })
+      .find((el) => el.model.name === selectModelName.value);
   });
 
   //#region 表格分页
@@ -67,7 +75,7 @@
     firstRecord.value = event.first;
     if (selectModelName.value) {
       tableData.execute(200, {
-        model: selectModelName.value,
+        modelKey: selectModelName.value,
         page: currentPage.value,
         pageSize: pageSize.value,
       });
@@ -78,14 +86,32 @@
   /** 编辑数据的临时存储，用于保存每行的编辑结果  */
   const editData = ref<Array<Record<string, any>>>([]);
   const tableData = useAsyncState(
-    async (opt: { model: modelNames; page: number; pageSize: number }) => {
-      if (!opt.model) return { list: [], count: 0 };
+    async (opt: { modelKey: string; page: number; pageSize: number }) => {
+      const meta = modelMeta.state.value;
+      if (!opt.modelKey || !meta) return { list: [], count: 0 };
+      const dataModelFields = Object.values(models.value[opt.modelKey].fields).filter(
+        (el) => (el as FieldInfo).isDataModel,
+      );
+      const include = dataModelFields.reduce((acc, field) => {
+        const modelName = field.isDataModel ? field.type : field.name;
+        const idField = findIdField(meta, modelName);
+        const modelKey = getModelKey(meta, modelName);
+        if (!idField || !modelKey) return acc;
+        acc[field.name] = {
+          select: {
+            [idField.name]: true,
+          },
+        };
+        return acc;
+      }, {} as Record<string, any>);
+
       const [list, count] = await Promise.all([
-        API.db[opt.model].findMany({
+        API.db[opt.modelKey as DBmodelNames].findMany({
           take: opt.pageSize,
           skip: (opt.page - 1) * opt.pageSize,
+          include,
         }),
-        API.db[opt.model].count({}),
+        API.db[opt.modelKey as DBmodelNames].count({}),
       ]);
       editData.value = list.map((_) => ({}));
       return { list, count };
@@ -95,8 +121,9 @@
   );
 
   function reloadTableData() {
+    if (!selectModelMeta.value?.modelKey) return;
     tableData.execute(200, {
-      model: selectModelName.value!,
+      modelKey: selectModelMeta.value!.modelKey,
       page: currentPage.value,
       pageSize: pageSize.value,
     });
@@ -117,9 +144,7 @@
     if (!selectModelName.value) return;
 
     /** 查找一个可以用于更新指定记录的唯一主键字段  */
-    const idField = Object.values(selectModelMeta.value?.fields ?? []).find(
-      (el) => (el as Field).isId,
-    );
+    const idField = findIdField(modelMeta.state.value!, selectModelName.value);
     if (!idField) return console.error('No ID field found in the model');
 
     for (let index = 0; index < editData.value.length; index++) {
@@ -128,7 +153,7 @@
       if (editFields.length === 0) continue;
 
       const rawRow = tableData.state.value.list[index];
-      const updateRes = await API.db[selectModelName.value].update({
+      const updateRes = await API.db[selectModelName.value as DBmodelNames].update({
         data: editRow,
         // @ts-ignore
         where: {

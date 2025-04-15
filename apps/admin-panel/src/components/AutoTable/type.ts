@@ -1,26 +1,13 @@
+import type { ModelMeta } from 'tsfullstack-backend';
 import type { API } from '../../api';
+export type { ModelMeta } from 'tsfullstack-backend';
 
-export type ModelMeta = Awaited<ReturnType<typeof API.system.getModelMeta>>;
-export type modelNames = keyof ModelMeta['models'];
-export type Fields = ModelMeta['models'][modelNames]['fields'];
-export type Field2 = Fields[keyof Fields]; // Extracts the type of each field in the fields object
-export type Field = {
-  name: string;
-  type: 'DateTime' | 'String';
-  isId?: boolean;
-  isAutoIncrement?: boolean;
-  isDataModel?: boolean;
-  isArray?: boolean;
-  backLink?: string;
-  isRelationOwner?: boolean;
+//#region 当前模型的类型
+export type DBModelMeta = Awaited<ReturnType<typeof API.system.getModelMeta>>;
+export type DBmodelNames = keyof DBModelMeta['models'];
+export type DBFields = DBModelMeta['models'][DBmodelNames]['fields'];
+//#endregion
 
-  attributes: {
-    name: string;
-    args: (
-      | never
-      | {
-          value: number;
-        }
-    )[];
-  }[];
-};
+export type Fields = ModelMeta['models'][string]['fields'];
+export type FieldInfo = ModelMeta['models'][string]['fields'][string];
+export type Model = ModelMeta['models'][string]
