@@ -1,21 +1,29 @@
 <style scoped></style>
 <template>
   <div class="flex space-x-1 my-1">
-    <div class="flex items-center space-x-2" v-if="editRows.length">
-      <Button @click="saveChanges">保存修改结果</Button>
-      <Button @click="discardChanges" severity="secondary">丢弃修改</Button>
-      <span> {{ editRows.length }} 行受影响( {{ eidtCellCount }} 处) </span>
+    <div class="flex items-center space-x-2">
+      <div class="flex items-center space-x-2" v-if="editRows.length">
+        <Button @click="saveChanges">保存修改结果</Button>
+        <Button @click="discardChanges" severity="secondary">丢弃修改</Button>
+        <span> {{ editRows.length }} 行受影响( {{ eidtCellCount }} 处) </span>
+      </div>
+      <div class="flex items-center space-x-2" v-if="selectRows.length">
+        <Button @click="deleteConfirm($event)" severity="danger"
+          >Delete( {{ selectRows.length }} )</Button
+        >
+      </div>
     </div>
   </div>
-
   <DataTable
     :loading="tableData.isLoading.value"
     :value="tableData.state.value.list"
+    v-model:selection="selectRows"
     tableStyle="--p-datatable-body-cell-sm-padding:0"
     :size="'small'"
     showGridlines
     stripedRows
     editMode="cell">
+    <Column selectionMode="multiple" body-style="padding:0 7px"></Column>
     <Column :field="field.name" :header="field.name" v-for="field of selectModelMeta?.model.fields">
       <template #body="{ data, index }">
         <AutoColumn
@@ -36,12 +44,15 @@
 </template>
 <script setup lang="ts">
   import { useAsyncState } from '@vueuse/core';
-  import { Button, Column, DataTable, Paginator } from 'primevue';
+  import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
   import { computed, ref, watchEffect } from 'vue';
-  import { API } from '../../api';
+  import { API, AppAPI } from '../../api';
   import AutoColumn from './AutoColumn.vue';
   import type { DBmodelNames, FieldInfo } from './type';
   import { findIdField, getModelKey, useModelMeta } from './util';
+
+  const confirm = useConfirm();
+  const toast = useToast();
 
   const modelMeta = useModelMeta();
   const models = computed(() => {
@@ -52,7 +63,7 @@
   const selectModelName = defineModel<string>('modelName', {
     required: true,
   });
-
+  const selectRows = ref([]);
   const selectModelMeta = computed(() => {
     if (!selectModelName.value) return undefined;
     return Object.entries(models.value)
@@ -83,7 +94,8 @@
   //#endregion 表格分页
 
   /** 编辑数据的临时存储，用于保存每行的编辑结果  */
-  const editData = ref<Array<Record<string, any>>>([]);
+  const editData = ref<Array<Record<string, any>>>([] as rowsType[]);
+  type rowsType = Awaited<ReturnType<(typeof API.db)[DBmodelNames]['findMany']>>;
   const tableData = useAsyncState(
     async (opt: { modelKey: string; page: number; pageSize: number }) => {
       const meta = modelMeta.state.value;
@@ -112,13 +124,15 @@
         }),
         API.db[opt.modelKey as DBmodelNames].count({}),
       ]);
+      //#region 清理数据
       editData.value = list.map((_) => ({}));
+      selectRows.value = [];
+      //#endregion 清理数据
       return { list, count };
     },
     { list: [], count: 0 },
     {},
   );
-
   function reloadTableData() {
     if (!selectModelMeta.value?.modelKey) return;
     tableData.execute(200, {
@@ -134,7 +148,7 @@
     reloadTableData();
   });
 
-  //#region 数据编辑更新功能
+  //#region 数据编辑相关逻辑功能
   /** 当前被编辑了的数据行 */
   const editRows = computed(() => {
     return editData.value.filter((row) => Object.keys(row).length > 0);
@@ -175,6 +189,54 @@
       Object.keys(row).forEach((key) => {
         delete row[key];
       });
+    });
+  }
+  async function deleteRows(rows: rowsType) {
+    /** 查找一个可以用于更新指定记录的唯一主键字段  */
+    const idField = findIdField(modelMeta.state.value!, selectModelName.value);
+    if (!idField) return console.error('No ID field found in the model');
+    if (rows.length === 0)
+      return toast.add({
+        severity: 'info',
+        summary: 'Warn',
+        detail: '为选中数据',
+        life: 3000,
+      });
+    await API.db[selectModelMeta.value!.modelKey as DBmodelNames].deleteMany({
+      where: {
+        OR: rows.map((row) => {
+          return {
+            // @ts-ignore
+            [idField.name]: row[idField.name],
+          };
+        }),
+      },
+    });
+    toast.add({
+      severity: 'info',
+      summary: '删除数据',
+      detail: '删除数据完毕',
+      life: 3000,
+    });
+    reloadTableData();
+  }
+  function deleteConfirm(event: MouseEvent) {
+    confirm.require({
+      target: event.currentTarget as HTMLElement,
+      message: '确定删除吗？',
+      icon: 'pi pi-exclamation-triangle',
+      rejectProps: {
+        label: 'Cancel',
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptProps: {
+        label: 'Delete！',
+        severity: 'danger',
+      },
+      accept: () => {
+        deleteRows(selectRows.value);
+      },
     });
   }
   //#endregion 数据编辑更新功能

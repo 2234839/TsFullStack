@@ -6,14 +6,8 @@
 <template>
   <RouterView />
   <Toast />
+  <ConfirmPopup />
 </template>
 <script setup lang="ts">
-  import { Toast } from 'primevue';
-
-  // import { API, AppAPI } from './api';
-  // import { useAsyncState } from '@vueuse/core';
-
-  // const modelMeta = useAsyncState(() => {
-  //   return AppAPI.__effect__();
-  // }, undefined);
+  import { Toast, ConfirmPopup } from 'primevue';
 </script>
