@@ -15,11 +15,7 @@
     :size="'small'"
     showGridlines
     stripedRows
-    editMode="cell"
-    :rows="pageSize"
-    :first="(currentPage - 1) * pageSize"
-    :totalRecords="tableData.state.value.count"
-    @page="onPageChange">
+    editMode="cell">
     <Column :field="field.name" :header="field.name" v-for="field of selectModelMeta?.model.fields">
       <template #body="{ data, index }">
         <AutoColumn
@@ -30,10 +26,11 @@
     </Column>
     <template #footer>
       <Paginator
-        :rows="pageSize"
+        v-model:rows="pageSize"
         :totalRecords="tableData.state.value.count"
         v-model:first="firstRecord"
-        @page="onPageChange" />
+        @page="onPageChange"
+        :rowsPerPageOptions="[10, 20, 30]" />
     </template>
   </DataTable>
 </template>
