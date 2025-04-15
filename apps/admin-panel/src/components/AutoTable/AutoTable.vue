@@ -1,11 +1,11 @@
 <style scoped></style>
 <template>
-  智能表格
-  <div class="flex space-x-1">
+  <div class="flex space-x-1 my-1">
     <SelectButton v-model="selectModelName" :options="Object.keys(models)" />
-    <div v-if="editRows.length">
+    <div class="flex items-center space-x-2" v-if="editRows.length">
       <Button @click="saveChanges">保存修改结果</Button>
-      {{ editRows.length }} 行已修改
+      <Button @click="discardChanges" severity="secondary">丢弃修改</Button>
+      <span> {{ editRows.length }} 行已修改 </span>
     </div>
   </div>
 
@@ -142,6 +142,13 @@
       console.log('[updateRes]', updateRes);
     }
     reloadTableData();
+  }
+  function discardChanges() {
+    editRows.value.forEach((row) => {
+      Object.keys(row).forEach((key) => {
+        delete row[key];
+      });
+    });
   }
   //#endregion 数据编辑更新功能
 </script>
