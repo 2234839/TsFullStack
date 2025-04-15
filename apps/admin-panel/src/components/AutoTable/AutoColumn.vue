@@ -6,12 +6,12 @@
     </template>
     <template v-else>{{ cellData }}</template>
   </div>
-  <AutoColumnEdit v-model="editValue" v-else :field="field" :row="props.row" />
+  <AutoColumnEdit ref="__editEl" v-model="editValue" v-else :field="field" :row="props.row" />
 </template>
 <script setup lang="ts">
-  import { computed, ref } from 'vue';
+  import { computed, ref, useTemplateRef } from 'vue';
   import type { Field } from './type';
-  import { formatDate } from '@vueuse/core';
+  import { formatDate, onClickOutside } from '@vueuse/core';
   import AutoColumnEdit from './AutoColumnEdit.vue';
 
   const props = defineProps<{
@@ -23,4 +23,12 @@
   const cellData = computed(() => props.row[props.field.name]);
 
   const editMode = ref(false);
+  const editEl = useTemplateRef<HTMLElement>('__editEl');
+
+  /** 实现如果值未修改，点击外部时关闭编辑模式 */
+  onClickOutside(editEl, () => {
+    if (editValue.value === undefined) {
+      editMode.value = false;
+    }
+  });
 </script>
