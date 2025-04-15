@@ -27,7 +27,7 @@
 
   /** 实现如果值未修改，点击外部时关闭编辑模式 */
   onClickOutside(editEl, () => {
-    if (editValue.value === undefined) {
+    if (editValue.value === undefined ) {
       editMode.value = false;
     }
   });
