@@ -3,7 +3,7 @@
   <SelectButton
     v-model="selectModelName"
     :options="Object.values(modelMeta.state.value?.models ?? {}).map((el) => el.name)" />
-  <AutoTable v-bind:model-name="selectModelName" />
+  <AutoTable v-if="selectModelName" v-bind:model-name="selectModelName" />
 </template>
 <script setup lang="ts">
   import AutoTable from '@/components/AutoTable/AutoTable.vue';
