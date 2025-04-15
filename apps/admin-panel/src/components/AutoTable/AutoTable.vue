@@ -4,7 +4,7 @@
     <div class="flex items-center space-x-2" v-if="editRows.length">
       <Button @click="saveChanges">保存修改结果</Button>
       <Button @click="discardChanges" severity="secondary">丢弃修改</Button>
-      <span> {{ editRows.length }} 行已修改( {{ eidtCellCount }} 处) </span>
+      <span> {{ editRows.length }} 行受影响( {{ eidtCellCount }} 处) </span>
     </div>
   </div>
 

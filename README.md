@@ -2,6 +2,8 @@
 
 这是我的 ts 全栈最佳实践项目。
 
+[文档地址](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
+
 ## 特性
 
 - 使用 zenstack（基于 prisma 的增强方案）来实现数据库建模和 Row Level Security 。
