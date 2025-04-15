@@ -6,7 +6,7 @@
     </template>
     <template v-else>{{ cellData }}</template>
   </div>
-  <AutoColumnEdit v-else :field="field" :row="props.row" />
+  <AutoColumnEdit v-model="editValue" v-else :field="field" :row="props.row" />
 </template>
 <script setup lang="ts">
   import { computed, ref } from 'vue';
@@ -18,6 +18,8 @@
     field: Field;
     row: { [fieldName: string]: any };
   }>();
+
+  const editValue = defineModel('editValue');
   const cellData = computed(() => props.row[props.field.name]);
 
   const editMode = ref(false);

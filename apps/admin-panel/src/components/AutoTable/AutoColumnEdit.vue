@@ -2,10 +2,10 @@
 <template>
   <div class="text-nowrap">
     <template v-if="field.type === 'DateTime'">
-      <DatePicker showTime hourFormat="24" v-model="cellData" class="w-full" />
+      <DatePicker showTime hourFormat="24" v-model="eidtValue" class="w-full" />
     </template>
     <template v-else-if="field.type === 'String'">
-      <InputText v-model="cellData" class="w-full" />
+      <InputText v-model="eidtValue" class="w-full" />
     </template>
     <template v-else>{{ cellData }}</template>
   </div>
@@ -22,7 +22,7 @@
   }>();
   const cellData = computed(() => props.row[props.field.name]);
 
-  const eidtValue = defineModel();
+  const eidtValue = defineModel<any>();
   watchEffect(() => {
     eidtValue.value = cellData.value;
   });

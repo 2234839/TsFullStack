@@ -17,8 +17,11 @@
     :totalRecords="tableData.state.value.count"
     @page="onPageChange">
     <Column :field="field.name" :header="field.name" v-for="field of selectModelMeta?.fields">
-      <template #body="{ data }">
-        <AutoColumn :row="data" :field="(field as any)" />
+      <template #body="{ data, index }">
+        <AutoColumn
+          :row="data"
+          :field="(field as any)"
+          v-model:edit-value="editData[index][field.name]" />
       </template>
     </Column>
     <template #footer>
@@ -53,6 +56,8 @@
   const pageSize = ref(10);
   const firstRecord = ref(0);
 
+  /** 编辑数据的临时存储，用于保存每行的编辑结果  */
+  const editData = ref<Array<Record<string, any>>>([]);
   const tableData = useAsyncState(
     async (opt: { model: modelNames; page: number; pageSize: number }) => {
       if (!opt.model) return { list: [], count: 0 };
@@ -63,6 +68,7 @@
         }),
         API.db[opt.model].count({}),
       ]);
+      editData.value = list.map((_) => ({}));
       return { list, count };
     },
     { list: [], count: 0 },
