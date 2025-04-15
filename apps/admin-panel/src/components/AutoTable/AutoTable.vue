@@ -3,8 +3,12 @@
   智能表格
   <div class="flex space-x-1">
     <SelectButton v-model="selectModelName" :options="Object.keys(models)" />
+    <div v-if="editRows.length">
+      <Button @click="saveChanges">保存修改结果</Button>
+      {{ editRows.length }} 行已修改
+    </div>
   </div>
-  <Button @click="saveChanges">保存修改结果</Button>
+
   <DataTable
     :loading="tableData.isLoading.value"
     :value="tableData.state.value.list"
@@ -98,15 +102,17 @@
     });
   }
 
+  /** 切换模型时触发更新 */
   watchEffect(() => {
     if (!selectModelName.value) return;
-    tableData.execute(200, {
-      model: selectModelName.value,
-      page: currentPage.value,
-      pageSize: pageSize.value,
-    });
+    reloadTableData();
   });
 
+  //#region 数据编辑更新功能
+  /** 当前被编辑了的数据行 */
+  const editRows = computed(() => {
+    return editData.value.filter((row) => Object.keys(row).length > 0);
+  });
   async function saveChanges() {
     if (!selectModelName.value) return;
 
@@ -137,4 +143,5 @@
     }
     reloadTableData();
   }
+  //#endregion 数据编辑更新功能
 </script>

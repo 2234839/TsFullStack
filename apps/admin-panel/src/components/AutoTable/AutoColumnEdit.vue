@@ -11,10 +11,10 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { computed, watchEffect } from 'vue';
-  import type { Field } from './type';
-  import DatePicker from 'primevue/datepicker';
   import { InputText } from 'primevue';
+  import DatePicker from 'primevue/datepicker';
+  import { computed } from 'vue';
+  import type { Field } from './type';
 
   const props = defineProps<{
     field: Field;
@@ -22,8 +22,17 @@
   }>();
   const cellData = computed(() => props.row[props.field.name]);
 
-  const eidtValue = defineModel<any>();
-  watchEffect(() => {
-    eidtValue.value = cellData.value;
+  const eidtModel = defineModel<any>();
+
+  /** 双向绑定，但当值未修改时，不更新 eidtModel  */
+  const eidtValue = computed({
+    get: () => {
+      return eidtModel.value ?? cellData.value;
+    },
+    set: (value) => {
+      if (cellData.value !== value) {
+        eidtModel.value = value;
+      }
+    },
   });
 </script>
