@@ -1,3 +1,5 @@
+import { useAsyncState } from '@vueuse/core';
+import { API } from '../../api';
 import type { FieldInfo, ModelMeta } from './type';
 
 /** 查找一个可以用于更新指定记录的唯一主键字段  */
@@ -11,3 +13,15 @@ export function findIdField(modelMeta: ModelMeta, modelName: string): FieldInfo 
 export function getModelKey(modelMeta: ModelMeta, modelName: string): string | undefined {
   return Object.keys(modelMeta.models).find((key) => modelMeta.models[key].name === modelName);
 }
+
+//#region modelMeta ,只有调用 useModelMeta 之后，才会发起请求获取 modelMeta 数据
+const modelMeta = useAsyncState(() => API.system.getModelMeta() as Promise<ModelMeta>, undefined, {
+  immediate: false,
+});
+export function useModelMeta() {
+  if (!modelMeta.state.value) {
+    modelMeta.execute();
+  }
+  return modelMeta;
+}
+//#endregion

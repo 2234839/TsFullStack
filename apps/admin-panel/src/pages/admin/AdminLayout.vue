@@ -1,7 +1,6 @@
 <style scoped></style>
 <template>
   <h1>Admin Layout</h1>
-  ---
   <RouterView />
 </template>
 <script setup lang="ts">

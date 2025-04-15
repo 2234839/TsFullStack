@@ -1,7 +1,6 @@
 <style scoped></style>
 <template>
   <div class="flex space-x-1 my-1">
-    <SelectButton v-model="selectModelName" :options="Object.values(models).map((el) => el.name)" />
     <div class="flex items-center space-x-2" v-if="editRows.length">
       <Button @click="saveChanges">保存修改结果</Button>
       <Button @click="discardChanges" severity="secondary">丢弃修改</Button>
@@ -40,20 +39,23 @@
 </template>
 <script setup lang="ts">
   import { useAsyncState } from '@vueuse/core';
-  import { Button, Column, DataTable, Paginator, SelectButton } from 'primevue';
+  import { Button, Column, DataTable, Paginator } from 'primevue';
   import { computed, ref, watchEffect } from 'vue';
   import { API } from '../../api';
   import AutoColumn from './AutoColumn.vue';
-  import type { DBmodelNames, FieldInfo, ModelMeta } from './type';
-  import { findIdField, getModelKey } from './util';
+  import type { DBmodelNames, FieldInfo } from './type';
+  import { findIdField, getModelKey, useModelMeta } from './util';
 
-  const modelMeta = useAsyncState(() => API.system.getModelMeta() as Promise<ModelMeta>, undefined);
+  const modelMeta = useModelMeta();
   const models = computed(() => {
     const meta = modelMeta.state.value;
     return meta?.models ?? {};
   });
 
-  const selectModelName = ref<string>('User');
+  const selectModelName = defineModel<string>('modelName', {
+    required: true,
+  });
+
   const selectModelMeta = computed(() => {
     if (!selectModelName.value) return undefined;
     return Object.entries(models.value)

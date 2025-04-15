@@ -1,8 +1,7 @@
 <style scoped></style>
 <template>
-  管理面板
-  <AutoTable />
+  <DataBaseStudio />
 </template>
 <script setup lang="ts">
-  import AutoTable from '../../components/AutoTable/AutoTable.vue';
+  import DataBaseStudio from '@/pages/admin/DataBaseStudio.vue';
 </script>
