@@ -153,7 +153,7 @@
       if (editFields.length === 0) continue;
 
       const rawRow = tableData.state.value.list[index];
-      const updateRes = await API.db[selectModelName.value as DBmodelNames].update({
+      const updateRes = await API.db[selectModelMeta.value!.modelKey as DBmodelNames].update({
         data: editRow,
         // @ts-ignore
         where: {
