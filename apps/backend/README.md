@@ -5,7 +5,7 @@
 然后运行以下命令
 ```bash
 
-# 这个命令将会自动运行 prisma generate (生成 @prisma/client)
+# 这个命令将会自动运行 prisma generate (生成 prisma/client 代码)
 pnpm zenstack generate
 # 迁移数据库为修改后的模型
 pnpm prisma migrate dev

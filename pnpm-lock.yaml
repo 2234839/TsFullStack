@@ -66,11 +66,11 @@ importers:
         specifier: ^22.14.1
         version: 22.14.1
       '@zenstackhq/runtime':
-        specifier: 2.13.3
-        version: 2.13.3(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))
+        specifier: 2.14.0
+        version: 2.14.0(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))
       effect:
-        specifier: ^3.14.8
-        version: 3.14.8
+        specifier: ^3.14.10
+        version: 3.14.10
       fastify:
         specifier: ^5.3.0
         version: 5.3.0
@@ -82,7 +82,7 @@ importers:
         specifier: ^3.1.9
         version: 3.1.9
       prisma:
-        specifier: ^6.5.0
+        specifier: ^6.6.0
         version: 6.6.0(typescript@5.8.3)
       regexp-to-ast:
         specifier: ^0.5.0
@@ -94,8 +94,8 @@ importers:
         specifier: ^5.8.3
         version: 5.8.3
       zenstack:
-        specifier: 2.13.3
-        version: 2.13.3(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3)
+        specifier: 2.14.0
+        version: 2.14.0(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3)
 
 packages:
 
@@ -380,58 +380,52 @@ packages:
       typescript:
         optional: true
 
-  '@prisma/config@6.5.0':
-    resolution: {integrity: sha512-sOH/2Go9Zer67DNFLZk6pYOHj+rumSb0VILgltkoxOjYnlLqUpHPAN826vnx8HigqnOCxj9LRhT6U7uLiIIWgw==}
-
   '@prisma/config@6.6.0':
     resolution: {integrity: sha512-d8FlXRHsx72RbN8nA2QCRORNv5AcUnPXgtPvwhXmYkQSMF/j9cKaJg+9VcUzBRXGy9QBckNzEQDEJZdEOZ+ubA==}
-
-  '@prisma/debug@6.5.0':
-    resolution: {integrity: sha512-fc/nusYBlJMzDmDepdUtH9aBsJrda2JNErP9AzuHbgUEQY0/9zQYZdNlXmKoIWENtio+qarPNe/+DQtrX5kMcQ==}
 
   '@prisma/debug@6.6.0':
     resolution: {integrity: sha512-DL6n4IKlW5k2LEXzpN60SQ1kP/F6fqaCgU/McgaYsxSf43GZ8lwtmXLke9efS+L1uGmrhtBUP4npV/QKF8s2ZQ==}
 
-  '@prisma/engines-version@6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60':
-    resolution: {integrity: sha512-iK3EmiVGFDCmXjSpdsKGNqy9hOdLnvYBrJB61far/oP03hlIxrb04OWmDjNTwtmZ3UZdA5MCvI+f+3k2jPTflQ==}
+  '@prisma/dmmf@6.6.0':
+    resolution: {integrity: sha512-2LoSX0ZVwIiKck5wMCVxeGg9K9z6CULB8xyTbLF3YTvuhOp+fQozelUphaGZA9jN4MF58z6TfUXIMMPVwtxjbQ==}
+
+  '@prisma/driver-adapter-utils@6.6.0':
+    resolution: {integrity: sha512-hbYdZQsJS1ix924mg3eVpGKQ01ZzDPhI/VnA3Opgz1sNB7QMLNw1kl6sEmwSDbtJlVvZOvRxRZmG2BfkW9eaqA==}
 
   '@prisma/engines-version@6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a':
     resolution: {integrity: sha512-JzRaQ5Em1fuEcbR3nUsMNYaIYrOT1iMheenjCvzZblJcjv/3JIuxXN7RCNT5i6lRkLodW5ojCGhR7n5yvnNKrw==}
 
-  '@prisma/engines@6.5.0':
-    resolution: {integrity: sha512-FVPQYHgOllJklN9DUyujXvh3hFJCY0NX86sDmBErLvoZjy2OXGiZ5FNf3J/C4/RZZmCypZBYpBKEhx7b7rEsdw==}
-
   '@prisma/engines@6.6.0':
     resolution: {integrity: sha512-nC0IV4NHh7500cozD1fBoTwTD1ydJERndreIjpZr/S3mno3P6tm8qnXmIND5SwUkibNeSJMpgl4gAnlqJ/gVlg==}
-
-  '@prisma/fetch-engine@6.5.0':
-    resolution: {integrity: sha512-3LhYA+FXP6pqY8FLHCjewyE8pGXXJ7BxZw2rhPq+CZAhvflVzq4K8Qly3OrmOkn6wGlz79nyLQdknyCG2HBTuA==}
 
   '@prisma/fetch-engine@6.6.0':
     resolution: {integrity: sha512-Ohfo8gKp05LFLZaBlPUApM0M7k43a0jmo86YY35u1/4t+vuQH9mRGU7jGwVzGFY3v+9edeb/cowb1oG4buM1yw==}
 
-  '@prisma/generator-helper@6.5.0':
-    resolution: {integrity: sha512-71ELYxnSE4soeV0BlWJEMgO4KkCowuzHsPY3o7quFOtlcmds5ZX190VZK/k9HMJWdPQ893HooBv3BkKvieR7vA==}
+  '@prisma/generator-helper@6.6.0':
+    resolution: {integrity: sha512-pKxkyb+tCb5vPaMkK6SdHkK5qkQIPDSw1T3BAfl6XWDwDwnP4f5CsJ6/VaBhtvqZ5bqfUQLvT+slaGrJQXiw9g==}
 
-  '@prisma/get-platform@6.5.0':
-    resolution: {integrity: sha512-xYcvyJwNMg2eDptBYFqFLUCfgi+wZLcj6HDMsj0Qw0irvauG4IKmkbywnqwok0B+k+W+p+jThM2DKTSmoPCkzw==}
+  '@prisma/generator@6.6.0':
+    resolution: {integrity: sha512-UO1PFYd8Qh0LZoN/9wwAukgoDs8chLqGPho7ZBZejVKv1UpaEJvxgwS+LwlmkQ3Ay0GdsL6mjN8QxEi91xIomQ==}
 
   '@prisma/get-platform@6.6.0':
     resolution: {integrity: sha512-3qCwmnT4Jh5WCGUrkWcc6VZaw0JY7eWN175/pcb5Z6FiLZZ3ygY93UX0WuV41bG51a6JN/oBH0uywJ90Y+V5eA==}
 
-  '@prisma/internals@6.5.0':
-    resolution: {integrity: sha512-4hI114ho/BVvxSIZ7lQB3TPxGrSnt5+aYhKMzQU5+l659Qcjjiz56hZ/rXph3xIlgJUWVQyzwAS9/ZAMgXUySw==}
+  '@prisma/internals@6.6.0':
+    resolution: {integrity: sha512-wKGuKZ5IDHoT9DIjxT1JCoSYsEJ160MMKgsmKnHVM4rq0rmQEPVo2qiVuhV0kJSipx+uIi1b7LOL25/0zO7Xog==}
     peerDependencies:
       typescript: '>=5.1.0'
     peerDependenciesMeta:
       typescript:
         optional: true
 
-  '@prisma/prisma-schema-wasm@6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60':
-    resolution: {integrity: sha512-8zmXO5Luw5sCOgTw9nyN4/x7MgmIUUt/9zQZPPStiMUhZsXH72oqFwYJlibdS77gDuH2+DXgSRv6aPleDdTMsQ==}
+  '@prisma/prisma-schema-wasm@6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a':
+    resolution: {integrity: sha512-lyfyH5xm9hygB1mx083ofzfDwByghcMN2b3a3dG22HsYbWvHUatTtgxtzqgLH7m1HTTxf8UkMu0P6Q9VHfBW6A==}
 
-  '@prisma/schema-files-loader@6.5.0':
-    resolution: {integrity: sha512-BE+YPIcqXx+9MkPsA/mACz3rGhKUfh5rsoGe1Male/0c9my9CaHKzJFxNAV4f70d6GTMMITQgFpwfrudGFOwpw==}
+  '@prisma/schema-engine-wasm@6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a':
+    resolution: {integrity: sha512-uzkaVo0K/j7XBtL1uHh78w0dQo5uks4M+/qdN/Y69HQo09WUy6iFQvNjI8haQgLcj/G3M4Ru5i4bHYtaS9vKWg==}
+
+  '@prisma/schema-files-loader@6.6.0':
+    resolution: {integrity: sha512-g8PWSF8cLKTfmgVHkg79T/9EKsGR+6HozqNpcAK2Avpe0MGwIXwTC/HW2Lc8kJfoPmMiCoh6Y5ClafMvp6nlPA==}
 
   '@rollup/rollup-android-arm-eabi@4.40.0':
     resolution: {integrity: sha512-+Fbls/diZ0RDerhE8kyC6hjADCXA1K4yVNlH0EYfd2XjyH0UGgzaQ8MlT0pCXAThfxv3QUAczHaL+qSv1E4/Cg==}
@@ -712,16 +706,16 @@ packages:
     peerDependencies:
       vue: ^3.5.0
 
-  '@zenstackhq/language@2.13.3':
-    resolution: {integrity: sha512-QjJt3NZTXl0laIlhmlGaFJ4bUW4eXDQpyP0FEROJxbV4sV3H6nmzLbPfVBd1BzBQqwasLMxfTqG3YTDFkW5kPA==}
+  '@zenstackhq/language@2.14.0':
+    resolution: {integrity: sha512-HMnXliNPmii/JHWiBOkJvpUlqn8kZTXi0NS4P+yrSXUHeowIYwffsQhW/V/+2qYTcDctKHIzc0jj9TYtmozbDg==}
 
-  '@zenstackhq/runtime@2.13.3':
-    resolution: {integrity: sha512-EZHpOckuEgR/wnNzSwIFGQ2f6rZsXt1XyZRGtK04orWI/hcXvWMTMkA3mf2qLESHabiZZ2ARd+777MQ3nqsb9A==}
+  '@zenstackhq/runtime@2.14.0':
+    resolution: {integrity: sha512-ZtW+ciuJPFcrlsS+r4Y++Gyg5xeer3URYW0C9VbSc379GRwMMpzPQJjTEjkC9fXwNp6OIjQGKSL4YbacZBTmbQ==}
     peerDependencies:
-      '@prisma/client': 5.0.0 - 6.5.x
+      '@prisma/client': 5.0.0 - 6.6.x
 
-  '@zenstackhq/sdk@2.13.3':
-    resolution: {integrity: sha512-m4ISatI/jY1cITLVbqN4s1pAHrW56Y7sshjN9ypzhVtKUPamSXemtwV1rGfrqH7CTnmvQaUfjkAhrXD9i77dTA==}
+  '@zenstackhq/sdk@2.14.0':
+    resolution: {integrity: sha512-qz1jysG7DT0myvDOy+TsxjWrRWGDa9SjGU3vnNyWOMosnEafzq+/RdPf3ql+7tXE6Z0rd/bIszNDq476Avnjow==}
 
   abstract-logging@2.0.1:
     resolution: {integrity: sha512-2BjRTZxTPvheOvGbBslFSYOUkr+SjPtOnrLP33f+VIWLzezQpZcqVg7ja3L4dBXmzzgwT+a029jRx5PCi3JuiA==}
@@ -1003,8 +997,8 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
-  effect@3.14.8:
-    resolution: {integrity: sha512-cHV6Mc2gb1e6l+CxhCeZm1JOzE4C9Mp7MhqHNFuAcSds2c2f23ZAb1ef4gBRHMIcdJ5sr3KGm+Xn+4z/UByE8w==}
+  effect@3.14.10:
+    resolution: {integrity: sha512-qmqq8eqQlavxtOvDRtizbW5/Z2rSJA1U7vhrF5h+8gcCRVqYXj5nTyySUyHdMMEFPBjsgVeJ1aVKMXZGjaGoAg==}
 
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
@@ -2242,12 +2236,12 @@ packages:
     engines: {node: '>= 14'}
     hasBin: true
 
-  zenstack@2.13.3:
-    resolution: {integrity: sha512-QRnGSpQKedNma72WJ/2NS/rUKm9tJhhcnSE8feU++5odp5MgHYW+atfy+uiZwnhfaLlztroTTx234a2LJQOKrw==}
+  zenstack@2.14.0:
+    resolution: {integrity: sha512-9f496tsbLix/F1ZlT0Tjt8zu70/tDB48i+Pv+e8tRooBh/wdMMweqbuihtGDpF7IUGKxO3eNdRca1uc4cPVYrQ==}
     engines: {vscode: ^1.63.0}
     hasBin: true
     peerDependencies:
-      prisma: 5.0.0 - 6.5.x
+      prisma: 5.0.0 - 6.6.x
 
   zod-validation-error@1.5.0:
     resolution: {integrity: sha512-/7eFkAI4qV0tcxMBB/3+d2c1P6jzzZYdYSlBuAklzMuCrJu5bzJfHS0yVAS87dRHVlhftd6RFJDIvv03JgkSbw==}
@@ -2470,13 +2464,6 @@ snapshots:
       prisma: 6.6.0(typescript@5.8.3)
       typescript: 5.8.3
 
-  '@prisma/config@6.5.0':
-    dependencies:
-      esbuild: 0.25.2
-      esbuild-register: 3.6.0(esbuild@0.25.2)
-    transitivePeerDependencies:
-      - supports-color
-
   '@prisma/config@6.6.0':
     dependencies:
       esbuild: 0.25.2
@@ -2484,20 +2471,15 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@prisma/debug@6.5.0': {}
-
   '@prisma/debug@6.6.0': {}
 
-  '@prisma/engines-version@6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60': {}
+  '@prisma/dmmf@6.6.0': {}
+
+  '@prisma/driver-adapter-utils@6.6.0':
+    dependencies:
+      '@prisma/debug': 6.6.0
 
   '@prisma/engines-version@6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a': {}
-
-  '@prisma/engines@6.5.0':
-    dependencies:
-      '@prisma/debug': 6.5.0
-      '@prisma/engines-version': 6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60
-      '@prisma/fetch-engine': 6.5.0
-      '@prisma/get-platform': 6.5.0
 
   '@prisma/engines@6.6.0':
     dependencies:
@@ -2506,40 +2488,38 @@ snapshots:
       '@prisma/fetch-engine': 6.6.0
       '@prisma/get-platform': 6.6.0
 
-  '@prisma/fetch-engine@6.5.0':
-    dependencies:
-      '@prisma/debug': 6.5.0
-      '@prisma/engines-version': 6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60
-      '@prisma/get-platform': 6.5.0
-
   '@prisma/fetch-engine@6.6.0':
     dependencies:
       '@prisma/debug': 6.6.0
       '@prisma/engines-version': 6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a
       '@prisma/get-platform': 6.6.0
 
-  '@prisma/generator-helper@6.5.0':
+  '@prisma/generator-helper@6.6.0':
     dependencies:
-      '@prisma/debug': 6.5.0
+      '@prisma/debug': 6.6.0
+      '@prisma/dmmf': 6.6.0
+      '@prisma/generator': 6.6.0
 
-  '@prisma/get-platform@6.5.0':
-    dependencies:
-      '@prisma/debug': 6.5.0
+  '@prisma/generator@6.6.0': {}
 
   '@prisma/get-platform@6.6.0':
     dependencies:
       '@prisma/debug': 6.6.0
 
-  '@prisma/internals@6.5.0(typescript@5.8.3)':
+  '@prisma/internals@6.6.0(typescript@5.8.3)':
     dependencies:
-      '@prisma/config': 6.5.0
-      '@prisma/debug': 6.5.0
-      '@prisma/engines': 6.5.0
-      '@prisma/fetch-engine': 6.5.0
-      '@prisma/generator-helper': 6.5.0
-      '@prisma/get-platform': 6.5.0
-      '@prisma/prisma-schema-wasm': 6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60
-      '@prisma/schema-files-loader': 6.5.0
+      '@prisma/config': 6.6.0
+      '@prisma/debug': 6.6.0
+      '@prisma/dmmf': 6.6.0
+      '@prisma/driver-adapter-utils': 6.6.0
+      '@prisma/engines': 6.6.0
+      '@prisma/fetch-engine': 6.6.0
+      '@prisma/generator': 6.6.0
+      '@prisma/generator-helper': 6.6.0
+      '@prisma/get-platform': 6.6.0
+      '@prisma/prisma-schema-wasm': 6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a
+      '@prisma/schema-engine-wasm': 6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a
+      '@prisma/schema-files-loader': 6.6.0
       arg: 5.0.2
       prompts: 2.4.2
     optionalDependencies:
@@ -2547,11 +2527,13 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@prisma/prisma-schema-wasm@6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60': {}
+  '@prisma/prisma-schema-wasm@6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a': {}
 
-  '@prisma/schema-files-loader@6.5.0':
+  '@prisma/schema-engine-wasm@6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a': {}
+
+  '@prisma/schema-files-loader@6.6.0':
     dependencies:
-      '@prisma/prisma-schema-wasm': 6.5.0-73.173f8d54f8d52e692c7e27e72a88314ec7aeff60
+      '@prisma/prisma-schema-wasm': 6.6.0-53.f676762280b54cd07c770017ed3711ddde35f37a
       fs-extra: 11.3.0
 
   '@rollup/rollup-android-arm-eabi@4.40.0':
@@ -2805,11 +2787,11 @@ snapshots:
     dependencies:
       vue: 3.5.13(typescript@5.7.3)
 
-  '@zenstackhq/language@2.13.3':
+  '@zenstackhq/language@2.14.0':
     dependencies:
       langium: 1.3.1
 
-  '@zenstackhq/runtime@2.13.3(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))':
+  '@zenstackhq/runtime@2.14.0(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))':
     dependencies:
       '@prisma/client': 6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3)
       bcryptjs: 2.4.3
@@ -2833,12 +2815,12 @@ snapshots:
       zod: 3.24.2
       zod-validation-error: 1.5.0(zod@3.24.2)
 
-  '@zenstackhq/sdk@2.13.3(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(typescript@5.8.3)':
+  '@zenstackhq/sdk@2.14.0(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(typescript@5.8.3)':
     dependencies:
-      '@prisma/generator-helper': 6.5.0
-      '@prisma/internals': 6.5.0(typescript@5.8.3)
-      '@zenstackhq/language': 2.13.3
-      '@zenstackhq/runtime': 2.13.3(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))
+      '@prisma/generator-helper': 6.6.0
+      '@prisma/internals': 6.6.0(typescript@5.8.3)
+      '@zenstackhq/language': 2.14.0
+      '@zenstackhq/runtime': 2.14.0(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))
       langium: 1.3.1
       lower-case-first: 2.0.2
       semver: 7.7.1
@@ -3155,7 +3137,7 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  effect@3.14.8:
+  effect@3.14.10:
     dependencies:
       '@standard-schema/spec': 1.0.0
       fast-check: 3.23.2
@@ -4558,12 +4540,12 @@ snapshots:
   yaml@2.7.1:
     optional: true
 
-  zenstack@2.13.3(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3):
+  zenstack@2.14.0(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3):
     dependencies:
       '@paralleldrive/cuid2': 2.2.2
       '@types/node': 20.17.30
-      '@zenstackhq/language': 2.13.3
-      '@zenstackhq/sdk': 2.13.3(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(typescript@5.8.3)
+      '@zenstackhq/language': 2.14.0
+      '@zenstackhq/sdk': 2.14.0(@prisma/client@6.6.0(prisma@6.6.0(typescript@5.8.3))(typescript@5.8.3))(typescript@5.8.3)
       async-exit-hook: 2.0.1
       change-case: 4.1.2
       colors: 1.4.0

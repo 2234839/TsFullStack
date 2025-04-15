@@ -17,18 +17,18 @@
 	],
 	"devDependencies": {
 		"nodemon": "^3.1.9",
-		"prisma": "^6.5.0",
+		"prisma": "^6.6.0",
 		"regexp-to-ast": "^0.5.0",
 		"tsup": "^8.4.0",
 		"typescript": "^5.8.3",
-		"zenstack": "2.13.3"
+		"zenstack": "2.14.0"
 	},
 	"dependencies": {
 		"@fastify/cors": "^11.0.1",
 		"@prisma/client": "6.6.0",
 		"@types/node": "^22.14.1",
-		"@zenstackhq/runtime": "2.13.3",
-		"effect": "^3.14.8",
+		"@zenstackhq/runtime": "2.14.0",
+		"effect": "^3.14.10",
 		"fastify": "^5.3.0",
 		"superjson": "^2.2.2"
 	}
