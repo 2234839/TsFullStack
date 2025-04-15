@@ -22,6 +22,7 @@ model Role extends Common {
     id    Int    @id @default(autoincrement())
     name  String @unique
     users User[]
+    @@allow("read",!!auth())
 }
 
 /// User model
