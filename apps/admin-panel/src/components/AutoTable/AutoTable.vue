@@ -4,7 +4,7 @@
     <div class="flex items-center space-x-2" v-if="editRows.length">
       <Button @click="saveChanges">保存修改结果</Button>
       <Button @click="discardChanges" severity="secondary">丢弃修改</Button>
-      <span> {{ editRows.length }} 行已修改 </span>
+      <span> {{ editRows.length }} 行已修改( {{ eidtCellCount }} 处) </span>
     </div>
   </div>
 
@@ -141,6 +141,9 @@
   /** 当前被编辑了的数据行 */
   const editRows = computed(() => {
     return editData.value.filter((row) => Object.keys(row).length > 0);
+  });
+  const eidtCellCount = computed(() => {
+    return editRows.value.reduce((acc, row) => acc + Object.keys(row).length, 0);
   });
   async function saveChanges() {
     if (!selectModelName.value) return;
