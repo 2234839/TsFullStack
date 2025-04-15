@@ -5,8 +5,14 @@
       {{ formatDate(cellData, 'YYYY-MM-DD HH:mm:ss') }}
     </template>
     <template v-else-if="field.isDataModel">
-      <template v-if="field.isArray">{{ cellData.length }} 条记录</template>
-      <template v-else> ref </template>
+      <Tag>
+        <template #icon v-if="field.isArray">
+          <div class="border-r pr-1">
+            {{ cellData.length }}
+          </div>
+        </template>
+        {{ field.type }}
+      </Tag>
     </template>
     <template v-else>{{ cellData }}</template>
   </div>
@@ -17,6 +23,7 @@
   import type { FieldInfo } from './type';
   import { formatDate, onClickOutside } from '@vueuse/core';
   import AutoColumnEdit from './AutoColumnEdit.vue';
+  import { Tag } from 'primevue';
 
   const props = defineProps<{
     field: FieldInfo;
