@@ -16,14 +16,14 @@
     </template>
     <template v-else>{{ cellData }}</template>
   </div>
-  <AutoColumnEdit ref="__editEl" v-model="editValue" v-else :field="field" :row="props.row" />
+  <AutoColumnEdit v-model="editValue" v-model:edit-mode="editMode" v-else :field="field" :row="props.row" />
 </template>
 <script setup lang="ts">
-  import { computed, ref, useTemplateRef } from 'vue';
-  import type { FieldInfo } from './type';
-  import { formatDate, onClickOutside } from '@vueuse/core';
-  import AutoColumnEdit from './AutoColumnEdit.vue';
+  import { formatDate } from '@vueuse/core';
   import { Tag } from 'primevue';
+  import { computed, ref } from 'vue';
+  import AutoColumnEdit from './AutoColumnEdit.vue';
+  import type { FieldInfo } from './type';
 
   const props = defineProps<{
     field: FieldInfo;
@@ -33,13 +33,5 @@
   const editValue = defineModel('editValue');
   const cellData = computed(() => props.row[props.field.name]);
 
-  const editMode = ref(false);
-  const editEl = useTemplateRef<HTMLElement>('__editEl');
-
-  /** 实现如果值未修改，点击外部时关闭编辑模式 */
-  onClickOutside(editEl, () => {
-    if (editValue.value === undefined) {
-      editMode.value = false;
-    }
-  });
+  const editMode = ref(false)
 </script>

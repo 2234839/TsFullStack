@@ -15,6 +15,8 @@ generator client {
 abstract model Common {
     created DateTime @default(now())
     updated DateTime @updatedAt
+    /// 通过多对多的关系来实现用户角色的鉴权，允许管理员角色进行所有操作
+    @@allow('all', auth().role?[name == 'admin'])
 }
 
 /// 角色
@@ -37,13 +39,8 @@ model User extends Common {
     /// 允许用户读取和更新自己的信息
     @@allow('read', auth() == this)
     @@allow('update', future().id == id) // 防止用户修改自身的 id
-    /// 通过多对多的关系来实现用户角色的鉴权，允许管理员角色进行所有操作
-    @@allow('all', auth().role?[name == 'admin'])
     /// 禁止未登录用户进行任何操作
     @@deny('all', !auth())
-
-    /// 允许测试账户被任意读写
-    @@allow('all', role?[name == 'test'])
 }
 
 /// 用户会话模型，用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
@@ -57,7 +54,6 @@ model UserSession extends Common {
 
     /// 只允许用户读取和创建，不允许修改和删除
     @@allow('read,create', auth() == user)
-    @@allow('all', auth().role?[name == 'admin'])
 }
 
 /// Post model
