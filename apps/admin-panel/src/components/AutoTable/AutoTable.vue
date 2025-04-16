@@ -3,8 +3,8 @@
   <div class="flex space-x-1 my-1">
     <div class="flex items-center space-x-2">
       <div class="flex items-center space-x-2" v-if="editRows.length">
-        <Button @click="saveChanges">保存修改结果</Button>
-        <Button @click="discardChanges" severity="secondary">丢弃修改</Button>
+        <Button @click="saveChanges">{{ t('保存修改结果') }}</Button>
+        <Button @click="discardChanges" severity="secondary">{{ t('丢弃修改') }}</Button>
         <span> {{ editRows.length }} 行受影响( {{ eidtCellCount }} 处) </span>
       </div>
       <div class="flex items-center space-x-2" v-if="selectRows.length">
@@ -50,7 +50,8 @@
   import AutoColumn from './AutoColumn.vue';
   import type { DBmodelNames, FieldInfo } from './type';
   import { findIdField, getModelKey, useModelMeta } from './util';
-
+  import { useI18n } from 'vue-i18n';
+  const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
 
