@@ -1,6 +1,7 @@
 import { compareSync } from 'bcryptjs';
 import { Effect } from 'effect';
 import { getPrisma, prisma } from '../db';
+
 /** 无需鉴权的 api */
 export const appApis = {
   system: {

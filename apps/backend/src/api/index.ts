@@ -25,4 +25,5 @@ export const apis = {
 /** ZenStack 不接受 $transaction 数组形式的调用，客户端又没法使用非数组形式，所以不让用 */
 const allowedMethods = modelsName;
 export type safePrisma = Pick<PrismaClient, (typeof allowedMethods)[number]>;
-export type API = Omit<typeof apis, 'db'> & { db: safePrisma };
+export type APIRaw = typeof apis;
+export type API = Omit<APIRaw, 'db'> & { db: safePrisma };

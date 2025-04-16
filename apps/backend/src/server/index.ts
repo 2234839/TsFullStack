@@ -1,15 +1,15 @@
 import fastifyCors from '@fastify/cors';
-import { Effect, Either, Logger, Layer } from 'effect';
+import { Effect, Layer, Logger } from 'effect';
+import { UnknownException } from 'effect/Cause';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { Readable } from 'stream';
-import { apis, type API } from '../api';
+import superjson from 'superjson';
+import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
+import { apis, type API, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
+import { getPrisma } from '../db';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service';
-import { UnknownException } from 'effect/Cause';
-import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
-import superjson from 'superjson';
-import { getPrisma } from '../db';
 
 // ========== 类型定义 ==========
 type ApiHandlerParams = {
@@ -17,12 +17,6 @@ type ApiHandlerParams = {
   params: any;
   request: FastifyRequest;
   reply: FastifyReply;
-};
-
-type ApiHandlerContext = {
-  x_token_id?: string;
-  db?: any;
-  user?: any;
 };
 
 // ========== 工具函数 ==========
@@ -37,7 +31,7 @@ function handleError(error: unknown) {
   if (typeof error === 'string') {
     return { error: { message: error } };
   }
-
+  console.log('[error]', error);
   if (error instanceof UnknownException) {
     const targetErr = error.error;
 
@@ -62,7 +56,6 @@ function handleError(error: unknown) {
 
 // ========== 路由处理 ==========
 // 服务端鉴权 api 调用，需要用户具有有效的 x_token_id 才能使用
-const apisRpc = createRPC('apiProvider', { genApiModule: async () => apis });
 async function handleApiRoute({ method, params, request, reply }: ApiHandlerParams) {
   const x_token_id = request.headers['x-token-id'];
   if (typeof x_token_id !== 'string') {
@@ -71,6 +64,11 @@ async function handleApiRoute({ method, params, request, reply }: ApiHandlerPara
   const startTime = Date.now();
   try {
     const { db, user } = await getPrisma({ x_token_id });
+    const apisRpc = createRPC('apiProvider', {
+      // 这里是为了避免递归解析 prisma 的类型导致 Effect 失效
+      genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
+    });
+
     const result = await Effect.runPromise(
       Effect.gen(function* () {
         const result = yield* Effect.tryPromise(() => apisRpc.RC(method, params));
@@ -133,7 +131,7 @@ export async function startServer() {
   fastify.all('/api/*', async (request, reply) => {
     await handleApiRoute({
       method: request.url.slice('/api/'.length),
-      params: request.body,
+      params: superjson.deserialize(request.body as any),
       request,
       reply,
     });
@@ -142,7 +140,7 @@ export async function startServer() {
   fastify.all('/app-api/*', async (request, reply) => {
     await handleAppApiRoute({
       method: request.url.slice('/app-api/'.length),
-      params: request.body,
+      params: superjson.deserialize(request.body as any),
       request,
       reply,
     });

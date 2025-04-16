@@ -48,6 +48,7 @@ export function createRPC<API_TYPE>(
     method: K,
     data: any[],
   ): Promise<DeepReturnTypeUnion<API_TYPE>> {
+    console.log('[method]', method, data);
     // 洋葱路由的核心逻辑
     async function executeMiddleware(index: number): Promise<any> {
       if (options.middleware && index < options.middleware.length) {
@@ -65,11 +66,8 @@ export function createRPC<API_TYPE>(
           const methodParts = method.split('.');
           let currentObj: any = apiModule;
           for (const part of methodParts) {
-            if (currentObj && typeof currentObj === 'object' && part in currentObj) {
-              currentObj = currentObj[part];
-            } else {
-              throw new Error(`Method ${method} not found`);
-            }
+            currentObj = currentObj?.[part];
+            if (!currentObj) throw new Error(`Method ${method} not found`);
           }
           if (typeof currentObj === 'function') {
             return await currentObj(...data);
