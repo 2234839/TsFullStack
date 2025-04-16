@@ -48,7 +48,7 @@ export function createRPC<API_TYPE>(
     method: K,
     data: any[],
   ): Promise<DeepReturnTypeUnion<API_TYPE>> {
-    console.log('[method]', method, data);
+    // console.log('[method]', method, data);
     // 洋葱路由的核心逻辑
     async function executeMiddleware(index: number): Promise<any> {
       if (options.middleware && index < options.middleware.length) {
