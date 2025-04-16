@@ -11,22 +11,6 @@ import { getPrisma } from '../db';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service';
 
-// ========== 类型定义 ==========
-type ApiHandlerParams = {
-  method: string;
-  params: any;
-  request: FastifyRequest;
-  reply: FastifyReply;
-};
-
-// ========== 工具函数 ==========
-function createLoggerLayer(): Layer.Layer<never, never, never> {
-  const logger = Logger.make(({ logLevel, message }) => {
-    console.log(`[${logLevel.label}]`, ...(Array.isArray(message) ? message : [message]));
-  });
-  return Logger.replace(Logger.defaultLogger, logger);
-}
-
 function handleError(error: unknown) {
   if (typeof error === 'string') {
     return { error: { message: error } };
@@ -79,10 +63,7 @@ async function handleApi(
         return yield* result;
       }
       return result;
-    }).pipe(
-      Effect.provide(createLoggerLayer()),
-      Effect.provideService(AuthService, { x_token_id, db, user }),
-    ),
+    }).pipe(Effect.provideService(AuthService, { x_token_id, db, user })),
   );
   return result;
 }
@@ -96,10 +77,11 @@ async function handleAppApi(method: string, params: any) {
         return yield* result;
       }
       return result;
-    }).pipe(Effect.provide(createLoggerLayer())),
+    }),
   );
   return result;
 }
+
 function createAPIHandler(
   pathPrefix: string,
   hander: (method: string, params: any, request: FastifyRequest, reply: FastifyReply) => any,
