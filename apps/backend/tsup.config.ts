@@ -6,7 +6,7 @@ export default defineConfig({
   // 输出目录
   outDir: 'dist',
   // 生成类型声明文件
-  dts: true,
+  dts: false,
   // 打包格式
   format: 'cjs',
   // 代码分割

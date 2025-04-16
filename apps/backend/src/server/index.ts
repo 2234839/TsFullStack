@@ -1,6 +1,6 @@
 import fastifyCors from '@fastify/cors';
-import { Effect, Either, Logger } from 'effect';
-import Fastify from 'fastify';
+import { Effect, Either, Logger, Layer } from 'effect';
+import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { Readable } from 'stream';
 import { apis, type API } from '../api';
 import { appApis } from '../api/appApi';
@@ -11,160 +11,149 @@ import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/libra
 import superjson from 'superjson';
 import { getPrisma } from '../db';
 
-const fastify = Fastify({
-  logger: false,
-});
-fastify.register(fastifyCors, {
-  origin: '*', // 允许所有来源
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // 允许的 HTTP 方法
-});
+// ========== 类型定义 ==========
+type ApiHandlerParams = {
+  method: string;
+  params: any;
+  request: FastifyRequest;
+  reply: FastifyReply;
+};
 
-/** 对于 application/octet-stream 类型的请求转换为 web 兼容的 ReadableStream 供接口处理 */
-fastify.addContentTypeParser('application/octet-stream', async function (request, payload, done) {
-  const webStream = Readable.toWeb(payload);
-  return webStream;
-});
+type ApiHandlerContext = {
+  x_token_id?: string;
+  db?: any;
+  user?: any;
+};
 
-//#region 自定义日志打印
-const logger = Logger.make(({ logLevel, message }) => {
-  globalThis.console.log(`[${logLevel.label}]`, ...(Array.isArray(message) ? message : [message]));
-});
-const layer = Logger.replace(Logger.defaultLogger, logger);
-//#endregion 自定义日志打印
+// ========== 工具函数 ==========
+function createLoggerLayer(): Layer.Layer<never, never, never> {
+  const logger = Logger.make(({ logLevel, message }) => {
+    console.log(`[${logLevel.label}]`, ...(Array.isArray(message) ? message : [message]));
+  });
+  return Logger.replace(Logger.defaultLogger, logger);
+}
 
-export const startServer = async () => {
-  fastify.all('/api/*', async (request, reply) => {
-    const method = request.url;
-    const params = request.body as any;
+function handleError(error: unknown) {
+  if (typeof error === 'string') {
+    return { error: { message: error } };
+  }
 
-    const x_token_id = request.headers['x-token-id'];
-    if (typeof x_token_id !== 'string') {
-      reply.status(401).send({ error: 'Unauthorized' });
-      return;
+  if (error instanceof UnknownException) {
+    const targetErr = error.error;
+
+    if (targetErr instanceof Error && targetErr.name === 'PrismaClientKnownRequestError') {
+      const err = targetErr as PrismaClientKnownRequestError;
+      if (err?.meta && 'reason' in err.meta) {
+        if (err.meta?.reason === 'ACCESS_POLICY_VIOLATION') {
+          return { error: { message: '权限不足' } };
+        }
+        return { error: { message: err.meta.reason } };
+      }
+      return { error: { message: '数据模型调用错误' } };
     }
-    const { db, user } = await getPrisma({ x_token_id }).catch((e) => {
-      console.log('[e]', e);
-      throw e;
-    });
+  }
 
-    const serverApiRPC = createRPC('apiProvider', {
-      genApiModule: async () => {
-        return {
-          ...apis,
-          /** 这里是为了防止 Effct 的类型体统提示循环引用报错 */
-          db: db as unknown as undefined,
-        };
-      },
-    });
+  if (error instanceof Error) {
+    return { error };
+  }
 
-    function callServerApi(method: string, params: any[]) {
-      const startTime = Date.now();
-      return Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() => serverApiRPC.RC(method, params));
+  return { error: { message: '未知错误' } };
+}
+
+// ========== 路由处理 ==========
+// 服务端鉴权 api 调用，需要用户具有有效的 x_token_id 才能使用
+const apisRpc = createRPC('apiProvider', { genApiModule: async () => apis });
+async function handleApiRoute({ method, params, request, reply }: ApiHandlerParams) {
+  const x_token_id = request.headers['x-token-id'];
+  if (typeof x_token_id !== 'string') {
+    return reply.status(401).send({ error: 'Unauthorized' });
+  }
+  const startTime = Date.now();
+  try {
+    const { db, user } = await getPrisma({ x_token_id });
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => apisRpc.RC(method, params));
         const endTime = Date.now();
 
         yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
 
         if (Effect.isEffect(result)) {
-          const res = yield* result;
-          return res;
-        } else {
-          return result;
+          return yield* result;
         }
-      });
-    }
-    const program = callServerApi(method.slice('/api/'.length), superjson.deserialize(params));
-    const res = await Effect.runPromise(
-      errorHandel(program).pipe(
-        Effect.provide(layer),
-        Effect.provideService(AuthService, {
-          x_token_id,
-          db,
-          user,
-        }),
+        return result;
+      }).pipe(
+        Effect.provide(createLoggerLayer()),
+        Effect.provideService(AuthService, { x_token_id, db, user }),
       ),
     );
-
-    reply.send(superjson.serialize(res));
-  });
-  fastify.all('/app-api/*', async (request, reply) => {
-    const method = request.url;
-    const params = request.body as any;
-
-    const program = callAppApi(method.slice('/app-api/'.length), superjson.deserialize(params));
-
-    const res = await Effect.runPromise(errorHandel(program).pipe(Effect.provide(layer))).catch(
-      (e) => {
-        console.log('[e]', e);
-      },
-    );
-
-    reply.send(superjson.serialize(res));
-  });
-  try {
-    const listening = await fastify.listen({ port: 5209, host: '0.0.0.0' });
-    console.log(`Server listening on ${listening} ^-^`);
-  } catch (err) {
-    console.log('[err]', err);
+    reply.send(superjson.serialize({ result }));
+  } catch (error) {
+    reply.send(superjson.serialize(handleError(error)));
   }
-};
+}
+const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
+async function handleAppApiRoute({ method, params, reply }: ApiHandlerParams) {
+  try {
+    const startTime = Date.now();
+    const result = await Effect.runPromise(
+      Effect.gen(function* () {
+        const result = yield* Effect.tryPromise(() => appApisRpc.RC(method, params));
+        const endTime = Date.now();
 
-function errorHandel<A, E, R>(program: Effect.Effect<A, E, R>) {
-  return Effect.gen(function* () {
-    const failureOrSuccess = yield* Effect.either(program);
-    if (Either.isLeft(failureOrSuccess)) {
-      const error = failureOrSuccess.left;
+        yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
 
-      if (typeof error === 'string') {
-        return { error: { message: error } };
-      }
-      if (error instanceof UnknownException) {
-        const targetErr = error.error;
-
-        if (targetErr instanceof Error && targetErr.name === 'PrismaClientKnownRequestError') {
-          const err = targetErr as PrismaClientKnownRequestError;
-          if (err?.meta && 'reason' in err.meta) {
-            if (err.meta?.reason === 'ACCESS_POLICY_VIOLATION') {
-              return { error: { message: '权限不足' } };
-            }
-            yield* Effect.log('未定义处理错误', targetErr);
-
-            return { error: { message: err.meta.reason } };
-          }
-          console.log('数据模型调用错误', targetErr);
-          return { error: { message: '数据模型调用错误' } };
+        if (Effect.isEffect(result)) {
+          return yield* result;
         }
-      }
-      yield* Effect.log(error);
-      if (error instanceof Error) {
-        return { error };
-      }
-      return Effect.fail('错误的 fail 值');
-    } else {
-      return { result: failureOrSuccess.right };
-    }
-  });
+        return result;
+      }).pipe(Effect.provide(createLoggerLayer())),
+    );
+    reply.send(superjson.serialize({ result }));
+  } catch (error) {
+    reply.send(superjson.serialize(handleError(error)));
+  }
 }
 
-const appApiRPC = createRPC('apiProvider', {
-  genApiModule: async () => {
-    return appApis;
-  },
-});
+// ========== 服务器初始化 ==========
+export async function startServer() {
+  const fastify = Fastify({ logger: false });
 
-function callAppApi(method: string, params: any[]) {
-  const startTime = Date.now();
-  return Effect.gen(function* () {
-    const result = yield* Effect.tryPromise(() => appApiRPC.RC(method, params));
-    const endTime = Date.now();
-
-    yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
-
-    if (Effect.isEffect(result)) {
-      const res = yield* result;
-      return res;
-    } else {
-      return result;
-    }
+  // 中间件
+  fastify.register(fastifyCors, {
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
+
+  fastify.addContentTypeParser('application/octet-stream', (_request, payload, _done) => {
+    return Readable.toWeb(payload);
+  });
+
+  // 路由
+  fastify.all('/api/*', async (request, reply) => {
+    await handleApiRoute({
+      method: request.url.slice('/api/'.length),
+      params: request.body,
+      request,
+      reply,
+    });
+  });
+
+  fastify.all('/app-api/*', async (request, reply) => {
+    await handleAppApiRoute({
+      method: request.url.slice('/app-api/'.length),
+      params: request.body,
+      request,
+      reply,
+    });
+  });
+
+  // 启动服务器
+  try {
+    const address = await fastify.listen({ port: 5209, host: '0.0.0.0' });
+    console.log(`Server listening on ${address}`);
+  } catch (err) {
+    console.error('Server startup error:', err);
+    process.exit(1);
+  }
 }

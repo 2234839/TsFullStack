@@ -5,8 +5,9 @@ export default defineConfig({
   entry: ['src/lib/index.ts'],
   // 输出目录
   outDir: 'dist-lib',
-  // 生成类型声明文件
-  dts: true,
+  // 生成类型声明文件,对于 prisma 的复杂类型会报错
+  // dts: true,
+  experimentalDts: true,
   // 打包格式
   format: ['esm'],
   // 代码分割

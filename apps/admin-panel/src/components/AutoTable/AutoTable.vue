@@ -62,7 +62,6 @@
     const meta = modelMeta.state.value;
     return meta?.models ?? {};
   });
-
   const selectModelName = defineModel<string>('modelName', {
     required: true,
   });

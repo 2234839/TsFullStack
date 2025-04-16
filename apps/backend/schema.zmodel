@@ -11,25 +11,39 @@ generator client {
     output   = "client"
 }
 
-/// 所有模型的基类，包含创建时间和更新时间字段。
-abstract model Common {
-    created DateTime @default(now())
-    updated DateTime @updatedAt
+///  https://zenstack.dev/docs/guides/multiple-schema#abstract-model-inheritance
+// 控制所有模型的通用鉴权策略
+abstract model Base1 {
     /// 通过多对多的关系来实现用户角色的鉴权，允许管理员角色进行所有操作
     @@allow('all', auth().role?[name == 'admin'])
+    /// 禁止未登录用户进行任何操作
+    @@deny('all', !auth())
 }
-
+// 控制一些通用附加字段（模型本身不会再定义这些字段）
+abstract model BaseExtend1 extends Base1 {
+    created DateTime @default(now())
+    updated DateTime @updatedAt
+    // 禁止修改创建时间
+    @@deny('update', future().created != created)
+}
+// 控制一些可能会被重写的字段，
+abstract model Base extends BaseExtend1 {
+    id Int @id @default(autoincrement())
+    // 禁止修改 id
+    @@allow('update', future().id == id)
+}
 /// 角色
-model Role extends Common {
-    id    Int    @id @default(autoincrement())
+model Role extends Base {
     name  String @unique
     users User[]
     @@allow("read",!!auth())
 }
 
 /// User model
-model User extends Common {
+model User extends BaseExtend1 {
     id          String        @id @default(cuid())
+    // 禁止修改 id
+    @@allow('update', future().id == id)
     email       String        @unique @email @length(6, 32)
     password    String        @password @omit
     posts       Post[]
@@ -38,17 +52,14 @@ model User extends Common {
     userSession UserSession[]
     /// 允许用户读取和更新自己的信息
     @@allow('read', auth() == this)
-    @@allow('update', future().id == id) // 防止用户修改自身的 id
     /// 禁止未登录用户进行任何操作
     @@deny('all', !auth())
 }
 
 /// 用户会话模型，用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
-model UserSession extends Common {
-    id        String   @id @default(cuid())
+model UserSession extends Base {
     token     String   @default(cuid())
     expiresAt DateTime
-
     userId    String
     user      User     @relation(fields: [userId], references: [id])
 
@@ -57,19 +68,15 @@ model UserSession extends Common {
 }
 
 /// Post model
-model Post  extends Common {
-    id        String   @id @default(cuid())
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-    title     String   @length(1, 256)
+model Post  extends Base {
+    title     String  @length(1, 256)
     content   String
-    published Boolean  @default(false)
-    author    User     @relation(fields: [authorId], references: [id])
+    published Boolean @default(false)
+    author    User    @relation(fields: [authorId], references: [id])
     authorId  String
 
     // allow read for all signin users
     @@allow('read', auth() != null && published)
-
     // full access by author
     @@allow('all', author == auth())
 }

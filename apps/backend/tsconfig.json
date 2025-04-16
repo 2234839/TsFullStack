@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     /* 基础选项 */
-    "target": "ES2022",                  // 指定编译目标为较新的 ECMAScript 版本
+    "target": "ESNext",                  // 指定编译目标为较新的 ECMAScript 版本
     "module": "ESNext",                  // 使用 ESM 模块系统
     "moduleResolution": "bundler",      // 与 Node.js 的模块解析策略兼容
     "outDir": "./dist",                  // 输出目录
