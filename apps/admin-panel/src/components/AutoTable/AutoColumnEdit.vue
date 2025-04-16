@@ -5,7 +5,7 @@
       <DatePicker showTime hourFormat="24" v-model="eidtValue" class="w-full" />
     </template>
     <template v-else-if="field.type === 'String'">
-      <InputText v-model="eidtValue" class="w-full" />
+      <InputText v-model="eidtValue" class="w-full min-w-28" />
     </template>
     <template v-else>{{ cellData }}</template>
   </div>

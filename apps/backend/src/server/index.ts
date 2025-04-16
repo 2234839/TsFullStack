@@ -127,9 +127,11 @@ function errorHandel<A, E, R>(program: Effect.Effect<A, E, R>) {
             if (err.meta?.reason === 'ACCESS_POLICY_VIOLATION') {
               return { error: { message: '权限不足' } };
             }
+            yield* Effect.log('未定义处理错误', targetErr);
+
             return { error: { message: err.meta.reason } };
           }
-          yield* Effect.logError('数据模型调用错误', targetErr);
+          yield* Effect.log('数据模型调用错误', targetErr);
           return { error: { message: '数据模型调用错误' } };
         }
       }
