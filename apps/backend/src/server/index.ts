@@ -56,63 +56,69 @@ function handleError(error: unknown) {
 
 // ========== 路由处理 ==========
 // 服务端鉴权 api 调用，需要用户具有有效的 x_token_id 才能使用
-async function handleApiRoute({ method, params, request, reply }: ApiHandlerParams) {
+async function handleApi(
+  method: string,
+  params: any,
+  request: FastifyRequest,
+  reply: FastifyReply,
+) {
   const x_token_id = request.headers['x-token-id'];
   if (typeof x_token_id !== 'string') {
     return reply.status(401).send({ error: 'Unauthorized' });
   }
-  const startTime = Date.now();
-  try {
-    const { db, user } = await getPrisma({ x_token_id });
-    const apisRpc = createRPC('apiProvider', {
-      // 这里是为了避免递归解析 prisma 的类型导致 Effect 失效
-      genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
-    });
+  const { db, user } = await getPrisma({ x_token_id });
+  const apisRpc = createRPC('apiProvider', {
+    // 这里是为了避免递归解析 prisma 的类型导致 Effect 失效
+    genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
+  });
 
-    const result = await Effect.runPromise(
-      Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() => apisRpc.RC(method, params));
-        const endTime = Date.now();
-
-        yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
-
-        if (Effect.isEffect(result)) {
-          return yield* result;
-        }
-        return result;
-      }).pipe(
-        Effect.provide(createLoggerLayer()),
-        Effect.provideService(AuthService, { x_token_id, db, user }),
-      ),
-    );
-    reply.send(superjson.serialize({ result }));
-  } catch (error) {
-    reply.send(superjson.serialize(handleError(error)));
-  }
+  const result = await Effect.runPromise(
+    Effect.gen(function* () {
+      const result = yield* Effect.tryPromise(() => apisRpc.RC(method, params));
+      if (Effect.isEffect(result)) {
+        return yield* result;
+      }
+      return result;
+    }).pipe(
+      Effect.provide(createLoggerLayer()),
+      Effect.provideService(AuthService, { x_token_id, db, user }),
+    ),
+  );
+  return result;
 }
+/** 不需要登录状态即可访问的接口 */
 const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
-async function handleAppApiRoute({ method, params, reply }: ApiHandlerParams) {
-  try {
-    const startTime = Date.now();
-    const result = await Effect.runPromise(
-      Effect.gen(function* () {
-        const result = yield* Effect.tryPromise(() => appApisRpc.RC(method, params));
-        const endTime = Date.now();
-
-        yield* Effect.log(`call:[${endTime - startTime}ms]`, method, params);
-
-        if (Effect.isEffect(result)) {
-          return yield* result;
-        }
-        return result;
-      }).pipe(Effect.provide(createLoggerLayer())),
-    );
-    reply.send(superjson.serialize({ result }));
-  } catch (error) {
-    reply.send(superjson.serialize(handleError(error)));
-  }
+async function handleAppApi(method: string, params: any) {
+  const result = await Effect.runPromise(
+    Effect.gen(function* () {
+      const result = yield* Effect.tryPromise(() => appApisRpc.RC(method, params));
+      if (Effect.isEffect(result)) {
+        return yield* result;
+      }
+      return result;
+    }).pipe(Effect.provide(createLoggerLayer())),
+  );
+  return result;
 }
-
+function createAPIHandler(
+  pathPrefix: string,
+  hander: (method: string, params: any, request: FastifyRequest, reply: FastifyReply) => any,
+) {
+  return async function apiHandler(request: FastifyRequest, reply: FastifyReply) {
+    const startTime = Date.now();
+    const method = request.url.slice(pathPrefix.length);
+    const params = superjson.deserialize(request.body as any);
+    try {
+      const result = await hander(method, params, request, reply);
+      reply.send(superjson.serialize({ result }));
+    } catch (error) {
+      reply.send(superjson.serialize(handleError(error)));
+    } finally {
+      const endTime = Date.now();
+      console.log(`call:[${endTime - startTime}ms]`, method, params);
+    }
+  };
+}
 // ========== 服务器初始化 ==========
 export async function startServer() {
   const fastify = Fastify({ logger: false });
@@ -128,23 +134,9 @@ export async function startServer() {
   });
 
   // 路由
-  fastify.all('/api/*', async (request, reply) => {
-    await handleApiRoute({
-      method: request.url.slice('/api/'.length),
-      params: superjson.deserialize(request.body as any),
-      request,
-      reply,
-    });
-  });
+  fastify.all('/api/*', createAPIHandler('/api/', handleApi));
 
-  fastify.all('/app-api/*', async (request, reply) => {
-    await handleAppApiRoute({
-      method: request.url.slice('/app-api/'.length),
-      params: superjson.deserialize(request.body as any),
-      request,
-      reply,
-    });
-  });
+  fastify.all('/app-api/*', createAPIHandler('/app-api/', handleAppApi));
 
   // 启动服务器
   try {
