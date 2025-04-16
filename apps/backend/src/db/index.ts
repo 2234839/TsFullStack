@@ -13,13 +13,24 @@ export const prisma = new PrismaClient({ log: ['info'] });
 /** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表 */
 const allowedMethods = ['$transaction', ...modelsName] as const;
 export type safePrisma = Pick<PrismaClientType, (typeof allowedMethods)[number]>;
-/** 获取zenstack 生成的增强 Prisma 客户端实例，用于鉴权操作  */
-export async function getPrisma(opt: { userId?: string; x_token_id?: string }) {
+/** 获取zenstack 生成的增强 Prisma 客户端实例，用于鉴权操作
+ *  ！！这个方法的入参是可以用于获取任意帐号的 prisma 实例，因此需要谨慎使用
+ */
+export async function getPrisma(opt: { userId?: string; email?: string; x_token_id?: string }) {
+  if (Object.values(opt).filter((el) => el).length === 0) {
+    throw new Error('Invalid options');
+  }
+  let where = {} as any;
+  if (opt.x_token_id) {
+    where.userSession = { some: { token: opt.x_token_id } };
+  } else if (opt.userId) {
+    where.id = opt.userId;
+  } else if (opt.email) {
+    where.email = opt.email;
+  }
+
   const user = await prisma.user.findFirst({
-    where: {
-      id: opt.userId,
-      OR: [{ userSession: { some: { token: opt.x_token_id } } }],
-    },
+    where: where,
     include: {
       role: true,
     },

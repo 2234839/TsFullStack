@@ -1,6 +1,6 @@
+import { compareSync } from 'bcryptjs';
 import { Effect } from 'effect';
 import { getPrisma, prisma } from '../db';
-
 /** 无需鉴权的 api */
 export const appApis = {
   system: {
@@ -8,13 +8,12 @@ export const appApis = {
       const user = await prisma.user.findUnique({
         where: {
           email,
-          password,
         },
       });
-      if (!user) {
+      // https://zenstack.dev/blog/rest-api-on-vercel#5-adding-authentication
+      if (!user || !compareSync(password, user.password)) {
         return Effect.fail('用户不存在或账户密码错误');
       }
-      prisma;
       const { db } = await getPrisma({ userId: user.id });
       const userSession = await db.userSession.create({
         data: {

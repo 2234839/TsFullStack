@@ -46,7 +46,7 @@
   import { useAsyncState } from '@vueuse/core';
   import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
   import { computed, ref, watchEffect } from 'vue';
-  import { API, AppAPI } from '../../api';
+  import { API } from '../../api';
   import AutoColumn from './AutoColumn.vue';
   import type { DBmodelNames, FieldInfo } from './type';
   import { findIdField, getModelKey, useModelMeta } from './util';
