@@ -1,4 +1,4 @@
-import { useAsyncState } from '@vueuse/core';
+import { useAsyncState, useDebounceFn } from '@vueuse/core';
 import { API } from '../../api';
 import type { FieldInfo, ModelMeta } from './type';
 
@@ -15,7 +15,8 @@ export function getModelKey(modelMeta: ModelMeta, modelName: string): string | u
 }
 
 //#region modelMeta ,只有调用 useModelMeta 之后，才会发起请求获取 modelMeta 数据
-const modelMeta = useAsyncState(() => API.system.getModelMeta() as Promise<ModelMeta>, undefined, {
+const debouncedFn = useDebounceFn(() => API.system.getModelMeta() as Promise<ModelMeta>, 30);
+const modelMeta = useAsyncState(debouncedFn, undefined, {
   immediate: false,
 });
 export function useModelMeta() {
