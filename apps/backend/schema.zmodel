@@ -36,7 +36,7 @@ model User extends Common {
     userSession UserSession[]
     /// 允许用户读取和更新自己的信息
     @@allow('read', auth() == this)
-    @@allow('update', auth().id == future().id) // 防止用户修改自身的 id
+    @@allow('update', future().id == id) // 防止用户修改自身的 id
     /// 通过多对多的关系来实现用户角色的鉴权，允许管理员角色进行所有操作
     @@allow('all', auth().role?[name == 'admin'])
     /// 禁止未登录用户进行任何操作

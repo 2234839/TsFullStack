@@ -1,3 +1,4 @@
+import { compareSync, hashSync } from 'bcryptjs';
 import { getPrisma, prisma } from '.';
 
 /** 对数据库进行一些初始化设置 */
@@ -45,6 +46,19 @@ async function seedAdmin() {
             create: { name: 'admin' },
           },
         },
+      },
+      include: {
+        role: true,
+      },
+    });
+  } else if (!compareSync(systemAdminUser.password, admin.password)) {
+    console.log('重置系统管理员帐号密码');
+    admin = await prisma.user.update({
+      where: {
+        email: systemAdminUser.email,
+      },
+      data: {
+        password: hashSync(systemAdminUser.password),
       },
       include: {
         role: true,

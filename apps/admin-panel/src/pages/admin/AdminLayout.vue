@@ -9,6 +9,7 @@
   import { authInfo_isLogin } from '../../storage';
 
   onMounted(() => {
+    // 未登录，跳转到登录页面
     if (!authInfo_isLogin.value) {
       routerUtil.push(routeMap.login, {});
     }
