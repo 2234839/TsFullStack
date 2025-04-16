@@ -131,7 +131,7 @@ function errorHandel<A, E, R>(program: Effect.Effect<A, E, R>) {
 
             return { error: { message: err.meta.reason } };
           }
-          yield* Effect.log('数据模型调用错误', targetErr);
+          console.log('数据模型调用错误', targetErr);
           return { error: { message: '数据模型调用错误' } };
         }
       }

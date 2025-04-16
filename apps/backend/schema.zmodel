@@ -55,8 +55,9 @@ model UserSession extends Common {
     userId    String
     user      User     @relation(fields: [userId], references: [id])
 
+    /// 只允许用户读取和创建，不允许修改和删除
+    @@allow('read,create', auth() == user)
     @@allow('all', auth().role?[name == 'admin'])
-    @@allow('all', auth() == user)
 }
 
 /// Post model
