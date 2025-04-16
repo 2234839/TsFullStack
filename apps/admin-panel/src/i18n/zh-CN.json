@@ -1,1 +1,3 @@
-{}
+{
+  "autoTable.affectedRows": "{rows} 行受影响( {cells} 处)"
+}

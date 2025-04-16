@@ -5,7 +5,9 @@
       <div class="flex items-center space-x-2" v-if="editRows.length">
         <Button @click="saveChanges">{{ t('保存修改结果') }}</Button>
         <Button @click="discardChanges" severity="secondary">{{ t('丢弃修改') }}</Button>
-        <span> {{ editRows.length }} 行受影响( {{ eidtCellCount }} 处) </span>
+        <span>
+          {{ $t('autoTable.affectedRows', { rows: editRows.length, cells: eidtCellCount }) }}
+        </span>
       </div>
       <div class="flex items-center space-x-2" v-if="selectRows.length">
         <Button @click="deleteConfirm($event)" severity="danger"
@@ -202,7 +204,7 @@
       return toast.add({
         severity: 'info',
         summary: 'Warn',
-        detail: '为选中数据',
+        detail: t('未选中数据'),
         life: 3000,
       });
     await API.db[selectModelMeta.value!.modelKey as DBmodelNames].deleteMany({

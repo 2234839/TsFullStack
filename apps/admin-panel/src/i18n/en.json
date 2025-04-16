@@ -1,4 +1,6 @@
 {
   "丢弃修改": "discard changes",
-  "保存修改结果": "Save the modification results"
+  "保存修改结果": "Save the modification results",
+  "autoTable.affectedRows": "{rows} rows affected ({cells} cells)",
+  "未选中数据": "unselected data"
 }
