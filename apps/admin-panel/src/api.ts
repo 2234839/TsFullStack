@@ -2,11 +2,13 @@ import { createRPC, type API as __API__, type AppAPI as __AppAPI__ } from 'tsful
 import superjson from 'superjson';
 import { authInfo } from './storage';
 
+const baseServer = import.meta.env.DEV ? 'http://localhost:5209' : '';
+
 export const { API } = createRPC<__API__>('apiConsumer', {
-  remoteCall: genRemoteCall('http://localhost:5209/api/'),
+  remoteCall: genRemoteCall(`${baseServer}/api/`),
 });
 export const { API: AppAPI } = createRPC<__AppAPI__>('apiConsumer', {
-  remoteCall: genRemoteCall('http://localhost:5209/app-api/'),
+  remoteCall: genRemoteCall(`${baseServer}/app-api/`),
 });
 function genRemoteCall(baseUrl: string) {
   function remoteCall(method: string, data: any[]) {
