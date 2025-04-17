@@ -105,7 +105,7 @@ function createAPIHandler(
 }
 // ========== 服务器初始化 ==========
 export async function startServer() {
-  const fastify = Fastify({ logger: true });
+  const fastify = Fastify({ logger: false });
 
   // 中间件
   fastify.register(fastifyCors, {

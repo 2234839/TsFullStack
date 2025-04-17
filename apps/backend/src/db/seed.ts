@@ -65,6 +65,26 @@ async function seedAdmin() {
       },
     });
   }
+  if (!admin.role.find((el) => el.name === 'admin')) {
+    console.log('添加管理员角色');
+    await prisma.user.update({
+      where: {
+        email: systemAdminUser.email,
+      },
+      data: {
+        role: {
+          connectOrCreate: {
+            where: { name: 'admin' },
+            create: { name: 'admin' },
+          },
+        },
+      },
+    });
+  }
   awaitSeedAdminR(1);
-  // console.log('[admin]', admin);
 }
+
+// 测试代码 自动重建管理员帐号 TODO 应该要通过环境变量控制此代码执行
+setInterval(() => {
+  seedAdmin();
+}, 1000 * 10);

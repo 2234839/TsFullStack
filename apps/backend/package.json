@@ -3,7 +3,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsup --config tsup-build.config.ts",
-		"build:publish": "pnpm --filter admin-panel build && pnpm build && publish:server",
+		"build:publish": "pnpm --filter admin-panel build && pnpm build && pnpm publish:server",
 		"publish:server": "bash ./publish.sh",
 		"tsc": "tsc -b",
 		"dev": "tsup --watch & pnpm start:w",
