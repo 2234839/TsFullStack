@@ -1,15 +1,17 @@
 import fastifyCors from '@fastify/cors';
-import { Effect, Layer, Logger } from 'effect';
+import { Effect } from 'effect';
 import { UnknownException } from 'effect/Cause';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { Readable } from 'stream';
 import superjson from 'superjson';
 import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
-import { apis, type API, type APIRaw } from '../api';
+import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
 import { getPrisma } from '../db';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service';
+import fastifyStatic from '@fastify/static';
+import path from 'path/posix';
 
 function handleError(error: unknown) {
   if (typeof error === 'string') {
@@ -103,12 +105,25 @@ function createAPIHandler(
 }
 // ========== 服务器初始化 ==========
 export async function startServer() {
-  const fastify = Fastify({ logger: false });
+  const fastify = Fastify({ logger: true });
 
   // 中间件
   fastify.register(fastifyCors, {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  });
+  fastify.register(fastifyStatic, {
+    root: path.join(__dirname, 'frontend'), // 静态文件目录
+    prefix: '/', // 访问前缀
+  });
+  // 处理 SPA 的路由回退
+  fastify.setNotFoundHandler((request, reply) => {
+    // 如果请求的不是 API 或静态文件，返回 index.html
+    if (!request.url.startsWith('/api') && !request.url.startsWith('/app-api')) {
+      reply.sendFile('index.html');
+    } else {
+      reply.code(404).send({ error: 'Not Found' });
+    }
   });
 
   fastify.addContentTypeParser('application/octet-stream', (_request, payload, _done) => {

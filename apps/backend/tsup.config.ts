@@ -11,19 +11,14 @@ export default defineConfig({
   format: 'cjs',
   // 代码分割
   splitting: false,
+  minify: true,
   // 生成 sourcemap
   sourcemap: true,
   // 清除输出目录
   clean: true,
   // 忽略 watch 的文件
   ignoreWatch: ['**/node_modules/**', '**/.git/**'],
-  // 适用于 Prisma 的特殊配置
-  esbuildOptions: (options) => {
-    // 如果你的项目使用 Prisma，需要添加以下配置
-    options.platform = 'node';
-    options.target = 'node16';
-  },
   // 开发模式下排除所有npm包依赖
   // external: [/node_modules/],
-  noExternal: [],
+  noExternal: [/.*/],
 });
