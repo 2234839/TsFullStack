@@ -3,6 +3,7 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsup",
+		"build:publish": "tsup --config tsup-build.config.ts && bash ./publish.sh",
 		"tsc": "tsc -b",
 		"dev": "tsup --watch & pnpm start:w",
 		"start": "node --enable-source-maps ./dist/index.cjs",

@@ -20,5 +20,5 @@ export default defineConfig({
   ignoreWatch: ['**/node_modules/**', '**/.git/**'],
   // 开发模式下排除所有npm包依赖
   // external: [/node_modules/],
-  noExternal: [],
+  noExternal: [/.*/],
 });

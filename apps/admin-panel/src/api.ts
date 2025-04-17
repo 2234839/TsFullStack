@@ -25,7 +25,7 @@ function genRemoteCall(baseUrl: string) {
       body,
       headers: {
         'Content-Type': content_type,
-        'x-token-id': authInfo.value.token,
+        'x-token-id': authInfo.value?.token ?? '',
       },
       // @ts-expect-error 在 node 运行的时候需要声明双工模式才能正确发送 ReadableStream，TODO 需要验证浏览器端可以这样运行吗
       duplex: 'half', // 关键：显式声明半双工模式

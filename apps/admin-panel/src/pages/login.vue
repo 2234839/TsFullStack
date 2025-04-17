@@ -98,6 +98,7 @@
 
       routerUtil.push(routeMap.admin, {});
     } catch (error) {
+      console.log('[error]', error);
       toast.add({
         severity: 'error',
         summary: '登录失败',
