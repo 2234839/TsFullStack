@@ -22,4 +22,7 @@ pnpm tsup && node dist/test.js
 
 ## 注意
 
+编译发布
+pnpm --filter tsfullstack-backend build:publish
+
 无法使用 tsx 直接运行 zenstack，需要 ts-node 或者 tsup 编译后运行 js

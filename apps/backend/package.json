@@ -2,8 +2,9 @@
 	"name": "tsfullstack-backend",
 	"type": "module",
 	"scripts": {
-		"build": "tsup",
-		"build:publish": "tsup --config tsup-build.config.ts && bash ./publish.sh",
+		"build": "tsup --config tsup-build.config.ts",
+		"build:publish": "pnpm --filter admin-panel build && pnpm build && publish:server",
+		"publish:server": "bash ./publish.sh",
 		"tsc": "tsc -b",
 		"dev": "tsup --watch & pnpm start:w",
 		"start": "node --enable-source-maps ./dist/index.cjs",

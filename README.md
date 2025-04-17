@@ -2,6 +2,8 @@
 
 这是我的 ts 全栈最佳实践项目。
 
+[在线体验](http://tsfullstack.heartstack.space/)
+
 [文档地址](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 
 ## 特性
