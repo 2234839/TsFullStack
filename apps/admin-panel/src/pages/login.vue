@@ -1,41 +1,41 @@
 <template>
   <div
     class="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-500"
-    :class="isDarkMode ? 'dark bg-gray-900' : 'bg-gray-50'">
+    :class="theme_isDark ? 'dark bg-gray-900' : 'bg-gray-50'">
     <!-- 炫酷背景 -->
     <div
       class="absolute inset-0 transition-all duration-500"
       :class="
-        isDarkMode
+        theme_isDark
           ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-teal-900'
           : 'bg-gradient-to-br from-blue-100 via-cyan-200 to-teal-100'
       ">
       <!-- 动态背景元素 -->
-      <div class="stars-container" v-if="isDarkMode">
+      <div class="stars-container" v-if="theme_isDark">
         <div v-for="n in 20" :key="`star-${n}`" class="star" :style="getRandomStarStyle()"></div>
       </div>
 
       <!-- 光效元素 -->
       <div
         class="glow-effect glow-1"
-        :class="isDarkMode ? 'bg-teal-500/30' : 'bg-teal-300/40'"></div>
+        :class="theme_isDark ? 'bg-teal-500/30' : 'bg-teal-300/40'"></div>
       <div
         class="glow-effect glow-2"
-        :class="isDarkMode ? 'bg-blue-500/30' : 'bg-blue-300/40'"></div>
+        :class="theme_isDark ? 'bg-blue-500/30' : 'bg-blue-300/40'"></div>
       <div
         class="glow-effect glow-3"
-        :class="isDarkMode ? 'bg-cyan-500/20' : 'bg-cyan-300/30'"></div>
+        :class="theme_isDark ? 'bg-cyan-500/20' : 'bg-cyan-300/30'"></div>
 
       <!-- 动态光线 -->
       <div
         class="light-beam light-beam-1"
-        :class="isDarkMode ? 'bg-gradient-dark' : 'bg-gradient-light'"></div>
+        :class="theme_isDark ? 'bg-gradient-dark' : 'bg-gradient-light'"></div>
       <div
         class="light-beam light-beam-2"
-        :class="isDarkMode ? 'bg-gradient-dark' : 'bg-gradient-light'"></div>
+        :class="theme_isDark ? 'bg-gradient-dark' : 'bg-gradient-light'"></div>
 
       <!-- 网格效果 -->
-      <div class="grid-overlay" :class="isDarkMode ? 'grid-dark' : 'grid-light'"></div>
+      <div class="grid-overlay" :class="theme_isDark ? 'grid-dark' : 'grid-light'"></div>
     </div>
 
     <!-- 主题切换按钮 -->
@@ -46,7 +46,7 @@
     <div
       class="w-full max-w-md p-8 space-y-6 rounded-2xl shadow-2xl border transition-all duration-300 relative z-10"
       :class="
-        isDarkMode
+        theme_isDark
           ? 'bg-gray-800/40 backdrop-blur-xl border-gray-700/30 hover:shadow-teal-500/20'
           : 'bg-white/90 backdrop-blur-sm border-gray-200 hover:shadow-teal-500/10'
       ">
@@ -54,7 +54,7 @@
       <div
         class="absolute pointer-events-none -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"
         :class="
-          isDarkMode
+          theme_isDark
             ? 'bg-gradient-to-r from-teal-500 to-blue-600'
             : 'bg-gradient-to-r from-cyan-400 to-teal-500'
         "></div>
@@ -65,7 +65,7 @@
           <div
             class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow"
             :class="
-              isDarkMode
+              theme_isDark
                 ? 'bg-gradient-to-r from-teal-500 to-blue-600 shadow-teal-500/30'
                 : 'bg-gradient-to-r from-cyan-500 to-teal-600 shadow-teal-500/20'
             ">
@@ -75,36 +75,39 @@
         <h2
           class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient"
           :class="
-            isDarkMode
+            theme_isDark
               ? 'bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-400'
               : 'bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600'
           ">
-          系统登录
+          {{ isLogin ? '系统登录' : '用户注册' }}
         </h2>
-        <p class="mt-2 text-sm" :class="isDarkMode ? 'text-gray-300' : 'text-gray-600'">
-          欢迎回来，请输入您的账号和密码
+        <p class="mt-2 text-sm" :class="theme_isDark ? 'text-gray-300' : 'text-gray-600'">
+          {{ isLogin ? '欢迎回来，请输入您的账号和密码' : '创建一个新账号，开始您的旅程' }}
         </p>
       </div>
 
-      <form class="mt-8 space-y-5" @submit.prevent="handleLogin">
+      <form class="mt-8 space-y-5" @submit.prevent="handleSubmit">
         <div class="space-y-4">
-          <!-- 用户名输入框 -->
+          <!-- 用户名/邮箱输入框 -->
           <div class="group">
             <label
               for="username"
               class="block text-sm font-medium mb-1"
-              :class="isDarkMode ? 'text-gray-200' : 'text-gray-700'">
+              :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
               <i
                 class="pi pi-user mr-2"
-                :class="isDarkMode ? 'text-gray-300' : 'text-gray-500'" />用户名
+                :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />{{
+                isLogin ? '用户名' : '邮箱'
+              }}
             </label>
 
             <InputText
               id="username"
               v-model="form.username"
+              :type="isLogin ? 'text' : 'email'"
               required
               class="w-full"
-              placeholder="请输入用户名" />
+              :placeholder="isLogin ? '请输入用户名' : '请输入邮箱'" />
           </div>
 
           <!-- 密码输入框 -->
@@ -112,10 +115,10 @@
             <label
               for="password"
               class="block text-sm font-medium mb-1"
-              :class="isDarkMode ? 'text-gray-200' : 'text-gray-700'">
+              :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
               <i
                 class="pi pi-lock mr-2"
-                :class="isDarkMode ? 'text-gray-300' : 'text-gray-500'" />密码
+                :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />密码
             </label>
             <Password
               id="password"
@@ -124,18 +127,45 @@
               required
               class="w-full"
               inputClass="w-full"
-              placeholder="请输入密码" />
+              :feedback="!isLogin"
+              :placeholder="isLogin ? '请输入密码' : '请设置密码'" />
+          </div>
+
+          <!-- 确认密码输入框 (仅注册时显示) -->
+          <div v-if="!isLogin" class="group">
+            <label
+              for="confirmPassword"
+              class="block text-sm font-medium mb-1"
+              :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+              <i
+                class="pi pi-lock mr-2"
+                :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />确认密码
+            </label>
+            <Password
+              id="confirmPassword"
+              v-model="form.confirmPassword"
+              toggleMask
+              required
+              class="w-full"
+              inputClass="w-full"
+              :feedback="false"
+              placeholder="请再次输入密码" />
+            <small
+              v-if="form.password && form.confirmPassword && form.password !== form.confirmPassword"
+              class="text-red-500 mt-1 block">
+              两次输入的密码不一致
+            </small>
           </div>
         </div>
 
-        <!-- 记住我和忘记密码 -->
-        <div class="flex items-center justify-between">
+        <!-- 记住我和忘记密码 (仅登录时显示) -->
+        <div v-if="isLogin" class="flex items-center justify-between">
           <div class="flex items-center">
             <Checkbox v-model="rememberMe" id="remember" binary />
             <label
               for="remember"
               class="ml-2 block text-sm"
-              :class="isDarkMode ? 'text-gray-200' : 'text-gray-700'">
+              :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
               记住我
             </label>
           </div>
@@ -145,7 +175,7 @@
               href="#"
               class="font-medium transition-colors"
               :class="
-                isDarkMode
+                theme_isDark
                   ? 'text-teal-400 hover:text-teal-300'
                   : 'text-teal-600 hover:text-teal-500'
               ">
@@ -154,7 +184,39 @@
           </div>
         </div>
 
-        <!-- 登录按钮 -->
+        <!-- 用户协议 (仅注册时显示) -->
+        <div v-if="!isLogin" class="flex items-center">
+          <Checkbox v-model="agreeTerms" id="terms" binary />
+          <label
+            for="terms"
+            class="ml-2 block text-sm"
+            :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+            我已阅读并同意
+            <a
+              href="#"
+              class="font-medium transition-colors"
+              :class="
+                theme_isDark
+                  ? 'text-teal-400 hover:text-teal-300'
+                  : 'text-teal-600 hover:text-teal-500'
+              ">
+              用户协议
+            </a>
+            和
+            <a
+              href="#"
+              class="font-medium transition-colors"
+              :class="
+                theme_isDark
+                  ? 'text-teal-400 hover:text-teal-300'
+                  : 'text-teal-600 hover:text-teal-500'
+              ">
+              隐私政策
+            </a>
+          </label>
+        </div>
+
+        <!-- 登录/注册按钮 -->
         <div class="space-y-3">
           <Button
             v-if="authInfo_isLogin"
@@ -162,29 +224,30 @@
             icon="pi pi-home"
             @click="routerUtil.push(routeMap.admin, {})"
             class="w-full justify-center" />
-
-          <Button type="submit" class="w-full justify-center" :loading="loading">
-            <template #default>
-              <span class="flex items-center">
-                <i class="pi pi-sign-in mr-2"></i>
-                <span>登录</span>
-              </span>
-            </template>
-          </Button>
+          <Button
+            type="submit"
+            class="w-full justify-center"
+            :loading="loading"
+            :icon="isLogin ? 'pi pi-sign-in' : 'pi pi-user-plus'"
+            :disabled="!isFormValid || loading"
+            :label="isLogin ? '登录' : '注册'" />
         </div>
       </form>
 
-      <!-- 底部额外信息 -->
+      <!-- 底部切换登录/注册 -->
       <div
         class="pt-4 text-center text-xs border-t"
-        :class="isDarkMode ? 'text-gray-400 border-gray-700/30' : 'text-gray-500 border-gray-200'">
+        :class="
+          theme_isDark ? 'text-gray-400 border-gray-700/30' : 'text-gray-500 border-gray-200'
+        ">
         <p>
-          还没有账号?
+          {{ isLogin ? '还没有账号?' : '已有账号?' }}
           <a
             href="#"
+            @click.prevent="toggleMode"
             class="hover:underline"
-            :class="isDarkMode ? 'text-teal-400' : 'text-teal-600'">
-            立即注册
+            :class="theme_isDark ? 'text-teal-400' : 'text-teal-600'">
+            {{ isLogin ? '立即注册' : '立即登录' }}
           </a>
         </p>
       </div>
@@ -194,37 +257,60 @@
     <div
       ref="cursorLight"
       class="cursor-light"
-      :class="isDarkMode ? 'cursor-light-dark' : 'cursor-light-light'"></div>
+      :class="theme_isDark ? 'cursor-light-dark' : 'cursor-light-light'"></div>
   </div>
 </template>
 
 <script setup lang="ts">
   import ThemeSwitcher from '@/components/ThemeSwitch.vue';
-  import Button from 'primevue/button';
-  import Checkbox from 'primevue/checkbox';
-  import InputText from 'primevue/inputtext';
-  import Password from 'primevue/password';
-  import { useToast } from 'primevue/usetoast';
-  import { onMounted, onUnmounted, ref } from 'vue';
+  import { Password, useToast, InputText, Checkbox, Button } from 'primevue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import { AppAPI } from '@/api';
   import { routeMap, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin, theme_isDark } from '@/storage';
 
   const toast = useToast();
   const cursorLight = ref<HTMLElement | null>(null);
-  const isDarkMode = theme_isDark;
   const rememberMe = ref(false);
   const loading = ref(false);
+  const isLogin = ref(true); // 默认为登录模式
+  const agreeTerms = ref(false); // 用户协议勾选
 
-  interface LoginForm {
-    username: string;
-    password: string;
-  }
-
-  const form = ref<LoginForm>({
+  const form = ref({
     username: 'admin@example.com',
     password: 'adminpassword123',
+    confirmPassword: '',
   });
+
+  // 表单验证
+  const isFormValid = computed(() => {
+    if (isLogin.value) {
+      // 登录模式验证
+      return form.value.username && form.value.password;
+    } else {
+      // 注册模式验证
+      return (
+        form.value.username &&
+        form.value.password &&
+        form.value.confirmPassword &&
+        form.value.password === form.value.confirmPassword &&
+        agreeTerms.value
+      );
+    }
+  });
+
+  // 切换登录/注册模式
+  const toggleMode = () => {
+    isLogin.value = !isLogin.value;
+    // 清空表单
+    form.value = {
+      username: '',
+      password: '',
+      confirmPassword: '',
+    };
+    rememberMe.value = false;
+    agreeTerms.value = false;
+  };
 
   // 生成随机星星样式
   const getRandomStarStyle = () => {
@@ -252,30 +338,51 @@
     }
   };
 
-  const handleLogin = async () => {
+  // 处理表单提交
+  const handleSubmit = async () => {
+    if (!isFormValid.value) return;
+
     loading.value = true;
     try {
-      const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
+      if (isLogin.value) {
+        // 登录逻辑
+        const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
+        authInfo.value = {
+          userId: res.userId,
+          token: res.token,
+          expiresAt: res.expiresAt.getTime(),
+        };
 
-      authInfo.value = { userId: res.userId, token: res.token, expiresAt: res.expiresAt.getTime() };
+        toast.add({
+          severity: 'success',
+          summary: '登录成功',
+          detail: '欢迎回来，正在为您跳转...',
+          life: 3000,
+        });
 
-      // 使用更吸引人的成功提示
-      toast.add({
-        severity: 'success',
-        summary: '登录成功',
-        detail: '欢迎回来，正在为您跳转...',
-        life: 3000,
-      });
+        // 延迟跳转
+        setTimeout(() => {
+          routerUtil.push(routeMap.admin, {});
+        }, 1000);
+      } else {
+        // 注册逻辑
+        await AppAPI.system.register(form.value.username, form.value.password);
 
-      // 延迟跳转，让用户看到成功提示
-      setTimeout(() => {
-        routerUtil.push(routeMap.admin, {});
-      }, 1000);
+        toast.add({
+          severity: 'success',
+          summary: '注册成功',
+          detail: '账号创建成功，请登录',
+          life: 3000,
+        });
+
+        // 注册成功后切换到登录页
+        isLogin.value = true;
+      }
     } catch (error) {
       console.log('[error]', error);
       toast.add({
         severity: 'error',
-        summary: '登录失败',
+        summary: isLogin.value ? '登录失败' : '注册失败',
         detail: (error as Error).message,
         life: 3000,
       });
@@ -283,8 +390,15 @@
       loading.value = false;
     }
   };
+
+  const stars = ref<any[]>([]);
+
   onMounted(() => {
     document.addEventListener('mousemove', handleMouseMove);
+    // Initialize stars array
+    for (let n = 0; n < 20; n++) {
+      stars.value.push(getRandomStarStyle());
+    }
   });
 
   onUnmounted(() => {
