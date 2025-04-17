@@ -1,9 +1,8 @@
-import { definePreset } from "@primeuix/themes";
+import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
 
 /** https://primevue.org/theming/styled/#noir */
-export const Noir =Aura
- definePreset(Aura, {
+export const Noir = definePreset(Aura, {
   semantic: {
     primary: {
       50: '{zinc.50}',
