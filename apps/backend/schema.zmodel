@@ -30,7 +30,7 @@ abstract model BaseExtend1 extends Base1 {
 abstract model Base extends BaseExtend1 {
     id Int @id @default(autoincrement())
     // 禁止修改 id
-    @@allow('update', future().id == id)
+    @@deny('update', future().id != id)
 }
 /// 角色
 model Role extends Base {
