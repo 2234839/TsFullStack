@@ -5,6 +5,23 @@ import { getPrisma, prisma } from '../db';
 /** 无需鉴权的 api */
 export const appApis = {
   system: {
+    async register(email: string, password: string) {
+      const user = await prisma.user.findUnique({
+        where: {
+          email,
+        },
+      });
+      if (user) {
+        return Effect.fail('用户已存在');
+      }
+      const newUser = await prisma.user.create({
+        data: {
+          email,
+          password,
+        },
+      });
+      return newUser;
+    },
     async loginByEmailPwd(email: string, password: string) {
       const user = await prisma.user.findUnique({
         where: {

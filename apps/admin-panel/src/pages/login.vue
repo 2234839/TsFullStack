@@ -163,7 +163,7 @@
             @click="routerUtil.push(routeMap.admin, {})"
             class="w-full justify-center" />
 
-          <Button v-else type="submit" class="w-full justify-center" :loading="loading">
+          <Button type="submit" class="w-full justify-center" :loading="loading">
             <template #default>
               <span class="flex items-center">
                 <i class="pi pi-sign-in mr-2"></i>
