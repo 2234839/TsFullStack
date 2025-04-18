@@ -1,5 +1,6 @@
 import {
   createRPC,
+  proxyCall,
   type API as __API__,
   type AppAPI as __AppAPI__,
   type MsgErrorOpValues,
@@ -32,7 +33,17 @@ export function useAPI(useToastFn = useToast) {
     remoteCall: genPostRemoteCall(`${baseServer}/app-api/`),
   });
   const toast = useToastFn();
-  return { API, AppAPI };
+  const APIGetUrl = proxyCall(API, ([path, args]) => {
+    const x_token_id = authInfo.value?.token;
+    return `${baseServer}/api/${path}?${
+      x_token_id ? `x_token_id=${x_token_id}&` : ''
+    }args=${encodeURIComponent(superjson.stringify(args))}`;
+  });
+  const AppAPIGetUrl = proxyCall(AppAPI, ([path, args]) => {
+    return `${baseServer}/app-api/${path}?args=${encodeURIComponent(superjson.stringify(args))}`;
+  });
+  return { API, AppAPI, APIGetUrl, AppAPIGetUrl };
+
   function genPostRemoteCall(baseUrl: string) {
     function remoteCall(method: string, data: any[]) {
       let body: BodyInit;

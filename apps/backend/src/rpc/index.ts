@@ -218,3 +218,59 @@ export type DeepUnEffectReturnTypeUnion<T> = T extends (...args: any[]) => any
   : never;
 /** 解开可��是 Effect 的返回值，如果是 Effect 则返回其成功类型，否则返回原类型 */
 export type ExtractEffectSuccess<T> = T extends Effect.Effect<infer A, infer E, infer P> ? A : T;
+
+/**
+ * 定义递归的链式调用类型，支持结果转换
+ * R 是可选的结果转换类型
+ */
+type ChainedProxy<T, R = [string, any[]], P extends string[] = []> = {
+  [K in keyof T]: T[K] extends (...args: infer A) => any
+    ? (...args: A) => R
+    : ChainedProxy<T[K], R, [...P, string & K]>;
+};
+
+/**
+ * 创建一个代理对象，跟踪链式调用并返回路径和参数
+ * @param obj 原始对象
+ * @param transform 可选的转换函数，将[路径, 参数]转换为自定义类型
+ * @returns 具有完整类型提示的代理对象
+ */
+export function proxyCall<T extends object, R = [string, any[]]>(
+  _obj: T,
+  transform?: (result: [string, any[]]) => R,
+): ChainedProxy<T, R> {
+  const path: string[] = [];
+
+  const createProxy = (): any => {
+    return new Proxy(function () {}, {
+      // 拦截函数调用
+      apply(_target, _thisArg, args: any[]) {
+        const result: [string, any[]] = [path.join('.'), args];
+        // 如果提供了转换函数，则应用转换
+        return transform ? transform(result) : result;
+      },
+      // 拦截属性访问
+      get(_target, prop, _receiver) {
+        if (typeof prop === 'string' && prop !== 'then') {
+          // 避免与Promise冲突
+          path.push(prop);
+          return createProxy();
+        }
+        return undefined;
+      },
+    });
+  };
+
+  // 创建顶层代理
+  const handler: ProxyHandler<any> = {
+    get(_target, prop, _receiver) {
+      if (typeof prop === 'string' && prop !== 'then') {
+        path.push(prop);
+        return createProxy();
+      }
+      return undefined;
+    },
+  };
+
+  return new Proxy({}, handler) as ChainedProxy<T, R>;
+}
