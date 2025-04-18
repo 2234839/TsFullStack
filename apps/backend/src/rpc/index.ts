@@ -111,10 +111,10 @@ export function createRPC<API_TYPE>(
 
           let currentObj: any = apiModule;
           for (const part of methodParts) {
-            // 安全检查：确保属性直接存在于对象上，而不是从原型链继承的
-            if (!Object.hasOwn(currentObj, part)) {
-              throw new Error(`属性 ${part} 不存在于对象上或是从原型链继承的`);
-            }
+            // 安全检查：确保属性直接存在于对象上，而不是从原型链继承的,prisma 的数据并不是普通对象，所以这里注释掉了
+            // if (!Object.hasOwn(currentObj, part)) {
+            //   throw new Error(`属性 ${part} 不存在于对象上或是从原型链继承的`);
+            // }
 
             currentObj = currentObj[part];
             if (!currentObj) {
