@@ -262,13 +262,13 @@
 </template>
 
 <script setup lang="ts">
-  import ThemeSwitcher from '@/components/ThemeToggle.vue';
-  import { Password, useToast, InputText, Checkbox, Button } from 'primevue';
-  import { computed, onMounted, onUnmounted, ref } from 'vue';
   import { AppAPI } from '@/api';
+  import ThemeSwitcher from '@/components/ThemeToggle.vue';
   import { routeMap, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin, theme_isDark } from '@/storage';
   import { useEventListener } from '@vueuse/core';
+  import { Button, Checkbox, InputText, Password, useToast } from 'primevue';
+  import { computed, onMounted, ref } from 'vue';
 
   const toast = useToast();
   const cursorLight = ref<HTMLElement | null>(null);
