@@ -1,3 +1,4 @@
+import { routeMap, routerUtil } from '@/router';
 import { StorageSerializers, useStorage } from '@vueuse/core';
 import { computed, watchEffect } from 'vue';
 
@@ -10,10 +11,14 @@ export const authInfo = useStorage<
     }
   | undefined
 >('authInfo', null, undefined, { serializer: StorageSerializers.object });
-
 export const authInfo_isLogin = computed(() => {
   return !!authInfo.value && authInfo.value.expiresAt > Date.now();
 });
+/** 清楚认证信息并跳转到登录页面  */
+export function authInfo_logout() {
+  authInfo.value = undefined;
+  routerUtil.push(routeMap.login, {});
+}
 
 //#region 主题功能
 export const theme = useStorage<'dark' | 'light'>('theme', null, undefined, {

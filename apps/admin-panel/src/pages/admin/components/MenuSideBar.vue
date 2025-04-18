@@ -1,8 +1,7 @@
 <template>
   <div
     class="sidebar-container h-screen transition-all duration-300 ease-in-out relative"
-    :class="[isCollapsed ? 'w-20' : 'w-80']"
-    :style="{ width: !isCollapsed && customWidth ? `${customWidth}px` : '' }">
+    :class="[isCollapsed ? 'w-20' : 'w-80']">
     <!-- 主侧边栏 -->
     <div
       class="h-full flex flex-col relative overflow-hidden transition-colors duration-300 bg-gradient-to-b from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200 dark:border-slate-700/50">
@@ -11,7 +10,8 @@
         class="logo-area p-5 flex items-center justify-between border-b border-gray-200 dark:border-slate-700/50">
         <div class="flex items-center space-x-3">
           <div
-            class="logo-icon flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-gradient-to-br from-blue-500 to-cyan-400 dark:from-cyan-400 dark:to-blue-600 shadow-blue-200 dark:shadow-blue-500/20">
+            @click="toggleCollapse"
+            class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-gradient-to-br from-blue-500 to-cyan-400 dark:from-cyan-400 dark:to-blue-600 shadow-blue-200 dark:shadow-blue-500/20">
             <i class="pi pi-bolt text-white text-xl"></i>
           </div>
           <h1
@@ -53,7 +53,6 @@
         class="search-box px-4 py-3 transition-all duration-300 overflow-hidden border-b border-gray-200 dark:border-slate-700/50"
         :class="[isCollapsed ? 'opacity-0 h-0 py-0' : 'opacity-100']">
         <span class="p-input-icon-left w-full">
-          <i class="pi pi-search text-gray-400 dark:text-slate-400"></i>
           <InputText
             v-model="searchQuery"
             placeholder="搜索..."
@@ -176,6 +175,7 @@
           <Button
             icon="pi pi-power-off"
             class="p-button-rounded p-button-text p-button-plain"
+            @click="authInfo_logout()"
             v-tooltip.right="'退出'" />
         </div>
       </div>
@@ -187,22 +187,17 @@
         <div class="grid-overlay"></div>
       </div>
     </div>
-
-    <!-- 拖动调整宽度的把手 -->
-    <div
-      v-if="!isCollapsed"
-      class="resize-handle absolute top-0 right-0 w-1 h-full cursor-ew-resize hover:bg-blue-400/50 dark:hover:bg-cyan-400/50 transition-colors"
-      @mousedown="startResize"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted, inject } from 'vue';
+  import ThemeSwitch from '@/components/ThemeToggle.vue';
+  import { authInfo_logout } from '@/storage';
   import Avatar from 'primevue/avatar';
   import Badge from 'primevue/badge';
   import Button from 'primevue/button';
   import InputText from 'primevue/inputtext';
-  import ThemeSwitch from '@/components/ThemeToggle.vue';
+  import { computed, onMounted, onUnmounted, ref } from 'vue';
 
   // 定义类型
   interface MenuItem {
@@ -224,31 +219,10 @@
   // 侧边栏状态
   const isCollapsed = ref(false);
   const searchQuery = ref('');
-  const customWidth = ref<number | null>(null);
-  const isResizing = ref(false);
 
   // 切换折叠状态
   const toggleCollapse = (): void => {
     isCollapsed.value = !isCollapsed.value;
-  };
-
-  // 拖动调整宽度
-  const startResize = (e: MouseEvent): void => {
-    isResizing.value = true;
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', stopResize);
-    e.preventDefault();
-  };
-
-  const handleMouseMove = (e: MouseEvent): void => {
-    if (!isResizing.value) return;
-    customWidth.value = Math.max(280, Math.min(500, e.clientX));
-  };
-
-  const stopResize = (): void => {
-    isResizing.value = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', stopResize);
   };
 
   // 菜单数据结构
@@ -508,15 +482,6 @@
   const getBadgeSeverity = (item: MenuItem): string => {
     return item.badgeSeverity || 'info';
   };
-
-  onMounted(() => {
-    // 初始化
-  });
-
-  onUnmounted(() => {
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', stopResize);
-  });
 </script>
 
 <style scoped>
