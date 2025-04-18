@@ -13,7 +13,6 @@
 </template>
 
 <script setup lang="ts">
-  import { API } from '@/api';
   import MenuSideBar from '@/pages/admin/components/MenuSideBar.vue';
   import { routeMap, routerUtil } from '@/router';
   import { authInfo_isLogin } from '@/storage';
@@ -24,13 +23,6 @@
     if (!authInfo_isLogin.value) {
       routerUtil.push(routeMap.login, {});
     }
-    // 示例：转换一个文本为 File
-    const text = 'Hello, world!';
-    const blob = new Blob([text], { type: 'text/plain' });
-    ;
-
-    const r = await API.system.upload(new File([blob], 'hello.txt', { type: 'text/plain' }));
-    console.log('[r]', r);
   });
 </script>
 
