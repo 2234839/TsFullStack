@@ -37,7 +37,7 @@ export async function getPrisma(opt: { userId?: string; email?: string; x_token_
     },
   });
   if (!user) {
-    throw new MsgError(MsgError.op_toLogin, 'User not found');
+    throw new MsgError(MsgError.op_toLogin, 'x_token_id is invalid or user not found');
   }
 
   const db = enhance(prisma, { user }, { logPrismaQuery: DB_DEBUG });
