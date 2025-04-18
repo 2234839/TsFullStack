@@ -31,11 +31,13 @@
       <div
         class="user-profile px-4 py-5 flex items-center border-b border-gray-200 dark:border-slate-700/50">
         <div class="relative">
-          <Avatar
-            image="https://randomuser.me/api/portraits/men/32.jpg"
-            class="mr-3 shadow-lg border-2 border-blue-400 dark:border-cyan-400"
-            size="large"
-            shape="circle" />
+          <a href="https://shenzilong.cn" target="_blank">
+            <Avatar
+              :image="avatarImageSrc"
+              class="mr-3 shadow-lg border-2 border-blue-400 dark:border-cyan-400"
+              size="large"
+              shape="circle" />
+          </a>
           <span
             class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
         </div>
@@ -198,7 +200,8 @@
   import Button from 'primevue/button';
   import InputText from 'primevue/inputtext';
   import { computed, ref } from 'vue';
-
+  import avatarImageSrc from '/崮生.png?url';
+  import { router } from '@/router';
   // 定义类型
   interface MenuItem {
     key: string;
