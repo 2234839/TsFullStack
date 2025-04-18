@@ -197,7 +197,7 @@
   import Badge from 'primevue/badge';
   import Button from 'primevue/button';
   import InputText from 'primevue/inputtext';
-  import { computed, onMounted, onUnmounted, ref } from 'vue';
+  import { computed, ref } from 'vue';
 
   // 定义类型
   interface MenuItem {
@@ -492,11 +492,6 @@
     z-index: 50;
   }
 
-  /* 暗色模式下的阴影 */
-  :global(.dark) .sidebar-container {
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-  }
-
   /* 自定义滚动条 */
   .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
@@ -515,14 +510,6 @@
     background-color: rgba(100, 116, 139, 0.5);
   }
 
-  :global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(100, 116, 139, 0.5);
-  }
-
-  :global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(100, 116, 139, 0.8);
-  }
-
   /* 装饰元素 */
   .decorative-elements {
     position: absolute;
@@ -536,10 +523,6 @@
     border-radius: 50%;
     filter: blur(70px);
     opacity: 0.07;
-  }
-
-  :global(.dark) .glow-effect {
-    opacity: 0.15;
   }
 
   .glow-1 {

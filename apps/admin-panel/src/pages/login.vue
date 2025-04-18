@@ -268,6 +268,7 @@
   import { AppAPI } from '@/api';
   import { routeMap, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin, theme_isDark } from '@/storage';
+  import { useEventListener } from '@vueuse/core';
 
   const toast = useToast();
   const cursorLight = ref<HTMLElement | null>(null);
@@ -394,15 +395,10 @@
   const stars = ref<any[]>([]);
 
   onMounted(() => {
-    document.addEventListener('mousemove', handleMouseMove);
-    // Initialize stars array
+    useEventListener(document, 'mousemove', handleMouseMove);
     for (let n = 0; n < 20; n++) {
       stars.value.push(getRandomStarStyle());
     }
-  });
-
-  onUnmounted(() => {
-    document.removeEventListener('mousemove', handleMouseMove);
   });
 </script>
 
