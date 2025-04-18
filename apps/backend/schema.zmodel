@@ -65,7 +65,7 @@ model UserSession extends Base {
     userId    String
     user      User     @relation(fields: [userId], references: [id])
 
-    /// 只允许用户读取和创建，不允许修改和删除
+    /// 只允许用户读取和创建
     @@allow('read,create', auth() == user)
     @@deny('all',expiresAt < now())
 }
