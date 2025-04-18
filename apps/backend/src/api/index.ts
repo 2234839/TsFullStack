@@ -1,26 +1,23 @@
-import { Effect } from 'effect';
-import { ModelMeta, modelsName } from '../db/model-meta';
 import type { PrismaClient } from '@zenstackhq/runtime';
-import {} from '@zenstackhq/runtime';
-import { AuthService } from '../service';
+import { StorageType } from '@zenstackhq/runtime/models';
+import { Effect } from 'effect';
+import { writeFile } from 'fs/promises';
 import { join } from 'path/posix';
 import { v7 as uuidv7 } from 'uuid';
-import { writeFile } from 'fs/promises';
-import { StorageType } from '@zenstackhq/runtime/models';
+import type { allowedMethods } from '../db';
+import { ModelMeta } from '../db/model-meta';
+import { AuthService } from '../service';
 export const apis = {
   system: {
     getModelMeta() {
       return ModelMeta;
     },
-    /** file 这种二进制对象比较特殊，所以在数据传输层做了特殊处理，这里也只能接受一个参数 */
+    /** file 这种二进制对象传递比较特殊，使用 super jons 的话会大幅增加请求大小，所以在数据传输层做了特殊处理，这里也只能接受一个参数 */
     async upload(file: File) {
       return Effect.gen(function* () {
         const auth = yield* AuthService;
-
-        // 将文件保存到本地
         const fileId = uuidv7();
         const filePath = join('./uploads', fileId);
-        // 将文件内容写入目标路径
         const arrayBuffer = yield* Effect.tryPromise(() => file.arrayBuffer());
         const buffer = Buffer.from(arrayBuffer);
         yield* Effect.tryPromise(() => writeFile(filePath, buffer));
@@ -29,7 +26,7 @@ export const apis = {
           auth.db.file.create({
             data: {
               filename: file.name,
-              mimetype: '',
+              mimetype: file.type,
               path: filePath,
               size: file.size, // 文件大小
               storageType: StorageType.LOCAL,
@@ -55,8 +52,6 @@ export const apis = {
   },
 };
 
-/** ZenStack 不接受 $transaction 数组形式的调用，客户端又没法使用非数组形式，所以不让用 */
-const allowedMethods = modelsName;
 export type safePrisma = Pick<PrismaClient, (typeof allowedMethods)[number]>;
 export type APIRaw = typeof apis;
 export type API = Omit<APIRaw, 'db'> & { db: safePrisma };

@@ -95,17 +95,15 @@ function createAPIHandler(
     try {
       const contentType = request.headers['content-type'];
       let params;
-      console.log('[contentType]', contentType);
       if (contentType === 'application/json') {
         params = superjson.deserialize(request.body as SuperJSONResult) as any[];
       } else if (contentType?.startsWith('multipart/form-data')) {
         const file = await request.file();
-        // 转 File 对象
         const buffer = await file!.toBuffer();
         const fileObject = new File([buffer], file!.filename, { type: file!.mimetype });
-        params = [fileObject]; // Assuming the handler expects an array with the file object
+        params = [fileObject];
       } else {
-        params = []; // Fallback to an empty array if content type is not recognized
+        params = [];
         console.log('Unknown content type:', contentType);
       }
       const result = await hander(method, params, request, reply);

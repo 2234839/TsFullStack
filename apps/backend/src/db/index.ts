@@ -11,8 +11,8 @@ const DB_DEBUG = false;
 /** 尽量不要使用这个对象，除非你确定不需要鉴权。否则应该使用 getPrisma 函数 */
 export const prisma = new PrismaClient({ log: ['info'] });
 
-/** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表 */
-const allowedMethods = ['$transaction', ...modelsName] as const;
+/** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表,ZenStack 不接受 $transaction 数组形式的调用，客户端又没法使用非数组形式，所以不让用 */
+export const allowedMethods = ['$transaction', ...modelsName] as const;
 export type safePrisma = Pick<PrismaClientType, (typeof allowedMethods)[number]>;
 /** 获取zenstack 生成的增强 Prisma 客户端实例，用于鉴权操作
  *  ！！这个方法的入参是可以用于获取任意帐号的 prisma 实例，因此需要谨慎使用
