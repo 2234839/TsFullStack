@@ -61,14 +61,14 @@ function genRemoteCall(baseUrl: string) {
 /** 方便组件调用时进行一些定制操作 */
 export function useAPI() {
   const { API } = createRPC<__API__>('apiConsumer', {
-    remoteCall: genRemoteCall(`${baseServer}/api/`),
+    remoteCall: genPostRemoteCall(`${baseServer}/api/`),
   });
   const { API: AppAPI } = createRPC<__AppAPI__>('apiConsumer', {
-    remoteCall: genRemoteCall(`${baseServer}/app-api/`),
+    remoteCall: genPostRemoteCall(`${baseServer}/app-api/`),
   });
   const toast = useToast();
   return { API, AppAPI };
-  function genRemoteCall(baseUrl: string) {
+  function genPostRemoteCall(baseUrl: string) {
     function remoteCall(method: string, data: any[]) {
       let body: BodyInit;
       let content_type;
@@ -121,3 +121,4 @@ export function useAPI() {
     return remoteCall;
   }
 }
+

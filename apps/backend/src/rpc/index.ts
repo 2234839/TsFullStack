@@ -1,10 +1,14 @@
-/** ═════════🏳‍🌈 超轻量级的远程调用，完备的类型提示！ 🏳‍🌈═════════  */
-
 import type { Effect } from 'effect';
 
 interface commonOptions {
   middleware?: ((method: string, data: any[], next: () => Promise<any>) => Promise<any>)[]; // 统一的中间件
+  // 新增：安全配置选项
+  securityOptions?: {
+    allowedPaths?: string[]; // 允许访问的路径白名单
+    forbiddenProps?: string[]; // 禁止访问的属性黑名单
+  };
 }
+
 /** 服务端远程调用，api 返回值不会解开 Effect 类型 */
 export function createRPC<API_TYPE>(
   type: 'apiProvider',
@@ -15,6 +19,7 @@ export function createRPC<API_TYPE>(
   API: DeepAsyncify<API_TYPE>;
   RC: (method: string, data: any[]) => Promise<DeepReturnTypeUnion<API_TYPE>>;
 };
+
 /** 客户端远程调用，api 返回值会解开 Effect 类型，这是由服务端的代码去实现的 Effect 处理 */
 export function createRPC<API_TYPE>(
   type: 'apiConsumer',
@@ -26,6 +31,7 @@ export function createRPC<API_TYPE>(
   API: DeepAsyncEffect<API_TYPE>;
   RC: (method: string, data: any[]) => Promise<DeepUnEffectReturnTypeUnion<API_TYPE>>;
 };
+
 export function createRPC<API_TYPE>(
   ...[type, options]:
     | [
@@ -44,11 +50,43 @@ export function createRPC<API_TYPE>(
 ) {
   const remoteCall = type === 'apiConsumer' ? options.remoteCall : undefined;
 
+  // 默认的安全配置
+  const securityOptions = options.securityOptions || {};
+  const forbiddenProps = new Set([
+    '__proto__',
+    'constructor',
+    'prototype',
+    '__defineGetter__',
+    '__defineSetter__',
+    '__lookupGetter__',
+    '__lookupSetter__',
+    ...(securityOptions.forbiddenProps || []),
+  ]);
+
+  // 白名单路径检查函数
+  const isAllowedPath = (method: string): boolean => {
+    if (!securityOptions.allowedPaths || securityOptions.allowedPaths.length === 0) {
+      return true; // 如果没有设置白名单，则默认允许所有路径
+    }
+    return securityOptions.allowedPaths.some((allowedPath) => {
+      // 支持通配符匹配，例如 "user.*" 匹配 "user.getProfile", "user.updateSettings" 等
+      if (allowedPath.endsWith('.*')) {
+        const prefix = allowedPath.slice(0, -2);
+        return method === prefix || method.startsWith(prefix + '.');
+      }
+      return method === allowedPath;
+    });
+  };
+
   async function RC<K extends string>(
     method: K,
     data: any[],
   ): Promise<DeepReturnTypeUnion<API_TYPE>> {
-    // console.log('[method]', method, data);
+    // 安全检查：验证方法路径是否在白名单中
+    if (!isAllowedPath(method)) {
+      throw new Error(`方法 ${method} 不在允许的路径白名单中`);
+    }
+
     // 洋葱路由的核心逻辑
     async function executeMiddleware(index: number): Promise<any> {
       if (options.middleware && index < options.middleware.length) {
@@ -61,18 +99,38 @@ export function createRPC<API_TYPE>(
     async function executeCall(): Promise<any> {
       try {
         if (type === 'apiProvider') {
-          const apiModule = type === 'apiProvider' ? await options.genApiModule() : undefined;
-
+          const apiModule = await options.genApiModule();
           const methodParts = method.split('.');
+
+          // 安全检查：检查每个属性部分是否在黑名单中
+          for (const part of methodParts) {
+            if (forbiddenProps.has(part)) {
+              throw new Error(`禁止访问敏感属性: ${part}`);
+            }
+          }
+
           let currentObj: any = apiModule;
           for (const part of methodParts) {
-            currentObj = currentObj?.[part];
-            if (!currentObj) throw new Error(`Method ${method} not found`);
+            // 安全检查：确保属性直接存在于对象上，而不是从原型链继承的
+            if (!Object.hasOwn(currentObj, part)) {
+              throw new Error(`属性 ${part} 不存在于对象上或是从原型链继承的`);
+            }
+
+            currentObj = currentObj[part];
+            if (!currentObj) {
+              throw new Error(`方法 ${method} 未找到`);
+            }
           }
+
           if (typeof currentObj === 'function') {
+            // 安全检查：确保调用的是普通函数，而不是绑定函数或其他特殊函数
+            if (currentObj.toString().includes('[native code]')) {
+              throw new Error(`禁止调用原生方法`);
+            }
+
             return await currentObj(...data);
           } else {
-            throw new Error(`${method} is not a function`);
+            throw new Error(`${method} 不是一个函数`);
           }
         } else {
           return await remoteCall!(method, data);
@@ -85,21 +143,32 @@ export function createRPC<API_TYPE>(
     return await executeMiddleware(0);
   }
 
-  /** Remote call ， 会就近的选择是远程调用还是使用本地函数 */
-
   /** 创建嵌套的Proxy处理器 */
   function createNestedProxy(path: string[] = []): ProxyHandler<object> {
     return {
       get(_target, prop: string) {
+        // 安全检查：阻止访问特殊属性
+        if (typeof prop === 'string' && forbiddenProps.has(prop)) {
+          throw new Error(`禁止访问敏感属性: ${prop}`);
+        }
+
         if (prop === 'then') {
           // Handle the case when the proxy is accidentally treated as a Promise
           return undefined;
         }
         const newPath = [...path, prop];
-        return new Proxy(function (...args: any[]) {
+
+        // 安全检查：验证完整路径是否在白名单中
+        const fullPath = newPath.join('.');
+        if (!isAllowedPath(fullPath)) {
+          throw new Error(`路径 ${fullPath} 不在允许的白名单中`);
+        }
+
+        const proxyObj = new Proxy((...args: any[]) => {
           const method = newPath.join('.');
           return RC(method, args);
         }, createNestedProxy(newPath));
+        return proxyObj;
       },
       apply(_target, _thisArg, args) {
         const method = path.join('.');
@@ -107,8 +176,9 @@ export function createRPC<API_TYPE>(
       },
     };
   }
+
   /** 包装了一次的 RC 方便跳转到函数定义  */
-  const API = new Proxy(function () {}, createNestedProxy()) as unknown as DeepAsyncify<API_TYPE>;
+  const API = new Proxy(() => {}, createNestedProxy()) as unknown as DeepAsyncify<API_TYPE>;
   return { API, RC };
 }
 
@@ -146,5 +216,5 @@ export type DeepUnEffectReturnTypeUnion<T> = T extends (...args: any[]) => any
   : T extends object
   ? { [K in keyof T]: DeepUnEffectReturnTypeUnion<T[K]> }[keyof T]
   : never;
-/** 解开可能是 Effect 的返回值，如果是 Effect 则返回其成功类型，否则返回原类型 */
+/** 解开可��是 Effect 的返回值，如果是 Effect 则返回其成功类型，否则返回原类型 */
 export type ExtractEffectSuccess<T> = T extends Effect.Effect<infer A, infer E, infer P> ? A : T;

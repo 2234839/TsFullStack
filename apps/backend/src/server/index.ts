@@ -49,7 +49,12 @@ async function handleApi(
   reply: FastifyReply,
 ) {
   //#region 根据 token 获取用户鉴权信息，加了缓存
-  const x_token_id = request.headers['x-token-id'];
+  let x_token_id = request.headers['x-token-id'];
+
+  /** 对于 get 请求，可以通过 query 参数传递 token */
+  if (request.method === 'GET') {
+    x_token_id = (request.query as any)?.x_token_id;
+  }
   if (typeof x_token_id !== 'string') {
     return reply.send(
       superjson.serialize(
@@ -105,11 +110,13 @@ function createAPIHandler(
 ) {
   return async function apiHandler(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
-    const method = request.url.slice(pathPrefix.length);
+    const method = request.url.split('?')[0]?.slice(pathPrefix.length) ?? '';
     try {
       const contentType = request.headers['content-type'];
       let params;
-      if (contentType === 'application/json') {
+      if (request.method === 'GET') {
+        params = [request.query]; // Assuming query parameters are used for GET requests
+      } else if (contentType === 'application/json') {
         params = superjson.deserialize(request.body as SuperJSONResult) as any[];
       } else if (contentType?.startsWith('multipart/form-data')) {
         const file = await request.file();
@@ -120,6 +127,8 @@ function createAPIHandler(
         params = [];
         console.log('Unknown content type:', contentType);
       }
+
+      console.log('[params]', params);
       const result = await hander(method, params, request, reply);
       if (result instanceof MsgError) reply.send(superjson.serialize(handleError(result)));
       reply.send(superjson.serialize({ result }));
@@ -148,7 +157,6 @@ export async function startServer() {
 
   // 路由
   fastify.all('/api/*', createAPIHandler('/api/', handleApi));
-
   fastify.all('/app-api/*', createAPIHandler('/app-api/', handleAppApi));
   fastify.register(fastifyStatic, {
     root: path.join(__dirname, 'frontend'), // 静态文件目录
