@@ -1,7 +1,7 @@
 <template>
   <div
     class="sidebar-container h-screen transition-all duration-300 ease-in-out relative"
-    :class="[isCollapsed ? 'w-20' : 'w-80']">
+    :class="[isCollapsed ? 'w-20' : '']">
     <!-- 主侧边栏 -->
     <div
       class="h-full flex flex-col relative overflow-hidden transition-colors duration-300 bg-gradient-to-b from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200 dark:border-slate-700/50">
@@ -17,7 +17,7 @@
           <h1
             class="font-bold text-xl tracking-wide transition-all duration-300 overflow-hidden whitespace-nowrap text-gray-800 dark:text-white"
             :class="[isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto']">
-            ADMIN<span class="text-blue-500 dark:text-cyan-400">PRO</span>
+            Ts<span class="text-blue-500 dark:text-cyan-400">FullStack</span>
           </h1>
         </div>
         <Button
@@ -99,7 +99,7 @@
                 class="menu-item-header flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 mb-1"
                 :class="[
                   isActiveRoute(menuItem)
-                    ? 'bg-blue-50 dark:bg-gradient-to-r dark:from-cyan-500/20 dark:to-blue-500/10 text-blue-700 dark:text-white'
+                    ? 'bg-blue-50 dark:bg-gradient-to-r dark:from-cyan-500/60 dark:to-blue-500/30 text-blue-700 dark:text-white'
                     : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-white',
                 ]">
                 <i

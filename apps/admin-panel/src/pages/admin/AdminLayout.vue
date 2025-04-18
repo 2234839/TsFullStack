@@ -2,7 +2,9 @@
 <template>
   <div class="flex">
     <MenuSideBar />
-    <RouterView />
+    <div>
+      <RouterView />
+    </div>
   </div>
 </template>
 <script setup lang="ts">
