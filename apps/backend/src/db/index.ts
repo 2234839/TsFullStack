@@ -19,7 +19,7 @@ export type safePrisma = Pick<PrismaClientType, (typeof allowedMethods)[number]>
  */
 export async function getPrisma(opt: { userId?: string; email?: string; x_token_id?: string }) {
   if (Object.values(opt).filter((el) => el).length === 0) {
-    throw new MsgError('Invalid options');
+    throw new MsgError(MsgError.op_msgError, 'Invalid options');
   }
   let where = {} as any;
   if (opt.x_token_id) {
@@ -37,7 +37,7 @@ export async function getPrisma(opt: { userId?: string; email?: string; x_token_
     },
   });
   if (!user) {
-    throw new MsgError('User not found');
+    throw new MsgError(MsgError.op_toLogin, 'User not found');
   }
 
   const db = enhance(prisma, { user }, { logPrismaQuery: DB_DEBUG });
@@ -46,7 +46,7 @@ export async function getPrisma(opt: { userId?: string; email?: string; x_token_
   const dbProxy = new Proxy(db, {
     get(target, prop: string | symbol, receiver) {
       if (typeof prop === 'string' && !allowedMethods.includes(prop as any)) {
-        throw new MsgError(`Method '${prop}' is not allowed.`);
+        throw new MsgError(MsgError.op_msgError, `Method '${prop}' is not allowed.`);
       }
       return Reflect.get(target, prop, receiver);
     },

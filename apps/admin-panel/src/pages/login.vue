@@ -262,13 +262,14 @@
 </template>
 
 <script setup lang="ts">
-  import { AppAPI } from '@/api';
+  import { useAPI } from '@/api';
   import ThemeSwitcher from '@/components/ThemeToggle.vue';
   import { routeMap, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin, theme_isDark } from '@/storage';
   import { useEventListener } from '@vueuse/core';
   import { Button, Checkbox, InputText, Password, useToast } from 'primevue';
   import { computed, onMounted, ref } from 'vue';
+  const { AppAPI } = useAPI();
 
   const toast = useToast();
   const cursorLight = ref<HTMLElement | null>(null);

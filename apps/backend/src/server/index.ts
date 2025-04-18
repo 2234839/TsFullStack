@@ -1,8 +1,10 @@
 import fastifyCors from '@fastify/cors';
+import fastifyMultipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
 import { Effect } from 'effect';
 import { UnknownException } from 'effect/Cause';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
-import { Readable } from 'stream';
+import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
 import { apis, type APIRaw } from '../api';
@@ -10,18 +12,14 @@ import { appApis } from '../api/appApi';
 import { getPrisma } from '../db';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service';
-import fastifyStatic from '@fastify/static';
-import fastifyMultipart from '@fastify/multipart';
-import path from 'path/posix';
+import { MsgError } from '../util/error';
 
 function handleError(error: unknown) {
   if (typeof error === 'string') {
     return { error: { message: error } };
   }
-  console.log('[error]', error);
-  if (error instanceof UnknownException) {
-    const targetErr = error.error;
-
+  if ('error' in (error as { error: unknown })) {
+    const targetErr = (error as any).error;
     if (targetErr instanceof Error && targetErr.name === 'PrismaClientKnownRequestError') {
       const err = targetErr as PrismaClientKnownRequestError;
       if (err?.meta && 'reason' in err.meta) {
@@ -35,6 +33,9 @@ function handleError(error: unknown) {
   }
 
   if (error instanceof Error) {
+    if (error instanceof MsgError) {
+      return { error: { message: error.message, op: error.op } };
+    }
     return { error };
   }
 
@@ -61,7 +62,11 @@ async function handleApi(
 
   const result = await Effect.runPromise(
     Effect.gen(function* () {
-      const result = yield* Effect.tryPromise(() => apisRpc.RC(method, params));
+      const result = yield* Effect.tryPromise(() =>
+        apisRpc.RC(method, params).catch((e) => {
+          return new MsgError(MsgError.op_msgError, 'api调用失败' + e?.message);
+        }),
+      );
       if (Effect.isEffect(result)) {
         return yield* result;
       }
@@ -107,6 +112,7 @@ function createAPIHandler(
         console.log('Unknown content type:', contentType);
       }
       const result = await hander(method, params, request, reply);
+      if (result instanceof MsgError) reply.send(superjson.serialize(handleError(result)));
       reply.send(superjson.serialize({ result }));
     } catch (error) {
       reply.send(superjson.serialize(handleError(error)));

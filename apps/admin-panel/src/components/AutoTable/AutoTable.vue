@@ -48,14 +48,15 @@
   import { useAsyncState } from '@vueuse/core';
   import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
   import { computed, ref, watchEffect } from 'vue';
-  import { API } from '../../api';
   import AutoColumn from './AutoColumn.vue';
   import type { DBmodelNames, FieldInfo } from './type';
   import { findIdField, getModelKey, useModelMeta } from './util';
   import { useI18n } from 'vue-i18n';
+  import { useAPI } from '@/api';
   const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
+  const { API } = useAPI();
 
   const modelMeta = useModelMeta();
   const models = computed(() => {
