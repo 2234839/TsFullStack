@@ -54,6 +54,8 @@ model User extends BaseExtend1 {
     @@allow('read', auth() == this)
     /// 禁止未登录用户进行任何操作
     @@deny('all', !auth())
+
+    file        File[]
 }
 
 /// 用户会话模型，用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
@@ -79,4 +81,26 @@ model Post  extends Base {
     @@allow('read', auth() != null && published)
     // full access by author
     @@allow('all', author == auth())
+}
+
+
+// 存储策略枚举
+enum StorageType {
+    LOCAL
+    S3
+}
+
+// 文件模型
+model File extends Base {
+    filename    String      // 原始文件名
+    mimetype    String      // 文件类型
+    size        Int         // 文件大小（字节）
+    path        String      // 存储路径或URL
+    storageType StorageType // 存储类型
+    key         String?     // 存储服务中的唯一标识符（如S3的key）
+    bucket      String?     // 存储桶（适用于S3、OSS等）
+    metadata    Json?       // 额外的元数据
+    author      User        @relation(fields: [authorId], references: [id])
+    authorId    String
+    @@allow('read,create', auth() != author)
 }

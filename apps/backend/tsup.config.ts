@@ -17,7 +17,7 @@ export default defineConfig({
   // 清除输出目录
   clean: true,
   // 忽略 watch 的文件
-  ignoreWatch: ['**/node_modules/**', '**/.git/**'],
+  ignoreWatch: ['**/node_modules/**', '**/.git/**', '**/dist-lib/**'],
   // 开发模式下排除所有npm包依赖
   // external: [/node_modules/],
   noExternal: [],

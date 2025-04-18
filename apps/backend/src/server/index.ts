@@ -3,7 +3,7 @@ import { Effect } from 'effect';
 import { UnknownException } from 'effect/Cause';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import { Readable } from 'stream';
-import superjson from 'superjson';
+import superjson, { type SuperJSONResult } from 'superjson';
 import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
@@ -11,6 +11,7 @@ import { getPrisma } from '../db';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service';
 import fastifyStatic from '@fastify/static';
+import fastifyMultipart from '@fastify/multipart';
 import path from 'path/posix';
 
 function handleError(error: unknown) {
@@ -91,15 +92,29 @@ function createAPIHandler(
   return async function apiHandler(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
     const method = request.url.slice(pathPrefix.length);
-    const params = superjson.deserialize(request.body as any);
     try {
+      const contentType = request.headers['content-type'];
+      let params;
+      console.log('[contentType]', contentType);
+      if (contentType === 'application/json') {
+        params = superjson.deserialize(request.body as SuperJSONResult) as any[];
+      } else if (contentType?.startsWith('multipart/form-data')) {
+        const file = await request.file();
+        // 转 File 对象
+        const buffer = await file!.toBuffer();
+        const fileObject = new File([buffer], file!.filename, { type: file!.mimetype });
+        params = [fileObject]; // Assuming the handler expects an array with the file object
+      } else {
+        params = []; // Fallback to an empty array if content type is not recognized
+        console.log('Unknown content type:', contentType);
+      }
       const result = await hander(method, params, request, reply);
       reply.send(superjson.serialize({ result }));
     } catch (error) {
       reply.send(superjson.serialize(handleError(error)));
     } finally {
       const endTime = Date.now();
-      console.log(`call:[${endTime - startTime}ms]`, method, params);
+      console.log(`call:[${endTime - startTime}ms]`, method);
     }
   };
 }
@@ -112,6 +127,16 @@ export async function startServer() {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
+  fastify.register(fastifyMultipart, {
+    limits: {
+      fileSize: 10 * 1024 * 1024, // 10MB
+    },
+  });
+
+  // 路由
+  fastify.all('/api/*', createAPIHandler('/api/', handleApi));
+
+  fastify.all('/app-api/*', createAPIHandler('/app-api/', handleAppApi));
   fastify.register(fastifyStatic, {
     root: path.join(__dirname, 'frontend'), // 静态文件目录
     prefix: '/', // 访问前缀
@@ -125,16 +150,6 @@ export async function startServer() {
       reply.code(404).send({ error: 'Not Found' });
     }
   });
-
-  fastify.addContentTypeParser('application/octet-stream', (_request, payload, _done) => {
-    return Readable.toWeb(payload);
-  });
-
-  // 路由
-  fastify.all('/api/*', createAPIHandler('/api/', handleApi));
-
-  fastify.all('/app-api/*', createAPIHandler('/app-api/', handleAppApi));
-
   // 启动服务器
   try {
     const address = await fastify.listen({ port: 5209, host: '0.0.0.0' });

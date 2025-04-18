@@ -12,25 +12,27 @@ export const { API: AppAPI } = createRPC<__AppAPI__>('apiConsumer', {
 });
 function genRemoteCall(baseUrl: string) {
   function remoteCall(method: string, data: any[]) {
-    let body: ReadableStream | string;
-    // 如果第一参数是 ReadableStream 的时候，直接使用 ReadableStream 作为 body，不用考虑其他参数，因为这种情况只支持一个参数
+    let body: BodyInit;
     let content_type;
-    if (data[0] instanceof ReadableStream) {
-      body = data[0];
-      content_type = 'application/octet-stream';
+    if (data[0] instanceof File) {
+      const formData = new FormData();
+      formData.append('file', data[0]);
+      body = formData;
+      content_type = undefined;
     } else {
       body = superjson.stringify(data);
       content_type = 'application/json';
     }
+    console.log('[data]', body, data);
     return fetch(`${baseUrl}${method}`, {
       method: 'POST',
       body,
-      headers: {
-        'Content-Type': content_type,
-        'x-token-id': authInfo.value?.token ?? '',
-      },
-      // @ts-expect-error 在 node 运行的时候需要声明双工模式才能正确发送 ReadableStream，TODO 需要验证浏览器端可以这样运行吗
-      duplex: 'half', // 关键：显式声明半双工模式
+      headers: content_type
+        ? {
+            'Content-Type': content_type,
+            'x-token-id': authInfo.value?.token ?? '',
+          }
+        : { 'x-token-id': authInfo.value?.token ?? '' },
     })
       .then((res) => res.json())
       .then((r) => {
@@ -43,4 +45,62 @@ function genRemoteCall(baseUrl: string) {
       });
   }
   return remoteCall;
+}
+
+/**
+ * 使用 SuperJSON 处理复杂参数结构的文件上传
+ * @param {Array} data - 包含各种参数的数组
+ */
+function formDataWithSuperJSON(data: any[]) {
+  // 创建 FormData 对象
+  const formData = new FormData();
+
+  // 提取所有文件并记录它们的路径
+  const files: File[] = [];
+  const filePaths: string[] = [];
+
+  // 递归函数，提取所有文件并记录路径
+  function extractFiles(obj: any, path = ''): any {
+    if (!obj || typeof obj !== 'object') return obj;
+
+    if (obj instanceof File) {
+      const fileIndex = files.length;
+      files.push(obj);
+      filePaths.push(path);
+      // 返回一个标记，表示这里有一个文件
+      return { __isFile: true, __fileIndex: fileIndex };
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map((item, index) => extractFiles(item, `${path}[${index}]`));
+    }
+
+    const result = {} as any;
+    for (const [key, value] of Object.entries(obj)) {
+      const newPath = path ? `${path}.${key}` : key;
+      result[key] = extractFiles(value, newPath);
+    }
+    return result;
+  }
+
+  // 处理数据，提取文件
+  const processedData = data.map((item, index) =>
+    extractFiles(item, index === 0 ? '' : `param${index}`),
+  );
+
+  // 使用 SuperJSON 序列化处理后的数据
+  const serializedData = superjson.stringify(processedData);
+
+  // 添加序列化后的数据到 FormData
+  formData.append('data', serializedData);
+
+  // 添加所有文件到 FormData
+  files.forEach((file, index) => {
+    formData.append(`file_${index}`, file);
+  });
+
+  // 添加文件路径信息
+  formData.append('filePaths', JSON.stringify(filePaths));
+
+  return formData;
 }
