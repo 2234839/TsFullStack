@@ -1,6 +1,6 @@
 <template>
   <div
-    class="sidebar-container h-screen transition-all duration-300 ease-in-out relative"
+    class="sidebar-container h-screen transition-all duration-300 ease-in-out relative shadow"
     :class="[isCollapsed ? 'w-20' : '']">
     <!-- 主侧边栏 -->
     <div
@@ -164,7 +164,7 @@
             icon="pi pi-cog"
             class="p-button-rounded p-button-text p-button-plain"
             v-tooltip.right="'设置'" />
-          <ThemeSwitch />
+          <ThemeSwitch v-tooltip.right="'主题切换'" />
           <div class="relative">
             <Button
               icon="pi pi-bell"
