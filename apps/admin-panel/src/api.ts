@@ -33,6 +33,8 @@ export function useAPI(useToastFn = useToast) {
     remoteCall: genPostRemoteCall(`${baseServer}/app-api/`),
   });
   const toast = useToastFn();
+
+  /** 生成 API 请求 get 形式的 URL，方便在某些场景下使用，例如生成可以直接访问的文件/图片 url 下载链接 */
   const APIGetUrl = proxyCall(API, ([path, args]) => {
     const x_token_id = authInfo.value?.token;
     return `${baseServer}/api/${path}?${
