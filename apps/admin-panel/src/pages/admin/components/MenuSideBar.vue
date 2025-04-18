@@ -74,14 +74,46 @@
                   isActiveRoute(item)
                     ? 'p-button-outlined text-blue-600 dark:text-cyan-400'
                     : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white',
+                  hasSubmenuItems(item) ? 'has-submenu' : '',
                 ]"
                 v-tooltip.right="item.label"
-                @click="navigateTo(item)" />
+                @click="handleCollapsedMenuClick($event, item)" />
               <Badge
                 v-if="item.badge"
                 :value="item.badge"
                 :severity="getBadgeSeverity(item)"
                 class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"></Badge>
+
+              <!-- 使用PrimeVue的Popover -->
+              <Popover
+                :ref="(el) => setPopoverRef(item.key, el)"
+                :showCloseIcon="false"
+                class="p-popover-submenu">
+                <div class="py-1">
+                  <div
+                    v-for="subItem in getSubmenuItems(item)"
+                    :key="subItem.key"
+                    @click="navigateTo(subItem)"
+                    class="p-popover-item flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/50"
+                    :class="[
+                      isActiveRoute(subItem)
+                        ? 'bg-blue-50/70 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-blue-700 dark:text-white'
+                        : 'text-gray-600 dark:text-slate-400',
+                    ]">
+                    <i
+                      :class="[
+                        subItem.icon,
+                        'mr-3 text-sm',
+                        isActiveRoute(subItem) ? 'text-blue-600 dark:text-cyan-400' : '',
+                      ]"></i>
+                    <span class="flex-1 text-sm whitespace-nowrap">{{ subItem.label }}</span>
+                    <Badge
+                      v-if="subItem.badge"
+                      :value="subItem.badge"
+                      :severity="getBadgeSeverity(subItem)"></Badge>
+                  </div>
+                </div>
+              </Popover>
             </li>
           </ul>
         </div>
@@ -195,13 +227,9 @@
 <script setup lang="ts">
   import ThemeSwitch from '@/components/ThemeToggle.vue';
   import { authInfo_logout } from '@/storage';
-  import Avatar from 'primevue/avatar';
-  import Badge from 'primevue/badge';
-  import Button from 'primevue/button';
-  import InputText from 'primevue/inputtext';
+  import { Popover, InputText, Button, Badge, Avatar } from 'primevue';
   import { computed, ref } from 'vue';
   import avatarImageSrc from '/崮生.png?url';
-  import { router } from '@/router';
   // 定义类型
   interface MenuItem {
     key: string;
@@ -222,6 +250,16 @@
   // 侧边栏状态
   const isCollapsed = ref(false);
   const searchQuery = ref('');
+
+  // 存储Popover引用的Map
+  const popovers = ref<Map<string, any>>(new Map());
+
+  // 设置Popover引用
+  const setPopoverRef = (key: string, el: any) => {
+    if (el) {
+      popovers.value.set(key, el);
+    }
+  };
 
   // 切换折叠状态
   const toggleCollapse = (): void => {
@@ -418,6 +456,7 @@
           to: item.to || (item.items && item.items.length > 0 ? item.items[0].to : undefined),
           badge: item.badge,
           badgeSeverity: item.badgeSeverity,
+          items: item.items, // 保留子菜单项
         });
       });
     });
@@ -469,10 +508,41 @@
     }
   };
 
+  // 处理折叠菜单点击
+  const handleCollapsedMenuClick = (event: Event, item: MenuItem): void => {
+    if (hasSubmenuItems(item)) {
+      // 如果有子菜单，显示Popover
+      const panel = popovers.value.get(item.key);
+      if (panel) {
+        panel.toggle(event);
+      }
+    } else {
+      // 如果没有子菜单，直接导航
+      navigateTo(item);
+    }
+  };
+
+  // 检查是否有子菜单项
+  const hasSubmenuItems = (item: MenuItem): boolean => {
+    return !!(item.items && item.items.length);
+  };
+
+  // 获取子菜单项
+  const getSubmenuItems = (item: MenuItem): MenuItem[] => {
+    return item.items || [];
+  };
+
   // 模拟路由导航
   const navigateTo = (item: MenuItem): void => {
     console.log('导航到:', item.to);
     // 实际项目中应该使用 router.push(item.to)
+
+    // 关闭所有打开的Popover
+    popovers.value.forEach((panel) => {
+      if (panel.visible) {
+        panel.hide();
+      }
+    });
   };
 
   // 检查是否是当前活动路由
@@ -513,6 +583,39 @@
     background-color: rgba(100, 116, 139, 0.5);
   }
 
+  /* 有子菜单的菜单项样式 */
+  .has-submenu::after {
+    content: '';
+    position: absolute;
+    top: 65%;
+    right: 0px;
+    transform: translateY(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: currentColor;
+    opacity: 0.5;
+  }
+
+  /* 子菜单项样式 */
+  .p-popover-item {
+    transition: background-color 0.2s ease;
+  }
+
+  /* 自定义Popover样式 */
+  :deep(.p-popover-submenu) {
+    border-radius: 0.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(229, 231, 235, 1);
+    padding: 0;
+    min-width: 200px;
+  }
+
+  :deep(.dark .p-popover-submenu) {
+    background-color: rgb(30, 41, 59);
+    border-color: rgba(51, 65, 85, 0.5);
+  }
+
   /* 装饰元素 */
   .decorative-elements {
     position: absolute;
@@ -542,15 +645,6 @@
     animation: float 15s ease-in-out infinite alternate;
   }
 
-  :global(.dark) .glow-1 {
-    background: radial-gradient(
-      circle,
-      rgba(6, 182, 212, 0.7) 0%,
-      rgba(59, 130, 246, 0.5) 50%,
-      transparent 70%
-    );
-  }
-
   .glow-2 {
     width: 250px;
     height: 250px;
@@ -563,15 +657,6 @@
     bottom: 10%;
     right: -100px;
     animation: float 20s ease-in-out infinite alternate-reverse;
-  }
-
-  :global(.dark) .glow-2 {
-    background: radial-gradient(
-      circle,
-      rgba(59, 130, 246, 0.7) 0%,
-      rgba(6, 182, 212, 0.5) 50%,
-      transparent 70%
-    );
   }
 
   .grid-overlay {
@@ -613,11 +698,6 @@
     width: 0;
     background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), transparent);
     transition: width 0.3s ease;
-  }
-
-  :global(.dark) .menu-item-header::before,
-  :global(.dark) .submenu-item::before {
-    background: linear-gradient(90deg, rgba(6, 182, 212, 0.1), transparent);
   }
 
   .menu-item-header:hover::before,
