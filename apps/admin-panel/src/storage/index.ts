@@ -19,7 +19,9 @@ export const authInfo_isLogin = computed(() => {
 export const theme = useStorage<'dark' | 'light'>('theme', null, undefined, {
   serializer: StorageSerializers.object,
 });
-export const theme_darkModeClass = 'my-app-dark';
+
+/**  src/style.css 中也需要设置和此处一样 */
+export const theme_darkModeClass = 'app-dark';
 export const theme_isDark = computed<boolean>({
   set(v) {
     theme.value = v ? 'dark' : 'light';
@@ -30,9 +32,9 @@ export const theme_isDark = computed<boolean>({
 });
 watchEffect(() => {
   if (theme_isDark.value) {
-    document.documentElement.classList.add('my-app-dark');
+    document.documentElement.classList.add(theme_darkModeClass);
   } else {
-    document.documentElement.classList.remove('my-app-dark');
+    document.documentElement.classList.remove(theme_darkModeClass);
   }
 });
 

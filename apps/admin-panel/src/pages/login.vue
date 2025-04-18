@@ -262,7 +262,7 @@
 </template>
 
 <script setup lang="ts">
-  import ThemeSwitcher from '@/components/ThemeSwitch.vue';
+  import ThemeSwitcher from '@/components/ThemeToggle.vue';
   import { Password, useToast, InputText, Checkbox, Button } from 'primevue';
   import { computed, onMounted, onUnmounted, ref } from 'vue';
   import { AppAPI } from '@/api';

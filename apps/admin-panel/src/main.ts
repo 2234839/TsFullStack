@@ -8,9 +8,11 @@ import { theme_darkModeClass } from '@/storage';
 import 'primeicons/primeicons.css';
 import { ConfirmationService, ToastService } from 'primevue';
 import PrimeVue from 'primevue/config';
-import { Noir } from './theme';
+import { Noir } from '@/theme';
+import Tooltip from 'primevue/tooltip';
 
 const app = createApp(App);
+app.directive('tooltip', Tooltip);
 app.use(i18n);
 app.use(PrimeVue, {
   theme: {
