@@ -2,17 +2,16 @@ import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { Effect } from 'effect';
-import { UnknownException } from 'effect/Cause';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
-import { getPrisma } from '../db';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service';
 import { MsgError } from '../util/error';
+import { getAuthFromCache } from './authCache';
 
 function handleError(error: unknown) {
   if (typeof error === 'string') {
@@ -42,7 +41,6 @@ function handleError(error: unknown) {
   return { error: { message: '未知错误' } };
 }
 
-// ========== 路由处理 ==========
 // 服务端鉴权 api 调用，需要用户具有有效的 x_token_id 才能使用
 async function handleApi(
   method: string,
@@ -50,14 +48,21 @@ async function handleApi(
   request: FastifyRequest,
   reply: FastifyReply,
 ) {
+  //#region 根据 token 获取用户鉴权信息，加了缓存
   const x_token_id = request.headers['x-token-id'];
   if (typeof x_token_id !== 'string') {
-    return reply.status(401).send({ error: 'Unauthorized' });
+    return reply.send(
+      superjson.serialize(
+        handleError(new MsgError(MsgError.op_toLogin, '请提供有效的 x_token_id')),
+      ),
+    );
   }
-  const { db, user } = await getPrisma({ x_token_id });
+  const { db, user } = await getAuthFromCache(x_token_id);
+  //#endregion
+
   const apisRpc = createRPC('apiProvider', {
-    // 这里是为了避免递归解析 prisma 的类型导致 Effect 失效
-    genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
+    genApiModule: async (/** 这里是为了避免递归解析 prisma 的类型导致 Effect 失效 */) =>
+      ({ ...apis, db } as unknown as APIRaw),
   });
 
   const result = await Effect.runPromise(
@@ -80,7 +85,11 @@ const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis 
 async function handleAppApi(method: string, params: any) {
   const result = await Effect.runPromise(
     Effect.gen(function* () {
-      const result = yield* Effect.tryPromise(() => appApisRpc.RC(method, params));
+      const result = yield* Effect.tryPromise(() =>
+        appApisRpc.RC(method, params).catch((e) => {
+          return new MsgError(MsgError.op_msgError, 'api调用失败' + e?.message);
+        }),
+      );
       if (Effect.isEffect(result)) {
         return yield* result;
       }
