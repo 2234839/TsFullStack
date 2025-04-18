@@ -23,7 +23,7 @@ export async function getPrisma(opt: { userId?: string; email?: string; x_token_
   }
   let where = {} as any;
   if (opt.x_token_id) {
-    where.userSession = { some: { token: opt.x_token_id } };
+    where.userSession = { some: { token: opt.x_token_id, expiresAt: { gt: new Date() } } };
   } else if (opt.userId) {
     where.id = opt.userId;
   } else if (opt.email) {
@@ -31,7 +31,7 @@ export async function getPrisma(opt: { userId?: string; email?: string; x_token_
   }
 
   const user = await prisma.user.findFirst({
-    where: where,
+    where,
     include: {
       role: true,
     },
