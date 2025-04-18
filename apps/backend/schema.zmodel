@@ -102,5 +102,5 @@ model File extends Base {
     metadata    Json?       // 额外的元数据
     author      User        @relation(fields: [authorId], references: [id])
     authorId    String
-    @@allow('read,create', auth() != author)
+    @@allow('read,create', auth() == author)
 }
