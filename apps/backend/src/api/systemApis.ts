@@ -59,7 +59,6 @@ export const systemApis = {
           throw new MsgError(MsgError.op_msgError, '读取文件失败');
         }),
       );
-      console.log('[filePath]', filePath);
       const file = new File([fileBuffer], fileRow.filename);
       return file;
     });

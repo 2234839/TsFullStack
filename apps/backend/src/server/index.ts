@@ -12,70 +12,68 @@ import { createRPC } from '../rpc';
 import { AuthService } from '../service';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
-import type { Exit as ExitType } from 'effect/Exit';
 
+// 统一错误序列化函数
 function handleError(error: unknown) {
-  if (typeof error === 'string') {
-    return { error: { message: error } };
+  if (error instanceof MsgError) {
+    return { message: error.message, op: error.op };
   }
-  if ('error' in (error as { error: unknown })) {
-    const targetErr = (error as any).error;
-    if (targetErr instanceof Error && targetErr.name === 'PrismaClientKnownRequestError') {
-      const err = targetErr as PrismaClientKnownRequestError;
-      if (err?.meta && 'reason' in err.meta) {
-        if (err.meta?.reason === 'ACCESS_POLICY_VIOLATION') {
-          return { error: { message: '权限不足' } };
-        }
-        return { error: { message: err.meta.reason } };
+  if (error instanceof PrismaClientKnownRequestError) {
+    if (error.meta && 'reason' in error.meta) {
+      if (error.meta.reason === 'ACCESS_POLICY_VIOLATION') {
+        return { message: '权限不足' };
       }
-      return { error: { message: '数据模型调用错误' } };
+      return { message: error.meta.reason as string };
     }
+    return { message: '数据模型调用错误' };
   }
-
   if (error instanceof Error) {
-    if (error instanceof MsgError) {
-      return { error: { message: error.message, op: error.op } };
-    }
-    return { error };
+    return { message: error.message };
   }
-
-  return { error: { message: '未知错误' } };
+  return { message: '未知错误' };
 }
 
-// 服务端鉴权 api 调用，需要用户具有有效的 x_token_id 才能使用
+// 参数解析函数
+async function parseParams(request: FastifyRequest): Promise<any[]> {
+  const contentType = request.headers['content-type'];
+  if (request.method === 'GET') {
+    return superjson.parse((request.query as any).args);
+  } else if (contentType === 'application/json') {
+    return superjson.deserialize(request.body as SuperJSONResult) as any[];
+  } else if (contentType?.startsWith('multipart/form-data')) {
+    const file = await request.file();
+    if (!file) throw new Error('No file uploaded');
+    const buffer = await file.toBuffer();
+    const fileObject = new File([buffer], file.filename, { type: file.mimetype });
+    return [fileObject];
+  } else {
+    console.log('Unknown content type:', contentType);
+    return [];
+  }
+}
+
+// 处理需要鉴权的 API
 async function handleApi(
   method: string,
-  params: any,
+  params: any[],
   request: FastifyRequest,
-  reply: FastifyReply,
-) {
-  //#region 根据 token 获取用户鉴权信息，加了缓存
+): Promise<Exit.Exit<unknown, unknown>> {
   let x_token_id = request.headers['x-token-id'];
-
-  /** 对于 get 请求，可以通过 query 参数传递 token */
   if (request.method === 'GET') {
     x_token_id = (request.query as any)?.x_token_id;
   }
   if (typeof x_token_id !== 'string') {
-    return reply.send(
-      superjson.serialize(
-        handleError(new MsgError(MsgError.op_toLogin, '请提供有效的 x_token_id')),
-      ),
-    );
+    return Exit.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 x_token_id'));
   }
   const { db, user } = await getAuthFromCache(x_token_id);
-  //#endregion
-
   const apisRpc = createRPC('apiProvider', {
-    genApiModule: async (/** 这里是为了避免递归解析 prisma 的类型导致 Effect 失效 */) =>
-      ({ ...apis, db } as unknown as APIRaw),
+    genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
   });
-
-  return await Effect.runPromiseExit(
+  return Effect.runPromiseExit(
     Effect.gen(function* () {
       const result = yield* Effect.promise(() =>
         apisRpc.RC(method, params).catch((e) => {
-          return new MsgError(MsgError.op_msgError, 'api调用失败' + e?.message);
+          return new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
         }),
       );
       if (Effect.isEffect(result)) {
@@ -85,14 +83,15 @@ async function handleApi(
     }).pipe(Effect.provideService(AuthService, { x_token_id, db, user })),
   );
 }
-/** 不需要登录状态即可访问的接口 */
-const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
-async function handleAppApi(method: string, params: any) {
-  return await Effect.runPromiseExit(
+
+// 处理无需鉴权的 API
+async function handleAppApi(method: string, params: any[]): Promise<Exit.Exit<unknown, unknown>> {
+  const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
+  return Effect.runPromiseExit(
     Effect.gen(function* () {
       const result = yield* Effect.promise(() =>
         appApisRpc.RC(method, params).catch((e) => {
-          return new MsgError(MsgError.op_msgError, 'api调用失败' + e?.message);
+          return new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
         }),
       );
       if (Effect.isEffect(result)) {
@@ -103,101 +102,91 @@ async function handleAppApi(method: string, params: any) {
   );
 }
 
+// 创建 API 处理函数
 function createAPIHandler(
   pathPrefix: string,
-  hander: (
+  handler: (
     method: string,
-    params: any,
+    params: any[],
     request: FastifyRequest,
-    reply: FastifyReply,
-  ) => Promise<ExitType<any, any>>,
+  ) => Promise<Exit.Exit<unknown, unknown>>,
 ) {
   return async function apiHandler(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
     const method = request.url.split('?')[0]?.slice(pathPrefix.length) ?? '';
-    try {
-      const contentType = request.headers['content-type'];
-      let params;
-      if (request.method === 'GET') {
-        params = superjson.parse((request.query as any).args);
-      } else if (contentType === 'application/json') {
-        params = superjson.deserialize(request.body as SuperJSONResult) as any[];
-      } else if (contentType?.startsWith('multipart/form-data')) {
-        const file = await request.file();
-        const buffer = await file!.toBuffer();
-        const fileObject = new File([buffer], file!.filename, { type: file!.mimetype });
-        params = [fileObject];
-      } else {
-        params = [];
-        console.log('Unknown content type:', contentType);
-      }
-      const result = Exit.match(await hander(method, params, request, reply), {
-        onSuccess(a) {
-          return a;
-        },
-        onFailure(cause) {
-          return Cause.match(cause, {
-            onEmpty: '(empty)',
-            onFail: (error) => `(error: ${error.message})`,
-            onDie: (defect) => defect,
-            onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
-            onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
-            onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
-          });
-        },
-      });
-      if (result instanceof MsgError) {
-        return reply.send(superjson.serialize(handleError(result)));
-      } else if (result instanceof File) {
-        reply.type(result.type || 'application/octet-stream');
-        // 设置文件名
-        reply.header(
-          'Content-Disposition',
-          `attachment; filename="${encodeURIComponent(result.name)}"`,
-        );
-        return reply.send(result.stream()); // 使用 ReadableStream（需 Fastify 3.x+）
-      }
-      reply.send(superjson.serialize({ result }));
-    } catch (error) {
-      console.log('[error]', error);
-      reply.send(superjson.serialize(handleError(error)));
-    } finally {
-      const endTime = Date.now();
-      console.log(`call:[${endTime - startTime}ms]`, method);
-    }
+
+    const p = Effect.gen(function* () {
+      const params = yield* Effect.promise(() => parseParams(request));
+      return yield* Effect.promise(() => handler(method, params, request));
+    });
+
+    const exit = await Effect.runPromise(p);
+    const r = Exit.match(exit, {
+      onSuccess: (result) => {
+        if (result instanceof File) {
+          reply.type(result.type || 'application/octet-stream');
+          // 设置文件名
+          reply.header(
+            'Content-Disposition',
+            `attachment; filename="${encodeURIComponent(result.name)}"`,
+          );
+          return reply.send(result.stream());
+        } else {
+          return reply.send(superjson.serialize({ result }));
+        }
+      },
+      onFailure: (cause) => {
+        const error = Cause.match(cause, {
+          onEmpty: '(empty)',
+          onFail: (error) => `(error: ${error})`,
+          onDie: (defect) => defect,
+          onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
+          onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
+          onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
+        });
+        return reply.send(superjson.serialize({ error: handleError(error) }));
+      },
+    });
+    const endTime = Date.now();
+    console.log(`call:[${endTime - startTime}ms]`, method);
+
+    return r;
   };
 }
-// ========== 服务器初始化 ==========
+
+// 服务器初始化
 export async function startServer() {
   const fastify = Fastify({ logger: false });
 
-  // 中间件
+  // 注册中间件
   fastify.register(fastifyCors, {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
   fastify.register(fastifyMultipart, {
-    limits: {
-      fileSize: 10 * 1024 * 1024, // 10MB
-    },
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+  });
+  fastify.register(fastifyStatic, {
+    root: path.join(__dirname, 'frontend'),
+    prefix: '/',
   });
 
-  // 路由
+  // 注册路由
   fastify.all('/api/*', createAPIHandler('/api/', handleApi));
-  fastify.all('/app-api/*', createAPIHandler('/app-api/', handleAppApi));
-  fastify.register(fastifyStatic, {
-    root: path.join(__dirname, 'frontend'), // 静态文件目录
-    prefix: '/', // 访问前缀
-  });
-  // 处理 SPA 的路由回退
+  fastify.all(
+    '/app-api/*',
+    createAPIHandler('/app-api/', (method, params) => handleAppApi(method, params)),
+  );
+
+  // 处理 SPA 路由回退
   fastify.setNotFoundHandler((request, reply) => {
-    // 如果请求的不是 API 或静态文件，返回 index.html
     if (!request.url.startsWith('/api') && !request.url.startsWith('/app-api')) {
       reply.sendFile('index.html');
     } else {
       reply.code(404).send({ error: 'Not Found' });
     }
   });
+
   // 启动服务器
   try {
     const address = await fastify.listen({ port: 5209, host: '0.0.0.0' });
