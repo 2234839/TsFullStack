@@ -115,7 +115,7 @@ function createAPIHandler(
       const contentType = request.headers['content-type'];
       let params;
       if (request.method === 'GET') {
-        params = [request.query]; // Assuming query parameters are used for GET requests
+        params = superjson.parse((request.query as any).args);
       } else if (contentType === 'application/json') {
         params = superjson.deserialize(request.body as SuperJSONResult) as any[];
       } else if (contentType?.startsWith('multipart/form-data')) {
@@ -127,8 +127,6 @@ function createAPIHandler(
         params = [];
         console.log('Unknown content type:', contentType);
       }
-
-      console.log('[params]', params);
       const result = await hander(method, params, request, reply);
       if (result instanceof MsgError) reply.send(superjson.serialize(handleError(result)));
       reply.send(superjson.serialize({ result }));
