@@ -73,7 +73,7 @@ async function handleApi(
     Effect.gen(function* () {
       const result = yield* Effect.promise(() =>
         apisRpc.RC(method, params).catch((e) => {
-          return new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
+          throw new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
         }),
       );
       if (Effect.isEffect(result)) {
