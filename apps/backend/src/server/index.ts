@@ -1,7 +1,7 @@
 import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import { Effect } from 'effect';
+import { Cause, Effect, Exit } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
@@ -12,6 +12,7 @@ import { createRPC } from '../rpc';
 import { AuthService } from '../service';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
+import type { Exit as ExitType } from 'effect/Exit';
 
 function handleError(error: unknown) {
   if (typeof error === 'string') {
@@ -70,9 +71,9 @@ async function handleApi(
       ({ ...apis, db } as unknown as APIRaw),
   });
 
-  const result = await Effect.runPromise(
+  return await Effect.runPromiseExit(
     Effect.gen(function* () {
-      const result = yield* Effect.tryPromise(() =>
+      const result = yield* Effect.promise(() =>
         apisRpc.RC(method, params).catch((e) => {
           return new MsgError(MsgError.op_msgError, 'api调用失败' + e?.message);
         }),
@@ -83,14 +84,13 @@ async function handleApi(
       return result;
     }).pipe(Effect.provideService(AuthService, { x_token_id, db, user })),
   );
-  return result;
 }
 /** 不需要登录状态即可访问的接口 */
 const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
 async function handleAppApi(method: string, params: any) {
-  const result = await Effect.runPromise(
+  return await Effect.runPromiseExit(
     Effect.gen(function* () {
-      const result = yield* Effect.tryPromise(() =>
+      const result = yield* Effect.promise(() =>
         appApisRpc.RC(method, params).catch((e) => {
           return new MsgError(MsgError.op_msgError, 'api调用失败' + e?.message);
         }),
@@ -101,12 +101,16 @@ async function handleAppApi(method: string, params: any) {
       return result;
     }),
   );
-  return result;
 }
 
 function createAPIHandler(
   pathPrefix: string,
-  hander: (method: string, params: any, request: FastifyRequest, reply: FastifyReply) => any,
+  hander: (
+    method: string,
+    params: any,
+    request: FastifyRequest,
+    reply: FastifyReply,
+  ) => Promise<ExitType<any, any>>,
 ) {
   return async function apiHandler(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
@@ -127,10 +131,35 @@ function createAPIHandler(
         params = [];
         console.log('Unknown content type:', contentType);
       }
-      const result = await hander(method, params, request, reply);
-      if (result instanceof MsgError) reply.send(superjson.serialize(handleError(result)));
+      const result = Exit.match(await hander(method, params, request, reply), {
+        onSuccess(a) {
+          return a;
+        },
+        onFailure(cause) {
+          return Cause.match(cause, {
+            onEmpty: '(empty)',
+            onFail: (error) => `(error: ${error.message})`,
+            onDie: (defect) => defect,
+            onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
+            onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
+            onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
+          });
+        },
+      });
+      if (result instanceof MsgError) {
+        return reply.send(superjson.serialize(handleError(result)));
+      } else if (result instanceof File) {
+        reply.type(result.type || 'application/octet-stream');
+        // 设置文件名
+        reply.header(
+          'Content-Disposition',
+          `attachment; filename="${encodeURIComponent(result.name)}"`,
+        );
+        return reply.send(result.stream()); // 使用 ReadableStream（需 Fastify 3.x+）
+      }
       reply.send(superjson.serialize({ result }));
     } catch (error) {
+      console.log('[error]', error);
       reply.send(superjson.serialize(handleError(error)));
     } finally {
       const endTime = Date.now();
