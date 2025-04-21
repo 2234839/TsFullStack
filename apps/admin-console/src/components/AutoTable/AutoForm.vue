@@ -21,31 +21,22 @@
             }}</span>
           </label>
 
-          <!-- 使用AutoColumn组件进行值编辑 -->
+          <!-- 基础值编辑 -->
           <div v-if="!field.isDataModel">
             <AutoColumnEdit :field="field" :cellData="undefined" v-model="formData[field.name]" />
             <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
               fieldErrors[field.name]
             }}</small>
           </div>
-
           <!-- 关系字段 -->
           <div v-else class="flex flex-column">
-            <Select
-              :id="'field-' + field.name"
-              v-model="formData[field.name]"
-              :options="relationOptions[field.name] || []"
-              optionLabel="label"
-              optionValue="value"
-              :class="{ 'p-invalid': fieldErrors[field.name] }"
-              :placeholder="t('请选择关联记录')"
-              :loading="loadingRelations[field.name]"
-              @before-show="loadRelationData(field)" />
+            <RelationSelect
+              :field="field"
+              :modelMeta="modelMeta"
+              :fieldErrors="fieldErrors"
+              v-model="formData[field.name]" />
             <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
               fieldErrors[field.name]
-            }}</small>
-            <small v-else-if="loadingRelations[field.name]" class="text-gray-500 block mt-1">{{
-              t('加载中...')
             }}</small>
           </div>
         </div>
@@ -65,12 +56,13 @@
 
 <script setup lang="ts">
   import { ref, computed, watch, onMounted } from 'vue';
-  import { Dialog, Button, useToast, Select } from 'primevue';
+  import { Dialog, Button, useToast, Select, MultiSelect } from 'primevue';
   import { useI18n } from 'vue-i18n';
   import { useAPI } from '@/api';
   import { findIdField } from './util';
   import type { DBmodelNames, FieldInfo, ModelMeta } from './type';
   import AutoColumnEdit from '@/components/AutoTable/AutoColumnEdit.vue';
+  import RelationSelect from '@/components/AutoTable/RelationSelect.vue';
 
   const { t } = useI18n();
   const toast = useToast();
@@ -90,11 +82,6 @@
   const saving = ref(false);
   const formData = ref<Record<string, any>>({});
   const fieldErrors = ref<Record<string, string>>({});
-
-  // 关系数据
-  const relationOptions = ref<Record<string, Array<{ label: string; value: any }>>>({});
-  const loadingRelations = ref<Record<string, boolean>>({});
-  const loadedRelations = ref<Record<string, boolean>>({});
 
   // 计算属性：表单字段
   const formFields = computed(() => {
@@ -117,64 +104,10 @@
   function hasUpdatedAtAttr(field: FieldInfo) {
     return field.attributes?.some((attr) => attr.name === '@updatedAt');
   }
-  // 加载关系数据 - 现在只在用户点击下拉框时触发
-  async function loadRelationData(field: FieldInfo) {
-    if (!field.isDataModel || !props.modelMeta || loadedRelations.value[field.name]) return;
-
-    const relatedModelName = field.type;
-    const relatedModelKey = Object.keys(props.modelMeta.models).find(
-      (key) => props.modelMeta?.models[key].name === relatedModelName,
-    ) as DBmodelNames;
-
-    if (!relatedModelKey) return;
-
-    // 查找关联模型的ID字段
-    const idField = findIdField(props.modelMeta, relatedModelName);
-    if (!idField) return;
-
-    // 查找一个可以用作显示标签的字段（优先选择String类型）
-    const displayField =
-      Object.values(props.modelMeta.models[relatedModelKey].fields).find(
-        (f: FieldInfo) => f.type === 'String' && !f.isId,
-      ) || idField;
-
-    loadingRelations.value[field.name] = true;
-
-    try {
-      const records = await API.db[relatedModelKey].findMany({
-        select: {
-          [idField.name]: true,
-          [displayField.name]: true,
-        },
-        take: 100, // 限制加载数量
-      });
-
-      relationOptions.value[field.name] = records.map((record: any) => ({
-        label: String(record[displayField.name]),
-        value: record[idField.name],
-      }));
-
-      // 标记为已加载，避免重复加载
-      loadedRelations.value[field.name] = true;
-    } catch (error) {
-      console.error(`Failed to load relation data for ${field.name}:`, error);
-      toast.add({
-        severity: 'error',
-        summary: t('错误'),
-        detail: t('加载关联数据失败'),
-        life: 3000,
-      });
-    } finally {
-      loadingRelations.value[field.name] = false;
-    }
-  }
-
   // 重置表单
   function resetForm() {
     formData.value = {};
     fieldErrors.value = {};
-    // 重置关系数据加载状态
-    loadedRelations.value = {};
   }
 
   // 验证表单
@@ -222,14 +155,17 @@
           if (value) {
             const idField = findIdField(props.modelMeta, field.type);
             if (idField) {
-              data[fieldName] = { connect: { [idField.name]: value } };
+              data[fieldName] = {
+                connect: Array.isArray(value)
+                  ? value.map((item) => ({ [idField.name]: item }))
+                  : { [idField.name]: value },
+              };
             }
           }
         } else {
           data[fieldName] = value;
         }
       }
-
       // 创建记录
       const result = await API.db[props.modelKey as DBmodelNames].create({
         // @ts-ignore

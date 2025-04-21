@@ -51,7 +51,8 @@
     :modelName="selectModelName"
     :modelKey="selectModelMeta.modelKey"
     :modelFields="selectModelMeta.model.fields || {}"
-    :modelMeta="modelMeta.state.value" />
+    :modelMeta="modelMeta.state.value"
+    @created="onRecordCreated()" />
 </template>
 <script setup lang="ts">
   import { useAsyncState } from '@vueuse/core';
