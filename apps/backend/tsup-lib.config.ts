@@ -7,7 +7,8 @@ export default defineConfig({
   outDir: 'dist-lib',
   // 生成类型声明文件,对于 prisma 的复杂类型会报错
   // dts: true,
-  experimentalDts: true,
+  // 改成使用 tsc 生成类型声明文件，因为可以输出 .d.ts.map 文件,这样就可以直接从前端跳转到后端代码
+  experimentalDts: false,
   // 打包格式
   format: ['esm'],
   // 代码分割
