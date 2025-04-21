@@ -40,21 +40,19 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, watch, onMounted, reactive } from 'vue';
-  import { Dialog, Button, useToast, Select, MultiSelect } from 'primevue';
-  import { useI18n } from 'vue-i18n';
   import { useAPI } from '@/api';
-  import { findIdField } from './util';
-  import type { DBmodelNames, FieldInfo, ModelMeta } from './type';
   import AutoColumnEdit from '@/components/AutoTable/AutoColumnEdit.vue';
-  import RelationSelect from '@/components/AutoTable/RelationSelect.vue';
+  import { Button, Dialog, useToast } from 'primevue';
+  import { computed, onMounted, reactive, ref, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import type { DBmodelNames, FieldInfo, ModelMeta } from './type';
+  import { findIdField } from './util';
 
   const { t } = useI18n();
   const toast = useToast();
   const { API } = useAPI();
 
   const props = defineProps<{
-    modelName: string;
     modelKey: string;
     modelMeta: ModelMeta;
   }>();

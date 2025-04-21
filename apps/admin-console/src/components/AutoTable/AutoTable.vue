@@ -3,18 +3,16 @@
   <div class="flex space-x-1 my-1">
     <div class="flex items-center space-x-2">
       <Button icon="pi pi-plus" @click="openCreateForm" :tooltip="t('新增记录')" />
-      <div class="flex items-center space-x-2" v-if="editRows.length">
+      <template v-if="editRows.length">
         <Button @click="saveChanges">{{ t('保存修改结果') }}</Button>
         <Button @click="discardChanges" severity="secondary">{{ t('丢弃修改') }}</Button>
         <span>
           {{ $t('autoTable.affectedRows', { rows: editRows.length, cells: eidtCellCount }) }}
         </span>
-      </div>
-      <div class="flex items-center space-x-2" v-if="selectRows.length">
-        <Button @click="deleteConfirm($event)" severity="danger"
-          >Delete( {{ selectRows.length }} )</Button
-        >
-      </div>
+      </template>
+      <Button v-if="selectRows.length" @click="deleteConfirm($event)" severity="danger">
+        Delete( {{ selectRows.length }} )
+      </Button>
     </div>
   </div>
   <AutoFilter v-if="selectModelMeta" :modelFields="selectModelMeta.model.fields" />
@@ -48,7 +46,6 @@
   <AutoForm
     v-if="selectModelMeta && modelMeta.state.value"
     ref="__createFormRef"
-    :modelName="selectModelName"
     :modelKey="selectModelMeta.modelKey"
     :modelFields="selectModelMeta.model.fields || {}"
     :modelMeta="modelMeta.state.value"
