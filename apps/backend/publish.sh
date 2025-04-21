@@ -1,5 +1,5 @@
 rsync -avz --progress ./dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/
-rsync -avz --progress ../admin-panel/dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/frontend/
+rsync -avz --progress ../admin-console/dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/frontend/
 rsync -avz --progress ./prisma/dev.db admin@47.236.87.38:/home/admin/app/TsFullStack/prisma/
 # 先清空uploads目录
 ssh -t admin@47.236.87.38 rm -rf /home/admin/app/TsFullStack/uploads/*
