@@ -4,20 +4,24 @@
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
-  import type { DBmodelNames, FieldInfo, ModelMeta } from '@/components/AutoTable/type';
+  import {
+    injectModelMetaKey,
+    type DBmodelNames,
+    type FieldInfo,
+    type ModelMeta,
+  } from '@/components/AutoTable/type';
   import { findIdField } from '@/components/AutoTable/util';
   import RemoteSelect from '@/components/base/RemoteSelect.vue';
   import { useAsyncState } from '@vueuse/core';
   import { useToast } from 'primevue';
-  import { ref, watch, watchEffect } from 'vue';
+  import { inject, ref, watchEffect } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   const props = defineProps<{
     field: FieldInfo;
-    modelMeta: ModelMeta;
-    fieldErrors: Record<string, string>;
     modelValue: any[] | undefined;
   }>();
+  const modelMeta = inject(injectModelMetaKey)!;
 
   const modelValue = ref<any[]>([...(props.modelValue ?? [])]);
   const emit = defineEmits<{
@@ -38,20 +42,20 @@
     take = 10,
     search = '',
   ) {
-    if (!field.isDataModel || !props.modelMeta) return [];
+    if (!field.isDataModel || !modelMeta) return [];
 
     const relatedModelName = field.type;
-    const relatedModelKey = Object.keys(props.modelMeta.models).find(
-      (key) => props.modelMeta?.models[key].name === relatedModelName,
+    const relatedModelKey = Object.keys(modelMeta.models).find(
+      (key) => modelMeta?.models[key].name === relatedModelName,
     ) as DBmodelNames;
 
     if (!relatedModelKey) return [];
 
-    const idField = findIdField(props.modelMeta, relatedModelName);
+    const idField = findIdField(modelMeta, relatedModelName);
     if (!idField) return [];
 
     const displayField =
-      Object.values(props.modelMeta.models[relatedModelKey].fields).find(
+      Object.values(modelMeta.models[relatedModelKey].fields).find(
         (f: FieldInfo) => f.type === 'String' && !f.isId,
       ) || idField;
 

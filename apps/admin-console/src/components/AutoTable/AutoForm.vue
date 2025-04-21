@@ -6,45 +6,24 @@
     :closable="true"
     :draggable="false"
     @hide="resetForm">
-    <div class="p-fluid min-w-72">
-      <div>
-        <div v-for="field in formFields" :key="field.name" class="field col-12 md:col-6 mb-4">
-          <!-- {{ field }} -->
-          <label :for="'field-' + field.name" class="block text-sm font-medium mb-1">
-            <span class="font-bold">{{ field.name }}</span>
-            <span v-if="isRequiredField(field)" class="text-red-500">*</span>
-            <span class="text-xs text-blue-400 ml-1" v-tooltip.top="JSON.stringify(field, null, 2)">
-              {{ field.type }}{{ field.isArray ? '[ ]' : '' }}
-            </span>
-            <span v-for="attr of field.attributes" class="text-xs text-gray-500 ml-1">{{
-              attr.name
-            }}</span>
-          </label>
+    <div class="p-fluid min-w-72 max-w-[50vw]">
+      <div v-for="field in formFields" :key="field.name" class="field col-12 md:col-6 mb-4">
+        <label :for="'field-' + field.name" class="block text-sm font-medium mb-1">
+          <span class="font-bold">{{ field.name }}</span>
+          <span v-if="isRequiredField(field)" class="text-red-500">*</span>
+          <span class="text-xs text-blue-400 ml-1" v-tooltip.top="JSON.stringify(field, null, 2)">
+            {{ field.type }}{{ field.isArray ? '[ ]' : '' }}
+          </span>
+          <span v-for="attr of field.attributes" class="text-xs text-gray-500 ml-1">{{
+            attr.name
+          }}</span>
+        </label>
 
-          <!-- 基础值编辑 -->
-          <div v-if="!field.isDataModel">
-            <AutoColumnEdit :field="field" :cellData="undefined" v-model="formData[field.name]" />
-            <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
-              fieldErrors[field.name]
-            }}</small>
-          </div>
-          <!-- 关系字段 -->
-          <div v-else class="flex flex-column">
-            <RelationSelect
-              :field="field"
-              :modelMeta="modelMeta"
-              :fieldErrors="fieldErrors"
-              :modelValue="formData[field.name]"
-              @selected="
-                (e) => {
-                  console.log('[e]', e);
-                  formData[field.name] = e;
-                }
-              " />
-            <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
-              fieldErrors[field.name]
-            }}</small>
-          </div>
+        <div>
+          <AutoColumnEdit :field="field" :cellData="undefined" v-model="formData[field.name]" />
+          <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
+            fieldErrors[field.name]
+          }}</small>
         </div>
       </div>
     </div>

@@ -18,9 +18,9 @@
   import AutoTable from '@/components/AutoTable/AutoTable.vue';
   import { useModelMeta } from '@/components/AutoTable/util';
   import { SelectButton, Button } from 'primevue';
-  import { ref } from 'vue';
+  import { ref, Suspense } from 'vue';
 
-  const modelMeta = useModelMeta();
+  const modelMeta = await useModelMeta();
 
   const selectModelName = ref<string>('User');
 </script>

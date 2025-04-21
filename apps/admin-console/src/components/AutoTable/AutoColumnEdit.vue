@@ -17,6 +17,16 @@
     <template v-else-if="field.type === 'Int'">
       <InputNumber v-model="editValue" class="w-full min-w-28" inputClass="w-full" />
     </template>
+    <template v-else-if="field.isDataModel">
+      <RelationSelect
+        :field="field"
+        :modelValue="editValue"
+        @selected="
+          (e) => {
+            editValue = e;
+          }
+        " />
+    </template>
     <template v-else>
       <span class="text-red-500 text-sm" v-tooltip.top="`Unsupported field type: ` + field.type">{{
         field.type
@@ -31,6 +41,7 @@
   import { computed, ref, useTemplateRef } from 'vue';
   import type { FieldInfo } from './type';
   import { onClickOutside } from '@vueuse/core';
+  import RelationSelect from '@/components/AutoTable/RelationSelect.vue';
 
   const props = defineProps<{
     field: FieldInfo;

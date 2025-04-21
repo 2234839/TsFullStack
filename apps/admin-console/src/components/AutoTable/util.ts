@@ -15,13 +15,16 @@ export function getModelKey(modelMeta: ModelMeta, modelName: string): string | u
 }
 
 //#region modelMeta ,只有调用 useModelMeta 之后，才会发起请求获取 modelMeta 数据
-const debouncedGetModleMeta = useDebounceFn(() => API.system.getModelMeta() as Promise<ModelMeta>, 30);
+const debouncedGetModleMeta = useDebounceFn(
+  () => API.system.getModelMeta() as Promise<ModelMeta>,
+  30,
+);
 const modelMeta = useAsyncState(debouncedGetModleMeta, undefined, {
   immediate: false,
 });
-export function useModelMeta() {
+export async function useModelMeta() {
   if (!modelMeta.state.value) {
-    modelMeta.execute();
+    await modelMeta.execute();
   }
   return modelMeta;
 }

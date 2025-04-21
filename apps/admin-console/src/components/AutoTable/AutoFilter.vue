@@ -76,7 +76,6 @@
       {{ t('点击"添加筛选条件"按钮开始筛选数据') }}
     </div>
   </div>
-  {{ JSON.stringify(filters, null, 2) }}
 </template>
 
 <script setup lang="ts">

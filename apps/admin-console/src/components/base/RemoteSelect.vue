@@ -1,11 +1,14 @@
 <template>
   <div>
-    <div @click="handleSearch($event)" class="flex">
-      {{ $t('选择') }}
-      <div v-for="item of selectedItems" class="mx-0.5 flex items-center">
-        {{ item?.label }}
-        <i class="pi pi-times ml-1 text-xs cursor-pointer" @click.stop="removeItem(item)"></i>
-      </div>
+    <div @click="handleSearch($event)" class="flex gap-1">
+      <span>{{ $t('选择') }}</span>
+      <Tag v-for="item of selectedItems" class="group" :value="item?.label" severity="info" rounded>
+        <template #icon>
+          <i
+            class="hidden! group-hover:block! pi pi-times ml-1 text-xs cursor-pointer"
+            @click.stop="removeItem(item)"></i>
+        </template>
+      </Tag>
     </div>
     <Popover ref="__op">
       <InputText v-model="searchText" class="w-full" />
@@ -18,7 +21,7 @@
         <div
           v-else
           v-for="item in dataList"
-          class="p-2 hover:bg-gray-100 cursor-pointer flex items-center"
+          class="p-2 cursor-pointer flex items-center"
           @click.capture.stop.prevent="handleSelect(item)">
           <Checkbox :model-value="modelValue.includes(item.value)" binary />
           <span class="ml-2">{{ item.label }}</span>
@@ -35,7 +38,7 @@
 </template>
 <script setup lang="ts">
   import { computed, ref, useTemplateRef } from 'vue';
-  import { InputText, Checkbox, Paginator, Popover, type PageState } from 'primevue';
+  import { InputText, Checkbox, Paginator, Popover, type PageState, Tag } from 'primevue';
 
   interface SelectItem {
     value: any;
@@ -54,14 +57,14 @@
       total: number;
     }>;
   }>();
-
+  const modelValue = defineModel<SelectItem['value'][]>({
+    required: true,
+  });
   const op = useTemplateRef('__op');
   const searchText = ref('');
   const loading = ref(false);
   const dataList = ref<SelectItem[]>([]);
-  const modelValue = defineModel<SelectItem['value'][]>({
-    required: true,
-  });
+
   /** 因为 dataList 切换分页后就可能和 selectedValues 中的数据对不上了，所以这里缓存 selectedItems 选中的数据 */
   const cacheItems = ref<SelectItem[]>([]);
   const selectedItems = computed(() => {

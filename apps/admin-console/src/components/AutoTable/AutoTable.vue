@@ -57,9 +57,9 @@
 <script setup lang="ts">
   import { useAsyncState } from '@vueuse/core';
   import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
-  import { computed, ref, useTemplateRef, watchEffect } from 'vue';
+  import { computed, provide, ref, useTemplateRef, watchEffect } from 'vue';
   import AutoColumn from './AutoColumn.vue';
-  import type { DBmodelNames, FieldInfo } from './type';
+  import { injectModelMetaKey, type DBmodelNames, type FieldInfo } from './type';
   import { findIdField, getModelKey, useModelMeta } from './util';
   import { useI18n } from 'vue-i18n';
   import { useAPI } from '@/api';
@@ -70,7 +70,8 @@
   const toast = useToast();
   const { API } = useAPI();
 
-  const modelMeta = useModelMeta();
+  const modelMeta = await useModelMeta();
+  provide(injectModelMetaKey, modelMeta.state.value!);
   const models = computed(() => {
     const meta = modelMeta.state.value;
     return meta?.models ?? {};
