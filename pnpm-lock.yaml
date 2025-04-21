@@ -8,7 +8,7 @@ importers:
 
   .: {}
 
-  apps/admin-panel:
+  apps/admin-console:
     dependencies:
       '@primeuix/themes':
         specifier: ^1.0.3
