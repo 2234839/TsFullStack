@@ -179,9 +179,19 @@
     if (!idField) return console.error('No ID field found in the model');
 
     for (let index = 0; index < editData.value.length; index++) {
-      const editRow = editData.value[index];
+      const editRow = { ...editData.value[index] };
       const editFields = Object.keys(editRow);
       if (editFields.length === 0) continue;
+
+      /** 修改关联字段不能直接修改字段值，需要使用 connect 关联字段的 ID  */
+      editFields.forEach((editFieldName) => {
+        const field = selectModelMeta.value?.model.fields[editFieldName]!;
+        if (field.isDataModel) {
+          editRow[editFieldName] = {
+            connect: editRow[editFieldName],
+          };
+        }
+      });
 
       const rawRow = tableData.state.value.list[index];
       const updateRes = await API.db[selectModelMeta.value!.modelKey as DBmodelNames].update({

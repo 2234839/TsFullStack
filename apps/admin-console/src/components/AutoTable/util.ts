@@ -1,6 +1,6 @@
 import { useAsyncState, useDebounceFn } from '@vueuse/core';
 import { API } from '../../api';
-import type { FieldInfo, ModelMeta } from './type';
+import type { DBmodelNames, FieldInfo, ModelMeta } from './type';
 
 /** 查找一个可以用于更新指定记录的唯一主键字段  */
 export function findIdField(modelMeta: ModelMeta, modelName: string): FieldInfo | undefined {

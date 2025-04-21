@@ -2,7 +2,12 @@
   <div>
     <div @click="handleSearch($event)" class="flex gap-1">
       <span>{{ $t('选择') }}</span>
-      <Tag v-for="item of selectedItems" class="group" :value="item?.label" severity="info" rounded>
+      <Tag
+        v-for="item of selectedItems"
+        class="group"
+        :value="item?.label ?? item?.value"
+        severity="info"
+        rounded>
         <template #icon>
           <i
             class="hidden! group-hover:block! pi pi-times ml-1 text-xs cursor-pointer"
@@ -69,7 +74,9 @@
   const cacheItems = ref<SelectItem[]>([]);
   const selectedItems = computed(() => {
     console.log('[selectedValues.value]', modelValue.value);
-    return modelValue.value.map((el) => cacheItems.value.find((item) => item.value === el)!);
+    return modelValue.value.map(
+      (el) => cacheItems.value.find((item) => item.value === el) || { value: el, label: el },
+    );
   });
   const pagination = ref<Pagination>({
     skip: 0,
@@ -111,7 +118,6 @@
     if (index === -1) {
       cacheItems.value.push(item);
       modelValue.value.push(item.value);
-      console.log('[selectedValues]', modelValue.value);
     } else {
       modelValue.value.splice(index, 1);
     }

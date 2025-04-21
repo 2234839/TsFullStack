@@ -18,14 +18,7 @@
       <InputNumber v-model="editValue" class="w-full min-w-28" inputClass="w-full" />
     </template>
     <template v-else-if="field.isDataModel">
-      <RelationSelect
-        :field="field"
-        :modelValue="editValue"
-        @selected="
-          (e) => {
-            editValue = e;
-          }
-        " />
+      <RelationSelect :field="field" :modelValue="dataModelProps" @selected="selectRelation" />
     </template>
     <template v-else>
       <span class="text-red-500 text-sm" v-tooltip.top="`Unsupported field type: ` + field.type">{{
@@ -38,10 +31,11 @@
 <script setup lang="ts">
   import { InputNumber, InputText } from 'primevue';
   import DatePicker from 'primevue/datepicker';
-  import { computed, ref, useTemplateRef } from 'vue';
-  import type { FieldInfo } from './type';
+  import { computed, inject, ref, useTemplateRef } from 'vue';
+  import { injectModelMetaKey, type FieldInfo } from './type';
   import { onClickOutside } from '@vueuse/core';
   import RelationSelect from '@/components/AutoTable/RelationSelect.vue';
+  import { findIdField } from '@/components/AutoTable/util';
 
   const props = defineProps<{
     field: FieldInfo;
@@ -65,6 +59,22 @@
 
   const editEl = useTemplateRef<HTMLElement>('__editEl');
   const editMode = defineModel<boolean>('editMode', { default: false });
+  const modelMeta = inject(injectModelMetaKey)!;
+
+  //#region 关联关系的编辑映射
+  const dataModelProps = computed(() => {
+    const idField = findIdField(modelMeta, props.field.type)!;
+    return (Array.isArray(editValue.value) ? editValue.value : [editValue.value]).map(
+      (el) => el[idField.name],
+    );
+  });
+  function selectRelation(list: /** 这里应是 id 类型的数组 */ any[]) {
+    const idField = findIdField(modelMeta, props.field.type)!;
+    console.log('[list]', list);
+    editValue.value = list.map((el) => ({ [idField.name]: el }));
+  }
+  //#endregion
+
   /** 实现如果值未修改，点击外部时关闭编辑模式 */
   onClickOutside(editEl, () => {
     if (props.field.type === 'DateTime' && datePickerShow.value) {
