@@ -1,47 +1,43 @@
-<style scoped></style>
 <template>
-  <MultiSelect
-    v-if="field.isArray"
-    :id="'field-' + field.name"
-    v-model="selectModel"
-    :options="relationsData.state.value"
-    optionLabel="label"
-    optionValue="value"
-    :class="{ 'p-invalid': fieldErrors[field.name] }"
-    :placeholder="t('请选择关联记录')"
-    :loading="relationsData.isLoading.value"
-    @before-show="relationsData.execute(100,field)" />
-  <Select
-    v-else
-    :id="'field-' + field.name"
-    v-model="selectModel"
-    :options="relationsData.state.value"
-    optionLabel="label"
-    optionValue="value"
-    :class="{ 'p-invalid': fieldErrors[field.name] }"
-    :placeholder="t('请选择关联记录')"
-    :loading="relationsData.isLoading.value"
-    @before-show="relationsData.execute(100,field)" />
+  <RemoteSelect v-model="modelValue" :queryMethod="queryData" />
 </template>
+
 <script setup lang="ts">
   import { useAPI } from '@/api';
   import type { DBmodelNames, FieldInfo, ModelMeta } from '@/components/AutoTable/type';
   import { findIdField } from '@/components/AutoTable/util';
+  import RemoteSelect from '@/components/base/RemoteSelect.vue';
   import { useAsyncState } from '@vueuse/core';
-  import { MultiSelect, Select, useToast } from 'primevue';
+  import { useToast } from 'primevue';
+  import { ref, watch, watchEffect } from 'vue';
   import { useI18n } from 'vue-i18n';
 
   const props = defineProps<{
     field: FieldInfo;
     modelMeta: ModelMeta;
-    fieldErrors:Record<string, string>
+    fieldErrors: Record<string, string>;
+    modelValue: any[] | undefined;
   }>();
 
-  const selectModel = defineModel();
+  const modelValue = ref<any[]>([...(props.modelValue ?? [])]);
+  const emit = defineEmits<{
+    (e: 'selected', value: any[]): void;
+  }>();
+  watchEffect(() => {
+    emit('selected', [...modelValue.value]);
+  });
+
   const { API } = useAPI();
   const toast = useToast();
   const { t } = useI18n();
-  const relationsData = useAsyncState(async function loadRelationData(field: FieldInfo) {
+  const totalRecords = ref(0);
+
+  const relationsData = useAsyncState(async function loadRelationData(
+    field: FieldInfo,
+    skip = 0,
+    take = 10,
+    search = '',
+  ) {
     if (!field.isDataModel || !props.modelMeta) return [];
 
     const relatedModelName = field.type;
@@ -49,28 +45,41 @@
       (key) => props.modelMeta?.models[key].name === relatedModelName,
     ) as DBmodelNames;
 
-    if (!relatedModelKey) return;
+    if (!relatedModelKey) return [];
 
-    // 查找关联模型的ID字段
     const idField = findIdField(props.modelMeta, relatedModelName);
-    if (!idField) return;
+    if (!idField) return [];
 
-    // 查找一个可以用作显示标签的字段（优先选择String类型）
     const displayField =
       Object.values(props.modelMeta.models[relatedModelKey].fields).find(
         (f: FieldInfo) => f.type === 'String' && !f.isId,
       ) || idField;
 
     try {
-      const records = await API.db[relatedModelKey].findMany({
-        select: {
-          [idField.name]: true,
-          [displayField.name]: true,
-        },
-        take: 100, // 限制加载数量
-      });
+      const where = search
+        ? {
+            [displayField.name]: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          }
+        : {};
 
-      return records.map((record: any) => ({
+      const [list, count] = await Promise.all([
+        API.db[relatedModelKey].findMany({
+          where,
+          select: {
+            [idField.name]: true,
+            [displayField.name]: true,
+          },
+          skip,
+          take,
+        }),
+        API.db[relatedModelKey].count({ where }),
+      ]);
+
+      totalRecords.value = count;
+      return list.map((record: any) => ({
         label: String(record[displayField.name]),
         value: record[idField.name],
       }));
@@ -84,7 +93,19 @@
       });
       return [];
     }
-  }, []);
-
-  // 加载关系数据 - 现在只在用户点击下拉框时触发
+  },
+  []);
+  const queryData = async (param: { keyword: string; skip: number; take: number }) => {
+    const data = await relationsData.execute(
+      100,
+      props.field,
+      param.skip,
+      param.take,
+      param.keyword,
+    );
+    return {
+      data,
+      total: totalRecords.value,
+    };
+  };
 </script>

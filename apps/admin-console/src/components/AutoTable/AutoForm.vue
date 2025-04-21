@@ -34,7 +34,13 @@
               :field="field"
               :modelMeta="modelMeta"
               :fieldErrors="fieldErrors"
-              v-model="formData[field.name]" />
+              :modelValue="formData[field.name]"
+              @selected="
+                (e) => {
+                  console.log('[e]', e);
+                  formData[field.name] = e;
+                }
+              " />
             <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
               fieldErrors[field.name]
             }}</small>
@@ -55,7 +61,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, watch, onMounted } from 'vue';
+  import { ref, computed, watch, onMounted, reactive } from 'vue';
   import { Dialog, Button, useToast, Select, MultiSelect } from 'primevue';
   import { useI18n } from 'vue-i18n';
   import { useAPI } from '@/api';
@@ -80,7 +86,7 @@
   // 表单状态
   const visible = ref(false);
   const saving = ref(false);
-  const formData = ref<Record<string, any>>({});
+  const formData = reactive<Record<string, any>>({});
   const fieldErrors = ref<Record<string, string>>({});
 
   // 计算属性：表单字段
@@ -106,7 +112,9 @@
   }
   // 重置表单
   function resetForm() {
-    formData.value = {};
+    Object.values(modelFields.value).forEach((field) => {
+      delete formData[field.name];
+    });
     fieldErrors.value = {};
   }
 
@@ -119,9 +127,9 @@
       // 检查必填字段
       if (
         isRequiredField(field) &&
-        (formData.value[field.name] === undefined ||
-          formData.value[field.name] === null ||
-          formData.value[field.name] === '')
+        (formData[field.name] === undefined ||
+          formData[field.name] === null ||
+          formData[field.name] === '')
       ) {
         fieldErrors.value[field.name] = t('此字段为必填项');
         isValid = false;
@@ -143,7 +151,7 @@
 
       for (const field of formFields.value) {
         const fieldName = field.name;
-        const value = formData.value[fieldName];
+        const value = formData[fieldName];
 
         // 跳过未设置的可选字段
         if (field.isOptional && (value === undefined || value === null || value === '')) {

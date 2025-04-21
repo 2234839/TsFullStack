@@ -36,5 +36,8 @@
   "取消": "cancel",
   "创建记录失败": "Failed to create record",
   "此字段为必填项": "This field is required.",
-  "成功": "success"
+  "成功": "success",
+  "加载关联数据失败": "Failed to load associated data",
+  "选择": "choose",
+  "全选": "Select All"
 }

@@ -1,0 +1,152 @@
+<template>
+  <div>
+    <div @click="handleSearch($event)" class="flex">
+      {{ $t('选择') }}
+      <div v-for="item of selectedItems" class="mx-0.5 flex items-center">
+        {{ item?.label }}
+        <i class="pi pi-times ml-1 text-xs cursor-pointer" @click.stop="removeItem(item)"></i>
+      </div>
+    </div>
+    <Popover ref="__op">
+      <InputText v-model="searchText" class="w-full" />
+      <div class="flex items-center p-2">
+        <Checkbox :model-value="isAllSelected" binary @update:model-value="toggleSelectAll" />
+        <span class="ml-2">{{ $t('全选') }}</span>
+      </div>
+      <div class="max-h-60 overflow-y-auto">
+        <div v-if="loading" class="p-4 text-center">{{ $t('加载中...') }}</div>
+        <div
+          v-else
+          v-for="item in dataList"
+          class="p-2 hover:bg-gray-100 cursor-pointer flex items-center"
+          @click.capture.stop.prevent="handleSelect(item)">
+          <Checkbox :model-value="modelValue.includes(item.value)" binary />
+          <span class="ml-2">{{ item.label }}</span>
+        </div>
+      </div>
+      <Paginator
+        :first="pagination.skip"
+        :rows="pagination.take"
+        :totalRecords="pagination.total"
+        :loading="loading"
+        @page="handlePageChange" />
+    </Popover>
+  </div>
+</template>
+<script setup lang="ts">
+  import { computed, ref, useTemplateRef } from 'vue';
+  import { InputText, Checkbox, Paginator, Popover, type PageState } from 'primevue';
+
+  interface SelectItem {
+    value: any;
+    label: string;
+  }
+
+  interface Pagination {
+    skip: number;
+    take: number;
+    total: number;
+  }
+
+  const props = defineProps<{
+    queryMethod: (params: { keyword: string; skip: number; take: number }) => Promise<{
+      data: SelectItem[];
+      total: number;
+    }>;
+  }>();
+
+  const op = useTemplateRef('__op');
+  const searchText = ref('');
+  const loading = ref(false);
+  const dataList = ref<SelectItem[]>([]);
+  const modelValue = defineModel<SelectItem['value'][]>({
+    required: true,
+  });
+  /** 因为 dataList 切换分页后就可能和 selectedValues 中的数据对不上了，所以这里缓存 selectedItems 选中的数据 */
+  const cacheItems = ref<SelectItem[]>([]);
+  const selectedItems = computed(() => {
+    console.log('[selectedValues.value]', modelValue.value);
+    return modelValue.value.map((el) => cacheItems.value.find((item) => item.value === el)!);
+  });
+  const pagination = ref<Pagination>({
+    skip: 0,
+    take: 10,
+    total: 0,
+  });
+
+  const handleSearch = async (event: MouseEvent) => {
+    pagination.value.skip = 0;
+    op.value?.toggle(event);
+    await fetchData();
+  };
+
+  const handlePageChange = async (event: PageState) => {
+    console.log('[event]', event);
+    pagination.value.skip = event.first;
+    await fetchData();
+  };
+
+  const fetchData = async () => {
+    loading.value = true;
+    try {
+      const res = await props.queryMethod({
+        keyword: searchText.value,
+        skip: pagination.value.skip,
+        take: pagination.value.take,
+      });
+      dataList.value = res.data;
+      pagination.value.total = res.total;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const handleSelect = (item: SelectItem) => {
+    const index = modelValue.value.findIndex((v) => v === item.value);
+    /** 先移除 */
+    cacheItems.value = cacheItems.value.filter((v) => v.value !== item.value);
+    if (index === -1) {
+      cacheItems.value.push(item);
+      modelValue.value.push(item.value);
+      console.log('[selectedValues]', modelValue.value);
+    } else {
+      modelValue.value.splice(index, 1);
+    }
+  };
+
+  const isAllSelected = computed(() => {
+    return (
+      dataList.value.length > 0 &&
+      dataList.value.every((item) => modelValue.value.includes(item.value))
+    );
+  });
+
+  const toggleSelectAll = (checked: boolean) => {
+    if (checked) {
+      dataList.value.forEach((item) => {
+        if (!modelValue.value.includes(item.value)) {
+          modelValue.value.push(item.value);
+          cacheItems.value.push(item);
+        }
+      });
+    } else {
+      dataList.value.forEach((item) => {
+        const index = modelValue.value.indexOf(item.value);
+        if (index !== -1) {
+          modelValue.value.splice(index, 1);
+          cacheItems.value = cacheItems.value.filter((v) => v.value !== item.value);
+        }
+      });
+    }
+  };
+
+  const removeItem = (item: SelectItem) => {
+    const index = modelValue.value.indexOf(item.value);
+    if (index !== -1) {
+      modelValue.value.splice(index, 1);
+      cacheItems.value = cacheItems.value.filter((v) => v.value !== item.value);
+    }
+  };
+</script>
+
+<style scoped></style>
