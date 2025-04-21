@@ -34,9 +34,8 @@
 
   const props = defineProps<{
     field: FieldInfo;
-    row: { [fieldName: string]: any };
+    cellData: any;
   }>();
-  const cellData = computed(() => props.row[props.field.name]);
 
   const eidtModel = defineModel<any>();
 
@@ -44,10 +43,10 @@
   /** 双向绑定，但当值未修改时，不更新 eidtModel  */
   const editValue = computed({
     get: () => {
-      return eidtModel.value ?? cellData.value;
+      return eidtModel.value ?? props.cellData;
     },
     set: (value) => {
-      if (cellData.value !== value) {
+      if (props.cellData !== value) {
         eidtModel.value = value;
       }
     },

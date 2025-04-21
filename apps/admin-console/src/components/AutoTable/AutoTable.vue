@@ -2,6 +2,7 @@
 <template>
   <div class="flex space-x-1 my-1">
     <div class="flex items-center space-x-2">
+      <Button icon="pi pi-plus" @click="openCreateForm" :tooltip="t('新增记录')" />
       <div class="flex items-center space-x-2" v-if="editRows.length">
         <Button @click="saveChanges">{{ t('保存修改结果') }}</Button>
         <Button @click="discardChanges" severity="secondary">{{ t('丢弃修改') }}</Button>
@@ -16,6 +17,7 @@
       </div>
     </div>
   </div>
+  <AutoFilter v-if="selectModelMeta" :modelFields="selectModelMeta.model.fields" />
   <DataTable
     :loading="tableData.isLoading.value"
     :value="tableData.state.value.list"
@@ -43,16 +45,25 @@
         :rowsPerPageOptions="[10, 20, 30]" />
     </template>
   </DataTable>
+  <AutoForm
+    v-if="selectModelMeta && modelMeta.state.value"
+    ref="__createFormRef"
+    :modelName="selectModelName"
+    :modelKey="selectModelMeta.modelKey"
+    :modelFields="selectModelMeta.model.fields || {}"
+    :modelMeta="modelMeta.state.value" />
 </template>
 <script setup lang="ts">
   import { useAsyncState } from '@vueuse/core';
   import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
-  import { computed, ref, watchEffect } from 'vue';
+  import { computed, ref, useTemplateRef, watchEffect } from 'vue';
   import AutoColumn from './AutoColumn.vue';
   import type { DBmodelNames, FieldInfo } from './type';
   import { findIdField, getModelKey, useModelMeta } from './util';
   import { useI18n } from 'vue-i18n';
   import { useAPI } from '@/api';
+  import AutoFilter from '@/components/AutoTable/AutoFilter.vue';
+  import AutoForm from '@/components/AutoTable/AutoForm.vue';
   const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
@@ -245,4 +256,17 @@
     });
   }
   //#endregion 数据编辑更新功能
+
+  //#region 新增记录功能
+  const createFormRef = useTemplateRef('__createFormRef');
+  function openCreateForm() {
+    if (createFormRef.value) {
+      createFormRef.value.open();
+    }
+  }
+
+  function onRecordCreated() {
+    reloadTableData();
+  }
+  //#endregion
 </script>

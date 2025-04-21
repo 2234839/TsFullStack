@@ -16,7 +16,12 @@
     </template>
     <template v-else>{{ cellData }}</template>
   </div>
-  <AutoColumnEdit v-model="editValue" v-model:edit-mode="editMode" v-else :field="field" :row="props.row" />
+  <AutoColumnEdit
+    v-model="editValue"
+    v-model:edit-mode="editMode"
+    v-else
+    :field="field"
+    :cellData="props.row[field.name]" />
 </template>
 <script setup lang="ts">
   import { formatDate } from '@vueuse/core';
@@ -33,5 +38,5 @@
   const editValue = defineModel('editValue');
   const cellData = computed(() => props.row[props.field.name]);
 
-  const editMode = ref(false)
+  const editMode = ref(false);
 </script>
