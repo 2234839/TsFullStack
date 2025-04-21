@@ -179,21 +179,44 @@
     if (!idField) return console.error('No ID field found in the model');
 
     for (let index = 0; index < editData.value.length; index++) {
+      const rawRow = tableData.state.value.list[index];
       const editRow = { ...editData.value[index] };
       const editFields = Object.keys(editRow);
       if (editFields.length === 0) continue;
-
+      console.log('[rawRow]', rawRow);
       /** 修改关联字段不能直接修改字段值，需要使用 connect 关联字段的 ID  */
       editFields.forEach((editFieldName) => {
         const field = selectModelMeta.value?.model.fields[editFieldName]!;
+        const refIdField = findIdField(modelMeta.state.value!, field.type)!;
+        console.log('[editRow[editFieldName]]', editRow, editRow[editFieldName]);
         if (field.isDataModel) {
           editRow[editFieldName] = {
             connect: editRow[editFieldName],
+            // 比较 rawRow 相对于 editRow 中减少的，然后使用 disconnect 断开关联
+            disconnect:
+              // @ts-ignore
+              (rawRow[editFieldName] as any[])
+                ?.filter(
+                  (item: any) =>
+                    !(editRow[editFieldName] as unknown as any[])?.find(
+                      (el) => el[refIdField.name] === item[refIdField.name],
+                    ),
+                )
+                ?.map((item: any) => ({ [refIdField.name]: item[refIdField.name] })) || [],
           };
         }
       });
+      // API.db.role.update({
+      //   where: {
+      //     id: 2,
+      //   },
+      //   data: {
+      //     users: {
+      //       disconnect: [{}],
+      //     },
+      //   },
+      // });
 
-      const rawRow = tableData.state.value.list[index];
       const updateRes = await API.db[selectModelMeta.value!.modelKey as DBmodelNames].update({
         data: editRow,
         // @ts-ignore
