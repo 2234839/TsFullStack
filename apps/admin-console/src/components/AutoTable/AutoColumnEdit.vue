@@ -70,7 +70,6 @@
   });
   function selectRelation(list: /** 这里应是 id 类型的数组 */ any[]) {
     const idField = findIdField(modelMeta, props.field.type)!;
-    console.log('[list]', list);
     editValue.value = list.map((el) => ({ [idField.name]: el }));
   }
   //#endregion

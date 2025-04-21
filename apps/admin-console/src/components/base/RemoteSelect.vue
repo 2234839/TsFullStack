@@ -73,7 +73,6 @@
   /** 因为 dataList 切换分页后就可能和 selectedValues 中的数据对不上了，所以这里缓存 selectedItems 选中的数据 */
   const cacheItems = ref<SelectItem[]>([]);
   const selectedItems = computed(() => {
-    console.log('[selectedValues.value]', modelValue.value);
     return modelValue.value.map(
       (el) => cacheItems.value.find((item) => item.value === el) || { value: el, label: el },
     );

@@ -183,12 +183,13 @@
       const editRow = { ...editData.value[index] };
       const editFields = Object.keys(editRow);
       if (editFields.length === 0) continue;
-      console.log('[rawRow]', rawRow);
+
       /** 修改关联字段不能直接修改字段值，需要使用 connect 关联字段的 ID  */
       editFields.forEach((editFieldName) => {
         const field = selectModelMeta.value?.model.fields[editFieldName]!;
+        /** 被引用的模型的 id 列定义 */
         const refIdField = findIdField(modelMeta.state.value!, field.type)!;
-        console.log('[editRow[editFieldName]]', editRow, editRow[editFieldName]);
+
         if (field.isDataModel) {
           editRow[editFieldName] = {
             connect: editRow[editFieldName],
