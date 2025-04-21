@@ -13,11 +13,9 @@
           <label :for="'field-' + field.name" class="block text-sm font-medium mb-1">
             <span class="font-bold">{{ field.name }}</span>
             <span v-if="isRequiredField(field)" class="text-red-500">*</span>
-            <span
-              class="text-xs text-blue-400 ml-1"
-              v-tooltip.top="JSON.stringify(field, null, 2)"
-              >{{ field.type }}</span
-            >
+            <span class="text-xs text-blue-400 ml-1" v-tooltip.top="JSON.stringify(field, null, 2)">
+              {{ field.type }}{{ field.isArray ? '[ ]' : '' }}
+            </span>
             <span v-for="attr of field.attributes" class="text-xs text-gray-500 ml-1">{{
               attr.name
             }}</span>
@@ -26,7 +24,7 @@
           <!-- 使用AutoColumn组件进行值编辑 -->
           <div v-if="!field.isDataModel">
             <AutoColumnEdit :field="field" :cellData="undefined" v-model="formData[field.name]" />
-            <small v-if="fieldErrors[field.name]" class="p-error block mt-1">{{
+            <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
               fieldErrors[field.name]
             }}</small>
           </div>
@@ -43,7 +41,7 @@
               :placeholder="t('请选择关联记录')"
               :loading="loadingRelations[field.name]"
               @before-show="loadRelationData(field)" />
-            <small v-if="fieldErrors[field.name]" class="p-error block mt-1">{{
+            <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
               fieldErrors[field.name]
             }}</small>
             <small v-else-if="loadingRelations[field.name]" class="text-gray-500 block mt-1">{{
