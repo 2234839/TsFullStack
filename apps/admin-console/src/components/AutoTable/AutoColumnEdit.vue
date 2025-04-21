@@ -14,11 +14,19 @@
     <template v-else-if="field.type === 'String'">
       <InputText v-model="editValue" class="w-full min-w-28" />
     </template>
-    <template v-else>{{ cellData }}</template>
+    <template v-else-if="field.type === 'Int'">
+      <InputNumber v-model="editValue" class="w-full min-w-28" inputClass="w-full" />
+    </template>
+    <template v-else>
+      <span class="text-red-500 text-sm" v-tooltip.top="`Unsupported field type: ` + field.type">{{
+        field.type
+      }}</span
+      >{{ cellData }}</template
+    >
   </div>
 </template>
 <script setup lang="ts">
-  import { InputText } from 'primevue';
+  import { InputNumber, InputText } from 'primevue';
   import DatePicker from 'primevue/datepicker';
   import { computed, ref, useTemplateRef } from 'vue';
   import type { FieldInfo } from './type';
