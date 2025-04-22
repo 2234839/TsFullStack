@@ -15,7 +15,16 @@
       </Button>
     </div>
   </div>
-  <AutoFilter v-if="selectModelMeta" :modelFields="selectModelMeta.model.fields" />
+  <AutoFilter
+    v-if="selectModelMeta"
+    :modelFields="selectModelMeta.model.fields"
+    @filter="
+      (options) => {
+        filter = options;
+        currentPage = 1;
+        reloadTableData();
+      }
+    " />
   <DataTable
     :loading="tableData.isLoading.value"
     :value="tableData.state.value.list"
@@ -88,7 +97,7 @@
       })
       .find((el) => el.model.name === selectModelName.value);
   });
-
+  const filter = ref({});
   //#region 表格分页
   const currentPage = ref(1);
   const pageSize = ref(10);
@@ -136,9 +145,12 @@
         API.db[opt.modelKey as DBmodelNames].findMany({
           take: opt.pageSize,
           skip: (opt.page - 1) * opt.pageSize,
+          where: filter.value,
           include,
         }),
-        API.db[opt.modelKey as DBmodelNames].count({}),
+        API.db[opt.modelKey as DBmodelNames].count({
+          where: filter.value,
+        }),
       ]);
       //#region 清理数据
       editData.value = list.map((_) => ({}));
