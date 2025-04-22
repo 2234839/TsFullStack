@@ -17,7 +17,10 @@
   <Popover ref="__op">
     <InputText v-model="searchText" class="w-full" />
     <div class="flex items-center p-2">
-      <Checkbox :model-value="isAllSelected" binary @update:model-value="toggleSelectAll" />
+      <Checkbox
+        :model-value="isAllSelected"
+        binary
+        @update:model-value="toggleSelectAll(!isAllSelected)" />
       <span class="ml-2">{{ $t('全选') }}</span>
     </div>
     <div class="max-h-60 overflow-y-auto">
@@ -123,8 +126,8 @@
   const toggleSelectAll = (checked: boolean) => {
     if (checked) {
       dataList.value.forEach((item) => {
-        if (!modelValue.value.every((el) => itemEquals(el, item))) {
-          modelValue.value.push(item.value);
+        if (!modelValue.value.some((el) => itemEquals(el, item))) {
+          modelValue.value.push(item);
         }
       });
     } else {

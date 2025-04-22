@@ -141,8 +141,8 @@
             if (idField) {
               data[fieldName] = {
                 connect: Array.isArray(value)
-                  ? value.map((item) => ({ [idField.name]: item }))
-                  : { [idField.name]: value },
+                  ? value.map((item) => ({ [idField.name]: item[idField.name] }))
+                  : { [idField.name]: value[idField.name] },
               };
             }
           }
