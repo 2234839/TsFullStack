@@ -224,9 +224,11 @@
   import { routeMap, router, routerUtil } from '@/router';
   import { authInfo_logout } from '@/storage';
   import { Avatar, Badge, Button, InputText, Popover } from 'primevue';
-  import { computed, ref } from 'vue';
+  import { computed, reactive, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
   import avatarImageSrc from '/崮生.png?url';
+  import { useI18n } from 'vue-i18n';
+  import { useComputedI18n } from '@/i18n';
 
   // 定义类型
   interface MenuItem {
@@ -264,14 +266,21 @@
     isCollapsed.value = !isCollapsed.value;
   };
 
-  // 菜单数据结构
-  const menuItems = ref<MenuCategory[]>([
+  const t = useComputedI18n();
+
+  const menuItems = reactive([
     {
-      category: '主导航',
+      category: t('工作台'),
       items: [
         {
+          key: 'dashboard',
+          label: t('控制台'),
+          icon: 'pi pi-home',
+          to: routerUtil.to(routeMap.admin.child.index, {}),
+        },
+        {
           key: 'studio',
-          label: '仪表盘',
+          label: t('模型管理'),
           icon: 'pi pi-th-large',
           to: routerUtil.to(routeMap.admin.child.studio, {}),
           badgeSeverity: 'info',
@@ -279,19 +288,18 @@
         },
       ],
     },
-
     {
-      category: '用户与权限',
+      category: t('用户与权限'),
       items: [
         {
           key: 'users',
-          label: '用户管理',
+          label: t('用户管理'),
           icon: 'pi pi-users',
           expanded: false,
           items: [
             {
               key: 'user-list',
-              label: '用户列表',
+              label: t('用户列表'),
               icon: 'pi pi-list',
               to: routerUtil.to(
                 routeMap.admin.child.studio,
@@ -303,7 +311,7 @@
         },
         {
           key: 'roles',
-          label: '角色权限',
+          label: t('角色权限'),
           icon: 'pi pi-shield',
           to: routerUtil.to(
             routeMap.admin.child.studio,
@@ -314,29 +322,29 @@
       ],
     },
     {
-      category: '系统设置',
+      category: t('系统设置'),
       items: [
         {
           key: 'settings',
-          label: '系统设置',
+          label: t('系统设置'),
           icon: 'pi pi-cog',
           expanded: false,
           items: [],
         },
         {
           key: 'logs',
-          label: '系统日志',
+          label: t('系统日志'),
           icon: 'pi pi-list',
           to: routerUtil.to(routeMap.admin.child.systemLog, {}),
         },
       ],
     },
-  ]);
+  ]) as MenuCategory[];
 
   // 折叠状态下的菜单项（只显示顶级菜单）
   const collapsedMenuItems = computed<MenuItem[]>(() => {
     const items: MenuItem[] = [];
-    menuItems.value.forEach((category) => {
+    menuItems.forEach((category) => {
       category.items.forEach((item) => {
         items.push({
           key: item.key,
@@ -354,11 +362,11 @@
 
   // 过滤菜单项
   const filteredMenuItems = computed<MenuCategory[]>(() => {
-    if (!searchQuery.value) return menuItems.value;
+    if (!searchQuery.value) return menuItems;
 
     const result: MenuCategory[] = [];
 
-    menuItems.value.forEach((category) => {
+    menuItems.forEach((category) => {
       const filteredItems = category.items.filter((item) => {
         const matchesSearch = item.label.toLowerCase().includes(searchQuery.value.toLowerCase());
 
@@ -368,7 +376,6 @@
           );
 
           if (filteredSubItems.length > 0) {
-            // 创建一个新对象，避免修改原始数据
             item = { ...item, items: filteredSubItems };
             return true;
           }

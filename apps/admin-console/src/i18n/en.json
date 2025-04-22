@@ -43,5 +43,14 @@
   "无数据": "No data",
   "切换语言": "Switch language",
   "点击“添加筛选条件”按钮开始筛选数据": "Click the \"Add Filter Condition\" button to start filtering data.",
-  "支持一下 | Star 这个项目": "Support / Star this project"
+  "支持一下 | Star 这个项目": "Support / Star this project",
+  "工作台": "workbench",
+  "控制台": "console",
+  "用户管理": "User Management",
+  "系统设置": "System Settings",
+  "系统日志": "System Log",
+  "模型管理": "Model Management",
+  "用户与权限": "User and Permissions",
+  "角色权限": "Role Permissions",
+  "用户列表": "User List"
 }
