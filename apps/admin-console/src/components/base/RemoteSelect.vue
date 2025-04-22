@@ -1,45 +1,74 @@
 <template>
-  <div @click="handleSearch($event)" class="flex gap-1">
-    <span>{{ $t('选择') }}</span>
-    <Tag
-      v-for="item of modelValue"
-      class="group"
-      :value="item?.label ?? item?.value"
-      severity="info"
-      rounded>
-      <template #icon>
-        <i
-          class="hidden! group-hover:block! pi pi-times ml-1 text-xs cursor-pointer"
-          @click.stop="removeItem(item)"></i>
-      </template>
-    </Tag>
+  <div
+    @click="handleSearch($event)"
+    class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-[40px] shadow-sm">
+    <span class="bg-blue-300 drak:bg-blue-700 rounded-sm px-1 text-white">{{ $t('选择') }}</span>
+    <div class="flex flex-wrap gap-1">
+      <Tag
+        v-for="item of modelValue"
+        class="group transition-all"
+        :value="item?.label ?? item?.value"
+        severity="info"
+        rounded>
+        <template #icon>
+          <i
+            :class="[
+              'pi',
+              'pi-times',
+              'ml-1',
+              'text-xs',
+              'cursor-pointer',
+              'hover:text-red-500',
+              { 'hidden!': !isTagHovered(item) },
+            ]"
+            @mouseover="setTagHovered(item, true)"
+            @mouseleave="setTagHovered(item, false)"
+            @click.stop="removeItem(item)"></i>
+        </template>
+      </Tag>
+    </div>
+    <i class="pi pi-chevron-down ml-auto text-gray-500"></i>
   </div>
-  <Popover ref="__op">
-    <InputText v-model="searchText" class="w-full" />
-    <div class="flex items-center p-2">
+  <Popover ref="__op" class="p-0 shadow-lg rounded-md overflow-hidden">
+    <div class="p-3">
+      <InputText
+        v-model="searchText"
+        class="w-full"
+        placeholder="搜索..."
+        @input="debounceSearch" />
+    </div>
+    <div class="flex items-center p-3">
       <Checkbox
         :model-value="isAllSelected"
         binary
         @update:model-value="toggleSelectAll(!isAllSelected)" />
-      <span class="ml-2">{{ $t('全选') }}</span>
+      <span class="ml-2 font-medium">{{ $t('全选') }}</span>
     </div>
     <div class="max-h-60 overflow-y-auto">
-      <div v-if="loading" class="p-4 text-center">{{ $t('加载中...') }}</div>
+      <div v-if="loading" class="p-4 text-center">
+        <i class="pi pi-spin pi-spinner mr-2"></i>
+        {{ $t('加载中...') }}
+      </div>
       <div
         v-else
         v-for="item in dataList"
-        class="p-2 cursor-pointer flex items-center"
+        class="p-3 cursor-pointer flex items-center hover:bg-blue-50 transition-colors"
         @click.capture.stop.prevent="handleSelect(item)">
         <Checkbox :model-value="modelValue.some((el) => itemEquals(el, item))" binary />
         <span class="ml-2">{{ item.label }}</span>
       </div>
+      <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-gray-500">
+        {{ $t('无数据') }}
+      </div>
     </div>
-    <Paginator
-      :first="pagination.skip"
-      :rows="pagination.take"
-      :totalRecords="pagination.total"
-      :loading="loading"
-      @page="handlePageChange" />
+    <div>
+      <Paginator
+        :first="pagination.skip"
+        :rows="pagination.take"
+        :totalRecords="pagination.total"
+        :loading="loading"
+        @page="handlePageChange" />
+    </div>
   </Popover>
 </template>
 <script setup lang="ts">
@@ -70,12 +99,23 @@
   const searchText = ref('');
   const loading = ref(false);
   const dataList = ref<SelectItem[]>([]);
+  const tagHovered = ref<Record<any, boolean>>({});
 
   const pagination = ref<Pagination>({
     skip: 0,
     take: 10,
     total: 0,
   });
+
+  let searchTimeout: any = null;
+
+  const debounceSearch = () => {
+    if (searchTimeout) clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      pagination.value.skip = 0;
+      fetchData();
+    }, 300);
+  };
 
   const handleSearch = async (event: MouseEvent) => {
     pagination.value.skip = 0;
@@ -140,6 +180,15 @@
     if (index !== -1) {
       modelValue.value.splice(index, 1);
     }
+    tagHovered.value[item.value] = false;
+  };
+
+  const isTagHovered = (item: SelectItem) => {
+    return tagHovered.value[item.value] || false;
+  };
+
+  const setTagHovered = (item: SelectItem, hovered: boolean) => {
+    tagHovered.value[item.value] = hovered;
   };
 </script>
 
