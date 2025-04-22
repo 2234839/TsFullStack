@@ -76,7 +76,7 @@ async function handleApi(
         apisRpc.RC(method, params).catch((e) => {
           throw new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
         }),
-      )
+      );
       if (Effect.isEffect(result)) {
         return yield* result;
       }
@@ -118,11 +118,16 @@ function createAPIHandler(
 
     const p = Effect.gen(function* () {
       const params = yield* Effect.promise(() => parseParams(request));
+      // 这里返回的就是一个  exit
       return yield* Effect.promise(() => handler(method, params, request));
     });
 
-    const exit = await Effect.runPromise(p);
-    const r = Exit.match(exit, {
+    // 这里会是嵌套 Exit 所以需要展开
+    const exit = await Effect.runPromiseExit(p);
+    const exitFlatten = Exit.flatten(exit)
+
+
+    const r = Exit.match(exitFlatten, {
       onSuccess: (result) => {
         if (result instanceof File) {
           reply.type(result.type || 'application/octet-stream');

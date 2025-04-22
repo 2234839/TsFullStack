@@ -20,7 +20,7 @@ const baseServer = import.meta.env.DEV ? 'http://localhost:5209' : '';
 export const { API, AppAPI } = useAPI(function () {
   return {
     add(message: ToastMessageOptions) {
-      alert(message.summary);
+      alert(message.detail);
     },
     remove(_message: ToastMessageOptions) {},
     removeGroup(_group: string) {},
