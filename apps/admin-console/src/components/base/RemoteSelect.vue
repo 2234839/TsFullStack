@@ -3,7 +3,7 @@
     <div @click="handleSearch($event)" class="flex gap-1">
       <span>{{ $t('选择') }}</span>
       <Tag
-        v-for="item of selectedItems"
+        v-for="item of modelValue"
         class="group"
         :value="item?.label ?? item?.value"
         severity="info"
@@ -62,7 +62,7 @@
       total: number;
     }>;
   }>();
-  const modelValue = defineModel<SelectItem['value'][]>({
+  const modelValue = defineModel<SelectItem[]>({
     required: true,
   });
   const op = useTemplateRef('__op');
@@ -70,13 +70,6 @@
   const loading = ref(false);
   const dataList = ref<SelectItem[]>([]);
 
-  /** 因为 dataList 切换分页后就可能和 selectedValues 中的数据对不上了，所以这里缓存 selectedItems 选中的数据 */
-  const cacheItems = ref<SelectItem[]>([]);
-  const selectedItems = computed(() => {
-    return modelValue.value.map(
-      (el) => cacheItems.value.find((item) => item.value === el) || { value: el, label: el },
-    );
-  });
   const pagination = ref<Pagination>({
     skip: 0,
     take: 10,
@@ -109,50 +102,42 @@
       loading.value = false;
     }
   };
-
+  /** 因为数据会分页加载，所以直接按引用判断不行。要按值判断 */
+  function itemEquals(a: SelectItem, b: SelectItem) {
+    return a.value === b.value;
+  }
   const handleSelect = (item: SelectItem) => {
-    const index = modelValue.value.findIndex((v) => v === item.value);
-    /** 先移除 */
-    cacheItems.value = cacheItems.value.filter((v) => v.value !== item.value);
+    const index = modelValue.value.findIndex((v) => itemEquals(v, item));
     if (index === -1) {
-      cacheItems.value.push(item);
-      modelValue.value.push(item.value);
+      modelValue.value.push(item);
     } else {
-      modelValue.value.splice(index, 1);
+      removeItem(item);
     }
   };
 
   const isAllSelected = computed(() => {
     return (
       dataList.value.length > 0 &&
-      dataList.value.every((item) => modelValue.value.includes(item.value))
+      dataList.value.every((item) => modelValue.value.find((el) => itemEquals(el, item)))
     );
   });
 
   const toggleSelectAll = (checked: boolean) => {
     if (checked) {
       dataList.value.forEach((item) => {
-        if (!modelValue.value.includes(item.value)) {
+        if (!modelValue.value.every((el) => itemEquals(el, item))) {
           modelValue.value.push(item.value);
-          cacheItems.value.push(item);
         }
       });
     } else {
-      dataList.value.forEach((item) => {
-        const index = modelValue.value.indexOf(item.value);
-        if (index !== -1) {
-          modelValue.value.splice(index, 1);
-          cacheItems.value = cacheItems.value.filter((v) => v.value !== item.value);
-        }
-      });
+      dataList.value.forEach((item) => removeItem(item));
     }
   };
 
   const removeItem = (item: SelectItem) => {
-    const index = modelValue.value.indexOf(item.value);
+    const index = modelValue.value.findIndex((el) => itemEquals(el, item));
     if (index !== -1) {
       modelValue.value.splice(index, 1);
-      cacheItems.value = cacheItems.value.filter((v) => v.value !== item.value);
     }
   };
 </script>

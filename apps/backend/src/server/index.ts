@@ -65,6 +65,7 @@ async function handleApi(
   if (typeof x_token_id !== 'string') {
     return Exit.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 x_token_id'));
   }
+
   const { db, user } = await getAuthFromCache(x_token_id);
   const apisRpc = createRPC('apiProvider', {
     genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
@@ -75,7 +76,7 @@ async function handleApi(
         apisRpc.RC(method, params).catch((e) => {
           throw new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
         }),
-      );
+      )
       if (Effect.isEffect(result)) {
         return yield* result;
       }

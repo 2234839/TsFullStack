@@ -57,7 +57,7 @@
   import { computed, provide, ref, useTemplateRef, watchEffect } from 'vue';
   import AutoColumn from './AutoColumn.vue';
   import { injectModelMetaKey, type DBmodelNames, type FieldInfo } from './type';
-  import { findIdField, getModelKey, useModelMeta } from './util';
+  import { findDisplayField, findIdField, getModelKey, useModelMeta } from './util';
   import { useI18n } from 'vue-i18n';
   import { useAPI } from '@/api';
   import AutoFilter from '@/components/AutoTable/AutoFilter.vue';
@@ -118,13 +118,15 @@
         (el) => (el as FieldInfo).isDataModel,
       );
       const include = dataModelFields.reduce((acc, field) => {
-        const modelName = field.isDataModel ? field.type : field.name;
-        const idField = findIdField(meta, modelName);
-        const modelKey = getModelKey(meta, modelName);
-        if (!idField || !modelKey) return acc;
+        const refModelName = field.isDataModel ? field.type : field.name;
+        const refIdField = findIdField(meta, refModelName)!;
+        const refModelKey = getModelKey(meta, refModelName)!;
+        const refDisplayField =findDisplayField(meta, refModelKey)  || refIdField;
+        if (!refIdField || !refModelKey) return acc;
         acc[field.name] = {
           select: {
-            [idField.name]: true,
+            [refIdField.name]: true,
+            [refDisplayField.name]: true,
           },
         };
         return acc;

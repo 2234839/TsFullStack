@@ -17,10 +17,13 @@
     modelValue: any[] | undefined;
   }>();
   const modelMeta = inject(injectModelMetaKey)!;
-
-  const modelValue = ref<any[]>([...(props.modelValue ?? [])]);
+  interface SelectItem {
+    value: any;
+    label: string;
+  }
+  const modelValue = ref<SelectItem[]>([...(props.modelValue ?? [])]);
   const emit = defineEmits<{
-    (e: 'selected', value: any[]): void;
+    (e: 'selected', value: SelectItem[]): void;
   }>();
   watchEffect(() => {
     emit('selected', [...modelValue.value]);
