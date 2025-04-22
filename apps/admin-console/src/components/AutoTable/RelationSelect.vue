@@ -11,6 +11,8 @@
   } from '@/components/AutoTable/type';
   import RemoteSelect from '@/components/base/RemoteSelect.vue';
   import { inject, ref, watchEffect } from 'vue';
+  import { useAPI } from '@/api';
+  import { findDisplayField, findIdField } from '@/components/AutoTable/util';
 
   const props = defineProps<{
     field: FieldInfo;
@@ -21,16 +23,35 @@
     value: any;
     label: string;
   }
-  const modelValue = ref<SelectItem[]>([...(props.modelValue ?? [])]);
   const emit = defineEmits<{
-    (e: 'selected', value: SelectItem[]): void;
+    (e: 'selected', value: any[]): void;
   }>();
+
+  //#region 显示列相关数据
+  const relatedModelName = props.field.type;
+  const relatedModelKey = Object.keys(modelMeta.models).find(
+    (key) => modelMeta?.models[key].name === relatedModelName,
+  ) as DBmodelNames;
+  const refIdField = findIdField(modelMeta, relatedModelName)!;
+  const displayField = findDisplayField(modelMeta, relatedModelKey) || refIdField;
+  //#endregion
+
+  const modelValue = ref<SelectItem[]>(
+    [...(props.modelValue ?? [])].map((el) => ({
+      label: el[displayField.name],
+      value: el[refIdField.name],
+    })),
+  );
   watchEffect(() => {
-    emit('selected', [...modelValue.value]);
+    emit(
+      'selected',
+      [...modelValue.value].map((el) => ({
+        [displayField.name]: el.label,
+        [refIdField.name]: el.value,
+      })),
+    );
   });
 
-  import { useAPI } from '@/api';
-  import { findIdField } from '@/components/AutoTable/util';
   const { API } = useAPI();
   async function loadRelationData(
     modelMeta: ModelMeta,
@@ -45,21 +66,6 @@
     };
     if (!field.isDataModel || !modelMeta) return initObj;
 
-    const relatedModelName = field.type;
-    const relatedModelKey = Object.keys(modelMeta.models).find(
-      (key) => modelMeta?.models[key].name === relatedModelName,
-    ) as DBmodelNames;
-
-    if (!relatedModelKey) return initObj;
-
-    const idField = findIdField(modelMeta, relatedModelName);
-    if (!idField) return initObj;
-
-    const displayField =
-      Object.values(modelMeta.models[relatedModelKey].fields).find(
-        (f: FieldInfo) => f.type === 'String' && !f.isId,
-      ) || idField;
-
     const where = search
       ? {
           [displayField.name]: {
@@ -73,7 +79,7 @@
       API.db[relatedModelKey].findMany({
         where,
         select: {
-          [idField.name]: true,
+          [refIdField.name]: true,
           [displayField.name]: true,
         },
         skip,
@@ -84,7 +90,7 @@
     return {
       list: list.map((record: any) => ({
         label: String(record[displayField.name]),
-        value: record[idField.name],
+        value: record[refIdField.name],
       })),
       count,
     };

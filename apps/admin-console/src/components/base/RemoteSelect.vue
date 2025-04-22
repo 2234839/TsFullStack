@@ -1,45 +1,43 @@
 <template>
-  <div>
-    <div @click="handleSearch($event)" class="flex gap-1">
-      <span>{{ $t('选择') }}</span>
-      <Tag
-        v-for="item of modelValue"
-        class="group"
-        :value="item?.label ?? item?.value"
-        severity="info"
-        rounded>
-        <template #icon>
-          <i
-            class="hidden! group-hover:block! pi pi-times ml-1 text-xs cursor-pointer"
-            @click.stop="removeItem(item)"></i>
-        </template>
-      </Tag>
-    </div>
-    <Popover ref="__op">
-      <InputText v-model="searchText" class="w-full" />
-      <div class="flex items-center p-2">
-        <Checkbox :model-value="isAllSelected" binary @update:model-value="toggleSelectAll" />
-        <span class="ml-2">{{ $t('全选') }}</span>
-      </div>
-      <div class="max-h-60 overflow-y-auto">
-        <div v-if="loading" class="p-4 text-center">{{ $t('加载中...') }}</div>
-        <div
-          v-else
-          v-for="item in dataList"
-          class="p-2 cursor-pointer flex items-center"
-          @click.capture.stop.prevent="handleSelect(item)">
-          <Checkbox :model-value="modelValue.includes(item.value)" binary />
-          <span class="ml-2">{{ item.label }}</span>
-        </div>
-      </div>
-      <Paginator
-        :first="pagination.skip"
-        :rows="pagination.take"
-        :totalRecords="pagination.total"
-        :loading="loading"
-        @page="handlePageChange" />
-    </Popover>
+  <div @click="handleSearch($event)" class="flex gap-1">
+    <span>{{ $t('选择') }}</span>
+    <Tag
+      v-for="item of modelValue"
+      class="group"
+      :value="item?.label ?? item?.value"
+      severity="info"
+      rounded>
+      <template #icon>
+        <i
+          class="hidden! group-hover:block! pi pi-times ml-1 text-xs cursor-pointer"
+          @click.stop="removeItem(item)"></i>
+      </template>
+    </Tag>
   </div>
+  <Popover ref="__op">
+    <InputText v-model="searchText" class="w-full" />
+    <div class="flex items-center p-2">
+      <Checkbox :model-value="isAllSelected" binary @update:model-value="toggleSelectAll" />
+      <span class="ml-2">{{ $t('全选') }}</span>
+    </div>
+    <div class="max-h-60 overflow-y-auto">
+      <div v-if="loading" class="p-4 text-center">{{ $t('加载中...') }}</div>
+      <div
+        v-else
+        v-for="item in dataList"
+        class="p-2 cursor-pointer flex items-center"
+        @click.capture.stop.prevent="handleSelect(item)">
+        <Checkbox :model-value="modelValue.some((el) => itemEquals(el, item))" binary />
+        <span class="ml-2">{{ item.label }}</span>
+      </div>
+    </div>
+    <Paginator
+      :first="pagination.skip"
+      :rows="pagination.take"
+      :totalRecords="pagination.total"
+      :loading="loading"
+      @page="handlePageChange" />
+  </Popover>
 </template>
 <script setup lang="ts">
   import { computed, ref, useTemplateRef } from 'vue';

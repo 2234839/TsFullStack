@@ -121,7 +121,7 @@
         const refModelName = field.isDataModel ? field.type : field.name;
         const refIdField = findIdField(meta, refModelName)!;
         const refModelKey = getModelKey(meta, refModelName)!;
-        const refDisplayField =findDisplayField(meta, refModelKey)  || refIdField;
+        const refDisplayField = findDisplayField(meta, refModelKey) || refIdField;
         if (!refIdField || !refModelKey) return acc;
         acc[field.name] = {
           select: {
@@ -194,7 +194,9 @@
 
         if (field.isDataModel) {
           editRow[editFieldName] = {
-            connect: editRow[editFieldName],
+            connect: editRow[editFieldName].map((item: any) => ({
+              [refIdField.name]: item[refIdField.name],
+            })),
             // 比较 rawRow 相对于 editRow 中减少的，然后使用 disconnect 断开关联
             disconnect:
               // @ts-ignore

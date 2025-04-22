@@ -18,7 +18,7 @@
       <InputNumber v-model="editValue" class="w-full min-w-28" inputClass="w-full" />
     </template>
     <template v-else-if="field.isDataModel">
-      <RelationSelect :field="field" :modelValue="dataModelProps" @selected="selectRelation" />
+      <RelationSelect :field="field" :modelValue="editValue" @selected="selectRelation" />
     </template>
     <template v-else>
       <span class="text-red-500 text-sm" v-tooltip.top="`Unsupported field type: ` + field.type">{{
@@ -29,13 +29,12 @@
   </div>
 </template>
 <script setup lang="ts">
+  import RelationSelect from '@/components/AutoTable/RelationSelect.vue';
+  import { onClickOutside } from '@vueuse/core';
   import { InputNumber, InputText } from 'primevue';
   import DatePicker from 'primevue/datepicker';
-  import { computed, inject, ref, useTemplateRef } from 'vue';
-  import { injectModelMetaKey, type FieldInfo } from './type';
-  import { onClickOutside } from '@vueuse/core';
-  import RelationSelect from '@/components/AutoTable/RelationSelect.vue';
-  import { findIdField } from '@/components/AutoTable/util';
+  import { computed, ref, useTemplateRef } from 'vue';
+  import { type FieldInfo } from './type';
 
   const props = defineProps<{
     field: FieldInfo;
@@ -59,18 +58,12 @@
 
   const editEl = useTemplateRef<HTMLElement>('__editEl');
   const editMode = defineModel<boolean>('editMode', { default: false });
-  const modelMeta = inject(injectModelMetaKey)!;
 
   //#region 关联关系的编辑映射
-  const dataModelProps = computed(() => {
-    const idField = findIdField(modelMeta, props.field.type)!;
-    return (Array.isArray(editValue.value) ? editValue.value : [editValue.value]).map(
-      (el) => el[idField.name],
-    );
-  });
+
   function selectRelation(list: /** 这里应是 id 类型的数组 */ any[]) {
-    const idField = findIdField(modelMeta, props.field.type)!;
-    editValue.value = list.map((el) => ({ [idField.name]: el }));
+    console.log('[selectRelation]', list);
+    editValue.value = list;
   }
   //#endregion
 
