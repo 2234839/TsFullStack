@@ -15,17 +15,21 @@ export const routeMap = {
   },
   admin: {
     path: '/admin',
-    component: () => import('./pages/admin/AdminLayout.vue'),
+    component: () => import('@/pages/admin/AdminLayout.vue'),
     child: {
       index: {
         path: '',
-        component: () => import('./pages/admin/index.vue'),
+        component: () => import('@/pages/admin/index.vue'),
+      },
+      studio: {
+        path: 'studio',
+        component: () => import('@/pages/admin/DataBaseStudio.vue'),
       },
     },
   },
   login: {
     path: '/login',
-    component: () => import('./pages/login.vue'),
+    component: () => import('@/pages/login.vue'),
   },
 } satisfies RouteTree;
 

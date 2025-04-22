@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@zenstackhq/runtime';
 import { Effect } from 'effect';
 import type { allowedMethods } from '../db';
-import { AuthService } from '../service';
+import { AuthService } from '../service/Auth';
 import { systemApis } from './systemApis';
 export const apis = {
   system: systemApis,

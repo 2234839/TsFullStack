@@ -5,13 +5,17 @@ import { Cause, Effect, Exit } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
+import { v7 as uuidv7 } from 'uuid';
 import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
 import { createRPC } from '../rpc';
-import { AuthService } from '../service';
+import { AuthService } from '../service/Auth';
+import type { ReqCtx } from '../service/ReqCtx';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
+import { systemLog } from '../service/SystemLog';
+import { LogLevel } from '@zenstackhq/runtime/models';
 
 // 统一错误序列化函数
 function handleError(error: unknown) {
@@ -56,6 +60,7 @@ async function parseParams(request: FastifyRequest): Promise<any[]> {
 async function handleApi(
   method: string,
   params: any[],
+  reqCtx: ReqCtx,
   request: FastifyRequest,
 ): Promise<Exit.Exit<unknown, unknown>> {
   let x_token_id = request.headers['x-token-id'];
@@ -67,6 +72,7 @@ async function handleApi(
   }
 
   const { db, user } = await getAuthFromCache(x_token_id);
+  reqCtx.user = user;
   const apisRpc = createRPC('apiProvider', {
     genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
   });
@@ -86,7 +92,11 @@ async function handleApi(
 }
 
 // 处理无需鉴权的 API
-async function handleAppApi(method: string, params: any[]): Promise<Exit.Exit<unknown, unknown>> {
+async function handleAppApi(
+  method: string,
+  params: any[],
+  reqCtx: ReqCtx,
+): Promise<Exit.Exit<unknown, unknown>> {
   const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
   return Effect.runPromiseExit(
     Effect.gen(function* () {
@@ -109,23 +119,30 @@ function createAPIHandler(
   handler: (
     method: string,
     params: any[],
+    reqCtx: ReqCtx,
     request: FastifyRequest,
   ) => Promise<Exit.Exit<unknown, unknown>>,
 ) {
   return async function apiHandler(request: FastifyRequest, reply: FastifyReply) {
     const startTime = Date.now();
+    const reqCtx = {
+      reqId: uuidv7(),
+      logs: [],
+      log(...args) {
+        this.logs.push(args);
+      },
+    } satisfies ReqCtx;
     const method = request.url.split('?')[0]?.slice(pathPrefix.length) ?? '';
 
     const p = Effect.gen(function* () {
       const params = yield* Effect.promise(() => parseParams(request));
       // 这里返回的就是一个  exit
-      return yield* Effect.promise(() => handler(method, params, request));
+      return yield* Effect.promise(() => handler(method, params, reqCtx, request));
     });
 
     // 这里会是嵌套 Exit 所以需要展开
     const exit = await Effect.runPromiseExit(p);
-    const exitFlatten = Exit.flatten(exit)
-
+    const exitFlatten = Exit.flatten(exit);
 
     const r = Exit.match(exitFlatten, {
       onSuccess: (result) => {
@@ -153,9 +170,10 @@ function createAPIHandler(
         return reply.send(superjson.serialize({ error: handleError(error) }));
       },
     });
-    const endTime = Date.now();
-    console.log(`call:[${endTime - startTime}ms]`, method);
 
+    const endTime = Date.now();
+    systemLog({ level: LogLevel.INFO,message:`call:[${endTime - startTime}ms] ${method}` }, reqCtx);
+    console.log(`call:[${endTime - startTime}ms]`, method);
     return r;
   };
 }
@@ -179,10 +197,7 @@ export async function startServer() {
 
   // 注册路由
   fastify.all('/api/*', createAPIHandler('/api/', handleApi));
-  fastify.all(
-    '/app-api/*',
-    createAPIHandler('/app-api/', (method, params) => handleAppApi(method, params)),
-  );
+  fastify.all('/app-api/*', createAPIHandler('/app-api/', handleAppApi));
 
   // 处理 SPA 路由回退
   fastify.setNotFoundHandler((request, reply) => {

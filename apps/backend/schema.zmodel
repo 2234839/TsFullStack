@@ -13,25 +13,29 @@ generator client {
 
 ///  https://zenstack.dev/docs/guides/multiple-schema#abstract-model-inheritance
 // 控制所有模型的通用鉴权策略
-abstract model Base1 {
+abstract model BaseAuth {
     /// 通过多对多的关系来实现用户角色的鉴权，允许管理员角色进行所有操作
     @@allow('all', auth().role?[name == 'admin'])
     /// 禁止未登录用户进行任何操作
     @@deny('all', !auth())
 }
 // 控制一些通用附加字段（模型本身不会再定义这些字段）
-abstract model BaseExtend1 extends Base1 {
+abstract model BaseTime extends BaseAuth {
     created DateTime @default(now())
     updated DateTime @updatedAt
     // 禁止修改创建时间
     @@deny('update', future().created != created)
 }
-// 控制一些可能会被重写的字段，
-abstract model Base extends BaseExtend1 {
+abstract model BaseId {
     id Int @id @default(autoincrement())
     // 禁止修改 id
     @@deny('update', future().id != id)
 }
+// 控制一些可能会被重写的字段，
+abstract model Base extends BaseTime, BaseId {
+}
+
+
 /// 角色
 model Role extends Base {
     name  String @unique
@@ -40,7 +44,7 @@ model Role extends Base {
 }
 
 /// User model
-model User extends BaseExtend1 {
+model User extends BaseTime {
     id          String        @id @default(cuid())
     // 禁止修改 id
     @@allow('update', future().id == id)
@@ -71,28 +75,11 @@ model UserSession extends Base {
     @@deny('all',expiresAt < now())
 }
 
-/// Post model
-model Post  extends Base {
-    title     String  @length(1, 256)
-    content   String
-    published Boolean @default(false)
-    author    User    @relation(fields: [authorId], references: [id])
-    authorId  String
-
-    // allow read for all signin users
-    @@allow('read', auth() != null && published)
-    // full access by author
-    @@allow('all', author == auth())
-}
-
-
 // 存储策略枚举
 enum StorageType {
     LOCAL
     S3
 }
-
-// 文件模型
 model File extends Base {
     filename    String      // 原始文件名
     mimetype    String      // 文件类型
@@ -105,4 +92,37 @@ model File extends Base {
     author      User        @relation(fields: [authorId], references: [id])
     authorId    String
     @@allow('read,create', auth() == author)
+}
+
+
+enum LogLevel {
+    DEBUG
+    INFO
+    WARN
+    ERROR
+}
+model SystemLog extends BaseId,BaseAuth {
+    reqId      String
+    level      LogLevel
+    message    String?
+    logs       Json?
+    authUserId String?
+    created    DateTime @default(now())
+}
+
+
+// ===== 下面是业务模型，与系统基础无关，可自行选择需要的模块删改 =====
+
+/// Post model
+model Post  extends Base {
+    title     String  @length(1, 256)
+    content   String
+    published Boolean @default(false)
+    author    User    @relation(fields: [authorId], references: [id])
+    authorId  String
+
+    // allow read for all signin users
+    @@allow('read', auth() != null && published)
+    // full access by author
+    @@allow('all', author == auth())
 }

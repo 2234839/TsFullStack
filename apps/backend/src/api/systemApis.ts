@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { ModelMeta } from '../db/model-meta';
-import { AuthService } from '../service';
+import { AuthService } from '../service/Auth';
 import { File as FileModel, StorageType } from '@zenstackhq/runtime/models';
 import { readFile, writeFile } from 'fs/promises';
 import { join } from 'path/posix';

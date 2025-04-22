@@ -225,13 +225,15 @@
   import { computed, ref } from 'vue';
   import avatarImageSrc from '/崮生.png?url';
   import I18nSwitch from '@/components/system/I18nSwitch.vue';
+  import { routeMap, router, routerUtil } from '@/router';
+  import type { RouteLocationRaw } from 'vue-router';
 
   // 定义类型
   interface MenuItem {
     key: string;
     label: string;
     icon: string;
-    to?: string;
+    to?: string | RouteLocationRaw;
     badge?: string;
     badgeSeverity?: string;
     expanded?: boolean;
@@ -268,55 +270,16 @@
       category: '主导航',
       items: [
         {
-          key: 'dashboard',
+          key: 'studio',
           label: '仪表盘',
           icon: 'pi pi-th-large',
-          to: '/admin/dashboard',
-          badge: '新',
+          to: routerUtil.to(routeMap.admin.child.studio, {}),
           badgeSeverity: 'info',
           expanded: false,
         },
       ],
     },
-    {
-      category: '内容管理',
-      items: [
-        {
-          key: 'content',
-          label: '内容管理',
-          icon: 'pi pi-file-edit',
-          expanded: false,
-          items: [
-            {
-              key: 'articles',
-              label: '文章管理',
-              icon: 'pi pi-file',
-              to: '/admin/articles',
-            },
-            {
-              key: 'categories',
-              label: '分类管理',
-              icon: 'pi pi-tags',
-              to: '/admin/categories',
-            },
-            {
-              key: 'comments',
-              label: '评论管理',
-              icon: 'pi pi-comments',
-              to: '/admin/comments',
-              badge: '12',
-              badgeSeverity: 'danger',
-            },
-          ],
-        },
-        {
-          key: 'media',
-          label: '媒体库',
-          icon: 'pi pi-images',
-          to: '/admin/media',
-        },
-      ],
-    },
+
     {
       category: '用户与权限',
       items: [
@@ -528,10 +491,12 @@
     return item.items || [];
   };
 
-  // 模拟路由导航
   const navigateTo = (item: MenuItem): void => {
-    console.log('导航到:', item.to);
-    // 实际项目中应该使用 router.push(item.to)
+    if (!item.to) {
+      return;
+    }
+    console.log('[item]',item);
+    router.push(item.to);
 
     // 关闭所有打开的Popover
     popovers.value.forEach((panel) => {
