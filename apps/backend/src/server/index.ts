@@ -11,7 +11,7 @@ import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service/Auth';
-import type { ReqCtx } from '../service/ReqCtx';
+import { ReqCtxService, type ReqCtx } from '../service/ReqCtx';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
 import { systemLog } from '../service/SystemLog';
@@ -109,7 +109,7 @@ async function handleAppApi(
         return yield* result;
       }
       return result;
-    }),
+    }).pipe(Effect.provideService(ReqCtxService, reqCtx)),
   );
 }
 
@@ -172,7 +172,10 @@ function createAPIHandler(
     });
 
     const endTime = Date.now();
-    systemLog({ level: LogLevel.INFO,message:`call:[${endTime - startTime}ms] ${method}` }, reqCtx);
+    systemLog(
+      { level: LogLevel.INFO, message: `call:[${endTime - startTime}ms] ${method}` },
+      reqCtx,
+    );
     console.log(`call:[${endTime - startTime}ms]`, method);
     return r;
   };

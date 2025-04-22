@@ -219,14 +219,14 @@
 </template>
 
 <script setup lang="ts">
-  import ThemeSwitch from '@/components/system/ThemeToggle.vue';
-  import { authInfo_logout } from '@/storage';
-  import { Popover, InputText, Button, Badge, Avatar, Menu } from 'primevue';
-  import { computed, ref } from 'vue';
-  import avatarImageSrc from '/崮生.png?url';
   import I18nSwitch from '@/components/system/I18nSwitch.vue';
+  import ThemeSwitch from '@/components/system/ThemeToggle.vue';
   import { routeMap, router, routerUtil } from '@/router';
+  import { authInfo_logout } from '@/storage';
+  import { Avatar, Badge, Button, InputText, Popover } from 'primevue';
+  import { computed, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
+  import avatarImageSrc from '/崮生.png?url';
 
   // 定义类型
   interface MenuItem {
@@ -495,7 +495,7 @@
     if (!item.to) {
       return;
     }
-    console.log('[item]',item);
+    console.log('[item]', item);
     router.push(item.to);
 
     // 关闭所有打开的Popover
