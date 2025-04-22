@@ -44,3 +44,7 @@ watchEffect(() => {
 });
 
 //#endregion 主题功能
+
+//#region i18n
+export const i18nStore = useStorage<'zh-CN' | 'en'>('i18nStore', null);
+//#endregion

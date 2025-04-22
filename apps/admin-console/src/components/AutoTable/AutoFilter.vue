@@ -73,7 +73,7 @@
     <div
       v-if="filters.length === 0"
       class="py-4 text-center text-gray-500 dark:text-gray-400 text-sm">
-      {{ t('点击"添加筛选条件"按钮开始筛选数据') }}
+      {{ t('点击“添加筛选条件”按钮开始筛选数据') }}
     </div>
   </div>
 </template>

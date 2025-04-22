@@ -199,13 +199,7 @@
             class="p-button-rounded p-button-text p-button-plain"
             v-tooltip.right="'设置'" />
           <ThemeSwitch v-tooltip.right="'主题切换'" />
-          <div class="relative">
-            <Button
-              icon="pi pi-bell"
-              class="p-button-rounded p-button-text p-button-plain"
-              v-tooltip.right="'通知'" />
-            <Badge value="5" severity="danger" class="absolute -top-1 -right-1 scale-75"></Badge>
-          </div>
+          <I18nSwitch />
           <Button
             icon="pi pi-power-off"
             class="p-button-rounded p-button-text p-button-plain"
@@ -225,11 +219,13 @@
 </template>
 
 <script setup lang="ts">
-  import ThemeSwitch from '@/components/ThemeToggle.vue';
+  import ThemeSwitch from '@/components/system/ThemeToggle.vue';
   import { authInfo_logout } from '@/storage';
-  import { Popover, InputText, Button, Badge, Avatar } from 'primevue';
+  import { Popover, InputText, Button, Badge, Avatar, Menu } from 'primevue';
   import { computed, ref } from 'vue';
   import avatarImageSrc from '/崮生.png?url';
+  import I18nSwitch from '@/components/system/I18nSwitch.vue';
+
   // 定义类型
   interface MenuItem {
     key: string;

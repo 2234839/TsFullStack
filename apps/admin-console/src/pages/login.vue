@@ -263,7 +263,7 @@
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
-  import ThemeSwitcher from '@/components/ThemeToggle.vue';
+  import ThemeSwitcher from '@/components/system/ThemeToggle.vue';
   import { routeMap, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin, theme_isDark } from '@/storage';
   import { useEventListener } from '@vueuse/core';

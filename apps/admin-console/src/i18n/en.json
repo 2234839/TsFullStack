@@ -40,5 +40,7 @@
   "加载关联数据失败": "Failed to load associated data",
   "选择": "choose",
   "全选": "Select All",
-  "无数据": "No data"
+  "无数据": "No data",
+  "切换语言": "Switch language",
+  "点击“添加筛选条件”按钮开始筛选数据": "Click the \"Add Filter Condition\" button to start filtering data."
 }

@@ -2,7 +2,7 @@ import '@/style.css';
 import { createApp } from 'vue';
 /** https://primevue.org/icons/ */
 import App from '@/BaseLayout.vue';
-import { i18n } from '@/i18n';
+import { i18n, initI18n } from '@/i18n';
 import { router } from '@/router';
 import { theme_darkModeClass } from '@/storage';
 import 'primeicons/primeicons.css';
@@ -13,7 +13,10 @@ import Tooltip from 'primevue/tooltip';
 
 const app = createApp(App);
 app.directive('tooltip', Tooltip);
+
 app.use(i18n);
+initI18n();
+
 app.use(PrimeVue, {
   theme: {
     preset: Noir,
@@ -25,4 +28,6 @@ app.use(PrimeVue, {
 app.use(ToastService);
 app.use(ConfirmationService);
 app.use(router);
+
+
 app.mount('#app');
