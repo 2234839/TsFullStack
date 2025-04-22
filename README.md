@@ -22,3 +22,4 @@
 - 管理端
   - 技术栈：ts + vue3 + tailwindcss + primevue 组件库
   - 具有类 prisma studio 的管理面板（一定程度上可以作为他的开源替代方案），不再需要写千篇一律的 CRUD 页面。
+  - i18n 国际化支持，支持多语言。

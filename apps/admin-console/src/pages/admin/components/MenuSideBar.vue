@@ -221,14 +221,13 @@
 <script setup lang="ts">
   import I18nSwitch from '@/components/system/I18nSwitch.vue';
   import ThemeSwitch from '@/components/system/ThemeToggle.vue';
+  import { useComputedI18n } from '@/i18n';
   import { routeMap, router, routerUtil } from '@/router';
   import { authInfo_logout } from '@/storage';
   import { Avatar, Badge, Button, InputText, Popover } from 'primevue';
   import { computed, reactive, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
   import avatarImageSrc from '/崮生.png?url';
-  import { useI18n } from 'vue-i18n';
-  import { useComputedI18n } from '@/i18n';
 
   // 定义类型
   interface MenuItem {

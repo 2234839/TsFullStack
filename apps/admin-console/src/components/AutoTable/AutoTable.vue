@@ -44,12 +44,16 @@
       </template>
     </Column>
     <template #footer>
-      <Paginator
-        v-model:rows="pageSize"
-        :totalRecords="tableData.state.value.count"
-        v-model:first="firstRecord"
-        @page="onPageChange"
-        :rowsPerPageOptions="[10, 20, 30]" />
+      <div class="flex justify-center gap-1 items-center">
+        <Paginator
+          v-model:rows="pageSize"
+          :totalRecords="tableData.state.value.count"
+          v-model:first="firstRecord"
+          @page="onPageChange"
+          template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink "
+          :rowsPerPageOptions="[10, 20, 30]" />
+        {{ t('总计') }}：{{ tableData.state.value.count }} {{ t('行') }}
+      </div>
     </template>
   </DataTable>
   <AutoForm
