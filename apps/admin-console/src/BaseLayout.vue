@@ -46,5 +46,9 @@
   <ConfirmPopup />
 </template>
 <script setup lang="ts">
-  import { Toast, ConfirmPopup } from 'primevue';
+  import { setApiTempToast } from '@/api';
+  import { ConfirmPopup, Toast, useToast } from 'primevue';
+
+  const toast = useToast();
+  setApiTempToast(toast); // 设置全局 toast 实例
 </script>
