@@ -1,35 +1,39 @@
 <template>
-  <div
-    @click="handleSearch($event)"
-    class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-[40px] shadow-sm">
-    <span class="bg-blue-300 drak:bg-blue-700 rounded-sm px-1 text-white">{{ $t('选择') }}</span>
-    <div class="flex flex-wrap gap-1">
-      <Tag
-        v-for="item of modelValue"
-        class="group transition-all"
-        :value="item?.label ?? item?.value"
-        severity="info"
-        rounded>
-        <template #icon>
-          <i
-            :class="[
-              'pi',
-              'pi-times',
-              'ml-1',
-              'text-xs',
-              'cursor-pointer',
-              'hover:text-red-500',
-              { 'hidden!': !isTagHovered(item) },
-            ]"
-            @mouseover="setTagHovered(item, true)"
-            @mouseleave="setTagHovered(item, false)"
-            @click.stop="removeItem(item)"></i>
-        </template>
-      </Tag>
-    </div>
-    <i class="pi pi-chevron-down ml-auto text-gray-500"></i>
-  </div>
-  <Popover ref="__op" class="p-0 shadow-lg rounded-md overflow-hidden">
+  <SmartPopover placement="top">
+    <template #trigger>
+      <div
+        @click="handleSearch()"
+        class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-[40px]">
+        <span class="bg-blue-300 drak:bg-blue-700 rounded-sm px-1 text-white">{{
+          $t('选择')
+        }}</span>
+        <div class="flex flex-wrap gap-1">
+          <Tag
+            v-for="item of modelValue"
+            class="group transition-all"
+            :value="item?.label ?? item?.value"
+            severity="info"
+            rounded>
+            <template #icon>
+              <i
+                :class="[
+                  'pi',
+                  'pi-times',
+                  'ml-1',
+                  'text-xs',
+                  'cursor-pointer',
+                  'hover:text-red-500',
+                  { 'hidden!': !isTagHovered(item) },
+                ]"
+                @mouseover="setTagHovered(item, true)"
+                @mouseleave="setTagHovered(item, false)"
+                @click.stop="removeItem(item)"></i>
+            </template>
+          </Tag>
+        </div>
+        <i class="pi pi-chevron-down ml-auto text-gray-500"></i>
+      </div>
+    </template>
     <div class="p-3">
       <InputText
         v-model="searchText"
@@ -69,11 +73,12 @@
         :loading="loading"
         @page="handlePageChange" />
     </div>
-  </Popover>
+  </SmartPopover>
 </template>
 <script setup lang="ts">
-  import { computed, ref, useTemplateRef } from 'vue';
-  import { InputText, Checkbox, Paginator, Popover, type PageState, Tag } from 'primevue';
+  import SmartPopover from './SmartPopover.vue';
+  import { Checkbox, InputText, Paginator, Tag, type PageState } from 'primevue';
+  import { computed, ref } from 'vue';
 
   interface SelectItem {
     value: any;
@@ -95,7 +100,6 @@
   const modelValue = defineModel<SelectItem[]>({
     required: true,
   });
-  const op = useTemplateRef('__op');
   const searchText = ref('');
   const loading = ref(false);
   const dataList = ref<SelectItem[]>([]);
@@ -117,9 +121,8 @@
     }, 300);
   };
 
-  const handleSearch = async (event: MouseEvent) => {
+  const handleSearch = async () => {
     pagination.value.skip = 0;
-    op.value?.toggle(event);
     await fetchData();
   };
 

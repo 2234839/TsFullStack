@@ -39,5 +39,6 @@
   "成功": "success",
   "加载关联数据失败": "Failed to load associated data",
   "选择": "choose",
-  "全选": "Select All"
+  "全选": "Select All",
+  "无数据": "No data"
 }
