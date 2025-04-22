@@ -1,7 +1,7 @@
 <style scoped></style>
 <template>
   <div>
-    <div class="flex gap-1">
+    <div v-if="hideSwitch !== 'true'" class="flex gap-1">
       <SelectButton
         v-model="selectModelName"
         :options="Object.values(modelMeta.state.value?.models ?? {}).map((el) => el.name)" />
@@ -22,5 +22,9 @@
 
   const modelMeta = await useModelMeta();
 
-  const selectModelName = ref<string>('User');
+  const props = defineProps<{
+    hideSwitch?: 'true' | 'false';
+    modelName?: string;
+  }>();
+  const selectModelName = ref<string>(props.modelName ?? 'User');
 </script>

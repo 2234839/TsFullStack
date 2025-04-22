@@ -293,13 +293,11 @@
               key: 'user-list',
               label: '用户列表',
               icon: 'pi pi-list',
-              to: '/admin/users',
-            },
-            {
-              key: 'user-groups',
-              label: '用户组',
-              icon: 'pi pi-sitemap',
-              to: '/admin/user-groups',
+              to: routerUtil.to(
+                routeMap.admin.child.studio,
+                {},
+                { hideSwitch: 'true', modelName: 'User' },
+              ),
             },
           ],
         },
@@ -307,60 +305,11 @@
           key: 'roles',
           label: '角色权限',
           icon: 'pi pi-shield',
-          to: '/admin/roles',
-        },
-      ],
-    },
-    {
-      category: '电子商务',
-      items: [
-        {
-          key: 'products',
-          label: '产品管理',
-          icon: 'pi pi-shopping-bag',
-          expanded: false,
-          items: [
-            {
-              key: 'product-list',
-              label: '产品列表',
-              icon: 'pi pi-list',
-              to: '/admin/products',
-            },
-            {
-              key: 'product-categories',
-              label: '产品分类',
-              icon: 'pi pi-tags',
-              to: '/admin/product-categories',
-            },
-            {
-              key: 'inventory',
-              label: '库存管理',
-              icon: 'pi pi-box',
-              to: '/admin/inventory',
-            },
-          ],
-        },
-        {
-          key: 'orders',
-          label: '订单管理',
-          icon: 'pi pi-shopping-cart',
-          badge: '25',
-          badgeSeverity: 'warning',
-          expanded: false,
-          items: [
-            {
-              key: 'order-list',
-              label: '订单列表',
-              icon: 'pi pi-list',
-              to: '/admin/orders',
-            },
-            {
-              key: 'shipments',
-              label: '发货管理',
-              icon: 'pi pi-send',
-              to: '/admin/shipments',
-            },
-          ],
+          to: routerUtil.to(
+            routeMap.admin.child.studio,
+            {},
+            { hideSwitch: 'true', modelName: 'Role' },
+          ),
         },
       ],
     },
@@ -372,32 +321,13 @@
           label: '系统设置',
           icon: 'pi pi-cog',
           expanded: false,
-          items: [
-            {
-              key: 'general',
-              label: '常规设置',
-              icon: 'pi pi-sliders-h',
-              to: '/admin/settings/general',
-            },
-            {
-              key: 'appearance',
-              label: '外观设置',
-              icon: 'pi pi-palette',
-              to: '/admin/settings/appearance',
-            },
-            {
-              key: 'security',
-              label: '安全设置',
-              icon: 'pi pi-lock',
-              to: '/admin/settings/security',
-            },
-          ],
+          items: [],
         },
         {
           key: 'logs',
           label: '系统日志',
           icon: 'pi pi-list',
-          to: '/admin/logs',
+          to: routerUtil.to(routeMap.admin.child.systemLog, {}),
         },
       ],
     },
@@ -495,7 +425,6 @@
     if (!item.to) {
       return;
     }
-    console.log('[item]', item);
     router.push(item.to);
 
     // 关闭所有打开的Popover

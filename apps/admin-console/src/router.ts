@@ -25,6 +25,10 @@ export const routeMap = {
         path: 'studio',
         component: () => import('@/pages/admin/DataBaseStudio.vue'),
       },
+      systemLog: {
+        path: 'systemLog',
+        component: () => import('@/pages/admin/SystemLog.vue'),
+      },
     },
   },
   login: {
@@ -48,6 +52,10 @@ function transformRoutes(tree?: RouteTree): RouteRecordRaw[] {
     if (route.name === undefined) {
       route.name = `route-${routeNameId++}`;
     }
+    if (route.props === undefined) {
+      route.props = (route) => ({ ...route.query });
+    }
+
     return {
       ...route,
       children: route.child ? transformRoutes(route.child) : [],

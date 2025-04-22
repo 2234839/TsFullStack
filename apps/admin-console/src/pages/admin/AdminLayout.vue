@@ -6,7 +6,7 @@
     <!-- 主内容区域 - 占据剩余宽度并添加滚动 -->
     <div class="flex-1 overflow-hidden">
       <div class="h-full w-full overflow-auto">
-        <RouterView />
+        <RouterView :key="$route.fullPath" />
       </div>
     </div>
   </div>
