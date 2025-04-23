@@ -1,6 +1,6 @@
 <style scoped></style>
 <template>
-  <div>
+  <div class="p-2">
     <div v-if="hideSwitch !== 'true'" class="flex gap-1">
       <SelectButton
         v-model="selectModelName"

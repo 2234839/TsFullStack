@@ -1,9 +1,7 @@
 <style scoped></style>
 <template>
-  <div>
-    <AutoTable v-bind:model-name="'SystemLog'" />
-  </div>
+  <DataBaseStudio :model-name="'SystemLog'" :hide-switch="'true'" />
 </template>
 <script setup lang="ts">
-  import AutoTable from '@/components/AutoTable/AutoTable.vue';
+  import DataBaseStudio from '@/pages/admin/DataBaseStudio.vue';
 </script>
