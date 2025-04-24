@@ -76,19 +76,20 @@ async function handleApi(
   const apisRpc = createRPC('apiProvider', {
     genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
   });
-  return Effect.runPromiseExit(
-    Effect.gen(function* () {
-      const result = yield* Effect.promise(() =>
-        apisRpc.RC(method, params).catch((e) => {
-          throw new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
-        }),
-      );
-      if (Effect.isEffect(result)) {
-        return yield* result;
-      }
-      return result;
-    }).pipe(Effect.provideService(AuthService, { x_token_id, db, user })),
+  const p = Effect.gen(function* () {
+    const result = yield* Effect.promise(() =>
+      apisRpc.RC(method, params).catch((e) => {
+        throw new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
+      }),
+    );
+    if (Effect.isEffect(result)) {
+      return yield* result;
+    }
+    return result;
+  }).pipe(
+    Effect.provideService(AuthService, { x_token_id, db, user })
   );
+  return Effect.runPromiseExit(p);
 }
 
 // 处理无需鉴权的 API
