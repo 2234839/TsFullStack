@@ -1,28 +1,31 @@
-# 后端
+# TsFullStack
 
-## 修改数据模型
-修改 shcema.zmodel 文件
-然后运行以下命令
-```bash
+[中文文档](./README-zh.md)
 
-# 这个命令将会自动运行 prisma generate (生成 prisma/client 代码)
-pnpm zenstack generate
-# 迁移数据库为修改后的模型
-pnpm prisma migrate dev
+---
 
-```
-pnpm zenstack repl
-<!-- 将应用部署到集成环境 -->
-pnpm prisma migrate deploy
+This is my TypeScript full-stack best practices project.
 
-pnpm prisma studio
-<!-- 不知道为什么我现在无法打开这个 -->
+> I'm done with traditional admin pages. I never want to write them again.
 
-pnpm tsup && node dist/test.js
+[Live Demo](http://tsfullstack.heartstack.space/)
 
-## 注意
+[Documentation](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 
-编译发布
-pnpm --filter tsfullstack-backend build:publish
+## Features
 
-无法使用 tsx 直接运行 zenstack，需要 ts-node 或者 tsup 编译后运行 js
+- Backend
+
+  - Tech Stack: TypeScript + Prisma + ZenStack + Effect + Fastify
+  - ZenStack (Prisma enhancement) for database modeling and Row Level Security.
+
+- Bridge Layer
+
+  - Tech Stack: TypeScript + Superjson + Custom RPC Library
+  - Frontend can directly call backend APIs with full TypeScript type hints, eliminating middleware code.
+  - Superjson supports complex object serialization (Date, Map, Set, RegExp, etc.), ensuring seamless Prisma parameter/result transfer.
+
+- Admin Interface
+  - Tech Stack: TypeScript + Vue3 + TailwindCSS + PrimeVue Component Library
+  - Prisma Studio-like admin panel (partially open-source alternative), eliminating repetitive CRUD pages.
+  - i18n internationalization support for multiple languages.
