@@ -1,3 +1,6 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
+@layer utilities {
+}
 @custom-variant dark (&:where(.app-dark, .app-dark *));
+@config '../tailwind.config.ts';

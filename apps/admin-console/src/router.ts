@@ -5,39 +5,78 @@ import {
   type Router,
   type RouteRecordRaw,
 } from 'vue-router';
+import type { RouteMetaTabs } from './pages/admin/stores/tabsStore';
+import { t } from './i18n';
+import { computed, reactive } from 'vue';
 /** path 为 "" 的子路由会自动渲染在父路由中 */
 export const defaultRoute = '';
 
-export const routeMap = {
+export const routeMap = reactive({
   index: {
     path: '/',
     redirect: '/admin',
+    meta: {
+      title: '首页',
+      hidden: true,
+    },
   },
   admin: {
     path: '/admin',
     component: () => import('@/pages/admin/AdminLayout.vue'),
+    meta: {
+      title: '管理后台',
+      icon: 'pi pi-cog',
+    },
     child: {
       index: {
         path: '',
         component: () => import('@/pages/admin/index.vue'),
+        meta: {
+          title: '仪表盘',
+          icon: 'pi pi-home',
+        },
       },
       studio: {
         path: 'studio',
+        meta: {
+          title: computed(() => t('数据工作室')),
+          icon: 'pi pi-desktop',
+          keepAlive: true,
+        },
         component: () => import('@/pages/admin/DataBaseStudio.vue'),
       },
       systemLog: {
         path: 'systemLog',
         component: () => import('@/pages/admin/SystemLog.vue'),
+        meta: {
+          title: '系统日志',
+          icon: 'pi pi-file',
+        },
       },
     },
   },
   login: {
     path: '/login',
     component: () => import('@/pages/login.vue'),
+    meta: {
+      title: '登录',
+      hidden: true,
+    },
   },
-} satisfies RouteTree;
+  redirect: {
+    path: '/redirect',
+    component: () => import('@/pages/Redirect.vue'),
+    meta: {
+      title: '重定向',
+      hidden: true,
+    },
+  },
+}) satisfies RouteTree;
 
-type RouteNode = RouteRecordRaw & { child?: RouteTree };
+type RouteNode = RouteRecordRaw & {
+  child?: RouteTree;
+  meta?: RouteMetaTabs;
+};
 type RouteTree = {
   [key: string]: RouteNode;
 };
@@ -46,7 +85,7 @@ let routeNameId = 0;
 /** 将树形结构转换为 RouteRecordRaw[] 数组结构，便于路由注册使用
  * 会自动为路由添加 name 属性，如果路由没有 name 属性，会自动生成一个唯一的 name 属性
  */
-function transformRoutes(tree?: RouteTree): RouteRecordRaw[] {
+function transformRoutes(tree?: RouteTree): RouteNode[] {
   if (tree === undefined) return [];
   return Object.entries(tree).map(([_, route]) => {
     if (route.name === undefined) {
@@ -63,10 +102,23 @@ function transformRoutes(tree?: RouteTree): RouteRecordRaw[] {
   });
 }
 
-const routes: RouteRecordRaw[] = transformRoutes(routeMap);
+export const allRoutes: RouteNode[] = transformRoutes(routeMap);
+export function findRouteNode(
+  routes: RouteNode[],
+  predicate: (node: RouteNode) => boolean,
+): RouteNode | undefined {
+  for (const route of routes) {
+    if (predicate(route)) return route;
+    if (route.children) {
+      const found = findRouteNode(route.children, predicate);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
 export const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes: allRoutes,
 });
 
 export type RouteObjProps<T extends { component?: ((...args: any) => any) | null | undefined }> =

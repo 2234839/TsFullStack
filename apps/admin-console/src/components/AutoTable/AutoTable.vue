@@ -50,7 +50,6 @@
           :totalRecords="tableData.state.value.count"
           v-model:first="firstRecord"
           @page="onPageChange"
-          template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink "
           :rowsPerPageOptions="[10, 20, 30]" />
         {{ t('总计') }}：{{ tableData.state.value.count }} {{ t('行') }}
       </div>
