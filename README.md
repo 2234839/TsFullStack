@@ -1,32 +1,32 @@
-# TsFullStack
+# TsFullStack  
 
-[English Document](./README.md) [中文文档](./README_zh.md)
+[English Document](./README.md) [中文文档](./README_zh.md)  
 
----
+---  
 
-This is my best practice project for ts full-stack.
+This is my TypeScript full-stack best practices project.  
 
-> I'm really fed up with traditional management end pages, I no longer want to write them.
+> I'm truly fed up with traditional admin pages—I never want to write them again.  
 
-[Online Experience](http://tsfullstack.heartstack.space/)
+[Live Demo](http://tsfullstack.heartstack.space/)  
 
-https://deepwiki.com/2234839/TsFullStack
+https://deepwiki.com/2234839/TsFullStack  
 
-[Document Address](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
+[Documentation](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)  
 
-## Features
+## Features  
 
-- Backend
-  - Technology Stack: ts + prisma + zenstack + Effect + fastify
-  - zenstack (an enhanced solution based on prisma) for database modeling and Row Level Security.
+- **Backend**  
+  - Tech Stack: TypeScript + Prisma + ZenStack + Effect + Fastify  
+  - ZenStack (an enhanced solution based on Prisma) for database modeling and Row Level Security.  
 
-- Bridge
-  - Technology Stack: ts + superjson + self-developed RPC library
-  - The frontend can directly call the backend API with complete ts type hints, without the need to write intermediate layer code.
-  - superjson supports complex object serialization and deserialization, such as Date, Map, Set, RegExp..., ensuring that prisma's input parameters and return results can be seamlessly passed.
+- **Bridge Layer**  
+  - Tech Stack: TypeScript + SuperJSON + Custom RPC Library  
+  - Frontend can directly call backend APIs with full TypeScript type hints, eliminating the need for intermediate layer code.  
+  - SuperJSON supports serialization and deserialization of complex objects (e.g., Date, Map, Set, RegExp...), ensuring seamless transfer of Prisma inputs and outputs.  
 
-- Management End
-  - Technology Stack: ts + vue3 + tailwindcss + primevue component library
-  - A management panel similar to prisma studio (to some extent, it can be used as an open-source alternative), no longer needing to write the same old CRUD pages.
-  - Perfect i18n internationalization support, ensuring that every detail supports multi-language dynamic switching without reloading the page.
-  - Light/dark theme switching, components and tailwindcss support dynamic switching synchronously.
+- **Admin Interface**  
+  - Tech Stack: TypeScript + Vue 3 + TailwindCSS + PrimeVue Component Library  
+  - Features a Prisma Studio-like admin panel (to some extent serving as an open-source alternative), eliminating the need for repetitive CRUD pages.  
+  - Comprehensive i18n internationalization support, ensuring every detail supports dynamic multi-language switching without page reloads.  
+  - Light/dark theme switching, with components and TailwindCSS dynamically adapting in sync.
