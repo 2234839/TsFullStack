@@ -1,6 +1,6 @@
 # TsFullStack
 
-[English Document](./README.md)
+[English Document](./README.md) [中文文档](./README_zh.md)
 
 ---
 
@@ -9,6 +9,8 @@
 > 对于传统管理端页面我真的受够了，我再也不想写了。
 
 [在线体验](http://tsfullstack.heartstack.space/)
+
+https://deepwiki.com/2234839/TsFullStack
 
 [文档地址](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 

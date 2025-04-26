@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "translate-md": "mcp_agent_ts-translate-md translate -i README_zh.md -o README.md -l \"English\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

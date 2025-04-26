@@ -1,31 +1,32 @@
 # TsFullStack
 
-[中文文档](./README-zh.md)
+[English Document](./README.md) [中文文档](./README_zh.md)
 
 ---
 
-This is my TypeScript full-stack best practices project.
+This is my best practice project for ts full-stack.
 
-> I'm done with traditional admin pages. I never want to write them again.
+> I'm really fed up with traditional management end pages, I no longer want to write them.
 
-[Live Demo](http://tsfullstack.heartstack.space/)
+[Online Experience](http://tsfullstack.heartstack.space/)
 
-[Documentation](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
+https://deepwiki.com/2234839/TsFullStack
+
+[Document Address](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 
 ## Features
 
 - Backend
+  - Technology Stack: ts + prisma + zenstack + Effect + fastify
+  - zenstack (an enhanced solution based on prisma) for database modeling and Row Level Security.
 
-  - Tech Stack: TypeScript + Prisma + ZenStack + Effect + Fastify
-  - ZenStack (Prisma enhancement) for database modeling and Row Level Security.
+- Bridge
+  - Technology Stack: ts + superjson + self-developed RPC library
+  - The frontend can directly call the backend API with complete ts type hints, without the need to write intermediate layer code.
+  - superjson supports complex object serialization and deserialization, such as Date, Map, Set, RegExp..., ensuring that prisma's input parameters and return results can be seamlessly passed.
 
-- Bridge Layer
-
-  - Tech Stack: TypeScript + Superjson + Custom RPC Library
-  - Frontend can directly call backend APIs with full TypeScript type hints, eliminating middleware code.
-  - Superjson supports complex object serialization (Date, Map, Set, RegExp, etc.), ensuring seamless Prisma parameter/result transfer.
-
-- Admin Interface
-  - Tech Stack: TypeScript + Vue3 + TailwindCSS + PrimeVue Component Library
-  - Prisma Studio-like admin panel (partially open-source alternative), eliminating repetitive CRUD pages.
-  - i18n internationalization support for multiple languages.
+- Management End
+  - Technology Stack: ts + vue3 + tailwindcss + primevue component library
+  - A management panel similar to prisma studio (to some extent, it can be used as an open-source alternative), no longer needing to write the same old CRUD pages.
+  - Perfect i18n internationalization support, ensuring that every detail supports multi-language dynamic switching without reloading the page.
+  - Light/dark theme switching, components and tailwindcss support dynamic switching synchronously.
