@@ -33,6 +33,7 @@
 
 <script setup lang="ts">
   import { useTabsStore, type TabItem } from '@/pages/admin/stores/tabsStore';
+  import { routeMap, routerUtil } from '@/router';
   import { ContextMenu } from 'primevue';
   import { computed, ref, useTemplateRef, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
@@ -94,10 +95,13 @@
   const handleRefresh = () => {
     const { fullPath } = currentContextTab.value || {};
     if (fullPath) {
-      router.replace({
-        path: '/redirect',
-        query: { path: fullPath },
-      });
+      routerUtil.replace(
+        routeMap.redirect,
+        {},
+        {
+          path: fullPath,
+        },
+      );
     }
   };
 

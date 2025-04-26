@@ -8,7 +8,9 @@ export interface RouteMetaTabs {
   title?: string;
   keepAlive?: boolean;
   /** 固定标签无法关闭 */
-  fixed?: boolean; // 固定标签无法关闭
+  fixed?: boolean;
+  /** 隐藏标签页 */
+  hideTab?: boolean;
 }
 /** 用于多页签的控制 */
 export interface TabItem extends RouteMetaTabs {

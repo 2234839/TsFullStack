@@ -62,7 +62,7 @@ export const routeMap = reactive({
     component: () => import('@/pages/login.vue'),
     meta: {
       title: t('登录'),
-      hidden: true,
+      hideTab: true,
     },
   },
   redirect: {
@@ -70,7 +70,7 @@ export const routeMap = reactive({
     component: () => import('@/pages/Redirect.vue'),
     meta: {
       title: t('重定向'),
-      hidden: true,
+      hideTab: true,
     },
   },
 }) satisfies RouteTree;
@@ -150,6 +150,14 @@ export function createRouteUtil(router: Router) {
     ) {
       const targetRouter = getTargetRouter(obj);
       router.push({ name: targetRouter.name, params: props, query: query });
+    },
+    replace<T extends RouteNode>(
+      obj: T,
+      props: T extends { component: any } ? RouteObjProps<T> : undefined,
+      query?: T extends { component: any } ? Partial<RouteObjProps<T>> : undefined,
+    ) {
+      const targetRouter = getTargetRouter(obj);
+      router.replace({ name: targetRouter.name, params: props, query: query });
     },
     to<T extends RouteNode>(
       obj: T,
