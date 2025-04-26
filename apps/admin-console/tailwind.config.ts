@@ -23,7 +23,7 @@ export default {
   // 手动切换深色模式  https://tailwindcss.com/docs/dark-mode#toggling-dark-mode-manually
   darkMode: 'selector',
   plugins: [
-    plugin(({ addComponents, theme }) => {
+    plugin(({ addComponents }) => {
       return addComponents({
         '.no-tailwind-reset': {
           all: 'revert',

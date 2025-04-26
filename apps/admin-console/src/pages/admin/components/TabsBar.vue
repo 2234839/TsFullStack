@@ -34,7 +34,7 @@
 <script setup lang="ts">
   import { useTabsStore, type TabItem } from '@/pages/admin/stores/tabsStore';
   import { ContextMenu } from 'primevue';
-  import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+  import { computed, ref, useTemplateRef, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
 
   const router = useRouter();
