@@ -56,5 +56,10 @@
   "总计": "total",
   "行": "row",
   "重定向中": "Redirecting",
-  "数据工作室": "Data Studio"
+  "数据工作室": "Data Studio",
+  "首页": "Home",
+  "管理后台": "Management Backend",
+  "仪表盘": "Dashboard",
+  "登录": "Login",
+  "重定向": "redirect"
 }

@@ -32,12 +32,10 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted, watch, useTemplateRef } from 'vue';
-  import { useRouter, useRoute } from 'vue-router';
   import { useTabsStore, type TabItem } from '@/pages/admin/stores/tabsStore';
   import { ContextMenu } from 'primevue';
-  import { routeMap } from '@/router';
-  import { t } from '@/i18n';
+  import { computed, onMounted, onUnmounted, ref, useTemplateRef, watch } from 'vue';
+  import { useRoute, useRouter } from 'vue-router';
 
   const router = useRouter();
   const route = useRoute();
@@ -112,16 +110,6 @@
   const handleCloseAllTabs = () => {
     tabsStore.closeAllTabs(router);
   };
-
-  const handleClickOutside = () => {};
-
-  onMounted(() => {
-    document.addEventListener('click', handleClickOutside);
-  });
-
-  onUnmounted(() => {
-    document.removeEventListener('click', handleClickOutside);
-  });
 </script>
 
 <style scoped>

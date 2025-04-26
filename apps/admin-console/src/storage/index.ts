@@ -26,7 +26,7 @@ export const theme = useStorage<'dark' | 'light'>('theme', null, undefined, {
 });
 
 /**  src/style.css 中也需要设置和此处一样 */
-export const theme_darkModeClass = 'app-dark';
+export const theme_darkModeClass = 'dark';
 export const theme_isDark = computed<boolean>({
   set(v) {
     theme.value = v ? 'dark' : 'light';

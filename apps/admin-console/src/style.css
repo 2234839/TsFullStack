@@ -2,5 +2,5 @@
 
 @layer utilities {
 }
-@custom-variant dark (&:where(.app-dark, .app-dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 @config '../tailwind.config.ts';

@@ -6,17 +6,19 @@ import {
   type RouteRecordRaw,
 } from 'vue-router';
 import type { RouteMetaTabs } from './pages/admin/stores/tabsStore';
-import { t } from './i18n';
+import { t as i18n_t } from './i18n';
 import { computed, reactive } from 'vue';
 /** path 为 "" 的子路由会自动渲染在父路由中 */
 export const defaultRoute = '';
+
+const t = (key: string) => computed(() => i18n_t(key));
 
 export const routeMap = reactive({
   index: {
     path: '/',
     redirect: '/admin',
     meta: {
-      title: '首页',
+      title: t('首页'),
       hidden: true,
     },
   },
@@ -24,7 +26,7 @@ export const routeMap = reactive({
     path: '/admin',
     component: () => import('@/pages/admin/AdminLayout.vue'),
     meta: {
-      title: '管理后台',
+      title: t('管理后台'),
       icon: 'pi pi-cog',
     },
     child: {
@@ -32,14 +34,14 @@ export const routeMap = reactive({
         path: '',
         component: () => import('@/pages/admin/index.vue'),
         meta: {
-          title: '仪表盘',
+          title: t('仪表盘'),
           icon: 'pi pi-home',
         },
       },
       studio: {
         path: 'studio',
         meta: {
-          title: computed(() => t('数据工作室')),
+          title: t('数据工作室'),
           icon: 'pi pi-desktop',
           keepAlive: true,
         },
@@ -49,7 +51,7 @@ export const routeMap = reactive({
         path: 'systemLog',
         component: () => import('@/pages/admin/SystemLog.vue'),
         meta: {
-          title: '系统日志',
+          title: t('系统日志'),
           icon: 'pi pi-file',
         },
       },
@@ -59,7 +61,7 @@ export const routeMap = reactive({
     path: '/login',
     component: () => import('@/pages/login.vue'),
     meta: {
-      title: '登录',
+      title: t('登录'),
       hidden: true,
     },
   },
@@ -67,7 +69,7 @@ export const routeMap = reactive({
     path: '/redirect',
     component: () => import('@/pages/Redirect.vue'),
     meta: {
-      title: '重定向',
+      title: t('重定向'),
       hidden: true,
     },
   },
