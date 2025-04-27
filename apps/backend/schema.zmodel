@@ -61,6 +61,8 @@ model User extends BaseTime {
 
     file        File[]
     avatar      String?
+
+	userData UserData[]
 }
 
 /// UserSession 用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
@@ -112,6 +114,31 @@ model SystemLog extends BaseId,BaseAuth {
 
 
 // ===== 下面是业务模型，与系统基础无关，可自行选择需要的模块删改 =====
+
+/// 用户数据存储模型 - 用于存储用户的应用JSON数据
+model UserData extends Base {
+    // 数据标识符，可用于区分不同类型或用途的数据
+    key         String
+    // 实际存储的JSON数据
+    data        Json
+    // 数据描述（可选）
+    description String?
+    // 版本号，用于处理数据更新冲突
+    version     Int      @default(1)
+    // 关联的用户
+    user        User     @relation(fields: [userId], references: [id])
+    userId      String
+    // 标签，用于分类和搜索
+    tags        String?
+    // 应用标识符，用于区分不同应用的数据
+    appId       String?
+
+    // 用户和key的组合唯一索引，确保每个用户的每个key只有一条记录
+    @@unique([userId, key, appId])
+
+    // 权限控制：用户只能读取和操作自己的数据
+    @@allow('read,create,update,delete', auth() == user)
+}
 
 /// Post model
 model Post  extends Base {

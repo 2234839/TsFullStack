@@ -20,7 +20,9 @@
     "@vueuse/core": "^13.1.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.3",
+    "superjson": "^2.2.2",
     "tailwindcss": "^4.1.4",
+    "tsfullstack-backend": "workspace:*",
     "vue": "^3.5.13"
   },
   "devDependencies": {
