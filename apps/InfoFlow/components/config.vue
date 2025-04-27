@@ -116,7 +116,7 @@
           </template>
         </Card>
 
-        <Button label="保存规则" type="submit" class="w-full" />
+        <Button label="测试运行" type="submit" class="w-full" />
       </div>
     </template>
   </Card>
