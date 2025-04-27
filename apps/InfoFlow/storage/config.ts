@@ -23,12 +23,14 @@ interface ActionConfig {
 
 export interface RuleConfig {
   name: string;
+  id: string;
   target: TargetConfig;
   trigger: TriggerConfig;
   action: ActionConfig;
 }
 export const allRuleConfig = reactive<RuleConfig[]>([]);
-storage.getItem('local:allRuleConfig').then((config: any) => {
+const storeKey = 'local:allRuleConfig_v0'; // 使用版本号来区分不同的存储格式
+storage.getItem(storeKey).then((config: any) => {
   console.log('[config]', config);
   allRuleConfig.push(...(Object.values(config || []) as any));
 
@@ -37,12 +39,13 @@ storage.getItem('local:allRuleConfig').then((config: any) => {
   }
 });
 const saveConfig = useDebounceFn(() => {
-  storage.setItem('local:allRuleConfig', allRuleConfig);
+  storage.setItem(storeKey, allRuleConfig);
 }, 300);
 watch(allRuleConfig, saveConfig, { deep: true });
 
 export function initRuleConfig(): RuleConfig {
   return {
+    id: crypto.randomUUID(), // 使用 nanoid 生成唯一的 id
     name: '',
     target: {
       url: '',
