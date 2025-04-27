@@ -6,7 +6,7 @@
 
 This is my TypeScript full-stack best practices project.  
 
-> I'm truly fed up with traditional admin pages—I never want to write them again.  
+> I'm truly fed up with traditional admin interfaces. I never want to write them again.  
 
 [Live Demo](http://tsfullstack.heartstack.space/)  
 
@@ -17,16 +17,21 @@ https://deepwiki.com/2234839/TsFullStack
 ## Features  
 
 - **Backend**  
-  - Tech Stack: TypeScript + Prisma + ZenStack + Effect + Fastify  
-  - ZenStack (an enhanced solution based on Prisma) for database modeling and Row Level Security.  
+  - Tech Stack: ts + prisma + zenstack + Effect + fastify  
+  - Uses zenstack (a Prisma-based enhancement solution) for database modeling and Row Level Security.  
 
 - **Bridge Layer**  
-  - Tech Stack: TypeScript + SuperJSON + Custom RPC Library  
-  - Frontend can directly call backend APIs with full TypeScript type hints, eliminating the need for intermediate layer code.  
-  - SuperJSON supports serialization and deserialization of complex objects (e.g., Date, Map, Set, RegExp...), ensuring seamless transfer of Prisma inputs and outputs.  
+  - Tech Stack: ts + superjson + custom RPC library  
+  - Frontend can directly call backend APIs with full TypeScript type hints, eliminating the need for middleware code.  
+  - superjson supports serialization/deserialization of complex objects (Date, Map, Set, RegExp, etc.), ensuring seamless data transfer for Prisma inputs and outputs.  
 
 - **Admin Interface**  
-  - Tech Stack: TypeScript + Vue 3 + TailwindCSS + PrimeVue Component Library  
-  - Features a Prisma Studio-like admin panel (to some extent serving as an open-source alternative), eliminating the need for repetitive CRUD pages.  
-  - Comprehensive i18n internationalization support, ensuring every detail supports dynamic multi-language switching without page reloads.  
-  - Light/dark theme switching, with components and TailwindCSS dynamically adapting in sync.
+  - Tech Stack: ts + vue3 + tailwindcss + PrimeVue component library  
+  - Features a Prisma Studio-like admin panel (partially serving as an open-source alternative), eliminating repetitive CRUD page development.  
+  - Comprehensive i18n internationalization support, enabling dynamic language switching without page reloads.  
+  - Light/dark theme toggling with synchronized component and Tailwind CSS support.  
+
+Other Application Examples  
+
+- **Browser Extension - InfoFlow**  
+  - Built using https://wxt.dev/guide/installation.html, demonstrating how to leverage TsFullStack for browser extension development.

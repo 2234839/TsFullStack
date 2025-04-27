@@ -30,3 +30,8 @@ https://deepwiki.com/2234839/TsFullStack
   - 具有类 prisma studio 的管理面板（一定程度上可以作为他的开源替代方案），不再需要写千篇一律的 CRUD 页面。
   - 尽善尽美的 i18n 国际化支持，确保每个细节都支持多语言动态切换而无需重载页面。
   - 明暗主题切换，组件和 tailwindcss 同步支持动态切换。
+
+其他应用示范
+
+- 浏览器扩展 - InfoFlow
+  - 基于 https://wxt.dev/guide/installation.html 构建，用于演示如何使用 tsfullstack 构建浏览器扩展。
