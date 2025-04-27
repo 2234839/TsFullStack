@@ -1,6 +1,6 @@
 import { storage } from '#imports';
 import { useDebounceFn } from '@vueuse/core';
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue';
 
 interface TargetConfig {
   url: string;

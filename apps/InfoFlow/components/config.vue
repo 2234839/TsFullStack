@@ -1,7 +1,9 @@
 <script setup lang="ts">
   import { ref } from 'vue';
   import { Card, InputText, Textarea, Button, Checkbox } from 'primevue';
-  import { allRuleConfig, initRuleConfig, RuleConfig } from '@/storage/config';
+  import { allRuleConfig, RuleConfig } from '@/storage/config';
+  import { runTask } from '@/utils/runTask';
+  import { computed } from '#imports';
 
   const ruleIndex = ref(0);
 
@@ -116,7 +118,7 @@
           </template>
         </Card>
 
-        <Button label="测试运行" type="submit" class="w-full" />
+        <Button label="测试运行" @click="runTask(rule)" type="submit" class="w-full" />
       </div>
     </template>
   </Card>

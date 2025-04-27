@@ -7,7 +7,8 @@ export default defineConfig({
     plugins: [tailwindcss()],
   }),
   // 修改了这里记得去浏览器重载扩展
+  imports: false,
   manifest: {
-    permissions: ['storage'],
+    permissions: ['storage', 'tabs'],
   },
 });
