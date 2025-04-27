@@ -1,17 +1,12 @@
 <script lang="ts" setup>
-import { Button } from 'primevue'
-
+  import Config from '@/components/config.vue';
 </script>
 
 <template>
-  <div class="w-96 aspect-square">
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="@/assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-    <div class="text-rose-200 font-bold">Test</div>
-    <Button>test</Button>
+  <div class="w-96">
+    <Config />
   </div>
+
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

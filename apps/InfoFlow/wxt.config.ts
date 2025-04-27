@@ -4,8 +4,10 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
   vite: () => ({
-    plugins: [
-      tailwindcss(),
-    ],
+    plugins: [tailwindcss()],
   }),
+  // 修改了这里记得去浏览器重载扩展
+  manifest: {
+    permissions: ['storage'],
+  },
 });
