@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { Button } from 'primevue'
+
 </script>
 
 <template>
@@ -7,6 +9,7 @@
       <img src="@/assets/vue.svg" class="logo vue" alt="Vue logo" />
     </a>
     <div class="text-rose-200 font-bold">Test</div>
+    <Button>test</Button>
   </div>
 </template>
 

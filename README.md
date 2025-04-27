@@ -6,7 +6,7 @@
 
 This is my TypeScript full-stack best practices project.  
 
-> I'm truly fed up with traditional admin interfaces. I never want to write them again.  
+> I'm utterly fed up with traditional admin interface pages and never want to write them again.  
 
 [Live Demo](http://tsfullstack.heartstack.space/)  
 
@@ -18,20 +18,20 @@ https://deepwiki.com/2234839/TsFullStack
 
 - **Backend**  
   - Tech Stack: ts + prisma + zenstack + Effect + fastify  
-  - Uses zenstack (a Prisma-based enhancement solution) for database modeling and Row Level Security.  
+  - Uses zenstack (a prisma-based enhancement solution) for database modeling and Row Level Security.  
 
 - **Bridge Layer**  
   - Tech Stack: ts + superjson + custom RPC library  
-  - Frontend can directly call backend APIs with full TypeScript type hints, eliminating the need for middleware code.  
-  - superjson supports serialization/deserialization of complex objects (Date, Map, Set, RegExp, etc.), ensuring seamless data transfer for Prisma inputs and outputs.  
+  - Frontend can directly call backend APIs with full TypeScript type hints, eliminating the need for intermediate layer code.  
+  - superjson supports serialization/deserialization of complex objects (Date, Map, Set, RegExp, etc.), ensuring seamless transfer of Prisma inputs and outputs.  
 
 - **Admin Interface**  
   - Tech Stack: ts + vue3 + tailwindcss + PrimeVue component library  
-  - Features a Prisma Studio-like admin panel (partially serving as an open-source alternative), eliminating repetitive CRUD page development.  
-  - Comprehensive i18n internationalization support, enabling dynamic language switching without page reloads.  
-  - Light/dark theme toggling with synchronized component and Tailwind CSS support.  
+  - Features a Prisma Studio-like admin panel (serving as a viable open-source alternative to some extent), eliminating repetitive CRUD page development.  
+  - Comprehensive i18n internationalization support with dynamic language switching without page reloads.  
+  - Light/dark theme toggle with synchronized component and TailwindCSS support.  
 
-Other Application Examples  
+### Other Application Demonstrations  
 
 - **Browser Extension - InfoFlow**  
-  - Built using https://wxt.dev/guide/installation.html, demonstrating how to leverage TsFullStack for browser extension development.
+  - Built on https://wxt.dev/guide/installation.html to demonstrate using TsFullStack as backend support for browser extensions.

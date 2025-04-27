@@ -15,7 +15,9 @@
     "postinstall": "wxt prepare"
   },
   "dependencies": {
+    "@primeuix/themes": "^1.0.3",
     "@tailwindcss/vite": "^4.1.4",
+    "primevue": "^4.3.3",
     "tailwindcss": "^4.1.4",
     "vue": "^3.5.13"
   },

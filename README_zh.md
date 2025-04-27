@@ -34,4 +34,4 @@ https://deepwiki.com/2234839/TsFullStack
 其他应用示范
 
 - 浏览器扩展 - InfoFlow
-  - 基于 https://wxt.dev/guide/installation.html 构建，用于演示如何使用 tsfullstack 构建浏览器扩展。
+  - 基于 https://wxt.dev/guide/installation.html 构建，用于演示如何使用 tsfullstack 作为浏览器扩展的后端支持。
