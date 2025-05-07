@@ -17,6 +17,8 @@
     "mathjs": "^14.4.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.3",
+    "quill": "^2.0.3",
+    "quill-delta": "^5.1.0",
     "superjson": "^2.2.2",
     "tailwindcss": "^4.1.4",
     "tsfullstack-backend": "workspace:*",

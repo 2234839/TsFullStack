@@ -57,7 +57,7 @@ export const routeMap = reactive({
       },
     },
   },
-  noteCalc:{
+  noteCalc: {
     path: '/noteCalc',
     component: () => import('@/pages/noteCalc/NoteCalc.vue'),
     meta: {
