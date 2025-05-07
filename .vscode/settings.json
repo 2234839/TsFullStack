@@ -1,0 +1,11 @@
+{
+    // 方便支持 monorepo 的项目
+    "i18n-ally.enabledFrameworks": [
+        // "vue",
+        // "vscode",
+        // "vue-sfc",
+    ],
+    "i18n-ally.localesPaths": [
+        "apps/**/src/i18n"
+    ],
+}

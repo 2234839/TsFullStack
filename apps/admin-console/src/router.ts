@@ -57,6 +57,14 @@ export const routeMap = reactive({
       },
     },
   },
+  noteCalc:{
+    path: '/noteCalc',
+    component: () => import('@/pages/noteCalc/NoteCalc.vue'),
+    meta: {
+      title: t('计算笔记'),
+      icon: 'pi pi-calculator',
+    },
+  },
   login: {
     path: '/login',
     component: () => import('@/pages/login.vue'),
