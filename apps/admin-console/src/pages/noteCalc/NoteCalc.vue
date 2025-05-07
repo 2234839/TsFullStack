@@ -4,7 +4,7 @@
       class="flex items-center justify-between p-4 bg-white border-b border-gray-200 shadow-sm">
       <div class="flex items-center gap-2">
         <div class="w-8 h-8 text-purple-600">
-          <i class="pi pi-calculator text-2xl"></i>
+          <i class="pi pi-calculator text-2xl!"></i>
         </div>
         <h1 class="text-xl font-bold text-purple-700">计算笔记本</h1>
       </div>
