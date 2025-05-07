@@ -41,7 +41,7 @@ export const appApis = {
           }),
         );
         if (!user || !compareSync(password, user.password)) {
-          return Effect.fail('用户不存在或账户密码错误');
+          throw Effect.fail('用户不存在或账户密码错误');
         }
         const { db } = yield* Effect.promise(() => getPrisma({ userId: user.id }));
         const userSession = yield* Effect.promise(() =>

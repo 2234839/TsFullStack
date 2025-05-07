@@ -43,17 +43,17 @@ browser.runtime.onMessage.addListener(async (request, sender) => {
   console.log('[res] ', res);
   const hasInDB = await API.db.userData.findMany({
     where: {
-      appId: 'InfoFlow-info',
+      appId: 'InfoFlow:info',
       key: {
         in: res.map((item) => item.hash),
       },
     },
   });
+  // 这一步应该要进行ai数据处理分析，避免存入数据库的文本过多，或者后端进行异步分析处理也是可行的
   const newInfo = res.filter((item) => !hasInDB.some((dbItem) => dbItem.key === item.hash));
-  console.log('[newInfo]', newInfo);
   const dataToStore = newInfo.map((el) => {
     return {
-      appId: 'InfoFlow-info',
+      appId: 'InfoFlow:info',
       userId: authStore.value.userId!,
       key: el.hash,
       data: el.html,

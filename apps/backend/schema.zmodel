@@ -62,7 +62,7 @@ model User extends BaseTime {
     file        File[]
     avatar      String?
 
-	userData UserData[]
+    userData    UserData[]
 }
 
 /// UserSession 用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
@@ -111,10 +111,6 @@ model SystemLog extends BaseId,BaseAuth {
     authUserId String?
     created    DateTime @default(now())
 }
-
-
-// ===== 下面是业务模型，与系统基础无关，可自行选择需要的模块删改 =====
-
 /// 用户数据存储模型 - 用于存储用户的应用JSON数据
 model UserData extends Base {
     // 数据标识符，可用于区分不同类型或用途的数据
@@ -124,9 +120,9 @@ model UserData extends Base {
     // 数据描述（可选）
     description String?
     // 版本号，用于处理数据更新冲突
-    version     Int      @default(1)
+    version     Int     @default(1)
     // 关联的用户
-    user        User     @relation(fields: [userId], references: [id])
+    user        User    @relation(fields: [userId], references: [id])
     userId      String
     // 标签，用于分类和搜索
     tags        String?
@@ -139,6 +135,28 @@ model UserData extends Base {
     // 权限控制：用户只能读取和操作自己的数据
     @@allow('read,create,update,delete', auth() == user)
 }
+/// 任务队列处理
+model Queue extends Base {
+    name        String    // 队列名称，可用于区分不同类型的任务
+    payload     Json    // 任务数据，JSON 格式
+    status      String    // PENDING, PROCESSING, COMPLETED, FAILED
+    priority    Int       @default(0) // 优先级，数字越大优先级越高
+    attempts    Int       @default(0) // 尝试次数
+    maxAttempts Int       @default(3) // 最大尝试次数
+    workerId    String?   // 处理该任务的消费者ID
+    result      String?   // 处理结果，JSON 格式
+    error       String?   // 错误信息
+    startedAt   DateTime? // 开始处理时间
+    completedAt DateTime? // 完成时间
+    runAt       DateTime  @default(now()) // 计划执行时间，支持延迟任务
+
+    @@index([status, runAt, priority]) // 索引优化查询性能
+    @@index([name, status]) // 按队列名称和状态查询
+    @@index([workerId, status]) // 按工作者和状态查询
+}
+// ===== 下面是业务模型，与系统基础无关，可自行选择需要的模块删改 =====
+
+
 
 /// Post model
 model Post  extends Base {
