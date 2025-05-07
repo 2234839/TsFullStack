@@ -20,7 +20,7 @@ export const exampleContent = `# 欢迎使用计算笔记本
 
 ## 单位转换
 距离 = 10 km
-距离 in m
+距离 to m
 
 ## 更多功能
 税率 = 0.13

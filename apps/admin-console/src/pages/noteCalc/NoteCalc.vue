@@ -16,18 +16,6 @@
           @click="handleNewDocument"
           title="新建文档" />
         <Button
-          icon="pi pi-save"
-          label="保存"
-          class="p-button-outlined"
-          @click="handleSaveDocument"
-          title="保存文档" />
-        <Button
-          icon="pi pi-download"
-          label="导出"
-          class="p-button-outlined"
-          @click="handleExportDocument"
-          title="导出文档" />
-        <Button
           icon="pi pi-cog"
           class="p-button-outlined p-button-rounded"
           @click="showSettings = !showSettings"
@@ -152,7 +140,6 @@
 <script setup lang="tsx">
   import { ref, watch, onMounted, nextTick, computed } from 'vue';
   import { create, all } from 'mathjs';
-  import { h } from 'vue';
 
   // PrimeVue组件
   import Button from 'primevue/button';
@@ -359,6 +346,9 @@
         }
         return scope;
       }
+      function evalExpression(expression: string) {
+        return mathInstance.value.evaluate(paserSafeExpression(expression), getSafeScope());
+      }
 
       // 第一遍扫描：收集所有变量定义
       lines.forEach((line) => {
@@ -407,11 +397,9 @@
           const varName = assignmentMatch[1].trim();
           const expression = assignmentMatch[2].trim();
 
-          let safeExpression = paserSafeExpression(expression);
-
           try {
             // 计算表达式
-            const result = mathInstance.value.evaluate(safeExpression, getSafeScope());
+            const result = evalExpression(expression);
 
             // 存储变量值
             variables[varName] = result;
@@ -471,18 +459,15 @@
           continue;
         }
 
-        // 处理单位转换 (如 "距离 in m")
-        const unitConvMatch = line.match(/^(.+)\s+in\s+([a-zA-Z]+)$/);
+        // 处理单位转换 (如 "距离 to m")
+        const unitConvMatch = line.match(/^(.+)\s+to\s+([a-zA-Z]+)$/);
         if (unitConvMatch) {
           const varName = unitConvMatch[1].trim();
-          const targetUnit = unitConvMatch[2].trim();
+          // const targetUnit = unitConvMatch[2].trim();
 
           if (variables[varName] !== undefined) {
             // 转换单位
-            const converted = mathInstance.value.evaluate(
-              `${varMap[varName]} to ${targetUnit}`,
-              getSafeScope(),
-            );
+            const converted = evalExpression(line);
             const resultDisplay = formatResult(converted);
 
             results.push(
@@ -514,11 +499,8 @@
 
         // 处理普通表达式
         try {
-          // 替换表达式中的变量名
-          let safeExpression = paserSafeExpression(line);
-
           // 计算表达式
-          const result = mathInstance.value.evaluate(safeExpression, getSafeScope());
+          const result = evalExpression(line);
 
           // 格式化结果显示
           const resultDisplay = formatResult(result);
@@ -586,67 +568,6 @@
       }
     } else {
       content.value = '';
-    }
-  };
-
-  // 处理保存文档
-  const handleSaveDocument = () => {
-    try {
-      const blob = new Blob([content.value], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `计算笔记本_${new Date().toISOString().slice(0, 10)}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error('保存文档失败:', e);
-      alert('保存文档失败，请重试');
-    }
-  };
-
-  // 处理导出文档
-  const handleExportDocument = () => {
-    try {
-      // 创建一个包含计算结果的HTML文档
-      let html = `<!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="UTF-8">
-    <title>计算笔记本导出</title>
-    <style>
-      body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; padding: 20px; max-width: 800px; margin: 0 auto; }
-      .calc-line { margin: 6px 0; }
-      .calc-content { display: flex; align-items: center; flex-wrap: wrap; }
-      .result-badge { display: inline-block; background-color: #f0f7ff; color: #0057b8; font-weight: 500; padding: 2px 8px; border-radius: 4px; margin-left: 8px; border-left: 3px solid #0057b8; }
-      .result-error { display: inline-block; background-color: #fff0f0; color: #d32f2f; font-weight: 500; padding: 2px 8px; border-radius: 4px; margin-left: 8px; border-left: 3px solid #d32f2f; }
-      h1 { font-size: 1.5rem; margin-top: 1.5rem; }
-      h2 { font-size: 1.25rem; margin-top: 1.25rem; }
-      pre { font-family: monospace; white-space: pre-wrap; }
-    </style>
-  </head>
-  <body>
-    <h1>计算笔记本导出</h1>
-    <p>导出时间: ${new Date().toLocaleString()}</p>
-    <hr>
-    <pre>${content.value}</pre>
-  </body>
-  </html>`;
-
-      const blob = new Blob([html], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `计算笔记本_${new Date().toISOString().slice(0, 10)}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error('导出文档失败:', e);
-      alert('导出文档失败，请重试');
     }
   };
 
