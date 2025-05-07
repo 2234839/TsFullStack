@@ -55,7 +55,7 @@
             <div class="flex items-center justify-between mb-2">
               <h2 class="font-medium text-gray-500">结果区</h2>
               <div class="flex items-center gap-2">
-                <div v-if="isCalculating" class="text-purple-600 animate-pulse">计算中...</div>
+                <div v-if="isCalculating" class="text-purple-600">计算中...</div>
                 <div v-else-if="lastCalculationTime > 0" class="text-gray-400">
                   上次计算: {{ lastCalculationTime_v }}
                 </div>
@@ -182,6 +182,7 @@
     const dependencyGraph = ref<Record<string, Set<number>>>({}); // 变量 -> 依赖该变量的行号集合
     const lineToVars = ref<Record<number, Set<string>>>({}); // 行号 -> 该行使用的变量集合
     const lineResults = ref<Record<number, JSX.Element>>({}); // 行号 -> 计算结果
+    const lineDefinedVars = ref<Record<number, string>>({}); // 行号 -> 该行定义的变量
     let varCounter = 0;
 
     // 转义正则表达式中的特殊字符
@@ -387,36 +388,26 @@
       }
     };
 
-    // 获取需要重新计算的行
-    const getLinesToRecalculate = (changedLines: Set<number>): Set<number> => {
-      const linesToRecalculate = new Set<number>(changedLines);
+    // 获取依赖于指定变量的所有行
+    const getDependentLines = (varName: string): Set<number> => {
+      const dependentLines = new Set<number>();
 
-      // 找出所有受影响的行
-      const findAffectedLines = (lineIndex: number): void => {
-        // 检查该行是否定义了变量
-        const line = content.value.split('\n')[lineIndex];
-        const assignmentMatch = line?.match(/^([^=]+)=(.+)$/);
+      if (dependencyGraph.value[varName]) {
+        for (const lineIndex of dependencyGraph.value[varName]) {
+          dependentLines.add(lineIndex);
 
-        if (assignmentMatch) {
-          const varName = assignmentMatch[1].trim();
-          // 找出所有依赖该变量的行
-          if (dependencyGraph.value[varName]) {
-            for (const affectedLine of dependencyGraph.value[varName]) {
-              if (!linesToRecalculate.has(affectedLine)) {
-                linesToRecalculate.add(affectedLine);
-                findAffectedLines(affectedLine);
-              }
+          // 如果这一行定义了新变量，递归查找依赖于这个新变量的行
+          const definedVar = lineDefinedVars.value[lineIndex];
+          if (definedVar) {
+            const nestedDependents = getDependentLines(definedVar);
+            for (const line of nestedDependents) {
+              dependentLines.add(line);
             }
           }
         }
-      };
-
-      // 对每个变化的行，找出其影响的行
-      for (const lineIndex of changedLines) {
-        findAffectedLines(lineIndex);
       }
 
-      return linesToRecalculate;
+      return dependentLines;
     };
 
     // 计算单行
@@ -447,6 +438,9 @@
           // 提取表达式中使用的变量
           const usedVars = extractVariables(expression);
           updateDependencyGraph(lineIndex, usedVars);
+
+          // 记录该行定义的变量
+          lineDefinedVars.value[lineIndex] = varName;
 
           // 计算表达式
           const result = evalExpression(expression);
@@ -613,6 +607,7 @@
       dependencyGraph.value = {};
       lineToVars.value = {};
       lineResults.value = {};
+      lineDefinedVars.value = {};
 
       // 初始化变量映射
       initializeVarMap(content.value);
@@ -631,29 +626,198 @@
       return results;
     };
 
+    // 检测文本差异类型
+    interface TextDiff {
+      type: 'insert' | 'delete' | 'modify' | 'none';
+      lineIndex: number;
+      content?: string;
+    }
+
+    // 智能检测文本变化
+    const detectTextChanges = (prevText: string, newText: string): TextDiff[] => {
+      const prevLines = prevText.split('\n');
+      const newLines = newText.split('\n');
+      const diffs: TextDiff[] = [];
+
+      // 使用最长公共子序列算法找出差异
+      // 这里使用一个简化版本，只处理简单的插入、删除和修改
+
+      // 如果行数相同，检查每行是否有修改
+      if (prevLines.length === newLines.length) {
+        for (let i = 0; i < prevLines.length; i++) {
+          if (prevLines[i] !== newLines[i]) {
+            diffs.push({
+              type: 'modify',
+              lineIndex: i,
+              content: newLines[i],
+            });
+          }
+        }
+        return diffs;
+      }
+
+      // 如果新文本比旧文本多行，可能是插入了行
+      if (newLines.length > prevLines.length) {
+        // 找到第一个不同的行
+        let diffIndex = 0;
+        while (diffIndex < prevLines.length && prevLines[diffIndex] === newLines[diffIndex]) {
+          diffIndex++;
+        }
+
+        // 检查是否是简单的插入（后续行保持不变）
+        let isSimpleInsert = true;
+        for (let i = diffIndex; i < prevLines.length; i++) {
+          if (prevLines[i] !== newLines[i + 1]) {
+            isSimpleInsert = false;
+            break;
+          }
+        }
+
+        if (isSimpleInsert) {
+          // 简单插入一行
+          diffs.push({
+            type: 'insert',
+            lineIndex: diffIndex,
+            content: newLines[diffIndex],
+          });
+          return diffs;
+        }
+      }
+
+      // 如果新文本比旧文本少行，可能是删除了行
+      if (newLines.length < prevLines.length) {
+        // 找到第一个不同的行
+        let diffIndex = 0;
+        while (diffIndex < newLines.length && prevLines[diffIndex] === newLines[diffIndex]) {
+          diffIndex++;
+        }
+
+        // 检查是否是简单的删除（后续行保持不变）
+        let isSimpleDelete = true;
+        for (let i = diffIndex; i < newLines.length; i++) {
+          if (prevLines[i + 1] !== newLines[i]) {
+            isSimpleDelete = false;
+            break;
+          }
+        }
+
+        if (isSimpleDelete) {
+          // 简单删除一行
+          diffs.push({
+            type: 'delete',
+            lineIndex: diffIndex,
+          });
+          return diffs;
+        }
+      }
+
+      // 如果不是简单的插入或删除，则标记所有行为修改
+      // 这是一个保守的做法，确保所有变化都被处理
+      const maxLength = Math.max(prevLines.length, newLines.length);
+      for (let i = 0; i < maxLength; i++) {
+        if (i < prevLines.length && i < newLines.length && prevLines[i] !== newLines[i]) {
+          diffs.push({
+            type: 'modify',
+            lineIndex: i,
+            content: newLines[i],
+          });
+        } else if (i >= prevLines.length) {
+          diffs.push({
+            type: 'insert',
+            lineIndex: i,
+            content: newLines[i],
+          });
+        } else if (i >= newLines.length) {
+          diffs.push({
+            type: 'delete',
+            lineIndex: i,
+          });
+        }
+      }
+
+      return diffs;
+    };
+
     // 增量计算
     const calculateIncremental = async (
       prevContent: string,
       newContent: string,
     ): Promise<JSX.Element[]> => {
-      const prevLines = prevContent.split('\n');
-      const newLines = newContent.split('\n');
-      const changedLines = new Set<number>();
+      // 如果内容相同，直接返回
+      if (prevContent === newContent) {
+        return calculatedLines.value;
+      }
 
-      // 检测变化的行
-      const maxLength = Math.max(prevLines.length, newLines.length);
-      for (let i = 0; i < maxLength; i++) {
-        if (prevLines[i] !== newLines[i]) {
-          changedLines.add(i);
+      // 检测文本变化
+      const diffs = detectTextChanges(prevContent, newContent);
+      console.log('检测到的变化:', diffs);
+
+      if (diffs.length === 0) {
+        return calculatedLines.value;
+      }
+
+      const newLines = newContent.split('\n');
+      const linesToRecalculate = new Set<number>();
+
+      // 处理每个变化
+      for (const diff of diffs) {
+        switch (diff.type) {
+          case 'insert':
+            // 插入行只需要计算新行
+            linesToRecalculate.add(diff.lineIndex);
+
+            // 更新后续行的索引
+            updateLineIndices(diff.lineIndex, 1);
+            break;
+
+          case 'delete':
+            // 删除行需要找出依赖于该行定义的变量的所有行
+            const deletedVar = lineDefinedVars.value[diff.lineIndex];
+            if (deletedVar) {
+              const dependentLines = getDependentLines(deletedVar);
+              for (const line of dependentLines) {
+                if (line > diff.lineIndex) {
+                  // 调整行号（因为删除了一行）
+                  linesToRecalculate.add(line - 1);
+                } else if (line < diff.lineIndex) {
+                  linesToRecalculate.add(line);
+                }
+              }
+
+              // 删除变量
+              delete variables.value[deletedVar];
+            }
+
+            // 删除行相关的记录
+            delete lineResults.value[diff.lineIndex];
+            delete lineDefinedVars.value[diff.lineIndex];
+            if (lineToVars.value[diff.lineIndex]) {
+              delete lineToVars.value[diff.lineIndex];
+            }
+
+            // 更新后续行的索引
+            updateLineIndices(diff.lineIndex, -1);
+            break;
+
+          case 'modify':
+            // 修改行需要重新计算该行和依赖于该行的所有行
+            linesToRecalculate.add(diff.lineIndex);
+
+            // 如果该行定义了变量，找出所有依赖该变量的行
+            const modifiedVar = lineDefinedVars.value[diff.lineIndex];
+            if (modifiedVar) {
+              const dependentLines = getDependentLines(modifiedVar);
+              for (const line of dependentLines) {
+                linesToRecalculate.add(line);
+              }
+            }
+            break;
         }
       }
 
-      // 如果有新增的变量，需要更新变量映射
+      // 更新变量映射（可能有新变量）
       initializeVarMap(newContent);
 
-      // 获取需要重新计算的行
-      const linesToRecalculate = getLinesToRecalculate(changedLines);
-      console.log('变化的行:', Array.from(changedLines));
       console.log('需要重新计算的行:', Array.from(linesToRecalculate));
 
       // 重新计算受影响的行
@@ -665,15 +829,6 @@
 
           const result = calculateLine(line, lineIndex);
           lineResults.value[lineIndex] = result;
-        } else {
-          // 如果行被删除，移除相关记录
-          delete lineResults.value[lineIndex];
-          if (lineToVars.value[lineIndex]) {
-            for (const varName of lineToVars.value[lineIndex]) {
-              dependencyGraph.value[varName]?.delete(lineIndex);
-            }
-            delete lineToVars.value[lineIndex];
-          }
         }
       }
 
@@ -692,6 +847,58 @@
       }
 
       return results;
+    };
+
+    // 更新行索引（插入或删除行后）
+    const updateLineIndices = (startIndex: number, offset: number): void => {
+      // 更新行到变量的映射
+      const newLineToVars: Record<number, Set<string>> = {};
+      for (const [lineStr, vars] of Object.entries(lineToVars.value)) {
+        const line = parseInt(lineStr);
+        if (line >= startIndex) {
+          newLineToVars[line + offset] = vars;
+        } else {
+          newLineToVars[line] = vars;
+        }
+      }
+      lineToVars.value = newLineToVars;
+
+      // 更新行定义的变量
+      const newLineDefinedVars: Record<number, string> = {};
+      for (const [lineStr, varName] of Object.entries(lineDefinedVars.value)) {
+        const line = parseInt(lineStr);
+        if (line >= startIndex) {
+          newLineDefinedVars[line + offset] = varName;
+        } else {
+          newLineDefinedVars[line] = varName;
+        }
+      }
+      lineDefinedVars.value = newLineDefinedVars;
+
+      // 更新行结果
+      const newLineResults: Record<number, JSX.Element> = {};
+      for (const [lineStr, result] of Object.entries(lineResults.value)) {
+        const line = parseInt(lineStr);
+        if (line >= startIndex) {
+          newLineResults[line + offset] = result;
+        } else {
+          newLineResults[line] = result;
+        }
+      }
+      lineResults.value = newLineResults;
+
+      // 更新依赖图
+      for (const varName in dependencyGraph.value) {
+        const newDependents = new Set<number>();
+        for (const line of dependencyGraph.value[varName]) {
+          if (line >= startIndex) {
+            newDependents.add(line + offset);
+          } else {
+            newDependents.add(line);
+          }
+        }
+        dependencyGraph.value[varName] = newDependents;
+      }
     };
 
     return {
@@ -800,25 +1007,4 @@
   });
 </script>
 
-<style>
-  /* 基础样式 */
-  .empty-line {
-    height: 1.5em;
-    line-height: 1.5;
-  }
-
-  /* 动画 */
-  .animate-pulse {
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  @keyframes pulse {
-    0%,
-    100% {
-      opacity: 1;
-    }
-    50% {
-      opacity: 0.5;
-    }
-  }
-</style>
+<style></style>
