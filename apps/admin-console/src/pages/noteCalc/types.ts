@@ -9,10 +9,13 @@ export interface CalculationResult {
     | 'error'
     | 'assignment'
     | 'expression'
+    | 'equation'
     | 'unitConversion';
   content: string;
   result?: string;
   error?: string;
+  /** 表示计算结果是否在误差范围内,为 false 表示超出了误差范围，也就是不正确 */
+  isCorrect?: boolean;
   isLargeNumber?: boolean;
   formattedNumber?: string;
   highlightedContent?: Array<{ text: string; isNumber: boolean }>;

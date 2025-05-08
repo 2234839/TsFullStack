@@ -22,6 +22,10 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   const lineDefinedVars = reactive<Record<number, string>>({});
   const varCounter = ref(0);
 
+  // 添加任务队列和执行状态
+  const calculationQueue = ref<Array<() => Promise<CalculationResult[]>>>([]);
+  const isCalculating = ref(false);
+
   // 计算属性
   const mathInstance = computed(() => {
     return create(all, {
@@ -186,28 +190,58 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
   /**
    * 对变量名进行替换，避免中文变量名对 math.js 的影响
+   * 使用更简单直接的方法：直接替换完整的变量名
    */
   function paserSafeExpression(expression: string): string {
-    let safeExpression = ` ${expression} `; // 在表达式前后添加空格，便于处理边界情况
+    // 创建一个副本，避免修改原始表达式
+    let safeExpression = expression;
 
     // 按照变量名长度降序排序，避免部分替换问题
-    const sortedVars = Object.keys(varMap).sort((a, b) => b.length - a.length);
+    const sortedVars = Object.keys(varMap)
+      .filter((name) => variables[name] !== undefined)
+      .sort((a, b) => b.length - a.length);
 
-    // 替换变量名为安全的变量名
-    for (const name of sortedVars) {
-      if (variables[name] !== undefined) {
-        // 使用单词边界和空格来确保完整替换
-        const regex = new RegExp(
-          `([^\\p{L}\\p{N}_])(${escapeRegExp(name)})([^\\p{L}\\p{N}_])`,
-          'gu',
-        );
-        safeExpression = safeExpression.replace(regex, (_, p1, _2, p3) => {
-          return `${p1}${varMap[name]}${p3}`;
-        });
+    // 对每个变量，使用一个简单的方法替换所有实例
+    for (const varName of sortedVars) {
+      // 使用一个简单的方法：将表达式拆分为词元，然后替换匹配的词元
+      const tokens = [];
+      let currentToken = '';
+      let inVariable = false;
+
+      // 遍历表达式的每个字符
+      for (let i = 0; i <= safeExpression.length; i++) {
+        const char = i < safeExpression.length ? safeExpression[i] : '';
+
+        // 如果是字母、数字、下划线或中文，可能是变量名的一部分
+        if (/[a-zA-Z0-9_\u4e00-\u9fa5]/.test(char)) {
+          currentToken += char;
+          inVariable = true;
+        } else {
+          // 如果当前有词元，检查是否是变量名
+          if (currentToken) {
+            if (inVariable && currentToken === varName) {
+              // 如果是变量名，替换为安全变量名
+              tokens.push(varMap[varName]);
+            } else {
+              // 否则保持原样
+              tokens.push(currentToken);
+            }
+            currentToken = '';
+            inVariable = false;
+          }
+
+          // 添加非变量字符
+          if (char) {
+            tokens.push(char);
+          }
+        }
       }
+
+      // 重新组合表达式
+      safeExpression = tokens.join('');
     }
 
-    return safeExpression.trim(); // 移除添加的前后空格
+    return safeExpression;
   }
 
   /**
@@ -227,24 +261,49 @@ export function useCalculator(initialConfig: CalculatorConfig) {
    * 计算表达式
    */
   function evalExpression(expression: string): any {
-    return mathInstance.value.evaluate(paserSafeExpression(expression), getSafeScope());
+    try {
+      const safeExpr = paserSafeExpression(expression);
+      const scope = getSafeScope();
+
+      // 调试信息，帮助排查问题
+      console.log(`计算表达式: ${expression}`);
+      console.log(`安全表达式: ${safeExpr}`);
+      console.log(`作用域:`, scope);
+
+      return mathInstance.value.evaluate(safeExpr, scope);
+    } catch (error) {
+      console.error(`计算表达式错误: ${expression}`, error);
+      throw error;
+    }
   }
 
   /**
    * 提取表达式中的变量
+   * 修复：使用与paserSafeExpression相同的词元化方法
    */
   function extractVariables(expression: string): Set<string> {
     const vars = new Set<string>();
     const sortedVars = Object.keys(varMap).sort((a, b) => b.length - a.length);
 
-    for (const varName of sortedVars) {
-      // 检查变量是否在表达式中使用
-      const pattern = new RegExp(
-        `(^|[^\\p{L}\\p{N}_])${escapeRegExp(varName)}([^\\p{L}\\p{N}_]|$)`,
-        'gu',
-      );
-      if (pattern.test(expression)) {
-        vars.add(varName);
+    // 使用与paserSafeExpression相同的词元化方法
+    const tokens = [];
+    let currentToken = '';
+
+    // 遍历表达式的每个字符
+    for (let i = 0; i <= expression.length; i++) {
+      const char = i < expression.length ? expression[i] : '';
+
+      // 如果是字母、数字、下划线或中文，可能是变量名的一部分
+      if (/[a-zA-Z0-9_\u4e00-\u9fa5]/.test(char)) {
+        currentToken += char;
+      } else {
+        // 如果当前有词元，检查是否是变量名
+        if (currentToken) {
+          if (sortedVars.includes(currentToken)) {
+            vars.add(currentToken);
+          }
+          currentToken = '';
+        }
       }
     }
 
@@ -333,8 +392,66 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       };
     }
 
-    // 处理变量赋值
-    const assignmentMatch = line.match(/^([^=]+)=(.+)$/);
+    // 处理等号表达式（如 "1+2 = 3"）- 注意：这个检查必须在变量赋值检查之前
+    const equalsMatch = line.match(/^(.+)\s+=\s+(.+)$/);
+    if (equalsMatch) {
+      const leftExpression = equalsMatch[1].trim();
+      const rightExpression = equalsMatch[2].trim();
+
+      try {
+        // 提取左侧表达式中使用的变量
+        const leftVars = extractVariables(leftExpression);
+        updateDependencyGraph(lineIndex, leftVars);
+
+        // 计算左侧表达式
+        const leftResult = evalExpression(leftExpression);
+        const leftDisplay = formatResult(leftResult);
+
+        // 检查右侧是否是数值表达式
+        const isRightNumeric = /^\s*\d+(\.\d+)?\s*$/.test(rightExpression);
+
+        // 如果右侧是数值，检查计算结果是否匹配
+        if (isRightNumeric) {
+          const rightValue = parseFloat(rightExpression);
+          const isCorrect = Math.abs(leftResult - rightValue) < 1e-10; // 允许小误差
+          return {
+            type: 'equation',
+            content: line,
+            result: leftDisplay,
+            isCorrect,
+            highlightedContent: highlightSyntax(line),
+          };
+        } else {
+          // 如果右侧不是简单数值，也计算它
+          const rightVars = extractVariables(rightExpression);
+          for (const v of rightVars) {
+            leftVars.add(v);
+          }
+          updateDependencyGraph(lineIndex, leftVars);
+
+          const rightResult = evalExpression(rightExpression);
+          const isCorrect = Math.abs(leftResult - rightResult) < 1e-10; // 允许小误差
+
+          return {
+            type: 'equation',
+            content: line,
+            result: leftDisplay,
+            isCorrect,
+            highlightedContent: highlightSyntax(line),
+          };
+        }
+      } catch (e) {
+        return {
+          type: 'error',
+          content: line,
+          error: String(e),
+          highlightedContent: highlightSyntax(line),
+        };
+      }
+    }
+
+    // 处理变量赋值 - 修改正则表达式，确保等号前后没有空格
+    const assignmentMatch = line.match(/^([^=\s]+)=([^=].*)$/);
     if (assignmentMatch) {
       const varName = assignmentMatch[1].trim();
       const expression = assignmentMatch[2].trim();
@@ -461,10 +578,14 @@ export function useCalculator(initialConfig: CalculatorConfig) {
    */
   function initializeVarMap(content: string): void {
     const lines = content.split('\n');
-    varCounter.value = 0;
+
+    // 保留已有的变量映射，只添加新变量
+    // 这样可以避免重新计算时变量映射发生变化
+
     // 第一遍扫描：收集所有变量定义
     lines.forEach((line) => {
-      const assignmentMatch = line.match(/^([^=]+)=(.+)$/);
+      // 使用与calculateLine中相同的正则表达式来识别变量赋值
+      const assignmentMatch = line.match(/^([^=\s]+)=([^=].*)$/);
       if (assignmentMatch) {
         const varName = assignmentMatch[1].trim();
         if (!varMap[varName]) {
@@ -476,34 +597,95 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   }
 
   /**
+   * 处理计算队列
+   */
+  async function processCalculationQueue(): Promise<void> {
+    if (isCalculating.value || calculationQueue.value.length === 0) {
+      return;
+    }
+
+    isCalculating.value = true;
+    try {
+      // 取出队列中的第一个任务并执行
+      const task = calculationQueue.value.shift();
+      if (task) {
+        await task();
+      }
+    } catch (error) {
+      console.error('计算任务执行错误:', error);
+    } finally {
+      isCalculating.value = false;
+
+      // 如果队列中还有任务，继续处理
+      if (calculationQueue.value.length > 0) {
+        await processCalculationQueue();
+      }
+    }
+  }
+
+  /**
+   * 添加计算任务到队列
+   */
+  function addCalculationTask(
+    task: () => Promise<CalculationResult[]>,
+  ): Promise<CalculationResult[]> {
+    return new Promise((resolve, reject) => {
+      // 创建一个包装任务，执行完成后解析Promise
+      const wrappedTask = async () => {
+        try {
+          const results = await task();
+          resolve(results);
+          return results;
+        } catch (error) {
+          console.error('计算任务执行失败:', error);
+          reject(error);
+          throw error;
+        }
+      };
+
+      // 添加到队列
+      calculationQueue.value.push(wrappedTask);
+
+      // 如果当前没有计算任务在执行，开始处理队列
+      if (!isCalculating.value) {
+        processCalculationQueue();
+      }
+    });
+  }
+
+  /**
    * 全量计算
    */
   async function calculateAll(content: string): Promise<CalculationResult[]> {
-    const lines = content.split('\n');
-    const results: CalculationResult[] = [];
+    // 将计算任务添加到队列
+    return addCalculationTask(async () => {
+      console.log('[content]', content);
+      const lines = content.split('\n');
+      const results: CalculationResult[] = [];
 
-    // 重置状态
-    Object.keys(variables).forEach((key) => delete variables[key]);
-    Object.keys(dependencyGraph).forEach((key) => delete dependencyGraph[key]);
-    Object.keys(lineToVars).forEach((key) => delete lineToVars[Number(key)]);
-    Object.keys(lineResults).forEach((key) => delete lineResults[Number(key)]);
-    Object.keys(lineDefinedVars).forEach((key) => delete lineDefinedVars[Number(key)]);
+      // 重置状态
+      Object.keys(variables).forEach((key) => delete variables[key]);
+      Object.keys(dependencyGraph).forEach((key) => delete dependencyGraph[key]);
+      Object.keys(lineToVars).forEach((key) => delete lineToVars[Number(key)]);
+      Object.keys(lineResults).forEach((key) => delete lineResults[Number(key)]);
+      Object.keys(lineDefinedVars).forEach((key) => delete lineDefinedVars[Number(key)]);
 
-    // 初始化变量映射
-    initializeVarMap(content);
+      // 初始化变量映射
+      initializeVarMap(content);
 
-    // 处理每一行
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      /** 防止卡死ui */
-      if (i % 10 === 0) await delay(1);
+      // 处理每一行
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        /** 防止卡死ui */
+        if (i % 10 === 0) await delay(1);
 
-      const result = calculateLine(line, i);
-      results.push(result);
-      lineResults[i] = result;
-    }
-
-    return results;
+        const result = calculateLine(line, i);
+        results.push(result);
+        lineResults[i] = result;
+      }
+      console.log('[results]', results);
+      return results;
+    });
   }
 
   /**
@@ -620,110 +802,113 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     prevContent: string,
     newContent: string,
   ): Promise<CalculationResult[]> {
-    // 如果内容相同，直接返回
-    if (prevContent === newContent) {
-      return Object.values(lineResults);
-    }
+    // 将增量计算任务添加到队列
+    return addCalculationTask(async () => {
+      // 如果内容相同，直接返回
+      if (prevContent === newContent) {
+        return Object.values(lineResults);
+      }
 
-    // 检测文本变化
-    const diffs = detectTextChanges(prevContent, newContent);
-    console.log('检测到的变化:', diffs);
+      // 检测文本变化
+      const diffs = detectTextChanges(prevContent, newContent);
+      console.log('检测到的变化:', diffs);
 
-    if (diffs.length === 0) {
-      return Object.values(lineResults);
-    }
+      if (diffs.length === 0) {
+        return Object.values(lineResults);
+      }
 
-    const newLines = newContent.split('\n');
-    const linesToRecalculate = new Set<number>();
+      const newLines = newContent.split('\n');
+      const linesToRecalculate = new Set<number>();
 
-    // 处理每个变化
-    for (const diff of diffs) {
-      switch (diff.type) {
-        case 'insert':
-          // 插入行只需要计算新行
-          linesToRecalculate.add(diff.lineIndex);
+      // 处理每个变化
+      for (const diff of diffs) {
+        switch (diff.type) {
+          case 'insert':
+            // 插入行只需要计算新行
+            linesToRecalculate.add(diff.lineIndex);
 
-          // 更新后续行的索引
-          updateLineIndices(diff.lineIndex, 1);
-          break;
+            // 更新后续行的索引
+            updateLineIndices(diff.lineIndex, 1);
+            break;
 
-        case 'delete':
-          // 删除行需要找出依赖于该行定义的变量的所有行
-          const deletedVar = lineDefinedVars[diff.lineIndex];
-          if (deletedVar) {
-            const dependentLines = getDependentLines(deletedVar);
-            for (const line of dependentLines) {
-              if (line > diff.lineIndex) {
-                // 调整行号（因为删除了一行）
-                linesToRecalculate.add(line - 1);
-              } else if (line < diff.lineIndex) {
+          case 'delete':
+            // 删除行需要找出依赖于该行定义的变量的所有行
+            const deletedVar = lineDefinedVars[diff.lineIndex];
+            if (deletedVar) {
+              const dependentLines = getDependentLines(deletedVar);
+              for (const line of dependentLines) {
+                if (line > diff.lineIndex) {
+                  // 调整行号（因为删除了一行）
+                  linesToRecalculate.add(line - 1);
+                } else if (line < diff.lineIndex) {
+                  linesToRecalculate.add(line);
+                }
+              }
+
+              // 删除变量
+              delete variables[deletedVar];
+            }
+
+            // 删除行相关的记录
+            delete lineResults[diff.lineIndex];
+            delete lineDefinedVars[diff.lineIndex];
+            if (lineToVars[diff.lineIndex]) {
+              delete lineToVars[diff.lineIndex];
+            }
+
+            // 更新后续行的索引
+            updateLineIndices(diff.lineIndex, -1);
+            break;
+
+          case 'modify':
+            // 修改行需要重新计算该行和依赖于该行的所有行
+            linesToRecalculate.add(diff.lineIndex);
+
+            // 如果该行定义了变量，找出所有依赖该变量的行
+            const modifiedVar = lineDefinedVars[diff.lineIndex];
+            if (modifiedVar) {
+              const dependentLines = getDependentLines(modifiedVar);
+              for (const line of dependentLines) {
                 linesToRecalculate.add(line);
               }
             }
-
-            // 删除变量
-            delete variables[deletedVar];
-          }
-
-          // 删除行相关的记录
-          delete lineResults[diff.lineIndex];
-          delete lineDefinedVars[diff.lineIndex];
-          if (lineToVars[diff.lineIndex]) {
-            delete lineToVars[diff.lineIndex];
-          }
-
-          // 更新后续行的索引
-          updateLineIndices(diff.lineIndex, -1);
-          break;
-
-        case 'modify':
-          // 修改行需要重新计算该行和依赖于该行的所有行
-          linesToRecalculate.add(diff.lineIndex);
-
-          // 如果该行定义了变量，找出所有依赖该变量的行
-          const modifiedVar = lineDefinedVars[diff.lineIndex];
-          if (modifiedVar) {
-            const dependentLines = getDependentLines(modifiedVar);
-            for (const line of dependentLines) {
-              linesToRecalculate.add(line);
-            }
-          }
-          break;
+            break;
+        }
       }
-    }
 
-    // 更新变量映射（可能有新变量）
-    initializeVarMap(newContent);
+      // 更新变量映射（可能有新变量）
+      initializeVarMap(newContent);
 
-    console.log('需要重新计算的行:', Array.from(linesToRecalculate));
+      console.log('需要重新计算的行:', Array.from(linesToRecalculate));
 
-    // 重新计算受影响的行
-    for (const lineIndex of linesToRecalculate) {
-      if (lineIndex < newLines.length) {
-        const line = newLines[lineIndex];
-        /** 防止卡死ui */
-        if (lineIndex % 10 === 0) await delay(1);
+      // 重新计算受影响的行
+      for (const lineIndex of linesToRecalculate) {
+        if (lineIndex < newLines.length) {
+          const line = newLines[lineIndex];
+          /** 防止卡死ui */
+          if (lineIndex % 10 === 0) await delay(1);
 
-        const result = calculateLine(line, lineIndex);
-        lineResults[lineIndex] = result;
+          const result = calculateLine(line, lineIndex);
+          lineResults[lineIndex] = result;
+        }
       }
-    }
 
-    // 构建结果数组
-    const results: CalculationResult[] = [];
-    for (let i = 0; i < newLines.length; i++) {
-      if (lineResults[i]) {
-        results.push(lineResults[i]);
-      } else {
-        // 如果没有计算结果（可能是新增的行），计算它
-        const line = newLines[i];
-        const result = calculateLine(line, i);
-        lineResults[i] = result;
-        results.push(result);
+      // 构建结果数组
+      const results: CalculationResult[] = [];
+      for (let i = 0; i < newLines.length; i++) {
+        if (lineResults[i]) {
+          results.push(lineResults[i]);
+        } else {
+          // 如果没有计算结果（可能是新增的行），计算它
+          const line = newLines[i];
+          const result = calculateLine(line, i);
+          lineResults[i] = result;
+          results.push(result);
+        }
       }
-    }
 
-    return results;
+      return results;
+    });
   }
 
   /**
@@ -805,10 +990,23 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  /**
+   * 取消所有计算任务
+   */
+  function cancelAllCalculations(): void {
+    // 清空计算队列
+    calculationQueue.value = [];
+
+    // 如果当前有计算任务在执行，将在当前任务完成后停止
+    // 由于JavaScript的单线程特性，无法中断正在执行的任务
+    // 但可以通过标志位来控制任务的执行流程
+  }
+
   // 返回需要在组件中使用的状态和方法
   return {
     // 状态
     config,
+    isCalculating,
 
     // 方法
     updateConfig,
@@ -816,5 +1014,6 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     calculateIncremental,
     detectTextChanges,
     initializeVarMap,
+    cancelAllCalculations,
   };
 }
