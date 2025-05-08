@@ -392,119 +392,127 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       };
     }
 
-    // 处理等号表达式（如 "1+2 = 3"）- 注意：这个检查必须在变量赋值检查之前
-    const equalsMatch = line.match(/^(.+)\s+=\s+(.+)$/);
-    if (equalsMatch) {
-      const leftExpression = equalsMatch[1].trim();
-      const rightExpression = equalsMatch[2].trim();
-
-      try {
-        // 提取左侧表达式中使用的变量
-        const leftVars = extractVariables(leftExpression);
-        updateDependencyGraph(lineIndex, leftVars);
-
-        // 计算左侧表达式
-        const leftResult = evalExpression(leftExpression);
-        const leftDisplay = formatResult(leftResult);
-
-        // 检查右侧是否是数值表达式
-        const isRightNumeric = /^\s*\d+(\.\d+)?\s*$/.test(rightExpression);
-
-        // 如果右侧是数值，检查计算结果是否匹配
-        if (isRightNumeric) {
-          const rightValue = parseFloat(rightExpression);
-          const isCorrect = Math.abs(leftResult - rightValue) < 1e-10; // 允许小误差
-          return {
-            type: 'equation',
-            content: line,
-            result: leftDisplay,
-            isCorrect,
-            highlightedContent: highlightSyntax(line),
-          };
-        } else {
-          // 如果右侧不是简单数值，也计算它
-          const rightVars = extractVariables(rightExpression);
-          for (const v of rightVars) {
-            leftVars.add(v);
-          }
-          updateDependencyGraph(lineIndex, leftVars);
-
-          const rightResult = evalExpression(rightExpression);
-          const isCorrect = Math.abs(leftResult - rightResult) < 1e-10; // 允许小误差
-
-          return {
-            type: 'equation',
-            content: line,
-            result: leftDisplay,
-            isCorrect,
-            highlightedContent: highlightSyntax(line),
-          };
-        }
-      } catch (e) {
-        return {
-          type: 'error',
-          content: line,
-          error: String(e),
-          highlightedContent: highlightSyntax(line),
-        };
-      }
-    }
-
-    // 处理变量赋值 - 修改正则表达式，确保等号前后没有空格
-    const assignmentMatch = line.match(/^([^=\s]+)=([^=].*)$/);
+    // 首先尝试识别变量赋值（允许等号前有空格）
+    const assignmentMatch = line.match(/^([a-zA-Z0-9_\u4e00-\u9fa5]+)\s*=\s*(.+)$/);
     if (assignmentMatch) {
       const varName = assignmentMatch[1].trim();
       const expression = assignmentMatch[2].trim();
 
-      try {
-        // 提取表达式中使用的变量
-        const usedVars = extractVariables(expression);
-        updateDependencyGraph(lineIndex, usedVars);
+      // 检查右侧是否是一个表达式而不是等式验证
+      // 如果右侧不包含等号，则视为变量赋值
+      if (!expression.includes('=')) {
+        try {
+          // 提取表达式中使用的变量
+          const usedVars = extractVariables(expression);
+          updateDependencyGraph(lineIndex, usedVars);
 
-        // 记录该行定义的变量
-        lineDefinedVars[lineIndex] = varName;
+          // 记录该行定义的变量
+          lineDefinedVars[lineIndex] = varName;
 
-        // 计算表达式
-        const result = evalExpression(expression);
+          // 计算表达式
+          const result = evalExpression(expression);
 
-        // 存储变量值
-        variables[varName] = result;
+          // 存储变量值
+          variables[varName] = result;
 
-        // 格式化结果显示
-        const resultDisplay = formatResult(result);
+          // 格式化结果显示
+          const resultDisplay = formatResult(result);
 
-        // 检查是否是简单赋值（直接赋值一个数字）
-        const isSimpleAssignment = /^\s*\d+(\.\d+)?\s*$/.test(expression.trim());
+          // 检查是否是简单赋值（直接赋值一个数字）
+          const isSimpleAssignment = /^\s*\d+(\.\d+)?\s*$/.test(expression.trim());
 
-        // 为赋值表达式创建特殊的显示
-        if (isSimpleAssignment) {
-          // 如果是简单赋值，显示格式化的数字和变量类型
-          const formattedNumber = formatLargeNumber(resultDisplay);
+          // 为赋值表达式创建特殊的显示
+          if (isSimpleAssignment) {
+            // 如果是简单赋值，显示格式化的数字和变量类型
+            const formattedNumber = formatLargeNumber(resultDisplay);
+            return {
+              type: 'assignment',
+              content: line,
+              result: resultDisplay,
+              isLargeNumber: formattedNumber !== resultDisplay,
+              formattedNumber: formattedNumber,
+              highlightedContent: highlightSyntax(line),
+            };
+          } else {
+            // 如果是复杂表达式，显示计算结果
+            return {
+              type: 'assignment',
+              content: line,
+              result: resultDisplay,
+              highlightedContent: highlightSyntax(line),
+            };
+          }
+        } catch (e: any) {
+          console.error(`计算错误 (${line}):`, e);
           return {
-            type: 'assignment',
+            type: 'error',
             content: line,
-            result: resultDisplay,
-            isLargeNumber: formattedNumber !== resultDisplay,
-            formattedNumber: formattedNumber,
-            highlightedContent: highlightSyntax(line),
-          };
-        } else {
-          // 如果是复杂表达式，显示计算结果
-          return {
-            type: 'assignment',
-            content: line,
-            result: resultDisplay,
+            error: String(e),
             highlightedContent: highlightSyntax(line),
           };
         }
-      } catch (e: any) {
-        console.error(`计算错误 (${line}):`, e);
-        return {
-          type: 'error',
-          content: line,
-          error: String(e),
-          highlightedContent: highlightSyntax(line),
-        };
+      }
+    }
+
+    // 处理等号表达式（如 "1+2 = 3"）
+    const equalsMatch = line.match(/^(.+)=(.+)$/);
+    if (equalsMatch) {
+      const leftExpression = equalsMatch[1].trim();
+      const rightExpression = equalsMatch[2].trim();
+
+      // 检查左侧是否是简单变量名，如果是，已经在上面处理过了
+      if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(leftExpression)) {
+        try {
+          // 提取左侧表达式中使用的变量
+          const leftVars = extractVariables(leftExpression);
+          updateDependencyGraph(lineIndex, leftVars);
+
+          // 计算左侧表达式
+          const leftResult = evalExpression(leftExpression);
+          const leftDisplay = formatResult(leftResult);
+
+          // 检查右侧是否是数值表达式
+          const isRightNumeric = /^\s*\d+(\.\d+)?\s*$/.test(rightExpression);
+
+          // 如果右侧是数值，检查计算结果是否匹配
+          if (isRightNumeric) {
+            const rightValue = Number.parseFloat(rightExpression);
+            const isCorrect = Math.abs(leftResult - rightValue) < 1e-10; // 允许小误差
+
+            return {
+              type: 'equation',
+              content: line,
+              result: leftDisplay,
+              isCorrect,
+              highlightedContent: highlightSyntax(line),
+            };
+          } else {
+            // 如果右侧不是简单数值，也计算它
+            const rightVars = extractVariables(rightExpression);
+            for (const v of rightVars) {
+              leftVars.add(v);
+            }
+            updateDependencyGraph(lineIndex, leftVars);
+
+            const rightResult = evalExpression(rightExpression);
+            const isCorrect = Math.abs(leftResult - rightResult) < 1e-10; // 允许小误差
+
+            return {
+              type: 'equation',
+              content: line,
+              result: leftDisplay,
+              isCorrect,
+              highlightedContent: highlightSyntax(line),
+            };
+          }
+        } catch (e) {
+          return {
+            type: 'error',
+            content: line,
+            error: String(e),
+            highlightedContent: highlightSyntax(line),
+          };
+        }
       }
     }
 
@@ -585,10 +593,13 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 第一遍扫描：收集所有变量定义
     lines.forEach((line) => {
       // 使用与calculateLine中相同的正则表达式来识别变量赋值
-      const assignmentMatch = line.match(/^([^=\s]+)=([^=].*)$/);
+      const assignmentMatch = line.match(/^([a-zA-Z0-9_\u4e00-\u9fa5]+)\s*=\s*(.+)$/);
       if (assignmentMatch) {
         const varName = assignmentMatch[1].trim();
-        if (!varMap[varName]) {
+        const expression = assignmentMatch[2].trim();
+
+        // 确保右侧不包含等号，是真正的变量赋值
+        if (!expression.includes('=') && !varMap[varName]) {
           // 为每个变量创建一个唯一的安全名称，因为 math.js 不支持中文变量名
           varMap[varName] = `v${varCounter.value++}`;
         }
