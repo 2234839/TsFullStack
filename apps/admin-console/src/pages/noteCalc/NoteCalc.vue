@@ -15,6 +15,7 @@
           class="p-button-outlined"
           @click="handleNewDocument"
           title="新建文档" />
+        <ThemeToggle />
         <Button
           icon="pi pi-cog"
           class="p-button-outlined p-button-rounded"
@@ -247,6 +248,7 @@
   import Dialog from 'primevue/dialog';
   import InputSwitch from 'primevue/inputswitch';
   import InputNumber from 'primevue/inputnumber';
+  import ThemeToggle from '@/components/system/ThemeToggle.vue';
 
   //#region 状态管理
   const content = ref(exampleContent);
