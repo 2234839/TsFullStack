@@ -13,8 +13,14 @@
           icon="pi pi-file"
           label="新建"
           class="p-button-outlined"
-          @click="handleNewDocument"
+          @click="handleNewDocument()"
           title="新建文档" />
+        <Button
+          icon="pi pi-share-alt"
+          label="分享"
+          class="p-button-outlined"
+          @click="handleShare()"
+          title="分享当前文档" />
         <ThemeToggle />
         <Button
           icon="pi pi-cog"
@@ -193,7 +199,7 @@
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <label class="font-medium">自动计算</label>
-          <InputSwitch v-model="isAutoCalculate" />
+          <ToggleSwitch v-model="isAutoCalculate" />
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">结果显示精度</label>
@@ -242,13 +248,19 @@
   import { exampleContent } from '@/pages/noteCalc/exampleContent';
   import { useCalculator } from './useCalculator';
   import type { CalculationResult } from './types';
+  import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
 
-  // PrimeVue组件
-  import Button from 'primevue/button';
-  import Dialog from 'primevue/dialog';
-  import InputSwitch from 'primevue/inputswitch';
-  import InputNumber from 'primevue/inputnumber';
+  import { Button, Dialog, ToggleSwitch, InputNumber, useToast } from 'primevue';
   import ThemeToggle from '@/components/system/ThemeToggle.vue';
+  import { useRoute } from 'vue-router';
+  import { router } from '@/router';
+
+  const toast = useToast();
+
+  const props = defineProps<{
+    /** lz-string 压缩后的内容  */
+    c?: string;
+  }>();
 
   //#region 状态管理
   const content = ref(exampleContent);
@@ -261,6 +273,7 @@
   const precision = ref(64);
   const showPrecision = ref(4);
   const previousContent = ref(''); // 用于存储上一次计算的内容
+  const showCalculateButton = ref(!isAutoCalculate.value);
 
   const lastCalculationTime_v = useDateFormat(lastCalculationTime, 'HH:mm:ss');
   //#endregion
@@ -313,8 +326,20 @@
     }
   }, 50);
 
-  // 监听内容变化，重新计算
-  watch(content, debouncedCalculate, { deep: false });
+  // 更新url参数
+  const route = useRoute();
+  const debouncedUpdateQuery = useDebounceFn(() => {
+    const compressedContent = compressToEncodedURIComponent(content.value);
+    router.replace({ query: { ...route.query, c: compressedContent } });
+  }, 1000);
+  watch(
+    content,
+    () => {
+      debouncedCalculate();
+      debouncedUpdateQuery();
+    },
+    { deep: false },
+  );
 
   // 处理Tab键
   const handleTab = (_e: KeyboardEvent) => {
@@ -370,11 +395,72 @@
     showSettings.value = false;
   };
 
+  // 处理分享功能
+  const handleShare = () => {
+    try {
+      // 使用LZString压缩内容
+      const compressedContent = compressToEncodedURIComponent(content.value);
+
+      // 创建带有内容参数的URL
+      const shareUrl = `${window.location.origin}${window.location.pathname}?c=${compressedContent}`;
+
+      // 复制URL到剪贴板
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        // 显示成功消息
+        toast.add({
+          severity: 'success',
+          summary: '分享成功',
+          detail: '分享链接已复制到剪贴板！',
+          life: 3000,
+        });
+      });
+    } catch (error) {
+      console.error('分享失败:', error);
+      toast.add({
+        severity: 'error',
+        summary: '分享失败',
+        detail: '生成分享链接时出错，请重试',
+        life: 3000,
+      });
+    }
+  };
+
+  // 从URL参数加载内容
+  const loadContentFromUrl = () => {
+    try {
+      const compressedContent = props.c;
+      if (!compressedContent) return;
+      // 解压内容
+      const decompressedContent = decompressFromEncodedURIComponent(compressedContent);
+
+      if (!decompressedContent) return;
+      content.value = decompressedContent;
+    } catch (error) {
+      console.error('从URL加载内容失败:', error);
+      toast.add({
+        severity: 'error',
+        summary: '加载失败',
+        detail: '从分享链接加载内容时出错',
+        life: 3000,
+      });
+    }
+  };
+
   // 组件挂载后执行计算
   onMounted(() => {
+    // 尝试从URL加载内容
+    loadContentFromUrl();
+
     // 执行初始计算
     calculateContent(true);
   });
+
+  watch(
+    () => isAutoCalculate.value,
+    (newValue) => {
+      showCalculateButton.value = !newValue;
+    },
+  );
 </script>
 
 <style></style>
