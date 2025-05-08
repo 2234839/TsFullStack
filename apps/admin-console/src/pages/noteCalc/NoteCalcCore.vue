@@ -5,16 +5,16 @@
         <div class="p-3 sm:p-4">
           <div class="flex items-center justify-between mb-2">
             <h2 class="font-medium text-gray-500 dark:text-gray-400">编辑区</h2>
-            <div class="text-gray-400" @click="isAutoCalculate = !isAutoCalculate">
+            <div
+              class="text-gray-400 cursor-pointer"
+              @click="config.isAutoCalculate = !config.isAutoCalculate">
               <span
-                v-if="isAutoCalculate"
+                v-if="config.isAutoCalculate"
                 class="inline-flex items-center text-green-600 dark:text-green-400">
                 <i class="pi pi-plus mr-1"></i>
                 自动计算已开启
               </span>
-              <span
-                v-else
-                class="inline-flex items-center text-gray-500 dark:text-gray-400 cursor-pointer">
+              <span v-else class="inline-flex items-center text-gray-500 dark:text-gray-400">
                 <i class="pi pi-minus mr-1"></i>
                 点击开启自动计算
               </span>
@@ -40,7 +40,7 @@
                 上次计算: {{ lastCalculationTime_v }}
               </div>
               <Button
-                v-if="!isAutoCalculate"
+                v-if="!config.isAutoCalculate"
                 icon="pi pi-calculator"
                 label="立即计算"
                 size="small"
@@ -169,7 +169,7 @@
 
 <script setup lang="ts">
   import { useDateFormat, useThrottleFn } from '@vueuse/core';
-  import { nextTick, onMounted, ref, watch } from 'vue';
+  import { nextTick, onMounted, reactive, ref, watch } from 'vue';
   import type { CalculationResult } from './types';
   import { useCalculator } from './useCalculator';
 
@@ -177,22 +177,28 @@
 
   //#region 状态管理
   const content = defineModel({ default: '' });
+  /** 注意，这个需要是响应式对象 */
+  const config = defineModel('config', {
+    default: () =>
+      reactive({
+        isAutoCalculate: true,
+        precision: 64,
+        showPrecision: 4,
+      }),
+  });
   const calculatedResults = ref<CalculationResult[]>([]);
   const textareaRef = ref<HTMLTextAreaElement | null>(null);
   const lastCalculationTime = ref(0);
-  const isAutoCalculate = ref(true);
-  const precision = ref(64);
-  const showPrecision = ref(4);
   const previousContent = ref(''); // 用于存储上一次计算的内容
-  const showCalculateButton = ref(!isAutoCalculate.value);
+  const showCalculateButton = ref(!config.value.isAutoCalculate);
 
   const lastCalculationTime_v = useDateFormat(lastCalculationTime, 'HH:mm:ss');
   //#endregion
 
   // 创建计算器实例
   const calculator = useCalculator({
-    precision: precision.value,
-    showPrecision: showPrecision.value,
+    precision: config.value.precision,
+    showPrecision: config.value.showPrecision,
   });
 
   // 计算内容
@@ -226,7 +232,7 @@
   // 防抖处理的计算函数
   const debouncedCalculate = useThrottleFn(
     () => {
-      if (isAutoCalculate.value) {
+      if (config.value.isAutoCalculate) {
         calculateContent();
       }
     },
@@ -235,7 +241,7 @@
   );
 
   watch(
-    content,
+    () => [content.value, config.value.isAutoCalculate],
     () => {
       debouncedCalculate();
     },
@@ -267,7 +273,7 @@
   });
 
   watch(
-    () => isAutoCalculate.value,
+    () => config.value.isAutoCalculate,
     (newValue) => {
       showCalculateButton.value = !newValue;
     },
