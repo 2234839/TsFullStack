@@ -188,24 +188,26 @@ export function useCalculator(initialConfig: CalculatorConfig) {
    * 对变量名进行替换，避免中文变量名对 math.js 的影响
    */
   function paserSafeExpression(expression: string): string {
-    let safeExpression = expression;
+    let safeExpression = ` ${expression} `; // 在表达式前后添加空格，便于处理边界情况
+
     // 按照变量名长度降序排序，避免部分替换问题
     const sortedVars = Object.keys(varMap).sort((a, b) => b.length - a.length);
 
     // 替换变量名为安全的变量名
     for (const name of sortedVars) {
       if (variables[name] !== undefined) {
-        // 使用空格作为分隔符来确保完整替换
-        const pattern = new RegExp(
-          `(^|[^\\p{L}\\p{N}_])${escapeRegExp(name)}([^\\p{L}\\p{N}_]|$)`,
+        // 使用单词边界和空格来确保完整替换
+        const regex = new RegExp(
+          `([^\\p{L}\\p{N}_])(${escapeRegExp(name)})([^\\p{L}\\p{N}_])`,
           'gu',
         );
-        safeExpression = safeExpression.replace(pattern, (_match, p1, p2) => {
-          return `${p1}${varMap[name]}${p2}`;
+        safeExpression = safeExpression.replace(regex, (_, p1, _2, p3) => {
+          return `${p1}${varMap[name]}${p3}`;
         });
       }
     }
-    return safeExpression;
+
+    return safeExpression.trim(); // 移除添加的前后空格
   }
 
   /**
@@ -731,7 +733,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 更新行到变量的映射
     const newLineToVars: Record<number, Set<string>> = {};
     for (const [lineStr, vars] of Object.entries(lineToVars)) {
-      const line = parseInt(lineStr);
+      const line = Number.parseInt(lineStr);
       if (line >= startIndex) {
         newLineToVars[line + offset] = vars;
       } else {
@@ -743,13 +745,13 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     Object.keys(lineToVars).forEach((key) => delete lineToVars[Number(key)]);
     // 填充新值
     Object.entries(newLineToVars).forEach(([key, value]) => {
-      lineToVars[parseInt(key)] = value;
+      lineToVars[Number.parseInt(key)] = value;
     });
 
     // 更新行定义的变量
     const newLineDefinedVars: Record<number, string> = {};
     for (const [lineStr, varName] of Object.entries(lineDefinedVars)) {
-      const line = parseInt(lineStr);
+      const line = Number.parseInt(lineStr);
       if (line >= startIndex) {
         newLineDefinedVars[line + offset] = varName;
       } else {
@@ -761,13 +763,13 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     Object.keys(lineDefinedVars).forEach((key) => delete lineDefinedVars[Number(key)]);
     // 填充新值
     Object.entries(newLineDefinedVars).forEach(([key, value]) => {
-      lineDefinedVars[parseInt(key)] = value;
+      lineDefinedVars[Number.parseInt(key)] = value;
     });
 
     // 更新行结果
     const newLineResults: Record<number, CalculationResult> = {};
     for (const [lineStr, result] of Object.entries(lineResults)) {
-      const line = parseInt(lineStr);
+      const line = Number.parseInt(lineStr);
       if (line >= startIndex) {
         newLineResults[line + offset] = result;
       } else {
@@ -779,7 +781,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     Object.keys(lineResults).forEach((key) => delete lineResults[Number(key)]);
     // 填充新值
     Object.entries(newLineResults).forEach(([key, value]) => {
-      lineResults[parseInt(key)] = value;
+      lineResults[Number.parseInt(key)] = value;
     });
 
     // 更新依赖图

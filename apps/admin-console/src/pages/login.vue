@@ -58,198 +58,201 @@
             ? 'bg-gradient-to-r from-teal-500 to-blue-600'
             : 'bg-gradient-to-r from-cyan-400 to-teal-500'
         "></div>
-
-      <!-- 顶部Logo和标题 -->
-      <div class="text-center">
-        <div class="flex justify-center mb-4">
-          <div
-            class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow"
+      <div class="relative z-10">
+        <!-- 顶部Logo和标题 -->
+        <div class="text-center">
+          <div class="flex justify-center mb-4">
+            <div
+              class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow"
+              :class="
+                theme_isDark
+                  ? 'bg-gradient-to-r from-teal-500 to-blue-600 shadow-teal-500/30'
+                  : 'bg-gradient-to-r from-cyan-500 to-teal-600 shadow-teal-500/20'
+              ">
+              <i class="pi pi-shield text-white text-3xl"></i>
+            </div>
+          </div>
+          <h2
+            class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient"
             :class="
               theme_isDark
-                ? 'bg-gradient-to-r from-teal-500 to-blue-600 shadow-teal-500/30'
-                : 'bg-gradient-to-r from-cyan-500 to-teal-600 shadow-teal-500/20'
+                ? 'bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-400'
+                : 'bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600'
             ">
-            <i class="pi pi-shield text-white text-3xl"></i>
-          </div>
-        </div>
-        <h2
-          class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient"
-          :class="
-            theme_isDark
-              ? 'bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-400'
-              : 'bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600'
-          ">
-          {{ isLogin ? '系统登录' : '用户注册' }}
-        </h2>
-        <p class="mt-2 text-sm" :class="theme_isDark ? 'text-gray-300' : 'text-gray-600'">
-          {{ isLogin ? '欢迎回来，请输入您的账号和密码' : '创建一个新账号，开始您的旅程' }}
-        </p>
-      </div>
-
-      <form class="mt-8 space-y-5" @submit.prevent="handleSubmit">
-        <div class="space-y-4">
-          <!-- 用户名/邮箱输入框 -->
-          <div class="group">
-            <label
-              for="username"
-              class="block text-sm font-medium mb-1"
-              :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
-              <i
-                class="pi pi-user mr-2"
-                :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />{{
-                isLogin ? '用户名' : '邮箱'
-              }}
-            </label>
-
-            <InputText
-              id="username"
-              v-model="form.username"
-              :type="isLogin ? 'text' : 'email'"
-              required
-              class="w-full"
-              :placeholder="isLogin ? '请输入用户名' : '请输入邮箱'" />
-          </div>
-
-          <!-- 密码输入框 -->
-          <div class="group">
-            <label
-              for="password"
-              class="block text-sm font-medium mb-1"
-              :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
-              <i
-                class="pi pi-lock mr-2"
-                :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />密码
-            </label>
-            <Password
-              id="password"
-              v-model="form.password"
-              toggleMask
-              required
-              class="w-full"
-              inputClass="w-full"
-              :feedback="!isLogin"
-              :placeholder="isLogin ? '请输入密码' : '请设置密码'" />
-          </div>
-
-          <!-- 确认密码输入框 (仅注册时显示) -->
-          <div v-if="!isLogin" class="group">
-            <label
-              for="confirmPassword"
-              class="block text-sm font-medium mb-1"
-              :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
-              <i
-                class="pi pi-lock mr-2"
-                :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />确认密码
-            </label>
-            <Password
-              id="confirmPassword"
-              v-model="form.confirmPassword"
-              toggleMask
-              required
-              class="w-full"
-              inputClass="w-full"
-              :feedback="false"
-              placeholder="请再次输入密码" />
-            <small
-              v-if="form.password && form.confirmPassword && form.password !== form.confirmPassword"
-              class="text-red-500 mt-1 block">
-              两次输入的密码不一致
-            </small>
-          </div>
+            {{ isLogin ? '系统登录' : '用户注册' }}
+          </h2>
+          <p class="mt-2 text-sm" :class="theme_isDark ? 'text-gray-300' : 'text-gray-600'">
+            {{ isLogin ? '欢迎回来，请输入您的账号和密码' : '创建一个新账号，开始您的旅程' }}
+          </p>
         </div>
 
-        <!-- 记住我和忘记密码 (仅登录时显示) -->
-        <div v-if="isLogin" class="flex items-center justify-between">
-          <div class="flex items-center">
-            <Checkbox v-model="rememberMe" id="remember" binary />
+        <form class="mt-8 space-y-5" @submit.prevent="handleSubmit">
+          <div class="space-y-4">
+            <!-- 用户名/邮箱输入框 -->
+            <div class="group">
+              <label
+                for="username"
+                class="block text-sm font-medium mb-1"
+                :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+                <i
+                  class="pi pi-user mr-2"
+                  :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />{{
+                  isLogin ? '用户名' : '邮箱'
+                }}
+              </label>
+
+              <InputText
+                id="username"
+                v-model="form.username"
+                :type="isLogin ? 'text' : 'email'"
+                required
+                class="w-full"
+                :placeholder="isLogin ? '请输入用户名' : '请输入邮箱'" />
+            </div>
+
+            <!-- 密码输入框 -->
+            <div class="group">
+              <label
+                for="password"
+                class="block text-sm font-medium mb-1"
+                :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+                <i
+                  class="pi pi-lock mr-2"
+                  :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />密码
+              </label>
+              <Password
+                id="password"
+                v-model="form.password"
+                toggleMask
+                required
+                class="w-full"
+                inputClass="w-full"
+                :feedback="!isLogin"
+                :placeholder="isLogin ? '请输入密码' : '请设置密码'" />
+            </div>
+
+            <!-- 确认密码输入框 (仅注册时显示) -->
+            <div v-if="!isLogin" class="group">
+              <label
+                for="confirmPassword"
+                class="block text-sm font-medium mb-1"
+                :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+                <i
+                  class="pi pi-lock mr-2"
+                  :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />确认密码
+              </label>
+              <Password
+                id="confirmPassword"
+                v-model="form.confirmPassword"
+                toggleMask
+                required
+                class="w-full"
+                inputClass="w-full"
+                :feedback="false"
+                placeholder="请再次输入密码" />
+              <small
+                v-if="
+                  form.password && form.confirmPassword && form.password !== form.confirmPassword
+                "
+                class="text-red-500 mt-1 block">
+                两次输入的密码不一致
+              </small>
+            </div>
+          </div>
+
+          <!-- 记住我和忘记密码 (仅登录时显示) -->
+          <div v-if="isLogin" class="flex items-center justify-between">
+            <div class="flex items-center">
+              <Checkbox v-model="rememberMe" id="remember" binary />
+              <label
+                for="remember"
+                class="ml-2 block text-sm"
+                :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+                记住我
+              </label>
+            </div>
+
+            <div class="text-sm">
+              <a
+                href="#"
+                class="font-medium transition-colors"
+                :class="
+                  theme_isDark
+                    ? 'text-teal-400 hover:text-teal-300'
+                    : 'text-teal-600 hover:text-teal-500'
+                ">
+                忘记密码?
+              </a>
+            </div>
+          </div>
+
+          <!-- 用户协议 (仅注册时显示) -->
+          <div v-if="!isLogin" class="flex items-center">
+            <Checkbox v-model="agreeTerms" id="terms" binary />
             <label
-              for="remember"
+              for="terms"
               class="ml-2 block text-sm"
               :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
-              记住我
+              我已阅读并同意
+              <a
+                href="#"
+                class="font-medium transition-colors"
+                :class="
+                  theme_isDark
+                    ? 'text-teal-400 hover:text-teal-300'
+                    : 'text-teal-600 hover:text-teal-500'
+                ">
+                用户协议
+              </a>
+              和
+              <a
+                href="#"
+                class="font-medium transition-colors"
+                :class="
+                  theme_isDark
+                    ? 'text-teal-400 hover:text-teal-300'
+                    : 'text-teal-600 hover:text-teal-500'
+                ">
+                隐私政策
+              </a>
             </label>
           </div>
 
-          <div class="text-sm">
-            <a
-              href="#"
-              class="font-medium transition-colors"
-              :class="
-                theme_isDark
-                  ? 'text-teal-400 hover:text-teal-300'
-                  : 'text-teal-600 hover:text-teal-500'
-              ">
-              忘记密码?
-            </a>
+          <!-- 登录/注册按钮 -->
+          <div class="space-y-3">
+            <Button
+              v-if="authInfo_isLogin"
+              label="已处于登录状态, 点击跳转首页"
+              icon="pi pi-home"
+              @click="routerUtil.push(routeMap.admin, {})"
+              class="w-full justify-center" />
+            <Button
+              type="submit"
+              class="w-full justify-center"
+              :loading="loading"
+              :icon="isLogin ? 'pi pi-sign-in' : 'pi pi-user-plus'"
+              :disabled="!isFormValid || loading"
+              :label="isLogin ? '登录' : '注册'" />
           </div>
-        </div>
+        </form>
 
-        <!-- 用户协议 (仅注册时显示) -->
-        <div v-if="!isLogin" class="flex items-center">
-          <Checkbox v-model="agreeTerms" id="terms" binary />
-          <label
-            for="terms"
-            class="ml-2 block text-sm"
-            :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
-            我已阅读并同意
+        <!-- 底部切换登录/注册 -->
+        <div
+          class="pt-4 text-center text-xs border-t"
+          :class="
+            theme_isDark ? 'text-gray-400 border-gray-700/30' : 'text-gray-500 border-gray-200'
+          ">
+          <p>
+            {{ isLogin ? '还没有账号?' : '已有账号?' }}
             <a
               href="#"
-              class="font-medium transition-colors"
-              :class="
-                theme_isDark
-                  ? 'text-teal-400 hover:text-teal-300'
-                  : 'text-teal-600 hover:text-teal-500'
-              ">
-              用户协议
+              @click.prevent="toggleMode"
+              class="hover:underline"
+              :class="theme_isDark ? 'text-teal-400' : 'text-teal-600'">
+              {{ isLogin ? '立即注册' : '立即登录' }}
             </a>
-            和
-            <a
-              href="#"
-              class="font-medium transition-colors"
-              :class="
-                theme_isDark
-                  ? 'text-teal-400 hover:text-teal-300'
-                  : 'text-teal-600 hover:text-teal-500'
-              ">
-              隐私政策
-            </a>
-          </label>
+          </p>
         </div>
-
-        <!-- 登录/注册按钮 -->
-        <div class="space-y-3">
-          <Button
-            v-if="authInfo_isLogin"
-            label="已处于登录状态, 点击跳转首页"
-            icon="pi pi-home"
-            @click="routerUtil.push(routeMap.admin, {})"
-            class="w-full justify-center" />
-          <Button
-            type="submit"
-            class="w-full justify-center"
-            :loading="loading"
-            :icon="isLogin ? 'pi pi-sign-in' : 'pi pi-user-plus'"
-            :disabled="!isFormValid || loading"
-            :label="isLogin ? '登录' : '注册'" />
-        </div>
-      </form>
-
-      <!-- 底部切换登录/注册 -->
-      <div
-        class="pt-4 text-center text-xs border-t"
-        :class="
-          theme_isDark ? 'text-gray-400 border-gray-700/30' : 'text-gray-500 border-gray-200'
-        ">
-        <p>
-          {{ isLogin ? '还没有账号?' : '已有账号?' }}
-          <a
-            href="#"
-            @click.prevent="toggleMode"
-            class="hover:underline"
-            :class="theme_isDark ? 'text-teal-400' : 'text-teal-600'">
-            {{ isLogin ? '立即注册' : '立即登录' }}
-          </a>
-        </p>
       </div>
     </div>
 
