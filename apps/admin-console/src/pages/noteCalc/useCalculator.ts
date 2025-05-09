@@ -43,13 +43,6 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   }
 
   /**
-   * 转义正则表达式中的特殊字符
-   */
-  function escapeRegExp(string: string): string {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  /**
    * 格式化结果为可显示的字符串，处理精度问题
    */
   function formatResult(result: any): string {
@@ -286,7 +279,6 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     const sortedVars = Object.keys(varMap).sort((a, b) => b.length - a.length);
 
     // 使用与paserSafeExpression相同的词元化方法
-    const tokens = [];
     let currentToken = '';
 
     // 遍历表达式的每个字符

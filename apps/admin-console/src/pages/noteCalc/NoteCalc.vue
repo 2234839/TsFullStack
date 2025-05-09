@@ -887,7 +887,7 @@
   };
 
   // 处理分享功能
-  const { copy, copied } = useClipboard();
+  const { copy } = useClipboard();
   const handleShare = () => {
     try {
       let shareUrl = '';
