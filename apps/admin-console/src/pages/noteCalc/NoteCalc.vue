@@ -13,7 +13,7 @@
           icon="pi pi-file"
           label="新建"
           class="p-button-outlined"
-          @click="handleNewDocument()"
+          @click="handleNewDocument($event)"
           title="新建文档" />
         <Button
           icon="pi pi-share-alt"
@@ -74,14 +74,15 @@
 
 <script setup lang="ts">
   import { exampleContent } from '@/pages/noteCalc/exampleContent';
-  import { useDebounceFn } from '@vueuse/core';
+  import { useClipboard, useThrottleFn } from '@vueuse/core';
   import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
   import { onMounted, reactive, ref, watch } from 'vue';
 
   import ThemeToggle from '@/components/system/ThemeToggle.vue';
+  import { t } from '@/i18n';
   import NoteCalcCore from '@/pages/noteCalc/NoteCalcCore.vue';
   import { router } from '@/router';
-  import { Button, Dialog, InputNumber, ToggleSwitch, useToast } from 'primevue';
+  import { Button, Dialog, InputNumber, ToggleSwitch, useConfirm, useToast } from 'primevue';
   import { useRoute } from 'vue-router';
 
   const toast = useToast();
@@ -103,30 +104,47 @@
 
   // 更新url参数
   const route = useRoute();
-  const debouncedUpdateQuery = useDebounceFn(() => {
-    const compressedContent = compressToEncodedURIComponent(content.value);
-    router.replace({ query: { ...route.query, c: compressedContent } });
-  }, 1000);
+  const throttleUpdateQuery = useThrottleFn(
+    () => {
+      const compressedContent = compressToEncodedURIComponent(content.value);
+      router.replace({ query: { ...route.query, c: compressedContent } });
+    },
+    1200,
+    true,
+  );
   watch(
     content,
     () => {
-      debouncedUpdateQuery();
+      throttleUpdateQuery();
     },
     { deep: false },
   );
 
   // 处理新建文档
-  const handleNewDocument = () => {
-    if (content.value.trim() !== '') {
-      if (confirm('是否确定新建文档？当前内容将被清空。')) {
+  const confirm = useConfirm();
+  const handleNewDocument = (event: MouseEvent) => {
+    if (content.value.trim() === '') return;
+    confirm.require({
+      target: event.currentTarget! as HTMLElement,
+      message: t('是否确定新建文档？当前内容将被清空。'),
+      icon: 'pi pi-exclamation-triangle',
+      rejectProps: {
+        label: 'Cancel',
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptProps: {
+        label: 'Ok',
+      },
+      accept: () => {
         content.value = '';
-      }
-    } else {
-      content.value = '';
-    }
+      },
+      reject: () => {},
+    });
   };
 
   // 处理分享功能
+  const { copy, copied } = useClipboard();
   const handleShare = () => {
     try {
       // 使用LZString压缩内容
@@ -135,15 +153,16 @@
       // 创建带有内容参数的URL
       const shareUrl = `${window.location.origin}${window.location.pathname}?c=${compressedContent}`;
 
-      // 复制URL到剪贴板
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        // 显示成功消息
-        toast.add({
-          severity: 'success',
-          summary: '分享成功',
-          detail: '分享链接已复制到剪贴板！',
-          life: 3000,
-        });
+      // 使用useClipboard的copy方法
+      copy(shareUrl).then(() => {
+        if (copied.value) {
+          toast.add({
+            severity: 'success',
+            summary: '分享成功',
+            detail: '分享链接已复制到剪贴板！',
+            life: 3000,
+          });
+        }
       });
     } catch (error) {
       console.error('分享失败:', error);
