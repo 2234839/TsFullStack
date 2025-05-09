@@ -33,7 +33,7 @@ export function setApiTempToast(toast: typeof apiTempToast) {
 export const { API, AppAPI } = useAPI();
 
 /** 方便组件调用时进行一些定制操作 */
-export function useAPI(toast = apiTempToast) {
+export function useAPI(toast?: typeof apiTempToast) {
   const { API } = createRPC<__API__>('apiConsumer', {
     remoteCall: genPostRemoteCall(`${baseServer}/api/`),
   });
@@ -86,14 +86,14 @@ export function useAPI(toast = apiTempToast) {
           const op = res.error.op as MsgErrorOpValues | undefined;
           if (op === 'op_toLogin') {
             routerUtil.push(routeMap.login, {});
-            toast.add({
+            (toast ?? apiTempToast).add({
               severity: 'error',
               summary: 'Error',
               detail: res.error.message,
               life: 3000,
             });
           } else if (op === 'op_msgError') {
-            toast.add({
+            (toast ?? apiTempToast).add({
               severity: 'error',
               summary: 'Error',
               detail: res.error.message,
