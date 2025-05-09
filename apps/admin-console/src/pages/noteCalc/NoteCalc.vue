@@ -30,20 +30,20 @@
       </div>
     </header>
 
-    <NoteCalcCore v-model="content" />
+    <NoteCalcCore v-model="content" v-model:config="config" />
 
     <!-- 设置面板 -->
     <Dialog v-model:visible="showSettings" header="设置" modal class="w-[30rem]">
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <label class="font-medium">自动计算</label>
-          <ToggleSwitch v-model="isAutoCalculate" />
+          <ToggleSwitch v-model="config.isAutoCalculate" />
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">结果显示精度</label>
           <div class="flex items-center">
             <InputNumber
-              v-model="showPrecision"
+              v-model="config.showPrecision"
               :min="1"
               :max="100"
               showButtons
@@ -57,7 +57,7 @@
           <label class="font-medium">计算精度</label>
           <div class="flex items-center">
             <InputNumber
-              v-model="precision"
+              v-model="config.precision"
               :min="1"
               :max="100"
               showButtons
@@ -68,31 +68,21 @@
           </div>
         </div>
       </div>
-      <template #footer>
-        <Button
-          label="取消"
-          icon="pi pi-times"
-          @click="showSettings = false"
-          class="p-button-text" />
-        <Button label="应用" icon="pi pi-check" @click="applySettings()" autofocus />
-      </template>
     </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, watch, onMounted, nextTick } from 'vue';
-  import { useDateFormat, useDebounceFn } from '@vueuse/core';
   import { exampleContent } from '@/pages/noteCalc/exampleContent';
-  import { useCalculator } from './useCalculator';
-  import type { CalculationResult } from './types';
+  import { useDebounceFn } from '@vueuse/core';
   import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
+  import { onMounted, reactive, ref, watch } from 'vue';
 
-  import { Button, Dialog, ToggleSwitch, InputNumber, useToast } from 'primevue';
   import ThemeToggle from '@/components/system/ThemeToggle.vue';
-  import { useRoute } from 'vue-router';
-  import { router } from '@/router';
   import NoteCalcCore from '@/pages/noteCalc/NoteCalcCore.vue';
+  import { router } from '@/router';
+  import { Button, Dialog, InputNumber, ToggleSwitch, useToast } from 'primevue';
+  import { useRoute } from 'vue-router';
 
   const toast = useToast();
 
@@ -103,15 +93,12 @@
 
   //#region 状态管理
   const content = ref(exampleContent);
-  const calculatedResults = ref<CalculationResult[]>([]);
-  const textareaRef = ref<HTMLTextAreaElement | null>(null);
-  const lastCalculationTime = ref(0);
-  const isCalculating = ref(false);
-  const isAutoCalculate = ref(true);
+  const config = reactive({
+    isAutoCalculate: true,
+    precision: 64,
+    showPrecision: 4,
+  });
   const showSettings = ref(false);
-  const precision = ref(64);
-  const showPrecision = ref(4);
-  const showCalculateButton = ref(!isAutoCalculate.value);
   //#endregion
 
   // 更新url参数
@@ -133,25 +120,10 @@
     if (content.value.trim() !== '') {
       if (confirm('是否确定新建文档？当前内容将被清空。')) {
         content.value = '';
-        calculatedResults.value = [];
-        lastCalculationTime.value = 0;
       }
     } else {
       content.value = '';
     }
-  };
-
-  // 应用设置
-  const applySettings = () => {
-    // 应用设置逻辑
-    if (precision.value < 1) precision.value = 1;
-    if (precision.value > 100) precision.value = 100;
-
-    if (showPrecision.value < 1) showPrecision.value = 1;
-    if (showPrecision.value > 100) showPrecision.value = 100;
-
-    // 关闭设置面板
-    showSettings.value = false;
   };
 
   // 处理分享功能
@@ -210,13 +182,6 @@
     // 尝试从URL加载内容
     loadContentFromUrl();
   });
-
-  watch(
-    () => isAutoCalculate.value,
-    (newValue) => {
-      showCalculateButton.value = !newValue;
-    },
-  );
 </script>
 
 <style></style>

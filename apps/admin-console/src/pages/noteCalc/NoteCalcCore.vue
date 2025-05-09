@@ -179,12 +179,11 @@
   const content = defineModel({ default: '' });
   /** 注意，这个需要是响应式对象 */
   const config = defineModel('config', {
-    default: () =>
-      reactive({
-        isAutoCalculate: true,
-        precision: 64,
-        showPrecision: 4,
-      }),
+    default: reactive({
+      isAutoCalculate: true,
+      precision: 64,
+      showPrecision: 4,
+    }),
   });
   const calculatedResults = ref<CalculationResult[]>([]);
   const textareaRef = ref<HTMLTextAreaElement | null>(null);
@@ -241,13 +240,20 @@
   );
 
   watch(
-    () => [content.value, config.value.isAutoCalculate],
+    content,
     () => {
       debouncedCalculate();
     },
     { deep: false },
   );
-
+  watch(
+    () => [...Object.values(config.value)],
+    () => {
+      calculator.updateConfig(config.value);
+      calculateContent(true);
+    },
+    { deep: false },
+  );
   // 处理Tab键
   const handleTab = (_e: KeyboardEvent) => {
     const textarea = textareaRef.value;
