@@ -1,6 +1,7 @@
 <template>
   <div
     @click="toggleTheme"
+    v-tooltip.right="$t('切换主题')"
     class="w-9 h-9 flex items-center justify-center aspect-ratio rounded-full transition-colors duration-300"
     :class="
       theme_isDark

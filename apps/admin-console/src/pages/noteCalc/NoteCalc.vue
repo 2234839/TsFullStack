@@ -30,12 +30,13 @@
           class="p-button-outlined"
           @click="handleShare()"
           title="分享当前文档" />
-        <ThemeToggle />
         <Button
           icon="pi pi-cog"
           class="p-button-outlined p-button-rounded"
           @click="showSettings = !showSettings"
           title="设置" />
+        <ThemeToggle />
+        <UserSettingBtn />
       </div>
     </header>
 
@@ -70,7 +71,13 @@
             <div class="text-center p-4">
               <i class="pi pi-lock text-4xl mb-2 text-gray-400"></i>
               <p class="text-gray-500">请登录后查看您的笔记</p>
-              <Button @click="routerUtil.push(routeMap.login, {})">登录</Button>
+              <Button
+                @click="
+                  routerUtil.push(routeMap.login, {}, { r: $route.fullPath }),
+                    (sidebarVisible = false)
+                "
+                >登录</Button
+              >
             </div>
           </div>
 
@@ -106,7 +113,7 @@
                       <Button
                         icon="pi pi-pencil"
                         class="p-button-text p-button-rounded p-button-sm"
-                        @click.stop="showRenameDialog(note)"
+                        @click="showRenameDialog(note)"
                         title="重命名" />
                       <Button
                         icon="pi pi-trash"
@@ -276,6 +283,7 @@
   } from 'primevue';
   import type { Prisma } from 'tsfullstack-backend/prisma/client/client';
   import { useRoute } from 'vue-router';
+  import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
 
   const toast = useToast();
   const route = useRoute();

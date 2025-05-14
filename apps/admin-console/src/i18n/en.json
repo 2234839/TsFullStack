@@ -61,5 +61,7 @@
   "管理后台": "Management Backend",
   "仪表盘": "Dashboard",
   "登录": "Login",
-  "重定向": "redirect"
+  "重定向": "redirect",
+  "切换主题": "Switch Theme",
+  "退出": "exit"
 }

@@ -200,11 +200,7 @@
             v-tooltip.right="'设置'" />
           <ThemeSwitch v-tooltip.right="'主题切换'" />
           <I18nSwitch />
-          <Button
-            icon="pi pi-power-off"
-            class="p-button-rounded p-button-text p-button-plain"
-            @click="authInfo_logout()"
-            v-tooltip.right="'退出'" />
+          <UserSettingBtn />
         </div>
       </div>
 
@@ -228,6 +224,7 @@
   import { computed, reactive, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
   import avatarImageSrc from '/崮生.png?url';
+  import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
 
   // 定义类型
   interface MenuItem {

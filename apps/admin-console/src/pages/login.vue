@@ -272,6 +272,11 @@
   import { useEventListener } from '@vueuse/core';
   import { Button, Checkbox, InputText, Password, useToast } from 'primevue';
   import { computed, onMounted, ref } from 'vue';
+
+  const props = defineProps<{
+    r?: string;
+  }>();
+
   const { AppAPI } = useAPI();
 
   const toast = useToast();
@@ -364,11 +369,12 @@
           detail: '欢迎回来，正在为您跳转...',
           life: 3000,
         });
-
-        // 延迟跳转
-        setTimeout(() => {
-          routerUtil.push(routeMap.admin, {});
-        }, 1000);
+        if (props.r) {
+          const redirectUrl = decodeURIComponent(props.r);
+          location.href = redirectUrl; // 直接跳转到指定的URL
+          return; // 阻止后续的跳转逻辑
+        }
+        routerUtil.push(routeMap.admin, {});
       } else {
         // 注册逻辑
         await AppAPI.system.register(form.value.username, form.value.password);

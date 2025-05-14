@@ -2,6 +2,7 @@ import { routeMap, routerUtil } from '@/router';
 import { StorageSerializers, useStorage } from '@vueuse/core';
 import { computed, watchEffect } from 'vue';
 
+const appId = 'tfs_';
 /** 用户认证信息存储  */
 export const authInfo = useStorage<
   | {
@@ -10,18 +11,18 @@ export const authInfo = useStorage<
       expiresAt: number;
     }
   | undefined
->('authInfo', null, undefined, { serializer: StorageSerializers.object });
+>(appId + 'authInfo', null, undefined, { serializer: StorageSerializers.object });
 export const authInfo_isLogin = computed(() => {
   return !!authInfo.value && authInfo.value.expiresAt > Date.now();
 });
 /** 清楚认证信息并跳转到登录页面  */
-export function authInfo_logout() {
+export function authInfo_logout(/** 登录后重定向的页面地址   */ r?: string) {
   authInfo.value = undefined;
-  routerUtil.push(routeMap.login, {});
+  routerUtil.push(routeMap.login, {}, { r });
 }
 
 //#region 主题功能
-export const theme = useStorage<'dark' | 'light'>('theme', null, undefined, {
+export const theme = useStorage<'dark' | 'light'>(appId + 'theme', null, undefined, {
   serializer: StorageSerializers.object,
 });
 
@@ -46,5 +47,5 @@ watchEffect(() => {
 //#endregion 主题功能
 
 //#region i18n
-export const i18nStore = useStorage<'zh-CN' | 'en'>('i18nStore', null);
+export const i18nStore = useStorage<'zh-CN' | 'en'>(appId + 'i18nStore', null);
 //#endregion
