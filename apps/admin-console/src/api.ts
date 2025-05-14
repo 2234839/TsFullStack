@@ -13,7 +13,7 @@ import { type ToastMessageOptions } from 'primevue/toast';
 import superjson from 'superjson';
 import { routeMap, routerUtil } from './router';
 import { authInfo } from './storage';
-const baseServer = import.meta.env.DEV ? 'http://localhost:5209' : '';
+const baseServer = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5209';
 
 /** 有些api在组件还没加载的时候可能就要调用 toast 了，万一遇到这种情况了先用 alert 顶顶 */
 let apiTempToast = {

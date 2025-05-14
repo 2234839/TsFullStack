@@ -5,7 +5,7 @@ rsync -avz --progress ../admin-console/dist/* admin@47.236.87.38:/home/admin/app
 
 # 同步数据库迁移文件
 rsync -avz --progress ./prisma/migrations/* admin@47.236.87.38:/home/admin/app/TsFullStack/prisma/migrations/
-# 在项目目录中运行数据库迁移命令
+# 在项目目录中运行数据库迁移命令,需要在服务端安装 `pnpm i -D prisma`
 ssh -t admin@47.236.87.38 "cd /home/admin/app/TsFullStack/ && prisma migrate deploy"
 
 

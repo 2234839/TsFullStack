@@ -135,6 +135,7 @@ model UserData extends Base {
     // 权限控制：用户只能读取和操作自己的数据
     @@allow('read,create,update,delete', auth() == user)
 }
+
 /// 任务队列处理
 model Queue extends Base {
     name        String    // 队列名称，可用于区分不同类型的任务
