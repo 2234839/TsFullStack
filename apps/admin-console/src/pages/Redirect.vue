@@ -19,7 +19,7 @@
     } else {
       console.error('Invalid redirect path:', path);
       // 可选：重定向到默认路由或显示错误信息
-      routerUtil.push(routeMap.index, undefined);
+      routerUtil.push(routeMap.index, {});
     }
   });
 </script>

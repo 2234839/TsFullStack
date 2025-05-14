@@ -16,7 +16,7 @@ const t = (key: string) => computed(() => i18n_t(key));
 export const routeMap = reactive({
   index: {
     path: '/',
-    redirect: '/admin',
+    component: () => import('@/pages/index.vue'),
     meta: {
       title: t('首页'),
       hidden: true,
