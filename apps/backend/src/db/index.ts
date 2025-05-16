@@ -1,5 +1,5 @@
-import { PrismaClient } from '../../prisma/client';
 import type { PrismaClient as PrismaClientType } from '@zenstackhq/runtime';
+import { PrismaClient } from '@prisma/client';
 import { enhance } from '@zenstackhq/runtime/edge';
 import __ModelMeta from '@zenstackhq/runtime/model-meta';
 import { modelsName } from './model-meta';

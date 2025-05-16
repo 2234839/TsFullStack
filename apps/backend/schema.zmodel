@@ -8,7 +8,8 @@ datasource db {
 
 generator client {
     provider = "prisma-client-js"
-    output   = "client"
+    // 不要配置这个！！会与 zenstack 冲突
+    // output   = "client"
 }
 
 ///  https://zenstack.dev/docs/guides/multiple-schema#abstract-model-inheritance

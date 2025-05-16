@@ -6,7 +6,6 @@ import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { v7 as uuidv7 } from 'uuid';
-import { PrismaClientKnownRequestError } from '../../prisma/client/runtime/library';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
 import { createRPC } from '../rpc';
@@ -16,6 +15,7 @@ import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
 import { systemLog } from '../service/SystemLog';
 import { LogLevel } from '@zenstackhq/runtime/models';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 // 统一错误序列化函数
 function handleError(error: unknown) {
