@@ -65,6 +65,14 @@ export const routeMap = reactive({
       icon: 'pi pi-calculator',
     },
   },
+  VrImg: {
+    path: '/VrImg',
+    component: () => import('@/pages/VrImg/VrImg.vue'),
+    meta: {
+      title: t('VR图片'),
+      icon: 'pi pi-image',
+    },
+  },
   login: {
     path: '/login',
     component: () => import('@/pages/login.vue'),
