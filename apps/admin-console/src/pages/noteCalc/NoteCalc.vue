@@ -281,9 +281,9 @@
     useConfirm,
     useToast,
   } from 'primevue';
-  import type { Prisma } from 'tsfullstack-backend/prisma/client/client';
   import { useRoute } from 'vue-router';
   import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
+  import type { Prisma } from 'tsfullstack-backend';
 
   const toast = useToast();
   const route = useRoute();
