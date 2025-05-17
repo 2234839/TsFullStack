@@ -2,21 +2,62 @@
   <div class="w-full h-screen relative">
     <!-- 控制按钮 -->
     <div class="absolute top-5 right-5 z-30 flex gap-2">
-      <button class="control-btn" @click="toggleInfo" title="显示场景信息">i</button>
-      <button class="control-btn" @click="zoomIn" title="放大">+</button>
-      <button class="control-btn" @click="zoomOut" title="缩小">-</button>
-      <button class="control-btn" @click="resetView" title="重置视角">↻</button>
-      <button class="control-btn" @click="toggleDebug" title="调试模式">D</button>
-      <button class="control-btn" @click="saveScenes" title="保存场景数据">💾</button>
-      <button class="control-btn" @click="resetScenes" title="重置场景数据">🔄</button>
+      <button
+        class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+        @click="toggleInfo"
+        title="显示场景信息">
+        i
+      </button>
+      <button
+        class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+        @click="zoomIn"
+        title="放大">
+        +
+      </button>
+      <button
+        class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+        @click="zoomOut"
+        title="缩小">
+        -
+      </button>
+      <button
+        class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+        @click="resetView"
+        title="重置视角">
+        ↻
+      </button>
+      <button
+        class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+        @click="toggleDebug"
+        title="调试模式">
+        D
+      </button>
+      <button
+        class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+        @click="saveScenes"
+        title="保存场景数据">
+        💾
+      </button>
+      <button
+        class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+        @click="resetScenes"
+        title="重置场景数据">
+        🔄
+      </button>
     </div>
 
     <!-- 小地图 -->
     <div class="absolute top-5 right-20 z-30 transition-all duration-300">
-      <button class="control-btn" @click="toggleMinimap" title="显示/隐藏小地图">
+      <button
+        class="w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+        @click="toggleMinimap"
+        title="显示/隐藏小地图">
         {{ isMinimapCollapsed ? 'M' : '×' }}
       </button>
-      <div class="minimap-container" :class="{ hidden: isMinimapCollapsed }" ref="minimap">
+      <div
+        class="w-[220px] h-[220px] bg-black/70 rounded-lg p-3 text-white flex flex-col shadow-lg transition-all duration-300 overflow-hidden"
+        :class="{ hidden: isMinimapCollapsed }"
+        ref="minimap">
         <div class="flex justify-between items-center mb-2 pb-1 border-b border-white/20">
           <h3 class="font-bold text-sm m-0">场景地图</h3>
         </div>
@@ -45,7 +86,9 @@
     </div>
 
     <!-- 信息面板 -->
-    <div class="info-panel" :class="{ hidden: !showInfo }">
+    <div
+      class="absolute top-20 right-5 bg-black/70 text-white p-4 rounded-lg max-w-[250px] z-30"
+      :class="{ hidden: !showInfo }">
       <h3 class="mt-0 mb-2 font-bold">
         {{ currentSceneData ? currentSceneData.title : '加载中...' }}
       </h3>
@@ -61,18 +104,26 @@
     </div>
 
     <!-- 调试面板 -->
-    <div class="debug-panel" :class="{ hidden: !debugMode }">
+    <div
+      class="absolute bottom-5 left-5 bg-black/70 text-white p-3 rounded-lg max-w-[300px] z-30 text-xs"
+      :class="{ hidden: !debugMode }">
       <h4 class="font-bold mb-1">调试信息</h4>
       <div v-html="debugInfo"></div>
     </div>
 
     <!-- 点击反馈 -->
-    <div class="feedback-message" :style="{ opacity: feedbackOpacity }" ref="hotspotFeedback">
+    <div
+      class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/30 text-white py-2 px-5 rounded-full z-30 pointer-events-none transition-opacity duration-300"
+      :style="{ opacity: feedbackOpacity }"
+      ref="hotspotFeedback">
       {{ feedbackMessage }}
     </div>
 
     <!-- 视角中心点 -->
-    <div class="view-direction" :class="{ hidden: !debugMode }" ref="viewDirection"></div>
+    <div
+      class="absolute top-1/2 left-1/2 w-1 h-1 bg-red-500 rounded-full z-30 pointer-events-none"
+      :class="{ hidden: !debugMode }"
+      ref="viewDirection"></div>
 
     <!-- 过渡效果元素 -->
     <div class="transition-overlay" ref="transitionOverlay"></div>
@@ -93,8 +144,9 @@
 
 <script setup lang="ts">
   import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
-  import Aframe, { THREE } from 'aframe';
-
+  import 'aframe';
+  import type { Entity, THREE as THREEType } from 'aframe';
+  const THREE = AFRAME.THREE;
   // 类型定义
   interface Position {
     x: number;
@@ -415,7 +467,7 @@
     // 旋转动画组件
     AFRAME.registerComponent('rotate-animation', {
       schema: { speed: { type: 'number', default: 5 } },
-      tick: function (time: number, deltaTime: number) {
+      tick: function (_time: number, deltaTime: number) {
         const rotation = this.el.getAttribute('rotation');
         this.el.setAttribute('rotation', {
           x: rotation.x,
@@ -636,12 +688,12 @@
   };
 
   // 切换场景
-  const changeScene = (targetSceneId: string, hotspotPosition: THREE.Vector3) => {
+  const changeScene = (targetSceneId: string, hotspotPosition: THREEType.Vector3) => {
     if (isTransitioning.value) return;
 
     // 获取相机和位置
-    const camera = document.getElementById('camera');
-    const cameraRig = document.getElementById('camera-rig');
+    const camera = document.getElementById('camera') as unknown as Entity;
+    const cameraRig = document.getElementById('camera-rig') as unknown as Entity;
     if (!camera || !cameraRig) return;
 
     const cameraPosition = new THREE.Vector3();
@@ -869,7 +921,7 @@
     if (!currentSceneData.value || !currentSceneData.value.position) return;
 
     // 获取相机旋转
-    const camera = document.getElementById('camera');
+    const camera = document.getElementById('camera') as unknown as Entity;
     if (!camera) return;
 
     const rotation = camera.getAttribute('rotation');
@@ -1109,14 +1161,6 @@
     overflow: hidden;
   }
 
-  .control-btn {
-    @apply w-10 h-10 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors;
-  }
-
-  .minimap-container {
-    @apply w-[220px] h-[220px] bg-black/70 rounded-lg p-3 text-white flex flex-col shadow-lg transition-all duration-300 overflow-hidden;
-  }
-
   .minimap-direction-arrow {
     width: 12px;
     height: 12px;
@@ -1134,22 +1178,6 @@
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
     border-bottom: 12px solid #ff5733;
-  }
-
-  .info-panel {
-    @apply absolute top-20 right-5 bg-black/70 text-white p-4 rounded-lg max-w-[250px] z-30;
-  }
-
-  .debug-panel {
-    @apply absolute bottom-5 left-5 bg-black/70 text-white p-3 rounded-lg max-w-[300px] z-30 text-xs;
-  }
-
-  .feedback-message {
-    @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/30 text-white py-2 px-5 rounded-full z-30 pointer-events-none transition-opacity duration-300;
-  }
-
-  .view-direction {
-    @apply absolute top-1/2 left-1/2 w-1 h-1 bg-red-500 rounded-full z-30 pointer-events-none;
   }
 
   .transition-overlay {
@@ -1192,9 +1220,5 @@
       no-repeat center center;
     background-size: contain;
     transition: opacity 0.3s ease, transform 0.5s ease;
-  }
-
-  .notification {
-    @apply fixed top-5 left-1/2 transform -translate-x-1/2 bg-black/70 text-white py-2 px-4 rounded-lg z-50 transition-opacity duration-300;
   }
 </style>
