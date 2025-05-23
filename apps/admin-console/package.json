@@ -16,7 +16,7 @@
     "@vueuse/core": "^13.2.0",
     "aframe": "^1.7.1",
     "lz-string": "^1.5.0",
-    "mathjs": "^14.4.0",
+    "mathjs": "^14.5.0",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.4",
     "quill": "^2.0.3",
@@ -31,9 +31,10 @@
   "devDependencies": {
     "@types/aframe": "^1.2.8",
     "@vitejs/plugin-vue": "^5.2.4",
-    "@vitejs/plugin-vue-jsx": "^4.1.2",
+    "@vitejs/plugin-vue-jsx": "^4.2.0",
     "@vue/tsconfig": "^0.7.0",
     "typescript": "^5.8.3",
+    "unplugin-vue-components": "^28.5.0",
     "vite": "^6.3.5",
     "vite-plugin-vue-devtools": "^7.7.6",
     "vue-tsc": "^2.2.10"
