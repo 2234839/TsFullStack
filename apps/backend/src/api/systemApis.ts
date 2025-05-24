@@ -50,13 +50,13 @@ export const systemApis = {
         }),
       );
       if (!fileRow) {
-        throw new MsgError(MsgError.op_msgError, 'File not found');
+        throw MsgError.msg('File not found');
       }
       // 读取文件内容
       const filePath = fileRow?.path;
       const fileBuffer = yield* Effect.promise(() =>
         readFile(filePath).catch((e) => {
-          throw new MsgError(MsgError.op_msgError, '读取文件失败');
+          throw MsgError.msg('读取文件失败');
         }),
       );
       const file = new File([fileBuffer], fileRow.filename);

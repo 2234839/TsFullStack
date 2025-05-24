@@ -2,12 +2,14 @@ import { compareSync } from 'bcryptjs';
 import { Effect } from 'effect';
 import { getPrisma, prisma } from '../db';
 import { ReqCtxService } from '../service/ReqCtx';
+import { MsgError } from '../util/error';
 
 /** 无需鉴权的 api */
 export const appApis = {
   system: {
     async register(email: string, password: string) {
       return Effect.gen(function* () {
+        throw MsgError.msg('暂时关闭了直接注册帐号，请使用其他方式登录！ ');
         const user = yield* Effect.promise(() =>
           prisma.user.findUnique({
             where: {
@@ -16,7 +18,7 @@ export const appApis = {
           }),
         );
         if (user) {
-          return Effect.fail('用户已存在');
+          throw MsgError.msg('用户已存在');
         }
         const newUser = yield* Effect.promise(() =>
           prisma.user.create({
@@ -41,7 +43,7 @@ export const appApis = {
           }),
         );
         if (!user || !compareSync(password, user.password)) {
-          throw Effect.fail('用户不存在或账户密码错误');
+          throw MsgError.msg('用户不存在或账户密码错误');
         }
         const { db } = yield* Effect.promise(() => getPrisma({ userId: user.id }));
         const userSession = yield* Effect.promise(() =>
