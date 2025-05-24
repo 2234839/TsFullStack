@@ -11,14 +11,15 @@ export default defineConfig({
   format: 'cjs',
   // 代码分割
   splitting: false,
-  minify: true,
+  // minify: true,
+  minify: false,
+  shims:true,
   // 生成 sourcemap
   sourcemap: true,
   // 清除输出目录
   clean: true,
   // 忽略 watch 的文件
   ignoreWatch: ['**/node_modules/**', '**/.git/**'],
-  // 开发模式下排除所有npm包依赖
-  // external: [/node_modules/],
+  // 打包全部依赖
   noExternal: [/.*/],
 });

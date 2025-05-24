@@ -3,7 +3,7 @@
 /// A sample data source using local sqlite db.
 datasource db {
     provider = 'sqlite'
-    url = 'file:./dev.db'
+    url = env('DATABASE_URL')
 }
 
 generator client {
@@ -83,16 +83,22 @@ enum StorageType {
     LOCAL
     S3
 }
+
+enum FileStatusEnum {
+    public
+    private
+    protected
+    deleted
+}
 model File extends Base {
     filename    String      // 原始文件名
     mimetype    String      // 文件类型
     size        Int         // 文件大小（字节）
     path        String      // 存储路径或URL
     storageType StorageType // 存储类型
-    key         String?     // 存储服务中的唯一标识符（如S3的key）
-    bucket      String?     // 存储桶（适用于S3、OSS等）
     metadata    Json?       // 额外的元数据
-    author      User        @relation(fields: [authorId], references: [id])
+    status      FileStatusEnum @default(public)// 文件状态
+    author      User           @relation(fields: [authorId], references: [id])
     authorId    String
     @@allow('read,create', auth() == author)
 }

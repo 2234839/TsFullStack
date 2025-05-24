@@ -1,12 +1,18 @@
 # 同步代码文件
-rsync -avz --progress ./dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/
-rsync -avz --progress ../admin-console/dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/frontend/
+rsync -avz --progress ./dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/dist/
+rsync -avz --progress ../admin-console/dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/dist/frontend/
 
+# rsync -avz --progress ./package.json admin@47.236.87.38:/home/admin/app/TsFullStack/
+# ssh -t admin@47.236.87.38 "cd /home/admin/app/TsFullStack/ && pnpm i"
 
 # 同步数据库迁移文件
 rsync -avz --progress ./prisma/migrations/* admin@47.236.87.38:/home/admin/app/TsFullStack/prisma/migrations/
+# 同步数据库模型
+rsync -avz --progress ./prisma/schema.prisma admin@47.236.87.38:/home/admin/app/TsFullStack/prisma/
+rsync -avz --progress ./node_modules/prisma/libquery_engine-debian-openssl-3.0.x.so.node  admin@47.236.87.38:/home/admin/app/TsFullStack/
 # 在项目目录中运行数据库迁移命令,需要在服务端安装 `pnpm i -D prisma`
-ssh -t admin@47.236.87.38 "cd /home/admin/app/TsFullStack/ && prisma migrate deploy"
+
+# ssh -t admin@47.236.87.38 "cd /home/admin/app/TsFullStack/ && pnpm prisma migrate deploy"
 
 
 # === 直接用本地数据覆盖服务器数据，数据无价！谨慎操作！！ ===

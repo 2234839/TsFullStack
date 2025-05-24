@@ -194,6 +194,7 @@ export async function startServer() {
   fastify.register(fastifyMultipart, {
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   });
+  console.log('[static]',path.join(__dirname, 'frontend'));
   fastify.register(fastifyStatic, {
     root: path.join(__dirname, 'frontend'),
     prefix: '/',
