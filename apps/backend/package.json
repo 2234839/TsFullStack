@@ -3,11 +3,13 @@
 	"type": "module",
 	"scripts": {
 		"build": "tsup --config tsup-build.config.ts",
+		"build:w": "",
 		"build:publish": "pnpm --filter admin-panel build && pnpm build && pnpm publish:server",
 		"publish:server": "bash ./publish.sh",
 		"tsc:b": "tsc -b",
-		"dev": "tsup --watch & pnpm start:w",
+		"dev": "tsup --watch --onSuccess \"pnpm run start\"",
 		"start": "node --enable-source-maps ./dist/index.cjs",
+		"start:w": "node --enable-source-maps --watch ./dist/index.cjs",
 		"build:lib": "tsup --config tsup-lib.config.ts && pnpm build:lib:dmap",
 		"build:lib:dmap": "tsc ./src/lib/index.ts --emitDeclarationOnly --declaration --declarationMap --outDir ./dist-lib",
 		"build:lib:w": "tsup --watch --config tsup-lib.config.ts"

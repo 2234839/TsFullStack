@@ -17,7 +17,7 @@ export default defineConfig({
   // 生成 sourcemap
   sourcemap: true,
   // 清除输出目录
-  clean: true,
+  clean: false,
   // 忽略 watch 的文件
   ignoreWatch: ['**/node_modules/**', '**/.git/**'],
   // 打包全部依赖
