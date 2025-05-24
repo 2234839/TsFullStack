@@ -40,9 +40,7 @@ function handleError(error: unknown) {
 // 参数解析函数
 async function parseParams(request: FastifyRequest): Promise<any[]> {
   const contentType = request.headers['content-type'];
-  if (request.method === 'GET') {
-    return superjson.parse((request.query as any).args);
-  } else if (contentType === 'application/json') {
+  if (contentType === 'application/json') {
     return superjson.deserialize(request.body as SuperJSONResult) as any[];
   } else if (contentType?.startsWith('multipart/form-data')) {
     const file = await request.file();
@@ -51,8 +49,7 @@ async function parseParams(request: FastifyRequest): Promise<any[]> {
     const fileObject = new File([buffer], file.filename, { type: file.mimetype });
     return [fileObject];
   } else {
-    console.log('Unknown content type:', contentType);
-    return [];
+    throw new Error('Unknown content type:' + contentType);
   }
 }
 
@@ -64,9 +61,7 @@ async function handleApi(
   request: FastifyRequest,
 ): Promise<Exit.Exit<unknown, unknown>> {
   let x_token_id = request.headers['x-token-id'];
-  if (request.method === 'GET') {
-    x_token_id = (request.query as any)?.x_token_id;
-  }
+
   if (typeof x_token_id !== 'string') {
     return Exit.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 x_token_id'));
   }
@@ -86,9 +81,7 @@ async function handleApi(
       return yield* result;
     }
     return result;
-  }).pipe(
-    Effect.provideService(AuthService, { x_token_id, db, user })
-  );
+  }).pipe(Effect.provideService(AuthService, { x_token_id, db, user }));
   return Effect.runPromiseExit(p);
 }
 
@@ -103,7 +96,7 @@ async function handleAppApi(
     Effect.gen(function* () {
       const result = yield* Effect.promise(() =>
         appApisRpc.RC(method, params).catch((e) => {
-          return new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
+          throw new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
         }),
       );
       if (Effect.isEffect(result)) {
@@ -137,6 +130,7 @@ function createAPIHandler(
 
     const p = Effect.gen(function* () {
       const params = yield* Effect.promise(() => parseParams(request));
+      reqCtx.log('params', params);
       // 这里返回的就是一个  exit
       return yield* Effect.promise(() => handler(method, params, reqCtx, request));
     });
@@ -168,6 +162,9 @@ function createAPIHandler(
           onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
           onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
         });
+        // @ts-ignore
+        reqCtx.log('[error]', error);
+
         return reply.send(superjson.serialize({ error: handleError(error) }));
       },
     });
@@ -177,7 +174,6 @@ function createAPIHandler(
       { level: LogLevel.INFO, message: `call:[${endTime - startTime}ms] ${method}` },
       reqCtx,
     );
-    console.log(`call:[${endTime - startTime}ms]`, method);
     return r;
   };
 }
@@ -194,7 +190,7 @@ export async function startServer() {
   fastify.register(fastifyMultipart, {
     limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   });
-  console.log('[static]',path.join(__dirname, 'frontend'));
+  console.log('[static]', path.join(__dirname, 'frontend'));
   fastify.register(fastifyStatic, {
     root: path.join(__dirname, 'frontend'),
     prefix: '/',

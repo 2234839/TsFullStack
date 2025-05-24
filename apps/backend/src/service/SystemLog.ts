@@ -20,6 +20,6 @@ export async function systemLog(options: { level: LogLevel; message?: string }, 
       id: true,
     },
   });
-  console.log('[log]', log);
+  console.log(`[log:${log.id}] ${options.message}`, ...ctx.logs);
   return log;
 }
