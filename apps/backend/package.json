@@ -8,7 +8,6 @@
 		"tsc:b": "tsc -b",
 		"dev": "tsup --watch & pnpm start:w",
 		"start": "node --enable-source-maps ./dist/index.cjs",
-		"start:w": "nodemon --enable-source-maps ./dist/index.cjs",
 		"build:lib": "tsup --config tsup-lib.config.ts && pnpm build:lib:dmap",
 		"build:lib:dmap": "tsc ./src/lib/index.ts --emitDeclarationOnly --declaration --declarationMap --outDir ./dist-lib",
 		"build:lib:w": "tsup --watch --config tsup-lib.config.ts"
@@ -35,9 +34,7 @@
 		"zenstack": "2.15.0"
 	},
 	"devDependencies": {
-		"@rslib/core": "^0.8.0",
 		"@types/node": "^22.15.21",
-		"nodemon": "^3.1.10",
 		"tsup": "^8.5.0",
 		"typescript": "^5.8.3"
 	}
