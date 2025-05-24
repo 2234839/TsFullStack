@@ -391,12 +391,6 @@
       }
     } catch (error) {
       console.log('[error]', error);
-      toast.add({
-        severity: 'error',
-        summary: isLogin.value ? '登录失败' : '注册失败',
-        detail: (error as Error).message,
-        life: 3000,
-      });
     } finally {
       loading.value = false;
     }

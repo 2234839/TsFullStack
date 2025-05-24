@@ -19,7 +19,7 @@ export type safePrisma = Pick<PrismaClientType, (typeof allowedMethods)[number]>
  */
 export async function getPrisma(opt: { userId?: string; email?: string; x_token_id?: string }) {
   if (Object.values(opt).filter((el) => el).length === 0) {
-    throw new MsgError(MsgError.op_msgError, 'Invalid options');
+    throw MsgError.msg('Invalid options');
   }
   let where = {} as any;
   if (opt.x_token_id) {

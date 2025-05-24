@@ -44,12 +44,12 @@ async function parseParams(request: FastifyRequest): Promise<any[]> {
     return superjson.deserialize(request.body as SuperJSONResult) as any[];
   } else if (contentType?.startsWith('multipart/form-data')) {
     const file = await request.file();
-    if (!file) throw new Error('No file uploaded');
+    if (!file) throw MsgError.msg('No file uploaded');
     const buffer = await file.toBuffer();
     const fileObject = new File([buffer], file.filename, { type: file.mimetype });
     return [fileObject];
   } else {
-    throw new Error('Unknown content type:' + contentType);
+    throw MsgError.msg('Unknown content type:' + contentType);
   }
 }
 
@@ -74,7 +74,7 @@ async function handleApi(
   const p = Effect.gen(function* () {
     const result = yield* Effect.promise(() =>
       apisRpc.RC(method, params).catch((e) => {
-        throw new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
+        throw MsgError.msg('API调用失败: ' + e?.message);
       }),
     );
     if (Effect.isEffect(result)) {
@@ -96,7 +96,7 @@ async function handleAppApi(
     Effect.gen(function* () {
       const result = yield* Effect.promise(() =>
         appApisRpc.RC(method, params).catch((e) => {
-          throw new MsgError(MsgError.op_msgError, 'API调用失败: ' + e?.message);
+          throw MsgError.msg('API调用失败: ' + e?.message);
         }),
       );
       if (Effect.isEffect(result)) {
