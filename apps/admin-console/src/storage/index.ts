@@ -49,3 +49,8 @@ watchEffect(() => {
 //#region i18n
 export const i18nStore = useStorage<'zh-CN' | 'en'>(appId + 'i18nStore', null);
 //#endregion
+
+
+/** 用于控制悬浮github star按钮显示隐藏的storage key值 */
+export const githubStarShow = useStorage<'show' | 'hide'>(appId + 'githubStarShow', 'show');
+
