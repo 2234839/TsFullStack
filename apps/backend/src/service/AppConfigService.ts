@@ -8,6 +8,11 @@ export class AppConfigService extends Context.Tag('AppConfigService')<
 export type AppConfig = {
   /** 上传文件的目录 */
   uploadDir: string;
+  /** 用于配置管理员帐号 */
+  systemAdminUser: {
+    email: string;
+    password: string;
+  };
 };
 
 // /** 确保所有配置项可用 */
