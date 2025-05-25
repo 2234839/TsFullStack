@@ -4,6 +4,7 @@ import { getPrisma, prisma } from '../db';
 import { ReqCtxService } from '../service/ReqCtx';
 import { MsgError } from '../util/error';
 import { githubApi } from './app/github';
+import { genUserSession } from './app/_genUserSession';
 
 /** 无需鉴权的 api */
 export const appApis = {
@@ -46,15 +47,7 @@ export const appApis = {
         if (!user || !compareSync(password, user.password)) {
           throw MsgError.msg('用户不存在或账户密码错误');
         }
-        const { db } = yield* Effect.promise(() => getPrisma({ userId: user.id }));
-        const userSession = yield* Effect.promise(() =>
-          db.userSession.create({
-            data: {
-              userId: user.id,
-              expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7天后过期
-            },
-          }),
-        );
+        const userSession = yield* genUserSession(user.id);
         const ctx = yield* ReqCtxService;
         ctx.log('user login', user.id);
         return userSession;

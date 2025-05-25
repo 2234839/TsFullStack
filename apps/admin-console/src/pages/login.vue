@@ -237,7 +237,9 @@
           <!-- OAuth 登录按钮  -->
           <div class="flex items-center justify-between">
             <!-- github 登录 -->
-            <Button @click="oauthLogin('github')">GitHub 登录</Button>
+            <Button :loading="oauthLogin.isLoading.value" @click="oauthLogin.execute(0, 'github')">
+              GitHub 登录
+            </Button>
           </div>
         </form>
 
@@ -272,9 +274,10 @@
 <script setup lang="ts">
   import { useAPI } from '@/api';
   import ThemeSwitcher from '@/components/system/ThemeToggle.vue';
+  import { loginGoto } from '@/pages/loginUtil';
   import { routeMap, routerUtil } from '@/router';
-  import { authInfo, authInfo_isLogin, theme_isDark } from '@/storage';
-  import { useEventListener } from '@vueuse/core';
+  import { authInfo_isLogin, theme_isDark } from '@/storage';
+  import { useAsyncState, useEventListener } from '@vueuse/core';
   import { Button, Checkbox, InputText, Password, useToast } from 'primevue';
   import { computed, onMounted, ref } from 'vue';
 
@@ -297,14 +300,18 @@
     confirmPassword: '',
   });
 
-  async function oauthLogin(provider: 'github') {
-    if (provider === 'github') {
-      const url = await AppAPI.githubApi.getAuthorizationUrl();
-      window.open(url, '_blank');
-    } else {
-      provider satisfies never;
-    }
-  }
+  const oauthLogin = useAsyncState(
+    async (provider: 'github') => {
+      if (provider === 'github') {
+        const url = await AppAPI.githubApi.getAuthorizationUrl();
+        location.href = url;
+      } else {
+        provider satisfies never;
+      }
+    },
+    undefined,
+    { immediate: false },
+  );
 
   // 表单验证
   const isFormValid = computed(() => {
@@ -371,24 +378,13 @@
       if (isLogin.value) {
         // 登录逻辑
         const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
-        authInfo.value = {
-          userId: res.userId,
-          token: res.token,
-          expiresAt: res.expiresAt.getTime(),
-        };
-
+        loginGoto(res, { r: props.r });
         toast.add({
           severity: 'success',
           summary: '登录成功',
           detail: '欢迎回来，正在为您跳转...',
           life: 3000,
         });
-        if (props.r) {
-          const redirectUrl = decodeURIComponent(props.r);
-          location.href = redirectUrl; // 直接跳转到指定的URL
-          return; // 阻止后续的跳转逻辑
-        }
-        routerUtil.push(routeMap.admin, {});
       } else {
         // 注册逻辑
         await AppAPI.system.register(form.value.username, form.value.password);
