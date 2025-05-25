@@ -237,9 +237,11 @@
           <!-- OAuth 登录按钮  -->
           <div class="flex items-center justify-between">
             <!-- github 登录 -->
-            <Button :loading="oauthLogin.isLoading.value" @click="oauthLogin.execute(0, 'github')">
-              GitHub 登录
-            </Button>
+            <Button
+              label="GitHub 登录"
+              icon="pi pi-github"
+              :loading="oauthLogin.isLoading.value"
+              @click="oauthLogin.execute(0, 'github')" />
           </div>
         </form>
 
