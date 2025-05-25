@@ -234,6 +234,11 @@
               :disabled="!isFormValid || loading"
               :label="isLogin ? '登录' : '注册'" />
           </div>
+          <!-- OAuth 登录按钮  -->
+          <div class="flex items-center justify-between">
+            <!-- github 登录 -->
+            <Button @click="oauthLogin('github')">GitHub 登录</Button>
+          </div>
         </form>
 
         <!-- 底部切换登录/注册 -->
@@ -291,6 +296,15 @@
     password: 'adminpassword123',
     confirmPassword: '',
   });
+
+  async function oauthLogin(provider: 'github') {
+    if (provider === 'github') {
+      const url = await AppAPI.githubApi.getAuthorizationUrl();
+      window.open(url, '_blank');
+    } else {
+      provider satisfies never;
+    }
+  }
 
   // 表单验证
   const isFormValid = computed(() => {

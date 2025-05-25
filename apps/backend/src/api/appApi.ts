@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import { getPrisma, prisma } from '../db';
 import { ReqCtxService } from '../service/ReqCtx';
 import { MsgError } from '../util/error';
+import { githubApi } from './app/github';
 
 /** 无需鉴权的 api */
 export const appApis = {
@@ -60,6 +61,7 @@ export const appApis = {
       });
     },
   },
+  githubApi,
   /** 用于避免 Effect.isEffect 的判断之后得到 Effect<unknown, unknown, unknown> 导致类型系统失效*/
   __effect__() {
     return Effect.succeed('test');
