@@ -5,9 +5,21 @@ import { loadConfig } from 'c12';
 import { AppConfigService, type AppConfig } from './service/AppConfigService';
 
 const main = Effect.gen(function* () {
-  const { config } = yield* Effect.promise(() => loadConfig<AppConfig>({}));
+  const { config } = yield* Effect.promise(() =>
+    loadConfig<AppConfig>({
+      defaultConfig: () => {
+        return {
+          systemAdminUser: {
+            email: 'admin@example.com',
+            password: 'adminpassword123',
+          },
+          uploadDir: './uploads',
+        } satisfies AppConfig;
+      },
+    }),
+  );
 
-  yield* Effect.promise(() => seedDB());
+  yield* seedDB.pipe(Effect.provideService(AppConfigService, config));
   yield* startServer.pipe(Effect.provideService(AppConfigService, config));
 });
 
