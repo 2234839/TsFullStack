@@ -162,7 +162,7 @@
       return { list, count };
     },
     { list: [], count: 0 },
-    {},
+    { resetOnExecute: false },
   );
   function reloadTableData() {
     if (!selectModelMeta.value?.modelKey) return;
