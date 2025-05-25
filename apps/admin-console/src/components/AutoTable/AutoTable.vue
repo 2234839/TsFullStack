@@ -162,7 +162,10 @@
       return { list, count };
     },
     { list: [], count: 0 },
-    { resetOnExecute: false },
+    {
+      // TODO 目前会导致列报错，之后再研究
+      //  resetOnExecute: false
+    },
   );
   function reloadTableData() {
     if (!selectModelMeta.value?.modelKey) return;
