@@ -73,6 +73,20 @@ export const routeMap = reactive({
       icon: 'pi pi-image',
     },
   },
+  oauth: {
+    path: '/oauth',
+    redirect: defaultRoute,
+    child: {
+      github: {
+        path: 'github',
+        component: () => import('@/pages/oauth/github.vue'),
+        meta: {
+          title: t('GitHub授权'),
+          icon: 'pi pi-github',
+        },
+      },
+    },
+  },
   login: {
     path: '/login',
     component: () => import('@/pages/login.vue'),

@@ -49,7 +49,7 @@ model User extends BaseTime {
     id           String         @id @default(cuid())
     // 禁止修改 id
     @@allow('update', future().id == id)
-    email        String         @unique @email @length(6, 32)
+    email        String         @unique @length(6, 32)
     password     String         @password @omit
     posts        Post[]
     role         Role[]
@@ -93,7 +93,7 @@ model OAuthAccount extends Base {
     // 用户资料数据
     profile    Json?         // 存储原始的用户资料数据
 
-    // 权限控制
+    // 权限控制，绝对不应该让用户可以直接修改这里的数据，否则就能顶替别人的账号了
     @@allow('read', auth() == user)
     @@allow('create,update,delete', auth().role?[name == 'admin'])
 }
