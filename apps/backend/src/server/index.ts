@@ -1,7 +1,7 @@
 import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import { Cause, Effect, Exit } from 'effect';
+import { Cause, Chunk, Effect, Exit, Stream, type StreamEmit } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
@@ -16,6 +16,7 @@ import { getAuthFromCache } from './authCache';
 import { systemLog } from '../service/SystemLog';
 import { LogLevel } from '@zenstackhq/runtime/models';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { AppConfigService, type AppConfig } from '../service/AppConfigService';
 
 // 统一错误序列化函数
 function handleError(error: unknown) {
@@ -53,133 +54,92 @@ async function parseParams(request: FastifyRequest): Promise<any[]> {
   }
 }
 
-// 处理需要鉴权的 API
-async function handleApi(
-  method: string,
-  params: any[],
-  reqCtx: ReqCtx,
-  request: FastifyRequest,
-): Promise<Exit.Exit<unknown, unknown>> {
-  let x_token_id = request.headers['x-token-id'];
-
-  if (typeof x_token_id !== 'string') {
-    return Exit.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 x_token_id'));
-  }
-
-  const { db, user } = await getAuthFromCache(x_token_id);
-  reqCtx.user = user;
-  const apisRpc = createRPC('apiProvider', {
-    genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
-  });
+type apiCtx = { req: FastifyRequest; reply: FastifyReply; pathPrefix: string; onEnd: () => void };
+function handelReq({ req, reply, pathPrefix, onEnd }: apiCtx) {
+  const startTime = Date.now();
+  const reqCtx: ReqCtx = {
+    reqId: uuidv7(),
+    logs: [],
+    log(...args) {
+      this.logs.push(args);
+    },
+  };
+  const method = req.url.split('?')[0]?.slice(pathPrefix.length) ?? '';
   const p = Effect.gen(function* () {
-    const result = yield* Effect.promise(() =>
-      apisRpc.RC(method, params).catch((e) => {
-        throw MsgError.msg('API调用失败: ' + e?.message);
-      }),
-    );
-    if (Effect.isEffect(result)) {
-      return yield* result;
-    }
-    return result;
-  }).pipe(Effect.provideService(AuthService, { x_token_id, db, user }));
-  return Effect.runPromiseExit(p);
-}
+    const params = yield* Effect.promise(() => parseParams(req));
 
-// 处理无需鉴权的 API
-async function handleAppApi(
-  method: string,
-  params: any[],
-  reqCtx: ReqCtx,
-): Promise<Exit.Exit<unknown, unknown>> {
-  const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
-  return Effect.runPromiseExit(
-    Effect.gen(function* () {
-      const result = yield* Effect.promise(() =>
-        appApisRpc.RC(method, params).catch((e) => {
-          throw MsgError.msg('API调用失败: ' + e?.message);
-        }),
-      );
-      if (Effect.isEffect(result)) {
-        return yield* result;
+    let result;
+    if (pathPrefix === '/app-api/') {
+      const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
+      result = yield* Effect.gen(function* () {
+        const res_effect = yield* Effect.promise(() =>
+          appApisRpc.RC(method, params).catch((e) => {
+            throw MsgError.msg('API调用失败: ' + e?.message);
+          }),
+        );
+        const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
+        return res;
+      });
+    } else if (pathPrefix === '/api/') {
+      // 处理需要鉴权的 API
+
+      let x_token_id = req.headers['x-token-id'];
+      if (typeof x_token_id !== 'string') {
+        result = Exit.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 x_token_id'));
+      } else {
+        const { db, user } = yield* Effect.promise(() => getAuthFromCache(x_token_id));
+        result = yield* Effect.gen(function* () {
+          const apisRpc = createRPC('apiProvider', {
+            genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
+          });
+          const res_effect = yield* Effect.promise(() =>
+            apisRpc.RC(method, params).catch((e) => {
+              throw MsgError.msg('API调用失败: ' + e?.message);
+            }),
+          );
+
+          const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
+          return res;
+        })
+          // 提供 apis 模块所需要的依赖
+          .pipe(Effect.provideService(AuthService, { x_token_id, db, user }));
       }
-      return result;
-    }).pipe(Effect.provideService(ReqCtxService, reqCtx)),
+    }
+    if (result instanceof File) {
+      reply.type(result.type || 'application/octet-stream');
+      // 设置文件名
+      reply.header(
+        'Content-Disposition',
+        `attachment; filename="${encodeURIComponent(result.name)}"`,
+      );
+      reply.send(result.stream());
+    } else {
+      reply.send(superjson.serialize({ result }));
+    }
+  }).pipe(
+    // 这里可以提供共用的依赖
+    Effect.provideService(ReqCtxService, reqCtx),
+  );
+  // 拦截并处理所有错误
+  return Effect.catchAllDefect(p, (defect) => {
+    // @ts-expect-error
+    reqCtx.log('[error]', defect);
+    reply.send(superjson.serialize({ error: handleError(defect) }));
+
+    return Effect.succeed('catch');
+  }).pipe(
+    Effect.andThen((res) => {
+      const endTime = Date.now();
+      systemLog(
+        { level: LogLevel.INFO, message: `call:[${endTime - startTime}ms] ${method}` },
+        reqCtx,
+      );
+      onEnd();
+    }),
   );
 }
-
-// 创建 API 处理函数
-function createAPIHandler(
-  pathPrefix: string,
-  handler: (
-    method: string,
-    params: any[],
-    reqCtx: ReqCtx,
-    request: FastifyRequest,
-  ) => Promise<Exit.Exit<unknown, unknown>>,
-) {
-  return async function apiHandler(request: FastifyRequest, reply: FastifyReply) {
-    const startTime = Date.now();
-    const reqCtx = {
-      reqId: uuidv7(),
-      logs: [],
-      log(...args) {
-        this.logs.push(args);
-      },
-    } satisfies ReqCtx;
-    const method = request.url.split('?')[0]?.slice(pathPrefix.length) ?? '';
-
-    const p = Effect.gen(function* () {
-      const params = yield* Effect.promise(() => parseParams(request));
-      reqCtx.log('params', params);
-      // 这里返回的就是一个  exit
-      return yield* Effect.promise(() => handler(method, params, reqCtx, request));
-    });
-
-    // 这里会是嵌套 Exit 所以需要展开
-    const exit = await Effect.runPromiseExit(p);
-    const exitFlatten = Exit.flatten(exit);
-
-    const r = Exit.match(exitFlatten, {
-      onSuccess: (result) => {
-        if (result instanceof File) {
-          reply.type(result.type || 'application/octet-stream');
-          // 设置文件名
-          reply.header(
-            'Content-Disposition',
-            `attachment; filename="${encodeURIComponent(result.name)}"`,
-          );
-          return reply.send(result.stream());
-        } else {
-          return reply.send(superjson.serialize({ result }));
-        }
-      },
-      onFailure: (cause) => {
-        const error = Cause.match(cause, {
-          onEmpty: '(empty)',
-          onFail: (error) => `(error: ${error})`,
-          onDie: (defect) => defect,
-          onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
-          onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
-          onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
-        });
-        // @ts-ignore
-        reqCtx.log('[error]', error);
-
-        return reply.send(superjson.serialize({ error: handleError(error) }));
-      },
-    });
-
-    const endTime = Date.now();
-    systemLog(
-      { level: LogLevel.INFO, message: `call:[${endTime - startTime}ms] ${method}` },
-      reqCtx,
-    );
-    return r;
-  };
-}
-
 // 服务器初始化
-export async function startServer() {
+export const startServer = Effect.gen(function* () {
   const fastify = Fastify({ logger: false });
 
   // 注册中间件
@@ -196,9 +156,29 @@ export async function startServer() {
     prefix: '/',
   });
 
-  // 注册路由
-  fastify.all('/api/*', createAPIHandler('/api/', handleApi));
-  fastify.all('/app-api/*', createAPIHandler('/app-api/', handleAppApi));
+  // 将请求转变成 Effect Stream
+  let emit: StreamEmit.Emit<never, never, apiCtx, void>;
+
+  const stream = Stream.async((_emit: StreamEmit.Emit<never, never, apiCtx, void>) => {
+    emit = _emit;
+  }).pipe(Stream.runForEach(handelReq));
+
+  // onEnd 是为了解决 fastify 的回调函数执行完毕后，fastify 会自动结束请求，而我们希望在 Effect Stream 中处理请求，所以需要维持时机到处理完毕
+  // 这个 onEnd 实现的比较丑陋，但是没想到什么好方法解决这个问题
+  fastify.all('/api/*', async function (req, reply) {
+    let onEnd = () => {};
+    // @ts-expect-error
+    const p = new Promise((r) => (onEnd = r));
+    await emit(Effect.succeed(Chunk.of({ req, reply, pathPrefix: '/api/', onEnd })));
+    await p;
+  });
+  fastify.all('/app-api/*', async function (req, reply) {
+    let onEnd = () => {};
+    // @ts-expect-error
+    const p = new Promise((r) => (onEnd = r));
+    await emit(Effect.succeed(Chunk.of({ req, reply, pathPrefix: '/app-api/', onEnd })));
+    await p;
+  });
 
   // 处理 SPA 路由回退
   fastify.setNotFoundHandler((request, reply) => {
@@ -210,11 +190,13 @@ export async function startServer() {
   });
 
   // 启动服务器
-  try {
-    const address = await fastify.listen({ port: 5209, host: '0.0.0.0' });
-    console.log(`Server listening on ${address}`);
-  } catch (err) {
-    console.error('Server startup error:', err);
-    process.exit(1);
-  }
-}
+  const address = yield* Effect.tryPromise({
+    try: () => fastify.listen({ port: 5209, host: '0.0.0.0' }),
+    catch(error) {
+      console.error('Server startup error:', error);
+      return undefined;
+    },
+  });
+  console.log(`Server listening on ${address}`);
+  yield* stream;
+});
