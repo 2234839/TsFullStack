@@ -1,10 +1,14 @@
-import { seedConfig } from './config';
+import { Effect } from 'effect';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
+import { loadConfig } from 'c12';
+import { AppConfigService, type AppConfig } from './service/AppConfigService';
 
-async function main() {
-  await seedConfig();
-  await seedDB();
-  await startServer();
-}
-main();
+const main = Effect.gen(function* () {
+  const { config } = yield* Effect.promise(() => loadConfig<AppConfig>({}));
+
+  yield* Effect.promise(() => seedDB());
+  yield* startServer.pipe(Effect.provideService(AppConfigService, config));
+});
+
+Effect.runPromise(main);
