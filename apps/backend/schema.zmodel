@@ -46,24 +46,26 @@ model Role extends Base {
 
 /// User model
 model User extends BaseTime {
-    id          String        @id @default(cuid())
+    id           String         @id @default(cuid())
     // 禁止修改 id
     @@allow('update', future().id == id)
-    email       String        @unique @email @length(6, 32)
-    password    String        @password @omit
-    posts       Post[]
-    role        Role[]
+    email        String         @unique @email @length(6, 32)
+    password     String         @password @omit
+    posts        Post[]
+    role         Role[]
 
-    userSession UserSession[]
+    userSession  UserSession[]
     /// 允许用户读取和更新自己的信息
     @@allow('read', auth() == this)
     /// 禁止未登录用户进行任何操作
     @@deny('all', !auth())
 
-    file        File[]
-    avatar      String?
+    file         File[]
+    avatar       String?
 
-    userData    UserData[]
+    userData     UserData[]
+
+    oAuthAccount OAuthAccount[]
 }
 
 /// UserSession 用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
@@ -76,6 +78,24 @@ model UserSession extends Base {
     /// 只允许用户读取和创建
     @@allow('read,create', auth() == user)
     @@deny('all',expiresAt < now())
+}
+
+enum OauthProvider {
+    GITHUB
+}
+/// 第三方账号关联
+model OAuthAccount extends Base {
+    userId     String        // 关联的用户ID
+    user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    provider   OauthProvider // 第三方提供商名称，
+    providerId String        // 第三方提供商的唯一标识符
+    // 用户资料数据
+    profile    Json?         // 存储原始的用户资料数据
+
+    // 权限控制
+    @@allow('read', auth() == user)
+    @@allow('create,update,delete', auth().role?[name == 'admin'])
 }
 
 // 存储策略枚举
