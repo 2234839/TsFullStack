@@ -466,7 +466,6 @@ Teachers can use these intelligent systems to create personalized learning exper
 
     if (selectedWordsData.length === 1) {
       selectionState.selectedWords = new Set();
-      handleWordClick(selectedWordsData[0]);
     } else if (selectedWordsData.length > 1) {
       await handleParagraphSelection(selectedWordsData);
     }
@@ -638,12 +637,7 @@ Teachers can use these intelligent systems to create personalized learning exper
     }
 
     speakWord(word);
-    toast.add({
-      severity: 'info',
-      summary: '查看翻译',
-      detail: `${word} 熟练度 -1 (当前: ${newMemoryLevel}/10)`,
-      life: 2000,
-    });
+    console.log(`查看翻译 ${word} 熟练度 -1 (当前: ${newMemoryLevel}/10)`);
   };
 
   const handleParagraphComplete = () => {
@@ -771,12 +765,11 @@ Teachers can use these intelligent systems to create personalized learning exper
   };
 
   // 渲染带标记的文章
-  const renderArticleWithMarkers = () => {
+  function renderArticleWithMarkers() {
     if (!currentText.value) return null;
 
     const tokens = currentText.value.split(/(\s+|[^\w\s])/);
     let wordIndex = 0;
-
     return tokens.map((token, tokenIndex) => {
       const cleanWord = token.toLowerCase().replace(/[^\w]/g, '');
       const wordData = getWordData(cleanWord);
@@ -796,6 +789,10 @@ Teachers can use these intelligent systems to create personalized learning exper
         else if (isClicked) className += ` bg-blue-50/40`;
         if (isKeyWord) className += ` font-medium`;
 
+        const titleText = `${cleanWord}: ${wordData.memoryLevel}/10 ${
+          isClicked ? '(已操作)' : ''
+        } ${isKeyWord ? '(关键词)' : ''} ${isHighlighted ? '(当前选中)' : ''}`;
+
         return (
           <span
             key={tokenIndex}
@@ -808,25 +805,16 @@ Teachers can use these intelligent systems to create personalized learning exper
             }}
             onMousedown={(e) => handleMouseDown(e, currentWordIndex)}
             onClick={(e) => !selectionState.isSelecting && handleWordClick(cleanWord)}
-            title={`${cleanWord}: ${wordData.memoryLevel}/10 ${isClicked ? '(已操作)' : ''} ${
-              isKeyWord ? '(关键词)' : ''
-            } ${isHighlighted ? '(当前选中)' : ''}`}>
+            title={titleText}>
             {token}
             {wordData.memoryLevel > 0 && (
               <span
                 class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[9px] opacity-40 group-hover:opacity-80 pointer-events-none"
-                style={{ color }}>
-                {wordData.memoryLevel}
-              </span>
+                style={{ color }}></span>
             )}
             {isKeyWord && (
               <span class="absolute -top-1 -right-1 text-xs opacity-70 pointer-events-none">
                 ⭐
-              </span>
-            )}
-            {isHighlighted && (
-              <span class="absolute -top-2 -left-2 text-base text-yellow-600 bg-white rounded-full p-0.5 shadow-md pointer-events-none">
-                📍
               </span>
             )}
           </span>
@@ -839,7 +827,7 @@ Teachers can use these intelligent systems to create personalized learning exper
         </span>
       );
     });
-  };
+  }
 
   // 生命周期钩子
   onMounted(() => {
@@ -1073,76 +1061,10 @@ Teachers can use these intelligent systems to create personalized learning exper
                 @mouseup="handleMouseUp"
                 @mouseleave="handleMouseUp"
                 style="user-select: none">
-                {{ renderArticleWithMarkers() }}
+                <renderArticleWithMarkers />
               </div>
             </template>
           </Card>
-
-          <!-- AI分析结果 -->
-          <Card v-if="aiAnalysis" class="border-purple-200 bg-purple-50">
-            <template #title>
-              <div
-                class="flex items-center gap-2 cursor-pointer"
-                @click="showAiAnalysis = !showAiAnalysis">
-                <i class="pi pi-star-fill" style="font-size: 1.25rem; color: #9333ea"></i>
-                AI智能分析
-                <span class="ml-auto text-sm text-purple-600">{{
-                  showAiAnalysis ? '收起' : '展开'
-                }}</span>
-              </div>
-            </template>
-            <template v-if="showAiAnalysis" #content>
-              <div class="space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-bullseye text-purple-600" style="font-size: 1rem"></i>
-                    <span class="text-sm">文章难度:</span>
-                    <Tag
-                      :class="getDifficultyColor(aiAnalysis.articleDifficulty)"
-                      :value="`${aiAnalysis.articleDifficulty}/10`" />
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-brain" style="color: #9333ea; font-size: 1rem"></i>
-                    <span class="text-sm">建议学习时间:</span>
-                    <Tag :value="`${aiAnalysis.suggestedStudyTime}分钟`" />
-                  </div>
-                </div>
-
-                <div v-if="aiAnalysis.keyWords.length > 0">
-                  <div class="text-sm text-gray-600 mb-2">关键词汇 ⭐:</div>
-                  <div class="flex flex-wrap gap-1">
-                    <Tag
-                      v-for="(word, index) in aiAnalysis.keyWords"
-                      :key="index"
-                      severity="info"
-                      class="text-xs">
-                      {{ word }}
-                    </Tag>
-                  </div>
-                </div>
-
-                <div v-if="aiAnalysis.learningTips.length > 0">
-                  <div class="text-sm text-gray-600 mb-2 flex items-center gap-1">
-                    <i class="pi pi-lightbulb" style="font-size: 1rem"></i>
-                    学习建议:
-                  </div>
-                  <ul class="text-sm space-y-1">
-                    <li
-                      v-for="(tip, index) in aiAnalysis.learningTips"
-                      :key="index"
-                      class="flex items-start gap-2">
-                      <span class="text-purple-600">•</span>
-                      <span>{{ tip }}</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </template>
-          </Card>
-        </div>
-
-        <!-- 右侧：翻译和统计 -->
-        <div class="space-y-4 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto">
           <!-- 翻译面板 -->
           <Card>
             <template #title>
@@ -1253,11 +1175,6 @@ Teachers can use these intelligent systems to create personalized learning exper
                         <Tag :value="`${paragraphTranslation.wordsInSelection.length} 个单词`" />
                       </div>
 
-                      <div class="p-3 bg-gray-50 rounded-lg">
-                        <div class="text-sm text-gray-600 mb-2">原文：</div>
-                        <div class="text-base italic">{{ paragraphTranslation.originalText }}</div>
-                      </div>
-
                       <div class="space-y-2">
                         <div class="text-sm text-gray-500">智能混合翻译</div>
                         <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
@@ -1274,6 +1191,11 @@ Teachers can use these intelligent systems to create personalized learning exper
                             💡 熟悉的单词保持英文显示，帮助巩固记忆
                           </div>
                         </div>
+                      </div>
+
+                      <div class="p-3 bg-gray-50 rounded-lg">
+                        <div class="text-sm text-gray-600 mb-2">原文：</div>
+                        <div class="text-base italic">{{ paragraphTranslation.originalText }}</div>
                       </div>
 
                       <div class="space-y-2">
@@ -1308,7 +1230,71 @@ Teachers can use these intelligent systems to create personalized learning exper
               </div>
             </template>
           </Card>
+        </div>
 
+        <!-- 右侧：翻译和统计 -->
+        <div class="space-y-4 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <!-- AI分析结果 -->
+          <Card v-if="aiAnalysis" class="border-purple-200 bg-purple-50">
+            <template #title>
+              <div
+                class="flex items-center gap-2 cursor-pointer"
+                @click="showAiAnalysis = !showAiAnalysis">
+                <i class="pi pi-star-fill" style="font-size: 1.25rem; color: #9333ea"></i>
+                AI智能分析
+                <span class="ml-auto text-sm text-purple-600">{{
+                  showAiAnalysis ? '收起' : '展开'
+                }}</span>
+              </div>
+            </template>
+            <template v-if="showAiAnalysis" #content>
+              <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="flex items-center gap-2">
+                    <i class="pi pi-bullseye text-purple-600" style="font-size: 1rem"></i>
+                    <span class="text-sm">文章难度:</span>
+                    <Tag
+                      :class="getDifficultyColor(aiAnalysis.articleDifficulty)"
+                      :value="`${aiAnalysis.articleDifficulty}/10`" />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <i class="pi pi-brain" style="color: #9333ea; font-size: 1rem"></i>
+                    <span class="text-sm">建议学习时间:</span>
+                    <Tag :value="`${aiAnalysis.suggestedStudyTime}分钟`" />
+                  </div>
+                </div>
+
+                <div v-if="aiAnalysis.keyWords.length > 0">
+                  <div class="text-sm text-gray-600 mb-2">关键词汇 ⭐:</div>
+                  <div class="flex flex-wrap gap-1">
+                    <Tag
+                      v-for="(word, index) in aiAnalysis.keyWords"
+                      :key="index"
+                      severity="info"
+                      class="text-xs">
+                      {{ word }}
+                    </Tag>
+                  </div>
+                </div>
+
+                <div v-if="aiAnalysis.learningTips.length > 0">
+                  <div class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+                    <i class="pi pi-lightbulb" style="font-size: 1rem"></i>
+                    学习建议:
+                  </div>
+                  <ul class="text-sm space-y-1">
+                    <li
+                      v-for="(tip, index) in aiAnalysis.learningTips"
+                      :key="index"
+                      class="flex items-start gap-2">
+                      <span class="text-purple-600">•</span>
+                      <span>{{ tip }}</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </template>
+          </Card>
           <!-- 学习统计 -->
           <Card v-if="words.length > 0">
             <template #title>
