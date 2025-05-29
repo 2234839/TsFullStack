@@ -37,6 +37,13 @@
           :description="$t('轻松构建企业的虚拟展厅/分享美景')"
           imageUrl="https://image.pollinations.ai/prompt/virtual%20exhibition%20hall,%20modern%20design,%20immersive%203D%20environment,%20clean%20interface?width=600&height=400&seed=5678&enhance=true&nologo=true&model=flux"
           :routePath="routerUtil.to(routeMap.VrImg, {})" />
+
+        <!-- AI英语学习卡片 -->
+        <CardItem
+          :title="$t('AI英语学习')"
+          :description="$t('在阅读中渐进式学习英语')"
+          imageUrl="https://image.pollinations.ai/prompt/English%20learning%20environment,%20immersive%20reading,%20clean%20interface,%20modern%20design,%20AI%20assistant,%20educational%20tools?width=600&height=400&seed=1234&enhance=true&nologo=true&model=flux"
+          :routePath="routerUtil.to(routeMap.AiEnglish, undefined)" />
         <!-- 用户中心卡片 -->
         <CardItem
           :title="$t('用户中心')"

@@ -87,6 +87,20 @@ export const routeMap = reactive({
       },
     },
   },
+  AiEnglish: {
+    path: '/AiEnglish',
+    redirect: defaultRoute,
+    child: {
+      index: {
+        path: defaultRoute,
+        component: () => import('@/pages/AiEnglish/AiEnglish.vue'),
+        meta: {
+          title: t('AI英语学习'),
+          icon: 'pi pi-book',
+        }
+      },
+    },
+  },
   login: {
     path: '/login',
     component: () => import('@/pages/login.vue'),
