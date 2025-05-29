@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --mode dev",
+    "dev:local": "vite",
     "tsc": "vue-tsc -b",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview"
@@ -12,20 +13,20 @@
   "dependencies": {
     "@floating-ui/vue": "^1.1.6",
     "@primeuix/themes": "^1.1.1",
-    "@tailwindcss/vite": "^4.1.6",
-    "@vueuse/core": "^13.2.0",
+    "@tailwindcss/vite": "^4.1.8",
+    "@vueuse/core": "^13.3.0",
     "aframe": "^1.7.1",
     "lz-string": "^1.5.0",
-    "mathjs": "^14.5.0",
+    "mathjs": "^14.5.1",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.4",
     "quill": "^2.0.3",
     "quill-delta": "^5.1.0",
     "superjson": "^2.2.2",
-    "tailwindcss": "^4.1.6",
+    "tailwindcss": "^4.1.8",
     "tsfullstack-backend": "workspace:*",
-    "vue": "^3.5.13",
-    "vue-i18n": "^11.1.3",
+    "vue": "^3.5.16",
+    "vue-i18n": "^11.1.5",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
@@ -34,7 +35,7 @@
     "@vitejs/plugin-vue-jsx": "^4.2.0",
     "@vue/tsconfig": "^0.7.0",
     "typescript": "^5.8.3",
-    "unplugin-vue-components": "^28.5.0",
+    "unplugin-vue-components": "^28.7.0",
     "vite": "^6.3.5",
     "vite-plugin-vue-devtools": "^7.7.6",
     "vue-tsc": "^2.2.10"
