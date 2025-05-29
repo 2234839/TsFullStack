@@ -804,7 +804,7 @@ Teachers can use these intelligent systems to create personalized learning exper
               display: 'inline-block',
             }}
             onMousedown={(e) => handleMouseDown(e, currentWordIndex)}
-            onClick={(e) => !selectionState.isSelecting && handleWordClick(cleanWord)}
+            onClick={() => !selectionState.isSelecting && handleWordClick(cleanWord)}
             title={titleText}>
             {token}
             {wordData.memoryLevel > 0 && (
