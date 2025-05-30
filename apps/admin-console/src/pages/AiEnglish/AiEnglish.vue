@@ -734,12 +734,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                   <div v-else-if="paragraphTranslation">
                     <!-- 段落翻译内容 -->
                     <div class="space-y-3">
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-pencil" style="color: #9333ea; font-size: 1rem"></i>
-                        <span class="text-sm text-gray-500">选中段落</span>
-                        <Tag :value="`${paragraphTranslation.wordsInSelection.length} 个单词`" />
-                      </div>
-
                       <div class="space-y-2">
                         <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
                           <i
@@ -757,11 +751,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                         </div>
                       </div>
 
-                      <div class="p-3 bg-gray-50 rounded-lg">
-                        <div class="text-sm text-gray-600 mb-2">原文：</div>
-                        <div class="">{{ paragraphTranslation.originalText }}</div>
-                      </div>
-
                       <div class="space-y-2">
                         <div class="text-sm text-gray-500">完整中文翻译</div>
                         <div class="p-3 bg-green-50 rounded-lg">
@@ -769,11 +758,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                             {{ paragraphTranslation.translatedText }}
                           </div>
                         </div>
-                      </div>
-
-                      <div class="text-xs text-gray-500 p-2 bg-yellow-50 rounded">
-                        本次选择的
-                        {{ paragraphTranslation.wordsInSelection.length }} 个单词熟练度已降低 -1
                       </div>
                     </div>
                   </div>
