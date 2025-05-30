@@ -404,45 +404,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     });
   };
 
-  const handleStudyComplete = () => {
-    if (!isStudying.value) return;
-
-    if (isParagraphMode.value && !paragraphs.value.every((p) => p.isCompleted)) {
-      toast.add({
-        severity: 'warn',
-        summary: '还有段落未完成',
-        detail: '请完成所有段落的学习后再结束',
-        life: 3000,
-      });
-      return;
-    }
-
-    let improvedCount = 0;
-    const updatedWords = words.value.map((word) => {
-      if (!currentSession.clickedWords.has(word.word)) {
-        improvedCount++;
-        return { ...word, memoryLevel: Math.min(10, word.memoryLevel + 1) };
-      }
-      return word;
-    });
-
-    updateWordDatas(updatedWords);
-
-    // 重置状态
-    isStudying.value = false;
-    showTranslation.value = false;
-    paragraphs.value = [];
-    currentSession.clickedWords = new Set();
-    selectionState.selectedWords = new Set();
-
-    toast.add({
-      severity: 'success',
-      summary: '学习完成！',
-      detail: `恭喜！${improvedCount} 个单词熟练度提升了 +1`,
-      life: 4000,
-    });
-  };
-
   const goToParagraph = (index: number) => {
     if (index >= 0 && index < paragraphs.value.length) {
       currentParagraphIndex.value = index;
@@ -450,15 +411,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       showTranslation.value = false;
       selectionState.selectedWords = new Set();
     }
-  };
-
-  const handleSaveData = () => {
-    toast.add({
-      severity: 'success',
-      summary: '保存成功',
-      detail: '学习数据已保存到本地',
-      life: 3000,
-    });
   };
 
   const adjustMemoryLevel = (word: string, newLevel: number) => {
@@ -612,40 +564,21 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                     @click="loadSampleArticle(true)"
                     :disabled="isStudying || isAnalyzing"
                     label="示例分段" />
-                  <Button
-                    v-if="isStudying"
-                    @click="handleStudyComplete"
-                    class="bg-green-600 hover:bg-green-700 text-white"
-                    label="学习完毕"
-                    icon="pi pi-check" />
-                  <Button
-                    severity="secondary"
-                    @click="handleSaveData"
-                    :disabled="words.length === 0"
-                    label="保存"
-                    icon="pi pi-save" />
                 </div>
               </div>
             </template>
           </Card>
 
-          <!-- 段落导航 -->
-          <Card
-            v-if="isParagraphMode && paragraphs.length > 0"
-            class="border-indigo-200 bg-indigo-50">
+          <!-- 文章显示 -->
+          <Card v-if="words.length > 0">
             <template #title>
+              <!-- 显示段落进度和操作按钮 -->
               <div class="flex items-center gap-2">
-                <i class="pi pi-play text-indigo-600"></i>
-                段落导航
-                <div class="ml-auto flex items-center gap-2">
-                  <span class="text-sm text-indigo-600">
-                    {{ completedParagraphs }}/{{ paragraphs.length }} 已完成
-                  </span>
-                </div>
-              </div>
-            </template>
-            <template #content>
-              <div class="flex items-center gap-2 mb-4">
+                <i class="pi pi-book" style="font-size: 1.25rem"></i>
+                <span class="text-sm text-indigo-600" title="段落进度">
+                  {{ completedParagraphs }}/{{ paragraphs.length }} 已完成
+                </span>
+
                 <Button
                   severity="secondary"
                   size="small"
@@ -668,66 +601,23 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                     :icon="paragraphs[index].isCompleted ? 'pi pi-check-circle' : ''" />
                 </div>
                 <Button
-                  severity="secondary"
-                  size="small"
-                  @click="goToParagraph(currentParagraphIndex + 1)"
-                  :disabled="currentParagraphIndex === paragraphs.length - 1"
-                  icon="pi pi-check-circle" />
-              </div>
-              <div class="flex justify-center">
-                <Button
                   @click="handleParagraphComplete"
+                  size="small"
+                  icon="pi pi-check"
                   class="bg-blue-600 hover:bg-blue-700 text-white"
                   :disabled="paragraphs[currentParagraphIndex]?.isCompleted"
-                  label="完成当前段落" />
-              </div>
-            </template>
-          </Card>
-
-          <!-- 学习会话状态 -->
-          <Card v-if="isStudying" class="border-green-200 bg-green-50">
-            <template #content>
-              <div class="pt-6 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                  <div class="text-sm">
-                    <span class="text-green-600 font-medium">
-                      {{ isParagraphMode ? `第${currentParagraphIndex + 1}段：` : '本次会话：' }}
-                    </span>
-                    已操作 {{ stats.clickedInSession }} 个词汇，未操作
-                    {{ stats.notClickedInSession }} 个词汇
-                  </div>
-                </div>
-                <div class="text-xs text-gray-500 flex items-center gap-2">
-                  <i class="pi pi-mouse" style="font-size: 0.75rem"></i>
-                  点击单词或拖拽选择段落
-                </div>
-              </div>
-              <div v-if="isParagraphMode" class="mt-2">
-                <ProgressBar :value="(completedParagraphs / paragraphs.length) * 100" class="h-2" />
-                <div class="text-xs text-gray-500 mt-1">
-                  整体进度: {{ completedParagraphs }}/{{ paragraphs.length }} 段落
-                </div>
-              </div>
-            </template>
-          </Card>
-
-          <!-- 文章显示 -->
-          <Card v-if="words.length > 0">
-            <template #title>
-              <div class="flex items-center gap-2">
-                <i class="pi pi-book" style="font-size: 1.25rem"></i>
-                段落学习
-                <Tag v-if="isParagraphMode" severity="secondary" class="ml-2">
-                  第 {{ currentParagraphIndex + 1 }} 段
-                </Tag>
+                  label="OK" />
               </div>
             </template>
             <template #content>
               <div class="mb-4 p-3 bg-blue-50 rounded-lg">
-                <div class="flex items-center gap-2 text-sm text-blue-700">
-                  <i class="pi pi-pencil" style="font-size: 1rem"></i>
-                  <span class="font-medium">使用提示：</span>
-                  <span>点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译</span>
+                <div class="flex flex-col sm:flex-row items-center gap-2 text-sm text-blue-700">
+                  <span class="font-medium">
+                    <i class="pi pi-pencil" style="font-size: 1rem" />使用提示：</span
+                  >
+                  <span>
+                    点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译，下方英文学习完毕后点击右上角的OK按钮
+                  </span>
                 </div>
               </div>
               <div
@@ -894,10 +784,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                   <p class="text-sm">获取AI智能翻译和详细分析</p>
                   <div v-if="isStudying" class="mt-4 p-3 bg-blue-50 rounded-lg">
                     <p class="text-sm text-blue-600">
-                      💡 提示：点击/拖拽会降低熟练度(-1)，{{
+                      💡 提示：点击单词查看翻译会降低熟练度，{{
                         isParagraphMode ? '完成段落' : '学习完毕'
-                      }}
-                      时未操作的单词会提升熟练度(+1)
+                      }}时未操作的单词会提升熟练度(+1)
                     </p>
                   </div>
                 </div>
