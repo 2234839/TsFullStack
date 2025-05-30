@@ -1,4 +1,4 @@
-import { useAiEnglishData } from './data';
+import { useAiEnglishData, type WordData } from './data';
 
 export interface AIAnalysis {
   articleDifficulty: number;
@@ -38,7 +38,16 @@ async function fetchAI(prompt: string) {
   }
 }
 
-export const translateWithAI = async (word: string, context?: string) => {
+export const translateWithAI = async (
+  word: string,
+  context?: string,
+): Promise<{
+  translation: string;
+  difficulty: number;
+  examples: string[];
+  grammar: string;
+  pronunciation: string;
+}> => {
   const prompt = `请分析英文单词 "${word}"${
     context ? ` (在句子"${context}"中)` : ''
   }，并提供以下信息：
@@ -144,8 +153,11 @@ export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> =>
   }
 };
 
-export function useCreateMixedTranslation() {
-  const { getWordData } = useAiEnglishData();
+export function useCreateMixedTranslation({
+  getWordData,
+}: {
+  getWordData: (word: string) => WordData | undefined;
+}) {
   return async (
     originalText: string,
     translatedText: string,
@@ -157,7 +169,6 @@ export function useCreateMixedTranslation() {
         const wordData = getWordData(word);
         return wordData && wordData.memoryLevel >= 7;
       });
-
       if (familiarWords.length === 0) return translatedText;
 
       const prompt = `请将以下中文翻译中的指定单词替换回英文原词：

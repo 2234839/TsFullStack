@@ -1,6 +1,4 @@
 <script setup lang="tsx">
-  import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue';
-  import { useToast } from 'primevue/usetoast';
   import {
     analyzeArticleWithAI,
     translateParagraphWithAI,
@@ -8,8 +6,10 @@
     useCreateMixedTranslation,
     type AIAnalysis,
   } from '@/pages/AiEnglish/ai';
-  import { useAiEnglishData, type WordData } from '@/pages/AiEnglish/data';
+  import { useAiEnglishData } from '@/pages/AiEnglish/data';
   import { speakText } from '@/pages/AiEnglish/util';
+  import { useToast } from 'primevue/usetoast';
+  import { computed, nextTick, reactive, ref, watch } from 'vue';
 
   interface StudySession {
     clickedWords: Set<string>;
@@ -39,16 +39,22 @@
   }
 
   // 示例文章
-  const sampleArticle = `Artificial intelligence is revolutionizing the way we learn languages. Modern technology provides students with innovative tools for education.
+  const sampleArticle = `I like to play with my friends. We run and jump in the park. The sun is bright and the sky is blue.
 
-The digital world offers countless opportunities for communication and cultural exchange. Learning English through interesting articles helps students develop their language skills naturally.
+My dog is happy. He wags his tail when he sees me. We play fetch with a ball.
 
-Teachers can use these intelligent systems to create personalized learning experiences for every student. These advanced tools make language learning more engaging and effective than ever before.`;
+I eat an apple every day. Apples are good for you. They make you strong and healthy.
+
+My mom reads me a story at night. I like the stories about animals. Then I go to sleep.`;
 
   // 响应式状态
   const article = ref('');
-  const { words, getWordData } = useAiEnglishData();
-  const selectedWord = ref<WordData | null>(null);
+  const { words, getWordData, updateWordDatas, remoteWordsData } = useAiEnglishData();
+  const selectedWordKey = ref<string>();
+  const selectedWord = computed(() => {
+    if (!selectedWordKey.value) return undefined;
+    return getWordData(selectedWordKey.value);
+  });
   const paragraphTranslation = ref<ParagraphTranslation | null>(null);
   const showTranslation = ref(false);
   const translationType = ref<'word' | 'paragraph'>('word');
@@ -127,43 +133,6 @@ Teachers can use these intelligent systems to create personalized learning exper
     return 'text-red-600';
   };
 
-  // 存储操作
-  const STORAGE_KEY = 'english-learning-words';
-
-  const loadWordsFromStorage = (): Record<string, WordData> => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (!stored) return {};
-
-      const data = JSON.parse(stored);
-      Object.keys(data).forEach((key) => {
-        if (data[key].memoryLevel > 10) {
-          data[key].memoryLevel = Math.round(data[key].memoryLevel / 100);
-        }
-      });
-      return data;
-    } catch (error) {
-      console.error('加载数据失败:', error);
-      return {};
-    }
-  };
-
-  const saveWordsToStorage = (wordsData: WordData[]) => {
-    try {
-      const wordsMap: Record<string, WordData> = {};
-      wordsData.forEach((word) => (wordsMap[word.word] = word));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(wordsMap));
-    } catch (error) {
-      console.error('保存数据失败:', error);
-      toast.add({
-        severity: 'error',
-        summary: '保存失败',
-        detail: '无法保存学习数据到本地存储',
-        life: 3000,
-      });
-    }
-  };
-
   // 文本处理
   const tokenizeText = (text: string): string[] => {
     return text
@@ -191,33 +160,7 @@ Teachers can use these intelligent systems to create personalized learning exper
   // 核心功能
   const initializeWords = async (text: string, useParagraphMode = false) => {
     const tokens = tokenizeText(text);
-    const wordFreq: Record<string, number> = {};
-    const storedWords = loadWordsFromStorage();
-
-    // 计算词频
-    tokens.forEach((token) => (wordFreq[token] = (wordFreq[token] || 0) + 1));
-
-    // 创建单词数据
-    words.value = Object.entries(wordFreq).map(([word, freq]) => {
-      const existingWord = storedWords[word];
-      return existingWord
-        ? {
-            ...existingWord,
-            frequency: freq,
-            totalAppearances: existingWord.totalAppearances + freq,
-            totalSessions: existingWord.totalSessions + 1,
-          }
-        : {
-            word,
-            memoryLevel: 0,
-            clickCount: 0,
-            lastClickTime: 0,
-            frequency: freq,
-            translations: [],
-            totalAppearances: freq,
-            totalSessions: 1,
-          };
-    });
+    await remoteWordsData.execute(0, tokens);
 
     isStudying.value = true;
     isParagraphMode.value = useParagraphMode;
@@ -315,56 +258,36 @@ Teachers can use these intelligent systems to create personalized learning exper
     }
   };
 
-  const createMixedTranslation = useCreateMixedTranslation();
+  const createMixedTranslation = useCreateMixedTranslation({ getWordData });
 
-  const handleParagraphSelection = async (selectedWordsData: string[]) => {
+  const handleParagraphSelection = async (selectedWordsKey: string[]) => {
     highlightedWord.value = '';
     const newClickedWords = new Set(currentSession.clickedWords);
 
-    selectedWordsData.forEach((word) => newClickedWords.add(word.toLowerCase()));
+    selectedWordsKey.forEach((word) => newClickedWords.add(word.toLowerCase()));
     currentSession.clickedWords = newClickedWords;
 
-    // 更新单词数据
-    words.value = words.value.map((wordData) => {
-      if (selectedWordsData.includes(wordData.word)) {
-        return {
-          ...wordData,
-          memoryLevel: Math.max(0, wordData.memoryLevel - 1),
-          clickCount: wordData.clickCount + 1,
-          lastClickTime: Date.now(),
-        };
-      }
-      return wordData;
-    });
-
     // 获取段落翻译
-    const selectedText = selectedWordsData.join(' ');
+    const selectedText = selectedWordsKey.join(' ');
     isTranslating.value = true;
     translationType.value = 'paragraph';
     showTranslation.value = true;
-    selectedWord.value = null;
+    selectedWordKey.value = undefined;
 
     try {
       const translatedText = await translateParagraphWithAI(selectedText);
       const mixedTranslation = await createMixedTranslation(
         selectedText,
         translatedText,
-        selectedWordsData,
+        selectedWordsKey,
       );
 
       paragraphTranslation.value = {
         originalText: selectedText,
         translatedText,
         mixedTranslation,
-        wordsInSelection: selectedWordsData,
+        wordsInSelection: selectedWordsKey,
       };
-
-      toast.add({
-        severity: 'success',
-        summary: '段落翻译',
-        detail: `已翻译包含 ${selectedWordsData.length} 个单词的段落`,
-        life: 3000,
-      });
     } catch (error) {
       toast.add({
         severity: 'error',
@@ -380,6 +303,7 @@ Teachers can use these intelligent systems to create personalized learning exper
   };
 
   const handleWordClick = async (word: string) => {
+    console.log('[word]', word);
     // 清除状态
     selectionState.isSelecting = false;
     selectionState.selectedWords = new Set();
@@ -396,7 +320,7 @@ Teachers can use these intelligent systems to create personalized learning exper
 
     // 更新单词数据
     const newMemoryLevel = Math.max(0, wordData.memoryLevel - 1);
-    selectedWord.value = { ...wordData, memoryLevel: newMemoryLevel };
+    selectedWordKey.value = word;
     showTranslation.value = true;
     translationType.value = 'word';
     paragraphTranslation.value = null;
@@ -405,35 +329,37 @@ Teachers can use these intelligent systems to create personalized learning exper
     if (!wordData.aiTranslation) {
       isTranslating.value = true;
       const aiResult = await translateWithAI(word, currentText.value);
+      console.log('[aiResult]', aiResult);
+      const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
+      if (oldWordData) {
+        updateWordDatas([
+          {
+            ...oldWordData,
+            memoryLevel: newMemoryLevel,
+            clickCount: oldWordData.clickCount + 1,
+            lastClickTime: Date.now(),
+            aiTranslation: aiResult.translation,
+            difficulty: aiResult.difficulty,
+            examples: aiResult.examples,
+            grammar: aiResult.grammar,
+            pronunciation: aiResult.pronunciation,
+          },
+        ]);
+      }
 
-      words.value = words.value.map((w) =>
-        w.word === word.toLowerCase()
-          ? {
-              ...w,
-              memoryLevel: newMemoryLevel,
-              clickCount: w.clickCount + 1,
-              lastClickTime: Date.now(),
-              aiTranslation: aiResult.translation,
-              difficulty: aiResult.difficulty,
-              examples: aiResult.examples,
-              grammar: aiResult.grammar,
-              pronunciation: aiResult.pronunciation,
-            }
-          : w,
-      );
-      selectedWord.value = words.value.find((w) => w.word === word.toLowerCase()) || null;
       isTranslating.value = false;
     } else {
-      words.value = words.value.map((w) =>
-        w.word === word.toLowerCase()
-          ? {
-              ...w,
-              memoryLevel: newMemoryLevel,
-              clickCount: w.clickCount + 1,
-              lastClickTime: Date.now(),
-            }
-          : w,
-      );
+      const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
+      if (oldWordData) {
+        updateWordDatas([
+          {
+            ...oldWordData,
+            memoryLevel: newMemoryLevel,
+            clickCount: oldWordData.clickCount + 1,
+            lastClickTime: Date.now(),
+          },
+        ]);
+      }
     }
 
     speakText(word);
@@ -457,14 +383,13 @@ Teachers can use these intelligent systems to create personalized learning exper
       return word;
     });
 
-    words.value = updatedWords;
-    saveWordsToStorage(updatedWords);
+    updateWordDatas(updatedWords); // 更新单词数据
 
     // 标记段落完成
     paragraphs.value = paragraphs.value.map((p, index) =>
       index === currentParagraphIndex.value ? { ...p, isCompleted: true } : p,
     );
-
+    currentParagraphIndex.value += 1;
     // 重置会话
     currentSession.clickedWords = new Set();
     showTranslation.value = false;
@@ -501,8 +426,7 @@ Teachers can use these intelligent systems to create personalized learning exper
       return word;
     });
 
-    words.value = updatedWords;
-    saveWordsToStorage(updatedWords);
+    updateWordDatas(updatedWords);
 
     // 重置状态
     isStudying.value = false;
@@ -529,7 +453,6 @@ Teachers can use these intelligent systems to create personalized learning exper
   };
 
   const handleSaveData = () => {
-    saveWordsToStorage(words.value);
     toast.add({
       severity: 'success',
       summary: '保存成功',
@@ -539,7 +462,9 @@ Teachers can use these intelligent systems to create personalized learning exper
   };
 
   const adjustMemoryLevel = (word: string, newLevel: number) => {
-    words.value = words.value.map((w) => (w.word === word ? { ...w, memoryLevel: newLevel } : w));
+    const updates = words.value.map((w) => (w.word === word ? { ...w, memoryLevel: newLevel } : w));
+    updateWordDatas(updates);
+
     if (selectedWord.value?.word === word) {
       selectedWord.value.memoryLevel = newLevel;
     }
@@ -609,20 +534,6 @@ Teachers can use these intelligent systems to create personalized learning exper
       );
     });
   }
-
-  // 生命周期钩子
-  onMounted(() => {
-    const storedWords = loadWordsFromStorage();
-    if (Object.keys(storedWords).length > 0) {
-      toast.add({
-        severity: 'info',
-        summary: '数据已加载',
-        detail: `从本地存储加载了 ${Object.keys(storedWords).length} 个词汇的学习记录`,
-        life: 3000,
-      });
-    }
-  });
-
   // 更新单词元素引用
   watch([currentText, words, currentParagraphIndex], () => {
     nextTick(() => {
@@ -805,26 +716,10 @@ Teachers can use these intelligent systems to create personalized learning exper
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-book" style="font-size: 1.25rem"></i>
-                智能标记文章
+                段落学习
                 <Tag v-if="isParagraphMode" severity="secondary" class="ml-2">
                   第 {{ currentParagraphIndex + 1 }} 段
                 </Tag>
-                <div class="ml-auto flex items-center gap-4 text-sm">
-                  <div class="flex items-center gap-2">
-                    <div
-                      class="w-8 h-3 rounded"
-                      style="
-                        background: linear-gradient(
-                          to right,
-                          rgb(255, 0, 0),
-                          rgb(255, 255, 0),
-                          rgb(0, 255, 0)
-                        );
-                      "></div>
-                    <span>0 → 10</span>
-                  </div>
-                  <span class="text-xs text-purple-600">⭐ = AI关键词</span>
-                </div>
               </div>
             </template>
             <template #content>
@@ -907,8 +802,7 @@ Teachers can use these intelligent systems to create personalized learning exper
                         class="w-full" />
                     </div>
 
-                    <div class="space-y-2">
-                      <div class="text-sm text-gray-500">AI翻译</div>
+                    <div class="space-y-2 mt-2">
                       <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
                         <i class="pi pi-refresh animate-spin" style="font-size: 1rem"></i>
                         AI翻译中...
@@ -957,7 +851,6 @@ Teachers can use these intelligent systems to create personalized learning exper
                       </div>
 
                       <div class="space-y-2">
-                        <div class="text-sm text-gray-500">智能混合翻译</div>
                         <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
                           <i
                             class="pi pi-refresh"
@@ -965,7 +858,7 @@ Teachers can use these intelligent systems to create personalized learning exper
                           AI翻译中...
                         </div>
                         <div v-else class="p-3 bg-blue-50 rounded-lg">
-                          <div class="text-base leading-relaxed">
+                          <div class="leading-relaxed">
                             {{ paragraphTranslation.mixedTranslation }}
                           </div>
                           <div class="text-xs text-blue-600 mt-2">
@@ -976,7 +869,7 @@ Teachers can use these intelligent systems to create personalized learning exper
 
                       <div class="p-3 bg-gray-50 rounded-lg">
                         <div class="text-sm text-gray-600 mb-2">原文：</div>
-                        <div class="text-base italic">{{ paragraphTranslation.originalText }}</div>
+                        <div class="">{{ paragraphTranslation.originalText }}</div>
                       </div>
 
                       <div class="space-y-2">
@@ -1102,7 +995,9 @@ Teachers can use these intelligent systems to create personalized learning exper
                       <span>完全掌握 (8-10)</span>
                       <span>{{ stats.mastered }}</span>
                     </div>
-                    <ProgressBar :value="(stats.mastered / stats.total) * 100" class="h-2" />
+                    <ProgressBar
+                      :value="Math.round((stats.mastered / stats.total) * 100)"
+                      class="h-2" />
                   </div>
 
                   <div class="space-y-2">
@@ -1111,7 +1006,7 @@ Teachers can use these intelligent systems to create personalized learning exper
                       <span>{{ stats.familiar }}</span>
                     </div>
                     <ProgressBar
-                      :value="(stats.familiar / stats.total) * 100"
+                      :value="Math.round((stats.familiar / stats.total) * 100)"
                       class="h-2"
                       style="background-color: rgb(250, 204, 21)" />
                   </div>
@@ -1122,7 +1017,7 @@ Teachers can use these intelligent systems to create personalized learning exper
                       <span>{{ stats.learning }}</span>
                     </div>
                     <ProgressBar
-                      :value="(stats.learning / stats.total) * 100"
+                      :value="Math.round((stats.learning / stats.total) * 100)"
                       class="h-2"
                       style="background-color: rgb(251, 146, 60)" />
                   </div>
@@ -1133,7 +1028,7 @@ Teachers can use these intelligent systems to create personalized learning exper
                       <span>{{ stats.unknown }}</span>
                     </div>
                     <ProgressBar
-                      :value="(stats.unknown / stats.total) * 100"
+                      :value="Math.round((stats.unknown / stats.total) * 100)"
                       class="h-2"
                       style="background-color: rgb(239, 68, 68)" />
                   </div>
@@ -1146,59 +1041,6 @@ Teachers can use these intelligent systems to create personalized learning exper
                     </div>
                     <div class="text-sm text-gray-500">掌握率</div>
                   </div>
-                </div>
-              </div>
-            </template>
-          </Card>
-
-          <!-- 词汇列表 -->
-          <Card v-if="words.length > 0">
-            <template #title>
-              <div class="flex items-center gap-2">
-                <i class="pi pi-refresh" style="font-size: 1.25rem"></i>
-                词汇列表
-              </div>
-            </template>
-            <template #content>
-              <div class="space-y-2 max-h-64 overflow-y-auto">
-                <div
-                  v-for="word in [...words].sort((a, b) => b.frequency - a.frequency)"
-                  :key="word.word"
-                  :class="[
-                    'flex justify-between items-center p-2 rounded hover:bg-gray-50 cursor-pointer',
-                    currentSession.clickedWords.has(word.word)
-                      ? 'bg-blue-50 border border-blue-200'
-                      : '',
-                  ]"
-                  @click="handleWordClick(word.word)">
-                  <div class="flex items-center gap-2">
-                    <span
-                      class="font-medium px-2 py-1 rounded text-sm relative"
-                      :style="{
-                        backgroundColor: getMemoryColor(word.memoryLevel),
-                        color: word.memoryLevel > 5 ? 'black' : 'white',
-                      }">
-                      {{ word.word }}
-                      <span
-                        v-if="aiAnalysis?.keyWords.includes(word.word)"
-                        class="absolute -top-1 -right-1 text-xs"
-                        >⭐</span
-                      >
-                    </span>
-                    <span class="text-xs text-gray-500">{{ word.memoryLevel }}</span>
-                    <Tag
-                      v-if="word.difficulty"
-                      :class="getDifficultyColor(word.difficulty)"
-                      :value="`难度${word.difficulty}`"
-                      severity="secondary"
-                      class="text-xs" />
-                    <Tag
-                      v-if="currentSession.clickedWords.has(word.word)"
-                      value="已操作"
-                      severity="secondary"
-                      class="text-xs" />
-                  </div>
-                  <Tag :value="word.frequency.toString()" severity="info" />
                 </div>
               </div>
             </template>
