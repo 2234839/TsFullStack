@@ -1,4 +1,4 @@
-import { useAiEnglishData, type WordData } from './data';
+import { type WordData } from './data';
 
 export interface AIAnalysis {
   articleDifficulty: number;
@@ -171,16 +171,40 @@ export function useCreateMixedTranslation({
       });
       if (familiarWords.length === 0) return translatedText;
 
-      const prompt = `请将以下中文翻译中的指定单词替换回英文原词：
-中文翻译：${translatedText}
-英文原文：${originalText}
-需要保持英文的单词：${familiarWords.join(', ')}
+      const prompt = `# 英文学习辅助翻译器
+## 核心规则
+1. 严格按英文原文单词顺序输出混合翻译
+2. **熟悉的单词保持英文原词**（不改变大小写）
+3. 不熟悉的单词使用中文翻译
+4. 最终输出只能是混合字符串（无原文/无完整翻译）
+5. 单词间用空格分隔（保留原标点）
 
-要求：
-1. 只替换指定的单词为英文
-2. 保持句子的语法正确和流畅
-3. 其他词汇保持中文
-4. 直接返回混合后的结果`;
+## 错误示例（禁止输出）
+× "I like to play with my friends 我喜欢和朋友们一起玩"
+× "I like 和 my friends 玩"
+✓ 正确形式："i 喜欢 和 my 朋友们 一起玩"
+
+## 处理流程
+1. 拆分英文原文为单词列表：["i", "like", "to", "play", "with", "my", "friends"]
+2. 标记熟悉单词：i✅, my✅
+3. 替换不熟悉单词：like→喜欢, to→(忽略虚词), play→玩, with→和, friends→朋友们
+4. 按原顺序拼接：i + 喜欢 + 和 + my + 朋友们 + 一起玩
+
+## 标准示例
+英文原文：Hello world
+中文翻译：你好 世界
+熟悉单词：Hello
+→ Hello 世界
+
+英文原文：She eats an apple
+中文翻译：她吃了一个苹果
+熟悉单词：She
+→ She 吃了一个 苹果
+
+--- 待处理数据 ---
+英文原文：${originalText}
+中文翻译：${translatedText}
+熟悉单词：${familiarWords.join(', ')}`;
 
       const response = await fetch(`${AI_CONFIG.apiBase}/chat/completions`, {
         method: 'POST',
