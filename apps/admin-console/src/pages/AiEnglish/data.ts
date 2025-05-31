@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import { useAsyncState } from '@vueuse/core';
+import { StorageRepository, StorageType } from '@/utils/storage.repository';
 
 export interface WordData {
   /** 单词原文 */
@@ -30,6 +31,16 @@ export interface WordData {
   pronunciation?: string;
 }
 
+// 创建存储库实例
+const storageRepo = new StorageRepository();
+
+// 自定义配置（可选）
+storageRepo.setPriority([
+  StorageType.INDEXED_DB, // 优先从IndexedDB读取
+  StorageType.LOCAL_STORAGE, // 最后从localStorage读取
+  // StorageType.API,        // 其次从API读取
+]);
+
 export function useAiEnglishData() {
   const wordsData = ref<Record<string, WordData>>({});
 
@@ -55,7 +66,7 @@ export function useAiEnglishData() {
       const loadedBatch = await StorageService.loadWords(wordsToLoad);
       Object.assign(wordsData.value, loadedBatch);
 
-      wordsToLoad.forEach(word => {
+      wordsToLoad.forEach((word) => {
         if (!loadedBatch[word]) {
           wordsData.value[word] = {
             word,
@@ -65,7 +76,7 @@ export function useAiEnglishData() {
             frequency: 0,
             translations: [],
             totalAppearances: 0,
-            totalSessions: 0
+            totalSessions: 0,
           };
         }
       });
@@ -88,81 +99,19 @@ export function useAiEnglishData() {
 }
 
 export class StorageService {
-  private static LOCAL_STORAGE_KEY = 'english-learning-words';
-  private static isLoggedIn = ref(false);
-
+  private static word2key(word: WordData) {
+    return StorageService.wordString2key(word.word);
+  }
+  private static wordString2key(word: string) {
+    return word.toLowerCase();
+  }
   static async saveWords(words: WordData[]): Promise<void> {
-    if (this.isLoggedIn.value) {
-      await this.saveWordsToRemote(words);
-    } else {
-      this.saveWordsToLocal(words);
-    }
+    storageRepo.saveBatch(
+      words.map((word) => ({ key: StorageService.word2key(word), data: word })),
+    );
   }
 
   static async loadWords(words: string[]): Promise<Record<string, WordData>> {
-    return this.isLoggedIn.value ? this.loadWordsFromRemote(words) : this.loadWordsFromLocal(words);
-  }
-
-  private static saveWordsToLocal(words: WordData[]): void {
-    try {
-      const stored = localStorage.getItem(this.LOCAL_STORAGE_KEY);
-      const wordsMap: Record<string, WordData> = stored ? JSON.parse(stored) : {};
-      words.forEach((word) => {
-        wordsMap[word.word] = word;
-      });
-      localStorage.setItem(this.LOCAL_STORAGE_KEY, JSON.stringify(wordsMap));
-    } catch (error) {
-      console.error('保存到本地存储失败:', error);
-    }
-  }
-
-  private static async saveWordsToRemote(words: WordData[]): Promise<void> {
-    try {
-      await fetch('/api/words/batch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(words),
-      });
-    } catch (error) {
-      console.error('保存到远程数据库失败:', error);
-    }
-  }
-
-  private static loadWordsFromLocal(words: string[]): Record<string, WordData> {
-    try {
-      const stored = localStorage.getItem(this.LOCAL_STORAGE_KEY);
-      if (!stored) return {};
-
-      const data = JSON.parse(stored);
-      const result: Record<string, WordData> = {};
-      words.forEach((word) => {
-        const wordData = data[word];
-        if (wordData) {
-          if (wordData.memoryLevel > 10) {
-            wordData.memoryLevel = Math.round(wordData.memoryLevel / 100);
-          }
-          result[word] = wordData;
-        }
-      });
-      return result;
-    } catch (error) {
-      console.error('从本地存储加载失败:', error);
-      return {};
-    }
-  }
-
-  private static async loadWordsFromRemote(words: string[]): Promise<Record<string, WordData>> {
-    try {
-      const response = await fetch(`/api/words/batch?words=${encodeURIComponent(words.join(','))}`);
-      if (!response.ok) return {};
-      return await response.json();
-    } catch (error) {
-      console.error('从远程数据库加载失败:', error);
-      return {};
-    }
-  }
-
-  static setLoginStatus(loggedIn: boolean): void {
-    this.isLoggedIn.value = loggedIn;
+    return await storageRepo.loadBatch(words.map((word) => StorageService.wordString2key(word)));
   }
 }
