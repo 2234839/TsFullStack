@@ -1,11 +1,6 @@
 import localforage from 'localforage';
 import { reactive, ref } from 'vue';
-
-export enum StorageType {
-  API = 'api',
-  INDEXED_DB = 'indexeddb',
-  LOCAL_STORAGE = 'localstorage',
-}
+import superjson from 'superjson';
 
 export interface StorageStats {
   readCount: number;
@@ -15,26 +10,39 @@ export interface StorageStats {
   lastError: string | null;
 }
 
-export interface StorageStrategy {
-  type: StorageType;
-  name: string;
-  isAvailable: boolean;
-  priority: number;
-  stats: StorageStats;
-
-  initialize(): Promise<boolean>;
-  save(key: string, data: any): Promise<void>;
-  load(key: string): Promise<any>;
-  remove(key: string): Promise<void>;
-  saveBatch(items: { key: string; data: any }[]): Promise<void>;
-  loadBatch(keys: string[]): Promise<Record<string, any>>;
+export interface StorageOptions {
+  /**
+   * Serializer/deserializer functions
+   * @default superjson
+   */
+  serializer?: {
+    serialize: (data: any) => string;
+    deserialize: (data: string) => any;
+  };
+  /**
+   * Enable bucket support
+   * @default false
+   */
+  bucket?:
+    | boolean
+    | {
+        /**
+         * Default bucket name
+         * @default 'default'
+         */
+        defaultBucket?: string;
+        /**
+         * Bucket separator
+         * @default '::'
+         */
+        separator?: string;
+      };
 }
 
-export class ApiStorageStrategy implements StorageStrategy {
-  readonly type = StorageType.API;
-  name = 'Remote API';
+export abstract class StorageStrategy {
+  abstract name: string;
   isAvailable = false;
-  priority = 1;
+  priority = 0;
   stats = reactive<StorageStats>({
     readCount: 0,
     writeCount: 0,
@@ -43,10 +51,142 @@ export class ApiStorageStrategy implements StorageStrategy {
     lastError: null,
   });
 
+  protected readonly serializer: {
+    serialize: (data: any) => string;
+    deserialize: (data: string) => any;
+  };
+  protected bucketConfig: {
+    enabled: boolean;
+    defaultBucket: string;
+    separator: string;
+  };
+
+  constructor(public options: StorageOptions = {}) {
+    // Initialize serializer
+    this.serializer = options.serializer || {
+      serialize: superjson.stringify,
+      deserialize: superjson.parse,
+    };
+
+    // Initialize bucket configuration
+    this.bucketConfig = {
+      enabled: !!options.bucket,
+      defaultBucket:
+        typeof options.bucket === 'object' ? options.bucket.defaultBucket || 'default' : 'default',
+      separator: typeof options.bucket === 'object' ? options.bucket.separator || '::' : '::',
+    };
+  }
+
+  abstract initialize(): Promise<boolean>;
+  protected abstract rawSave(key: string, data: any): Promise<void>;
+  protected abstract rawLoad(key: string): Promise<any>;
+  protected abstract rawRemove(key: string): Promise<void>;
+  protected abstract rawSaveBatch(items: { key: string; data: any }[]): Promise<void>;
+  protected abstract rawLoadBatch(keys: string[]): Promise<Record<string, any>>;
+
+  setBucket(bucket?: string): void {
+    this.bucketConfig = {
+      enabled: !!bucket,
+      defaultBucket: 'default',
+      separator: '::',
+    };
+  }
+  protected withBucket(key: string, bucket?: string): string {
+    if (!this.bucketConfig.enabled) return key;
+    return bucket
+      ? `${bucket}${this.bucketConfig.separator}${key}`
+      : `${this.bucketConfig.defaultBucket}${this.bucketConfig.separator}${key}`;
+  }
+
+  protected withoutBucket(fullKey: string): { key: string; bucket: string | null } {
+    if (!this.bucketConfig.enabled) return { key: fullKey, bucket: null };
+
+    const separatorIndex = fullKey.indexOf(this.bucketConfig.separator);
+    if (separatorIndex === -1) {
+      return { key: fullKey, bucket: this.bucketConfig.defaultBucket };
+    }
+
+    return {
+      bucket: fullKey.substring(0, separatorIndex),
+      key: fullKey.substring(separatorIndex + this.bucketConfig.separator.length),
+    };
+  }
+
+  async save(key: string, data: any, bucket?: string): Promise<void> {
+    const fullKey = this.withBucket(key, bucket);
+    const serialized = this.serializer.serialize(data);
+    return this.rawSave(fullKey, serialized);
+  }
+
+  async load(key: string, bucket?: string): Promise<any> {
+    const fullKey = this.withBucket(key, bucket);
+    const serialized = await this.rawLoad(fullKey);
+    return serialized ? this.serializer.deserialize(serialized) : null;
+  }
+
+  async remove(key: string, bucket?: string): Promise<void> {
+    const fullKey = this.withBucket(key, bucket);
+    return this.rawRemove(fullKey);
+  }
+
+  async saveBatch(items: { key: string; data: any; bucket?: string }[]): Promise<void> {
+    const serializedItems = items.map((item) => ({
+      key: this.withBucket(item.key, item.bucket),
+      data: this.serializer.serialize(item.data),
+    }));
+    return this.rawSaveBatch(serializedItems);
+  }
+
+  async loadBatch(keys: { key: string; bucket?: string }[]): Promise<Record<string, any>> {
+    const fullKeys = keys.map((k) => this.withBucket(k.key, k.bucket));
+    const serializedData = await this.rawLoadBatch(fullKeys);
+
+    const result: Record<string, any> = {};
+    for (const [fullKey, value] of Object.entries(serializedData)) {
+      const { key } = this.withoutBucket(fullKey);
+      result[key] = value ? this.serializer.deserialize(value) : null;
+    }
+
+    return result;
+  }
+
+  async getBucketKeys(bucket: string): Promise<string[]> {
+    if (!this.bucketConfig.enabled) {
+      throw new Error('Bucket support is not enabled');
+    }
+
+    const prefix = `${bucket}${this.bucketConfig.separator}`;
+    const allKeys = await this.getAllKeys();
+    return allKeys.filter((key) => key.startsWith(prefix)).map((key) => key.slice(prefix.length));
+  }
+
+  async clearBucket(bucket: string): Promise<void> {
+    if (!this.bucketConfig.enabled) {
+      throw new Error('Bucket support is not enabled');
+    }
+
+    const keys = await this.getBucketKeys(bucket);
+    await this.rawRemoveBatch(keys.map((key) => this.withBucket(key, bucket)));
+  }
+
+  protected abstract getAllKeys(): Promise<string[]>;
+  protected abstract rawRemoveBatch(keys: string[]): Promise<void>;
+}
+
+export class ApiStorageStrategy extends StorageStrategy {
+  name = 'Remote API';
+  priority = 1;
+
+  constructor(options?: StorageOptions & { baseUrl?: string }) {
+    super(options);
+    this.baseUrl = options?.baseUrl || '/api';
+  }
+
+  private baseUrl: string;
+
   async initialize(): Promise<boolean> {
     try {
-      // 测试API连通性
-      const response = await fetch('/api/health');
+      const response = await fetch(`${this.baseUrl}/health`);
       this.isAvailable = response.ok;
       return this.isAvailable;
     } catch (error) {
@@ -56,13 +196,13 @@ export class ApiStorageStrategy implements StorageStrategy {
     }
   }
 
-  async save(key: string, data: any): Promise<void> {
+  protected async rawSave(key: string, data: any): Promise<void> {
     const start = performance.now();
     try {
-      await fetch(`/api/data/${encodeURIComponent(key)}`, {
+      await fetch(`${this.baseUrl}/data/${encodeURIComponent(key)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({ data }),
       });
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
@@ -72,13 +212,13 @@ export class ApiStorageStrategy implements StorageStrategy {
     }
   }
 
-  async load(key: string): Promise<any> {
+  protected async rawLoad(key: string): Promise<any> {
     const start = performance.now();
     try {
-      const response = await fetch(`/api/data/${encodeURIComponent(key)}`);
+      const response = await fetch(`${this.baseUrl}/data/${encodeURIComponent(key)}`);
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const data = await response.json();
+      const { data } = await response.json();
       this.stats.readCount++;
       this.stats.readTime += performance.now() - start;
       return data;
@@ -88,22 +228,24 @@ export class ApiStorageStrategy implements StorageStrategy {
     }
   }
 
-  async remove(key: string): Promise<void> {
+  protected async rawRemove(key: string): Promise<void> {
     try {
-      await fetch(`/api/data/${encodeURIComponent(key)}`, { method: 'DELETE' });
+      await fetch(`${this.baseUrl}/data/${encodeURIComponent(key)}`, {
+        method: 'DELETE',
+      });
     } catch (error) {
       this.stats.lastError = `删除失败: ${error}`;
       throw error;
     }
   }
 
-  async saveBatch(items: { key: string; data: any }[]): Promise<void> {
+  protected async rawSaveBatch(items: { key: string; data: any }[]): Promise<void> {
     const start = performance.now();
     try {
-      await fetch('/api/data/batch', {
+      await fetch(`${this.baseUrl}/data/batch`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(items),
+        body: JSON.stringify({ items }),
       });
       this.stats.writeCount += items.length;
       this.stats.writeTime += performance.now() - start;
@@ -113,13 +255,15 @@ export class ApiStorageStrategy implements StorageStrategy {
     }
   }
 
-  async loadBatch(keys: string[]): Promise<Record<string, any>> {
+  protected async rawLoadBatch(keys: string[]): Promise<Record<string, any>> {
     const start = performance.now();
     try {
-      const response = await fetch(`/api/data/batch?keys=${encodeURIComponent(keys.join(','))}`);
+      const response = await fetch(
+        `${this.baseUrl}/data/batch?keys=${encodeURIComponent(keys.join(','))}`,
+      );
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-      const data = await response.json();
+      const { data } = await response.json();
       this.stats.readCount += keys.length;
       this.stats.readTime += performance.now() - start;
       return data;
@@ -128,32 +272,56 @@ export class ApiStorageStrategy implements StorageStrategy {
       throw error;
     }
   }
+
+  protected async getAllKeys(): Promise<string[]> {
+    try {
+      const response = await fetch(`${this.baseUrl}/data/keys`);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const { keys } = await response.json();
+      return keys;
+    } catch (error) {
+      this.stats.lastError = `获取所有键失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async rawRemoveBatch(keys: string[]): Promise<void> {
+    try {
+      await fetch(`${this.baseUrl}/data/batch`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys }),
+      });
+    } catch (error) {
+      this.stats.lastError = `批量删除失败: ${error}`;
+      throw error;
+    }
+  }
 }
 
-export class IndexedDBStorageStrategy implements StorageStrategy {
-  readonly type = StorageType.INDEXED_DB;
+export class IndexedDBStorageStrategy extends StorageStrategy {
   name = 'IndexedDB';
-  isAvailable = false;
   priority = 2;
-  stats = reactive<StorageStats>({
-    readCount: 0,
-    writeCount: 0,
-    readTime: 0,
-    writeTime: 0,
-    lastError: null,
-  });
 
   private store: LocalForage | null = null;
+
+  constructor(options?: StorageOptions & { dbName?: string; storeName?: string }) {
+    super(options);
+    this.dbName = options?.dbName || 'app-storage';
+    this.storeName = options?.storeName || 'data';
+  }
+
+  private dbName: string;
+  private storeName: string;
 
   async initialize(): Promise<boolean> {
     try {
       this.store = localforage.createInstance({
-        name: 'app-storage',
-        storeName: 'data',
+        name: this.dbName,
+        storeName: this.storeName,
         description: 'Application data storage',
       });
 
-      // 测试IndexedDB可用性
       await this.store.setItem('__test__', 'test');
       await this.store.removeItem('__test__');
       this.isAvailable = true;
@@ -165,17 +333,11 @@ export class IndexedDBStorageStrategy implements StorageStrategy {
     }
   }
 
-  async save(key: string, data: any): Promise<void> {
+  protected async rawSave(key: string, data: any): Promise<void> {
     const start = performance.now();
     try {
       if (!this.store) throw new Error('IndexedDB未初始化');
-      await this.store.setItem(
-        key,
-        /** 解决可能存在的克隆失败问题 DataCloneError: Failed to execute 'put' on 'IDBObjectStore': [object Array] could not be cloned.
-         * https://github.com/localForage/localForage/issues/610
-         */
-        JSON.parse(JSON.stringify(data)),
-      );
+      await this.store.setItem(key, data);
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
     } catch (error) {
@@ -184,7 +346,7 @@ export class IndexedDBStorageStrategy implements StorageStrategy {
     }
   }
 
-  async load(key: string): Promise<any> {
+  protected async rawLoad(key: string): Promise<any> {
     const start = performance.now();
     try {
       if (!this.store) throw new Error('IndexedDB未初始化');
@@ -198,7 +360,7 @@ export class IndexedDBStorageStrategy implements StorageStrategy {
     }
   }
 
-  async remove(key: string): Promise<void> {
+  protected async rawRemove(key: string): Promise<void> {
     try {
       if (!this.store) throw new Error('IndexedDB未初始化');
       await this.store.removeItem(key);
@@ -208,14 +370,12 @@ export class IndexedDBStorageStrategy implements StorageStrategy {
     }
   }
 
-  async saveBatch(items: { key: string; data: any }[]): Promise<void> {
+  protected async rawSaveBatch(items: { key: string; data: any }[]): Promise<void> {
     const start = performance.now();
     try {
       if (!this.store) throw new Error('IndexedDB未初始化');
 
-      const promises = items.map((item) => {
-        return this.save(item.key, item.data); // Assuming save is
-      });
+      const promises = items.map((item) => this.store!.setItem(item.key, item.data));
 
       await Promise.all(promises);
       this.stats.writeCount += items.length;
@@ -226,7 +386,7 @@ export class IndexedDBStorageStrategy implements StorageStrategy {
     }
   }
 
-  async loadBatch(keys: string[]): Promise<Record<string, any>> {
+  protected async rawLoadBatch(keys: string[]): Promise<Record<string, any>> {
     const start = performance.now();
     try {
       if (!this.store) throw new Error('IndexedDB未初始化');
@@ -245,24 +405,37 @@ export class IndexedDBStorageStrategy implements StorageStrategy {
       throw error;
     }
   }
+
+  protected async getAllKeys(): Promise<string[]> {
+    try {
+      if (!this.store) throw new Error('IndexedDB未初始化');
+      return await this.store.keys();
+    } catch (error) {
+      this.stats.lastError = `获取所有键失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async rawRemoveBatch(keys: string[]): Promise<void> {
+    try {
+      if (!this.store) throw new Error('IndexedDB未初始化');
+
+      const promises = keys.map((key) => this.store!.removeItem(key));
+
+      await Promise.all(promises);
+    } catch (error) {
+      this.stats.lastError = `批量删除失败: ${error}`;
+      throw error;
+    }
+  }
 }
 
-export class LocalStorageStrategy implements StorageStrategy {
-  readonly type = StorageType.LOCAL_STORAGE;
+export class LocalStorageStrategy extends StorageStrategy {
   name = 'LocalStorage';
-  isAvailable = false;
   priority = 3;
-  stats = reactive<StorageStats>({
-    readCount: 0,
-    writeCount: 0,
-    readTime: 0,
-    writeTime: 0,
-    lastError: null,
-  });
 
   async initialize(): Promise<boolean> {
     try {
-      // 测试localStorage可用性
       const testKey = '__test__';
       localStorage.setItem(testKey, 'test');
       localStorage.removeItem(testKey);
@@ -275,10 +448,10 @@ export class LocalStorageStrategy implements StorageStrategy {
     }
   }
 
-  async save(key: string, data: any): Promise<void> {
+  protected async rawSave(key: string, data: any): Promise<void> {
     const start = performance.now();
     try {
-      localStorage.setItem(key, JSON.stringify(data));
+      localStorage.setItem(key, data);
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
     } catch (error) {
@@ -287,23 +460,20 @@ export class LocalStorageStrategy implements StorageStrategy {
     }
   }
 
-  async load(key: string): Promise<any> {
+  protected async rawLoad(key: string): Promise<any> {
     const start = performance.now();
     try {
       const data = localStorage.getItem(key);
-      if (data === null) return null;
-
-      const result = JSON.parse(data);
       this.stats.readCount++;
       this.stats.readTime += performance.now() - start;
-      return result;
+      return data;
     } catch (error) {
       this.stats.lastError = `加载失败: ${error}`;
       throw error;
     }
   }
 
-  async remove(key: string): Promise<void> {
+  protected async rawRemove(key: string): Promise<void> {
     try {
       localStorage.removeItem(key);
     } catch (error) {
@@ -312,11 +482,11 @@ export class LocalStorageStrategy implements StorageStrategy {
     }
   }
 
-  async saveBatch(items: { key: string; data: any }[]): Promise<void> {
+  protected async rawSaveBatch(items: { key: string; data: any }[]): Promise<void> {
     const start = performance.now();
     try {
       items.forEach((item) => {
-        localStorage.setItem(item.key, JSON.stringify(item.data));
+        localStorage.setItem(item.key, item.data);
       });
       this.stats.writeCount += items.length;
       this.stats.writeTime += performance.now() - start;
@@ -326,13 +496,12 @@ export class LocalStorageStrategy implements StorageStrategy {
     }
   }
 
-  async loadBatch(keys: string[]): Promise<Record<string, any>> {
+  protected async rawLoadBatch(keys: string[]): Promise<Record<string, any>> {
     const start = performance.now();
     try {
       const result: Record<string, any> = {};
       keys.forEach((key) => {
-        const data = localStorage.getItem(key);
-        result[key] = data ? JSON.parse(data) : null;
+        result[key] = localStorage.getItem(key);
       });
       this.stats.readCount += keys.length;
       this.stats.readTime += performance.now() - start;
@@ -342,31 +511,47 @@ export class LocalStorageStrategy implements StorageStrategy {
       throw error;
     }
   }
+
+  protected async getAllKeys(): Promise<string[]> {
+    try {
+      return Object.keys(localStorage);
+    } catch (error) {
+      this.stats.lastError = `获取所有键失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async rawRemoveBatch(keys: string[]): Promise<void> {
+    try {
+      keys.forEach((key) => {
+        localStorage.removeItem(key);
+      });
+    } catch (error) {
+      this.stats.lastError = `批量删除失败: ${error}`;
+      throw error;
+    }
+  }
 }
 
-/** 支持渐进式本地存储，支持多种存储方式，支持自动升级存储  */
+/**
+ * strategies : 默认可以设置为 IndexedDBStorageStrategy LocalStorageStrategy ApiStorageStrategy
+ */
 export class StorageRepository {
   private strategies: StorageStrategy[] = [];
   private initialized = false;
-
-  // 配置选项
-  private readPriority: StorageType[] = [];
-  private writePriority: StorageType[] = [];
-  private batchSize = 50;
+  private defaultBatchSize = 50;
 
   // 状态监控
   status = ref<'idle' | 'initializing' | 'ready' | 'error'>('idle');
   error = ref<string | null>(null);
 
-  constructor() {
-    // 默认策略
-    this.addStrategy(new ApiStorageStrategy());
-    this.addStrategy(new IndexedDBStorageStrategy());
-    this.addStrategy(new LocalStorageStrategy());
-
-    // 默认优先级：API > IndexedDB > LocalStorage
-    this.setReadPriority([StorageType.API, StorageType.INDEXED_DB, StorageType.LOCAL_STORAGE]);
-    this.setWritePriority([StorageType.API, StorageType.INDEXED_DB, StorageType.LOCAL_STORAGE]);
+  constructor(public options: { bucket?: string; strategies: StorageStrategy[] }) {
+    if (options.strategies.length > 0) {
+      options.strategies.forEach((s) => {
+        s.setBucket(options.bucket);
+        this.strategies.push(s);
+      });
+    }
   }
 
   async initialize(): Promise<boolean> {
@@ -376,87 +561,42 @@ export class StorageRepository {
     this.error.value = null;
 
     try {
-      // 初始化所有存储策略
-      const initPromises = this.strategies.map((strategy) => strategy.initialize());
-      await Promise.all(initPromises);
+      await Promise.all(this.strategies.map((s) => s.initialize()));
+
+      // 过滤掉不可用的策略
+      this.strategies = this.strategies.filter((s) => s.isAvailable);
 
       this.initialized = true;
       this.status.value = 'ready';
       return true;
     } catch (error) {
-      this.initialized = false;
       this.status.value = 'error';
-      this.error.value = `存储初始化失败: ${error}`;
+      this.error.value = `初始化失败: ${error instanceof Error ? error.message : String(error)}`;
       return false;
     }
   }
 
-  addStrategy(strategy: StorageStrategy): void {
-    this.strategies.push(strategy);
-  }
-
-  setPriority(priority: StorageType[]): void {
-    this.readPriority = priority;
-    this.writePriority = priority;
-    this.sortStrategiesByPriority('read');
-    this.sortStrategiesByPriority('write');
-  }
-  setReadPriority(priority: StorageType[]): void {
-    this.readPriority = priority;
-    this.sortStrategiesByPriority('read');
-  }
-
-  setWritePriority(priority: StorageType[]): void {
-    this.writePriority = priority;
-    this.sortStrategiesByPriority('write');
-  }
-
-  private sortStrategiesByPriority(mode: 'read' | 'write'): void {
-    const priorityOrder = mode === 'read' ? this.readPriority : this.writePriority;
-
-    this.strategies.sort((a, b) => {
-      const aIndex = priorityOrder.indexOf(a.type);
-      const bIndex = priorityOrder.indexOf(b.type);
-
-      if (aIndex === -1 && bIndex === -1) return a.priority - b.priority;
-      if (aIndex === -1) return 1;
-      if (bIndex === -1) return -1;
-
-      return aIndex - bIndex;
-    });
-  }
-
-  private getAvailableStrategies(mode: 'read' | 'write'): StorageStrategy[] {
-    return this.strategies
-      .filter((strategy) => strategy.isAvailable)
-      .sort((a, b) => {
-        const priorityOrder = mode === 'read' ? this.readPriority : this.writePriority;
-        const aIndex = priorityOrder.indexOf(a.type);
-        const bIndex = priorityOrder.indexOf(b.type);
-
-        if (aIndex === bIndex) return 0;
-        if (aIndex === -1) return 1;
-        if (bIndex === -1) return -1;
-
-        return aIndex - bIndex;
-      });
+  private getAvailableStrategies(): StorageStrategy[] {
+    return this.strategies;
   }
 
   async save(key: string, data: any): Promise<void> {
     if (!this.initialized) await this.initialize();
 
-    const strategies = this.getAvailableStrategies('write');
-    if (strategies.length === 0) throw new Error('没有可用的存储策略');
+    const strategies = this.getAvailableStrategies();
+    if (strategies.length === 0) {
+      throw new Error('没有可用的存储策略');
+    }
 
     let lastError: Error | null = null;
 
     for (const strategy of strategies) {
       try {
-        await strategy.save(key, data);
-        return; // 成功则返回
+        await strategy.save(key, data, this.options.bucket);
+        return;
       } catch (error) {
         lastError = error as Error;
-        console.warn(`[${strategy.name}] 保存失败, 尝试下个存储`, error);
+        console.warn(`[${strategy.name}] 存储失败`, error);
       }
     }
 
@@ -466,26 +606,28 @@ export class StorageRepository {
   async load(key: string): Promise<any> {
     if (!this.initialized) await this.initialize();
 
-    const strategies = this.getAvailableStrategies('read');
-    if (strategies.length === 0) throw new Error('没有可用的存储策略');
+    const strategies = this.getAvailableStrategies();
+    if (strategies.length === 0) {
+      throw new Error('没有可用的存储策略');
+    }
 
     let lastError: Error | null = null;
 
     for (const strategy of strategies) {
       try {
-        const data = await strategy.load(key);
-        // 如果找到有效数据，同时写入到更高优先级的存储中
+        const data = await strategy.load(key, this.options.bucket);
         if (data !== null && data !== undefined) {
+          // 将数据回写到更高优先级的存储
           await this.writeToHigherPriority(key, data, strategy);
           return data;
         }
       } catch (error) {
         lastError = error as Error;
-        console.warn(`[${strategy.name}] 加载失败, 尝试下个存储`, error);
+        console.warn(`[${strategy.name}] 读取失败`, error);
       }
     }
 
-    throw lastError || new Error('数据未找到且所有存储策略均失败');
+    throw lastError || new Error('数据未找到');
   }
 
   private async writeToHigherPriority(
@@ -493,73 +635,89 @@ export class StorageRepository {
     data: any,
     currentStrategy: StorageStrategy,
   ): Promise<void> {
-    try {
-      const higherPriority = this.getAvailableStrategies('write').filter(
-        (strategy) =>
-          this.writePriority.indexOf(strategy.type) <
-          this.writePriority.indexOf(currentStrategy.type),
-      );
+    const currentIndex = this.strategies.indexOf(currentStrategy);
+    if (currentIndex <= 0) return; // 已经是最高优先级
 
-      if (higherPriority.length === 0) return;
+    const higherStrategies = this.strategies.filter(
+      (s) => s.isAvailable && this.strategies.indexOf(s) < currentIndex,
+    );
 
-      const promises = higherPriority.map((strategy) =>
-        strategy.save(key, data).catch(console.error),
-      );
+    if (higherStrategies.length === 0) return;
 
-      await Promise.all(promises);
-    } catch (error) {
-      console.error('回写数据到更高优先级存储失败', error);
-    }
+    await Promise.all(
+      higherStrategies.map((s) =>
+        s
+          .save(key, data, this.options.bucket)
+          .catch((e) => console.warn(`回写到 ${s.name} 失败`, e)),
+      ),
+    );
   }
 
   async remove(key: string): Promise<void> {
     if (!this.initialized) await this.initialize();
 
-    const strategies = this.getAvailableStrategies('write');
-    if (strategies.length === 0) throw new Error('没有可用的存储策略');
+    const strategies = this.getAvailableStrategies();
+    if (strategies.length === 0) {
+      throw new Error('没有可用的存储策略');
+    }
 
-    const promises = strategies.map((strategy) => strategy.remove(key).catch(console.error));
-
-    await Promise.all(promises);
+    await Promise.all(
+      strategies.map((s) =>
+        s.remove(key, this.options.bucket).catch((e) => console.warn(`[${s.name}] 删除失败`, e)),
+      ),
+    );
   }
 
-  async saveBatch(items: { key: string; data: any }[]): Promise<void> {
+  async saveBatch(
+    items: { key: string; data: any }[],
+    batchSize = this.defaultBatchSize,
+  ): Promise<void> {
     if (!this.initialized) await this.initialize();
 
-    const strategies = this.getAvailableStrategies('write');
-    if (strategies.length === 0) throw new Error('没有可用的存储策略');
+    const strategies = this.getAvailableStrategies();
+    if (strategies.length === 0) {
+      throw new Error('没有可用的存储策略');
+    }
 
-    // 分批处理防止内存溢出
-    const chunks = this.chunkArray(items, this.batchSize);
+    // 分批处理
+    const chunks = this.chunkArray(items, batchSize);
+    let lastError: Error | null = null;
+
     for (const strategy of strategies) {
       try {
         for (const chunk of chunks) {
-          await strategy.saveBatch(chunk);
+          await strategy.saveBatch(chunk.map((el) => ({ ...el, bucket: this.options.bucket })));
         }
-        return; // 成功则返回
+        return;
       } catch (error) {
-        console.warn(`[${strategy.name}] 批量保存失败, 尝试下个存储`, error);
+        lastError = error as Error;
+        console.warn(`[${strategy.name}] 批量存储失败`, error);
       }
     }
 
-    throw new Error('所有存储策略批量保存均失败');
+    throw lastError || new Error('所有存储策略批量存储均失败');
   }
 
-  async loadBatch(keys: string[]): Promise<Record<string, any>> {
+  async loadBatch(keys: string[], batchSize = this.defaultBatchSize): Promise<Record<string, any>> {
     if (!this.initialized) await this.initialize();
 
-    const strategies = this.getAvailableStrategies('read');
-    if (strategies.length === 0) throw new Error('没有可用的存储策略');
+    const strategies = this.getAvailableStrategies();
+    if (strategies.length === 0) {
+      throw new Error('没有可用的存储策略');
+    }
 
-    // 分批处理防止内存溢出
-    const chunks = this.chunkArray(keys, this.batchSize);
+    // 分批处理
+    const chunks = this.chunkArray(keys, batchSize);
     let result: Record<string, any> = {};
+    let lastError: Error | null = null;
 
     for (const strategy of strategies) {
       try {
         for (const chunk of chunks) {
-          const chunkResult = await strategy.loadBatch(chunk);
-          result = { ...result, ...chunkResult };
+          const chunkResult = await strategy.loadBatch(
+            chunk.map((key) => ({ key, bucket: this.options.bucket })),
+          );
+          Object.assign(result, chunkResult);
         }
 
         // 将找到的数据回写到更高优先级的存储
@@ -567,40 +725,74 @@ export class StorageRepository {
 
         return result;
       } catch (error) {
-        console.warn(`[${strategy.name}] 批量加载失败, 尝试下个存储`, error);
+        lastError = error as Error;
+        console.warn(`[${strategy.name}] 批量读取失败`, error);
       }
     }
 
-    throw new Error('数据未找到且所有存储策略批量加载均失败');
+    throw lastError || new Error('数据未找到且所有存储策略批量读取均失败');
   }
 
   private async writeBatchToHigherPriority(
     data: Record<string, any>,
     currentStrategy: StorageStrategy,
   ): Promise<void> {
-    try {
-      const higherPriority = this.getAvailableStrategies('write').filter(
-        (strategy) =>
-          this.writePriority.indexOf(strategy.type) <
-          this.writePriority.indexOf(currentStrategy.type),
-      );
+    const currentIndex = this.strategies.indexOf(currentStrategy);
+    if (currentIndex <= 0) return;
 
-      if (higherPriority.length === 0) return;
+    const higherStrategies = this.strategies.filter(
+      (s) => s.isAvailable && this.strategies.indexOf(s) < currentIndex,
+    );
 
-      const items = Object.entries(data)
-        .filter(([, value]) => value !== null && value !== undefined)
-        .map(([key, value]) => ({ key, data: value }));
+    if (higherStrategies.length === 0) return;
 
-      if (items.length === 0) return;
+    const items = Object.entries(data)
+      .filter(([, value]) => value !== null && value !== undefined)
+      .map(([key, value]) => ({ key, data: value }));
 
-      const promises = higherPriority.map((strategy) =>
-        strategy.saveBatch(items).catch(console.error),
-      );
+    if (items.length === 0) return;
 
-      await Promise.all(promises);
-    } catch (error) {
-      console.error('批量回写数据到更高优先级存储失败', error);
+    await Promise.all(
+      higherStrategies.map((s) =>
+        s.saveBatch(items).catch((e) => console.warn(`批量回写到 ${s.name} 失败`, e)),
+      ),
+    );
+  }
+
+  async getBucketKeys(bucket: string): Promise<string[]> {
+    if (!this.initialized) await this.initialize();
+
+    const strategies = this.getAvailableStrategies();
+    if (strategies.length === 0) {
+      throw new Error('没有可用的存储策略');
     }
+
+    // 使用第一个支持bucket的策略
+    const strategy = strategies.find((s) => s.options.bucket !== undefined);
+
+    if (!strategy) {
+      throw new Error('没有支持bucket的存储策略');
+    }
+
+    return strategy.getBucketKeys(bucket);
+  }
+
+  async clearBucket(bucket: string): Promise<void> {
+    if (!this.initialized) await this.initialize();
+
+    const strategies = this.getAvailableStrategies();
+    if (strategies.length === 0) {
+      throw new Error('没有可用的存储策略');
+    }
+
+    // 使用第一个支持bucket的策略
+    const strategy = strategies.find((s) => s.options.bucket !== undefined);
+
+    if (!strategy) {
+      throw new Error('没有支持bucket的存储策略');
+    }
+
+    await strategy.clearBucket(bucket);
   }
 
   private chunkArray<T>(array: T[], size: number): T[][] {
@@ -609,50 +801,5 @@ export class StorageRepository {
       chunks.push(array.slice(i, i + size));
     }
     return chunks;
-  }
-
-  // 迁移工具：从旧存储迁移数据到新存储
-  async migrateData(fromStrategy: StorageStrategy, toStrategy: StorageStrategy): Promise<void> {
-    if (!fromStrategy.isAvailable) throw new Error('源存储不可用');
-    if (!toStrategy.isAvailable) throw new Error('目标存储不可用');
-
-    // 注意：此方法为简化示例，实际迁移需要更复杂的逻辑
-    console.log(`开始从 ${fromStrategy.name} 迁移数据到 ${toStrategy.name}`);
-
-    // 获取所有键名（实际应用中需要更完善的方法）
-    const keys = await this.getAllKeys(fromStrategy);
-
-    // 分批迁移
-    const chunks = this.chunkArray(keys, this.batchSize);
-
-    for (const chunk of chunks) {
-      const data = await fromStrategy.loadBatch(chunk);
-      await toStrategy.saveBatch(
-        Object.entries(data).map(([key, value]) => ({ key, data: value })),
-      );
-    }
-
-    console.log(`迁移完成: ${keys.length} 条数据已迁移`);
-  }
-
-  // 获取所有键名（简化版）
-  private async getAllKeys(_strategy: StorageStrategy): Promise<string[]> {
-    // 实际应用中需要根据存储类型实现
-    return []; // 简化实现
-  }
-
-  // 监控与诊断
-  getStorageStats(): Record<string, StorageStats> {
-    return this.strategies.reduce((result, strategy) => {
-      result[strategy.type] = { ...strategy.stats };
-      return result;
-    }, {} as Record<string, StorageStats>);
-  }
-
-  getStorageStatus(): Record<string, boolean> {
-    return this.strategies.reduce((result, strategy) => {
-      result[strategy.name] = strategy.isAvailable;
-      return result;
-    }, {} as Record<string, boolean>);
   }
 }
