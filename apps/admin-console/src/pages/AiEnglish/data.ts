@@ -1,6 +1,9 @@
 import { computed, ref } from 'vue';
-import { useAsyncState } from '@vueuse/core';
-import { StorageRepository, StorageType } from '@/utils/storage.repository';
+import {
+  IndexedDBStorageStrategy,
+  LocalStorageStrategy,
+  StorageRepository,
+} from '@/utils/storage.repository';
 
 export interface WordData {
   /** 单词原文 */
@@ -32,31 +35,23 @@ export interface WordData {
 }
 
 // 创建存储库实例
-const storageRepo = new StorageRepository();
-
-// 自定义配置（可选）
-storageRepo.setPriority([
-  StorageType.INDEXED_DB, // 优先从IndexedDB读取
-  StorageType.LOCAL_STORAGE, // 最后从localStorage读取
-  // StorageType.API,        // 其次从API读取
-]);
+const storageRepo = new StorageRepository({
+  strategies: [new IndexedDBStorageStrategy(), new LocalStorageStrategy()],
+  bucket: 'ai-english',
+});
 
 export function useAiEnglishData() {
   const wordsData = ref<Record<string, WordData>>({});
 
-  const remoteWordsData = useAsyncState(async (wordList: string[]) => {
-    return getWordsData(wordList);
-  }, {} as Record<string, WordData>);
-
-  const words = computed(() => Object.values(remoteWordsData.state.value));
+  const words = computed(() => Object.values(wordsData.value));
 
   async function getWordsData(wordList: string[]): Promise<Record<string, WordData>> {
     const wordsToLoad: string[] = [];
 
     wordList.forEach((word) => {
       const lowerWord = word.toLowerCase();
-      if (remoteWordsData.state.value[lowerWord]) {
-        wordsData.value[lowerWord] = remoteWordsData.state.value[lowerWord];
+      if (wordsData.value[lowerWord]) {
+        wordsData.value[lowerWord] = wordsData.value[lowerWord];
       } else {
         wordsToLoad.push(lowerWord);
       }
@@ -95,7 +90,7 @@ export function useAiEnglishData() {
     await StorageService.saveWords(words);
   }
 
-  return { words, wordsData, remoteWordsData, getWordData, getWordsData, updateWordDatas };
+  return { words, wordsData, getWordData, getWordsData, updateWordDatas };
 }
 
 export class StorageService {

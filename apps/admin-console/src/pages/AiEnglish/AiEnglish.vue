@@ -49,7 +49,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
   // 响应式状态
   const article = ref('');
-  const { words, getWordData, updateWordDatas, remoteWordsData } = useAiEnglishData();
+  const { words, getWordData, updateWordDatas, getWordsData } = useAiEnglishData();
   const selectedWordKey = ref<string>();
   const selectedWord = computed(() => {
     if (!selectedWordKey.value) return undefined;
@@ -160,7 +160,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   // 核心功能
   const initializeWords = async (text: string, useParagraphMode = false) => {
     const tokens = tokenizeText(text);
-    await remoteWordsData.execute(0, tokens);
+    await getWordsData(tokens);
 
     isStudying.value = true;
     isParagraphMode.value = useParagraphMode;
@@ -510,7 +510,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       <!-- 标题 -->
       <div class="text-center space-y-2">
         <h1 class="text-4xl font-bold text-gray-800 flex items-center justify-center gap-3">
-          <i class="pi pi-book text-blue-600 text-3xl"></i>
+          <i class="pi pi-book text-blue-600 text-3xl" />
           AI智能英语学习助手
         </h1>
         <p class="text-gray-600">AI驱动翻译 • 智能难度分析 • 支持分段学习 • 拖拽选择段落翻译</p>
@@ -523,7 +523,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
           <Card>
             <template #title>
               <div class="flex items-center gap-2">
-                <i class="pi pi-book"></i>
+                <i class="pi pi-book" />
                 文章输入
                 <Tag v-if="isStudying" severity="info" class="ml-auto">
                   {{
@@ -574,7 +574,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
             <template #title>
               <!-- 显示段落进度和操作按钮 -->
               <div class="flex items-center gap-2">
-                <i class="pi pi-book" style="font-size: 1.25rem"></i>
+                <i class="pi pi-book" style="font-size: 1.25rem" />
                 <span class="text-sm text-indigo-600" title="段落进度">
                   {{ completedParagraphs }}/{{ paragraphs.length }} 已完成
                 </span>
@@ -635,7 +635,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
           <Card>
             <template #title>
               <div class="flex items-center gap-2">
-                <i class="pi pi-sparkles text-purple-600" style="font-size: 1.25rem"></i>
+                <i class="pi pi-sparkles text-purple-600" style="font-size: 1.25rem" />
                 AI智能翻译
                 <Button
                   v-if="selectedWord || paragraphTranslation"
@@ -647,7 +647,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                       : speakText(paragraphTranslation?.originalText || '')
                   "
                   class="ml-auto">
-                  <i class="pi pi-volume-up" style="font-size: 1rem"></i>
+                  <i class="pi pi-volume-up" style="font-size: 1rem" />
                 </Button>
               </div>
             </template>
@@ -665,7 +665,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
                     <div class="space-y-3">
                       <div class="flex items-center gap-2">
-                        <i class="pi pi-brain" style="font-size: 1rem"></i>
+                        <i class="pi pi-brain" style="font-size: 1rem" />
                         <span class="text-sm text-gray-500">熟练度</span>
                         <Tag
                           :value="`${selectedWord.memoryLevel}/10`"
@@ -694,7 +694,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
                     <div class="space-y-2 mt-2">
                       <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
-                        <i class="pi pi-refresh animate-spin" style="font-size: 1rem"></i>
+                        <i class="pi pi-refresh animate-spin" style="font-size: 1rem" />
                         AI翻译中...
                       </div>
                       <div v-else class="text-lg">
@@ -738,7 +738,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                         <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
                           <i
                             class="pi pi-refresh"
-                            style="font-size: 1rem; animation: spin 1s linear infinite"></i>
+                            style="font-size: 1rem; animation: spin 1s linear infinite" />
                           AI翻译中...
                         </div>
                         <div v-else class="p-3 bg-blue-50 rounded-lg">
@@ -787,7 +787,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
               <div
                 class="flex items-center gap-2 cursor-pointer"
                 @click="showAiAnalysis = !showAiAnalysis">
-                <i class="pi pi-star-fill" style="font-size: 1.25rem; color: #9333ea"></i>
+                <i class="pi pi-star-fill" style="font-size: 1.25rem; color: #9333ea" />
                 AI智能分析
                 <span class="ml-auto text-sm text-purple-600">{{
                   showAiAnalysis ? '收起' : '展开'
@@ -798,14 +798,14 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
               <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                   <div class="flex items-center gap-2">
-                    <i class="pi pi-bullseye text-purple-600" style="font-size: 1rem"></i>
+                    <i class="pi pi-bullseye text-purple-600" style="font-size: 1rem" />
                     <span class="text-sm">文章难度:</span>
                     <Tag
                       :class="getDifficultyColor(aiAnalysis.articleDifficulty)"
                       :value="`${aiAnalysis.articleDifficulty}/10`" />
                   </div>
                   <div class="flex items-center gap-2">
-                    <i class="pi pi-brain" style="color: #9333ea; font-size: 1rem"></i>
+                    <i class="pi pi-brain" style="color: #9333ea; font-size: 1rem" />
                     <span class="text-sm">建议学习时间:</span>
                     <Tag :value="`${aiAnalysis.suggestedStudyTime}分钟`" />
                   </div>
@@ -826,7 +826,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
                 <div v-if="aiAnalysis.learningTips.length > 0">
                   <div class="text-sm text-gray-600 mb-2 flex items-center gap-1">
-                    <i class="pi pi-lightbulb" style="font-size: 1rem"></i>
+                    <i class="pi pi-lightbulb" style="font-size: 1rem" />
                     学习建议:
                   </div>
                   <ul class="text-sm space-y-1">
@@ -846,7 +846,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
           <Card v-if="words.length > 0">
             <template #title>
               <div class="flex items-center gap-2">
-                <i class="pi pi-chart-bar" style="font-size: 1.25rem"></i>
+                <i class="pi pi-chart-bar" style="font-size: 1.25rem" />
                 学习统计
               </div>
             </template>
