@@ -16,6 +16,7 @@
     "@tailwindcss/vite": "^4.1.8",
     "@vueuse/core": "^13.3.0",
     "aframe": "^1.7.1",
+    "localforage": "^1.10.0",
     "lz-string": "^1.5.0",
     "mathjs": "^14.5.1",
     "primeicons": "^7.0.0",
