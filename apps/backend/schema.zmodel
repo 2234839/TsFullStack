@@ -216,8 +216,6 @@ model Word extends Base {
     lastClickTime DateTime @default(now())
     /// 翻译列表（存储为JSON数组）
     translations  Json
-    /// 总学习会话数
-    totalSessions Int      @default(0)
     /// AI翻译（可选）
     aiTranslation String?
     /// 难度系数（可选）
