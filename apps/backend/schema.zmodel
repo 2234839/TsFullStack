@@ -79,7 +79,8 @@ model UserSession extends Base {
 
     /// 只允许用户读取和创建
     @@allow('read,create', auth() == user)
-    @@deny('all',expiresAt < now())
+    // 禁止过期session 被用户读取，但管理员除外
+    @@deny('all',(expiresAt < now()) &&  (auth().role?[name == 'admin']==false))
 }
 
 enum OauthProvider {
