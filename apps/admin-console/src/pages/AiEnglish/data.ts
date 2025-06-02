@@ -17,8 +17,6 @@ export interface WordData {
   lastClickTime: Date;
   /** 翻译列表 */
   translations: string[];
-  /** 总学习会话数 */
-  totalSessions: number;
   /** AI翻译 */
   aiTranslation?: string;
   /** 难度系数 */
@@ -66,7 +64,6 @@ export function useAiEnglishData() {
             clickCount: 0,
             lastClickTime: new Date(),
             translations: [],
-            totalSessions: 0,
           };
         }
       });
