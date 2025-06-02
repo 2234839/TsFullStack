@@ -373,18 +373,20 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     if (!currentParagraph) return;
 
     let improvedCount = 0;
-    const updatedWords = words.value.map((word) => {
-      if (currentParagraph.words.includes(word.word)) {
-        if (!currentSession.clickedWords.has(word.word)) {
-          improvedCount++;
-          return { ...word, memoryLevel: Math.min(10, word.memoryLevel + 1) };
+    /** 当前片段内的单词，如果未被点击（划选），则熟练度 +1  */
+    const updatedWords = words.value
+      .map((word) => {
+        if (currentParagraph.words.includes(word.word)) {
+          if (!currentSession.clickedWords.has(word.word)) {
+            improvedCount++;
+            return { ...word, memoryLevel: Math.min(10, word.memoryLevel + 1) };
+          }
         }
-      }
-      return word;
-    });
+        return undefined;
+      })
+      .filter((word) => word !== undefined);
 
-    updateWordDatas(updatedWords); // 更新单词数据
-
+    updateWordDatas(updatedWords);
     // 标记段落完成
     paragraphs.value = paragraphs.value.map((p, index) =>
       index === currentParagraphIndex.value ? { ...p, isCompleted: true } : p,
