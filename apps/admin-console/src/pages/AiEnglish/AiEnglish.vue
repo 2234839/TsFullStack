@@ -337,7 +337,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
             ...oldWordData,
             memoryLevel: newMemoryLevel,
             clickCount: oldWordData.clickCount + 1,
-            lastClickTime: Date.now(),
+            lastClickTime: new Date(),
             aiTranslation: aiResult.translation,
             difficulty: aiResult.difficulty,
             examples: aiResult.examples,
@@ -356,7 +356,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
             ...oldWordData,
             memoryLevel: newMemoryLevel,
             clickCount: oldWordData.clickCount + 1,
-            lastClickTime: Date.now(),
+            lastClickTime: new Date(),
           },
         ]);
       }
@@ -720,10 +720,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                     </div>
 
                     <div class="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <div class="text-gray-500">本文频率</div>
-                        <div class="font-medium">{{ selectedWord.frequency }} 次</div>
-                      </div>
                       <div>
                         <div class="text-gray-500">查看次数</div>
                         <div class="font-medium">{{ selectedWord.clickCount }} 次</div>

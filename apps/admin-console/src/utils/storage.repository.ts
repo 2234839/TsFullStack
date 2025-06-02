@@ -1,6 +1,8 @@
 import localforage from 'localforage';
 import { reactive, ref } from 'vue';
 import superjson from 'superjson';
+import { useAPI } from '@/api';
+import { authInfo } from '@/storage';
 
 export interface StorageStats {
   readCount: number;
@@ -23,26 +25,23 @@ export interface StorageOptions {
    * Enable bucket support
    * @default false
    */
-  bucket?:
-    | boolean
-    | {
-        /**
-         * Default bucket name
-         * @default 'default'
-         */
-        defaultBucket?: string;
-        /**
-         * Bucket separator
-         * @default '::'
-         */
-        separator?: string;
-      };
+  bucket?: {
+    /**
+     * Default bucket name
+     * @default 'default'
+     */
+    defaultBucket?: string;
+    /**
+     * Bucket separator
+     * @default '::'
+     */
+    separator?: string;
+  };
 }
 
 export abstract class StorageStrategy {
   abstract name: string;
   isAvailable = false;
-  priority = 0;
   stats = reactive<StorageStats>({
     readCount: 0,
     writeCount: 0,
@@ -51,14 +50,14 @@ export abstract class StorageStrategy {
     lastError: null,
   });
 
-  protected readonly serializer: {
+  protected serializer: {
     serialize: (data: any) => string;
     deserialize: (data: string) => any;
   };
-  protected bucketConfig: {
-    enabled: boolean;
-    defaultBucket: string;
-    separator: string;
+  protected bucketConfig = {
+    bucketName: 'default',
+    enabled: false,
+    separator: '::',
   };
 
   constructor(public options: StorageOptions = {}) {
@@ -66,14 +65,6 @@ export abstract class StorageStrategy {
     this.serializer = options.serializer || {
       serialize: superjson.stringify,
       deserialize: superjson.parse,
-    };
-
-    // Initialize bucket configuration
-    this.bucketConfig = {
-      enabled: !!options.bucket,
-      defaultBucket:
-        typeof options.bucket === 'object' ? options.bucket.defaultBucket || 'default' : 'default',
-      separator: typeof options.bucket === 'object' ? options.bucket.separator || '::' : '::',
     };
   }
 
@@ -87,7 +78,7 @@ export abstract class StorageStrategy {
   setBucket(bucket?: string): void {
     this.bucketConfig = {
       enabled: !!bucket,
-      defaultBucket: 'default',
+      bucketName: bucket ?? 'default',
       separator: '::',
     };
   }
@@ -95,7 +86,7 @@ export abstract class StorageStrategy {
     if (!this.bucketConfig.enabled) return key;
     return bucket
       ? `${bucket}${this.bucketConfig.separator}${key}`
-      : `${this.bucketConfig.defaultBucket}${this.bucketConfig.separator}${key}`;
+      : `${this.bucketConfig.bucketName}${this.bucketConfig.separator}${key}`;
   }
 
   protected withoutBucket(fullKey: string): { key: string; bucket: string | null } {
@@ -103,7 +94,7 @@ export abstract class StorageStrategy {
 
     const separatorIndex = fullKey.indexOf(this.bucketConfig.separator);
     if (separatorIndex === -1) {
-      return { key: fullKey, bucket: this.bucketConfig.defaultBucket };
+      return { key: fullKey, bucket: this.bucketConfig.bucketName };
     }
 
     return {
@@ -173,37 +164,46 @@ export abstract class StorageStrategy {
   protected abstract rawRemoveBatch(keys: string[]): Promise<void>;
 }
 
-export class ApiStorageStrategy extends StorageStrategy {
+export class UserDataStrategy extends StorageStrategy {
   name = 'Remote API';
-  priority = 1;
 
-  constructor(options?: StorageOptions & { baseUrl?: string }) {
+  api = useAPI();
+
+  constructor(options?: StorageOptions) {
     super(options);
-    this.baseUrl = options?.baseUrl || '/api';
   }
-
-  private baseUrl: string;
 
   async initialize(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseUrl}/health`);
-      this.isAvailable = response.ok;
-      return this.isAvailable;
-    } catch (error) {
-      this.isAvailable = false;
-      this.stats.lastError = `API初始化失败: ${error}`;
-      return false;
-    }
+    this.isAvailable = true;
+    return this.isAvailable;
   }
-
+  get bucket() {
+    return this.bucketConfig.bucketName || 'ai-english-data';
+  }
   protected async rawSave(key: string, data: any): Promise<void> {
     const start = performance.now();
     try {
-      await fetch(`${this.baseUrl}/data/${encodeURIComponent(key)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data }),
+      // 先尝试更新，如果受影响行数为0则创建
+      const updatedCount = await this.api.API.db.userData.updateMany({
+        where: {
+          appId: this.bucket,
+          key,
+        },
+        data: {
+          data,
+        },
       });
+
+      if (updatedCount.count === 0) {
+        await this.api.API.db.userData.create({
+          data: {
+            key,
+            data,
+            appId: this.bucket,
+            userId: authInfo.value!.userId!,
+          },
+        });
+      }
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
     } catch (error) {
@@ -215,13 +215,15 @@ export class ApiStorageStrategy extends StorageStrategy {
   protected async rawLoad(key: string): Promise<any> {
     const start = performance.now();
     try {
-      const response = await fetch(`${this.baseUrl}/data/${encodeURIComponent(key)}`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const { data } = await response.json();
+      const data = await this.api.API.db.userData.findFirst({
+        where: {
+          appId: this.bucket,
+          key,
+        },
+      });
       this.stats.readCount++;
       this.stats.readTime += performance.now() - start;
-      return data;
+      return data?.data;
     } catch (error) {
       this.stats.lastError = `加载失败: ${error}`;
       throw error;
@@ -230,8 +232,11 @@ export class ApiStorageStrategy extends StorageStrategy {
 
   protected async rawRemove(key: string): Promise<void> {
     try {
-      await fetch(`${this.baseUrl}/data/${encodeURIComponent(key)}`, {
-        method: 'DELETE',
+      await this.api.API.db.userData.deleteMany({
+        where: {
+          appId: this.bucket,
+          key,
+        },
       });
     } catch (error) {
       this.stats.lastError = `删除失败: ${error}`;
@@ -242,11 +247,11 @@ export class ApiStorageStrategy extends StorageStrategy {
   protected async rawSaveBatch(items: { key: string; data: any }[]): Promise<void> {
     const start = performance.now();
     try {
-      await fetch(`${this.baseUrl}/data/batch`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
-      });
+      await Promise.all(
+        items.map((item) => {
+          return this.rawSave(item.key, item.data);
+        }),
+      );
       this.stats.writeCount += items.length;
       this.stats.writeTime += performance.now() - start;
     } catch (error) {
@@ -258,12 +263,16 @@ export class ApiStorageStrategy extends StorageStrategy {
   protected async rawLoadBatch(keys: string[]): Promise<Record<string, any>> {
     const start = performance.now();
     try {
-      const response = await fetch(
-        `${this.baseUrl}/data/batch?keys=${encodeURIComponent(keys.join(','))}`,
-      );
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-      const { data } = await response.json();
+      const dataList = await this.api.API.db.userData.findMany({
+        where: {
+          appId: this.bucket,
+          key: { in: keys },
+        },
+      });
+      const data = dataList.reduce((acc, item) => {
+        acc[item.key] = item.data;
+        return acc;
+      }, {} as Record<string, any>);
       this.stats.readCount += keys.length;
       this.stats.readTime += performance.now() - start;
       return data;
@@ -275,10 +284,15 @@ export class ApiStorageStrategy extends StorageStrategy {
 
   protected async getAllKeys(): Promise<string[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/data/keys`);
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const { keys } = await response.json();
-      return keys;
+      const keys = await this.api.API.db.userData.findMany({
+        select: {
+          key: true,
+        },
+        where: {
+          appId: this.bucket,
+        },
+      });
+      return keys.map((el) => el.key);
     } catch (error) {
       this.stats.lastError = `获取所有键失败: ${error}`;
       throw error;
@@ -287,10 +301,11 @@ export class ApiStorageStrategy extends StorageStrategy {
 
   protected async rawRemoveBatch(keys: string[]): Promise<void> {
     try {
-      await fetch(`${this.baseUrl}/data/batch`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keys }),
+      await this.api.API.db.userData.deleteMany({
+        where: {
+          appId: this.bucket,
+          key: { in: keys },
+        },
       });
     } catch (error) {
       this.stats.lastError = `批量删除失败: ${error}`;
@@ -298,10 +313,203 @@ export class ApiStorageStrategy extends StorageStrategy {
     }
   }
 }
+export class WordDataStrategy extends StorageStrategy {
+  name = 'Remote API';
 
+  api = useAPI();
+
+  constructor(options?: StorageOptions) {
+    super(options);
+    /** 不需要默认的序列化逻辑 */
+    this.serializer = {
+      serialize: (v) => v,
+      deserialize: (v) => v,
+    };
+  }
+
+  async initialize(): Promise<boolean> {
+    this.isAvailable = true;
+    return this.isAvailable;
+  }
+  get bucket() {
+    return this.bucketConfig.bucketName || 'ai-english-data';
+  }
+  get authorId() {
+    return authInfo.value!.userId;
+  }
+  protected async rawSave(key: string, data: any): Promise<void> {
+    const start = performance.now();
+    try {
+      // 先尝试更新，如果受影响行数为0则创建
+      const updatedCount = await this.api.API.db.word.upsert({
+        where: {
+          key_authorId: {
+            key: key,
+            authorId: this.authorId,
+          },
+        },
+        create: {
+          key,
+          authorId: this.authorId,
+          ...data,
+        },
+        update: {
+          key,
+          authorId: this.authorId,
+          ...data,
+        },
+      });
+      console.log('[updatedCount]', updatedCount);
+      this.stats.writeCount++;
+      this.stats.writeTime += performance.now() - start;
+    } catch (error) {
+      this.stats.lastError = `保存失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async rawLoad(key: string): Promise<any> {
+    const start = performance.now();
+    try {
+      const data = await this.api.API.db.word.findUnique({
+        where: {
+          key_authorId: {
+            key: key,
+            authorId: this.authorId,
+          },
+        },
+      });
+      this.stats.readCount++;
+      this.stats.readTime += performance.now() - start;
+      return data;
+    } catch (error) {
+      this.stats.lastError = `加载失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async rawRemove(key: string): Promise<void> {
+    try {
+      await this.api.API.db.word.delete({
+        where: {
+          key_authorId: {
+            key: key,
+            authorId: this.authorId,
+          },
+        },
+      });
+    } catch (error) {
+      this.stats.lastError = `删除失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async rawSaveBatch(items: { key: string; data: any }[]): Promise<void> {
+    const start = performance.now();
+    try {
+      /** 查询已存在的key */
+      const existingKeys = (
+        await this.api.API.db.word.findMany({
+          where: { key: { in: items.map((item) => item.key) }, authorId: this.authorId },
+          select: { key: true },
+        })
+      ).map((item) => item.key);
+
+      /** 分离需要创建和更新的数据 */
+      const toCreate = items.filter((item) => !existingKeys.includes(item.key));
+      const toUpdate = items.filter((item) => existingKeys.includes(item.key));
+
+      /** 批量创建 */
+      if (toCreate.length > 0) {
+        await this.api.API.db.word.createMany({
+          data: toCreate.map((item) => ({
+            key: item.key,
+            authorId: this.authorId,
+            ...item.data,
+          })),
+        });
+      }
+
+      /** 批量更新 */
+      if (toUpdate.length > 0) {
+        await Promise.all(
+          toUpdate.map((item) =>
+            this.api.API.db.word.update({
+              where: {
+                key_authorId: {
+                  key: item.key,
+                  authorId: this.authorId,
+                },
+              },
+              data: { ...item.data },
+            }),
+          ),
+        );
+      }
+
+      this.stats.writeCount += items.length;
+      this.stats.writeTime += performance.now() - start;
+    } catch (error) {
+      this.stats.lastError = `批量保存失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async rawLoadBatch(keys: string[]): Promise<Record<string, any>> {
+    const start = performance.now();
+    try {
+      const dataList = await this.api.API.db.word.findMany({
+        where: {
+          key: { in: keys },
+          authorId: this.authorId,
+        },
+      });
+      const data = dataList.reduce((acc, item) => {
+        acc[item.key] = item;
+        return acc;
+      }, {} as Record<string, any>);
+      this.stats.readCount += keys.length;
+      this.stats.readTime += performance.now() - start;
+      return data;
+    } catch (error) {
+      this.stats.lastError = `批量加载失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async getAllKeys(): Promise<string[]> {
+    try {
+      const keys = await this.api.API.db.word.findMany({
+        select: {
+          key: true,
+        },
+        where: {
+          authorId: this.authorId,
+        },
+      });
+      return keys.map((el) => el.key);
+    } catch (error) {
+      this.stats.lastError = `获取所有键失败: ${error}`;
+      throw error;
+    }
+  }
+
+  protected async rawRemoveBatch(keys: string[]): Promise<void> {
+    try {
+      await this.api.API.db.word.deleteMany({
+        where: {
+          key: { in: keys },
+          authorId: this.authorId,
+        },
+      });
+    } catch (error) {
+      this.stats.lastError = `批量删除失败: ${error}`;
+      throw error;
+    }
+  }
+}
 export class IndexedDBStorageStrategy extends StorageStrategy {
   name = 'IndexedDB';
-  priority = 2;
 
   private store: LocalForage | null = null;
 
@@ -432,7 +640,6 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
 
 export class LocalStorageStrategy extends StorageStrategy {
   name = 'LocalStorage';
-  priority = 3;
 
   async initialize(): Promise<boolean> {
     try {

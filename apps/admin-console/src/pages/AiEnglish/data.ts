@@ -1,9 +1,10 @@
-import { computed, ref } from 'vue';
 import {
   IndexedDBStorageStrategy,
   LocalStorageStrategy,
   StorageRepository,
+  WordDataStrategy,
 } from '@/utils/storage.repository';
+import { computed, ref } from 'vue';
 
 export interface WordData {
   /** 单词原文 */
@@ -13,13 +14,9 @@ export interface WordData {
   /** 点击次数 */
   clickCount: number;
   /** 最后点击时间戳 */
-  lastClickTime: number;
-  /** 词频 */
-  frequency: number;
+  lastClickTime: Date;
   /** 翻译列表 */
   translations: string[];
-  /** 总出现次数 */
-  totalAppearances: number;
   /** 总学习会话数 */
   totalSessions: number;
   /** AI翻译 */
@@ -36,7 +33,7 @@ export interface WordData {
 
 // 创建存储库实例
 const storageRepo = new StorageRepository({
-  strategies: [new IndexedDBStorageStrategy(), new LocalStorageStrategy()],
+  strategies: [new WordDataStrategy(), new IndexedDBStorageStrategy(), new LocalStorageStrategy()],
   bucket: 'ai-english',
 });
 
@@ -67,10 +64,8 @@ export function useAiEnglishData() {
             word,
             memoryLevel: 0,
             clickCount: 0,
-            lastClickTime: 0,
-            frequency: 0,
+            lastClickTime: new Date(),
             translations: [],
-            totalAppearances: 0,
             totalSessions: 0,
           };
         }
