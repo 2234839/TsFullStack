@@ -66,6 +66,8 @@ model User extends BaseTime {
     userData     UserData[]
 
     oAuthAccount OAuthAccount[]
+
+    word         Word[]
 }
 
 /// UserSession 用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
@@ -198,4 +200,40 @@ model Post  extends Base {
     @@allow('read', auth() != null && published)
     // full access by author
     @@allow('all', author == auth())
+}
+
+/// AI 英语学习数据模型
+model Word extends Base {
+    /// word 的小写形式，作为唯一标识符
+    key           String
+    /// 单词原文
+    word          String
+    /// 记忆等级
+    memoryLevel   Int      @default(0)
+    /// 点击次数
+    clickCount    Int      @default(0)
+    /// 最后点击时间戳
+    lastClickTime DateTime @default(now())
+    /// 翻译列表（存储为JSON数组）
+    translations  Json
+    /// 总学习会话数
+    totalSessions Int      @default(0)
+    /// AI翻译（可选）
+    aiTranslation String?
+    /// 难度系数（可选）
+    difficulty    Float?
+    /// 例句列表（存储为JSON数组，可选）
+    examples      Json?
+    /// 语法信息（可选）
+    grammar       String?
+    /// 发音信息（可选）
+    pronunciation String?
+
+    /// 关联的用户
+    author        User     @relation(fields: [authorId], references: [id])
+    authorId      String
+    /// 确保每个用户的单词key唯一
+    @@unique([key, authorId])
+    /// 权限控制：用户只能读取和操作自己的单词数据
+    @@allow('read,create,update,delete', auth() == author)
 }
