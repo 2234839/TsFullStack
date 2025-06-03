@@ -97,7 +97,21 @@ export const routeMap = reactive({
         meta: {
           title: t('AI英语学习'),
           icon: 'pi pi-book',
-        }
+        },
+      },
+    },
+  },
+  util: {
+    path: '/util',
+    redirect: defaultRoute,
+    child: {
+      Img2Svg: {
+        path: 'Img2Svg',
+        component: () => import('@/pages/util/Img2Svg.vue'),
+        meta: {
+          title: t('图片转SVG'),
+          icon: 'pi pi-image',
+        },
       },
     },
   },
