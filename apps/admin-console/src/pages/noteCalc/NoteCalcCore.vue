@@ -124,6 +124,11 @@
                         class="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
                         {{ result.formattedNumber }}
                       </span>
+                      <span
+                        v-else-if="!result.isSimpleAssignment"
+                        class="text-gray-950 bg-green-200 px-1 rounded-[0.5rem]">
+                        {{ result.result }}
+                      </span>
                     </span>
                     <span
                       v-if="result.type === 'equation' && result.isCorrect === false"

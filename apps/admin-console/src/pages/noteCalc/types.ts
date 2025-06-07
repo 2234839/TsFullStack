@@ -16,6 +16,8 @@ export interface CalculationResult {
   error?: string;
   /** 表示计算结果是否在误差范围内,为 false 表示超出了误差范围，也就是不正确 */
   isCorrect?: boolean;
+  /** 是否是简单的赋值语句，例如 `a = 10` */
+  isSimpleAssignment?: boolean;
   isLargeNumber?: boolean;
   formattedNumber?: string;
   highlightedContent?: Array<{ text: string; isNumber: boolean }>;

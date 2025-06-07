@@ -413,27 +413,17 @@ export function useCalculator(initialConfig: CalculatorConfig) {
           // 检查是否是简单赋值（直接赋值一个数字）
           const isSimpleAssignment = /^\s*\d+(\.\d+)?\s*$/.test(expression.trim());
 
-          // 为赋值表达式创建特殊的显示
-          if (isSimpleAssignment) {
-            // 如果是简单赋值，显示格式化的数字和变量类型
-            const formattedNumber = formatLargeNumber(resultDisplay);
-            return {
-              type: 'assignment',
-              content: line,
-              result: resultDisplay,
-              isLargeNumber: formattedNumber !== resultDisplay,
-              formattedNumber: formattedNumber,
-              highlightedContent: highlightSyntax(line),
-            };
-          } else {
-            // 如果是复杂表达式，显示计算结果
-            return {
-              type: 'assignment',
-              content: line,
-              result: resultDisplay,
-              highlightedContent: highlightSyntax(line),
-            };
-          }
+          // 如果是简单赋值，显示格式化的数字和变量类型
+          const formattedNumber = formatLargeNumber(resultDisplay);
+          return {
+            type: 'assignment',
+            content: line,
+            result: resultDisplay,
+            isLargeNumber: formattedNumber !== resultDisplay,
+            formattedNumber: formattedNumber,
+            isSimpleAssignment,
+            highlightedContent: highlightSyntax(line),
+          };
         } catch (e: any) {
           console.error(`计算错误 (${line}):`, e);
           return {
