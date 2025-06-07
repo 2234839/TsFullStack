@@ -104,7 +104,10 @@
                 </div>
 
                 <div
-                  v-else-if="result.type === 'assignment' || result.type === 'equation'"
+                  v-else-if="
+                    (result.type === 'assignment' && result.isSimpleAssignment) ||
+                    result.type === 'equation'
+                  "
                   class="my-1 text-gray-900 dark:text-gray-100">
                   <div class="flex items-center flex-wrap">
                     <span class="expression">
@@ -124,11 +127,6 @@
                         class="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
                         {{ result.formattedNumber }}
                       </span>
-                      <span
-                        v-else-if="!result.isSimpleAssignment"
-                        class="text-gray-950 bg-green-200 px-1 rounded-[0.5rem]">
-                        {{ result.result }}
-                      </span>
                     </span>
                     <span
                       v-if="result.type === 'equation' && result.isCorrect === false"
@@ -139,7 +137,11 @@
                 </div>
 
                 <div
-                  v-else-if="result.type === 'expression' || result.type === 'unitConversion'"
+                  v-else-if="
+                    (result.type === 'assignment' && !result.isSimpleAssignment) ||
+                    result.type === 'expression' ||
+                    result.type === 'unitConversion'
+                  "
                   class="my-1 text-gray-900 dark:text-gray-100">
                   <div class="flex items-center flex-wrap">
                     <span class="expression">
@@ -155,7 +157,7 @@
                     </span>
                     <span
                       class="inline-block ml-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium px-2 py-0.5 rounded border-l-2 border-blue-500 dark:border-blue-600">
-                      = {{ result.result }}
+                      = {{ result.isLargeNumber ? result.formattedNumber : result.result }}
                     </span>
                   </div>
                 </div>
