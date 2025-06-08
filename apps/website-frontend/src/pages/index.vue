@@ -52,10 +52,13 @@
           :routePath="routerUtil.to(routeMap.login, {}, { r: $route.fullPath })" />
       </div>
     </div>
+
+    <GoogleAd />
   </div>
 </template>
 
 <script setup lang="tsx">
+  import GoogleAd from '@/components/GoogleAd.vue';
   import ThemeToggle from '@/components/system/ThemeToggle.vue';
   import { routeMap, routerUtil } from '@/router';
   import { Button, Card, Divider } from 'primevue';
