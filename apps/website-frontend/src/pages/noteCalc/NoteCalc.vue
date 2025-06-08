@@ -23,7 +23,7 @@
           @click="saveCurrentNote"
           :disabled="!authInfo_isLogin || isSaving"
           :loading="isSaving"
-          title="保存到云端" />
+          :title="$t('保存到云端,需要登录后才能使用')" />
         <Button
           icon="pi pi-share-alt"
           label="分享"
@@ -164,7 +164,7 @@
             </span>
           </div>
 
-          <div v-if="autoSaveEnabled" class="text-xs text-gray-500 flex items-center">
+          <div v-if="config.autoSaveEnabled" class="text-xs text-gray-500 flex items-center">
             <i class="pi pi-clock mr-1"></i>
             <span v-if="lastSaved">上次保存: {{ lastSaved_v }}</span>
             <span v-else>自动保存已启用</span>
@@ -186,16 +186,16 @@
         </div>
         <div class="flex items-center justify-between">
           <label class="font-medium">自动保存</label>
-          <ToggleSwitch v-model="autoSaveEnabled" />
+          <ToggleSwitch v-model="config.autoSaveEnabled" />
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">自动保存间隔</label>
           <div class="flex items-center">
             <InputNumber
-              v-model="autoSaveInterval"
+              v-model="config.autoSaveInterval"
               :min="5"
               :max="60"
-              :disabled="!autoSaveEnabled"
+              :disabled="!config.autoSaveEnabled"
               showButtons
               buttonLayout="horizontal"
               decrementButtonClass="p-button-secondary"
@@ -302,6 +302,9 @@
     isAutoCalculate: true,
     precision: 64,
     showPrecision: 4,
+    autoSaveEnabled: true,
+    /** 单位为秒 */
+    autoSaveInterval: 10,
   });
   const showSettings = ref(false);
 
@@ -386,12 +389,18 @@
 
   const currentNote = ref<Note | null>(null);
   const currentNoteId = computed(() => currentNote.value?.id);
-  const unsavedChanges = ref(false);
+  const unsavedChanges = computed(() => {
+    const contentIsDifferent =
+      currentNote.value && getContentFromData(currentNote.value) !== content.value;
+    const configIsDifferent =
+      currentNote.value &&
+      JSON.stringify(getConfigFromData(currentNote.value)) !== JSON.stringify(config);
+
+    return contentIsDifferent || configIsDifferent;
+  });
   const isSaving = ref(false);
 
   // 自动保存
-  const autoSaveEnabled = ref(true);
-  const autoSaveInterval = ref(10); // 秒
   const lastSaved = ref<Date | null>(null);
   const now = useTimestamp();
   const lastSaved_v = computed(() => {
@@ -635,7 +644,6 @@
     }
 
     currentNote.value = note;
-    unsavedChanges.value = false;
     lastSaved.value = new Date(note.updated);
   };
 
@@ -655,11 +663,7 @@
     try {
       const noteData = {
         content: content.value,
-        config: {
-          isAutoCalculate: config.isAutoCalculate,
-          precision: config.precision,
-          showPrecision: config.showPrecision,
-        },
+        config,
       };
 
       if (currentNote.value) {
@@ -723,7 +727,6 @@
         });
       }
 
-      unsavedChanges.value = false;
       lastSaved.value = new Date();
     } catch (error) {
       console.error('保存笔记失败:', error);
@@ -742,12 +745,12 @@
   const setupAutoSave = () => {
     clearAutoSave();
 
-    if (autoSaveEnabled.value && authInfo_isLogin.value) {
+    if (config.autoSaveEnabled && authInfo_isLogin.value) {
       autoSaveTimer = window.setInterval(() => {
         if (unsavedChanges.value && currentNote.value) {
           saveCurrentNote();
         }
-      }, autoSaveInterval.value * 1000);
+      }, config.autoSaveInterval * 1000);
     }
   };
 
@@ -864,7 +867,6 @@
     const confirmNewDocument = () => {
       content.value = '';
       currentNote.value = null;
-      unsavedChanges.value = false;
       // 清除URL中的id参数
       router.replace({ path: route.path });
     };
@@ -981,23 +983,9 @@
       // 仅在没有当前笔记时更新URL
       if (!currentNote.value) {
         throttleUpdateQuery();
-      } else {
-        // 如果有当前笔记，标记为未保存
-        unsavedChanges.value = true;
       }
     },
     { deep: false },
-  );
-
-  // 监听配置变化
-  watch(
-    config,
-    () => {
-      if (currentNote.value) {
-        unsavedChanges.value = true;
-      }
-    },
-    { deep: true },
   );
 
   // 监听搜索查询变化
@@ -1014,9 +1002,12 @@
   });
 
   // 监听自动保存设置变化
-  watch([autoSaveEnabled, autoSaveInterval], () => {
-    setupAutoSave();
-  });
+  watch(
+    () => [config.autoSaveEnabled, config.autoSaveInterval],
+    () => {
+      setupAutoSave();
+    },
+  );
 
   // 监听登录状态变化
   watch(
