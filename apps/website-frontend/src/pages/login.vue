@@ -163,7 +163,7 @@
           <!-- 记住我和忘记密码 (仅登录时显示) -->
           <div v-if="isLogin" class="flex items-center justify-between">
             <div class="flex items-center">
-              <Checkbox v-model="rememberMe" id="remember" binary />
+              <Checkbox v-model="localUserPwd.rememberMe" id="remember" binary />
               <label
                 for="remember"
                 class="ml-2 block text-sm"
@@ -278,7 +278,7 @@
   import ThemeSwitcher from '@/components/system/ThemeToggle.vue';
   import { loginGoto } from '@/pages/loginUtil';
   import { routeMap, routerUtil } from '@/router';
-  import { authInfo_isLogin, theme_isDark } from '@/storage';
+  import { authInfo_isLogin, localUserPwd, theme_isDark } from '@/storage';
   import { useAsyncState, useEventListener } from '@vueuse/core';
   import { Button, Checkbox, InputText, Password, useToast } from 'primevue';
   import { computed, onMounted, ref } from 'vue';
@@ -291,7 +291,6 @@
 
   const toast = useToast();
   const cursorLight = ref<HTMLElement | null>(null);
-  const rememberMe = ref(false);
   const loading = ref(false);
   const isLogin = ref(true); // 默认为登录模式
   const agreeTerms = ref(false); // 用户协议勾选
@@ -341,7 +340,7 @@
       password: '',
       confirmPassword: '',
     };
-    rememberMe.value = false;
+    localUserPwd.value.rememberMe = false;
     agreeTerms.value = false;
   };
 
@@ -381,6 +380,11 @@
         // 登录逻辑
         const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
         loginGoto(res, { r: props.r });
+
+        if (localUserPwd.value.rememberMe) {
+          localUserPwd.value.username = form.value.username;
+          localUserPwd.value.password = form.value.password;
+        }
         toast.add({
           severity: 'success',
           summary: '登录成功',
@@ -414,6 +418,10 @@
     useEventListener(document, 'mousemove', handleMouseMove);
     for (let n = 0; n < 20; n++) {
       stars.value.push(getRandomStarStyle());
+    }
+    if (localUserPwd.value.rememberMe) {
+      form.value.username = localUserPwd.value.username;
+      form.value.password = localUserPwd.value.password;
     }
   });
 </script>
