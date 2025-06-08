@@ -16,6 +16,7 @@ declare module 'vue' {
     Button: typeof import('primevue/button')['default']
     Card: typeof import('primevue/card')['default']
     GithubStar: typeof import('./src/components/system/GithubStar.vue')['default']
+    GoogleAd: typeof import('./src/components/GoogleAd.vue')['default']
     I18nSwitch: typeof import('./src/components/system/I18nSwitch.vue')['default']
     InputSwitch: typeof import('primevue/inputswitch')['default']
     ProgressBar: typeof import('primevue/progressbar')['default']

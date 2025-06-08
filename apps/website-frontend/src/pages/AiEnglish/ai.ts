@@ -71,7 +71,7 @@ export const translateWithAI = async (
     const content = data.choices[0].message.content;
 
     try {
-      return JSON.parse(content);
+      return JSON_parse_AIResponse(content);
     } catch {
       const translationMatch = content.match(/翻译[：:]\s*([^\n]+)/);
       return {
@@ -134,7 +134,7 @@ export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> =>
     const content = data.choices[0].message.content;
 
     try {
-      return JSON.parse(content);
+      return JSON_parse_AIResponse(content);
     } catch {
       return {
         articleDifficulty: 5,
@@ -243,4 +243,25 @@ export function useCreateMixedTranslation({
       return translatedText;
     }
   };
+}
+function JSON_parse_AIResponse(resStr: string) {
+  let jsonStr;
+  try {
+    // 如果ai输出的是markdown 代码块形式的json，这里去除掉外层的代码块符号
+    if (resStr.startsWith('```')) {
+      const lines = resStr.trim().split('\n');
+      lines[0] = '';
+      lines[lines.length - 1] = '';
+      jsonStr = lines.join('\n').trim();
+    } else {
+      jsonStr = resStr.trim();
+    }
+    // console.log('[jsonStr]====', jsonStr);
+    // console.log('[jsonStr]====');
+
+    const jsonObj = JSON.parse(jsonStr);
+    return jsonObj;
+  } catch (error: unknown) {
+    throw error as Error;
+  }
 }

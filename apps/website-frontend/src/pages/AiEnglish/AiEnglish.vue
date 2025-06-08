@@ -303,7 +303,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   };
 
   const handleWordClick = async (word: string) => {
-    console.log('[word]', word);
     // 清除状态
     selectionState.isSelecting = false;
     selectionState.selectedWords = new Set();
@@ -654,7 +653,8 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
               </div>
             </template>
             <template #content>
-              <div class="space-y-4">
+              <!-- 设置最小高度，减少翻译结果变化导致的跳动 -->
+              <div class="space-y-4 min-h-[50rem]">
                 <div v-if="showTranslation">
                   <div v-if="translationType === 'word' && selectedWord">
                     <!-- 单词翻译内容 -->
