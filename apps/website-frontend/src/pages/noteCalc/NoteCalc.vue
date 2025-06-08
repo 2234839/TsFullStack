@@ -7,18 +7,18 @@
         <div class="w-8 h-8 text-purple-600 dark:text-purple-400">
           <i class="pi pi-calculator text-2xl!"></i>
         </div>
-        <h1 class="text-xl font-bold text-purple-700 dark:text-purple-400">计算笔记本</h1>
+        <h1 class="text-xl font-bold text-purple-700 dark:text-purple-400">{{ $t('计算笔记本') }}</h1>
       </div>
       <div class="flex items-center gap-2">
         <Button
           icon="pi pi-file"
-          label="新建"
+          :label="$t('新建')"
           class="p-button-outlined"
           @click="handleNewDocument($event)"
-          title="新建文档" />
+          :title="$t('新建文档')" />
         <Button
           icon="pi pi-save"
-          label="保存"
+          :label="$t('保存')"
           class="p-button-outlined"
           @click="saveCurrentNote"
           :disabled="!authInfo_isLogin || isSaving"
@@ -26,15 +26,15 @@
           :title="$t('保存到云端,需要登录后才能使用')" />
         <Button
           icon="pi pi-share-alt"
-          label="分享"
+          :label="$t('分享')"
           class="p-button-outlined"
           @click="handleShare()"
-          title="分享当前文档" />
+          :title="$t('分享当前文档')" />
         <Button
           icon="pi pi-cog"
           class="p-button-outlined p-button-rounded"
           @click="showSettings = !showSettings"
-          title="设置" />
+          :title="$t('设置')" />
         <ThemeToggle />
         <UserSettingBtn />
       </div>
@@ -46,14 +46,14 @@
       <Drawer v-model:visible="sidebarVisible" :pt="{ root: { class: 'w-80 p-0' } }">
         <template #header>
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-purple-700 dark:text-purple-400">我的笔记</h2>
+            <h2 class="text-lg font-bold text-purple-700 dark:text-purple-400">{{ $t('我的笔记') }}</h2>
             <div class="flex gap-2">
               <Button
                 icon="pi pi-refresh"
                 class="p-button-text p-button-rounded"
                 @click="refreshNotes"
                 :loading="notesState.isLoading.value"
-                title="刷新笔记列表" />
+                :title="$t('刷新笔记列表')" />
             </div>
           </div>
         </template>
@@ -62,7 +62,7 @@
             <InputGroupAddon>
               <i class="pi pi-search" />
             </InputGroupAddon>
-            <InputText v-model="searchQuery" placeholder="搜索笔记..." class="w-full" />
+            <InputText v-model="searchQuery" :placeholder="$t('搜索笔记...')" class="w-full" />
             <InputGroupAddon v-if="searchQuery">
               <i class="pi pi-times" @click="clearSearch()" />
             </InputGroupAddon>
@@ -70,13 +70,13 @@
           <div v-if="!authInfo_isLogin" class="flex-1 flex items-center justify-center">
             <div class="text-center p-4">
               <i class="pi pi-lock text-4xl mb-2 text-gray-400"></i>
-              <p class="text-gray-500">请登录后查看您的笔记</p>
+              <p class="text-gray-500">{{ $t('请登录后查看您的笔记') }}</p>
               <Button
                 @click="
                   routerUtil.push(routeMap.login, {}, { r: $route.fullPath }),
                     (sidebarVisible = false)
                 "
-                >登录</Button
+                >{{ $t('登录') }}</Button
               >
             </div>
           </div>
@@ -93,7 +93,7 @@
             <div class="text-center p-4">
               <i class="pi pi-file-o text-4xl mb-2 text-gray-400"></i>
               <p class="text-gray-500">
-                {{ searchQuery ? '未找到匹配的笔记' : '暂无笔记' }}
+                {{ searchQuery ? $t('未找到匹配的笔记') : $t('暂无笔记') }}
               </p>
             </div>
           </div>
@@ -114,12 +114,12 @@
                         icon="pi pi-pencil"
                         class="p-button-text p-button-rounded p-button-sm"
                         @click="showRenameDialog(note)"
-                        title="重命名" />
+                        :title="$t('重命名')" />
                       <Button
                         icon="pi pi-trash"
                         class="p-button-text p-button-rounded p-button-danger p-button-sm"
                         @click.stop="confirmDeleteNote(note, $event)"
-                        title="删除" />
+                        :title="$t('删除')" />
                     </div>
                   </div>
                   <div class="text-xs text-gray-500 mt-1 flex justify-between">
@@ -133,7 +133,7 @@
             <!-- 分页加载更多 -->
             <div v-if="hasMoreNotes" class="mt-4 text-center">
               <Button
-                label="加载更多"
+                :label="$t('加载更多')"
                 icon="pi pi-chevron-down"
                 class="p-button-text p-button-sm"
                 :loading="isLoadingMore"
@@ -151,23 +151,23 @@
             icon="pi pi-bars"
             class="p-button-text p-button-rounded mr-2"
             @click="sidebarVisible = !sidebarVisible"
-            title="显示/隐藏侧边栏" />
+            :title="$t('显示/隐藏侧边栏')" />
 
           <div class="flex-1 flex items-center">
             <span v-if="currentNote" class="font-medium truncate">
               {{ getNoteTitle(currentNote) }}
             </span>
-            <span v-else class="text-gray-500">未保存的笔记</span>
+            <span v-else class="text-gray-500">{{ $t('未保存的笔记') }}</span>
 
             <span v-if="unsavedChanges" class="ml-2 text-xs text-orange-500">
-              <i class="pi pi-exclamation-circle mr-1"></i>未保存
+              <i class="pi pi-exclamation-circle mr-1"></i>{{ $t('未保存') }}
             </span>
           </div>
 
           <div v-if="config.autoSaveEnabled" class="text-xs text-gray-500 flex items-center">
             <i class="pi pi-clock mr-1"></i>
-            <span v-if="lastSaved">上次保存: {{ lastSaved_v }}</span>
-            <span v-else>自动保存已启用</span>
+            <span v-if="lastSaved">{{ $t('上次保存') }}: {{ lastSaved_v }}</span>
+            <span v-else>{{ $t('自动保存已启用') }}</span>
           </div>
         </div>
 
@@ -178,18 +178,18 @@
     </div>
 
     <!-- 设置面板 -->
-    <Dialog v-model:visible="showSettings" header="设置" modal class="w-[30rem]">
+    <Dialog v-model:visible="showSettings" :header="$t('设置')" modal class="w-[30rem]">
       <div class="space-y-4">
         <div class="flex items-center justify-between">
-          <label class="font-medium">自动计算</label>
+          <label class="font-medium">{{ $t('自动计算') }}</label>
           <ToggleSwitch v-model="config.isAutoCalculate" />
         </div>
         <div class="flex items-center justify-between">
-          <label class="font-medium">自动保存</label>
+          <label class="font-medium">{{ $t('自动保存') }}</label>
           <ToggleSwitch v-model="config.autoSaveEnabled" />
         </div>
         <div class="flex justify-between items-center">
-          <label class="font-medium">自动保存间隔</label>
+          <label class="font-medium">{{ $t('自动保存间隔') }}</label>
           <div class="flex items-center">
             <InputNumber
               v-model="config.autoSaveInterval"
@@ -200,11 +200,11 @@
               buttonLayout="horizontal"
               decrementButtonClass="p-button-secondary"
               incrementButtonClass="p-button-secondary" />
-            <span class="ml-2 text-gray-500">秒</span>
+            <span class="ml-2 text-gray-500">{{ $t('秒') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
-          <label class="font-medium">结果显示精度</label>
+          <label class="font-medium">{{ $t('结果显示精度') }}</label>
           <div class="flex items-center">
             <InputNumber
               v-model="config.showPrecision"
@@ -214,11 +214,11 @@
               buttonLayout="horizontal"
               decrementButtonClass="p-button-secondary"
               incrementButtonClass="p-button-secondary" />
-            <span class="ml-2 text-gray-500">位</span>
+            <span class="ml-2 text-gray-500">{{ $t('位') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
-          <label class="font-medium">计算精度</label>
+          <label class="font-medium">{{ $t('计算精度') }}</label>
           <div class="flex items-center">
             <InputNumber
               v-model="config.precision"
@@ -228,22 +228,22 @@
               buttonLayout="horizontal"
               decrementButtonClass="p-button-secondary"
               incrementButtonClass="p-button-secondary" />
-            <span class="ml-2 text-gray-500">位</span>
+            <span class="ml-2 text-gray-500">{{ $t('位') }}</span>
           </div>
         </div>
       </div>
     </Dialog>
 
     <!-- 重命名对话框 -->
-    <Dialog v-model:visible="showRenameModal" header="重命名笔记" modal class="w-[25rem]">
+    <Dialog v-model:visible="showRenameModal" :header="$t('重命名笔记')" modal class="w-[25rem]">
       <div class="space-y-4">
         <div class="flex flex-col">
-          <label for="noteTitle" class="mb-2 font-medium">笔记标题</label>
+          <label for="noteTitle" class="mb-2 font-medium">{{ $t('笔记标题') }}</label>
           <InputText id="noteTitle" v-model="renameTitle" class="w-full" />
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <Button label="取消" class="p-button-text" @click="showRenameModal = false" />
-          <Button label="保存" @click="saveRename" :disabled="!renameTitle.trim()" />
+          <Button :label="$t('取消')" class="p-button-text" @click="showRenameModal = false" />
+          <Button :label="$t('保存')" @click="saveRename" :disabled="!renameTitle.trim()" />
         </div>
       </div>
     </Dialog>
