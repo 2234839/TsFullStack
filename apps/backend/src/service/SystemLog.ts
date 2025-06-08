@@ -10,7 +10,6 @@ import type { ReqCtx } from './ReqCtx';
 export async function systemLog(options: { level: LogLevel; message?: string }, ctx: ReqCtx) {
   const log = await prisma.systemLog.create({
     data: {
-      reqId: ctx.reqId,
       level: options.level,
       logs: ctx.logs,
       authUserId: ctx.user?.id,

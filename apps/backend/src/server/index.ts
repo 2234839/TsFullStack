@@ -58,7 +58,6 @@ type apiCtx = { req: FastifyRequest; reply: FastifyReply; pathPrefix: string; on
 function handelReq({ req, reply, pathPrefix, onEnd }: apiCtx) {
   const startTime = Date.now();
   const reqCtx: ReqCtx = {
-    reqId: uuidv7(),
     logs: [],
     log(...args) {
       this.logs.push(args);

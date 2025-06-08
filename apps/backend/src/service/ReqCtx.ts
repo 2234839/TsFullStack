@@ -6,8 +6,6 @@ export class ReqCtxService extends Context.Tag('ReqCtxService')<ReqCtxService, R
 
 /** 请求上下文数据 */
 export type ReqCtx = {
-  /** 当前请求id */
-  reqId: string;
   user?: Database['user'];
   logs: JsonValue[];
   log(...args: JsonValue[]): void;
