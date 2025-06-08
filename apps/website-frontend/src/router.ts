@@ -2,10 +2,10 @@ import {
   createRouter,
   createWebHistory,
   type RouteLocationRaw,
+  type RouteMeta,
   type Router,
   type RouteRecordRaw,
 } from 'vue-router';
-import type { RouteMetaTabs } from './pages/admin/stores/tabsStore';
 import { t as i18n_t } from './i18n';
 import { computed, reactive } from 'vue';
 /** path 为 "" 的子路由会自动渲染在父路由中 */
@@ -135,7 +135,7 @@ export const routeMap = reactive({
 
 type RouteNode = RouteRecordRaw & {
   child?: RouteTree;
-  meta?: RouteMetaTabs;
+  meta?: RouteMeta;
 };
 type RouteTree = {
   [key: string]: RouteNode;
