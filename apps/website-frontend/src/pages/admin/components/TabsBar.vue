@@ -4,25 +4,25 @@
     <div class="tabs-wrapper flex items-center h-full">
       <div
         v-for="tab of tabsStore.tabs"
-        :key="tab.fullPath"
+        :key="tab.value.fullPath"
         :class="[
           'tab-item flex items-center h-8 px-2.5 mr-1 rounded cursor-pointer select-none whitespace-nowrap',
-          tab.fullPath === tabsStore.activeTab
+          tab.value.fullPath === tabsStore.activeTab
             ? 'bg-blue-50 dark:bg-blue-900 border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-300'
             : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600',
         ]"
-        @click="handleTabClick(tab)"
-        @contextmenu.prevent="handleContextMenu($event, tab)">
-        <span class="tab-icon mr-1.5 flex items-center" v-if="tab.icon">
-          <i :class="tab.icon"></i>
+        @click="handleTabClick(tab.value)"
+        @contextmenu.prevent="handleContextMenu($event, tab.value)">
+        <span class="tab-icon mr-1.5 flex items-center" v-if="tab.value.icon">
+          <i :class="tab.value.icon"></i>
         </span>
         <span class="tab-title max-w-[120px] truncate">
-          {{ tab.title }}
+          {{ tab.value.title }}
         </span>
         <span
-          v-if="!tab.fixed"
+          v-if="!tab.value.fixed"
           class="tab-close ml-1.5 flex items-center justify-center w-4 h-4 rounded-full opacity-60 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-500"
-          @click.stop="handleCloseTab(tab.fullPath)">
+          @click.stop="handleCloseTab(tab.value.fullPath)">
           <i class="pi pi-times text-xs"></i>
         </span>
       </div>
