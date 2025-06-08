@@ -1,6 +1,6 @@
 # 同步代码文件
 rsync -avz --progress ./dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/dist/
-rsync -avz --progress ../admin-console/dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/dist/frontend/
+rsync -avz --progress ../website-frontend/dist/* admin@47.236.87.38:/home/admin/app/TsFullStack/dist/frontend/
 
 # 同步数据库迁移文件
 rsync -avz --progress ./prisma/migrations/* admin@47.236.87.38:/home/admin/app/TsFullStack/prisma/migrations/

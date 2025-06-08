@@ -51,7 +51,59 @@ importers:
         specifier: ^0.20.0
         version: 0.20.7(@types/node@22.15.29)(jiti@2.4.2)(lightningcss@1.30.1)(rollup@4.41.1)(yaml@2.7.1)
 
-  apps/admin-console:
+  apps/backend:
+    dependencies:
+      '@fastify/cors':
+        specifier: ^11.0.1
+        version: 11.0.1
+      '@fastify/multipart':
+        specifier: ^9.0.3
+        version: 9.0.3
+      '@fastify/static':
+        specifier: ^8.2.0
+        version: 8.2.0
+      '@prisma/client':
+        specifier: 6.7.0
+        version: 6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3)
+      '@zenstackhq/runtime':
+        specifier: ^2.15.0
+        version: 2.15.0(@prisma/client@6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3))
+      bcryptjs:
+        specifier: ^3.0.2
+        version: 3.0.2
+      c12:
+        specifier: ^3.0.4
+        version: 3.0.4(magicast@0.3.5)
+      effect:
+        specifier: ^3.15.3
+        version: 3.16.3
+      fastify:
+        specifier: ^5.3.3
+        version: 5.3.3
+      prisma:
+        specifier: 6.7.0
+        version: 6.7.0(typescript@5.8.3)
+      superjson:
+        specifier: ^2.2.2
+        version: 2.2.2
+      uuid:
+        specifier: ^11.1.0
+        version: 11.1.0
+      zenstack:
+        specifier: 2.15.0
+        version: 2.15.0(@prisma/client@6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3))(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.15.21
+        version: 22.15.29
+      tsup:
+        specifier: ^8.5.0
+        version: 8.5.0(@microsoft/api-extractor@7.52.4(@types/node@22.15.29))(jiti@2.4.2)(postcss@8.5.4)(typescript@5.8.3)(yaml@2.7.1)
+      typescript:
+        specifier: ^5.8.3
+        version: 5.8.3
+
+  apps/website-frontend:
     dependencies:
       '@floating-ui/vue':
         specifier: ^1.1.6
@@ -135,58 +187,6 @@ importers:
       vue-tsc:
         specifier: ^2.2.10
         version: 2.2.10(typescript@5.8.3)
-
-  apps/backend:
-    dependencies:
-      '@fastify/cors':
-        specifier: ^11.0.1
-        version: 11.0.1
-      '@fastify/multipart':
-        specifier: ^9.0.3
-        version: 9.0.3
-      '@fastify/static':
-        specifier: ^8.2.0
-        version: 8.2.0
-      '@prisma/client':
-        specifier: 6.7.0
-        version: 6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3)
-      '@zenstackhq/runtime':
-        specifier: ^2.15.0
-        version: 2.15.0(@prisma/client@6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3))
-      bcryptjs:
-        specifier: ^3.0.2
-        version: 3.0.2
-      c12:
-        specifier: ^3.0.4
-        version: 3.0.4(magicast@0.3.5)
-      effect:
-        specifier: ^3.15.3
-        version: 3.16.3
-      fastify:
-        specifier: ^5.3.3
-        version: 5.3.3
-      prisma:
-        specifier: 6.7.0
-        version: 6.7.0(typescript@5.8.3)
-      superjson:
-        specifier: ^2.2.2
-        version: 2.2.2
-      uuid:
-        specifier: ^11.1.0
-        version: 11.1.0
-      zenstack:
-        specifier: 2.15.0
-        version: 2.15.0(@prisma/client@6.7.0(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3))(prisma@6.7.0(typescript@5.8.3))(typescript@5.8.3)
-    devDependencies:
-      '@types/node':
-        specifier: ^22.15.21
-        version: 22.15.29
-      tsup:
-        specifier: ^8.5.0
-        version: 8.5.0(@microsoft/api-extractor@7.52.4(@types/node@22.15.29))(jiti@2.4.2)(postcss@8.5.4)(typescript@5.8.3)(yaml@2.7.1)
-      typescript:
-        specifier: ^5.8.3
-        version: 5.8.3
 
 packages:
 
