@@ -120,6 +120,9 @@ importers:
       aframe:
         specifier: ^1.7.1
         version: 1.7.1
+      defu:
+        specifier: ^6.1.4
+        version: 6.1.4
       localforage:
         specifier: ^1.10.0
         version: 1.10.0
