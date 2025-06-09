@@ -547,21 +547,11 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                   autoResize />
                 <div class="flex gap-2 flex-wrap">
                   <Button
-                    @click="handleArticleSubmit(false)"
-                    class="flex-1"
-                    :disabled="isStudying || isAnalyzing"
-                    :label="isAnalyzing ? 'AI分析中...' : '整篇学习'" />
-                  <Button
                     @click="handleArticleSubmit(true)"
                     class="flex-1"
                     :disabled="isStudying || isAnalyzing"
                     severity="secondary"
                     :label="isAnalyzing ? 'AI分析中...' : '分段学习'" />
-                  <Button
-                    severity="secondary"
-                    @click="loadSampleArticle(false)"
-                    :disabled="isStudying || isAnalyzing"
-                    label="示例整篇" />
                   <Button
                     severity="secondary"
                     @click="loadSampleArticle(true)"
