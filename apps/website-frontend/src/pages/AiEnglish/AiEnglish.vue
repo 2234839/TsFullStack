@@ -542,7 +542,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
             <template #content>
               <div class="space-y-4">
                 <Textarea
-                  placeholder="请输入你想学习的英文文章..."
+                  placeholder="请粘贴你想学习的英文文章..."
                   v-model="article"
                   class="min-h-[120px] text-base w-full"
                   :disabled="isStudying"
