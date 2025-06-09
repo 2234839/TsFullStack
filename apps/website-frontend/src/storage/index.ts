@@ -3,7 +3,7 @@ import { encryptSerializer } from '@/utils/encryptSerializer';
 import { StorageSerializers, useStorage, useStorageAsync } from '@vueuse/core';
 import { computed, watchEffect } from 'vue';
 
-const appId = 'tfs_';
+export const appId = 'tfs_';
 /** 用户认证信息存储  */
 export const authInfo = useStorageAsync<
   | {

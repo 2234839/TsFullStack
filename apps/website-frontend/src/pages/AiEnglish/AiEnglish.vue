@@ -7,7 +7,7 @@
     type AIAnalysis,
   } from '@/pages/AiEnglish/ai';
   import { useAiEnglishData } from '@/pages/AiEnglish/data';
-  import { speakText } from '@/pages/AiEnglish/util';
+  import { useTTS } from '@/pages/AiEnglish/util';
   import { useToast } from 'primevue/usetoast';
   import { computed, nextTick, reactive, ref, watch } from 'vue';
 
@@ -46,6 +46,8 @@ My dog is happy. He wags his tail when he sees me. We play fetch with a ball.
 I eat an apple every day. Apples are good for you. They make you strong and healthy.
 
 My mom reads me a story at night. I like the stories about animals. Then I go to sleep.`;
+
+  const { speakText, ttsConfig } = useTTS();
 
   // 响应式状态
   const article = ref('');
@@ -159,13 +161,13 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
   // 核心功能
   const initializeWords = async (text: string, useParagraphMode = false) => {
-    const tokens = tokenizeText(text);
-    await getWordsData(tokens);
-
     isStudying.value = true;
     isParagraphMode.value = useParagraphMode;
     currentSession.clickedWords = new Set();
     currentSession.startTime = Date.now();
+
+    const tokens = tokenizeText(text);
+    await getWordsData(tokens);
 
     // 处理段落模式
     if (useParagraphMode) {
@@ -631,7 +633,15 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
               <div class="flex items-center gap-2">
                 <i class="pi pi-sparkles text-purple-600" style="font-size: 1.25rem" />
                 AI智能翻译
-                <div class="ml-auto">
+                <div class="ml-auto flex items-center space-x-0.5">
+                  <span class="">{{ ttsConfig.rate }}x</span>
+                  <Slider
+                    v-model="ttsConfig.rate"
+                    :min="0.1"
+                    :max="1.5"
+                    :step="0.1"
+                    class="w-32"
+                    :title="$t(`调整发音速度，当前${ttsConfig.rate}倍速`)" />
                   <Button
                     v-if="selectedWord || paragraphTranslation"
                     text
