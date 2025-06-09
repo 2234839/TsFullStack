@@ -633,7 +633,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
               <div class="flex items-center gap-2">
                 <i class="pi pi-sparkles text-purple-600" style="font-size: 1.25rem" />
                 AI智能翻译
-                <div class="ml-auto flex items-center space-x-0.5">
+                <div
+                  class="ml-auto flex items-center space-x-0.5"
+                  v-if="selectedWord || paragraphTranslation">
                   <span class="">{{ ttsConfig.rate }}x</span>
                   <Slider
                     v-model="ttsConfig.rate"
@@ -643,7 +645,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                     class="w-32"
                     :title="$t(`调整发音速度，当前${ttsConfig.rate}倍速`)" />
                   <Button
-                    v-if="selectedWord || paragraphTranslation"
                     text
                     rounded
                     @click="
@@ -654,7 +655,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                     <i class="pi pi-volume-up" style="font-size: 1rem" />
                   </Button>
                   <Button
-                    v-if="selectedWord || paragraphTranslation"
                     text
                     rounded
                     @click="
