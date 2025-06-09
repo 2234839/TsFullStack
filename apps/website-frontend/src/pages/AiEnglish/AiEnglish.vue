@@ -302,7 +302,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     speakText(selectedText);
   };
 
-  const handleWordClick = async (word: string) => {
+  const handleWordClick = async (word: string, options?: { forceAi: boolean }) => {
     // 清除状态
     selectionState.isSelecting = false;
     selectionState.selectedWords = new Set();
@@ -325,10 +325,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     paragraphTranslation.value = null;
 
     // 获取AI翻译（如果缺失）
-    if (!wordData.aiTranslation) {
+    if (!wordData.aiTranslation || options?.forceAi) {
       isTranslating.value = true;
       const aiResult = await translateWithAI(word, currentText.value);
-      console.log('[aiResult]', aiResult);
       const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
       if (oldWordData) {
         updateWordDatas([
@@ -638,18 +637,34 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
               <div class="flex items-center gap-2">
                 <i class="pi pi-sparkles text-purple-600" style="font-size: 1.25rem" />
                 AI智能翻译
-                <Button
-                  v-if="selectedWord || paragraphTranslation"
-                  text
-                  rounded
-                  @click="
-                    translationType === 'word'
-                      ? speakText(selectedWord?.word || '')
-                      : speakText(paragraphTranslation?.originalText || '')
-                  "
-                  class="ml-auto">
-                  <i class="pi pi-volume-up" style="font-size: 1rem" />
-                </Button>
+                <div class="ml-auto">
+                  <Button
+                    v-if="selectedWord || paragraphTranslation"
+                    text
+                    rounded
+                    @click="
+                      translationType === 'word'
+                        ? speakText(selectedWord?.word || '')
+                        : speakText(paragraphTranslation?.originalText || '')
+                    ">
+                    <i class="pi pi-volume-up" style="font-size: 1rem" />
+                  </Button>
+                  <Button
+                    v-if="selectedWord || paragraphTranslation"
+                    text
+                    rounded
+                    @click="
+                      translationType === 'word'
+                        ? handleWordClick(selectedWord?.word || '',{forceAi:true})
+                        : handleParagraphSelection(
+                            (paragraphTranslation?.originalText || '').split(' '),
+                          )
+                    "
+                    class="ml-auto"
+                    :title="$t('重新使用ai翻译')">
+                    <i class="pi pi-refresh" style="font-size: 1rem" />
+                  </Button>
+                </div>
               </div>
             </template>
             <template #content>
