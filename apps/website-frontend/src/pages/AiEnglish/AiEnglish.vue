@@ -625,7 +625,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                 class="text-lg leading-relaxed text-gray-800"
                 @mousemove="handleMouseMove"
                 @mouseup="handleMouseUp"
-                @mouseleave="handleMouseUp"
                 style="user-select: none">
                 <renderArticleWithMarkers />
               </div>
@@ -655,7 +654,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                     rounded
                     @click="
                       translationType === 'word'
-                        ? handleWordClick(selectedWord?.word || '',{forceAi:true})
+                        ? handleWordClick(selectedWord?.word || '', { forceAi: true })
                         : handleParagraphSelection(
                             (paragraphTranslation?.originalText || '').split(' '),
                           )
@@ -860,7 +859,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-chart-bar" style="font-size: 1.25rem" />
-                学习统计
+                当前片段学习统计
               </div>
             </template>
             <template #content>
