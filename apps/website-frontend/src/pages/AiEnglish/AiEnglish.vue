@@ -217,7 +217,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     selectionState.selectedWords = selectedWords;
   };
 
-  const handleMouseDown = (e: MouseEvent, wordIndex: number) => {
+  const handleMouseDown = (e: { preventDefault: () => void }, wordIndex: number) => {
     if (!isStudying.value) return;
     e.preventDefault();
 
@@ -227,10 +227,12 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     selectionState.selectedWords = new Set([wordIndex]);
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
     if (!selectionState.isSelecting || !isStudying.value) return;
 
-    const wordIndex = getWordIndexFromPoint(e.clientX, e.clientY);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const wordIndex = getWordIndexFromPoint(clientX, clientY);
     if (wordIndex !== -1 && wordIndex !== selectionState.endWordIndex) {
       updateSelection(selectionState.startWordIndex, wordIndex);
     }
@@ -462,6 +464,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
               display: 'inline-block',
             }}
             onMousedown={(e) => handleMouseDown(e, currentWordIndex)}
+            onTouchstart={(e) => handleMouseDown(e, currentWordIndex)}
             onClick={() => !selectionState.isSelecting && handleWordClick(cleanWord)}
             title={titleText}>
             {token}
@@ -625,6 +628,8 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                 class="text-lg leading-relaxed text-gray-800"
                 @mousemove="handleMouseMove"
                 @mouseup="handleMouseUp"
+                @touchmove="handleMouseMove"
+                @touchend="handleMouseUp"
                 style="user-select: none">
                 <renderArticleWithMarkers />
               </div>
