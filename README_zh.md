@@ -42,7 +42,7 @@ https://deepwiki.com/2234839/TsFullStack
 ## 快速开始
 
 1. clone 项目
-2. 安装依赖：进入 backend 目录，执行 `pnpm i` 安装依赖 (报错 ERROR  Failed to resolve entry for package "tsfullstack-backend" 不用管)
+2. 安装依赖：进入 backend 目录，执行 `pnpm i` 安装依赖 (忽略错误： Failed to resolve entry for package "tsfullstack-backend" ,我们将在之后的步骤中生成这个包)
 3. 初始化数据库：在 backend 目录下执行 `pnpm zenstack generate` 和 `pnpm prisma migrate dev`
 4. 编译 tsfullstack-backend api 包:在 backend 目录下执行 `pnpm build:lib` （会报一些类型错误，我暂时没找到好的解决方案，但不影响使用，不用管）
 5. 启动后端服务：在 backend 目录下执行 `pnpm dev`

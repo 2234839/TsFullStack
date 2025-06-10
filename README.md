@@ -1,12 +1,12 @@
 # TsFullStack
 
-[中文文档](./README_zh.md) [English Document](./README.md)
+[English Document](./README.md) [中文文档](./README_zh.md)
 
 ---
 
-This is my TypeScript full-stack best practice project. After defining data models, you can directly manipulate the database from the frontend without writing backend interface code, enabling rapid MVP development.
+This is my TypeScript full-stack best practice project. After defining data models, you can directly operate the database from the frontend without writing backend API code, enabling rapid MVP development.
 
-> I'm completely fed up with traditional admin pages and never want to write them again.
+> I'm really tired of writing traditional admin pages and don't want to do it anymore.
 
 [Live Demo](http://tsfullstack.heartstack.space/)
 
@@ -17,33 +17,33 @@ https://deepwiki.com/2234839/TsFullStack
 ## Features
 
 - Backend
-  - Tech Stack: ts + prisma + zenstack + Effect + fastify
-  - zenstack (prisma enhancement) for database modeling and Row Level Security.
+  - Tech stack: ts + prisma + zenstack + Effect + fastify
+  - Zenstack (an enhanced solution based on prisma) for database modeling and Row Level Security.
 
-- Bridge Layer
-  - Tech Stack: ts + superjson + custom RPC library
-  - Frontend can directly call backend APIs with full TypeScript type hints, no intermediate layer code needed.
-  - superjson supports complex object serialization/deserialization (Date, Map, Set, RegExp...), ensuring seamless prisma parameter/return value transfer.
+- Bridge
+  - Tech stack: ts + superjson + self-developed RPC library
+  - Frontend can directly call backend APIs with full TypeScript type hints, eliminating the need for middleware code.
+  - Superjson supports complex object serialization/deserialization (Date, Map, Set, RegExp, etc.), ensuring seamless transfer of prisma parameters and results.
 
 - Frontend
-  - Tech Stack: ts + vue3 + tailwindcss + primevue component library
-  - Comprehensive i18n internationalization support with dynamic language switching (no page reload).
+  - Tech stack: ts + vue3 + tailwindcss + primevue component library
+  - Perfect i18n internationalization support with dynamic language switching without page reload.
   - Light/dark theme switching with synchronized component and tailwindcss support.
   - Implemented feature pages:
-    - Prisma Studio-like admin panel (can serve as an open-source alternative), eliminating repetitive CRUD pages.
-    - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) - Chinese-friendly real-time calculation notebook
-    - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) - Progressive English learning through reading
+    - Prisma Studio-like admin panel (serving as an open-source alternative to some extent), eliminating repetitive CRUD page development.
+    - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) - A Chinese-friendly real-time calculation notebook
+    - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) - Progressive English learning while reading
 
-Other Application Examples
+Other application examples
 
 - Browser Extension - InfoFlow
-  - Built on https://wxt.dev/guide/installation.html, demonstrating how to use TsFullStack as backend support for extensions.
+  - Built with https://wxt.dev/guide/installation.html to demonstrate using tsfullstack as backend support for browser extensions.
 
 ## Quick Start
 
 1. Clone the project
-2. Install dependencies: In backend directory, run `pnpm i` (ignore "Failed to resolve entry" error)
-3. Initialize database: In backend directory, run `pnpm zenstack generate` then `pnpm prisma migrate dev`
-4. Build tsfullstack-backend api package: In backend directory, run `pnpm build:lib` (some type errors may appear but won't affect usage)
-5. Start backend: In backend directory, run `pnpm dev`
-6. Start frontend: In website-frontend directory, run `pnpm dev`
+2. Install dependencies: Enter backend directory and run `pnpm i` (ignore errors: Failed to resolve entry for package "tsfullstack-backend", we'll generate this package in later steps)
+3. Initialize database: In backend directory, run `pnpm zenstack generate` and `pnpm prisma migrate dev`
+4. Build tsfullstack-backend api package: In backend directory run `pnpm build:lib` (some TypeScript errors may appear but won't affect usage)
+5. Start backend service: In backend directory run `pnpm dev`
+6. Start frontend service: In website-frontend directory run `pnpm dev`
