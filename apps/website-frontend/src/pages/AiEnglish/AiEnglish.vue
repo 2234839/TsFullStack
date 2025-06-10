@@ -221,7 +221,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
   const handleMouseDown = (e: { preventDefault: () => void }, wordIndex: number) => {
     if (!isStudying.value) return;
-    e.preventDefault();
+    if (e instanceof MouseEvent) {
+      e.preventDefault();
+    }
 
     selectionState.isSelecting = true;
     selectionState.startWordIndex = wordIndex;
@@ -256,6 +258,8 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       .filter(Boolean) as string[];
 
     if (selectedWordsData.length === 1) {
+      /** 因为触摸设备上的事件判定机制会导致 onClick 中的逻辑无法触发，所以需要在这里处理单个单词的点击事件  */
+      handleWordClick(selectedWordsData[0])
       selectionState.selectedWords = new Set();
     } else if (selectedWordsData.length > 1) {
       await handleParagraphSelection(selectedWordsData);
@@ -622,6 +626,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
                 @mouseup="handleMouseUp"
                 @touchmove="handleMouseMove"
                 @touchend="handleMouseUp"
+                @touchstart="(e) => /** 防止长按选中文字以及触摸滚动 */ e.preventDefault()"
                 style="user-select: none">
                 <renderArticleWithMarkers />
               </div>
