@@ -27,7 +27,7 @@ const seedAdmin = Effect.gen(function* () {
       prisma.user.create({
         data: {
           email: systemAdminUser.email,
-          password: systemAdminUser.password,
+          password: hashSync(systemAdminUser.password),
           role: {
             connectOrCreate: {
               where: { name: 'admin' },
