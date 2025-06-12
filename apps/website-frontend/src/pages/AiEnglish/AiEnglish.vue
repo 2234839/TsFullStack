@@ -1,13 +1,14 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+  <div
+    class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-900 p-4">
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- 标题 -->
       <div class="text-center space-y-2">
-        <h1 class="text-4xl font-bold text-gray-800 flex items-center justify-center gap-3">
+        <h1 class="text-4xl font-bold flex items-center justify-center gap-3">
           <i class="pi pi-book text-blue-600 text-3xl" />
           在阅读中渐进式学习英语
         </h1>
-        <p class="text-gray-600">AI驱动 • 智能分析 • 分段学习 • 划选段落翻译</p>
+        <p>AI驱动 • 智能分析 • 分段学习 • 划选段落翻译</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -26,6 +27,7 @@
                       : '学习中...'
                   }}
                 </Tag>
+                <CommonSettingBtns class="ml-auto" />
               </div>
             </template>
             <template #content>
@@ -94,19 +96,13 @@
               </div>
             </template>
             <template #content>
-              <div class="mb-4 p-3 bg-blue-50 rounded-lg">
-                <div class="flex flex-col sm:flex-row items-center gap-2 text-sm text-blue-700">
-                  <span class="font-medium">
-                    <i class="pi pi-pencil" style="font-size: 1rem" />使用提示：</span
-                  >
-                  <span>
-                    点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译，下方英文学习完毕后点击右上角的OK按钮
-                  </span>
-                </div>
-              </div>
+              <Tips
+                title="使用提示："
+                icon="pi-pencil"
+                tips="点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译，下方英文学习完毕后点击右上角的OK按钮" />
               <div
                 id="article-container"
-                class="text-lg leading-relaxed text-gray-800"
+                class="text-lg leading-relaxed"
                 @mousemove="handleMouseMove"
                 @mouseup="handleMouseUp"
                 @touchmove="handleMouseMove"
@@ -167,17 +163,17 @@
                 <div v-if="showTranslation">
                   <div v-if="translationType === 'word' && selectedWord">
                     <!-- 单词翻译内容 -->
-                    <div class="text-2xl font-bold text-blue-600">{{ selectedWord.word }}</div>
+                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ selectedWord.word }}</div>
 
-                    <div v-if="selectedWord.pronunciation" class="text-lg text-gray-600">
-                      <span class="text-sm text-gray-500">音标: </span>
+                    <div v-if="selectedWord.pronunciation" class="text-lg text-gray-600 dark:text-gray-300">
+                      <span class="text-sm text-gray-500 dark:text-gray-400">音标: </span>
                       {{ selectedWord.pronunciation }}
                     </div>
 
                     <div class="space-y-3">
                       <div class="flex items-center gap-2">
                         <i class="pi pi-brain" style="font-size: 1rem" />
-                        <span class="text-sm text-gray-500">熟练度</span>
+                        <span class="text-sm text-gray-500 dark:text-gray-400">熟练度</span>
                         <Tag
                           :value="`${selectedWord.memoryLevel}/10`"
                           :style="{
@@ -185,7 +181,7 @@
                             color: selectedWord.memoryLevel > 5 ? 'black' : 'white',
                             border: 'none',
                           }" />
-                        <span v-if="selectedWord.difficulty" class="text-sm text-gray-500"
+                        <span v-if="selectedWord.difficulty" class="text-sm text-gray-500 dark:text-gray-400"
                           >难度</span
                         >
                         <Tag
@@ -214,17 +210,17 @@
                     </div>
 
                     <div v-if="selectedWord.grammar" class="space-y-2">
-                      <div class="text-sm text-gray-500">语法信息</div>
-                      <div class="text-sm bg-gray-50 p-2 rounded">{{ selectedWord.grammar }}</div>
+                      <div class="text-sm text-gray-500 dark:text-gray-400">语法信息</div>
+                      <div class="text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">{{ selectedWord.grammar }}</div>
                     </div>
 
                     <div v-if="selectedWord.examples?.length" class="space-y-2">
-                      <div class="text-sm text-gray-500">AI例句</div>
+                      <div class="text-sm text-gray-500 dark:text-gray-400">AI例句</div>
                       <div class="space-y-1">
                         <div
                           v-for="(example, index) in selectedWord.examples"
                           :key="index"
-                          class="text-sm bg-blue-50 p-2 rounded italic">
+                          class="text-sm bg-blue-50 dark:bg-blue-900/30 p-2 rounded italic">
                           {{ example }}
                         </div>
                       </div>
@@ -272,14 +268,14 @@
                 <div v-else class="text-center py-8 text-gray-500">
                   <i class="pi pi-sparkles w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p class="text-lg font-medium mb-2">点击单词或拖拽选择段落</p>
-                  <p class="text-sm">获取AI智能翻译和详细分析</p>
-                  <div v-if="isStudying" class="mt-4 p-3 bg-blue-50 rounded-lg">
-                    <p class="text-sm text-blue-600">
-                      💡 提示：点击单词查看翻译会降低熟练度，{{
-                        isParagraphMode ? '完成段落' : '学习完毕'
-                      }}时未操作的单词会提升熟练度(+1)
-                    </p>
-                  </div>
+                  <p class="text-sm mb-4">获取AI智能翻译和详细分析</p>
+                  <Tips
+                    v-if="isStudying"
+                    title="💡 提示："
+                    icon=""
+                    :tips="`点击单词查看翻译会降低熟练度，${
+                      isParagraphMode ? '完成段落' : '学习完毕'
+                    }时未操作的单词会提升熟练度(+1)`" />
                 </div>
               </div>
             </template>
@@ -319,7 +315,7 @@
                 </div>
 
                 <div v-if="aiAnalysis.keyWords.length > 0">
-                  <div class="text-sm text-gray-600 mb-2">关键词汇 ⭐:</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-300 mb-2">关键词汇 ⭐:</div>
                   <div class="flex flex-wrap gap-1">
                     <Tag
                       v-for="(word, index) in aiAnalysis.keyWords"
@@ -332,7 +328,7 @@
                 </div>
 
                 <div v-if="aiAnalysis.learningTips.length > 0">
-                  <div class="text-sm text-gray-600 mb-2 flex items-center gap-1">
+                  <div class="text-sm text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1">
                     <i class="pi pi-lightbulb" style="font-size: 1rem" />
                     学习建议:
                   </div>
@@ -359,9 +355,9 @@
             </template>
             <template #content>
               <div class="space-y-4">
-                <div class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-                  <div class="text-3xl font-bold text-blue-600">{{ stats.averageLevel }}</div>
-                  <div class="text-sm text-gray-500">平均熟练度</div>
+                <div class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
+                  <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.averageLevel }}</div>
+                  <div class="text-sm text-gray-500 dark:text-gray-400">平均熟练度</div>
                 </div>
 
                 <div class="space-y-3">
@@ -884,7 +880,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         let className = `cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0`;
         if (isHighlighted)
           className += ` bg-yellow-400 font-bold text-black custom-highlight-pulse word-highlight`;
-        else if (isSelected) className += ` bg-blue-100 font-medium text-gray-800 word-selected`;
+        else if (isSelected) className += ` bg-blue-100 font-medium word-selected`;
         else if (isClicked) className += ` bg-blue-50/40`;
         if (isKeyWord) className += ` font-medium`;
 
@@ -943,6 +939,18 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   });
 
   watch(aiAnalysis, (val) => val && (showAiAnalysis.value = true));
+
+  function Tips(props: { tips: string; title: string; icon: string }) {
+    return (
+      <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+        <div class="flex flex-col sm:flex-row items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+          <i class={`pi ${props.icon} text-sm!`} />
+          <span class="font-medium">{props.title}</span>
+          <span>{props.tips}</span>
+        </div>
+      </div>
+    );
+  }
 </script>
 
 <style scoped>

@@ -7,7 +7,9 @@
         <div class="w-8 h-8 text-purple-600 dark:text-purple-400">
           <i class="pi pi-calculator text-2xl!"></i>
         </div>
-        <h1 class="text-xl font-bold text-purple-700 dark:text-purple-400">{{ $t('计算笔记本') }}</h1>
+        <h1 class="text-xl font-bold text-purple-700 dark:text-purple-400">
+          {{ $t('计算笔记本') }}
+        </h1>
       </div>
       <div class="flex items-center gap-2">
         <Button
@@ -35,8 +37,7 @@
           class="p-button-outlined p-button-rounded"
           @click="showSettings = !showSettings"
           :title="$t('设置')" />
-        <ThemeToggle />
-        <UserSettingBtn />
+        <CommonSettingBtns />
       </div>
     </header>
 
@@ -46,7 +47,9 @@
       <Drawer v-model:visible="sidebarVisible" :pt="{ root: { class: 'w-80 p-0' } }">
         <template #header>
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-purple-700 dark:text-purple-400">{{ $t('我的笔记') }}</h2>
+            <h2 class="text-lg font-bold text-purple-700 dark:text-purple-400">
+              {{ $t('我的笔记') }}
+            </h2>
             <div class="flex gap-2">
               <Button
                 icon="pi pi-refresh"
@@ -284,6 +287,7 @@
   import { useRoute } from 'vue-router';
   import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
   import type { Prisma } from 'tsfullstack-backend';
+  import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
 
   const toast = useToast();
   const route = useRoute();

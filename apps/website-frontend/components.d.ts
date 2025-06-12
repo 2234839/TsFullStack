@@ -15,6 +15,7 @@ declare module 'vue' {
     AutoTable: typeof import('./src/components/AutoTable/AutoTable.vue')['default']
     Button: typeof import('primevue/button')['default']
     Card: typeof import('primevue/card')['default']
+    CommonSettingBtns: typeof import('./src/components/system/CommonSettingBtns.vue')['default']
     GithubStar: typeof import('./src/components/system/GithubStar.vue')['default']
     GoogleAd: typeof import('./src/components/GoogleAd.vue')['default']
     I18nSwitch: typeof import('./src/components/system/I18nSwitch.vue')['default']
