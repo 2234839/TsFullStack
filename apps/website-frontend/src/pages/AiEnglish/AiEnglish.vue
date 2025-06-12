@@ -471,7 +471,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
             }}
             onMousedown={(e) => handleMouseDown(e, currentWordIndex)}
             onTouchstart={(e) => handleMouseDown(e, currentWordIndex)}
-            onClick={() => !selectionState.isSelecting && handleWordClick(cleanWord)}
             title={titleText}>
             {token}
             {wordData.memoryLevel > 0 && (
