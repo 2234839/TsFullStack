@@ -13,7 +13,7 @@
   "dependencies": {
     "@floating-ui/vue": "^1.1.6",
     "@primeuix/themes": "^1.1.1",
-    "@tailwindcss/vite": "^4.1.8",
+    "@tailwindcss/vite": "^4.1.10",
     "@vueuse/core": "^13.3.0",
     "aframe": "^1.7.1",
     "defu": "^6.1.4",
@@ -25,7 +25,7 @@
     "quill": "^2.0.3",
     "quill-delta": "^5.1.0",
     "superjson": "^2.2.2",
-    "tailwindcss": "^4.1.8",
+    "tailwindcss": "^4.1.10",
     "tsfullstack-backend": "workspace:*",
     "vue": "^3.5.16",
     "vue-i18n": "^11.1.5",
