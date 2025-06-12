@@ -1,517 +1,3 @@
-<script setup lang="tsx">
-  import {
-    analyzeArticleWithAI,
-    translateParagraphWithAI,
-    translateWithAI,
-    useCreateMixedTranslation,
-    type AIAnalysis,
-  } from '@/pages/AiEnglish/ai';
-  import { useAiEnglishData } from '@/pages/AiEnglish/data';
-  import { useTTS } from '@/pages/AiEnglish/util';
-  import { useToast } from 'primevue/usetoast';
-  import { computed, nextTick, reactive, ref, watch } from 'vue';
-
-  interface StudySession {
-    clickedWords: Set<string>;
-    startTime: number;
-  }
-
-  interface ParagraphTranslation {
-    originalText: string;
-    translatedText: string;
-    mixedTranslation: string;
-    wordsInSelection: string[];
-  }
-
-  interface SelectionState {
-    isSelecting: boolean;
-    startWordIndex: number;
-    endWordIndex: number;
-    selectedWords: Set<number>;
-  }
-
-  interface ParagraphData {
-    id: number;
-    text: string;
-    words: string[];
-    isCompleted: boolean;
-    completedAt?: number;
-  }
-
-  // 示例文章
-  const sampleArticle = `I like to play with my friends. We run and jump in the park. The sun is bright and the sky is blue.
-
-My dog is happy. He wags his tail when he sees me. We play fetch with a ball.
-
-I eat an apple every day. Apples are good for you. They make you strong and healthy.
-
-My mom reads me a story at night. I like the stories about animals. Then I go to sleep.`;
-
-  const { speakText, ttsConfig } = useTTS();
-
-  // 响应式状态
-  const article = ref('');
-  const { words, getWordData, updateWordDatas, getWordsData } = useAiEnglishData();
-  const selectedWordKey = ref<string>();
-  const selectedWord = computed(() => {
-    if (!selectedWordKey.value) return undefined;
-    return getWordData(selectedWordKey.value);
-  });
-  const paragraphTranslation = ref<ParagraphTranslation | null>(null);
-  const showTranslation = ref(false);
-  const translationType = ref<'word' | 'paragraph'>('word');
-  const currentSession = reactive<StudySession>({
-    clickedWords: new Set(),
-    startTime: Date.now(),
-  });
-  const isStudying = ref(false);
-  const isTranslating = ref(false);
-  const aiAnalysis = ref<AIAnalysis | null>(null);
-  const isAnalyzing = ref(false);
-  const showAiAnalysis = ref(false);
-  const selectionState = reactive<SelectionState>({
-    isSelecting: false,
-    startWordIndex: -1,
-    endWordIndex: -1,
-    selectedWords: new Set(),
-  });
-  const wordElements = ref<{ word: string; element: HTMLElement; index: number }[]>([]);
-  const highlightedWord = ref('');
-  const paragraphs = ref<ParagraphData[]>([]);
-  const currentParagraphIndex = ref(0);
-  const isParagraphMode = ref(false);
-  const toast = useToast();
-
-  // 计算属性
-  const stats = computed(() => {
-    const total = words.value.length;
-    const mastered = words.value.filter((w) => w.memoryLevel >= 8).length;
-    const familiar = words.value.filter((w) => w.memoryLevel >= 6 && w.memoryLevel < 8).length;
-    const learning = words.value.filter((w) => w.memoryLevel >= 3 && w.memoryLevel < 6).length;
-    const unknown = words.value.filter((w) => w.memoryLevel < 3).length;
-    const averageLevel =
-      total > 0
-        ? parseFloat((words.value.reduce((sum, w) => sum + w.memoryLevel, 0) / total).toFixed(1))
-        : 0;
-    const clickedInSession = currentSession.clickedWords.size;
-    const notClickedInSession = total - clickedInSession;
-
-    return {
-      total,
-      mastered,
-      familiar,
-      learning,
-      unknown,
-      averageLevel,
-      clickedInSession,
-      notClickedInSession,
-    };
-  });
-
-  const currentText = computed(() => {
-    if (isParagraphMode.value && paragraphs.value.length > 0) {
-      return paragraphs.value[currentParagraphIndex.value]?.text || '';
-    }
-    return article.value;
-  });
-
-  const completedParagraphs = computed(() => paragraphs.value.filter((p) => p.isCompleted).length);
-
-  // 颜色辅助函数
-  const getMemoryColor = (level: number): string => {
-    const normalizedLevel = Math.max(0, Math.min(10, level));
-    const ratio = normalizedLevel / 10;
-
-    if (ratio < 0.5) {
-      return `rgb(255, ${Math.round(255 * (ratio * 2))}, 0)`;
-    } else {
-      return `rgb(${Math.round(255 * (2 - ratio * 2))}, 255, 0)`;
-    }
-  };
-
-  const getDifficultyColor = (difficulty: number): string => {
-    if (difficulty <= 3) return 'text-green-600';
-    if (difficulty <= 6) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  // 文本处理
-  const tokenizeText = (text: string): string[] => {
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter((word) => word.length > 0);
-  };
-
-  const splitArticleIntoParagraphs = (text: string): ParagraphData[] => {
-    const paragraphTexts = text
-      .split(/\n\s*\n|\. {2,}/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0)
-      .map((p) => (p.endsWith('.') ? p : p + '.'));
-
-    return paragraphTexts.map((text, index) => ({
-      id: index,
-      text,
-      words: tokenizeText(text),
-      isCompleted: false,
-    }));
-  };
-
-  // 核心功能
-  const initializeWords = async (text: string, useParagraphMode = false) => {
-    isStudying.value = true;
-    isParagraphMode.value = useParagraphMode;
-    currentSession.clickedWords = new Set();
-    currentSession.startTime = Date.now();
-
-    const tokens = tokenizeText(text);
-    await getWordsData(tokens);
-
-    // 处理段落模式
-    if (useParagraphMode) {
-      paragraphs.value = splitArticleIntoParagraphs(text);
-      currentParagraphIndex.value = 0;
-    }
-
-    // AI分析
-    isAnalyzing.value = true;
-    aiAnalysis.value = await analyzeArticleWithAI(text);
-    isAnalyzing.value = false;
-
-    toast.add({
-      severity: 'success',
-      summary: '开始学习',
-      detail: useParagraphMode
-        ? `已分割为 ${paragraphs.value.length} 个段落，开始第一段学习！`
-        : `已加载 ${words.value.length} 个词汇，AI分析完成！`,
-      life: 3000,
-    });
-  };
-
-  const handleArticleSubmit = (useParagraphMode = false) => {
-    if (article.value.trim()) initializeWords(article.value, useParagraphMode);
-  };
-
-  const loadSampleArticle = (useParagraphMode = false) => {
-    article.value = sampleArticle;
-    initializeWords(sampleArticle, useParagraphMode);
-  };
-
-  const getWordIndexFromPoint = (x: number, y: number): number => {
-    const element = document.elementFromPoint(x, y);
-    if (!element) return -1;
-
-    const wordElement = element.closest('[data-word-index]');
-    return wordElement ? parseInt(wordElement.getAttribute('data-word-index') || '-1') : -1;
-  };
-
-  const updateSelection = (startIndex: number, endIndex: number) => {
-    const start = Math.min(startIndex, endIndex);
-    const end = Math.max(startIndex, endIndex);
-    const selectedWords = new Set<number>();
-
-    for (let i = start; i <= end; i++) selectedWords.add(i);
-
-    selectionState.startWordIndex = startIndex;
-    selectionState.endWordIndex = endIndex;
-    selectionState.selectedWords = selectedWords;
-  };
-
-  const handleMouseDown = (e: { preventDefault: () => void }, wordIndex: number) => {
-    if (!isStudying.value) return;
-    if (e instanceof MouseEvent) {
-      e.preventDefault();
-    }
-
-    selectionState.isSelecting = true;
-    selectionState.startWordIndex = wordIndex;
-    selectionState.endWordIndex = wordIndex;
-    selectionState.selectedWords = new Set([wordIndex]);
-  };
-
-  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
-    if (!selectionState.isSelecting || !isStudying.value) return;
-
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const wordIndex = getWordIndexFromPoint(clientX, clientY);
-    if (wordIndex !== -1 && wordIndex !== selectionState.endWordIndex) {
-      updateSelection(selectionState.startWordIndex, wordIndex);
-    }
-  };
-
-  const handleMouseUp = async () => {
-    if (!selectionState.isSelecting || !isStudying.value) return;
-
-    const selectedWordIndices = [...selectionState.selectedWords].sort((a, b) => a - b);
-    selectionState.isSelecting = false;
-    selectionState.startWordIndex = -1;
-    selectionState.endWordIndex = -1;
-
-    if (selectedWordIndices.length === 0) return;
-
-    // 获取选中的单词
-    const selectedWordsData = selectedWordIndices
-      .map((index) => wordElements.value[index]?.word)
-      .filter(Boolean) as string[];
-
-    if (selectedWordsData.length === 1) {
-      /** 因为触摸设备上的事件判定机制会导致 onClick 中的逻辑无法触发，所以需要在这里处理单个单词的点击事件  */
-      handleWordClick(selectedWordsData[0])
-      selectionState.selectedWords = new Set();
-    } else if (selectedWordsData.length > 1) {
-      await handleParagraphSelection(selectedWordsData);
-    }
-  };
-
-  const createMixedTranslation = useCreateMixedTranslation({ getWordData });
-
-  const handleParagraphSelection = async (selectedWordsKey: string[]) => {
-    highlightedWord.value = '';
-    const newClickedWords = new Set(currentSession.clickedWords);
-
-    selectedWordsKey.forEach((word) => newClickedWords.add(word.toLowerCase()));
-    currentSession.clickedWords = newClickedWords;
-
-    // 获取段落翻译
-    const selectedText = selectedWordsKey.join(' ');
-    isTranslating.value = true;
-    translationType.value = 'paragraph';
-    showTranslation.value = true;
-    selectedWordKey.value = undefined;
-
-    try {
-      const translatedText = await translateParagraphWithAI(selectedText);
-      const mixedTranslation = await createMixedTranslation(
-        selectedText,
-        translatedText,
-        selectedWordsKey,
-      );
-
-      paragraphTranslation.value = {
-        originalText: selectedText,
-        translatedText,
-        mixedTranslation,
-        wordsInSelection: selectedWordsKey,
-      };
-    } catch (error) {
-      toast.add({
-        severity: 'error',
-        summary: '翻译失败',
-        detail: '段落翻译服务暂时不可用',
-        life: 3000,
-      });
-    } finally {
-      isTranslating.value = false;
-    }
-
-    speakText(selectedText);
-  };
-
-  const handleWordClick = async (word: string, options?: { forceAi: boolean }) => {
-    // 清除状态
-    selectionState.isSelecting = false;
-    selectionState.selectedWords = new Set();
-    highlightedWord.value = '';
-
-    const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
-    highlightedWord.value = cleanWord;
-
-    const wordData = getWordData(word);
-    if (!wordData) return;
-
-    // 更新会话
-    currentSession.clickedWords.add(cleanWord);
-
-    // 更新单词数据
-    const newMemoryLevel = Math.max(0, wordData.memoryLevel - 1);
-    selectedWordKey.value = word;
-    showTranslation.value = true;
-    translationType.value = 'word';
-    paragraphTranslation.value = null;
-
-    // 获取AI翻译（如果缺失）
-    if (!wordData.aiTranslation || options?.forceAi) {
-      isTranslating.value = true;
-      const aiResult = await translateWithAI(word, currentText.value);
-      const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
-      if (oldWordData) {
-        updateWordDatas([
-          {
-            ...oldWordData,
-            memoryLevel: newMemoryLevel,
-            clickCount: oldWordData.clickCount + 1,
-            lastClickTime: new Date(),
-            aiTranslation: aiResult.translation,
-            difficulty: aiResult.difficulty,
-            examples: aiResult.examples,
-            grammar: aiResult.grammar,
-            pronunciation: aiResult.pronunciation,
-          },
-        ]);
-      }
-
-      isTranslating.value = false;
-    } else {
-      const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
-      if (oldWordData) {
-        updateWordDatas([
-          {
-            ...oldWordData,
-            memoryLevel: newMemoryLevel,
-            clickCount: oldWordData.clickCount + 1,
-            lastClickTime: new Date(),
-          },
-        ]);
-      }
-    }
-
-    speakText(word);
-    console.log(`查看翻译 ${word} 熟练度 -1 (当前: ${newMemoryLevel}/10)`);
-  };
-
-  const handleParagraphComplete = () => {
-    if (!isStudying.value || !isParagraphMode.value) return;
-
-    const currentParagraph = paragraphs.value[currentParagraphIndex.value];
-    if (!currentParagraph) return;
-
-    let improvedCount = 0;
-    /** 当前片段内的单词，如果未被点击（划选），则熟练度 +1  */
-    const updatedWords = words.value
-      .map((word) => {
-        if (currentParagraph.words.includes(word.word)) {
-          if (!currentSession.clickedWords.has(word.word)) {
-            improvedCount++;
-            return { ...word, memoryLevel: Math.min(10, word.memoryLevel + 1) };
-          }
-        }
-        return undefined;
-      })
-      .filter((word) => word !== undefined);
-
-    updateWordDatas(updatedWords);
-    // 标记段落完成
-    paragraphs.value = paragraphs.value.map((p, index) =>
-      index === currentParagraphIndex.value ? { ...p, isCompleted: true } : p,
-    );
-    currentParagraphIndex.value += 1;
-    // 重置会话
-    currentSession.clickedWords = new Set();
-    showTranslation.value = false;
-    highlightedWord.value = '';
-    selectionState.selectedWords = new Set();
-
-    toast.add({
-      severity: 'success',
-      summary: '段落学习完成！',
-      detail: `第${currentParagraphIndex.value + 1}段完成！${improvedCount} 个单词熟练度提升了 +1`,
-      life: 4000,
-    });
-  };
-
-  const goToParagraph = (index: number) => {
-    if (index >= 0 && index < paragraphs.value.length) {
-      currentParagraphIndex.value = index;
-      currentSession.clickedWords = new Set();
-      showTranslation.value = false;
-      selectionState.selectedWords = new Set();
-    }
-  };
-
-  const adjustMemoryLevel = (word: string, newLevel: number) => {
-    const updates = words.value.map((w) => (w.word === word ? { ...w, memoryLevel: newLevel } : w));
-    updateWordDatas(updates);
-
-    if (selectedWord.value?.word === word) {
-      selectedWord.value.memoryLevel = newLevel;
-    }
-  };
-
-  // 渲染带标记的文章
-  function renderArticleWithMarkers() {
-    if (!currentText.value) return null;
-
-    const tokens = currentText.value.split(/(\s+|[^\w\s])/);
-    let wordIndex = 0;
-    return tokens.map((token, tokenIndex) => {
-      const cleanWord = token.toLowerCase().replace(/[^\w]/g, '');
-      const wordData = getWordData(cleanWord);
-
-      if (wordData && /^\w+$/.test(cleanWord)) {
-        const currentWordIndex = wordIndex++;
-        const color = getMemoryColor(wordData.memoryLevel);
-        const isClicked = currentSession.clickedWords.has(cleanWord);
-        const isKeyWord = aiAnalysis.value?.keyWords.includes(cleanWord);
-        const isSelected = selectionState.selectedWords.has(currentWordIndex);
-        const isHighlighted = highlightedWord.value === cleanWord;
-
-        let className = `cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0`;
-        if (isHighlighted)
-          className += ` bg-yellow-400 font-bold text-black custom-highlight-pulse word-highlight`;
-        else if (isSelected) className += ` bg-blue-100 font-medium text-gray-800 word-selected`;
-        else if (isClicked) className += ` bg-blue-50/40`;
-        if (isKeyWord) className += ` font-medium`;
-
-        const titleText = `${cleanWord}: ${wordData.memoryLevel}/10 ${
-          isClicked ? '(已操作)' : ''
-        } ${isKeyWord ? '(关键词)' : ''} ${isHighlighted ? '(当前选中)' : ''}`;
-
-        return (
-          <span
-            key={tokenIndex}
-            data-word-index={currentWordIndex}
-            class={className}
-            style={{
-              borderBottom: `1px solid ${color}`,
-              lineHeight: '1.5',
-              display: 'inline-block',
-            }}
-            onMousedown={(e) => handleMouseDown(e, currentWordIndex)}
-            onTouchstart={(e) => handleMouseDown(e, currentWordIndex)}
-            title={titleText}>
-            {token}
-            {wordData.memoryLevel > 0 && (
-              <span
-                class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[9px] opacity-40 group-hover:opacity-80 pointer-events-none"
-                style={{ color }}></span>
-            )}
-            {isKeyWord && (
-              <span class="absolute -top-1 -right-1 text-xs opacity-70 pointer-events-none">
-                ⭐
-              </span>
-            )}
-          </span>
-        );
-      }
-
-      return (
-        <span key={tokenIndex} class="select-none">
-          {token}
-        </span>
-      );
-    });
-  }
-  // 更新单词元素引用
-  watch([currentText, words, currentParagraphIndex], () => {
-    nextTick(() => {
-      const articleContainer = document.getElementById('article-container');
-      if (articleContainer) {
-        const elements = Array.from(articleContainer.querySelectorAll('[data-word-index]'));
-        wordElements.value = elements.map((element, index) => ({
-          word: element.textContent?.toLowerCase().replace(/[^\w]/g, '') || '',
-          element: element as HTMLElement,
-          index,
-        }));
-      }
-    });
-  });
-
-  watch(aiAnalysis, (val) => val && (showAiAnalysis.value = true));
-</script>
-
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
     <div class="max-w-7xl mx-auto space-y-6">
@@ -519,9 +5,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       <div class="text-center space-y-2">
         <h1 class="text-4xl font-bold text-gray-800 flex items-center justify-center gap-3">
           <i class="pi pi-book text-blue-600 text-3xl" />
-          AI智能英语学习助手
+          在阅读中渐进式学习英语
         </h1>
-        <p class="text-gray-600">AI驱动翻译 • 智能难度分析 • 支持分段学习 • 拖拽选择段落翻译</p>
+        <p class="text-gray-600">AI驱动 • 智能分析 • 分段学习 • 划选段落翻译</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -944,6 +430,520 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     </div>
   </div>
 </template>
+
+<script setup lang="tsx">
+  import {
+    analyzeArticleWithAI,
+    translateParagraphWithAI,
+    translateWithAI,
+    useCreateMixedTranslation,
+    type AIAnalysis,
+  } from '@/pages/AiEnglish/ai';
+  import { useAiEnglishData } from '@/pages/AiEnglish/data';
+  import { useTTS } from '@/pages/AiEnglish/util';
+  import { useToast } from 'primevue/usetoast';
+  import { computed, nextTick, reactive, ref, watch } from 'vue';
+
+  interface StudySession {
+    clickedWords: Set<string>;
+    startTime: number;
+  }
+
+  interface ParagraphTranslation {
+    originalText: string;
+    translatedText: string;
+    mixedTranslation: string;
+    wordsInSelection: string[];
+  }
+
+  interface SelectionState {
+    isSelecting: boolean;
+    startWordIndex: number;
+    endWordIndex: number;
+    selectedWords: Set<number>;
+  }
+
+  interface ParagraphData {
+    id: number;
+    text: string;
+    words: string[];
+    isCompleted: boolean;
+    completedAt?: number;
+  }
+
+  // 示例文章
+  const sampleArticle = `I like to play with my friends. We run and jump in the park. The sun is bright and the sky is blue.
+
+My dog is happy. He wags his tail when he sees me. We play fetch with a ball.
+
+I eat an apple every day. Apples are good for you. They make you strong and healthy.
+
+My mom reads me a story at night. I like the stories about animals. Then I go to sleep.`;
+
+  const { speakText, ttsConfig } = useTTS();
+
+  // 响应式状态
+  const article = ref('');
+  const { words, getWordData, updateWordDatas, getWordsData } = useAiEnglishData();
+  const selectedWordKey = ref<string>();
+  const selectedWord = computed(() => {
+    if (!selectedWordKey.value) return undefined;
+    return getWordData(selectedWordKey.value);
+  });
+  const paragraphTranslation = ref<ParagraphTranslation | null>(null);
+  const showTranslation = ref(false);
+  const translationType = ref<'word' | 'paragraph'>('word');
+  const currentSession = reactive<StudySession>({
+    clickedWords: new Set(),
+    startTime: Date.now(),
+  });
+  const isStudying = ref(false);
+  const isTranslating = ref(false);
+  const aiAnalysis = ref<AIAnalysis | null>(null);
+  const isAnalyzing = ref(false);
+  const showAiAnalysis = ref(false);
+  const selectionState = reactive<SelectionState>({
+    isSelecting: false,
+    startWordIndex: -1,
+    endWordIndex: -1,
+    selectedWords: new Set(),
+  });
+  const wordElements = ref<{ word: string; element: HTMLElement; index: number }[]>([]);
+  const highlightedWord = ref('');
+  const paragraphs = ref<ParagraphData[]>([]);
+  const currentParagraphIndex = ref(0);
+  const isParagraphMode = ref(false);
+  const toast = useToast();
+
+  // 计算属性
+  const stats = computed(() => {
+    const total = words.value.length;
+    const mastered = words.value.filter((w) => w.memoryLevel >= 8).length;
+    const familiar = words.value.filter((w) => w.memoryLevel >= 6 && w.memoryLevel < 8).length;
+    const learning = words.value.filter((w) => w.memoryLevel >= 3 && w.memoryLevel < 6).length;
+    const unknown = words.value.filter((w) => w.memoryLevel < 3).length;
+    const averageLevel =
+      total > 0
+        ? parseFloat((words.value.reduce((sum, w) => sum + w.memoryLevel, 0) / total).toFixed(1))
+        : 0;
+    const clickedInSession = currentSession.clickedWords.size;
+    const notClickedInSession = total - clickedInSession;
+
+    return {
+      total,
+      mastered,
+      familiar,
+      learning,
+      unknown,
+      averageLevel,
+      clickedInSession,
+      notClickedInSession,
+    };
+  });
+
+  const currentText = computed(() => {
+    if (isParagraphMode.value && paragraphs.value.length > 0) {
+      return paragraphs.value[currentParagraphIndex.value]?.text || '';
+    }
+    return article.value;
+  });
+
+  const completedParagraphs = computed(() => paragraphs.value.filter((p) => p.isCompleted).length);
+
+  // 颜色辅助函数
+  const getMemoryColor = (level: number): string => {
+    const normalizedLevel = Math.max(0, Math.min(10, level));
+    const ratio = normalizedLevel / 10;
+
+    if (ratio < 0.5) {
+      return `rgb(255, ${Math.round(255 * (ratio * 2))}, 0)`;
+    } else {
+      return `rgb(${Math.round(255 * (2 - ratio * 2))}, 255, 0)`;
+    }
+  };
+
+  const getDifficultyColor = (difficulty: number): string => {
+    if (difficulty <= 3) return 'text-green-600';
+    if (difficulty <= 6) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  // 文本处理
+  const tokenizeText = (text: string): string[] => {
+    return text
+      .toLowerCase()
+      .replace(/[^\w\s]/g, ' ')
+      .split(/\s+/)
+      .filter((word) => word.length > 0);
+  };
+
+  const splitArticleIntoParagraphs = (text: string): ParagraphData[] => {
+    const paragraphTexts = text
+      .split(/\n\s*\n|\. {2,}/)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0)
+      .map((p) => (p.endsWith('.') ? p : p + '.'));
+
+    return paragraphTexts.map((text, index) => ({
+      id: index,
+      text,
+      words: tokenizeText(text),
+      isCompleted: false,
+    }));
+  };
+
+  // 核心功能
+  const initializeWords = async (text: string, useParagraphMode = false) => {
+    isStudying.value = true;
+    isParagraphMode.value = useParagraphMode;
+    currentSession.clickedWords = new Set();
+    currentSession.startTime = Date.now();
+
+    const tokens = tokenizeText(text);
+    await getWordsData(tokens);
+
+    // 处理段落模式
+    if (useParagraphMode) {
+      paragraphs.value = splitArticleIntoParagraphs(text);
+      currentParagraphIndex.value = 0;
+    }
+
+    // AI分析
+    isAnalyzing.value = true;
+    aiAnalysis.value = await analyzeArticleWithAI(text);
+    isAnalyzing.value = false;
+
+    toast.add({
+      severity: 'success',
+      summary: '开始学习',
+      detail: useParagraphMode
+        ? `已分割为 ${paragraphs.value.length} 个段落，开始第一段学习！`
+        : `已加载 ${words.value.length} 个词汇，AI分析完成！`,
+      life: 3000,
+    });
+  };
+
+  const handleArticleSubmit = (useParagraphMode = false) => {
+    if (article.value.trim()) initializeWords(article.value, useParagraphMode);
+  };
+
+  const loadSampleArticle = (useParagraphMode = false) => {
+    article.value = sampleArticle;
+    initializeWords(sampleArticle, useParagraphMode);
+  };
+
+  const getWordIndexFromPoint = (x: number, y: number): number => {
+    const element = document.elementFromPoint(x, y);
+    if (!element) return -1;
+
+    const wordElement = element.closest('[data-word-index]');
+    return wordElement ? parseInt(wordElement.getAttribute('data-word-index') || '-1') : -1;
+  };
+
+  const updateSelection = (startIndex: number, endIndex: number) => {
+    const start = Math.min(startIndex, endIndex);
+    const end = Math.max(startIndex, endIndex);
+    const selectedWords = new Set<number>();
+
+    for (let i = start; i <= end; i++) selectedWords.add(i);
+
+    selectionState.startWordIndex = startIndex;
+    selectionState.endWordIndex = endIndex;
+    selectionState.selectedWords = selectedWords;
+  };
+
+  const handleMouseDown = (e: { preventDefault: () => void }, wordIndex: number) => {
+    if (!isStudying.value) return;
+    if (e instanceof MouseEvent) {
+      e.preventDefault();
+    }
+
+    selectionState.isSelecting = true;
+    selectionState.startWordIndex = wordIndex;
+    selectionState.endWordIndex = wordIndex;
+    selectionState.selectedWords = new Set([wordIndex]);
+  };
+
+  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+    if (!selectionState.isSelecting || !isStudying.value) return;
+
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const wordIndex = getWordIndexFromPoint(clientX, clientY);
+    if (wordIndex !== -1 && wordIndex !== selectionState.endWordIndex) {
+      updateSelection(selectionState.startWordIndex, wordIndex);
+    }
+  };
+
+  const handleMouseUp = async () => {
+    if (!selectionState.isSelecting || !isStudying.value) return;
+
+    const selectedWordIndices = [...selectionState.selectedWords].sort((a, b) => a - b);
+    selectionState.isSelecting = false;
+    selectionState.startWordIndex = -1;
+    selectionState.endWordIndex = -1;
+
+    if (selectedWordIndices.length === 0) return;
+
+    // 获取选中的单词
+    const selectedWordsData = selectedWordIndices
+      .map((index) => wordElements.value[index]?.word)
+      .filter(Boolean) as string[];
+
+    if (selectedWordsData.length === 1) {
+      /** 因为触摸设备上的事件判定机制会导致 onClick 中的逻辑无法触发，所以需要在这里处理单个单词的点击事件  */
+      handleWordClick(selectedWordsData[0]);
+      selectionState.selectedWords = new Set();
+    } else if (selectedWordsData.length > 1) {
+      await handleParagraphSelection(selectedWordsData);
+    }
+  };
+
+  const createMixedTranslation = useCreateMixedTranslation({ getWordData });
+
+  const handleParagraphSelection = async (selectedWordsKey: string[]) => {
+    highlightedWord.value = '';
+    const newClickedWords = new Set(currentSession.clickedWords);
+
+    selectedWordsKey.forEach((word) => newClickedWords.add(word.toLowerCase()));
+    currentSession.clickedWords = newClickedWords;
+
+    // 获取段落翻译
+    const selectedText = selectedWordsKey.join(' ');
+    isTranslating.value = true;
+    translationType.value = 'paragraph';
+    showTranslation.value = true;
+    selectedWordKey.value = undefined;
+
+    try {
+      const translatedText = await translateParagraphWithAI(selectedText);
+      const mixedTranslation = await createMixedTranslation(
+        selectedText,
+        translatedText,
+        selectedWordsKey,
+      );
+
+      paragraphTranslation.value = {
+        originalText: selectedText,
+        translatedText,
+        mixedTranslation,
+        wordsInSelection: selectedWordsKey,
+      };
+    } catch (error) {
+      toast.add({
+        severity: 'error',
+        summary: '翻译失败',
+        detail: '段落翻译服务暂时不可用',
+        life: 3000,
+      });
+    } finally {
+      isTranslating.value = false;
+    }
+
+    speakText(selectedText);
+  };
+
+  const handleWordClick = async (word: string, options?: { forceAi: boolean }) => {
+    // 清除状态
+    selectionState.isSelecting = false;
+    selectionState.selectedWords = new Set();
+    highlightedWord.value = '';
+
+    const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
+    highlightedWord.value = cleanWord;
+
+    const wordData = getWordData(word);
+    if (!wordData) return;
+
+    // 更新会话
+    currentSession.clickedWords.add(cleanWord);
+
+    // 更新单词数据
+    const newMemoryLevel = Math.max(0, wordData.memoryLevel - 1);
+    selectedWordKey.value = word;
+    showTranslation.value = true;
+    translationType.value = 'word';
+    paragraphTranslation.value = null;
+
+    // 获取AI翻译（如果缺失）
+    if (!wordData.aiTranslation || options?.forceAi) {
+      isTranslating.value = true;
+      const aiResult = await translateWithAI(word, currentText.value);
+      const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
+      if (oldWordData) {
+        updateWordDatas([
+          {
+            ...oldWordData,
+            memoryLevel: newMemoryLevel,
+            clickCount: oldWordData.clickCount + 1,
+            lastClickTime: new Date(),
+            aiTranslation: aiResult.translation,
+            difficulty: aiResult.difficulty,
+            examples: aiResult.examples,
+            grammar: aiResult.grammar,
+            pronunciation: aiResult.pronunciation,
+          },
+        ]);
+      }
+
+      isTranslating.value = false;
+    } else {
+      const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
+      if (oldWordData) {
+        updateWordDatas([
+          {
+            ...oldWordData,
+            memoryLevel: newMemoryLevel,
+            clickCount: oldWordData.clickCount + 1,
+            lastClickTime: new Date(),
+          },
+        ]);
+      }
+    }
+
+    speakText(word);
+    console.log(`查看翻译 ${word} 熟练度 -1 (当前: ${newMemoryLevel}/10)`);
+  };
+
+  const handleParagraphComplete = () => {
+    if (!isStudying.value || !isParagraphMode.value) return;
+
+    const currentParagraph = paragraphs.value[currentParagraphIndex.value];
+    if (!currentParagraph) return;
+
+    let improvedCount = 0;
+    /** 当前片段内的单词，如果未被点击（划选），则熟练度 +1  */
+    const updatedWords = words.value
+      .map((word) => {
+        if (currentParagraph.words.includes(word.word)) {
+          if (!currentSession.clickedWords.has(word.word)) {
+            improvedCount++;
+            return { ...word, memoryLevel: Math.min(10, word.memoryLevel + 1) };
+          }
+        }
+        return undefined;
+      })
+      .filter((word) => word !== undefined);
+
+    updateWordDatas(updatedWords);
+    // 标记段落完成
+    paragraphs.value = paragraphs.value.map((p, index) =>
+      index === currentParagraphIndex.value ? { ...p, isCompleted: true } : p,
+    );
+    currentParagraphIndex.value += 1;
+    // 重置会话
+    currentSession.clickedWords = new Set();
+    showTranslation.value = false;
+    highlightedWord.value = '';
+    selectionState.selectedWords = new Set();
+
+    toast.add({
+      severity: 'success',
+      summary: '段落学习完成！',
+      detail: `第${currentParagraphIndex.value + 1}段完成！${improvedCount} 个单词熟练度提升了 +1`,
+      life: 4000,
+    });
+  };
+
+  const goToParagraph = (index: number) => {
+    if (index >= 0 && index < paragraphs.value.length) {
+      currentParagraphIndex.value = index;
+      currentSession.clickedWords = new Set();
+      showTranslation.value = false;
+      selectionState.selectedWords = new Set();
+    }
+  };
+
+  const adjustMemoryLevel = (word: string, newLevel: number) => {
+    const updates = words.value.map((w) => (w.word === word ? { ...w, memoryLevel: newLevel } : w));
+    updateWordDatas(updates);
+
+    if (selectedWord.value?.word === word) {
+      selectedWord.value.memoryLevel = newLevel;
+    }
+  };
+
+  // 渲染带标记的文章
+  function renderArticleWithMarkers() {
+    if (!currentText.value) return null;
+
+    const tokens = currentText.value.split(/(\s+|[^\w\s])/);
+    let wordIndex = 0;
+    return tokens.map((token, tokenIndex) => {
+      const cleanWord = token.toLowerCase().replace(/[^\w]/g, '');
+      const wordData = getWordData(cleanWord);
+
+      if (wordData && /^\w+$/.test(cleanWord)) {
+        const currentWordIndex = wordIndex++;
+        const color = getMemoryColor(wordData.memoryLevel);
+        const isClicked = currentSession.clickedWords.has(cleanWord);
+        const isKeyWord = aiAnalysis.value?.keyWords.includes(cleanWord);
+        const isSelected = selectionState.selectedWords.has(currentWordIndex);
+        const isHighlighted = highlightedWord.value === cleanWord;
+
+        let className = `cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0`;
+        if (isHighlighted)
+          className += ` bg-yellow-400 font-bold text-black custom-highlight-pulse word-highlight`;
+        else if (isSelected) className += ` bg-blue-100 font-medium text-gray-800 word-selected`;
+        else if (isClicked) className += ` bg-blue-50/40`;
+        if (isKeyWord) className += ` font-medium`;
+
+        const titleText = `${cleanWord}: ${wordData.memoryLevel}/10 ${
+          isClicked ? '(已操作)' : ''
+        } ${isKeyWord ? '(关键词)' : ''} ${isHighlighted ? '(当前选中)' : ''}`;
+
+        return (
+          <span
+            key={tokenIndex}
+            data-word-index={currentWordIndex}
+            class={className}
+            style={{
+              borderBottom: `1px solid ${color}`,
+              lineHeight: '1.5',
+              display: 'inline-block',
+            }}
+            onMousedown={(e) => handleMouseDown(e, currentWordIndex)}
+            onTouchstart={(e) => handleMouseDown(e, currentWordIndex)}
+            title={titleText}>
+            {token}
+            {wordData.memoryLevel > 0 && (
+              <span
+                class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[9px] opacity-40 group-hover:opacity-80 pointer-events-none"
+                style={{ color }}></span>
+            )}
+            {isKeyWord && (
+              <span class="absolute -top-1 -right-1 text-xs opacity-70 pointer-events-none">
+                ⭐
+              </span>
+            )}
+          </span>
+        );
+      }
+
+      return (
+        <span key={tokenIndex} class="select-none">
+          {token}
+        </span>
+      );
+    });
+  }
+  // 更新单词元素引用
+  watch([currentText, words, currentParagraphIndex], () => {
+    nextTick(() => {
+      const articleContainer = document.getElementById('article-container');
+      if (articleContainer) {
+        const elements = Array.from(articleContainer.querySelectorAll('[data-word-index]'));
+        wordElements.value = elements.map((element, index) => ({
+          word: element.textContent?.toLowerCase().replace(/[^\w]/g, '') || '',
+          element: element as HTMLElement,
+          index,
+        }));
+      }
+    });
+  });
+
+  watch(aiAnalysis, (val) => val && (showAiAnalysis.value = true));
+</script>
 
 <style scoped>
   .custom-highlight-pulse {
