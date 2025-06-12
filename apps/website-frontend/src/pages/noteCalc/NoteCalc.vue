@@ -266,7 +266,6 @@
   import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
   import { API } from '@/api';
-  import ThemeToggle from '@/components/system/ThemeToggle.vue';
   import { t } from '@/i18n';
   import NoteCalcCore from '@/pages/noteCalc/NoteCalcCore.vue';
   import { routeMap, router, routerUtil } from '@/router';
@@ -285,7 +284,6 @@
     useToast,
   } from 'primevue';
   import { useRoute } from 'vue-router';
-  import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
   import type { Prisma } from 'tsfullstack-backend';
   import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
 
