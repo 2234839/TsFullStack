@@ -6,12 +6,17 @@ import { MsgError } from '../util/error';
 import { githubApi } from './app/github';
 import { genUserSession } from './app/_genUserSession';
 
+async function randomDelay(baseDelay = 500) {
+  await new Promise((r) => setTimeout(r, baseDelay + 2_000 * Math.random()));
+}
 /** 无需鉴权的 api */
 export const appApis = {
   system: {
     async register(email: string, password: string) {
+      await randomDelay();
       return Effect.gen(function* () {
-        throw MsgError.msg('暂时关闭了直接注册帐号，请使用其他方式登录！ ');
+        // throw MsgError.msg('暂时关闭了直接注册帐号，请使用其他方式登录！ ');
+
         const user = yield* Effect.promise(() =>
           prisma.user.findUnique({
             where: {
@@ -36,6 +41,7 @@ export const appApis = {
       });
     },
     async loginByEmailPwd(email: string, password: string) {
+      await randomDelay();
       return Effect.gen(function* () {
         const user = yield* Effect.promise(() =>
           prisma.user.findUnique({
