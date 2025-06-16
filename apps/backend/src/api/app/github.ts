@@ -30,6 +30,9 @@ export const githubApi = {
               },
             },
           },
+          include: {
+            role: true,
+          },
         }),
       );
 
@@ -47,6 +50,9 @@ export const githubApi = {
                 },
               },
             },
+            include: {
+              role: true,
+            },
           });
         });
       }
@@ -55,7 +61,7 @@ export const githubApi = {
       const userSession = yield* genUserSession(userId);
       const ctx = yield* ReqCtxService;
       ctx.log('user login by github', userId);
-      return userSession;
+      return { ...userSession, user: { ...user, password: undefined } };
     });
   },
 };

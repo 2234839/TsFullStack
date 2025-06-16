@@ -1,23 +1,16 @@
 import { routeMap, routerUtil } from '@/router';
 import { authInfo } from '@/storage';
+import type { loginByEmailPwd_res } from '@/utils/apiType';
 
 /** 登录成功后的跳转逻辑 */
 export function loginGoto(
-  info: {
-    token: string;
-    expiresAt: Date;
-    userId: string;
-  },
+  info: loginByEmailPwd_res,
   options?: {
     /** 重定向地址 */
     r?: string;
   },
 ) {
-  authInfo.value = {
-    userId: info.userId,
-    token: info.token,
-    expiresAt: info.expiresAt.getTime(),
-  };
+  authInfo.value = info;
 
   if (options?.r) {
     const redirectUrl = decodeURIComponent(options.r);

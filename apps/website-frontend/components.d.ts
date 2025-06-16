@@ -28,6 +28,7 @@ declare module 'vue' {
     Slider: typeof import('primevue/slider')['default']
     SmartPopover: typeof import('./src/components/base/SmartPopover.vue')['default']
     Tag: typeof import('primevue/tag')['default']
+    TestWarningBanner: typeof import('./src/components/system/TestWarningBanner.vue')['default']
     Textarea: typeof import('primevue/textarea')['default']
     ThemeToggle: typeof import('./src/components/system/ThemeToggle.vue')['default']
     UserSettingBtn: typeof import('./src/components/system/UserSettingBtn.vue')['default']

@@ -1,20 +1,18 @@
 import { routeMap, routerUtil } from '@/router';
+import type { loginByEmailPwd_res } from '@/utils/apiType';
 import { encryptSerializer } from '@/utils/encryptSerializer';
 import { StorageSerializers, useStorage, useStorageAsync } from '@vueuse/core';
 import { computed, watchEffect } from 'vue';
-
 export const appId = 'tfs_';
 /** 用户认证信息存储  */
-export const authInfo = useStorageAsync<
-  | {
-      userId: string;
-      token: string;
-      expiresAt: number;
-    }
-  | undefined
->(appId + 'authInfo_v0', null, undefined, { serializer: encryptSerializer });
+export const authInfo = useStorageAsync<loginByEmailPwd_res>(
+  appId + 'authInfo_v0',
+  null,
+  undefined,
+  { serializer: encryptSerializer },
+);
 export const authInfo_isLogin = computed(() => {
-  return !!authInfo.value && authInfo.value.expiresAt > Date.now();
+  return !!authInfo.value && new Date(authInfo.value.expiresAt).getTime() > Date.now();
 });
 
 export const localUserPwd = useStorageAsync<{

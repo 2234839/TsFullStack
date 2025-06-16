@@ -1,10 +1,10 @@
 import { compareSync } from 'bcryptjs';
 import { Effect } from 'effect';
-import { getPrisma, prisma } from '../db';
+import { prisma } from '../db';
 import { ReqCtxService } from '../service/ReqCtx';
 import { MsgError } from '../util/error';
-import { githubApi } from './app/github';
 import { genUserSession } from './app/_genUserSession';
+import { githubApi } from './app/github';
 
 async function randomDelay(baseDelay = 500) {
   await new Promise((r) => setTimeout(r, baseDelay + 2_000 * Math.random()));
@@ -48,6 +48,7 @@ export const appApis = {
             where: {
               email,
             },
+            include: { role: true },
           }),
         );
         if (!user || !compareSync(password, user.password)) {
@@ -56,7 +57,7 @@ export const appApis = {
         const userSession = yield* genUserSession(user.id);
         const ctx = yield* ReqCtxService;
         ctx.log('user login', user.id);
-        return userSession;
+        return { ...userSession, user: { ...user, password: undefined } };
       });
     },
   },
