@@ -28,15 +28,15 @@
 		"@zenstackhq/runtime": "^2.15.1",
 		"bcryptjs": "^3.0.2",
 		"c12": "^3.0.4",
-		"effect": "^3.16.4",
-		"fastify": "^5.3.3",
+		"effect": "^3.16.7",
+		"fastify": "^5.4.0",
 		"prisma": "6.7.0",
 		"superjson": "^2.2.2",
 		"uuid": "^11.1.0",
 		"zenstack": "2.15.1"
 	},
 	"devDependencies": {
-		"@types/node": "^22.15.30",
+		"@types/node": "^22.15.32",
 		"tsup": "^8.5.0",
 		"typescript": "^5.8.3"
 	}
