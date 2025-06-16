@@ -380,7 +380,6 @@
         // 登录逻辑
         const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
         loginGoto(res, { r: props.r });
-
         if (localUserPwd.value.rememberMe) {
           localUserPwd.value.username = form.value.username;
           localUserPwd.value.password = form.value.password;
