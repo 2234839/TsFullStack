@@ -68,16 +68,16 @@
     @created="onRecordCreated()" />
 </template>
 <script setup lang="ts">
-  import { useAsyncState } from '@vueuse/core';
-  import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
-  import { computed, nextTick, provide, ref, useTemplateRef, watch, watchEffect } from 'vue';
-  import AutoColumn from './AutoColumn.vue';
-  import { injectModelMetaKey, type DBmodelNames, type FieldInfo } from './type';
-  import { findDisplayField, findIdField, getModelKey, useModelMeta } from './util';
-  import { useI18n } from 'vue-i18n';
   import { useAPI } from '@/api';
   import AutoFilter from '@/components/AutoTable/AutoFilter.vue';
   import AutoForm from '@/components/AutoTable/AutoForm.vue';
+  import { useAsyncState } from '@vueuse/core';
+  import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
+  import { computed, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import AutoColumn from './AutoColumn.vue';
+  import { injectModelMetaKey, type DBmodelNames, type FieldInfo } from './type';
+  import { findDisplayField, findIdField, getModelKey, useModelMeta } from './util';
   const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
