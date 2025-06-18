@@ -30,17 +30,21 @@
     :value="tableData.state.value.list"
     v-model:selection="selectRows"
     tableStyle="--p-datatable-body-cell-sm-padding:0"
-    :size="'small'"
+    size="small"
     showGridlines
     stripedRows
     editMode="cell">
     <Column selectionMode="multiple" body-style="padding:0 7px"></Column>
-    <Column :field="field.name" :header="field.name" v-for="field of selectModelMeta?.model.fields">
+    <Column
+      :field="field.name"
+      :header="field.name"
+      v-for="field of tableData.state.value.modelFields">
       <template #body="{ data, index }">
         <AutoColumn
           :row="data"
           :field="(field as any)"
-          v-model:edit-value="editData[index][field.name]" />
+          :editValue="editData[index]?.[field.name]"
+          @update:editValue="(newVal) => (editData[index][field.name] = newVal)" />
       </template>
     </Column>
     <template #footer>
@@ -66,7 +70,7 @@
 <script setup lang="ts">
   import { useAsyncState } from '@vueuse/core';
   import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
-  import { computed, provide, ref, useTemplateRef, watchEffect } from 'vue';
+  import { computed, nextTick, provide, ref, useTemplateRef, watch, watchEffect } from 'vue';
   import AutoColumn from './AutoColumn.vue';
   import { injectModelMetaKey, type DBmodelNames, type FieldInfo } from './type';
   import { findDisplayField, findIdField, getModelKey, useModelMeta } from './util';
@@ -91,6 +95,9 @@
   const selectRows = ref([]);
   const selectModelMeta = computed(() => {
     if (!selectModelName.value) return undefined;
+    return findModelMeta(selectModelName.value);
+  });
+  function findModelMeta(modelName: string) {
     return Object.entries(models.value)
       .map(([modelKey, model]) => {
         return {
@@ -98,8 +105,8 @@
           model,
         };
       })
-      .find((el) => el.model.name === selectModelName.value);
-  });
+      .find((el) => el.model.name === modelName);
+  }
   const filter = ref({});
   //#region 表格分页
   const currentPage = ref(1);
@@ -108,14 +115,19 @@
   const onPageChange = (event: { page: number; first: number }) => {
     currentPage.value = event.page + 1;
     firstRecord.value = event.first;
-    if (selectModelName.value) {
-      tableData.execute(200, {
-        modelKey: selectModelName.value,
+    if (selectModelMeta.value) {
+      tableData.execute(0, {
+        modelKey: selectModelMeta.value.modelKey,
         page: currentPage.value,
         pageSize: pageSize.value,
       });
     }
   };
+  watch(selectModelName, () => {
+    // 切换模型时重置
+    currentPage.value = 1;
+    firstRecord.value = 0;
+  });
   //#endregion 表格分页
 
   //#region 表格数据存储及加载
@@ -125,10 +137,14 @@
   const tableData = useAsyncState(
     async (opt: { modelKey: string; page: number; pageSize: number }) => {
       const meta = modelMeta.state.value;
-      if (!opt.modelKey || !meta) return { list: [], count: 0 };
-      const dataModelFields = Object.values(models.value[opt.modelKey].fields).filter(
+      const models = meta?.models;
+      if (!meta || !models) return { list: [], modelFields: {}, count: 0 };
+
+      const modelFields = models[opt.modelKey].fields;
+      const dataModelFields = Object.values(modelFields).filter(
         (el) => (el as FieldInfo).isDataModel,
       );
+
       const include = dataModelFields.reduce((acc, field) => {
         const refModelName = field.isDataModel ? field.type : field.name;
         const refIdField = findIdField(meta, refModelName)!;
@@ -156,15 +172,16 @@
         }),
       ]);
       //#region 清理数据
-      editData.value = list.map((_) => ({}));
+      editData.value = list.map(() => ({}));
       selectRows.value = [];
       //#endregion 清理数据
-      return { list, count };
+      return { list, count, modelFields };
     },
-    { list: [], count: 0 },
+    { list: [], modelFields: {}, count: 0 },
     {
-      // TODO 目前会导致列报错，之后再研究
-      //  resetOnExecute: false
+      resetOnExecute: false,
+      throwError: true,
+      immediate: false,
     },
   );
   function reloadTableData() {
@@ -175,13 +192,17 @@
       pageSize: pageSize.value,
     });
   }
-  //#endregion
-
   /** 切换模型时触发更新 */
-  watchEffect(() => {
-    if (!selectModelName.value) return;
-    reloadTableData();
-  });
+  watch(
+    selectModelName,
+    async (val) => {
+      if (!val) return;
+      await nextTick(); // 等待其他和 selectModelName 相关的逻辑执行完毕
+      reloadTableData();
+    },
+    { immediate: true },
+  );
+  //#endregion
 
   //#region 数据编辑相关逻辑功能
   /** 当前被编辑了的数据行 */
