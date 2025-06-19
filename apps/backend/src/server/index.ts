@@ -63,7 +63,7 @@ function handelReq({ req, reply, pathPrefix, onEnd }: apiCtx) {
       this.logs.push(args);
     },
   };
-  const method = req.url.split('?')[0]?.slice(pathPrefix.length) ?? '';
+  const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
   const p = Effect.gen(function* () {
     const params = yield* Effect.promise(() => parseParams(req));
 
