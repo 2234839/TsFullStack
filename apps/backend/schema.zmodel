@@ -174,7 +174,7 @@ model Queue extends Base {
     attempts    Int       @default(0) // 尝试次数
     maxAttempts Int       @default(3) // 最大尝试次数
     workerId    String?   // 处理该任务的消费者ID
-    result      String?   // 处理结果，JSON 格式
+    result      Json?   // 处理结果，JSON 格式
     error       String?   // 错误信息
     startedAt   DateTime? // 开始处理时间
     completedAt DateTime? // 完成时间
