@@ -2,7 +2,7 @@
 <template>
   <div class="text-nowrap p-1 min-h-8" @click="editMode = true" v-if="!editMode">
     <template v-if="field.type === 'DateTime'">
-      {{ formatDate(cellData, 'YYYY-MM-DD HH:mm:ss') }}
+      {{ cellData ? formatDate(cellData, 'YYYY-MM-DD HH:mm:ss') : '-' }}
     </template>
     <template v-else-if="field.isDataModel">
       <Tag>
