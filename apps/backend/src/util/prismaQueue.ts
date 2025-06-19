@@ -3,7 +3,6 @@ import * as crypto from 'crypto';
 import type { PrismaClient } from '@zenstackhq/runtime';
 import type { Queue as QueueModel } from '@prisma/client';
 
-// 不再使用索引签名约束TaskMap，而是普通泛型映射类型
 export type TaskMap = Record<string, { payload: any; result: any }>;
 
 export interface AddTaskOptions {
@@ -17,59 +16,32 @@ export interface QueueOptions {
   pollingInterval?: number;
   concurrency?: number;
   instanceId?: string;
+  stuckTimeoutMs?: number;
 }
-/**
- * 基于数据库的 ts 类型友好队列，使用范例：
- * ```typescript
- * type MyTasks = {
- *   sendEmail: {
- *     payload: { to: string; subject: string };
- *     result: { sent: boolean };
- *   };
- * };
- *
- * const queue = new PrismaQueue<MyTasks>({ prisma });
- * // 复用原来的队列实例，但是拥有新的任务类型定义
- * const queue2 = queue.newType<{
- *   otherTask: {
- *     payload: { to: string; subject: string };
- *     result: { sent: boolean };
- *   };
- * }>();
- *
- * // 注册任务
- * queue.register('sendEmail', async (payload) => {
- *   console.log(`Send email to ${payload.to}, subject: ${payload.subject}`);
- *   return { sent: true };
- * });
- * queue2.register('otherTask', async (payload) => {
- *   console.log(`Other task to ${payload.to}, subject: ${payload.subject}`);
- *   return { sent: true };
- * });
- * // 启动队列
- * queue.start();
- * // 添加任务
- * queue.add('sendEmail', { to: 'alice@example.com', subject: '欢迎 Alice' });
- * ```
- */
+
+
+
 export class PrismaQueue<T extends TaskMap> {
-  private readonly prisma: PrismaClient;
+  public readonly prisma: PrismaClient;
   private readonly pollingInterval: number;
   private readonly concurrency: number;
   private readonly instanceId: string;
+  private readonly stuckTimeoutMs: number;
   private isRunning = false;
   private activeWorkers = 0;
   private workers = new Map<string, (payload: any) => Promise<any>>();
   private heartbeatTimer: NodeJS.Timeout | null = null;
+  private stuckTaskTimer: NodeJS.Timeout | null = null;
 
-  constructor({ prisma, pollingInterval = 1000, concurrency = 5, instanceId }: QueueOptions) {
+  constructor({ prisma, pollingInterval = 1000, concurrency = 5, instanceId, stuckTimeoutMs = 30_000 }: QueueOptions) {
     this.prisma = prisma;
     this.pollingInterval = pollingInterval;
     this.concurrency = concurrency;
     this.instanceId = instanceId ?? this.generateInstanceId();
+    this.stuckTimeoutMs = stuckTimeoutMs;
     console.log(`[Queue] Initialized: ${this.instanceId}`);
   }
-  /** 类型辅助函数，复用队列实例，但是拥有新的任务类型定义 */
+
   public newType<T extends TaskMap>() {
     return this as unknown as PrismaQueue<T>;
   }
@@ -115,18 +87,24 @@ export class PrismaQueue<T extends TaskMap> {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+    if (this.stuckTaskTimer) {
+      clearTimeout(this.stuckTaskTimer);
+      this.stuckTaskTimer = null;
+    }
     console.log(`[Queue] Stopped: ${this.instanceId}`);
     return this;
   }
 
   private startHeartbeat() {
-    this.heartbeatTimer = setInterval(() => {
-      this.prisma.queue
-        .updateMany({
+    this.heartbeatTimer = setInterval(async () => {
+      try {
+        await this.prisma.queue.updateMany({
           where: { status: 'PROCESSING', workerId: this.instanceId },
           data: { updated: new Date() },
-        })
-        .catch((err) => console.error('[Queue] Heartbeat failed:', err));
+        });
+      } catch (err) {
+        console.error('[Queue] Heartbeat update failed:', err);
+      }
     }, 30_000);
   }
 
@@ -149,6 +127,7 @@ export class PrismaQueue<T extends TaskMap> {
           },
           orderBy: [{ priority: 'desc' }, { created: 'asc' }],
         });
+
         if (!candidate) return null;
 
         const updated = await tx.queue.updateMany({
@@ -158,6 +137,8 @@ export class PrismaQueue<T extends TaskMap> {
             workerId: this.instanceId,
             startedAt: new Date(),
             attempts: { increment: 1 },
+            updated: new Date(),
+            error: null,
           },
         });
 
@@ -202,6 +183,8 @@ export class PrismaQueue<T extends TaskMap> {
           status: 'COMPLETED',
           result,
           completedAt: new Date(),
+          updated: new Date(),
+          error: null,
         },
       });
 
@@ -209,35 +192,32 @@ export class PrismaQueue<T extends TaskMap> {
         ? console.log(`[Queue] Task ${task.id} completed`)
         : console.warn(`[Queue] Task ${task.id} update ignored`);
     } catch (err) {
-      await this.handleFailure(task, err);
-    }
-  }
+      const current = await this.prisma.queue.findUnique({ where: { id: task.id } });
+      if (!current || current.workerId !== this.instanceId) return;
 
-  private async handleFailure(task: QueueModel, err: unknown) {
-    const current = await this.prisma.queue.findUnique({ where: { id: task.id } });
-    if (!current || current.workerId !== this.instanceId) return;
+      if (current.attempts < current.maxAttempts) {
+        const backoff = this.getBackoff(current.attempts);
+        const runAt = new Date(Date.now() + backoff);
 
-    if (current.attempts < current.maxAttempts) {
-      const backoff = this.getBackoff(current.attempts);
-      const runAt = new Date(Date.now() + backoff);
+        await this.prisma.queue.updateMany({
+          where: {
+            id: task.id,
+            workerId: this.instanceId,
+            status: 'PROCESSING',
+          },
+          data: {
+            status: 'PENDING',
+            workerId: null,
+            runAt,
+            error: `Retry ${current.attempts}/${current.maxAttempts}: ${(err as Error).message}`,
+            updated: new Date(),
+          },
+        });
 
-      await this.prisma.queue.updateMany({
-        where: {
-          id: task.id,
-          workerId: this.instanceId,
-          status: 'PROCESSING',
-        },
-        data: {
-          status: 'PENDING',
-          workerId: null,
-          runAt,
-          error: `Retry ${current.attempts}/${current.maxAttempts}: ${(err as Error).message}`,
-        },
-      });
-
-      console.log(`[Queue] Task ${task.id} will retry at ${runAt.toISOString()}`);
-    } else {
-      await this.failTask(task.id, (err as Error).message);
+        console.log(`[Queue] Task ${task.id} will retry at ${runAt.toISOString()}`);
+      } else {
+        await this.failTask(task.id, (err as Error).message);
+      }
     }
   }
 
@@ -248,9 +228,9 @@ export class PrismaQueue<T extends TaskMap> {
         status: 'FAILED',
         error: reason,
         completedAt: new Date(),
+        updated: new Date(),
       },
     });
-
     console.error(`[Queue] Task ${id} failed: ${reason}`);
   }
 
@@ -260,7 +240,8 @@ export class PrismaQueue<T extends TaskMap> {
 
   private async monitorStuckTasks() {
     if (!this.isRunning) return;
-    const stuckBefore = new Date(Date.now() - 180_000);
+
+    const stuckBefore = new Date(Date.now() - this.stuckTimeoutMs);
 
     try {
       const stuckTasks = await this.prisma.queue.findMany({
@@ -272,24 +253,30 @@ export class PrismaQueue<T extends TaskMap> {
 
       for (const task of stuckTasks) {
         if (task.attempts < task.maxAttempts) {
+          const backoff = this.getBackoff(task.attempts);
+          const runAt = new Date(Date.now() + backoff);
+
           await this.prisma.queue.updateMany({
             where: { id: task.id, updated: { lt: stuckBefore }, status: 'PROCESSING' },
             data: {
               status: 'PENDING',
               workerId: null,
-              error: `Timeout recovery (${task.attempts}/${task.maxAttempts})`,
+              runAt,
+              error: `Recovered from stuck worker (${task.attempts}/${task.maxAttempts})`,
+              updated: new Date(),
             },
           });
-          console.warn(`[Queue] Task ${task.id} reset due to timeout`);
+
+          console.warn(`[Queue] Requeued stuck task ${task.id} (worker ${task.workerId})`);
         } else {
-          await this.failTask(task.id, 'Timeout and max attempts reached');
+          await this.failTask(task.id, 'Max attempts reached after stuck timeout');
         }
       }
     } catch (err) {
-      console.error('[Queue] Stuck task check failed:', err);
+      console.error('[Queue] monitorStuckTasks failed:', err);
     }
 
-    setTimeout(() => this.monitorStuckTasks(), 60_000);
+    this.stuckTaskTimer = setTimeout(() => this.monitorStuckTasks(), 60_000);
   }
 
   async getStats() {
