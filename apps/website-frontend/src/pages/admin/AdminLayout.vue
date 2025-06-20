@@ -24,7 +24,6 @@
 </template>
 
 <script setup lang="ts">
-  import { API } from '@/api';
   import MenuSideBar from '@/pages/admin/components/MenuSideBar.vue';
   import TabsBar from '@/pages/admin/components/TabsBar.vue';
   import { provideTabsStore } from '@/pages/admin/stores/tabsStore';
@@ -37,16 +36,16 @@
     if (!authInfo_isLogin.value) {
       routerUtil.push(routeMap.login, {});
     } else {
-      const testConcurrency = async () => {
-        console.time('并发测试');
-        // 并发测试API
-        const promises = Array(10)
-          .fill(0)
-          .map(() => API.testApi.并发控制());
-        const results = await Promise.all(promises);
-        console.log('[results]', results);
-        console.timeEnd('并发测试');
-      };
+      // const testConcurrency = async () => {
+      //   console.time('并发测试');
+      //   // 并发测试API
+      //   const promises = Array(10)
+      //     .fill(0)
+      //     .map(() => API.testApi.并发控制());
+      //   const results = await Promise.all(promises);
+      //   console.log('[results]', results);
+      //   console.timeEnd('并发测试');
+      // };
       // await testConcurrency();
     }
   });
