@@ -1,22 +1,23 @@
 import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import { Cause, Chunk, Effect, Exit, Stream, type StreamEmit } from 'effect';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { LogLevel } from '@zenstackhq/runtime/models';
+import { Effect, Exit, Queue } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
+import os from 'os';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
-import { v7 as uuidv7 } from 'uuid';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service/Auth';
 import { ReqCtxService, type ReqCtx } from '../service/ReqCtx';
+import { systemLog } from '../service/SystemLog';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
-import { systemLog } from '../service/SystemLog';
-import { LogLevel } from '@zenstackhq/runtime/models';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { AppConfigService, type AppConfig } from '../service/AppConfigService';
+
+const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
 function handleError(error: unknown) {
@@ -54,8 +55,14 @@ async function parseParams(request: FastifyRequest): Promise<any[]> {
   }
 }
 
-type apiCtx = { req: FastifyRequest; reply: FastifyReply; pathPrefix: string; onEnd: () => void };
-function handelReq({ req, reply, pathPrefix, onEnd }: apiCtx) {
+type apiCtx = {
+  req: FastifyRequest;
+  reply: FastifyReply;
+  pathPrefix: string;
+  onEnd: () => void;
+  enqueueTime: number;
+};
+function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
   const startTime = Date.now();
   const reqCtx: ReqCtx = {
     logs: [],
@@ -66,6 +73,11 @@ function handelReq({ req, reply, pathPrefix, onEnd }: apiCtx) {
   const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
   const p = Effect.gen(function* () {
     const params = yield* Effect.promise(() => parseParams(req));
+
+    const waitTime = Date.now() - enqueueTime;
+    if (waitTime > MAX_WAIT_MS) {
+      throw MsgError.msg('请求队列处理积压超时');
+    }
 
     let result;
     if (pathPrefix === '/app-api/') {
@@ -121,8 +133,11 @@ function handelReq({ req, reply, pathPrefix, onEnd }: apiCtx) {
   );
   // 拦截并处理所有错误
   return Effect.catchAllDefect(p, (defect) => {
-    // @ts-expect-error
-    reqCtx.log('[error]', defect);
+    reqCtx.log(
+      '[error]',
+      /** 裁剪掉 Effect 内部的调用堆栈 */
+      `${(defect as Error)?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
+    );
     reply.send(superjson.serialize({ error: handleError(defect) }));
 
     return Effect.succeed('catch');
@@ -141,7 +156,7 @@ function handelReq({ req, reply, pathPrefix, onEnd }: apiCtx) {
 export const startServer = Effect.gen(function* () {
   const fastify = Fastify({ logger: false });
 
-  // 注册中间件
+  //#region fastify 注册中间件:cors Multipart static
   fastify.register(fastifyCors, {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -154,30 +169,43 @@ export const startServer = Effect.gen(function* () {
     root: path.join(__dirname, 'frontend'),
     prefix: '/',
   });
+  //#endregion
 
-  // 将请求转变成 Effect Stream
-  let emit: StreamEmit.Emit<never, never, apiCtx, void>;
+  // 创建一个无界队列
+  const queue = yield* Queue.unbounded<apiCtx>();
 
-  const stream = Stream.async((_emit: StreamEmit.Emit<never, never, apiCtx, void>) => {
-    emit = _emit;
-  }).pipe(Stream.runForEach(handelReq));
+  // 解决 Effect 的异步边界问题，也就是创建一个普通的回调函数来将数据传递给外层的 Effect 程序，然后外层程序通过消费队列来处理数据
+  // emitReq 将请求放入队列，返回 Promise 以支持 await
+  const emitReq = (ctx: apiCtx) => Effect.runPromise(Queue.offer(queue, ctx));
 
   // onEnd 是为了解决 fastify 的回调函数执行完毕后，fastify 会自动结束请求，而我们希望在 Effect Stream 中处理请求，所以需要维持时机到处理完毕
   // 这个 onEnd 实现的比较丑陋，但是没想到什么好方法解决这个问题
-  fastify.all('/api/*', async function (req, reply) {
-    let onEnd = () => {};
-    // @ts-expect-error
-    const p = new Promise((r) => (onEnd = r));
-    await emit(Effect.succeed(Chunk.of({ req, reply, pathPrefix: '/api/', onEnd })));
-    await p;
-  });
-  fastify.all('/app-api/*', async function (req, reply) {
-    let onEnd = () => {};
-    // @ts-expect-error
-    const p = new Promise((r) => (onEnd = r));
-    await emit(Effect.succeed(Chunk.of({ req, reply, pathPrefix: '/app-api/', onEnd })));
-    await p;
-  });
+  function registerRoute(pathPrefix: string) {
+    return async function (req: FastifyRequest, reply: FastifyReply) {
+      let resolved = false;
+      const p = new Promise<void>((resolve) => {
+        // 包装 resolve，防止多次调用 onEnd
+        const onceResolve = () => {
+          if (!resolved) {
+            resolved = true;
+            resolve();
+          }
+        };
+        // 将请求上下文放入队列
+        emitReq({
+          req,
+          reply,
+          pathPrefix,
+          enqueueTime: Date.now(),
+          onEnd: onceResolve,
+        });
+      });
+      await p;
+    };
+  }
+
+  fastify.all('/api/*', registerRoute('/api/'));
+  fastify.all('/app-api/*', registerRoute('/app-api/'));
 
   // 处理 SPA 路由回退
   fastify.setNotFoundHandler((request, reply) => {
@@ -196,6 +224,32 @@ export const startServer = Effect.gen(function* () {
       return undefined;
     },
   });
+
+  if (!address) {
+    throw new Error('Server failed to start');
+  }
   console.log(`Server listening on ${address}`);
-  yield* stream;
+
+  // 创建控制最大并发数的信号量
+  const cpuCount = os.cpus().length;
+  const recommendedConcurrency = cpuCount * 10; // 根据cpu核心数设置并发数
+  // const recommendedConcurrency = 1; // 测试用
+  console.log(`设置的请求并发上限为:${recommendedConcurrency}`);
+
+  const semaphore = yield* Effect.makeSemaphore(recommendedConcurrency);
+
+  // 请求队列消费循环
+  while (true) {
+    const ctx = yield* Queue.take(queue);
+
+    // fork 一个 Fiber 去执行请求处理，确保不会阻塞循环
+    yield* Effect.forkDaemon(
+      semaphore.withPermits(1)(
+        handelReq(ctx).pipe(
+          Effect.catchAll((err) => Effect.logError(`[handelReq error] ${String(err)}`)),
+          Effect.ensuring(Effect.sync(ctx.onEnd)),
+        ),
+      ),
+    );
+  }
 });
