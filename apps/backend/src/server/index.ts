@@ -105,7 +105,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
           });
           const res_effect = yield* Effect.promise(() =>
             apisRpc.RC(method, params).catch((e) => {
-              throw MsgError.msg('API调用失败: ' + e?.message);
+              throw MsgError.msg('API调用失败: ' + e?.stack);
             }),
           );
 
