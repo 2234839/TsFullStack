@@ -18,7 +18,9 @@ export async function systemLog(options: { level: LogLevel; message?: string }, 
     select: {
       id: true,
     },
-  });
+  }).catch(e=>{
+    return {id:'create error'}
+  })
   console.log(`[log:${log.id}] ${options.message}`, ctx.logs.join('\n'));
   return log;
 }
