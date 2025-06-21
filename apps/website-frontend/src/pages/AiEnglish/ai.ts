@@ -15,7 +15,7 @@ const AI_CONFIG = {
 };
 
 // AI 交互函数
-async function fetchAI(prompt: string) {
+export async function fetchAI(prompt: string) {
   try {
     const response = await fetch(`${AI_CONFIG.apiBase}/chat/completions`, {
       method: 'POST',
@@ -36,6 +36,12 @@ async function fetchAI(prompt: string) {
     console.error('AI请求失败:', error);
     throw error;
   }
+}
+
+export async function callAiResponseJSON(prompt: string) {
+  const data = await fetchAI(prompt);
+  const content = data.choices[0].message.content;
+  return JSON_parse_AIResponse(content);
 }
 
 export const translateWithAI = async (
@@ -244,7 +250,7 @@ export function useCreateMixedTranslation({
     }
   };
 }
-function JSON_parse_AIResponse(resStr: string) {
+export function JSON_parse_AIResponse(resStr: string) {
   let jsonStr;
   try {
     // 如果ai输出的是markdown 代码块形式的json，这里去除掉外层的代码块符号
