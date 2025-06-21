@@ -101,6 +101,20 @@ export const routeMap = reactive({
       },
     },
   },
+  tests: {
+    path: '/tests',
+    redirect: defaultRoute,
+    child: {
+      tempTest: {
+        path: 'tempTest',
+        component: () => import('@/pages/tests/tempTest.vue'),
+        meta: {
+          title: t('临时测试页面'),
+          icon: 'pi pi-chart-line',
+        },
+      },
+    },
+  },
   util: {
     path: '/util',
     redirect: defaultRoute,
