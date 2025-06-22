@@ -20,13 +20,7 @@
               <div class="flex items-center gap-2">
                 <i class="pi pi-book" />
                 文章输入
-                <Tag v-if="isStudying" severity="info" class="ml-auto">
-                  {{
-                    isParagraphMode
-                      ? `段落模式 (${currentParagraphIndex + 1}/${paragraphs.length})`
-                      : '学习中...'
-                  }}
-                </Tag>
+                <Tag v-if="isStudying" severity="info" class="ml-auto"> 学习中... </Tag>
                 <CommonSettingBtns class="ml-auto" />
               </div>
             </template>
@@ -34,7 +28,7 @@
               <div class="space-y-4">
                 <div class="p-inputgroup flex">
                   <Textarea
-                    v-model="article"
+                    v-model="syncData.article"
                     placeholder="请粘贴你想学习的英文文章..."
                     rows="5"
                     class="flex-1"
@@ -42,20 +36,20 @@
                 </div>
                 <div class="flex gap-2 flex-wrap">
                   <Button
-                    v-if="article"
+                    v-if="syncData.article"
                     icon="pi pi-times"
                     severity="secondary"
-                    @click="article = ''"
+                    @click="syncData.article = ''"
                     label="清空" />
                   <Button
-                    @click="handleArticleSubmit(true)"
+                    @click="handleArticleSubmit()"
                     class="flex-1"
                     :disabled="isAnalyzing"
                     severity="secondary"
                     :label="isAnalyzing ? 'AI分析中...' : '分段学习'" />
                   <Button
                     severity="secondary"
-                    @click="loadSampleArticle(true)"
+                    @click="loadSampleArticle()"
                     :disabled="isAnalyzing"
                     label="示例分段" />
                 </div>
@@ -70,36 +64,36 @@
               <div class="flex items-center gap-2">
                 <i class="pi pi-book" style="font-size: 1.25rem" />
                 <span class="text-sm text-indigo-600" title="段落进度">
-                  {{ completedParagraphs }}/{{ paragraphs.length }} 已完成
+                  {{ completedParagraphs }}/{{ syncData.paragraphs.length }} 已完成
                 </span>
 
                 <Button
                   severity="secondary"
                   size="small"
-                  @click="goToParagraph(currentParagraphIndex - 1)"
-                  :disabled="currentParagraphIndex === 0"
+                  @click="goToParagraph(syncData.currentParagraphIndex - 1)"
+                  :disabled="syncData.currentParagraphIndex === 0"
                   icon="pi pi-angle-left"
                   v-tooltip.top="'上一段'" />
                 <div class="flex-1 flex gap-1 overflow-x-auto">
                   <Button
-                    v-for="(_, index) in paragraphs"
+                    v-for="(_, index) in syncData.paragraphs"
                     :key="index"
-                    :severity="index === currentParagraphIndex ? 'primary' : 'secondary'"
+                    :severity="index === syncData.currentParagraphIndex ? 'primary' : 'secondary'"
                     size="small"
                     :class="[
                       'flex-1',
-                      { 'bg-green-100 border-green-300': paragraphs[index].isCompleted },
+                      { 'bg-green-100 border-green-300': syncData.paragraphs[index].isCompleted },
                     ]"
                     @click="goToParagraph(index)"
                     :label="String(index + 1)"
-                    :icon="paragraphs[index].isCompleted ? 'pi pi-check-circle' : ''" />
+                    :icon="syncData.paragraphs[index].isCompleted ? 'pi pi-check-circle' : ''" />
                 </div>
                 <Button
                   @click="handleParagraphComplete"
                   size="small"
                   icon="pi pi-check"
                   class="bg-blue-600 hover:bg-blue-700 text-white"
-                  :disabled="paragraphs[currentParagraphIndex]?.isCompleted"
+                  :disabled="syncData.paragraphs[syncData.currentParagraphIndex]?.isCompleted"
                   label="OK" />
               </div>
             </template>
@@ -289,9 +283,7 @@
                     v-if="isStudying"
                     title="💡 提示："
                     icon=""
-                    :tips="`点击单词查看翻译会降低熟练度，${
-                      isParagraphMode ? '完成段落' : '学习完毕'
-                    }时未操作的单词会提升熟练度(+1)`" />
+                    :tips="`点击单词查看翻译会降低熟练度，完成段落时未操作的单词会提升熟练度(+1)`" />
                 </div>
               </div>
             </template>
@@ -457,8 +449,9 @@
   } from '@/pages/AiEnglish/ai';
   import { useAiEnglishData } from '@/pages/AiEnglish/data';
   import { useTTS } from '@/pages/AiEnglish/util';
+  import { StorageSerializers, useStorage } from '@vueuse/core';
   import { useToast } from 'primevue/usetoast';
-  import { computed, nextTick, reactive, ref, watch } from 'vue';
+  import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
   interface StudySession {
     clickedWords: Set<string>;
@@ -498,8 +491,28 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
   const { speakText, ttsConfig } = useTTS();
 
-  // 响应式状态
-  const article = ref('');
+  // 需要存储同步的响应式状态
+  const syncData = useStorage<{
+    article: string;
+    currentParagraphIndex: number;
+    paragraphs: ParagraphData[];
+  }>(
+    'aiEnglish_syncData_v0',
+    {
+      article: '',
+      paragraphs: [] as ParagraphData[],
+      currentParagraphIndex: 0,
+    },
+    undefined,
+    { serializer: StorageSerializers.object, mergeDefaults: true },
+  );
+  onMounted(async () => {
+    console.log('[syncData.value.article]', syncData.value.article);
+    // handleArticleSubmit();
+    const tokens = tokenizeText(syncData.value.article);
+    await getWordsData(tokens);
+  });
+
   const { words, getWordData, updateWordDatas, getWordsData } = useAiEnglishData();
   const selectedWordKey = ref<string>();
   const selectedWord = computed(() => {
@@ -513,7 +526,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     clickedWords: new Set(),
     startTime: Date.now(),
   });
-  const isStudying = ref(false);
+  const isStudying = computed(() => syncData.value.paragraphs.length > 0);
   const isTranslating = ref(false);
   const aiAnalysis = ref<AIAnalysis | null>(null);
   const isAnalyzing = ref(false);
@@ -526,9 +539,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   });
   const wordElements = ref<{ word: string; element: HTMLElement; index: number }[]>([]);
   const highlightedWord = ref('');
-  const paragraphs = ref<ParagraphData[]>([]);
-  const currentParagraphIndex = ref(0);
-  const isParagraphMode = ref(false);
   const toast = useToast();
 
   // 计算属性
@@ -558,13 +568,15 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   });
 
   const currentText = computed(() => {
-    if (isParagraphMode.value && paragraphs.value.length > 0) {
-      return paragraphs.value[currentParagraphIndex.value]?.text || '';
+    if (syncData.value.paragraphs.length > 0) {
+      return syncData.value.paragraphs[syncData.value.currentParagraphIndex]?.text || '';
     }
-    return article.value;
+    return syncData.value.article;
   });
 
-  const completedParagraphs = computed(() => paragraphs.value.filter((p) => p.isCompleted).length);
+  const completedParagraphs = computed(
+    () => syncData.value.paragraphs.filter((p) => p.isCompleted).length,
+  );
 
   // 颜色辅助函数
   const getMemoryColor = (level: number): string => {
@@ -609,20 +621,15 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   };
 
   // 核心功能
-  const initializeWords = async (text: string, useParagraphMode = false) => {
-    isStudying.value = true;
-    isParagraphMode.value = useParagraphMode;
+  const initializeWords = async (text: string) => {
     currentSession.clickedWords = new Set();
     currentSession.startTime = Date.now();
 
     const tokens = tokenizeText(text);
     await getWordsData(tokens);
 
-    // 处理段落模式
-    if (useParagraphMode) {
-      paragraphs.value = splitArticleIntoParagraphs(text);
-      currentParagraphIndex.value = 0;
-    }
+    syncData.value.paragraphs = splitArticleIntoParagraphs(text);
+    syncData.value.currentParagraphIndex = 0;
 
     // AI分析
     isAnalyzing.value = true;
@@ -632,20 +639,18 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     toast.add({
       severity: 'success',
       summary: '开始学习',
-      detail: useParagraphMode
-        ? `已分割为 ${paragraphs.value.length} 个段落，开始第一段学习！`
-        : `已加载 ${words.value.length} 个词汇，AI分析完成！`,
+      detail: `已分割为 ${syncData.value.paragraphs.length} 个段落，开始第一段学习！`,
       life: 3000,
     });
   };
 
-  const handleArticleSubmit = (useParagraphMode = false) => {
-    if (article.value.trim()) initializeWords(article.value, useParagraphMode);
+  const handleArticleSubmit = () => {
+    if (syncData.value.article.trim()) initializeWords(syncData.value.article);
   };
 
-  const loadSampleArticle = (useParagraphMode = false) => {
-    article.value = sampleArticle;
-    initializeWords(sampleArticle, useParagraphMode);
+  const loadSampleArticle = () => {
+    syncData.value.article = sampleArticle;
+    initializeWords(sampleArticle);
   };
 
   const getWordIndexFromPoint = (x: number, y: number): number => {
@@ -822,9 +827,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   };
 
   const handleParagraphComplete = () => {
-    if (!isStudying.value || !isParagraphMode.value) return;
+    if (!isStudying.value) return;
 
-    const currentParagraph = paragraphs.value[currentParagraphIndex.value];
+    const currentParagraph = syncData.value.paragraphs[syncData.value.currentParagraphIndex];
     if (!currentParagraph) return;
 
     let improvedCount = 0;
@@ -843,10 +848,10 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
     updateWordDatas(updatedWords);
     // 标记段落完成
-    paragraphs.value = paragraphs.value.map((p, index) =>
-      index === currentParagraphIndex.value ? { ...p, isCompleted: true } : p,
+    syncData.value.paragraphs = syncData.value.paragraphs.map((p, index) =>
+      index === syncData.value.currentParagraphIndex ? { ...p, isCompleted: true } : p,
     );
-    currentParagraphIndex.value += 1;
+    syncData.value.currentParagraphIndex += 1;
     // 重置会话
     currentSession.clickedWords = new Set();
     showTranslation.value = false;
@@ -856,14 +861,16 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     toast.add({
       severity: 'success',
       summary: '段落学习完成！',
-      detail: `第${currentParagraphIndex.value + 1}段完成！${improvedCount} 个单词熟练度提升了 +1`,
+      detail: `第${
+        syncData.value.currentParagraphIndex + 1
+      }段完成！${improvedCount} 个单词熟练度提升了 +1`,
       life: 4000,
     });
   };
 
   const goToParagraph = (index: number) => {
-    if (index >= 0 && index < paragraphs.value.length) {
-      currentParagraphIndex.value = index;
+    if (index >= 0 && index < syncData.value.paragraphs.length) {
+      syncData.value.currentParagraphIndex = index;
       currentSession.clickedWords = new Set();
       showTranslation.value = false;
       selectionState.selectedWords = new Set();
@@ -944,19 +951,22 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     });
   }
   // 更新单词元素引用
-  watch([currentText, words, currentParagraphIndex], () => {
-    nextTick(() => {
-      const articleContainer = document.getElementById('article-container');
-      if (articleContainer) {
-        const elements = Array.from(articleContainer.querySelectorAll('[data-word-index]'));
-        wordElements.value = elements.map((element, index) => ({
-          word: element.textContent?.toLowerCase().replace(/[^\w]/g, '') || '',
-          element: element as HTMLElement,
-          index,
-        }));
-      }
-    });
-  });
+  watch(
+    () => [currentText.value, words.value, syncData.value.currentParagraphIndex],
+    () => {
+      nextTick(() => {
+        const articleContainer = document.getElementById('article-container');
+        if (articleContainer) {
+          const elements = Array.from(articleContainer.querySelectorAll('[data-word-index]'));
+          wordElements.value = elements.map((element, index) => ({
+            word: element.textContent?.toLowerCase().replace(/[^\w]/g, '') || '',
+            element: element as HTMLElement,
+            index,
+          }));
+        }
+      });
+    },
+  );
 
   watch(aiAnalysis, (val) => val && (showAiAnalysis.value = true));
 
