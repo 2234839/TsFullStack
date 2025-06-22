@@ -32,23 +32,31 @@
             </template>
             <template #content>
               <div class="space-y-4">
-                <Textarea
-                  placeholder="请粘贴你想学习的英文文章..."
-                  v-model="article"
-                  class="min-h-[120px] text-base w-full"
-                  :disabled="isStudying"
-                  autoResize />
+                <div class="p-inputgroup flex">
+                  <Textarea
+                    v-model="article"
+                    placeholder="请粘贴你想学习的英文文章..."
+                    rows="5"
+                    class="flex-1"
+                    style="resize: none" />
+                </div>
                 <div class="flex gap-2 flex-wrap">
+                  <Button
+                    v-if="article"
+                    icon="pi pi-times"
+                    severity="secondary"
+                    @click="article = ''"
+                    label="清空" />
                   <Button
                     @click="handleArticleSubmit(true)"
                     class="flex-1"
-                    :disabled="isStudying || isAnalyzing"
+                    :disabled="isAnalyzing"
                     severity="secondary"
                     :label="isAnalyzing ? 'AI分析中...' : '分段学习'" />
                   <Button
                     severity="secondary"
                     @click="loadSampleArticle(true)"
-                    :disabled="isStudying || isAnalyzing"
+                    :disabled="isAnalyzing"
                     label="示例分段" />
                 </div>
               </div>
@@ -163,9 +171,13 @@
                 <div v-if="showTranslation">
                   <div v-if="translationType === 'word' && selectedWord">
                     <!-- 单词翻译内容 -->
-                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ selectedWord.word }}</div>
+                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {{ selectedWord.word }}
+                    </div>
 
-                    <div v-if="selectedWord.pronunciation" class="text-lg text-gray-600 dark:text-gray-300">
+                    <div
+                      v-if="selectedWord.pronunciation"
+                      class="text-lg text-gray-600 dark:text-gray-300">
                       <span class="text-sm text-gray-500 dark:text-gray-400">音标: </span>
                       {{ selectedWord.pronunciation }}
                     </div>
@@ -181,7 +193,9 @@
                             color: selectedWord.memoryLevel > 5 ? 'black' : 'white',
                             border: 'none',
                           }" />
-                        <span v-if="selectedWord.difficulty" class="text-sm text-gray-500 dark:text-gray-400"
+                        <span
+                          v-if="selectedWord.difficulty"
+                          class="text-sm text-gray-500 dark:text-gray-400"
                           >难度</span
                         >
                         <Tag
@@ -211,7 +225,9 @@
 
                     <div v-if="selectedWord.grammar" class="space-y-2">
                       <div class="text-sm text-gray-500 dark:text-gray-400">语法信息</div>
-                      <div class="text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">{{ selectedWord.grammar }}</div>
+                      <div class="text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                        {{ selectedWord.grammar }}
+                      </div>
                     </div>
 
                     <div v-if="selectedWord.examples?.length" class="space-y-2">
@@ -328,7 +344,8 @@
                 </div>
 
                 <div v-if="aiAnalysis.learningTips.length > 0">
-                  <div class="text-sm text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1">
+                  <div
+                    class="text-sm text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1">
                     <i class="pi pi-lightbulb" style="font-size: 1rem" />
                     学习建议:
                   </div>
@@ -355,8 +372,11 @@
             </template>
             <template #content>
               <div class="space-y-4">
-                <div class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
-                  <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">{{ stats.averageLevel }}</div>
+                <div
+                  class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
+                  <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                    {{ stats.averageLevel }}
+                  </div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">平均熟练度</div>
                 </div>
 
