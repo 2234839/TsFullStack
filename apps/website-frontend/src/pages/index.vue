@@ -93,7 +93,6 @@
 </template>
 
 <script setup lang="tsx">
-  import ThemeToggle from '@/components/system/ThemeToggle.vue';
   import { routeMap, routerUtil } from '@/router';
   import { Button, Card, Divider } from 'primevue';
   import { defineComponent, type PropType } from 'vue';
