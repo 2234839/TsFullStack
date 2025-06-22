@@ -507,8 +507,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     { serializer: StorageSerializers.object, mergeDefaults: true },
   );
   onMounted(async () => {
-    console.log('[syncData.value.article]', syncData.value.article);
-    // handleArticleSubmit();
     const tokens = tokenizeText(syncData.value.article);
     await getWordsData(tokens);
   });
