@@ -25,7 +25,6 @@ declare module 'vue' {
     RemoteSelect: typeof import('./src/components/base/RemoteSelect.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
-    SentenceAnalyzer: typeof import('./src/components/SentenceAnalyzer.vue')['default']
     Slider: typeof import('primevue/slider')['default']
     SmartPopover: typeof import('./src/components/base/SmartPopover.vue')['default']
     Tag: typeof import('primevue/tag')['default']
