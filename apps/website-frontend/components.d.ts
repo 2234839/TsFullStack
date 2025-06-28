@@ -18,6 +18,7 @@ declare module 'vue' {
     CommonSettingBtns: typeof import('./src/components/system/CommonSettingBtns.vue')['default']
     GithubStar: typeof import('./src/components/system/GithubStar.vue')['default']
     GoogleAd: typeof import('./src/components/GoogleAd.vue')['default']
+    HeartStackSpace_ts: typeof import('./src/components/icons/HeartStackSpace_ts.vue')['default']
     I18nSwitch: typeof import('./src/components/system/I18nSwitch.vue')['default']
     InputSwitch: typeof import('primevue/inputswitch')['default']
     ProgressBar: typeof import('primevue/progressbar')['default']
