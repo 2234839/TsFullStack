@@ -2,49 +2,17 @@
   <div class="min-h-screen">
     <!-- 顶部区域 -->
     <div
-      class="bg-gradient-to-r from-purple-600 to-indigo-600 dark:from-purple-800 dark:to-indigo-800 text-white py-12 px-4 sm:px-6 lg:px-8">
+      class="bg-gradient-to-r from-blue-500 to-cyan-500 dark:from-blue-700 dark:to-cyan-700 text-white py-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
-        <h1 class="text-4xl font-bold text-center mb-4">{{ $t('TSFullStack 在线工具集合') }}</h1>
+        <h1 class="text-4xl font-bold text-center mb-4 flex items-center gap-1">
+          <HeartStackSpace_ts class="text-6xl" type="紫动态" />
+          {{ $t('TSFullStack 在线工具集合') }}
+        </h1>
       </div>
-      <div class="flex"><CommonSettingBtns class="bg-white dark:bg-gray-800 rounded-lg px-3" /></div>
+      <div class="flex justify-end">
+        <CommonSettingBtns class="bg-white dark:bg-gray-800 rounded-lg px-3" />
+      </div>
     </div>
-
-    <!-- 内容介绍区域（骗审 + SEO） -->
-    <section
-      class="max-w-4xl mx-auto mt-12 px-4 sm:px-6 lg:px-8 text-gray-800 dark:text-gray-300 text-lg leading-relaxed">
-      <h2 class="text-2xl font-semibold mb-4">{{ $t('平台介绍') }}</h2>
-      <p class="mb-4">
-        {{
-          $t(
-            'TSFullStack 是一个集成化的在线工具平台，汇聚了多个原创或深度整合的实用服务，覆盖内容管理、AI 计算、语言学习、虚拟展示等多场景需求。',
-          )
-        }}
-      </p>
-      <p class="mb-4">
-        {{
-          $t(
-            '与传统工具站不同，TSFullStack 关注用户使用体验与功能组合的灵活性，所有工具均支持深度互动，适合开发者、设计师、教师及内容创作者使用。',
-          )
-        }}
-      </p>
-      <p class="mb-4">
-        {{ $t('平台当前支持以下核心能力：') }}
-      </p>
-      <ul class="list-disc ml-6 mb-4">
-        <li>{{ $t('基于自然语言解析的在线计算器 NoteCalc') }}</li>
-        <li>{{ $t('支持 Web 全景浏览的虚拟展厅构建工具 VrImg') }}</li>
-        <li>{{ $t('具备上下文联想与词义推荐的 AI 英语学习系统') }}</li>
-        <li>{{ $t('权限清晰的企业级内容管理后台') }}</li>
-      </ul>
-      <p class="mb-4">
-        {{ $t('我将持续改进交互体验与数据安全性，欢迎收藏本页以便长期使用。') }}
-      </p>
-    </section>
-
-    <!-- 中部广告（可开启） -->
-    <!-- <div class="max-w-4xl mx-auto px-4 my-10">
-      <GoogleAd />
-    </div> -->
 
     <!-- 工具功能区 -->
     <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
@@ -93,6 +61,7 @@
 </template>
 
 <script setup lang="tsx">
+  import HeartStackSpace_ts from '@/components/icons/HeartStackSpace_ts.vue';
   import { routeMap, routerUtil } from '@/router';
   import { Button, Card, Divider } from 'primevue';
   import { defineComponent, type PropType } from 'vue';
