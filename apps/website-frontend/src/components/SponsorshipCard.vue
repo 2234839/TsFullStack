@@ -1,259 +1,262 @@
 <template>
   <div
     ref="containerRef"
-    class="sponsor-card w-full h-full min-h-0 relative overflow-hidden transition-all duration-500 ease-out hover:shadow-2xl hover:shadow-purple-500/25 dark:hover:shadow-purple-400/20 cursor-pointer group"
-    :class="[isCompact ? 'rounded-xl' : 'rounded-2xl']">
+    class="sponsor-card w-full h-full min-h-0 relative overflow-hidden transition-all duration-500 ease-out hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-800/30 cursor-pointer group"
+    :class="[isCompact ? 'rounded-lg' : 'rounded-xl']">
     <!-- 紧凑模式 - 小正方形 -->
     <div
       v-if="isCompact"
-      class="compact-layout relative w-full h-full min-h-[80px] flex flex-col items-center justify-center bg-gradient-to-br from-rose-400 via-pink-500 to-purple-600 dark:from-rose-500 dark:via-pink-600 dark:to-purple-700 text-white">
-      <!-- 背景装饰 -->
-      <div class="absolute inset-0 opacity-20 dark:opacity-30">
+      class="compact-layout relative w-full h-full min-h-[80px] flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 border border-gray-200 dark:border-gray-600">
+      <!-- 柔和的背景装饰 -->
+      <div class="absolute inset-0 opacity-30">
         <div
-          class="absolute top-2 left-2 w-3 h-3 bg-white dark:bg-yellow-300 rounded-full animate-ping"></div>
+          class="absolute top-2 left-2 w-2 h-2 bg-orange-300/60 rounded-full animate-pulse"></div>
         <div
-          class="absolute bottom-3 right-3 w-2 h-2 bg-yellow-300 dark:bg-white rounded-full animate-pulse"></div>
-        <div
-          class="absolute top-1/2 left-1 w-1 h-1 bg-white dark:bg-yellow-200 rounded-full animate-bounce"></div>
+          class="absolute bottom-3 right-3 w-1.5 h-1.5 bg-blue-300/60 rounded-full animate-pulse delay-1000"></div>
       </div>
 
       <div class="compact-heart relative mb-1 z-10">
-        <div class="heart-pulse text-3xl animate-bounce">💖</div>
-        <div
-          class="absolute -top-1 -right-1 w-2 h-2 bg-yellow-400 dark:bg-yellow-300 rounded-full animate-ping"></div>
+        <div class="text-xl text-gray-600 dark:text-gray-300">☕</div>
       </div>
-      <div class="compact-text text-xs font-bold mb-2 z-10">{{ $t('赞助支持') }}</div>
+      <div
+        class="compact-text text-xs font-medium mb-2 z-10 text-center text-gray-700 dark:text-gray-300">
+        {{ $t('赞助支持') }}
+      </div>
       <button
         @click="showQRCode = true"
-        class="compact-btn w-7 h-7 bg-white/20 dark:bg-white/30 backdrop-blur-sm border border-white/30 dark:border-white/40 text-white rounded-full hover:bg-white/30 dark:hover:bg-white/40 hover:scale-110 transition-all duration-300 flex items-center justify-center z-10">
-        <i class="pi pi-plus text-xs"></i>
+        class="compact-btn w-7 h-7 bg-white/80 backdrop-blur-sm border border-gray-300 text-gray-600 rounded-lg hover:bg-white hover:scale-105 transition-all duration-300 flex items-center justify-center z-10 shadow-sm">
+        <i class="pi pi-heart text-xs"></i>
       </button>
     </div>
 
     <!-- 标准模式 - 中等尺寸 -->
     <div
       v-else-if="isStandard"
-      class="standard-layout relative w-full h-full min-h-[220px] overflow-hidden">
-      <!-- 动态背景 -->
-      <div
-        class="standard-bg absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-600 dark:from-indigo-600 dark:via-purple-700 dark:to-pink-700"></div>
-      <div
-        class="absolute inset-0 bg-gradient-to-t from-black/20 dark:from-black/40 via-transparent to-white/10 dark:to-white/5"></div>
-
-      <!-- 装饰元素 -->
-      <div class="absolute inset-0 opacity-30 dark:opacity-40">
-        <div
-          class="absolute top-4 right-4 w-16 h-16 border-2 border-white/20 dark:border-white/30 rounded-full animate-spin-slow"></div>
-        <div
-          class="absolute bottom-6 left-6 w-8 h-8 bg-white/10 dark:bg-white/20 rounded-lg rotate-45 animate-pulse"></div>
-        <div
-          class="absolute top-1/2 right-8 w-4 h-4 bg-yellow-400/60 dark:bg-yellow-300/70 rounded-full animate-bounce"></div>
+      class="standard-layout relative w-full h-full min-h-[280px] overflow-hidden bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 border border-gray-200 dark:border-gray-600">
+      <!-- 柔和的装饰元素 -->
+      <div class="absolute inset-0 opacity-20">
+        <div class="absolute top-4 right-4 w-8 h-8 border border-gray-300/50 rounded-full"></div>
+        <div class="absolute bottom-4 left-4 w-4 h-4 bg-orange-200/60 rounded-lg rotate-45"></div>
       </div>
 
-      <div
-        class="standard-content relative z-10 p-6 h-full flex flex-col justify-between text-white">
+      <div class="standard-content relative z-10 p-5 h-full flex flex-col justify-between">
         <div class="standard-header">
-          <!-- 浮动表情 -->
-          <div class="floating-hearts absolute -top-2 -right-2">
-            <div class="heart heart-1 absolute text-xl animate-float-1">☕</div>
-            <div class="heart heart-2 absolute text-lg animate-float-2 left-4">✨</div>
-            <div class="heart heart-3 absolute text-lg animate-float-3 left-8 top-2">💝</div>
+          <div class="floating-hearts absolute -top-1 -right-1">
+            <div class="text-lg">☕</div>
           </div>
 
-          <h3
-            class="standard-title text-2xl font-bold mb-2 bg-gradient-to-r from-white to-yellow-200 dark:from-white dark:to-yellow-100 bg-clip-text text-transparent">
+          <h3 class="standard-title text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
             {{ $t('请我喝杯咖啡') }}
           </h3>
-          <p class="standard-subtitle text-sm opacity-90 dark:opacity-95 mb-6 leading-relaxed">
+          <p
+            class="standard-subtitle text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
             {{ $t('您的每一份支持都是创作路上最温暖的陪伴') }}
           </p>
         </div>
 
-        <!-- 进度环 -->
-        <div class="progress-section flex items-center justify-center mb-6">
-          <div class="progress-ring relative w-24 h-24">
-            <svg class="progress-svg w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="42"
-                class="progress-bg fill-none stroke-white/20 dark:stroke-white/30"
-                stroke-width="6" />
-              <circle
-                cx="50"
-                cy="50"
-                r="42"
-                class="progress-fill fill-none stroke-white dark:stroke-yellow-200 transition-all duration-1000 ease-out"
-                stroke-width="6"
-                stroke-linecap="round"
-                stroke-dasharray="264"
-                :style="{ strokeDashoffset: progressOffset }" />
-            </svg>
-            <div
-              class="progress-content absolute inset-0 flex flex-col items-center justify-center">
-              <span class="progress-amount text-lg font-bold">¥{{ totalAmount }}</span>
-              <span class="progress-label text-xs opacity-80 dark:opacity-90">{{
-                $t('已筹集')
-              }}</span>
+        <!-- 统计信息 -->
+        <div class="progress-section flex items-center justify-center mb-4">
+          <div
+            class="progress-display bg-white/80 backdrop-blur-sm rounded-xl p-3 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700/80">
+            <div class="text-xl font-semibold mb-1 text-gray-800 dark:text-gray-200">
+              ¥{{ totalAmount }}
             </div>
-            <!-- 进度环光效 -->
-            <div
-              class="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/20 dark:via-white/30 to-transparent animate-spin-slow opacity-50"></div>
+            <div class="text-xs text-gray-500 dark:text-gray-400">
+              {{ sponsorCount }} {{ $t('位朋友支持') }}
+            </div>
           </div>
         </div>
 
-        <div class="standard-actions flex gap-3">
+        <!-- 主要操作按钮 -->
+        <div class="standard-actions flex gap-2 mb-3">
           <button
             @click="showQRCode = true"
-            class="action-btn primary-btn flex-1 font-medium py-3 px-4 rounded-xl bg-white dark:bg-gray-100 text-purple-600 dark:text-purple-700 hover:bg-gray-100 dark:hover:bg-gray-200 hover:shadow-lg transition-all duration-300 flex items-center justify-center shadow-lg">
-            <i class="pi pi-qrcode mr-2"></i>
+            class="action-btn flex-1 font-medium py-2.5 px-3 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-all duration-300 flex items-center justify-center text-sm shadow-sm dark:bg-gray-600 dark:hover:bg-gray-500">
+            <i class="pi pi-qrcode mr-1.5 text-xs"></i>
             {{ $t('扫码支持') }}
           </button>
           <button
             @click="handleDirectPay"
-            class="action-btn secondary-btn flex-1 font-medium py-3 px-4 rounded-xl border-2 border-white dark:border-white/80 text-white hover:bg-white/10 dark:hover:bg-white/20 hover:shadow-lg transition-all duration-300 flex items-center justify-center">
-            <i class="pi pi-credit-card mr-2"></i>
-            {{ $t('在线支付') }}
+            class="action-btn flex-1 font-medium py-2.5 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300 flex items-center justify-center text-sm dark:border-gray-500 dark:text-gray-300 dark:hover:bg-gray-700">
+            <i class="pi pi-external-link mr-1.5 text-xs"></i>
+            {{ $t('其他方式') }}
+          </button>
+        </div>
+
+        <!-- 功能按钮组 -->
+        <div class="function-buttons flex justify-center gap-3">
+          <button
+            @click="shareContent"
+            class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
+            <i class="pi pi-share-alt text-sm text-blue-500 mb-1"></i>
+            <span class="text-xs text-gray-600 dark:text-gray-400">{{ $t('分享') }}</span>
+          </button>
+          <button
+            @click="followCreator"
+            class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
+            <i class="pi pi-heart text-sm text-red-500 mb-1"></i>
+            <span class="text-xs text-gray-600 dark:text-gray-400">{{ $t('关注') }}</span>
+          </button>
+          <button
+            @click="provideFeedback"
+            class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
+            <i class="pi pi-comment text-sm text-green-500 mb-1"></i>
+            <span class="text-xs text-gray-600 dark:text-gray-400">{{ $t('反馈') }}</span>
           </button>
         </div>
       </div>
     </div>
 
     <!-- 展开模式 - 长条形 -->
-    <div v-else class="expanded-layout relative w-full h-full min-h-[160px] overflow-hidden">
-      <!-- 复杂背景 -->
-      <div class="expanded-bg absolute inset-0">
-        <div
-          class="bg-pattern absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 dark:from-blue-700 dark:via-purple-700 dark:to-pink-700"></div>
-        <div
-          class="bg-overlay absolute inset-0 bg-gradient-to-br from-transparent via-white/5 dark:via-white/10 to-black/20 dark:to-black/30"></div>
-        <!-- 动态几何图形 -->
-        <div
-          class="absolute top-4 left-4 w-20 h-20 border border-white/20 dark:border-white/30 rounded-full animate-pulse"></div>
-        <div
-          class="absolute bottom-4 right-4 w-12 h-12 bg-white/10 dark:bg-white/20 rounded-lg rotate-45 animate-bounce"></div>
-        <div
-          class="absolute top-1/2 left-1/4 w-6 h-6 bg-yellow-400/30 dark:bg-yellow-300/40 rounded-full animate-ping"></div>
-      </div>
-
+    <div
+      v-else
+      class="expanded-layout relative w-full h-full min-h-[160px] overflow-hidden bg-gradient-to-r from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 border border-gray-200 dark:border-gray-600">
+      <!-- 柔和的装饰 -->
       <div
-        class="expanded-content relative z-10 p-6 h-full flex items-center justify-between text-white">
-        <div class="expanded-left flex items-center space-x-6 flex-1">
+        class="absolute top-4 left-4 w-12 h-12 border border-gray-200/50 rounded-full opacity-30"></div>
+      <div
+        class="absolute bottom-4 right-4 w-6 h-6 bg-orange-100/60 rounded-lg rotate-45 opacity-40"></div>
+
+      <div class="expanded-content relative z-10 p-5 h-full flex items-center justify-between">
+        <div class="expanded-left flex items-center space-x-4 flex-1">
           <!-- 创作者头像 -->
           <div class="creator-avatar relative">
             <div
-              class="avatar-ring w-20 h-20 rounded-full border-4 border-white/30 dark:border-white/40 animate-pulse-ring"></div>
-            <div
-              class="avatar-content absolute inset-1 bg-gradient-to-br from-white/20 dark:from-white/30 to-white/10 dark:to-white/20 backdrop-blur-sm rounded-full flex items-center justify-center text-3xl">
+              class="avatar-ring w-12 h-12 rounded-full border-2 border-gray-300 bg-white/80 backdrop-blur-sm flex items-center justify-center text-xl dark:border-gray-500 dark:bg-gray-700/80">
               🎨
             </div>
             <div
-              class="avatar-status absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 dark:bg-green-300 rounded-full border-3 border-white dark:border-gray-100 animate-pulse flex items-center justify-center">
-              <div class="w-2 h-2 bg-white dark:bg-gray-100 rounded-full"></div>
+              class="avatar-status absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
+              <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
             </div>
-            <!-- 头像光环 -->
-            <div
-              class="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-white/10 dark:via-white/20 to-transparent animate-spin-slow"></div>
           </div>
 
           <div class="creator-info flex-1">
-            <h3
-              class="creator-title text-2xl font-bold mb-3 bg-gradient-to-r from-white via-yellow-200 dark:via-yellow-100 to-white bg-clip-text text-transparent">
+            <h3 class="creator-title text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">
               {{ $t('支持独立创作者') }}
             </h3>
             <p
-              class="creator-desc text-sm opacity-90 dark:opacity-95 mb-4 leading-relaxed max-w-md">
-              {{
-                $t(
-                  '每一份支持都是对原创内容最好的鼓励，让我们一起创造更美好的数字世界，您的慷慨将点亮创作之路',
-                )
-              }}
+              class="creator-desc text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed max-w-md">
+              {{ $t('每一份支持都是对原创内容最好的鼓励') }}
             </p>
 
-            <!-- 支持者列表 -->
-            <div class="supporter-list flex items-center space-x-3">
-              <div class="supporter-avatars flex -space-x-2">
+            <!-- 支持者显示 -->
+            <div class="supporter-info flex items-center space-x-2">
+              <div class="supporter-avatars flex -space-x-1">
                 <div
-                  v-for="i in Math.min(sponsorCount, 6)"
+                  v-for="i in Math.min(sponsorCount, 3)"
                   :key="i"
-                  class="supporter-avatar w-8 h-8 bg-gradient-to-br from-white/20 dark:from-white/30 to-white/10 dark:to-white/20 rounded-full border-2 border-white dark:border-gray-100 flex items-center justify-center text-xs backdrop-blur-sm"
-                  :style="{ animationDelay: `${i * 0.1}s` }">
-                  {{ ['👤', '👩', '👨', '🧑', '👱', '👶'][i % 6] }}
+                  class="supporter-avatar w-5 h-5 bg-gray-200 rounded-full border border-white flex items-center justify-center text-xs dark:bg-gray-600">
+                  {{ ['👤', '👩', '👨'][i % 3] }}
                 </div>
                 <div
-                  v-if="sponsorCount > 6"
-                  class="supporter-more w-8 h-8 bg-white/30 dark:bg-white/40 rounded-full border-2 border-white dark:border-gray-100 flex items-center justify-center text-xs font-bold backdrop-blur-sm">
-                  +{{ sponsorCount - 6 }}
+                  v-if="sponsorCount > 3"
+                  class="supporter-more w-5 h-5 bg-gray-300 rounded-full border border-white flex items-center justify-center text-xs font-bold dark:bg-gray-500">
+                  +
                 </div>
               </div>
-              <span class="supporter-text text-sm opacity-80 dark:opacity-90 font-medium">
+              <span class="supporter-text text-sm text-gray-500 dark:text-gray-400">
                 {{ sponsorCount }} {{ $t('位朋友已支持') }}
               </span>
             </div>
           </div>
         </div>
 
-        <div class="expanded-right flex flex-col space-y-4">
-          <!-- 统计卡片 -->
-          <div class="stats-container flex space-x-4">
-            <div
-              v-if="0"
-              class="stat-card bg-white/10 dark:bg-white/20 backdrop-blur-sm rounded-2xl p-4 text-center min-w-[90px] border border-white/20 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/30 transition-all duration-300">
-              <div class="stat-icon text-3xl mb-2">💰</div>
-              <div class="stat-value text-xl font-bold">¥{{ totalAmount }}</div>
-              <div class="stat-label text-xs opacity-80 dark:opacity-90">{{ $t('总支持') }}</div>
+        <div class="expanded-right flex items-center space-x-4">
+          <!-- 统计显示 -->
+          <div
+            class="stats-card bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700/80">
+            <div class="stat-value text-lg font-semibold text-gray-800 dark:text-gray-200">
+              ¥{{ totalAmount }}
             </div>
-            <div
-              class="stat-card bg-white/10 dark:bg-white/20 backdrop-blur-sm rounded-2xl p-4 text-center min-w-[90px] border border-white/20 dark:border-white/30 hover:bg-white/20 dark:hover:bg-white/30 transition-all duration-300">
-              <div class="stat-icon text-3xl mb-2"><i class="pi pi-users" /></div>
-              <div class="stat-value text-xl font-bold">{{ sponsorCount }}</div>
-              <div class="stat-label text-xs opacity-80 dark:opacity-90">{{ $t('支持者') }}</div>
+            <div class="stat-label text-xs text-gray-500 dark:text-gray-400">
+              {{ $t('总支持') }}
             </div>
           </div>
 
           <!-- 操作按钮 -->
-          <div class="expanded-actions flex space-x-3">
+          <div class="expanded-actions flex space-x-2">
             <button
               @click="showQRCode = true"
-              class="expanded-btn primary-expanded font-medium px-8 py-3 rounded-xl bg-white dark:bg-gray-100 text-purple-600 dark:text-purple-700 hover:bg-gray-100 dark:hover:bg-gray-200 hover:shadow-xl transition-all duration-300 flex items-center shadow-xl">
-              <i class="pi pi-qrcode mr-2"></i>
-              {{ $t('立即支持') }}
+              class="expanded-btn font-medium px-4 py-2.5 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-all duration-300 flex items-center text-sm shadow-sm dark:bg-gray-600 dark:hover:bg-gray-500">
+              <i class="pi pi-qrcode mr-1.5"></i>
+              {{ $t('支持') }}
+            </button>
+          </div>
+
+          <!-- 功能按钮组 -->
+          <div class="function-buttons-expanded flex space-x-2">
+            <button
+              @click="shareContent"
+              class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
+              :title="$t('分享推荐')">
+              <i class="pi pi-share-alt text-sm text-blue-500"></i>
             </button>
             <button
-              @click="handleDirectPay"
-              class="expanded-btn secondary-expanded font-medium px-6 py-3 rounded-xl border-2 border-white dark:border-white/80 text-white hover:bg-white/10 dark:hover:bg-white/20 hover:shadow-lg transition-all duration-300 flex items-center">
-              <i class="pi pi-external-link mr-2"></i>
-              {{ $t('其他方式') }}
+              @click="followCreator"
+              class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
+              :title="$t('关注作者')">
+              <i class="pi pi-heart text-sm text-red-500"></i>
+            </button>
+            <button
+              @click="provideFeedback"
+              class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
+              :title="$t('意见反馈')">
+              <i class="pi pi-comment text-sm text-green-500"></i>
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 精美二维码弹窗 -->
+    <!-- 简化的二维码弹窗 -->
     <Dialog
       v-model:visible="showQRCode"
-      :header="$t('感谢')"
+      :header="$t('感谢您的支持')"
       modal
       class="qr-dialog"
-      :style="{ width: '450px' }">
-      <div class="qr-content space-y-6">
+      :style="{ width: '420px' }">
+      <div class="qr-content space-y-4">
         <!-- 二维码展示区 -->
-        <div class="qr-display max-h-[60vh] h-90 flex justify-center">
-          <img src="/afdian-崮生.webp" />
+        <div class="qr-display flex justify-center">
+          <img src="/afdian-崮生.webp" class="max-w-full h-80 rounded-lg shadow-md" />
         </div>
 
         <!-- 感谢信息 -->
+        <div class="thank-you-section">
+          <div
+            class="thank-you-message flex items-start space-x-3 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600">
+            <div class="message-icon text-2xl">🙏</div>
+            <div>
+              <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium mb-1">
+                {{ $t('感谢您的慷慨支持！您的每一份心意都是我继续创作的动力源泉') }}
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400">
+                {{ $t('支持创作，让美好持续发生 ✨') }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- QQ群引导 -->
         <div
-          class="thank-you-message flex items-start space-x-4 p-6 bg-gradient-to-r from-pink-50 via-purple-50 to-blue-50 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-blue-900/20 rounded-2xl border border-purple-200 dark:border-purple-700">
-          <div class="message-icon text-3xl animate-bounce">🙏</div>
-          <div>
-            <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium">
-              {{ $t('感谢您的慷慨支持！您的每一份心意都是我继续创作的动力源泉') }}
-            </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              {{ $t('支持创作，让美好持续发生 ✨') }}
-            </p>
+          class="community-invite bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          <div class="flex items-center space-x-3">
+            <div class="community-icon text-xl">👥</div>
+            <div class="flex-1">
+              <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
+                {{ $t('加入创作者社群') }}
+              </h4>
+              <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
+                {{ $t('与其他支持者交流，获取最新创作动态') }}
+              </p>
+              <button
+                @click="joinQQGroup"
+                class="inline-flex items-center text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md transition-colors duration-200">
+                <i class="pi pi-users mr-1"></i>
+                {{ $t('加入QQ群') }} {{ qqGroupNumber }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -262,9 +265,10 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted, useTemplateRef } from 'vue';
-  import Dialog from 'primevue/dialog';
   import { useElementSize } from '@vueuse/core';
+  import { useToast } from 'primevue';
+  import Dialog from 'primevue/dialog';
+  import { computed, ref, useTemplateRef } from 'vue';
 
   interface Props {
     compactThreshold?: number;
@@ -272,6 +276,7 @@
     sponsorCount?: number;
     totalAmount?: number;
     targetAmount?: number;
+    qqGroupNumber?: string;
   }
 
   const props = withDefaults(defineProps<Props>(), {
@@ -279,12 +284,14 @@
     expandedThreshold: 500,
     sponsorCount: 0,
     totalAmount: 0,
-    targetAmount: 0,
+    targetAmount: 5000,
+    qqGroupNumber: '706761641',
   });
 
   const showQRCode = ref(false);
   const containerRef = useTemplateRef('containerRef');
   const { width: containerWidth } = useElementSize(containerRef);
+
   const isCompact = computed(() => containerWidth.value < props.compactThreshold);
   const isStandard = computed(
     () =>
@@ -292,124 +299,82 @@
       containerWidth.value < props.expandedThreshold,
   );
 
-  const progressOffset = computed(() => {
-    const progress = Math.min(props.totalAmount / props.targetAmount, 1);
-    const circumference = 2 * Math.PI * 42;
-    return circumference - progress * circumference;
-  });
-
   const handleDirectPay = () => {
     window.open('https://afdian.com/a/llej0', '_blank');
+  };
+
+  const joinQQGroup = () => {
+    const qqGroupUrl = `https://qm.qq.com/cgi-bin/qm/qr?k=${props.qqGroupNumber}&jump_from=webapi`;
+    window.open(qqGroupUrl, '_blank');
+  };
+
+  const toast = useToast();
+
+  const shareContent = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: '支持独立创作者',
+        text: '发现了一个很棒的创作者，一起来支持吧！',
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.add({ severity: 'success', summary: '链接已复制到剪贴板', life: 3000 });
+    }
+  };
+
+  const followCreator = () => {
+    window.open('https://github.com/2234839', '_blank');
+  };
+
+  const provideFeedback = () => {
+    window.open('https://github.com/2234839/TsFullStack/issues', '_blank');
   };
 </script>
 
 <style scoped>
-  /* 自定义动画 */
-  @keyframes float-1 {
-    0%,
-    100% {
-      transform: translateY(0px) rotate(0deg);
-      opacity: 0.8;
-    }
-    50% {
-      transform: translateY(-15px) rotate(10deg);
-      opacity: 1;
-    }
+  /* 柔和的悬停效果 */
+  .sponsor-card:hover .creator-avatar {
+    transform: scale(1.02);
   }
 
-  @keyframes float-2 {
-    0%,
-    100% {
-      transform: translateY(0px) rotate(0deg);
-      opacity: 0.6;
-    }
-    50% {
-      transform: translateY(-12px) rotate(-8deg);
-      opacity: 1;
-    }
+  .action-btn:hover,
+  .expanded-btn:hover {
+    transform: translateY(-1px);
   }
 
-  @keyframes float-3 {
-    0%,
-    100% {
-      transform: translateY(0px) rotate(0deg);
-      opacity: 0.7;
-    }
-    50% {
-      transform: translateY(-18px) rotate(15deg);
-      opacity: 1;
-    }
+  .function-btn:hover,
+  .function-btn-small:hover {
+    transform: translateY(-1px);
   }
 
-  @keyframes pulse-ring {
-    0% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.05);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-
-  @keyframes spin-slow {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  @keyframes scan {
-    0% {
-      transform: translateY(-100%);
-    }
-    100% {
-      transform: translateY(200px);
-    }
-  }
-
-  .animate-float-1 {
-    animation: float-1 3s ease-in-out infinite;
-  }
-  .animate-float-2 {
-    animation: float-2 4s ease-in-out infinite;
-  }
-  .animate-float-3 {
-    animation: float-3 3.5s ease-in-out infinite;
-  }
-  .animate-pulse-ring {
-    animation: pulse-ring 2s ease-in-out infinite;
-  }
-  .animate-spin-slow {
-    animation: spin-slow 8s linear infinite;
-  }
-  .animate-scan {
-    animation: scan 2s ease-in-out infinite;
-  }
-
-  /* 响应式调整 */
+  /* 响应式优化 */
   @media (max-width: 640px) {
     .expanded-content {
       flex-direction: column;
       gap: 1rem;
+      padding: 1rem;
     }
 
     .expanded-left {
       gap: 0.75rem;
     }
 
-    .stats-container {
+    .function-buttons-expanded {
       justify-content: center;
+      margin-top: 0.5rem;
     }
 
-    .amount-grid {
-      grid-template-columns: repeat(2, 1fr);
+    .qr-dialog {
+      width: 90vw !important;
+      max-width: 380px !important;
+    }
+  }
+
+  /* 深色模式优化 */
+  @media (prefers-color-scheme: dark) {
+    .qr-display {
+      background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
     }
   }
 </style>
