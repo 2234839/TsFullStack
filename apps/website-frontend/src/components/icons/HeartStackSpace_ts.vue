@@ -299,7 +299,7 @@
 
 <script setup lang="ts">
   // 可以在这里定义组件的 props 或其他逻辑
-  const props = defineProps({
+  defineProps({
     type: {
       type: String as () => '蓝霓虹' | '橙3d' | '紫动态',
       default: '蓝霓虹',
