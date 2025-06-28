@@ -238,10 +238,9 @@
       class="qr-dialog"
       :style="{ width: '450px' }">
       <div class="qr-content space-y-6">
-
         <!-- 二维码展示区 -->
         <div class="qr-display max-h-[60vh] h-90 flex justify-center">
-          <img  src="/afdian-崮生.webp" />
+          <img src="/afdian-崮生.webp" />
         </div>
 
         <!-- 感谢信息 -->
@@ -263,8 +262,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, onUnmounted } from 'vue';
+  import { ref, computed, onMounted, onUnmounted, useTemplateRef } from 'vue';
   import Dialog from 'primevue/dialog';
+  import { useElementSize } from '@vueuse/core';
 
   interface Props {
     compactThreshold?: number;
@@ -282,15 +282,9 @@
     targetAmount: 0,
   });
 
-  const containerWidth = ref(0);
   const showQRCode = ref(false);
-  const activeTab = ref<'afdian' | 'alipay'>('afdian');
-  const selectedAmount = ref(20);
-  const customAmount = ref('');
-  const containerRef = ref<HTMLElement>();
-
-  const amounts = [5, 10, 20, 50, 100, 200];
-
+  const containerRef = useTemplateRef('containerRef');
+  const { width: containerWidth } = useElementSize(containerRef);
   const isCompact = computed(() => containerWidth.value < props.compactThreshold);
   const isStandard = computed(
     () =>
@@ -307,28 +301,6 @@
   const handleDirectPay = () => {
     window.open('https://afdian.com/a/llej0', '_blank');
   };
-
-  const resizeObserver = ref<ResizeObserver>();
-
-  onMounted(() => {
-    if (containerRef.value) {
-      containerWidth.value = containerRef.value.offsetWidth;
-
-      resizeObserver.value = new ResizeObserver((entries) => {
-        for (const entry of entries) {
-          containerWidth.value = entry.contentRect.width;
-        }
-      });
-
-      resizeObserver.value.observe(containerRef.value);
-    }
-  });
-
-  onUnmounted(() => {
-    if (resizeObserver.value) {
-      resizeObserver.value.disconnect();
-    }
-  });
 </script>
 
 <style scoped>
