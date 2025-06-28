@@ -23,7 +23,7 @@
           <textarea
             ref="textareaRef"
             v-model="content"
-            class="w-full h-[calc(100vh-13rem)] p-3 sm:p-4 font-mono border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            class="w-full h-[calc(100vh-9rem)] p-3 sm:p-4 font-mono border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             spellcheck="false"
             @keydown.tab.prevent="handleTab"
             placeholder="在此输入计算表达式..."></textarea>
@@ -49,7 +49,7 @@
             </div>
           </div>
           <div
-            class="w-full h-[calc(100vh-13rem)] p-3 sm:p-4 font-mono border border-gray-300 dark:border-gray-600 rounded-md overflow-auto bg-gray-50 dark:bg-gray-700">
+            class="w-full h-[calc(100vh-9rem)] p-3 sm:p-4 font-mono border border-gray-300 dark:border-gray-600 rounded-md overflow-auto bg-gray-50 dark:bg-gray-700">
             <div
               v-if="calculatedResults.length === 0"
               class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
@@ -171,6 +171,7 @@
         </div>
       </div>
     </div>
+    <SponsorshipCard class="mt-6" />
   </div>
 </template>
 
@@ -181,6 +182,7 @@
   import { useCalculator } from './useCalculator';
 
   import { Button } from 'primevue';
+  import SponsorshipCard from '@/components/SponsorshipCard.vue';
 
   //#region 状态管理
   const content = defineModel({ default: '' });

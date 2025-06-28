@@ -28,6 +28,7 @@ declare module 'vue' {
     RouterView: typeof import('vue-router')['RouterView']
     Slider: typeof import('primevue/slider')['default']
     SmartPopover: typeof import('./src/components/base/SmartPopover.vue')['default']
+    SponsorshipCard: typeof import('./src/components/SponsorshipCard.vue')['default']
     Tag: typeof import('primevue/tag')['default']
     TestWarningBanner: typeof import('./src/components/system/TestWarningBanner.vue')['default']
     Textarea: typeof import('primevue/textarea')['default']
