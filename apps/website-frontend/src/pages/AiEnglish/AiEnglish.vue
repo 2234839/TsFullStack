@@ -452,7 +452,7 @@
   import { useTTS } from '@/pages/AiEnglish/util';
   import { useApiStorage } from '@/utils/hooks/UseApiStorage';
   import { useToast } from 'primevue/usetoast';
-  import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
+  import { computed, nextTick, onMounted, reactive, ref, watch, watchEffect } from 'vue';
 
   interface StudySession {
     clickedWords: Set<string>;
@@ -508,11 +508,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       mergeDefaults: true,
     },
   );
-
-  onMounted(async () => {
-    const tokens = tokenizeText(syncData.value.article);
-    await getWordsData(tokens);
-  });
 
   const { words, getWordData, updateWordDatas, getWordsData } = useAiEnglishData();
   const selectedWordKey = ref<string>();
@@ -606,6 +601,14 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       .filter((word) => word.length > 0);
   };
 
+  /** 获取单词数据 */
+  watchEffect(async () => {
+    const text = syncData.value.paragraphs[syncData.value.currentParagraphIndex]?.text;
+    if (!text) return;
+    const tokens = tokenizeText(text);
+    await getWordsData(tokens);
+  });
+
   const splitArticleIntoParagraphs = (text: string): ParagraphData[] => {
     const paragraphTexts = text
       .split(/\n\s*\n|\. {2,}/)
@@ -625,9 +628,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   const initializeWords = async (text: string) => {
     currentSession.clickedWords = new Set();
     currentSession.startTime = Date.now();
-
-    const tokens = tokenizeText(text);
-    await getWordsData(tokens);
 
     syncData.value.paragraphs = splitArticleIntoParagraphs(text);
     syncData.value.currentParagraphIndex = 0;
