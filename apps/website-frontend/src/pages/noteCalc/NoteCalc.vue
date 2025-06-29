@@ -286,6 +286,7 @@
   import { useRoute } from 'vue-router';
   import type { Prisma } from 'tsfullstack-backend';
   import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
+  import { userDataAppid } from '@/storage/userDataAppid';
 
   const toast = useToast();
   const route = useRoute();
@@ -330,7 +331,7 @@
       try {
         // 获取笔记列表，根据是否有搜索关键词决定查询方式
         const where: Prisma.UserDataWhereInput = {
-          appId: 'noteCalc',
+          appId: userDataAppid.NodeCalc,
           userId: authInfo.value?.userId,
         };
 
@@ -516,7 +517,7 @@
 
       const moreNotes = await API.db.userData.findMany({
         where: {
-          appId: 'noteCalc',
+          appId: userDataAppid.NodeCalc,
           userId: authInfo.value?.userId,
         },
         orderBy: {
@@ -703,7 +704,7 @@
         const title = content.value.split('\n')[0]?.trim() || '未命名笔记';
         const newNote = await API.db.userData.create({
           data: {
-            appId: 'noteCalc',
+            appId: userDataAppid.NodeCalc,
             userId: authInfo.value!.userId,
             key: 'note_' + Date.now(),
             data: noteData,

@@ -450,7 +450,8 @@
   } from '@/pages/AiEnglish/ai';
   import { useAiEnglishData } from '@/pages/AiEnglish/data';
   import { useTTS } from '@/pages/AiEnglish/util';
-  import { StorageSerializers, useStorage } from '@vueuse/core';
+  import { useApiStorage } from '@/utils/hooks/UseApiStorage';
+  import { StorageSerializers, useStorage, useStorageAsync } from '@vueuse/core';
   import { useToast } from 'primevue/usetoast';
   import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 
@@ -493,7 +494,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   const { speakText, ttsConfig } = useTTS();
 
   // 需要存储同步的响应式状态
-  const syncData = useStorage<{
+  const syncData = useApiStorage<{
     article: string;
     currentParagraphIndex: number;
     paragraphs: ParagraphData[];
@@ -504,9 +505,11 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       paragraphs: [] as ParagraphData[],
       currentParagraphIndex: 0,
     },
-    undefined,
-    { serializer: StorageSerializers.object, mergeDefaults: true },
+    {
+      mergeDefaults: true,
+    },
   );
+
   onMounted(async () => {
     const tokens = tokenizeText(syncData.value.article);
     await getWordsData(tokens);
