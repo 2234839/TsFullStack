@@ -255,21 +255,18 @@
 
 <script setup lang="ts">
   import { exampleContent } from '@/pages/noteCalc/exampleContent';
-  import {
-    useAsyncState,
-    useClipboard,
-    useDebounceFn,
-    useThrottleFn,
-    useTimestamp,
-  } from '@vueuse/core';
+  import { useAsyncState, useDebounceFn, useThrottleFn, useTimestamp } from '@vueuse/core';
   import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
   import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 
   import { API } from '@/api';
+  import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
   import { t } from '@/i18n';
   import NoteCalcCore from '@/pages/noteCalc/NoteCalcCore.vue';
   import { routeMap, router, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin } from '@/storage';
+  import { userDataAppid } from '@/storage/userDataAppid';
+  import { useSharePlus } from '@/utils/hooks/useSharePlus';
   import {
     Button,
     Dialog,
@@ -283,11 +280,8 @@
     useConfirm,
     useToast,
   } from 'primevue';
-  import { useRoute } from 'vue-router';
   import type { Prisma } from 'tsfullstack-backend';
-  import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
-  import { userDataAppid } from '@/storage/userDataAppid';
-  import { useSharePlus } from '@/utils/hooks/useSharePlus';
+  import { useRoute } from 'vue-router';
 
   const toast = useToast();
   const route = useRoute();
