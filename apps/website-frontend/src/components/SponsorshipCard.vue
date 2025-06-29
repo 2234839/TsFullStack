@@ -265,8 +265,8 @@
 </template>
 
 <script setup lang="ts">
+  import { useSharePlus } from '@/utils/hooks/useSharePlus';
   import { useElementSize } from '@vueuse/core';
-  import { useToast } from 'primevue';
   import Dialog from 'primevue/dialog';
   import { computed, ref, useTemplateRef } from 'vue';
 
@@ -308,19 +308,13 @@
     window.open(qqGroupUrl, '_blank');
   };
 
-  const toast = useToast();
-
+  const { share } = useSharePlus();
   const shareContent = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: '支持独立创作者',
-        text: '发现了一个很棒的创作者，一起来支持吧！',
-        url: window.location.href,
-      });
-    } else {
-      navigator.clipboard.writeText(window.location.href);
-      toast.add({ severity: 'success', summary: '链接已复制到剪贴板', life: 3000 });
-    }
+    share({
+      title: '支持独立创作者',
+      text: '发现了一个很棒的创作者，一起来支持吧！',
+      url: window.location.href,
+    });
   };
 
   const followCreator = () => {

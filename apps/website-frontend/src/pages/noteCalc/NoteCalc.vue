@@ -287,6 +287,7 @@
   import type { Prisma } from 'tsfullstack-backend';
   import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
   import { userDataAppid } from '@/storage/userDataAppid';
+  import { useSharePlus } from '@/utils/hooks/useSharePlus';
 
   const toast = useToast();
   const route = useRoute();
@@ -900,7 +901,9 @@
   };
 
   // 处理分享功能
-  const { copy } = useClipboard();
+
+  const { share } = useSharePlus();
+
   const handleShare = () => {
     try {
       let shareUrl = '';
@@ -914,14 +917,10 @@
         shareUrl = `${window.location.origin}${window.location.pathname}?c=${compressedContent}`;
       }
 
-      // 使用useClipboard的copy方法
-      copy(shareUrl).then(() => {
-        toast.add({
-          severity: 'success',
-          summary: '分享成功',
-          detail: '分享链接已复制到剪贴板！',
-          life: 3000,
-        });
+      share({
+        title: 'noteCalc',
+        text: '',
+        url: shareUrl,
       });
     } catch (error) {
       console.error('分享失败:', error);
