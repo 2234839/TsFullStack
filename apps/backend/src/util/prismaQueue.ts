@@ -108,6 +108,7 @@ export class PrismaQueue<T extends TaskMap> {
     }, 30_000);
   }
 
+  // @ts-ignore
   private async poll() {
     if (!this.isRunning) return;
     if (this.activeWorkers >= this.concurrency) {
