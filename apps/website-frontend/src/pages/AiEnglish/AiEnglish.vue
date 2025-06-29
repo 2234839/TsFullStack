@@ -452,7 +452,7 @@
   import { useTTS } from '@/pages/AiEnglish/util';
   import { useApiStorage } from '@/utils/hooks/UseApiStorage';
   import { useToast } from 'primevue/usetoast';
-  import { computed, nextTick, onMounted, reactive, ref, watch, watchEffect } from 'vue';
+  import { computed, nextTick, reactive, ref, watch, watchEffect } from 'vue';
 
   interface StudySession {
     clickedWords: Set<string>;
