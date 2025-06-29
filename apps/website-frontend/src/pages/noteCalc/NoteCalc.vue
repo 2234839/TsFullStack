@@ -894,10 +894,8 @@
     });
   };
 
-  // 处理分享功能
 
   const { share } = useSharePlus();
-
   const handleShare = () => {
     try {
       let shareUrl = '';
