@@ -3,8 +3,6 @@ import { authInfo, authInfo_isLogin } from '@/storage';
 import { userDataAppid } from '@/storage/userDataAppid';
 import { StorageSerializers, useStorage, useStorageAsync, useThrottleFn } from '@vueuse/core';
 
-const appId = userDataAppid.storage_api;
-
 /** 自定义存储适配器,当用户处于登录状态时使用API存储,否则使用本地存储 */
 export function useApiStorage<T>(
   key: string,
@@ -18,8 +16,11 @@ export function useApiStorage<T>(
     };
     /** 是否合并默认值,默认为false */
     mergeDefaults?: boolean;
+    /** api 存储数据的 appid，默认为 userDataAppid.storage_api 的值 */
+    appId?: string;
   },
 ) {
+  const appId = opts?.appId ?? userDataAppid.storage_api;
   const storage = opts?.storage ?? 'auto';
   const serializer = opts?.serializer ?? StorageSerializers.object;
 
