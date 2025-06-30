@@ -124,33 +124,34 @@ export function useApiStorage<T>(
   }
   const state = createStorage();
 
-  if (opts?.pollingInterval && isLogin) {
-    const { pause, resume, isActive } = useIntervalFn(async () => {
-      try {
-        const res = await API.db.userData.findFirst({
+  async function syncStorage() {
+    try {
+      const res = await API.db.userData.findFirst({
+        where: { key, appId, userId: authInfo.value.userId },
+        select: { version: true },
+      });
+
+      if (res && res.version > localVersion.value) {
+        const fullRes = await API.db.userData.findFirst({
           where: { key, appId, userId: authInfo.value.userId },
-          select: { version: true },
+          select: { version: true, data: true },
         });
-
-        if (res && res.version > localVersion.value) {
-          const fullRes = await API.db.userData.findFirst({
-            where: { key, appId, userId: authInfo.value.userId },
-            select: { version: true, data: true },
-          });
-          if (!fullRes) {
-            throw new Error('Failed to fetch full data');
-          }
-
-          localVersion.value = fullRes.version;
-          // 更新本地状态（这段取决于 storage 类型）
-          const parsed = serializer.read(JSON.stringify(fullRes.data));
-          isSyncingFromRemote.value = true;
-          state.value = parsed;
+        if (!fullRes) {
+          throw new Error('Failed to fetch full data');
         }
-      } catch (err) {
-        console.warn(`[useApiStorage] polling error:`, err);
+
+        localVersion.value = fullRes.version;
+        // 更新本地状态（这段取决于 storage 类型）
+        const parsed = serializer.read(JSON.stringify(fullRes.data));
+        isSyncingFromRemote.value = true;
+        state.value = parsed;
       }
-    }, opts.pollingInterval);
+    } catch (err) {
+      console.warn(`[useApiStorage] polling error:`, err);
+    }
+  }
+  if (opts?.pollingInterval && isLogin) {
+    const { pause, resume, isActive } = useIntervalFn(syncStorage, opts.pollingInterval);
 
     const visibility = useDocumentVisibility();
 
@@ -158,6 +159,8 @@ export function useApiStorage<T>(
     watchEffect(() => {
       if (visibility.value === 'visible' && !isActive.value) {
         resume();
+        // 当页面切换到可见时立即同步一次
+        syncStorage();
       } else if (visibility.value === 'hidden') {
         pause();
       }
