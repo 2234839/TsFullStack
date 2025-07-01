@@ -13,6 +13,7 @@ declare module 'vue' {
     AutoFilter: typeof import('./src/components/AutoTable/AutoFilter.vue')['default']
     AutoForm: typeof import('./src/components/AutoTable/AutoForm.vue')['default']
     AutoTable: typeof import('./src/components/AutoTable/AutoTable.vue')['default']
+    Avatar: typeof import('primevue/avatar')['default']
     Button: typeof import('primevue/button')['default']
     Card: typeof import('primevue/card')['default']
     CommonSettingBtns: typeof import('./src/components/system/CommonSettingBtns.vue')['default']

@@ -291,7 +291,7 @@
         </div>
 
         <!-- 右侧：翻译和统计 -->
-        <div class="space-y-4 sticky top-4 h-fit max-h-[calc(100vh-2rem)] overflow-y-auto">
+        <div class="space-y-4 top-4 h-fit">
           <!-- AI分析结果 -->
           <Card v-if="aiAnalysis" class="border-purple-200 bg-purple-50">
             <template #title>
@@ -433,6 +433,64 @@
               </div>
             </template>
           </Card>
+          <!-- 引流推广 -->
+          <Card class="shadow-lg hover:shadow-xl transition-shadow duration-300 dark:bg-gray-800">
+            <template #title>
+              <div class="flex items-center gap-2 text-primary dark:text-primary-400">
+                <i class="pi pi-lightbulb"></i>
+                <span>实用推荐</span>
+              </div>
+            </template>
+            <template #content>
+              <div class="space-y-4 p-2">
+                <!-- 联合推广块 -->
+                <div
+                  class="rounded-lg border border-purple-200 dark:border-purple-900/30 bg-purple-50/30 dark:bg-purple-900/10 hover:bg-purple-100/50 dark:hover:bg-purple-800/20 transition-colors duration-200">
+                  <!-- 主推内容 -->
+                  <a
+                    href="http://xhslink.com/a/8ULZG6dHT63fb"
+                    target="_blank"
+                    class="block p-4 border-b border-purple-200/50 dark:border-purple-800">
+                    <div class="flex items-start gap-3">
+                      <Avatar
+                        icon="pi pi-microphone"
+                        class="mt-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" />
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium text-gray-900 dark:text-white">
+                          结合使用豆包来提升口语能力
+                        </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">
+                          推荐教程 · xhslink.com/a/8ULZG6d...
+                        </div>
+                      </div>
+                      <i
+                        class="pi pi-external-link text-blue-400 dark:text-blue-500 self-center"></i>
+                    </div>
+                  </a>
+
+                  <!-- 资源链接 -->
+                  <a href="https://doubao.com/bot/JpGxseZo" target="_blank" class="block p-3">
+                    <div class="flex items-center gap-3">
+                      <Avatar
+                        icon="pi pi-robot"
+                        class="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" />
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium text-gray-900 dark:text-white">
+                          推荐使用的豆包机器人
+                        </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 truncate">
+                          资源入口 · doubao.com/bot/JpGxseZo
+                        </div>
+                      </div>
+                      <i class="pi pi-arrow-right text-green-400 dark:text-green-500"></i>
+                    </div>
+                  </a>
+                </div>
+
+                <!-- 后续推广可在此添加 -->
+              </div>
+            </template>
+          </Card>
           <SponsorshipCard />
         </div>
       </div>
@@ -506,7 +564,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     },
     {
       mergeDefaults: true,
-      pollingInterval:5_500
+      pollingInterval: 5_500,
     },
   );
 
