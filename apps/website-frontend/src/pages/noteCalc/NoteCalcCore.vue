@@ -171,7 +171,6 @@
         </div>
       </div>
     </div>
-    <SponsorshipCard class="mt-6" />
   </div>
 </template>
 
@@ -182,7 +181,6 @@
   import { useCalculator } from './useCalculator';
 
   import { Button } from 'primevue';
-  import SponsorshipCard from '@/components/SponsorshipCard.vue';
 
   //#region 状态管理
   const content = defineModel({ default: '' });
