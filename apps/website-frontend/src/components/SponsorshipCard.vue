@@ -219,7 +219,7 @@
       <div class="qr-content space-y-4">
         <!-- 二维码展示区 -->
         <div class="qr-display flex justify-center">
-          <img src="/afdian-崮生.webp" class="max-w-full h-80 rounded-lg shadow-md" />
+          <img src="/afdian-崮生.webp" class="max-w-full h-96 rounded-lg shadow-md" />
         </div>
 
         <!-- 感谢信息 -->
