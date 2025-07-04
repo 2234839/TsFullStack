@@ -146,7 +146,7 @@
         </div>
       </Drawer>
 
-      <!-- 主内容区 -->
+      <!-- 双栏编辑区 -->
       <div class="flex-1 flex flex-col overflow-hidden">
         <div
           class="p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center">
@@ -179,6 +179,7 @@
         </div>
       </div>
     </div>
+    <SponsorshipCard class="mt-6" />
 
     <!-- 设置面板 -->
     <Dialog v-model:visible="showSettings" :header="$t('设置')" modal class="w-[30rem]">
@@ -893,7 +894,6 @@
       reject: () => {},
     });
   };
-
 
   const { share } = useSharePlus();
   const handleShare = () => {
