@@ -110,7 +110,7 @@
     <!-- 展开模式 - 长条形 -->
     <div
       v-else
-      class="expanded-layout relative w-full h-full min-h-[160px] overflow-hidden bg-gradient-to-r from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 border border-gray-200 dark:border-gray-600">
+      class="expanded-layout relative w-full h-full min-h-[160px] overflow-hidden bg-gradient-to-r from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600">
       <!-- 柔和的装饰 -->
       <div
         class="absolute top-4 left-4 w-12 h-12 border border-gray-200/50 rounded-full opacity-30"></div>
