@@ -32,7 +32,7 @@
     <!-- 标准模式 - 中等尺寸 -->
     <div
       v-else-if="isStandard"
-      class="standard-layout relative w-full h-full min-h-[280px] overflow-hidden bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 border border-gray-200 dark:border-gray-600">
+      class="standard-layout relative w-full h-full min-h-[280px] overflow-hidden bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600">
       <!-- 柔和的装饰元素 -->
       <div class="absolute inset-0 opacity-20">
         <div class="absolute top-4 right-4 w-8 h-8 border border-gray-300/50 rounded-full"></div>
@@ -41,7 +41,7 @@
 
       <div class="standard-content relative z-10 p-5 h-full flex flex-col justify-between">
         <div class="standard-header">
-          <div class="floating-hearts absolute -top-1 -right-1">
+          <div class="floating-hearts absolute -top-0.5 -right-0.5">
             <div class="text-lg">☕</div>
           </div>
 
@@ -283,7 +283,7 @@
     compactThreshold: 120,
     expandedThreshold: 500,
     sponsorCount: 1,
-    totalAmount: 0,
+    totalAmount: 30,
     targetAmount: 5000,
     qqGroupNumber: '706761641',
   });
