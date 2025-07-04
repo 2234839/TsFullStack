@@ -282,7 +282,7 @@
   const props = withDefaults(defineProps<Props>(), {
     compactThreshold: 120,
     expandedThreshold: 500,
-    sponsorCount: 0,
+    sponsorCount: 1,
     totalAmount: 0,
     targetAmount: 5000,
     qqGroupNumber: '706761641',
