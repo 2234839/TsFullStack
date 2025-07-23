@@ -312,9 +312,8 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, onMounted, nextTick } from 'vue';
   import { useAPI } from '@/api';
-  import { authInfo } from '@/storage';
+  import { onMounted, ref } from 'vue';
 
   const { API, APIGetUrl } = useAPI();
 
@@ -469,8 +468,7 @@
     if (isImageFile(file.type)) {
       try {
         // 构建文件预览URL
-        previewUrl.value = await APIGetUrl.system.file(file.id);
-        console.log('[previewUrl.value]', previewUrl.value);
+        previewUrl.value = await APIGetUrl.fileApi.file(file.id);
       } catch (error) {
         console.error('Failed to get preview URL:', error);
       }
@@ -550,8 +548,7 @@
 
         try {
           // 调用后端API上传文件
-          await API.system.upload(file);
-
+          await API.fileApi.upload(file);
           // 更新进度
           uploadProgress.value[i] = 100;
 
