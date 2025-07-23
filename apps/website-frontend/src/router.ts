@@ -55,6 +55,14 @@ export const routeMap = reactive({
           icon: 'pi pi-file',
         },
       },
+      UploadList: {
+        path: 'UploadList',
+        component: () => import('@/pages/admin/UploadList.vue'),
+        meta: {
+          title: t('上传列表'),
+          icon: 'pi pi-upload',
+        },
+      },
     },
   },
   noteCalc: {

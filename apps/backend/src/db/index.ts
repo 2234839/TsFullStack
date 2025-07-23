@@ -1,5 +1,5 @@
 import type { PrismaClient as PrismaClientType } from '@zenstackhq/runtime';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, type Prisma } from '@prisma/client';
 import { enhance } from '@zenstackhq/runtime/edge';
 import __ModelMeta from '@zenstackhq/runtime/model-meta';
 import { modelsName } from './model-meta';
@@ -17,23 +17,37 @@ export type safePrisma = Pick<PrismaClientType, (typeof allowedMethods)[number]>
 /** 获取zenstack 生成的增强 Prisma 客户端实例，用于鉴权操作
  *  ！！这个方法的入参是可以用于获取任意帐号的 prisma 实例，因此需要谨慎使用
  */
-export async function getPrisma(opt: { userId?: string; email?: string; x_token_id?: string }) {
+export async function getPrisma(opt: {
+  userId?: string;
+  email?: string;
+  sessionToken?: string;
+  sessionID?: number;
+}) {
   if (Object.values(opt).filter((el) => el).length === 0) {
     throw MsgError.msg('Invalid options');
   }
-  let where = {} as any;
-  if (opt.x_token_id) {
-    where.userSession = { some: { token: opt.x_token_id, expiresAt: { gt: new Date() } } };
+  let where = {} as Prisma.UserWhereInput;
+  if (opt.sessionToken) {
+    where.userSession = { some: { token: opt.sessionToken, expiresAt: { gt: new Date() } } };
+  } else if (opt.sessionID) {
+    where.userSession = { some: { id: opt.sessionID, expiresAt: { gt: new Date() } } };
   } else if (opt.userId) {
     where.id = opt.userId;
   } else if (opt.email) {
     where.email = opt.email;
+  } else {
+    throw MsgError.msg('Invalid options');
   }
-
   const user = await prisma.user.findFirst({
     where,
     include: {
       role: true,
+      userSession: {
+        where: {
+          token: opt.sessionToken,
+          expiresAt: { gt: new Date() },
+        },
+      },
     },
   });
   if (!user) {

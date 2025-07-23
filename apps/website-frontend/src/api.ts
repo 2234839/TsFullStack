@@ -5,6 +5,7 @@ import {
   type API as __API__,
   type AppAPI as __AppAPI__,
   type MsgErrorOpValues,
+  SessionAuthSign,
 } from 'tsfullstack-backend';
 /** 直接引用后端 ts，有完善的类型，可以直接跳转定义，并且可以查看变量引用。但是 vue-tsc 过不去,暂时没想到解决的好办法，只能作为开发时方便使用的临时方案 */
 // import type { API as __API__, AppAPI as __AppAPI__, MsgErrorOpValues } from '../../backend/src/lib';
@@ -42,11 +43,15 @@ export function useAPI(toast?: typeof apiTempToast) {
   });
 
   /** 生成 API 请求 get 形式的 URL，方便在某些场景下使用，例如生成可以直接访问的文件/图片 url 下载链接 */
-  const APIGetUrl = proxyCall(API, ([path, args]) => {
-    const x_token_id = authInfo.value?.token;
-    return `${baseServer}/api/${path}?${
-      x_token_id ? `x_token_id=${x_token_id}&` : ''
-    }args=${encodeURIComponent(superjson.stringify(args))}`;
+  const APIGetUrl = proxyCall(API, async ([path, args]) => {
+    const token = authInfo.value?.token;
+    if (!token) {
+      throw new Error('APIGetUrl requires auth token');
+    }
+    const superjsonStr = superjson.stringify(args);
+    const argsStr = encodeURIComponent(superjsonStr);
+    const sgin = await SessionAuthSign.signByToken(superjsonStr, token);
+    return `${baseServer}/api/${path}?args=${argsStr}&sign=${sgin}&session=${authInfo.value.id}`;
   });
   const AppAPIGetUrl = proxyCall(AppAPI, ([path, args]) => {
     return `${baseServer}/app-api/${path}?args=${encodeURIComponent(superjson.stringify(args))}`;
@@ -106,5 +111,3 @@ export function useAPI(toast?: typeof apiTempToast) {
     return remoteCall;
   }
 }
-
-

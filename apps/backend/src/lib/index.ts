@@ -5,3 +5,5 @@ export { createRPC, proxyCall } from '../rpc';
 export type { AppAPI } from '../api/appApi';
 export type { ModelMeta } from '@zenstackhq/runtime';
 export type { MsgErrorOpValues } from '../util/error';
+
+export * as SessionAuthSign from './SessionAuthSign';

@@ -16,6 +16,7 @@ import { ReqCtxService, type ReqCtx } from '../service/ReqCtx';
 import { systemLog } from '../service/SystemLog';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
+import { SessionAuthSign } from '../lib';
 
 const MAX_WAIT_MS = 360_000;
 
@@ -40,21 +41,67 @@ function handleError(error: unknown) {
 }
 
 // 参数解析函数
-async function parseParams(request: FastifyRequest): Promise<any[]> {
-  const contentType = request.headers['content-type'];
+async function parseParams(req: FastifyRequest): Promise<any[]> {
+  const contentType = req.headers['content-type'];
   if (contentType === 'application/json') {
-    return superjson.deserialize(request.body as SuperJSONResult) as any[];
+    return superjson.deserialize(req.body as SuperJSONResult) as any[];
   } else if (contentType?.startsWith('multipart/form-data')) {
-    const file = await request.file();
+    const file = await req.file();
     if (!file) throw MsgError.msg('No file uploaded');
     const buffer = await file.toBuffer();
     const fileObject = new File([buffer], file.filename, { type: file.mimetype });
     return [fileObject];
+  } else if (req.method === 'GET') {
+    const query = req.query as {
+      args?: string;
+      sign?: string;
+      session?: string;
+    };
+    return query.args ? (superjson.parse(query.args) as any[]) : [];
   } else {
     throw MsgError.msg('Unknown content type:' + contentType);
   }
 }
+function parseParamsAndAuth(req: FastifyRequest) {
+  return Effect.gen(function* () {
+    const query = req.query as {
+      args?: string;
+      sign?: string;
+      session?: string;
+    };
 
+    const querySignMode = req.method === 'GET';
+    const opt: {
+      userId?: string;
+      email?: string;
+      sessionToken?: string;
+      sessionID?: number;
+    } = {};
+    if (query.session && querySignMode) {
+      opt.sessionID = Number(query.session);
+    } else {
+      opt.sessionToken = req.headers['x-token-id'] as string;
+    }
+
+
+    const { db, user } = yield* Effect.promise(() => getAuthFromCache(opt));
+
+    if (querySignMode) {
+      const session = user.userSession[0];
+      if (!session) {
+        throw new MsgError(MsgError.op_toLogin, '请提供有效的 session');
+      }
+      const verify = yield* Effect.promise(() =>
+        SessionAuthSign.verifySignByToken(query.args || '', session.token, query.sign || ''),
+      );
+      if (!verify) {
+        throw new MsgError(MsgError.op_msgError, '签名验证失败');
+      }
+    }
+    const params = yield* Effect.promise(() => parseParams(req));
+    return { params, db, user };
+  });
+}
 type apiCtx = {
   req: FastifyRequest;
   reply: FastifyReply;
@@ -72,8 +119,6 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
   };
   const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
   const p = Effect.gen(function* () {
-    const params = yield* Effect.promise(() => parseParams(req));
-
     const waitTime = Date.now() - enqueueTime;
     if (waitTime > MAX_WAIT_MS) {
       throw MsgError.msg('请求队列处理积压超时');
@@ -81,6 +126,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
 
     let result;
     if (pathPrefix === '/app-api/') {
+      const params = yield* Effect.promise(() => parseParams(req));
       const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
       result = yield* Effect.gen(function* () {
         const res_effect = yield* Effect.promise(() =>
@@ -93,12 +139,8 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
       });
     } else if (pathPrefix === '/api/') {
       // 处理需要鉴权的 API
-
-      let x_token_id = req.headers['x-token-id'];
-      if (typeof x_token_id !== 'string') {
-        result = Exit.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 x_token_id'));
-      } else {
-        const { db, user } = yield* Effect.promise(() => getAuthFromCache(x_token_id));
+      try {
+        const { params, db, user } = yield* parseParamsAndAuth(req);
         result = yield* Effect.gen(function* () {
           const apisRpc = createRPC('apiProvider', {
             genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
@@ -113,7 +155,9 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
           return res;
         })
           // 提供 apis 模块所需要的依赖
-          .pipe(Effect.provideService(AuthService, { x_token_id, db, user }));
+          .pipe(Effect.provideService(AuthService, {  db, user }));
+      } catch (error) {
+        result = error;
       }
     }
     if (result instanceof File) {
