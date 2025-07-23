@@ -484,7 +484,7 @@
   // 下载文件
   const downloadFile = async (file: any) => {
     try {
-      window.open(`/api/files/${file.id}/download`, '_blank');
+      window.open(await APIGetUrl.fileApi.file(file.id), '_blank');
     } catch (error) {
       console.error('Failed to download file:', error);
     }
