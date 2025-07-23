@@ -120,10 +120,10 @@ model File extends Base {
     path        String      // 存储路径或URL
     storageType StorageType // 存储类型
     metadata    Json?       // 额外的元数据
-    status      FileStatusEnum @default(public)// 文件状态
+    status      FileStatusEnum @default(private)// 文件状态
     author      User           @relation(fields: [authorId], references: [id])
     authorId    String
-    @@allow('read,create', auth() == author)
+    @@allow('read,create,delete', auth() == author)
 }
 
 

@@ -5,6 +5,7 @@ import { ReqCtxService } from '../service/ReqCtx';
 import { MsgError } from '../util/error';
 import { genUserSession } from './app/_genUserSession';
 import { githubApi } from './app/github';
+import { fileApi } from './app/file';
 
 async function randomDelay(baseDelay = 500) {
   await new Promise((r) => setTimeout(r, baseDelay + 2_000 * Math.random()));
@@ -62,6 +63,7 @@ export const appApis = {
     },
   },
   githubApi,
+  fileApi,
 
   /** 用于避免 Effect.isEffect 的判断之后得到 Effect<unknown, unknown, unknown> 导致类型系统失效*/
   __effect__() {

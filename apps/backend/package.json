@@ -11,7 +11,7 @@
 		"start": "node --enable-source-maps ./dist/index.cjs",
 		"start:w": "node --enable-source-maps --watch ./dist/index.cjs",
 		"build:lib": "tsup --config tsup-lib.config.ts && pnpm build:lib:dmap",
-		"build:lib:dmap": "tsc -p tsconfig.lib.json",
+		"build:lib:dmap": "tsc -p tsconfig.json",
 		"build:lib:w": "tsup --watch --config tsup-lib.config.ts"
 	},
 	"main": "./dist-lib/index.js",
