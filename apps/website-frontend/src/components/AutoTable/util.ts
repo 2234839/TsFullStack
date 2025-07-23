@@ -23,10 +23,11 @@ export function getModelKey(modelMeta: ModelMeta, modelName: string): string | u
 }
 
 //#region modelMeta ,只有调用 useModelMeta 之后，才会发起请求获取 modelMeta 数据
-const debouncedGetModleMeta = useDebounceFn(
-  () => API.system.getModelMeta() as Promise<ModelMeta>,
-  30,
-);
+const debouncedGetModleMeta = useDebounceFn(async () => {
+  const meta = await API.system.getModelMeta();
+  // 按理说他应该符合 ModelMeta 的类型，但是实际上有区别...
+  return meta as unknown as ModelMeta;
+}, 30);
 const modelMeta = useAsyncState(debouncedGetModleMeta, undefined, {
   immediate: false,
 });
