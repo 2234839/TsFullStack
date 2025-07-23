@@ -13,16 +13,22 @@ setInterval(() => {
 }, 10_000);
 
 /** 基于内存的用户鉴权缓存，避免每次请求都查询数据库中的用户信息  */
-export async function getAuthFromCache(x_token_id: string): ReturnType<typeof getPrisma> {
-  const cached = userCache.get(x_token_id);
+export async function getAuthFromCache(opt: {
+  userId?: string;
+  email?: string;
+  sessionToken?: string;
+  sessionID?: number;
+}): ReturnType<typeof getPrisma> {
+  const cacheKey = `${opt.userId}-${opt.email}-${opt.sessionToken}-${opt.sessionID}`;
+  const cached = userCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     const { res } = cached;
     return res;
   } else {
     // 缓存未命中或已过期，查询数据库
-    const res = await getPrisma({ x_token_id });
+    const res = await getPrisma(opt);
     // 更新缓存
-    userCache.set(x_token_id, { res, timestamp: Date.now() });
+    userCache.set(cacheKey, { res, timestamp: Date.now() });
     return res;
   }
 }

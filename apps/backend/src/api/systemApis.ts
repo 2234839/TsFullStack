@@ -53,11 +53,12 @@ export const systemApis = {
       if (!fileRow) {
         throw MsgError.msg('File not found');
       }
+      console.log('[fileRow]', fileRow);
       // 读取文件内容
       const filePath = fileRow?.path;
       const fileBuffer = yield* Effect.promise(() =>
         readFile(filePath).catch((e) => {
-          throw MsgError.msg('读取文件失败');
+          throw MsgError.msg('读取文件失败' + e);
         }),
       );
       const file = new File([fileBuffer], fileRow.filename);

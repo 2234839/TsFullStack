@@ -4,6 +4,8 @@ const keyData = encoder.encode(SECRET_KEY);
 const keyLength = Math.ceil(keyData.length / 16) * 16;
 const paddedKeyData = new Uint8Array(keyLength);
 paddedKeyData.set(keyData);
+
+
 const key = new Promise<CryptoKey>(async (r) => {
   const k = await crypto.subtle.importKey('raw', paddedKeyData, { name: 'AES-GCM' }, false, [
     'encrypt',
@@ -31,3 +33,6 @@ export const encryptSerializer = {
     return btoa(String.fromCharCode(...new Uint8Array(encrypted)));
   },
 };
+
+
+

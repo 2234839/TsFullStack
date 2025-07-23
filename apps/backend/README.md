@@ -1,5 +1,9 @@
 # 后端
 
+## todo
+
+[] 接入 https://github.com/better-auth/better-auth
+
 ## 修改数据模型
 修改 shcema.zmodel 文件
 然后运行以下命令

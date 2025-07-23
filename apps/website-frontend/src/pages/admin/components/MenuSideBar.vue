@@ -281,6 +281,14 @@
           badgeSeverity: 'info',
           expanded: false,
         },
+        {
+          key: 'UploadList',
+          label: t('上传列表'),
+          icon: 'pi pi-upload',
+          to: routerUtil.to(routeMap.admin.child.UploadList, {}),
+          badgeSeverity: 'info',
+          expanded: false,
+        },
       ],
     },
     {

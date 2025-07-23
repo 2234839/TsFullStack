@@ -123,5 +123,16 @@
   "支持360°全景图片浏览，可嵌入互动热点，适用于文旅、电商等场景。": "Supports 360° panoramic image viewing with interactive hotspot embedding, ideal for cultural tourism, e-commerce, and other scenarios.",
   "轻松构建企业的虚拟展厅/分享美景": "Easily build a virtual exhibition hall for your enterprise / Share beautiful scenery",
   "支持公式、注释、多行计算、单位换算等功能，适用于技术人员与学生。": "Supports functions such as formulas, annotations, multi-line calculations, unit conversions, and is suitable for technical personnel and students.",
-  "支持个人资料管理、任务记录查看、自定义偏好设置等功能。": "Supports functions such as personal profile management, task record viewing, and custom preference settings."
+  "支持个人资料管理、任务记录查看、自定义偏好设置等功能。": "Supports functions such as personal profile management, task record viewing, and custom preference settings.",
+  "文件管理": "File Management",
+  "文件名": "File Name",
+  "类型": "Type",
+  "大小": "Size",
+  "上传时间": "Upload Time",
+  "操作": "Actions",
+  "预览": "Preview",
+  "下载": "Download",
+  "该文件类型不支持预览": "This file type is not supported for preview",
+  "您可以下载文件以查看内容": "You can download the file to view its content",
+  "关闭": "Close"
 }

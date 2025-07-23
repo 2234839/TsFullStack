@@ -5,7 +5,6 @@ export type Database = Awaited<ReturnType<typeof getPrisma>>;
 export class AuthService extends Context.Tag('Database')<
   AuthService,
   {
-    x_token_id: string;
     db: Database['db'];
     user: Database['user'];
   }
