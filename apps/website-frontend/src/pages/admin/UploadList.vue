@@ -210,6 +210,11 @@
             class="p-button-rounded p-button-text ml-2"
             @click="downloadFile(slotProps.data)"
             v-tooltip="$t('下载')" />
+          <Button
+            icon="pi pi-times"
+            class="p-button-rounded p-button-text ml-2"
+            @click="deleteFile(slotProps.data)"
+            v-tooltip="$t('删除')" />
         </template>
       </Column>
     </DataTable>
@@ -484,6 +489,10 @@
       console.error('Failed to download file:', error);
     }
   };
+  async function deleteFile(row: any) {
+    await API.fileApi.delete(row.id);
+    loadFiles();
+  }
 
   // 下载当前文件
   const downloadCurrentFile = () => {

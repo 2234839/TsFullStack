@@ -32,6 +32,21 @@ const main = Effect.gen(function* () {
   }
 
   yield* seedDB.pipe(Effect.provideService(AppConfigService, config));
+
+  // 监控内存使用情况
+  let MemMsg = '';
+  function logMemoryUsage() {
+    const usage = process.memoryUsage();
+    const newMsg = `mem:常驻内存 ${Math.round(usage.rss / 1024 / 1024)} MB  堆总大小${Math.round(
+      usage.heapTotal / 1024 / 1024,
+    )} MB`;
+    if (MemMsg !== newMsg) {
+      MemMsg = newMsg;
+      console.log(MemMsg);
+    }
+  }
+  setInterval(logMemoryUsage, 1_000);
+
   // yield* queue_scheduler;
   yield* startServer.pipe(Effect.provideService(AppConfigService, config));
 });
