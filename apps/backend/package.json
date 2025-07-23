@@ -11,7 +11,7 @@
 		"start": "node --enable-source-maps ./dist/index.cjs",
 		"start:w": "node --enable-source-maps --watch ./dist/index.cjs",
 		"build:lib": "tsup --config tsup-lib.config.ts && pnpm build:lib:dmap",
-		"build:lib:dmap": "tsc ./src/lib/index.ts --emitDeclarationOnly --declaration --declarationMap --outDir ./dist-lib",
+		"build:lib:dmap": "tsc -p tsconfig.lib.json",
 		"build:lib:w": "tsup --watch --config tsup-lib.config.ts"
 	},
 	"main": "./dist-lib/index.js",
@@ -25,18 +25,18 @@
 		"@fastify/multipart": "^9.0.3",
 		"@fastify/static": "^8.2.0",
 		"@prisma/client": "6.7.0",
-		"@zenstackhq/runtime": "^2.16.0",
+		"@zenstackhq/runtime": "^2.17.1",
 		"bcryptjs": "^3.0.2",
-		"c12": "^3.0.4",
-		"effect": "^3.16.10",
+		"c12": "^3.1.0",
+		"effect": "^3.17.1",
 		"fastify": "^5.4.0",
 		"prisma": "6.7.0",
 		"superjson": "^2.2.2",
 		"uuid": "^11.1.0",
-		"zenstack": "2.16.0"
+		"zenstack": "2.17.1"
 	},
 	"devDependencies": {
-		"@types/node": "^24.0.7",
+		"@types/node": "^24.1.0",
 		"tsup": "^8.5.0",
 		"typescript": "^5.8.3"
 	}
