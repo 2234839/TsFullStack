@@ -239,13 +239,14 @@ export function proxyCall<T extends object, R = [string, any[]]>(
   _obj: T,
   transform?: (result: [string, any[]]) => R,
 ): ChainedProxy<T, R> {
-  const path: string[] = [];
+  let path: string[] = [];
 
   const createProxy = (): any => {
     return new Proxy(function () {}, {
       // 拦截函数调用
       apply(_target, _thisArg, args: any[]) {
         const result: [string, any[]] = [path.join('.'), args];
+        path = [];
         // 如果提供了转换函数，则应用转换
         return transform ? transform(result) : result;
       },
