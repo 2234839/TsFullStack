@@ -23,8 +23,12 @@ export const fileApi = {
 
       const filePath = join(appConfig.uploadDir, fileId);
 
-      /** 获取文件流并写入文件流 */
-      const reqFile = yield* Effect.promise(() => reqCtx.req.file());
+      /**  获取文件流并写入文件流 */
+
+      const reqFile = yield* Effect.promise(() =>
+        // @ts-nocheck
+        reqCtx.req.file(),
+      );
       if (!reqFile) throw MsgError.msg('No file uploaded');
       const fileStream = reqFile.file;
 
