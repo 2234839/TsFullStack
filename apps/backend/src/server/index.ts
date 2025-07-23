@@ -3,20 +3,20 @@ import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { LogLevel } from '@zenstackhq/runtime/models';
-import { Effect, Exit, Queue } from 'effect';
+import { Effect, Queue } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import os from 'os';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
+import { SessionAuthSign } from '../lib';
 import { createRPC } from '../rpc';
 import { AuthService } from '../service/Auth';
 import { ReqCtxService, type ReqCtx } from '../service/ReqCtx';
 import { systemLog } from '../service/SystemLog';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
-import { SessionAuthSign } from '../lib';
 
 const MAX_WAIT_MS = 360_000;
 
@@ -46,11 +46,12 @@ async function parseParams(req: FastifyRequest): Promise<any[]> {
   if (contentType === 'application/json') {
     return superjson.deserialize(req.body as SuperJSONResult) as any[];
   } else if (contentType?.startsWith('multipart/form-data')) {
-    const file = await req.file();
-    if (!file) throw MsgError.msg('No file uploaded');
-    const buffer = await file.toBuffer();
-    const fileObject = new File([buffer], file.filename, { type: file.mimetype });
-    return [fileObject];
+    // const file = await req.file();
+    // if (!file) throw MsgError.msg('No file uploaded');
+    // const buffer = await file.toBuffer();
+    // const fileObject = new File([buffer], file.filename, { type: file.mimetype });
+    // return [fileObject];
+    return []
   } else if (req.method === 'GET') {
     const query = req.query as {
       args?: string;
@@ -110,6 +111,7 @@ type apiCtx = {
   onEnd: () => void;
   enqueueTime: number;
 };
+
 function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
   const startTime = Date.now();
   const reqCtx: ReqCtx = {
@@ -117,6 +119,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
     log(...args) {
       this.logs.push(args);
     },
+    req
   };
   const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
   const p = Effect.gen(function* () {
@@ -208,7 +211,7 @@ export const startServer = Effect.gen(function* () {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
   fastify.register(fastifyMultipart, {
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 1000 * 1024 * 1024 }, // 1GB
   });
   console.log('[static]', path.join(__dirname, 'frontend'));
   fastify.register(fastifyStatic, {
