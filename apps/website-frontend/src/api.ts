@@ -48,6 +48,7 @@ export function useAPI(toast?: typeof apiTempToast) {
     if (!token) {
       throw new Error('APIGetUrl requires auth token');
     }
+    console.log('[path]',path);
     const superjsonStr = superjson.stringify(args);
     const argsStr = encodeURIComponent(superjsonStr);
     const sgin = await SessionAuthSign.signByToken(superjsonStr, token);

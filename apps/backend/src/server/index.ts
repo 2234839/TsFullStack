@@ -62,6 +62,7 @@ async function parseParams(req: FastifyRequest): Promise<any[]> {
     throw MsgError.msg('Unknown content type:' + contentType);
   }
 }
+/** 解析参数并通过参数获取鉴权对象 */
 function parseParamsAndAuth(req: FastifyRequest) {
   return Effect.gen(function* () {
     const query = req.query as {
@@ -83,7 +84,6 @@ function parseParamsAndAuth(req: FastifyRequest) {
       opt.sessionToken = req.headers['x-token-id'] as string;
     }
 
-
     const { db, user } = yield* Effect.promise(() => getAuthFromCache(opt));
 
     if (querySignMode) {
@@ -102,6 +102,7 @@ function parseParamsAndAuth(req: FastifyRequest) {
     return { params, db, user };
   });
 }
+
 type apiCtx = {
   req: FastifyRequest;
   reply: FastifyReply;
@@ -155,19 +156,20 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
           return res;
         })
           // 提供 apis 模块所需要的依赖
-          .pipe(Effect.provideService(AuthService, {  db, user }));
+          .pipe(Effect.provideService(AuthService, { db, user }));
       } catch (error) {
         result = error;
       }
     }
     if (result instanceof File) {
-      reply.type(result.type || 'application/octet-stream');
       // 设置文件名
-      reply.header(
-        'Content-Disposition',
-        `attachment; filename="${encodeURIComponent(result.name)}"`,
-      );
-      reply.send(result.stream());
+      reply
+        .type(result.type || 'application/octet-stream')
+        .header('Content-Disposition', `inline; filename="${encodeURIComponent(result.name)}"`)
+        .header('Content-Length', result.arrayBuffer.length);
+      const arrayBuffer = yield* Effect.promise(() => result.arrayBuffer());
+      const buffer = Buffer.from(arrayBuffer);
+      reply.send(buffer);
     } else {
       reply.send(superjson.serialize({ result }));
     }

@@ -549,22 +549,8 @@
         uploadProgress.value[i] = 0;
 
         try {
-          // 创建FormData对象
-          const formData = new FormData();
-          formData.append('file', file);
-
           // 调用后端API上传文件
-          await API.db.file.create({
-            data: {
-              authorId: authInfo.value.userId,
-              filename: file.name,
-              mimetype: file.type,
-              size: file.size,
-              path: '', // 路径将在后端生成
-              storageType: 'LOCAL',
-              status: 'public',
-            },
-          });
+          await API.system.upload(file);
 
           // 更新进度
           uploadProgress.value[i] = 100;
