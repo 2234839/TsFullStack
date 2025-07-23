@@ -17,7 +17,9 @@ import { ReqCtxService, type ReqCtx } from '../service/ReqCtx';
 import { systemLog } from '../service/SystemLog';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
-
+import { FileWarpItem } from '../api/api/file';
+import { ReadableStream } from 'node:stream/web';
+import { pipeline } from 'node:stream/promises';
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
@@ -51,7 +53,7 @@ async function parseParams(req: FastifyRequest): Promise<any[]> {
     // const buffer = await file.toBuffer();
     // const fileObject = new File([buffer], file.filename, { type: file.mimetype });
     // return [fileObject];
-    return []
+    return [];
   } else if (req.method === 'GET') {
     const query = req.query as {
       args?: string;
@@ -112,6 +114,7 @@ type apiCtx = {
   enqueueTime: number;
 };
 
+/** 注意，这里必须要等待发送数据完毕，否则 onEnd 之后数据将无法发送 */
 function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
   const startTime = Date.now();
   const reqCtx: ReqCtx = {
@@ -119,7 +122,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
     log(...args) {
       this.logs.push(args);
     },
-    req
+    req,
   };
   const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
   const p = Effect.gen(function* () {
@@ -128,7 +131,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
       throw MsgError.msg('请求队列处理积压超时');
     }
 
-    let result;
+    let result: any;
     if (pathPrefix === '/app-api/') {
       const params = yield* Effect.promise(() => parseParams(req));
       const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
@@ -164,17 +167,18 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
         result = error;
       }
     }
-    if (result instanceof File) {
+    if (result instanceof FileWarpItem) {
       // 设置文件名
       reply
-        .type(result.type || 'application/octet-stream')
-        .header('Content-Disposition', `inline; filename="${encodeURIComponent(result.name)}"`)
-        .header('Content-Length', result.arrayBuffer.length);
-      const arrayBuffer = yield* Effect.promise(() => result.arrayBuffer());
-      const buffer = Buffer.from(arrayBuffer);
-      reply.send(buffer);
+        .type(result.model.mimetype || 'application/octet-stream')
+        .header(
+          'Content-Disposition',
+          `inline; filename="${encodeURIComponent(result.model.filename)}"`,
+        )
+        .header('Content-Length', result.model.size);
+      yield* Effect.promise(async () => await reply.send(result.getFileSteam()));
     } else {
-      reply.send(superjson.serialize({ result }));
+      yield* Effect.promise(async () => await reply.send(superjson.serialize({ result })));
     }
   }).pipe(
     // 这里可以提供共用的依赖
