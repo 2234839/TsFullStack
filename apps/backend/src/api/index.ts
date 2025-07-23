@@ -4,7 +4,7 @@ import type { allowedMethods } from '../db';
 import { AuthService } from '../service/Auth';
 import { systemApis } from './systemApis';
 import { testApi } from './testApi';
-import { fileApi } from './app/file';
+import { fileApi } from './api/file';
 
 export const apis = {
   system: systemApis,

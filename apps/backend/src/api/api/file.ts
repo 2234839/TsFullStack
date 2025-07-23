@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { AuthService } from '../../service/Auth';
 import { File as FileModel, StorageType } from '@zenstackhq/runtime/models';
-import { readFile, writeFile } from 'fs/promises';
+import { readFile, writeFile, unlink } from 'fs/promises';
 import { join } from 'path/posix';
 import { v7 as uuidv7 } from 'uuid';
 import { MsgError } from '../../util/error';
@@ -61,6 +61,39 @@ export const fileApi = {
         lastModified: fileRow.updated.getTime(),
       });
       return file;
+    });
+  },
+  /** 移除本地文件以及数据库记录 */
+  delete(id: FileModel['id']) {
+    return Effect.gen(function* () {
+      const auth = yield* AuthService;
+
+      const fileRow = yield* Effect.promise(() =>
+        auth.db.file.findUnique({
+          where: {
+            id,
+          },
+        }),
+      );
+      if (!fileRow) {
+        throw MsgError.msg('File not found');
+      }
+      // 删除文件
+      const filePath = fileRow?.path;
+      yield* Effect.promise(() =>
+        unlink(filePath).catch((e) => {
+          throw MsgError.msg('删除文件失败' + e);
+        }),
+      );
+
+      // 删除数据库记录
+      yield* Effect.promise(() =>
+        auth.db.file.delete({
+          where: {
+            id,
+          },
+        }),
+      );
     });
   },
 };
