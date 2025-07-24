@@ -211,6 +211,11 @@
             @click="downloadFile(slotProps.data)"
             v-tooltip="$t('下载')" />
           <Button
+            icon="pi pi-copy"
+            :label="$t('复制公开链接')"
+            class="p-button-rounded p-button-text ml-2"
+            @click="shareFile(slotProps.data)" />
+          <Button
             icon="pi pi-times"
             class="p-button-rounded p-button-text ml-2"
             @click="deleteFile(slotProps.data)"
@@ -318,9 +323,10 @@
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
+  import { useClipboard } from '@vueuse/core';
   import { onMounted, ref } from 'vue';
 
-  const { API, APIGetUrl } = useAPI();
+  const { API, APIGetUrl, AppAPIGetUrl } = useAPI();
 
   // 响应式数据
   const files = ref<any[]>([]);
@@ -492,6 +498,11 @@
   async function deleteFile(row: any) {
     await API.fileApi.delete(row.id);
     loadFiles();
+  }
+  const { copy } = useClipboard();
+
+  async function shareFile(file: any) {
+    copy(await AppAPIGetUrl.fileApi.file(file.id));
   }
 
   // 下载当前文件

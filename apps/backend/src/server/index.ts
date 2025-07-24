@@ -9,6 +9,7 @@ import os from 'os';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { apis, type APIRaw } from '../api';
+import { FileWarpItem } from '../api/api/file';
 import { appApis } from '../api/appApi';
 import { SessionAuthSign } from '../lib';
 import { createRPC } from '../rpc';
@@ -17,9 +18,6 @@ import { ReqCtxService, type ReqCtx } from '../service/ReqCtx';
 import { systemLog } from '../service/SystemLog';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
-import { FileWarpItem } from '../api/api/file';
-import { ReadableStream } from 'node:stream/web';
-import { pipeline } from 'node:stream/promises';
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
@@ -48,11 +46,7 @@ async function parseParams(req: FastifyRequest): Promise<any[]> {
   if (contentType === 'application/json') {
     return superjson.deserialize(req.body as SuperJSONResult) as any[];
   } else if (contentType?.startsWith('multipart/form-data')) {
-    // const file = await req.file();
-    // if (!file) throw MsgError.msg('No file uploaded');
-    // const buffer = await file.toBuffer();
-    // const fileObject = new File([buffer], file.filename, { type: file.mimetype });
-    // return [fileObject];
+    // 在接口中使用 ReqCtx 获取值（为了文件流的优化）
     return [];
   } else if (req.method === 'GET') {
     const query = req.query as {
