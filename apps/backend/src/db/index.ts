@@ -43,17 +43,20 @@ export async function getPrisma(opt: {
     include: {
       role: true,
       userSession: {
+        /** 只包含当前使用的 session，理论上只有一个，有多个返回结果时可能存在问题 */
         where: {
           token: opt.sessionToken,
+          id: opt.sessionID,
           expiresAt: { gt: new Date() },
         },
+        /** 兜底处理，当使用 user.userSession[0] 时能够获取最新的 */
+        orderBy: { expiresAt: 'desc' },
       },
     },
   });
   if (!user) {
     throw new MsgError(MsgError.op_toLogin, 'x_token_id is invalid or user not found');
   }
-
   const db = enhance(prisma, { user }, { logPrismaQuery: DB_DEBUG });
 
   /** 代理对象，限制对 Prisma 客户端的访问方法  */
