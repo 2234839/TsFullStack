@@ -48,14 +48,15 @@ export function useAPI(toast?: typeof apiTempToast) {
     if (!token) {
       throw new Error('APIGetUrl requires auth token');
     }
-    console.log('[path]',path);
     const superjsonStr = superjson.stringify(args);
     const argsStr = encodeURIComponent(superjsonStr);
     const sgin = await SessionAuthSign.signByToken(superjsonStr, token);
     return `${baseServer}/api/${path}?args=${argsStr}&sign=${sgin}&session=${authInfo.value.id}`;
   });
   const AppAPIGetUrl = proxyCall(AppAPI, ([path, args]) => {
-    return `${baseServer}/app-api/${path}?args=${encodeURIComponent(superjson.stringify(args))}`;
+    const superjsonStr = superjson.stringify(args);
+    const argsStr = encodeURIComponent(superjsonStr);
+    return `${baseServer}/app-api/${path}?args=${argsStr}`;
   });
   return { API, AppAPI, APIGetUrl, AppAPIGetUrl };
 
