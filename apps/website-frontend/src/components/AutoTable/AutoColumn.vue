@@ -8,7 +8,7 @@
       <Tag>
         <template #icon v-if="field.isArray">
           <div class="border-r pr-1">
-            {{ cellData.length }}
+            {{ row._count[field.name] }}
           </div>
         </template>
         {{ field.type }}
@@ -21,6 +21,7 @@
     v-model:edit-mode="editMode"
     v-else
     :field="field"
+    :row="row"
     :cellData="props.row[field.name]" />
 </template>
 <script setup lang="ts">
