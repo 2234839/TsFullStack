@@ -9,7 +9,9 @@ export function findIdField(modelMeta: ModelMeta, modelName: string): FieldInfo 
   return idField;
 }
 
-/** 查找一个可以用作显示的列 TODO 之后应该要支持自定义显示字段，这里暂时先用第一个 string 类型的字段代替  */
+/** 查找一个可以用作显示的列
+ * TODO 之后应该要支持自定义显示字段，这里暂时先用第一个 string 类型的字段代替
+ */
 export function findDisplayField(modelMeta: ModelMeta, refModelKey: string) {
   const displayField = Object.values(modelMeta.models[refModelKey].fields).find(
     (f: FieldInfo) => f.type === 'String' && !f.isId,
@@ -27,7 +29,7 @@ const debouncedGetModleMeta = useDebounceFn(async () => {
   const meta = await API.system.getModelMeta();
   // 按理说他应该符合 ModelMeta 的类型，但是实际上有区别...
   return meta as unknown as ModelMeta;
-}, 30);
+}, 100);
 const modelMeta = useAsyncState(debouncedGetModleMeta, undefined, {
   immediate: false,
 });

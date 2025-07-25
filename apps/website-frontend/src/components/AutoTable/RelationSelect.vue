@@ -1,56 +1,99 @@
 <template>
-  <RemoteSelect v-model="modelValue" :queryMethod="queryData" />
+  <div>
+    <RemoteSelect
+      :modelValue="remoteSelectValue"
+      @add="(el) => addItem(el)"
+      @remove="(el) => removeItem(el)"
+      :queryMethod="queryData"
+      :showTag="false" />
+  </div>
 </template>
 
+<script lang="ts">
+  import RemoteSelect, {
+    RemoteSelectUtils,
+    type RemoteSelectItem,
+  } from '@/components/base/RemoteSelect.vue';
+  export type RelationSelectData = {
+    /** 新增和移除，用户手动点击 checked添加的 */
+    add: RemoteSelectItem[];
+    remove: RemoteSelectItem[];
+    /** 之前就在的（在翻页中陆续添加进去） */
+    inculdes: RemoteSelectItem[];
+  };
+</script>
 <script setup lang="ts">
+  import { useAPI } from '@/api';
   import {
     injectModelMetaKey,
     type DBmodelNames,
     type FieldInfo,
     type ModelMeta,
   } from '@/components/AutoTable/type';
-  import RemoteSelect from '@/components/base/RemoteSelect.vue';
-  import { inject, ref, watchEffect } from 'vue';
-  import { useAPI } from '@/api';
   import { findDisplayField, findIdField } from '@/components/AutoTable/util';
+
+  import { computed, inject, reactive } from 'vue';
 
   const props = defineProps<{
     field: FieldInfo;
-    modelValue: any[] | undefined;
-  }>();
-  const modelMeta = inject(injectModelMetaKey)!;
-  interface SelectItem {
-    value: any;
-    label: string;
-  }
-  const emit = defineEmits<{
-    (e: 'selected', value: any[]): void;
+    row?: { [fieldName: string]: any };
   }>();
 
-  //#region 显示列相关数据
+  /** item 都是 RelationData 的 item */
+  const modelValue = reactive({
+    add: [] as RemoteSelectItem[],
+    remove: [] as RemoteSelectItem[],
+
+    inculdes: [] as RemoteSelectItem[],
+  });
+
+  function addItem(item: RemoteSelectItem) {
+    RemoteSelectUtils.removeItem(modelValue.remove, item);
+    RemoteSelectUtils.addItem(modelValue.add, item);
+    emit('change', modelValue);
+  }
+  function removeItem(item: RemoteSelectItem) {
+    RemoteSelectUtils.removeItem(modelValue.add, item);
+    RemoteSelectUtils.addItem(modelValue.remove, item);
+    emit('change', modelValue);
+  }
+
+  function mapRemoteSelectItem(el: any): RemoteSelectItem {
+    return {
+      value: el[refIdField.name],
+      label: el[displayField.name] || el[refIdField.name],
+    };
+  }
+
+  const remoteSelectValue = computed<RemoteSelectItem[]>(() => {
+    const selectList = [...modelValue.add, ...modelValue.inculdes];
+    const list = selectList.filter(
+      (el) =>
+        /** 过滤存在于 remove 列表中的元素 */
+        !modelValue.remove.some((removeItem) => RemoteSelectUtils.itemEquals(el, removeItem)),
+    );
+    return list;
+  });
+
+  const modelMeta = inject(injectModelMetaKey)!;
+  const emit = defineEmits<{
+    (e: 'change', value: any): void;
+  }>();
+
+  //#region 列相关数据
   const relatedModelName = props.field.type;
+  const relatedModel = Object.values(modelMeta.models).find(
+    (model) => model.name === relatedModelName,
+  )!;
   const relatedModelKey = Object.keys(modelMeta.models).find(
     (key) => modelMeta?.models[key].name === relatedModelName,
   ) as DBmodelNames;
+
   const refIdField = findIdField(modelMeta, relatedModelName)!;
   const displayField = findDisplayField(modelMeta, relatedModelKey) || refIdField;
-  //#endregion
 
-  const modelValue = ref<SelectItem[]>(
-    [...(props.modelValue ?? [])].map((el) => ({
-      label: el[displayField.name],
-      value: el[refIdField.name],
-    })),
-  );
-  watchEffect(() => {
-    emit(
-      'selected',
-      [...modelValue.value].map((el) => ({
-        [displayField.name]: el.label,
-        [refIdField.name]: el.value,
-      })),
-    );
-  });
+  const rowModelIdField = findIdField(modelMeta, relatedModel.fields[props.field.backLink!].type);
+  //#endregion
 
   const { API } = useAPI();
   async function loadRelationData(
@@ -70,23 +113,47 @@
       ? {
           [displayField.name]: {
             contains: search,
-            mode: 'insensitive',
           },
         }
       : {};
 
+    const modelIdValue = props.row?.[rowModelIdField!.name];
     const [list, count] = await Promise.all([
       API.db[relatedModelKey].findMany({
         where,
         select: {
           [refIdField.name]: true,
           [displayField.name]: true,
+          /** 需要查询出 backLink 的数据，用于判断是否被引用了  */
+          [props.field.backLink!]: {
+            /** 当没有id时就是where条件不成立了 */
+            ...(modelIdValue && {
+              where: {
+                [rowModelIdField!.name]: props.row?.[rowModelIdField!.name] ?? null,
+              },
+            }),
+
+            select: {
+              [rowModelIdField!.name]: true,
+            },
+          },
         },
         skip,
         take,
       }),
       API.db[relatedModelKey].count({ where }),
     ]);
+    list.forEach((el: any) => {
+      if (!el[props.field.backLink!].length || !modelIdValue) return;
+      // 应该先判断是否存在与 add 或remove 中，存在则跳过
+      const selectItem = mapRemoteSelectItem(el);
+      if (modelValue.add.some((item) => RemoteSelectUtils.itemEquals(item, selectItem))) return;
+      if (modelValue.remove.some((item) => RemoteSelectUtils.itemEquals(item, selectItem))) return;
+      if (modelValue.inculdes.some((item) => RemoteSelectUtils.itemEquals(item, selectItem)))
+        return;
+      modelValue.inculdes.push(selectItem);
+    });
+
     return {
       list: list.map((record: any) => ({
         label: String(record[displayField.name]),

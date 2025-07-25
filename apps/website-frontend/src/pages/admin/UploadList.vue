@@ -406,6 +406,7 @@
             filename: {
               contains: searchTerm.value,
             },
+
           },
           skip,
           take: pageSize,

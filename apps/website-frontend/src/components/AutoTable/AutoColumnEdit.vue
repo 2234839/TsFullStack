@@ -18,18 +18,26 @@
       <InputNumber v-model="editValue" class="w-full min-w-28" inputClass="w-full" />
     </template>
     <template v-else-if="field.isDataModel">
-      <RelationSelect :field="field" :modelValue="editValue" @selected="selectRelation" />
+      <div class="flex items-center">
+        <!-- 关系字段非常特殊，这里做了大量不是很好的操作，以后有好办法了再优化吧 -->
+        <div class="border-r pr-1">
+          {{ row?._count?.[field.name] }}
+        </div>
+        <RelationSelect :field="field" :row="row" @change="changeRelation" />
+      </div>
     </template>
     <template v-else>
-      <span class="text-red-500 text-sm" v-tooltip.top="`Unsupported field type: ` + field.type">{{
-        field.type
-      }}</span
-      >{{ cellData }}</template
-    >
+      <span class="text-red-500 text-sm" v-tooltip.top="`Unsupported field type: ` + field.type">
+        {{ field.type }}
+      </span>
+      {{ cellData }}
+    </template>
   </div>
 </template>
 <script setup lang="ts">
-  import RelationSelect from '@/components/AutoTable/RelationSelect.vue';
+  import RelationSelect, {
+    type RelationSelectData,
+  } from '@/components/AutoTable/RelationSelect.vue';
   import { onClickOutside } from '@vueuse/core';
   import { InputNumber, InputText } from 'primevue';
   import DatePicker from 'primevue/datepicker';
@@ -39,6 +47,7 @@
   const props = defineProps<{
     field: FieldInfo;
     cellData: any;
+    row?: { [fieldName: string]: any };
   }>();
 
   const eidtModel = defineModel<any>();
@@ -60,10 +69,8 @@
   const editMode = defineModel<boolean>('editMode', { default: false });
 
   //#region 关联关系的编辑映射
-
-  function selectRelation(list: /** 这里应是 id 类型的数组 */ any[]) {
-    console.log('[selectRelation]', list);
-    editValue.value = list;
+  function changeRelation(relation: RelationSelectData) {
+    editValue.value = relation;
   }
   //#endregion
 
@@ -72,6 +79,7 @@
     if (props.field.type === 'DateTime' && datePickerShow.value) {
       return /** 因为日期选择面板是在不在当前 div 中，所以当用户选择日期的时候先不管点击外部事件，等日期选择面板关闭后再处理点击外部事件 */;
     }
+    if (props.field.isDataModel) return;
     if (eidtModel.value === undefined) {
       editMode.value = false;
     }

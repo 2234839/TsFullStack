@@ -20,7 +20,11 @@
         </label>
 
         <div>
-          <AutoColumnEdit :field="field" :cellData="undefined" v-model="formData[field.name]" />
+          <AutoColumnEdit
+            :row="formData"
+            :field="field"
+            :cellData="undefined"
+            v-model="formData[field.name]" />
           <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
             fieldErrors[field.name]
           }}</small>
@@ -47,6 +51,7 @@
   import { useI18n } from 'vue-i18n';
   import type { DBmodelNames, FieldInfo, ModelMeta } from './type';
   import { findIdField } from './util';
+  import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
 
   const { t } = useI18n();
   const toast = useToast();
@@ -135,16 +140,17 @@
         }
 
         // 处理关系字段
-        if (field.isDataModel && props.modelMeta) {
-          if (value) {
-            const idField = findIdField(props.modelMeta, field.type);
-            if (idField) {
-              data[fieldName] = {
-                connect: Array.isArray(value)
-                  ? value.map((item) => ({ [idField.name]: item[idField.name] }))
-                  : { [idField.name]: value[idField.name] },
-              };
-            }
+        if (field.isDataModel && props.modelMeta && value) {
+          const relationData = value as RelationSelectData;
+
+          const idField = findIdField(props.modelMeta, field.type);
+          if (idField) {
+            data[fieldName] = {
+              connect: relationData.add.map((item) => ({
+                [idField.name]: item.value,
+              })),
+              // 因为是新增数据，所以不用处理断开的情况
+            };
           }
         } else {
           data[fieldName] = value;

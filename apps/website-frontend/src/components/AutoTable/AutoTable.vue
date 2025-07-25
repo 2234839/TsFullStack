@@ -68,16 +68,17 @@
     @created="onRecordCreated()" />
 </template>
 <script setup lang="ts">
-  import { useAPI } from '@/api';
-  import AutoFilter from '@/components/AutoTable/AutoFilter.vue';
-  import AutoForm from '@/components/AutoTable/AutoForm.vue';
-  import { useAsyncState } from '@vueuse/core';
-  import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
-  import { computed, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
-  import { useI18n } from 'vue-i18n';
-  import AutoColumn from './AutoColumn.vue';
-  import { injectModelMetaKey, type DBmodelNames, type FieldInfo } from './type';
-  import { findDisplayField, findIdField, getModelKey, useModelMeta } from './util';
+  import { useAPI } from '@/api'
+import AutoFilter from '@/components/AutoTable/AutoFilter.vue'
+import AutoForm from '@/components/AutoTable/AutoForm.vue'
+import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue'
+import { useAsyncState } from '@vueuse/core'
+import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue'
+import { computed, nextTick, provide, ref, useTemplateRef, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import AutoColumn from './AutoColumn.vue'
+import { injectModelMetaKey, type DBmodelNames } from './type'
+import { findIdField, useModelMeta } from './util'
   const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
@@ -141,31 +142,15 @@
       if (!meta || !models) return { list: [], modelFields: {}, count: 0 };
 
       const modelFields = models[opt.modelKey].fields;
-      const dataModelFields = Object.values(modelFields).filter(
-        (el) => (el as FieldInfo).isDataModel,
-      );
-
-      const include = dataModelFields.reduce((acc, field) => {
-        const refModelName = field.isDataModel ? field.type : field.name;
-        const refIdField = findIdField(meta, refModelName)!;
-        const refModelKey = getModelKey(meta, refModelName)!;
-        const refDisplayField = findDisplayField(meta, refModelKey) || refIdField;
-        if (!refIdField || !refModelKey) return acc;
-        acc[field.name] = {
-          select: {
-            [refIdField.name]: true,
-            [refDisplayField.name]: true,
-          },
-        };
-        return acc;
-      }, {} as Record<string, any>);
 
       const [list, count] = await Promise.all([
         API.db[opt.modelKey as DBmodelNames].findMany({
           take: opt.pageSize,
           skip: (opt.page - 1) * opt.pageSize,
           where: filter.value,
-          include,
+          include: {
+            _count: true,
+          },
         }),
         API.db[opt.modelKey as DBmodelNames].count({
           where: filter.value,
@@ -232,35 +217,18 @@
         const refIdField = findIdField(modelMeta.state.value!, field.type)!;
 
         if (field.isDataModel) {
+          const relationData = editRow[editFieldName] as RelationSelectData;
           editRow[editFieldName] = {
-            connect: editRow[editFieldName].map((item: any) => ({
-              [refIdField.name]: item[refIdField.name],
+            connect: relationData.add.map((item) => ({
+              [refIdField.name]: item.value,
             })),
-            // 比较 rawRow 相对于 editRow 中减少的，然后使用 disconnect 断开关联
-            disconnect:
-              // @ts-ignore
-              (rawRow[editFieldName] as any[])
-                ?.filter(
-                  (item: any) =>
-                    !(editRow[editFieldName] as unknown as any[])?.find(
-                      (el) => el[refIdField.name] === item[refIdField.name],
-                    ),
-                )
-                ?.map((item: any) => ({ [refIdField.name]: item[refIdField.name] })) || [],
+            disconnect: relationData.remove.map((item) => ({
+              [refIdField.name]: item.value,
+            })),
           };
         }
       });
-      // API.db.role.update({
-      //   where: {
-      //     id: 2,
-      //   },
-      //   data: {
-      //     users: {
-      //       disconnect: [{}],
-      //     },
-      //   },
-      // });
-
+      console.log('[editRow]', editRow);
       const updateRes = await API.db[selectModelMeta.value!.modelKey as DBmodelNames].update({
         data: editRow,
         // @ts-ignore

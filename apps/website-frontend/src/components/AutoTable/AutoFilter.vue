@@ -45,7 +45,7 @@
 
         <!-- 使用AutoColumn组件进行值编辑 -->
         <div class="w-1/3" v-if="filter.field">
-          <AutoColumnEdit :field="filter.field" :cellData="undefined" v-model="filter.value" />
+          <AutoColumnEdit :row="filter.value" :field="filter.field" :cellData="undefined" v-model="filter.value" />
         </div>
         <div class="w-1/3" v-else>
           <InputText disabled :placeholder="t('请先选择字段')" class="w-full" />
