@@ -83,9 +83,6 @@ importers:
       fastify:
         specifier: ^5.4.0
         version: 5.4.0
-      prisma:
-        specifier: 6.7.0
-        version: 6.7.0(typescript@5.8.3)
       superjson:
         specifier: ^2.2.2
         version: 2.2.2
@@ -102,6 +99,9 @@ importers:
       '@types/node':
         specifier: ^24.1.0
         version: 24.1.0
+      prisma:
+        specifier: 6.7.0
+        version: 6.7.0(typescript@5.8.3)
       tsup:
         specifier: ^8.5.0
         version: 8.5.0(@microsoft/api-extractor@7.52.4(@types/node@24.1.0))(jiti@2.4.2)(postcss@8.5.6)(typescript@5.8.3)(yaml@2.7.1)

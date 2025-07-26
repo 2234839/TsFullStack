@@ -68,17 +68,17 @@
     @created="onRecordCreated()" />
 </template>
 <script setup lang="ts">
-  import { useAPI } from '@/api'
-import AutoFilter from '@/components/AutoTable/AutoFilter.vue'
-import AutoForm from '@/components/AutoTable/AutoForm.vue'
-import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue'
-import { useAsyncState } from '@vueuse/core'
-import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue'
-import { computed, nextTick, provide, ref, useTemplateRef, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import AutoColumn from './AutoColumn.vue'
-import { injectModelMetaKey, type DBmodelNames } from './type'
-import { findIdField, useModelMeta } from './util'
+  import { useAPI } from '@/api';
+  import AutoFilter from '@/components/AutoTable/AutoFilter.vue';
+  import AutoForm from '@/components/AutoTable/AutoForm.vue';
+  import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
+  import { useAsyncState } from '@vueuse/core';
+  import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
+  import { computed, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
+  import { useI18n } from 'vue-i18n';
+  import AutoColumn from './AutoColumn.vue';
+  import { injectModelMetaKey, type DBmodelNames } from './type';
+  import { findIdField, useModelMeta } from './util';
   const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
