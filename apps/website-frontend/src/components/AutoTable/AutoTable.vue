@@ -143,7 +143,6 @@
 
       const modelFields = models[opt.modelKey].fields;
       let _count = { select: {} as { [key: string]: boolean } };
-      console.log('[modelFields]', modelFields);
       Object.entries(modelFields).forEach(([key, field]) => {
         if (field.isDataModel && field.isArray) {
           _count.select[key] = true;
