@@ -142,15 +142,21 @@
       if (!meta || !models) return { list: [], modelFields: {}, count: 0 };
 
       const modelFields = models[opt.modelKey].fields;
-
+      let _count = { select: {} as { [key: string]: boolean } };
+      console.log('[modelFields]', modelFields);
+      Object.entries(modelFields).forEach(([key, field]) => {
+        if (field.isDataModel && field.isArray) {
+          _count.select[key] = true;
+        }
+      });
       const [list, count] = await Promise.all([
         API.db[opt.modelKey as DBmodelNames].findMany({
           take: opt.pageSize,
           skip: (opt.page - 1) * opt.pageSize,
           where: filter.value,
-          include: {
-            _count: true,
-          },
+          ...(Object.keys(_count.select).length > 0 && {
+            include: { _count },
+          }),
         }),
         API.db[opt.modelKey as DBmodelNames].count({
           where: filter.value,
