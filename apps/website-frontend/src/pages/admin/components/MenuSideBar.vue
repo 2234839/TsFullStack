@@ -289,6 +289,12 @@
           badgeSeverity: 'info',
           expanded: false,
         },
+        {
+          key: 'ShareList',
+          label: t('分享管理'),
+          icon: routeMap.admin.child.ShareList.meta.icon,
+          to: routerUtil.to(routeMap.admin.child.ShareList, {}),
+        },
       ],
     },
     {

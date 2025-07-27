@@ -63,6 +63,14 @@ export const routeMap = reactive({
           icon: 'pi pi-upload',
         },
       },
+      ShareList:{
+        path: 'ShareList',
+        component: () => import('@/pages/admin/share/ShareList.vue'),
+        meta: {
+          title: t('分享列表'),
+          icon: 'pi pi-share-alt',
+        },
+      }
     },
   },
   noteCalc: {
