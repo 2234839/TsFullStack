@@ -32,7 +32,7 @@
 1. **基于树的路由** - 路由在嵌套树结构中定义，并转换为 Vue Router 格式
 2. **自定义 RPC 系统** - 通过类型化的 API 调用和自动序列化与后端通信
 3. **组件自动导入** - 通过 unplugin-vue-components 自动导入 PrimeVue 组件
-4. **Tailwind 与 PrimeVue** - 结合使用 Tailwind 和 PrimeVue 主题的混合样式方法
+4. **Tailwind 与 PrimeVue** - 结合使用 Tailwind 和 PrimeVue 主题的混合样式方法，能使用 tailwind的就不要写css
 5. **懒加载** - 通过动态导入懒加载路由组件
 
 ### 项目结构

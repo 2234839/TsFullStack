@@ -25,6 +25,51 @@
         @update:visible="dialogVisible = $event"
         @success="handleSuccess" />
 
+      <!-- QR码对话框 -->
+      <Dialog
+        v-model:visible="qrDialogVisible"
+        :header="$t('分享二维码')"
+        :modal="true"
+        :style="{ width: '300px' }"
+        :closable="true"
+        class="p-fluid">
+        <div class="text-center">
+          <div class="mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              {{ (selectedQRItem?.data as unknown as ShareJSON)?.title }}
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              {{ $t('扫描二维码访问分享') }}
+            </p>
+          </div>
+
+          <div class="flex justify-center mb-4">
+            <img
+              v-if="qrCodeDataUrl"
+              :src="qrCodeDataUrl"
+              :alt="$t('分享二维码')"
+              class="border border-gray-300 dark:border-gray-600 rounded-lg"
+              width="200"
+              height="200" />
+            <div v-else class="w-52 h-52 flex items-center justify-center text-gray-500">
+              {{ $t('生成二维码中...') }}
+            </div>
+          </div>
+
+          <div class="text-xs text-gray-500 dark:text-gray-400 break-all">
+            {{ currentShareUrl }}
+          </div>
+
+          <div class="mt-4">
+            <Button
+              :label="$t('复制链接')"
+              icon="pi pi-copy"
+              class="p-button-sm"
+              @click="copyToClipboard" />
+          </div>
+        </div>
+      </Dialog>
+
       <!-- 加载状态 -->
       <div v-if="shareList.isLoading.value" class="flex justify-center items-center h-64">
         <ProgressSpinner />
@@ -58,11 +103,16 @@
 
             <!-- 标题和文件信息 -->
             <div class="p-4">
+              <h3 class="text-lg h-8 font-semibold text-gray-900 dark:text-white truncate mb-2">
+                {{ (item.data as unknown as ShareJSON).title }}
+              </h3>
               <div class="flex items-center">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white truncate mb-2">
-                  {{ (item.data as unknown as ShareJSON).title }}
-                </h3>
                 <div class="flex-1"></div>
+                <Button
+                  icon="pi pi-qrcode"
+                  class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
+                  @click.stop="handleShowQRCode(item as any)"
+                  :aria-label="$t('显示二维码')" />
                 <Button
                   icon="pi pi-link"
                   class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
@@ -117,6 +167,7 @@
   import { userDataAppid } from '@/storage/userDataAppid';
   import { useAsyncState, watchDebounced } from '@vueuse/core';
   import type { Prisma } from 'tsfullstack-backend';
+  import QRCode from 'qrcode';
   import { reactive, ref } from 'vue';
 
   const { API } = useAPI();
@@ -180,6 +231,18 @@
   /** 正在编辑的分享项 */
   const editingItem = ref<ShareItemJSON | undefined>();
 
+  /** QR码对话框可见性 */
+  const qrDialogVisible = ref(false);
+
+  /** 选中的分享项用于显示QR码 */
+  const selectedQRItem = ref<ShareItemJSON | null>(null);
+
+  /** 当前分享URL */
+  const currentShareUrl = ref('');
+
+  /** QR码数据URL */
+  const qrCodeDataUrl = ref('');
+
   /**
    * 打开创建对话框
    */
@@ -214,6 +277,48 @@
   const handleEdit = (item: ShareItemJSON) => {
     openEditDialog(item);
   };
+
+  /**
+   * 显示分享二维码
+   * @param item 分享项
+   */
+  const handleShowQRCode = async (item: ShareItemJSON) => {
+    selectedQRItem.value = item;
+    const baseUrl = window.location.origin;
+    currentShareUrl.value = `${baseUrl}${routeMap.ShareDetail.path.replace(
+      ':id',
+      String(item.id),
+    )}`;
+
+    try {
+      qrCodeDataUrl.value = await QRCode.toDataURL(currentShareUrl.value, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF',
+        },
+      });
+    } catch (error) {
+      console.error('生成二维码失败:', error);
+      qrCodeDataUrl.value = '';
+    }
+
+    qrDialogVisible.value = true;
+  };
+
+  /**
+   * 复制分享链接到剪贴板
+   */
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(currentShareUrl.value);
+      // 这里可以添加一个toast提示，但项目可能有自己的通知系统
+    } catch (error) {
+      console.error('复制失败:', error);
+    }
+  };
+
   const handleGotoDetail = (item: ShareItemJSON) => {
     routerUtil.newBlank(routeMap.ShareDetail, {
       id: String(item.id),
