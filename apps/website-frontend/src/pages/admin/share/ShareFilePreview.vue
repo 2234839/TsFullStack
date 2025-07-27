@@ -51,9 +51,9 @@
 
     <!-- 其他文件类型 -->
     <div v-else class="file-preview">
-      <div class="file-icon">
+      <div class="file-icon flex items-center justify-center">
         <i
-          class="pi pi-file text-4xl"
+          class="pi pi-file text-4xl!"
           :class="{ 'text-blue-500': !isDark, 'text-blue-400': isDark }"
         ></i>
       </div>
