@@ -4,4 +4,6 @@ export const userDataAppid = {
   NodeCalc: 'noteCalc',
   /** useApiStorage 的 key */
   storage_api: 'storage_api',
+  /**  用于存储分享信息 */
+  shareInfo: 'shareInfo',
 };
