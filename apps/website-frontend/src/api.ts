@@ -45,7 +45,6 @@ export function useAPI(toast?: typeof apiTempToast) {
   /** 生成 API 请求 get 形式的 URL，方便在某些场景下使用，例如生成可以直接访问的文件/图片 url 下载链接 */
   const APIGetUrl = proxyCall(API, async ([path, args]) => {
     const token = authInfo.value?.token;
-    console.log('[token]', token);
     if (!token) {
       throw new Error('APIGetUrl requires auth token');
     }

@@ -8,7 +8,22 @@
         </p>
       </div>
 
-      <ShareForm @success="shareList.execute()" />
+      <div class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
+        <div class="relative w-full sm:w-1/3">
+          <InputText v-model="searchTitle" :placeholder="$t('搜索')" class="w-full pl-10" />
+        </div>
+        <Button
+          :label="$t('新建分享')"
+          icon="pi pi-plus"
+          @click="openCreateDialog"
+          class="p-button-success self-end sm:self-auto" />
+      </div>
+
+      <ShareForm
+        :visible="dialogVisible"
+        :editing-item="editingItem"
+        @update:visible="dialogVisible = $event"
+        @success="handleSuccess" />
 
       <!-- 加载状态 -->
       <div v-if="shareList.isLoading.value" class="flex justify-center items-center h-64">
@@ -38,8 +53,7 @@
           <div
             v-for="item in shareList.state.value.data"
             :key="item.id"
-            class="group relative bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden"
-            @click="handleCardClick(item as any)">
+            class="group relative bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
             <ShareCard :data="(item as any)" />
 
             <!-- 标题和文件信息 -->
@@ -75,13 +89,11 @@
         </div>
 
         <!-- 分页 -->
-        <div class="flex justify-center">
-          <Paginator
-            :rows="shareList.params.take"
-            :total-records="shareList.state.value.total"
-            :first="shareList.params.skip"
-            @page="onPageChange" />
-        </div>
+        <Paginator
+          :rows="shareList.params.take"
+          :total-records="shareList.state.value.total"
+          :first="shareList.params.skip"
+          @page="onPageChange" />
       </div>
     </div>
   </div>
@@ -98,17 +110,14 @@
   } from '@/pages/admin/share/ShareDef';
   import ShareForm from '@/pages/admin/share/ShareForm.vue';
   import { userDataAppid } from '@/storage/userDataAppid';
-  import { useAsyncState } from '@vueuse/core';
+  import { useAsyncState, watchDebounced } from '@vueuse/core';
   import type { Prisma } from 'tsfullstack-backend';
-  import { reactive } from 'vue';
+  import { reactive, ref } from 'vue';
 
-  const { API, APIGetUrl } = useAPI();
+  const { API } = useAPI();
 
-  // 定义 emits
-  const emit = defineEmits<{
-    (e: 'edit', item: ShareItemJSON): void;
-    (e: 'delete', item: ShareItemJSON): void;
-  }>();
+  // 搜索关键词
+  const searchTitle = ref('');
 
   function useShareList() {
     const params = reactive({
@@ -154,25 +163,51 @@
       isLoading,
       execute,
       params,
+      where,
     };
   }
 
   const shareList = useShareList();
+
+  /** 对话框可见性 */
+  const dialogVisible = ref(false);
+
+  /** 正在编辑的分享项 */
+  const editingItem = ref<ShareItemJSON | undefined>();
+
+  /**
+   * 打开创建对话框
+   */
+  const openCreateDialog = () => {
+    editingItem.value = undefined;
+    dialogVisible.value = true;
+  };
+
+  /**
+   * 打开编辑对话框
+   * @param item 分享项
+   */
+  const openEditDialog = (item: ShareItemJSON) => {
+    editingItem.value = item;
+    dialogVisible.value = true;
+  };
+
+  /**
+   * 处理操作成功
+   */
+  const handleSuccess = () => {
+    shareList.execute();
+    dialogVisible.value = false;
+  };
 
   const onPageChange = (event: any) => {
     shareList.params.skip = event.first;
     shareList.execute();
   };
 
-  // 卡片点击处理
-  const handleCardClick = (item: ShareItemJSON) => {
-    // 可以在这里添加查看详情的逻辑
-    console.log('查看分享详情:', item);
-  };
-
   // 编辑处理
   const handleEdit = (item: ShareItemJSON) => {
-    emit('edit', item);
+    openEditDialog(item);
   };
 
   // 删除处理
@@ -194,6 +229,27 @@
       }
     }
   };
+
+  // 防抖监听搜索输入
+  watchDebounced(
+    searchTitle,
+    (newVal) => {
+      // 更新 where 条件中的 title 过滤字段
+      if (newVal) {
+        shareList.where.data = {
+          path: 'title',
+          string_contains: newVal,
+        };
+      } else {
+        delete shareList.where.data; // 清除过滤条件
+      }
+
+      // 重置分页并刷新数据
+      shareList.params.skip = 0;
+      shareList.execute();
+    },
+    { debounce: 300 },
+  );
 </script>
 
 <style scoped>
