@@ -63,14 +63,22 @@ export const routeMap = reactive({
           icon: 'pi pi-upload',
         },
       },
-      ShareList:{
+      ShareList: {
         path: 'ShareList',
         component: () => import('@/pages/admin/share/ShareList.vue'),
         meta: {
           title: t('分享列表'),
           icon: 'pi pi-share-alt',
         },
-      }
+      },
+    },
+  },
+  ShareDetail: {
+    path: '/ShareDetail/:id',
+    component: () => import('@/pages/share/ShareDetail.vue'),
+    meta: {
+      title: t('分享详情'),
+      icon: 'pi pi-share',
     },
   },
   noteCalc: {
@@ -182,7 +190,7 @@ function transformRoutes(tree?: RouteTree): RouteNode[] {
       route.name = `route-${routeNameId++}`;
     }
     if (route.props === undefined) {
-      route.props = (route) => ({ ...route.query });
+      route.props = (route) => ({ ...route.query, ...route.params });
     }
 
     return {
@@ -255,9 +263,19 @@ export function createRouteUtil(router: Router) {
       const targetRouter = getTargetRouter(obj);
       return { name: targetRouter.name, params: props, query: query } as RouteLocationRaw;
     },
-    newBlank<T extends RouteNode>(obj: T) {
-      window.open(router.resolve({ name: obj.name }).href, '_blank');
+    newBlank<T extends RouteNode>(
+      obj: T,
+      props: T extends { component: any } ? RouteObjProps<T> : undefined,
+      query?: T extends { component: any } ? Partial<RouteObjProps<T>> : undefined,
+    ) {
+      const targetRouter = getTargetRouter(obj);
+      window.open(
+        router.resolve({ name: targetRouter.name, params: props, query: query } as RouteLocationRaw)
+          .href,
+        '_blank',
+      );
     },
+
     query2Arr<T>(value: T[] | T | undefined) {
       return Array.isArray(value) ? value : value ? [value] : [];
     },

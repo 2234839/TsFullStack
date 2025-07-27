@@ -64,6 +64,10 @@
                 </h3>
                 <div class="flex-1"></div>
                 <Button
+                  icon="pi pi-link"
+                  class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
+                  @click.stop="handleGotoDetail(item as any)" />
+                <Button
                   icon="pi pi-pencil"
                   class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
                   @click.stop="handleEdit(item as any)"
@@ -109,6 +113,7 @@
     type ShareJSON,
   } from '@/pages/admin/share/ShareDef';
   import ShareForm from '@/pages/admin/share/ShareForm.vue';
+  import { routeMap, routerUtil } from '@/router';
   import { userDataAppid } from '@/storage/userDataAppid';
   import { useAsyncState, watchDebounced } from '@vueuse/core';
   import type { Prisma } from 'tsfullstack-backend';
@@ -209,7 +214,11 @@
   const handleEdit = (item: ShareItemJSON) => {
     openEditDialog(item);
   };
-
+  const handleGotoDetail = (item: ShareItemJSON) => {
+    routerUtil.newBlank(routeMap.ShareDetail, {
+      id: String(item.id),
+    });
+  };
   // 删除处理
   const handleDelete = async (item: ShareItemJSON) => {
     if (confirm('确定要删除这个分享吗？')) {
