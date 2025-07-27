@@ -9,6 +9,15 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# 配置变量
+SSH_USER="root"
+SSH_HOST="47.236.134.32"
+DEPLOY_PATH="/root/app/TsFullStack"
+
+# 构建目标地址
+SSH_TARGET="$SSH_USER@$SSH_HOST"
+REMOTE_PATH="$DEPLOY_PATH"
+
 # SSH 配置
 SSH_OPTS="-o ControlMaster=auto -o ControlPath=/tmp/ssh-deploy-%r@%h:%p -o ControlPersist=600"
 
@@ -44,8 +53,8 @@ timer_start
 
 # 1. 准备阶段
 show_progress "准备远程环境..."
-ssh $SSH_OPTS root@47.236.134.32 "
-    mkdir -p /root/app/TsFullStack/{dist/frontend,prisma/migrations} &&
+ssh $SSH_OPTS "$SSH_TARGET" "
+    mkdir -p $REMOTE_PATH/{dist/frontend,prisma/migrations} &&
     echo '环境准备完成'
 " || { show_error "环境准备失败"; exit 1; }
 show_success "远程环境准备完成"
@@ -57,21 +66,21 @@ timer_start
 
 # 并行同步
 {
-    # 后端代码
-    rsync -avz --delete --compress-level=9 -e "ssh $SSH_OPTS" \
-        ./dist/ root@47.236.134.32:/root/app/TsFullStack/dist/ &
+    # 后端代码（排除 frontend 目录，避免删除前端文件）
+    rsync -avz --delete --exclude='frontend' --compress-level=9 -e "ssh $SSH_OPTS" \
+        ./dist/ "$SSH_TARGET:$REMOTE_PATH/dist/" &
     BACKEND_PID=$!
 
     # 前端代码
     rsync -avz --delete --compress-level=9 -e "ssh $SSH_OPTS" \
-        ../website-frontend/dist/ root@47.236.134.32:/root/app/TsFullStack/dist/frontend/ &
+        ../website-frontend/dist/ "$SSH_TARGET:$REMOTE_PATH/dist/frontend/" &
     FRONTEND_PID=$!
 
     # 数据库迁移和 Prisma 文件 以及 Prisma 引擎二进制
     rsync -avz --delete --compress-level=9 -e "ssh $SSH_OPTS" \
         ./prisma/{migrations,schema.prisma} \
         ./node_modules/prisma/libquery_engine-debian-openssl-3.0.x.so.node \
-        root@47.236.134.32:/root/app/TsFullStack/ &
+        "$SSH_TARGET:$REMOTE_PATH/" &
     DB_PID=$!
 
     wait $BACKEND_PID $FRONTEND_PID $DB_PID
@@ -84,8 +93,8 @@ timer_end
 show_progress "执行远程部署..."
 timer_start
 
-ssh $SSH_OPTS root@47.236.134.32 "
-    cd /root/app/TsFullStack/
+ssh $SSH_OPTS "$SSH_TARGET" "
+    cd $REMOTE_PATH/
 
     # 数据库迁移
     echo '执行数据库迁移...'
@@ -102,6 +111,6 @@ show_success "远程部署完成"
 timer_end
 
 # 清理
-ssh $SSH_OPTS -O exit root@47.236.134.32 2>/dev/null || true
+ssh $SSH_OPTS -O exit "$SSH_TARGET" 2>/dev/null || true
 
 echo -e "${GREEN}🎉 部署成功完成！${NC}"

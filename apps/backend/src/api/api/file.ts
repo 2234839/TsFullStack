@@ -116,8 +116,8 @@ export const fileApi = {
       if (!fileRow) {
         throw MsgError.msg('File not found');
       }
-      // 删除文件
-      const filePath = fileRow?.path;
+      const appConfig = yield* AppConfigService;
+      const filePath = join(appConfig.uploadDir, fileRow.path);
       yield* Effect.promise(() =>
         unlink(filePath).catch((e) => {
           throw MsgError.msg('删除文件失败' + e);
