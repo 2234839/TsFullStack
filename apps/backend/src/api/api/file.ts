@@ -61,7 +61,7 @@ export const fileApi = {
           data: {
             filename: reqFile.filename,
             mimetype: reqFile.mimetype,
-            path: filePath,
+            path: fileId,
             size: fileSize,
             storageType: StorageType.LOCAL,
             authorId: auth.user.id,
@@ -90,8 +90,10 @@ export const fileApi = {
       if (!fileRow?.path) {
         throw MsgError.msg('File not found');
       }
+      const appConfig = yield* AppConfigService;
       // 读取文件内容,将相对路径转为绝对路径,fastify似乎需要绝对路径
-      const filePath = resolve(fileRow.path);
+      // TODO 当前是默认读取本地，之后应该要适配成支持多种存储方式
+      const filePath = join(appConfig.uploadDir, fileRow.path);
 
       return new FileWarpItem(
         filePath,

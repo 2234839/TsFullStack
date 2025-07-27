@@ -31,8 +31,8 @@ export const fileApi = {
       if (!fileRow?.path) {
         throw MsgError.msg('File not found');
       }
-      // 读取文件内容,将相对路径转为绝对路径,fastify似乎需要绝对路径
-      const filePath = resolve(fileRow.path);
+      const appConfig = yield* AppConfigService;
+      const filePath = join(appConfig.uploadDir, fileRow.path);
 
       return new FileWarpItem(
         filePath,
