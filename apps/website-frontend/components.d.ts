@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AiEnglishConfigPanel: typeof import('./src/components/AiEnglishConfigPanel.vue')['default']
     AutoColumn: typeof import('./src/components/AutoTable/AutoColumn.vue')['default']
     AutoColumnEdit: typeof import('./src/components/AutoTable/AutoColumnEdit.vue')['default']
     AutoFilter: typeof import('./src/components/AutoTable/AutoFilter.vue')['default']

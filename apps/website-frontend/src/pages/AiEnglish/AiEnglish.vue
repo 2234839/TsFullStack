@@ -22,6 +22,13 @@
                 文章输入
                 <Tag v-if="isStudying" severity="info" class="ml-auto"> 学习中... </Tag>
                 <CommonSettingBtns class="ml-auto" />
+                <Button
+                  icon="pi pi-cog"
+                  severity="secondary"
+                  text
+                  rounded
+                  @click="showConfigPanel = true"
+                  v-tooltip.left="$t('AI配置')" />
               </div>
             </template>
             <template #content>
@@ -453,6 +460,26 @@
                     class="block p-4 border-b border-purple-200/50 dark:border-purple-800">
                     <div class="flex items-start gap-3">
                       <Avatar
+                        icon="pi pi-wrench  "
+                        class="mt-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" />
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium text-gray-900 dark:text-white">
+                          支持自定义 AI 模型
+                        </div>
+                        <div class="text-sm text-gray-500 dark:text-gray-400 truncate mt-1">
+                          点击文章输入上方工具栏最右侧的齿轮图标
+                        </div>
+                      </div>
+                      <i
+                        class="pi pi-external-link text-blue-400 dark:text-blue-500 self-center"></i>
+                    </div>
+                  </a>
+                  <a
+                    href="http://xhslink.com/a/8ULZG6dHT63fb"
+                    target="_blank"
+                    class="block p-4 border-b border-purple-200/50 dark:border-purple-800">
+                    <div class="flex items-start gap-3">
+                      <Avatar
                         icon="pi pi-microphone"
                         class="mt-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" />
                       <div class="flex-1 min-w-0">
@@ -495,6 +522,16 @@
         </div>
       </div>
     </div>
+
+    <!-- AI配置对话框 -->
+    <Dialog
+      v-model:visible="showConfigPanel"
+      :header="$t('AI配置')"
+      :modal="true"
+      :style="{ width: '450px' }"
+      :draggable="false">
+      <AiEnglishConfigPanel @save="showConfigPanel = false" />
+    </Dialog>
   </div>
 </template>
 
@@ -511,6 +548,8 @@
   import { useApiStorage } from '@/utils/hooks/UseApiStorage';
   import { useToast } from 'primevue/usetoast';
   import { computed, nextTick, reactive, ref, watch, watchEffect } from 'vue';
+  import Dialog from 'primevue/dialog';
+  import AiEnglishConfigPanel from '@/components/AiEnglishConfigPanel.vue';
 
   interface StudySession {
     clickedWords: Set<string>;
@@ -549,6 +588,8 @@ I eat an apple every day. Apples are good for you. They make you strong and heal
 My mom reads me a story at night. I like the stories about animals. Then I go to sleep.`;
 
   const { speakText, ttsConfig } = useTTS();
+
+  const showConfigPanel = ref(false);
 
   // 需要存储同步的响应式状态
   const syncData = useApiStorage<{
@@ -814,7 +855,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       toast.add({
         severity: 'error',
         summary: '翻译失败',
-        detail: '段落翻译服务暂时不可用',
+        detail: '段落翻译服务暂时不可用:' + error,
         life: 3000,
       });
     } finally {
