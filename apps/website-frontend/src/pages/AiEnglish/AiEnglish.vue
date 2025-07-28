@@ -209,7 +209,7 @@
 
                     <div class="space-y-2 mt-2">
                       <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
-                        <i class="pi pi-refresh animate-spin" style="font-size: 1rem" />
+                        <i class="pi pi-refresh animate-spin" />
                         AI翻译中...
                       </div>
                       <div v-else class="text-lg">
