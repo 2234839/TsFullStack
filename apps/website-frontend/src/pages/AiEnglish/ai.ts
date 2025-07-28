@@ -1,3 +1,4 @@
+import { useOpenAIConfig } from '@/storage';
 import { type WordData } from './data';
 
 export interface AIAnalysis {
@@ -14,30 +15,36 @@ export interface WordAnalysis {
   grammar: string;
   pronunciation: string;
 }
-
-// AI 配置 - 使用环境变量避免硬编码
-const AI_CONFIG = {
-  model: 'GLM-4-Flash',
-  apiBase: 'https://open.bigmodel.cn/api/paas/v4',
-  get apiKey() {
-    return import.meta.env.VITE_AI_API_KEY || '09bc63119e1f26d148cac77cda12e089.Rw7lnq1zkg3FcmYZ';
-  },
-};
+const openAIConfig = useOpenAIConfig();
+// 获取动态AI配置
+const getAIConfig = () => ({
+  model: openAIConfig.value.model || 'gpt-3.5-turbo',
+  apiBase: openAIConfig.value.baseURL || 'https://api.openai.com/v1',
+  apiKey: openAIConfig.value.apiKey || import.meta.env.VITE_AI_API_KEY || '',
+  maxTokens: openAIConfig.value.maxTokens || 2000,
+  temperature: openAIConfig.value.temperature || 0.1,
+});
 
 // 统一的 AI 请求函数
 export async function fetchAI(prompt: string): Promise<any> {
+  const config = getAIConfig();
+
+  if (!config.apiKey) {
+    throw new Error('API Key 未配置，请在AI配置中设置');
+  }
+
   try {
-    const response = await fetch(`${AI_CONFIG.apiBase}/chat/completions`, {
+    const response = await fetch(`${config.apiBase}/chat/completions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${AI_CONFIG.apiKey}`,
+        Authorization: `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify({
-        model: AI_CONFIG.model,
+        model: config.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1, // 降低随机性提高一致性
-        max_tokens: 2000,
+        temperature: config.temperature,
+        max_tokens: config.maxTokens,
       }),
     });
 
@@ -61,15 +68,19 @@ export async function callAiResponseJSON(prompt: string): Promise<any> {
 
 // 批量单词分析 - 一次请求分析多个单词
 export const analyzeWordsBatch = async (
-  words: { word: string; context?: string }[]
+  words: { word: string; context?: string }[],
 ): Promise<Record<string, WordAnalysis>> => {
   if (words.length === 0) return {};
 
-  const prompt = `作为英语词汇专家，请批量分析以下${words.length}个英文单词，每个单词提供完整的学习信息：
+  const prompt = `作为英语词汇专家，请批量分析以下${
+    words.length
+  }个英文单词，每个单词提供完整的学习信息：
 
-${words.map(({ word, context }, index) =>
-  `${index + 1}. "${word}"${context ? ` (句子:"${context}")` : ''}`
-).join('\n')}
+${words
+  .map(
+    ({ word, context }, index) => `${index + 1}. "${word}"${context ? ` (句子:"${context}")` : ''}`,
+  )
+  .join('\n')}
 
 对每个单词返回以下信息：
 - translation: 精准简洁的中文翻译
@@ -104,31 +115,26 @@ ${words.map(({ word, context }, index) =>
 };
 
 // 单个单词分析（使用批量优化）
-export const translateWithAI = async (
-  word: string,
-  context?: string,
-): Promise<WordAnalysis> => {
+export const translateWithAI = async (word: string, context?: string): Promise<WordAnalysis> => {
   const results = await analyzeWordsBatch([{ word, context }]);
-  return results[word] || {
-    translation: '翻译服务暂时不可用',
-    difficulty: 5,
-    examples: [],
-    grammar: '',
-    pronunciation: '',
-  };
+  return (
+    results[word] || {
+      translation: '翻译服务暂时不可用',
+      difficulty: 5,
+      examples: [],
+      grammar: '',
+      pronunciation: '',
+    }
+  );
 };
 
 // 批量段落翻译 - 一次请求翻译多个段落
-export const translateParagraphsBatch = async (
-  paragraphs: string[]
-): Promise<string[]> => {
+export const translateParagraphsBatch = async (paragraphs: string[]): Promise<string[]> => {
   if (paragraphs.length === 0) return [];
 
   const prompt = `作为专业翻译，请批量翻译以下${paragraphs.length}个英文段落：
 
-${paragraphs.map((text, index) =>
-  `段落${index + 1}: "${text}"`
-).join('\n\n')}
+${paragraphs.map((text, index) => `段落${index + 1}: "${text}"`).join('\n\n')}
 
 翻译要求：
 1. 准确流畅，保持原文语境

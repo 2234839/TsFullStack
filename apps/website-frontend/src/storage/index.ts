@@ -1,7 +1,13 @@
 import { routeMap, routerUtil } from '@/router';
 import type { loginByEmailPwd_res } from '@/utils/apiType';
+import { useApiStorage } from '@/utils/hooks/UseApiStorage';
 import { encryptSerializer } from '@/utils/encryptSerializer';
-import { StorageSerializers, useStorage, useStorageAsync } from '@vueuse/core';
+import {
+  createSharedComposable,
+  StorageSerializers,
+  useStorage,
+  useStorageAsync,
+} from '@vueuse/core';
 import { computed, watchEffect } from 'vue';
 export const appId = 'tfs_';
 /** 用户认证信息存储  */
@@ -65,3 +71,36 @@ export const i18nStore = useStorage<'zh-CN' | 'en'>(appId + 'i18nStore', null);
 
 /** 用于控制悬浮github star按钮显示隐藏的storage key值 */
 export const githubStarShow = useStorage<'show' | 'hide'>(appId + 'githubStarShow', 'show');
+
+//#region OpenAI 配置
+export interface OpenAIConfig {
+  /** OpenAI API Base URL */
+  baseURL: string;
+  /** OpenAI API Key */
+  apiKey: string;
+  /** 使用的模型 */
+  model: string;
+  /** 最大token数 */
+  maxTokens: number;
+  /** 温度参数 */
+  temperature: number;
+}
+
+/** OpenAI 配置存储 */
+export const useOpenAIConfig = createSharedComposable(function () {
+  return useApiStorage<OpenAIConfig>(
+    appId + 'openAIConfig',
+    {
+      baseURL: 'https://api.openai.com/v1',
+      apiKey: '',
+      model: 'gpt-3.5-turbo',
+      maxTokens: 2000,
+      temperature: 0.7,
+    },
+    {
+      mergeDefaults: true,
+      pollingInterval: 5_500,
+    },
+  );
+});
+//#endregion
