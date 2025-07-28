@@ -14,7 +14,7 @@
   import { type ShareFileJSON, type ShareItemJSON } from '@/pages/admin/share/ShareDef';
   import ShareFilePreview from '@/pages/admin/share/ShareFilePreview.vue';
 
-  const props = defineProps({
+  defineProps({
     data: {
       type: null as unknown as () => ShareItemJSON,
       required: true,

@@ -21,7 +21,6 @@ declare module 'vue' {
     CommonSettingBtns: typeof import('./src/components/system/CommonSettingBtns.vue')['default']
     DataTable: typeof import('primevue/datatable')['default']
     Dialog: typeof import('primevue/dialog')['default']
-    FileUpload: typeof import('primevue/fileupload')['default']
     GithubStar: typeof import('./src/components/system/GithubStar.vue')['default']
     GoogleAd: typeof import('./src/components/GoogleAd.vue')['default']
     HeartStackSpace_ts: typeof import('./src/components/icons/HeartStackSpace_ts.vue')['default']

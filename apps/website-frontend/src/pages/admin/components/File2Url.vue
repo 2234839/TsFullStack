@@ -3,8 +3,8 @@
 </template>
 <script setup lang="ts">
   import { useAPI } from '@/api';
-  import { authInfo, authInfo_isLogin } from '@/storage';
-  import { ref, watch, watchEffect } from 'vue';
+  import { authInfo_isLogin } from '@/storage';
+  import { ref, watch } from 'vue';
 
   const { AppAPIGetUrl, APIGetUrl } = useAPI();
   const props = defineProps<{
