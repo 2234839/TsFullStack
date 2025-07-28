@@ -7,15 +7,25 @@ export interface AIAnalysis {
   learningTips: string[];
 }
 
-// AI 配置
+export interface WordAnalysis {
+  translation: string;
+  difficulty: number;
+  examples: string[];
+  grammar: string;
+  pronunciation: string;
+}
+
+// AI 配置 - 使用环境变量避免硬编码
 const AI_CONFIG = {
   model: 'GLM-4-Flash',
   apiBase: 'https://open.bigmodel.cn/api/paas/v4',
-  apiKey: '09bc63119e1f26d148cac77cda12e089.Rw7lnq1zkg3FcmYZ',
+  get apiKey() {
+    return import.meta.env.VITE_AI_API_KEY || '09bc63119e1f26d148cac77cda12e089.Rw7lnq1zkg3FcmYZ';
+  },
 };
 
-// AI 交互函数
-export async function fetchAI(prompt: string) {
+// 统一的 AI 请求函数
+export async function fetchAI(prompt: string): Promise<any> {
   try {
     const response = await fetch(`${AI_CONFIG.apiBase}/chat/completions`, {
       method: 'POST',
@@ -26,11 +36,15 @@ export async function fetchAI(prompt: string) {
       body: JSON.stringify({
         model: AI_CONFIG.model,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
+        temperature: 0.1, // 降低随机性提高一致性
+        max_tokens: 2000,
       }),
     });
 
-    if (!response.ok) throw new Error(`API请求失败: ${response.status}`);
+    if (!response.ok) {
+      throw new Error(`API请求失败: ${response.status}`);
+    }
+
     return await response.json();
   } catch (error) {
     console.error('AI请求失败:', error);
@@ -38,117 +52,144 @@ export async function fetchAI(prompt: string) {
   }
 }
 
-export async function callAiResponseJSON(prompt: string) {
+// 统一的JSON解析函数
+export async function callAiResponseJSON(prompt: string): Promise<any> {
   const data = await fetchAI(prompt);
   const content = data.choices[0].message.content;
   return JSON_parse_AIResponse(content);
 }
 
-export const translateWithAI = async (
-  word: string,
-  context?: string,
-): Promise<{
-  translation: string;
-  difficulty: number;
-  examples: string[];
-  grammar: string;
-  pronunciation: string;
-}> => {
-  const prompt = `请分析英文单词 "${word}"${
-    context ? ` (在句子"${context}"中)` : ''
-  }，并提供以下信息：
-1. 中文翻译（简洁准确）
-2. 难度等级（1-10，1最简单，10最难）
-3. 2个实用例句（英文）
-4. 语法信息（词性、用法）
-5. 音标
+// 批量单词分析 - 一次请求分析多个单词
+export const analyzeWordsBatch = async (
+  words: { word: string; context?: string }[]
+): Promise<Record<string, WordAnalysis>> => {
+  if (words.length === 0) return {};
+
+  const prompt = `作为英语词汇专家，请批量分析以下${words.length}个英文单词，每个单词提供完整的学习信息：
+
+${words.map(({ word, context }, index) =>
+  `${index + 1}. "${word}"${context ? ` (句子:"${context}")` : ''}`
+).join('\n')}
+
+对每个单词返回以下信息：
+- translation: 精准简洁的中文翻译
+- difficulty: 难度等级(1-10，基于CEFR标准)
+- examples: 2个实用英文例句
+- grammar: 核心语法信息(词性、用法)
+- pronunciation: 标准音标
 
 请按以下JSON格式返回：
 {
-  "translation": "中文翻译",
-  "difficulty": 难度数字,
-  "examples": ["例句1", "例句2"],
-  "grammar": "语法信息",
-  "pronunciation": "音标"
+  "单词1": {"translation":"","difficulty":0,"examples":[],"grammar":"","pronunciation":""},
+  "单词2": {"translation":"","difficulty":0,"examples":[],"grammar":"","pronunciation":""}
 }`;
 
   try {
-    const data = await fetchAI(prompt);
-    const content = data.choices[0].message.content;
-
-    try {
-      return JSON_parse_AIResponse(content);
-    } catch {
-      const translationMatch = content.match(/翻译[：:]\s*([^\n]+)/);
-      return {
-        translation: translationMatch?.[1] || content.slice(0, 50),
+    const result = await callAiResponseJSON(prompt);
+    return result;
+  } catch {
+    // 如果批量失败，回退到单个分析
+    const results: Record<string, WordAnalysis> = {};
+    for (const { word } of words) {
+      results[word] = {
+        translation: '分析失败',
         difficulty: 5,
         examples: [],
         grammar: '',
         pronunciation: '',
       };
     }
-  } catch {
-    return {
-      translation: '翻译服务暂时不可用',
-      difficulty: 5,
-      examples: [],
-      grammar: '',
-      pronunciation: '',
-    };
+    return results;
   }
 };
 
-export const translateParagraphWithAI = async (text: string): Promise<string> => {
-  const prompt = `请将以下英文段落翻译成中文，要求：
-1. 翻译准确、流畅、自然
-2. 保持原文的语气和风格
-3. 直接返回翻译结果，不要其他说明
-
-英文原文：
-"${text}"`;
-
-  try {
-    const data = await fetchAI(prompt);
-    return data.choices[0].message.content.trim();
-  } catch {
-    return '段落翻译服务暂时不可用';
-  }
+// 单个单词分析（使用批量优化）
+export const translateWithAI = async (
+  word: string,
+  context?: string,
+): Promise<WordAnalysis> => {
+  const results = await analyzeWordsBatch([{ word, context }]);
+  return results[word] || {
+    translation: '翻译服务暂时不可用',
+    difficulty: 5,
+    examples: [],
+    grammar: '',
+    pronunciation: '',
+  };
 };
 
-export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> => {
-  const prompt = `请分析以下英文文章的学习特征：
+// 批量段落翻译 - 一次请求翻译多个段落
+export const translateParagraphsBatch = async (
+  paragraphs: string[]
+): Promise<string[]> => {
+  if (paragraphs.length === 0) return [];
 
-"${text}"
+  const prompt = `作为专业翻译，请批量翻译以下${paragraphs.length}个英文段落：
 
-请提供以下分析：
-1. 文章整体难度（1-10）
-2. 建议学习时间（分钟）
-3. 5个关键词汇
-4. 3个学习建议
+${paragraphs.map((text, index) =>
+  `段落${index + 1}: "${text}"`
+).join('\n\n')}
 
-请按以下JSON格式返回：
-{
-  "articleDifficulty": 难度数字,
-  "suggestedStudyTime": 时间数字,
-  "keyWords": ["词汇1", "词汇2", "词汇3", "词汇4", "词汇5"],
-  "learningTips": ["建议1", "建议2", "建议3"]
-}`;
+翻译要求：
+1. 准确流畅，保持原文语境
+2. 按顺序返回翻译结果
+3. 每个翻译单独一行，用"===段落X==="标记
+4. 不要添加解释或说明
+
+示例输出：
+===段落1===
+翻译结果1
+===段落2===
+翻译结果2`;
 
   try {
     const data = await fetchAI(prompt);
     const content = data.choices[0].message.content;
 
-    try {
-      return JSON_parse_AIResponse(content);
-    } catch {
-      return {
-        articleDifficulty: 5,
-        suggestedStudyTime: 15,
-        keyWords: [],
-        learningTips: ['AI分析暂时不可用'],
-      };
+    // 解析批量翻译结果
+    const translations: string[] = [];
+    const regex = /===段落(\d+)===\s*([^=]+)/g;
+    let match;
+
+    while ((match = regex.exec(content)) !== null) {
+      const index = parseInt(match[1]) - 1;
+      translations[index] = match[2].trim();
     }
+
+    // 确保返回所有段落的翻译
+    return paragraphs.map((_, i) => translations[i] || '翻译服务暂时不可用');
+  } catch {
+    return paragraphs.map(() => '翻译服务暂时不可用');
+  }
+};
+
+// 单个段落翻译（使用批量优化）
+export const translateParagraphWithAI = async (text: string): Promise<string> => {
+  const results = await translateParagraphsBatch([text]);
+  return results[0];
+};
+
+export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> => {
+  const prompt = `作为英语教学专家，请全面分析以下英文文章的学习特征：
+
+"${text}"
+
+请提供结构化分析：
+1. 文章难度评级（1-10）：基于CEFR标准，考虑词汇复杂度、句式结构、主题深度
+2. 建议学习时间（分钟）：包含阅读、词汇学习、理解验证的时间分配
+3. 关键词汇（5个）：选择最具学习价值的核心词汇
+4. 学习建议（3条）：针对文章特点的具体学习策略
+
+请严格按以下JSON格式返回：
+{
+  "articleDifficulty": 7,
+  "suggestedStudyTime": 25,
+  "keyWords": ["vocabulary1", "vocabulary2", "vocabulary3", "vocabulary4", "vocabulary5"],
+  "learningTips": ["specific tip 1", "specific tip 2", "specific tip 3"]
+}`;
+
+  try {
+    return await callAiResponseJSON(prompt);
   } catch {
     return {
       articleDifficulty: 5,
@@ -177,74 +218,26 @@ export function useCreateMixedTranslation({
       });
       if (familiarWords.length === 0) return translatedText;
 
-      const prompt = `# 英文学习辅助翻译器
-## 严格输出规则
-1. **仅输出混合翻译字符串**（禁止重复原文或完整翻译）
-2. 按英文单词顺序逐一处理（不可重排语序）
-3. 熟悉单词→保持英文原词（保留原始大小写）
-4. 不熟悉单词→使用中文翻译
-5. **虚词处理规则**：
-   - 无实际含义的虚词（如 to/the/and/in）→ 直接省略不输出
-   - 中文已包含其含义的虚词→ 不单独翻译
-6. **短语对应规则**：
-   - 多个英文单词对应1个中文短语时→ 中文短语放在核心动词/名词位置
-   - 保持英文单词顺序（中文短语不拆散）
+      const prompt = `作为专业翻译，请根据熟悉词汇生成混合翻译：
 
-## 错误案例（禁止输出）
-× "we run and jump in the park we 跑 和 jump 在 公园里" （错误：重复原文+拆散短语）
-× "I like to play with my friends 我喜欢和朋友们一起玩" （错误：重复原文）
-✓ 正确："we 跑 跳 在公园里" （省略虚词 and/in/the）
-✓ 正确："i 喜欢 和 my 朋友们 一起玩" （短语"一起玩"不拆散）
+英文原文："${originalText}"
+中文翻译："${translatedText}"
+熟悉词汇：[${familiarWords.join(', ')}]
 
-## 处理引擎说明
-1. 输入解析：
-   原文=["we", "run", "and", "jump", "in", "the", "park"]
-   熟悉词=["we"]
-   中文翻译="我们在公园里跑步和跳跃"
+规则：
+1. 熟悉词汇保留英文，其余用中文翻译
+2. 按英文原顺序排列
+3. 省略无实义的虚词(the, a, an, to, in, on, at, for, of)
+4. 直接输出结果，不要解释
 
-2. 逐步处理：
-   we→熟悉→保留"we"
-   run→不熟悉→使用"跑"（中文动词）
-   and→虚词→省略（中文"和"已包含在后续短语）
-   jump→不熟悉→使用"跳"
-   in→虚词→省略
-   the→虚词→省略
-   park→不熟悉→使用"在公园里"（整个介词短语）
+示例：
+原文：The cat sleeps on the sofa
+翻译：猫在沙发上睡觉
+熟悉：cat
+输出：cat 在沙发上睡觉`;
 
-3. 最终输出："we 跑 跳 在公园里"
-
-## 标准示例
-英文原文：The cat sleeps on the sofa
-中文翻译：猫在沙发上睡觉
-熟悉单词：cat
-→ cat 在沙发上睡觉 （省略The/on/the）
-
-英文原文：She is reading a book
-中文翻译：她正在读书
-熟悉单词：She
-→ She 正在读书 （省略is/a）
-
---- 待处理数据 ---
-英文原文：${originalText}
-中文翻译：${translatedText}
-熟悉单词：${familiarWords.join(', ')}`;
-
-      const response = await fetch(`${AI_CONFIG.apiBase}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${AI_CONFIG.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: AI_CONFIG.model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.3,
-        }),
-      });
-
-      return response.ok
-        ? (await response.json()).choices[0].message.content.trim()
-        : translatedText;
+      const data = await fetchAI(prompt);
+      return data.choices[0].message.content.trim();
     } catch {
       return translatedText;
     }
@@ -262,9 +255,6 @@ export function JSON_parse_AIResponse(resStr: string) {
     } else {
       jsonStr = resStr.trim();
     }
-    // console.log('[jsonStr]====', jsonStr);
-    // console.log('[jsonStr]====');
-
     const jsonObj = JSON.parse(jsonStr);
     return jsonObj;
   } catch (error: unknown) {
