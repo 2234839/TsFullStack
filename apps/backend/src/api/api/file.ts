@@ -99,9 +99,9 @@ export const fileApi = {
           },
         }),
       );
-
+      if(!fileRow) throw MsgError.msg('file no found')
       // 使用文件访问服务验证权限并获取安全路径
-      const fileWarpItem = yield* FileAccessService.createFileWarpItemEffect(fileRow!, {
+      const fileWarpItem = yield* FileAccessService.createFileWarpItemEffect(fileRow, {
         checkOwnership: true,
         userId: auth.user.id,
         publicOnly: false,

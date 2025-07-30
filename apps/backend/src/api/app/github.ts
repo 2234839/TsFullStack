@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { GitHubAuth } from '../../OAuth/github';
 import { AppConfigService } from '../../service/AppConfigService';
 import { MsgError } from '../../util/error';
-import { prisma } from '../../db';
+import { PrismaService } from '../../service/PrismaService';
 import { OauthProvider } from '@prisma/client';
 import { genUserSession } from './_genUserSession';
 import { ReqCtxService } from '../../service/ReqCtx';
@@ -17,6 +17,7 @@ export const githubApi = {
   },
   authenticate(code: string) {
     return Effect.gen(function* () {
+      const { prisma } = yield* PrismaService;
       const auth = yield* githubAuth;
       const { user: githubUser } = yield* Effect.promise(() => auth.authenticate(code));
 
@@ -61,7 +62,8 @@ export const githubApi = {
       const userSession = yield* genUserSession(userId);
       const ctx = yield* ReqCtxService;
       ctx.log('user login by github', userId);
-      return { ...userSession, user: { ...user, password: undefined } };
+      const userWithoutPassword = { ...user, password: undefined };
+      return { ...userSession, user: userWithoutPassword };
     });
   },
 };

@@ -1,7 +1,13 @@
 import { Context } from 'effect';
-import type { getPrisma } from '../db';
+import type { Prisma } from '@prisma/client';
+import type { PrismaClient as PrismaClientType } from '@zenstackhq/runtime';
 
-export type Database = Awaited<ReturnType<typeof getPrisma>>;
+// 定义数据库返回类型
+export interface Database {
+  db: PrismaClientType;
+  user: Omit<Prisma.UserGetPayload<{ include: { role: true; userSession: true } }>, 'password'>;
+}
+
 export class AuthService extends Context.Tag('Database')<
   AuthService,
   {

@@ -1,6 +1,6 @@
 import type { PrismaClient } from '@zenstackhq/runtime';
 import { Effect } from 'effect';
-import type { allowedMethods } from '../db';
+import type { allowedMethods } from '../service/PrismaService';
 import { AuthService } from '../service/Auth';
 import { systemApis } from './systemApis';
 import { testApi } from './testApi';
