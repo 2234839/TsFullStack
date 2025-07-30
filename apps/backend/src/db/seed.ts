@@ -5,7 +5,16 @@ import { AppConfigService } from '../service/AppConfigService';
 
 /** 对数据库进行一些初始化设置 */
 export const seedDB = Effect.gen(function* () {
+  yield* seedWAL;
   yield* seedAdmin;
+});
+
+/** 配置 SQLite 数据库为 WAL 模式 */
+const seedWAL = Effect.gen(function* () {
+  const result = yield* Effect.promise(() =>
+    prisma.$queryRaw`PRAGMA journal_mode = WAL`
+  );
+  console.log('SQLite 数据库已配置为 WAL 模式:', result);
 });
 
 /** 创建管理员账户及其角色 */
