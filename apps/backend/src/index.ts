@@ -5,7 +5,7 @@ import { loadConfig } from 'c12';
 import { AppConfigService, type AppConfig } from './service/AppConfigService';
 import fs from 'fs/promises';
 import { PrismaQueue } from './util/prismaQueue';
-import { prisma } from './db';
+import { PrismaService, PrismaServiceLive } from './service/PrismaService';
 import { QueueScheduler } from './util/QueueScheduler';
 const main = Effect.gen(function* () {
   const { config } = yield* Effect.promise(() =>
@@ -31,7 +31,10 @@ const main = Effect.gen(function* () {
     throw new Error(`Upload directory ${config.uploadDir} is not a directory`);
   }
 
-  yield* seedDB.pipe(Effect.provideService(AppConfigService, config));
+  yield* seedDB.pipe(
+    Effect.provideService(AppConfigService, config),
+    Effect.provideService(PrismaService, PrismaServiceLive)
+  );
 
   // 监控内存使用情况
   let lastUsage = {rssMB:0, heapTotalMB:0};
@@ -76,10 +79,13 @@ const main = Effect.gen(function* () {
   setInterval(logMemoryUsage, 1_000);
 
   // yield* queue_scheduler;
-  yield* startServer.pipe(Effect.provideService(AppConfigService, config));
+  yield* startServer.pipe(
+    Effect.provideService(AppConfigService, config),
+    Effect.provideService(PrismaService, PrismaServiceLive)
+  );
 });
 
-Effect.runPromise(main);
+Effect.runPromise(main as Effect.Effect<void, unknown, never>);
 
 /** 队列与定时任务调度 */
 const queue_scheduler = Effect.gen(function* () {
@@ -89,6 +95,7 @@ const queue_scheduler = Effect.gen(function* () {
       result: { sent: boolean };
     };
   };
+  const { prisma } = yield* PrismaService;
   const queue = new PrismaQueue<MyTasks>({ prisma });
   // 注册任务
   queue.register('sendEmail', async (payload) => {

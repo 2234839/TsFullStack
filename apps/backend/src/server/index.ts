@@ -18,70 +18,50 @@ import { ReqCtxService, type ReqCtx } from '../service/ReqCtx';
 import { systemLog } from '../service/SystemLog';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
-const MAX_WAIT_MS = 360_000;
 
-// 统一错误序列化函数
+const MAX_WAIT_MS = 360_000;
+const MAX_FILE_SIZE = 1000 * 1024 * 1024; // 1GB
+const SERVER_PORT = 5209;
+
 function handleError(error: unknown) {
   if (error instanceof MsgError) {
     return { message: error.message, op: error.op };
   }
   if (error instanceof PrismaClientKnownRequestError) {
-    if (error.meta && 'reason' in error.meta) {
-      if (error.meta.reason === 'ACCESS_POLICY_VIOLATION') {
-        return { message: '权限不足' };
-      }
-      return { message: error.meta.reason as string };
+    const reason = error.meta?.reason as string;
+    if (reason === 'ACCESS_POLICY_VIOLATION') {
+      return { message: '权限不足' };
     }
-    return { message: '数据模型调用错误' };
+    return { message: reason || '数据模型调用错误' };
   }
-  if (error instanceof Error) {
-    return { message: error.message };
-  }
-  return { message: '未知错误' };
+  return { message: error instanceof Error ? error.message : '未知错误' };
 }
 
-// 参数解析函数
-async function parseParams(req: FastifyRequest): Promise<any[]> {
+function parseParams(req: FastifyRequest): Promise<any[]> {
   const contentType = req.headers['content-type'];
   if (contentType === 'application/json') {
-    return superjson.deserialize(req.body as SuperJSONResult) as any[];
-  } else if (contentType?.startsWith('multipart/form-data')) {
-    // 在接口中使用 ReqCtx 获取值（为了文件流的优化）
-    return [];
-  } else if (req.method === 'GET') {
-    const query = req.query as {
-      args?: string;
-      sign?: string;
-      session?: string;
-    };
-    return query.args ? (superjson.parse(query.args) as any[]) : [];
-  } else {
-    throw MsgError.msg('Unknown content type:' + contentType);
+    return Promise.resolve(superjson.deserialize(req.body as SuperJSONResult) as any[]);
   }
+  if (contentType?.startsWith('multipart/form-data')) {
+    // 在接口中使用 ReqCtx 获取值（为了文件流的优化）
+    return Promise.resolve([]);
+  }
+  if (req.method === 'GET') {
+    const query = req.query as { args?: string };
+    return Promise.resolve(query.args ? superjson.parse(query.args) as any[] : []);
+  }
+  throw MsgError.msg('Unknown content type:' + contentType);
 }
-/** 解析参数并通过参数获取鉴权对象 */
 function parseParamsAndAuth(req: FastifyRequest) {
   return Effect.gen(function* () {
-    const query = req.query as {
-      args?: string;
-      sign?: string;
-      session?: string;
-    };
-
+    const query = req.query as { args?: string; sign?: string; session?: string };
     const querySignMode = req.method === 'GET';
-    const opt: {
-      userId?: string;
-      email?: string;
-      sessionToken?: string;
-      sessionID?: number;
-    } = {};
-    if (query.session && querySignMode) {
-      opt.sessionID = Number(query.session);
-    } else {
-      opt.sessionToken = req.headers['x-token-id'] as string;
-    }
 
-    const { db, user } = yield* Effect.promise(() => getAuthFromCache(opt));
+    const opt = querySignMode
+      ? { sessionID: Number(query.session) }
+      : { sessionToken: req.headers['x-token-id'] as string };
+
+    const { db, user } = yield* getAuthFromCache(opt);
 
     if (querySignMode) {
       const session = user.userSession[0];
@@ -89,18 +69,19 @@ function parseParamsAndAuth(req: FastifyRequest) {
         throw new MsgError(MsgError.op_toLogin, '请提供有效的 session');
       }
       const verify = yield* Effect.promise(() =>
-        SessionAuthSign.verifySignByToken(query.args || '', session.token, query.sign || ''),
+        SessionAuthSign.verifySignByToken(query.args || '', session.token, query.sign || '')
       );
       if (!verify) {
         throw new MsgError(MsgError.op_msgError, '签名验证失败');
       }
     }
+
     const params = yield* Effect.promise(() => parseParams(req));
     return { params, db, user };
   });
 }
 
-type apiCtx = {
+type ApiCtx = {
   req: FastifyRequest;
   reply: FastifyReply;
   pathPrefix: string;
@@ -108,96 +89,97 @@ type apiCtx = {
   enqueueTime: number;
 };
 
-/** 注意，这里必须要等待发送数据完毕，否则 onEnd 之后数据将无法发送 */
-function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
+function handleRequest(ctx: ApiCtx) {
   const startTime = Date.now();
   const reqCtx: ReqCtx = {
     logs: [],
     log(...args) {
       this.logs.push(args);
     },
-    req,
+    req: ctx.req,
   };
-  const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
-  const p = Effect.gen(function* () {
-    const waitTime = Date.now() - enqueueTime;
-    if (waitTime > MAX_WAIT_MS) {
+
+  const method = decodeURIComponent(ctx.req.url.split('?')[0]?.slice(ctx.pathPrefix.length) ?? '');
+
+  const processRequest = Effect.gen(function* () {
+    if (Date.now() - ctx.enqueueTime > MAX_WAIT_MS) {
       throw MsgError.msg('请求队列处理积压超时');
     }
 
-    let result: any;
-    if (pathPrefix === '/app-api/') {
-      const params = yield* Effect.promise(() => parseParams(req));
-      const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
-      result = yield* Effect.gen(function* () {
-        const res_effect = yield* Effect.promise(() =>
-          appApisRpc.RC(method, params).catch((e) => {
-            throw MsgError.msg('API调用失败: ' + e?.message);
-          }),
-        );
-        const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
-        return res;
-      });
-    } else if (pathPrefix === '/api/') {
-      // 处理需要鉴权的 API
-      try {
-        const { params, db, user } = yield* parseParamsAndAuth(req);
-        result = yield* Effect.gen(function* () {
-          const apisRpc = createRPC('apiProvider', {
-            genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
-          });
-          const res_effect = yield* Effect.promise(() =>
-            apisRpc.RC(method, params).catch((e) => {
-              throw MsgError.msg('API调用失败: ' + e?.stack);
-            }),
-          );
-
-          const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
-          return res;
-        })
-          // 提供 apis 模块所需要的依赖
-          .pipe(Effect.provideService(AuthService, { db, user }));
-      } catch (error) {
-        result = error;
-      }
-    }
-    if (result instanceof FileWarpItem) {
-      // 设置文件名
-      reply
-        .type(result.model.mimetype || 'application/octet-stream')
-        .header(
-          'Content-Disposition',
-          `inline; filename="${encodeURIComponent(result.model.filename)}"`,
-        )
-        .header('Content-Length', result.model.size);
-      yield* Effect.promise(async () => await reply.send(result.getFileSteam()));
-    } else {
-      yield* Effect.promise(async () => await reply.send(superjson.serialize({ result })));
-    }
-  }).pipe(
-    // 这里可以提供共用的依赖
-    Effect.provideService(ReqCtxService, reqCtx),
-  );
-  // 拦截并处理所有错误
-  return Effect.catchAllDefect(p, (defect) => {
-    reqCtx.log(
-      '[error]',
-      /** 裁剪掉 Effect 内部的调用堆栈 */
-      `${(defect as Error)?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
+    const result = yield* (ctx.pathPrefix === '/app-api/'
+      ? handleAppApi(method, ctx.req)
+      : handleAuthApi(method, ctx.req)
     );
-    reply.send(superjson.serialize({ error: handleError(defect) }));
 
-    return Effect.succeed('catch');
-  }).pipe(
-    Effect.andThen((res) => {
+    if (result instanceof FileWarpItem) {
+      yield* Effect.promise(() => sendFileResponse(ctx.reply, result));
+    } else {
+      yield* Effect.promise(() => {
+        ctx.reply.send(superjson.serialize({ result }));
+        return Promise.resolve();
+      });
+    }
+  });
+
+  return processRequest
+    .pipe(Effect.provideService(ReqCtxService, reqCtx))
+    .pipe(Effect.catchAllDefect(defect => {
+      reqCtx.log('[error]', `${(defect as Error)?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`);
+      ctx.reply.send(superjson.serialize({ error: handleError(defect) }));
+      return Effect.succeed('catch');
+    }))
+    .pipe(Effect.andThen(() => {
       const endTime = Date.now();
-      systemLog(
-        { level: LogLevel.INFO, message: `call:[${endTime - startTime}ms] ${method}` },
-        reqCtx,
-      );
-      onEnd();
-    }),
-  );
+      return Effect.gen(function* () {
+        yield* systemLog(
+          { level: LogLevel.INFO, message: `call:[${endTime - startTime}ms] ${method}` },
+          reqCtx
+        );
+        ctx.onEnd();
+      });
+    }));
+}
+
+function handleAppApi(method: string, req: FastifyRequest) {
+  return Effect.gen(function* () {
+    const params = yield* Effect.promise(() => parseParams(req));
+    const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
+    const resEffect = yield* Effect.promise(() =>
+      appApisRpc.RC(method, params).catch(e => {
+        throw MsgError.msg('API调用失败: ' + e?.message);
+      })
+    );
+    return Effect.isEffect(resEffect) ? yield* resEffect : resEffect;
+  });
+}
+
+function handleAuthApi(method: string, req: FastifyRequest) {
+  return Effect.gen(function* () {
+    const { params, db, user } = yield* parseParamsAndAuth(req);
+    const apisRpc = createRPC('apiProvider', {
+      genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
+    });
+    const resEffect = yield* Effect.promise(() =>
+      apisRpc.RC(method, params).catch(e => {
+        throw MsgError.msg('API调用失败: ' + e?.stack);
+      })
+    );
+    const result = Effect.isEffect(resEffect) ? yield* resEffect : resEffect;
+    return { result, db, user };
+  }).pipe(Effect.andThen(({ result, db, user }) =>
+    Effect.succeed(result).pipe(Effect.provideService(AuthService, { db, user }))
+  ));
+}
+
+function sendFileResponse(reply: FastifyReply, result: FileWarpItem): Promise<void> {
+  return new Promise((resolve) => {
+    reply
+      .type(result.model.mimetype || 'application/octet-stream')
+      .header('Content-Disposition', `inline; filename="${encodeURIComponent(result.model.filename)}"`)
+      .header('Content-Length', result.model.size)
+      .send(result.getFileSteam());
+    resolve();
+  });
 }
 // 服务器初始化
 export const startServer = Effect.gen(function* () {
@@ -209,7 +191,7 @@ export const startServer = Effect.gen(function* () {
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   });
   fastify.register(fastifyMultipart, {
-    limits: { fileSize: 1000 * 1024 * 1024 }, // 1GB
+    limits: { fileSize: MAX_FILE_SIZE },
   });
   console.log('[static]', path.join(__dirname, 'frontend'));
   fastify.register(fastifyStatic, {
@@ -218,27 +200,19 @@ export const startServer = Effect.gen(function* () {
   });
   //#endregion
 
-  // 创建一个无界队列
-  const queue = yield* Queue.unbounded<apiCtx>();
+  const queue = yield* Queue.unbounded<ApiCtx>();
+  const emitReq = (ctx: ApiCtx) => Effect.runPromise(Queue.offer(queue, ctx));
 
-  // 解决 Effect 的异步边界问题，也就是创建一个普通的回调函数来将数据传递给外层的 Effect 程序，然后外层程序通过消费队列来处理数据
-  // emitReq 将请求放入队列，返回 Promise 以支持 await
-  const emitReq = (ctx: apiCtx) => Effect.runPromise(Queue.offer(queue, ctx));
-
-  // onEnd 是为了解决 fastify 的回调函数执行完毕后，fastify 会自动结束请求，而我们希望在 Effect Stream 中处理请求，所以需要维持时机到处理完毕
-  // 这个 onEnd 实现的比较丑陋，但是没想到什么好方法解决这个问题
   function registerRoute(pathPrefix: string) {
     return async function (req: FastifyRequest, reply: FastifyReply) {
       let resolved = false;
       const p = new Promise<void>((resolve) => {
-        // 包装 resolve，防止多次调用 onEnd
         const onceResolve = () => {
           if (!resolved) {
             resolved = true;
             resolve();
           }
         };
-        // 将请求上下文放入队列
         emitReq({
           req,
           reply,
@@ -263,9 +237,8 @@ export const startServer = Effect.gen(function* () {
     }
   });
 
-  // 启动服务器
   const address = yield* Effect.tryPromise({
-    try: () => fastify.listen({ port: 5209, host: '0.0.0.0' }),
+    try: () => fastify.listen({ port: SERVER_PORT, host: '0.0.0.0' }),
     catch(error) {
       console.error('Server startup error:', error);
       return undefined;
@@ -277,26 +250,19 @@ export const startServer = Effect.gen(function* () {
   }
   console.log(`Server listening on ${address}`);
 
-  // 创建控制最大并发数的信号量
-  const cpuCount = os.cpus().length;
-  const recommendedConcurrency = cpuCount * 10; // 根据cpu核心数设置并发数
-  // const recommendedConcurrency = 1; // 测试用
-  console.log(`设置的请求并发上限为:${recommendedConcurrency}`);
+  const concurrency = os.cpus().length * 10;
+  console.log(`设置的请求并发上限为:${concurrency}`);
+  const semaphore = yield* Effect.makeSemaphore(concurrency);
 
-  const semaphore = yield* Effect.makeSemaphore(recommendedConcurrency);
-
-  // 请求队列消费循环
   while (true) {
     const ctx = yield* Queue.take(queue);
-
-    // fork 一个 Fiber 去执行请求处理，确保不会阻塞循环
     yield* Effect.forkDaemon(
       semaphore.withPermits(1)(
-        handelReq(ctx).pipe(
-          Effect.catchAll((err) => Effect.logError(`[handelReq error] ${String(err)}`)),
-          Effect.ensuring(Effect.sync(ctx.onEnd)),
-        ),
-      ),
+        handleRequest(ctx).pipe(
+          Effect.catchAll((err) => Effect.logError(`[handleRequest error] ${String(err)}`)),
+          Effect.ensuring(Effect.sync(ctx.onEnd))
+        )
+      )
     );
   }
 });

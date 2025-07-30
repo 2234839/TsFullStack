@@ -1,6 +1,6 @@
 import { compareSync } from 'bcryptjs';
 import { Effect } from 'effect';
-import { prisma } from '../db';
+import { PrismaService } from '../service/PrismaService';
 import { ReqCtxService } from '../service/ReqCtx';
 import { MsgError } from '../util/error';
 import { genUserSession } from './app/_genUserSession';
@@ -17,6 +17,7 @@ export const appApis = {
     async register(email: string, password: string) {
       await randomDelay();
       return Effect.gen(function* () {
+        const { prisma } = yield* PrismaService;
         // throw MsgError.msg('暂时关闭了直接注册帐号，请使用其他方式登录！ ');
 
         const user = yield* Effect.promise(() =>
@@ -45,6 +46,7 @@ export const appApis = {
     async loginByEmailPwd(email: string, password: string) {
       await randomDelay();
       return Effect.gen(function* () {
+        const { prisma } = yield* PrismaService;
         const user = yield* Effect.promise(() =>
           prisma.user.findUnique({
             where: {
@@ -59,7 +61,8 @@ export const appApis = {
         const userSession = yield* genUserSession(user.id);
         const ctx = yield* ReqCtxService;
         ctx.log('user login', user.id);
-        return { ...userSession, user: { ...user, password: undefined } };
+        const userWithoutPassword = { ...user, password: undefined };
+        return { ...userSession, user: userWithoutPassword };
       });
     },
   },
