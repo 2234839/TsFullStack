@@ -1,15 +1,7 @@
+import { File as FileModel } from '@zenstackhq/runtime/models';
 import { Effect } from 'effect';
-import { AuthService } from '../../service/Auth';
-import { File as FileModel, FileStatusEnum, StorageType } from '@zenstackhq/runtime/models';
-import { readFile, writeFile, unlink } from 'fs/promises';
-import { join, resolve } from 'path/posix';
-import { v7 as uuidv7 } from 'uuid';
-import { MsgError } from '../../util/error';
-import { AppConfigService } from '../../service/AppConfigService';
-import { ReqCtxService } from '../../service/ReqCtx';
-import { createReadStream, createWriteStream } from 'fs';
-import { FileWarpItem } from '../api/file';
 import { prisma } from '../../db';
+import { FileAccessService } from '../../service/FileAccessService';
 
 export const fileApi = {
   /** 这里同样是为了解决非流式传递导致的内存占用过大问题
@@ -25,19 +17,14 @@ export const fileApi = {
           },
         }),
       );
-      if (fileRow?.status !== FileStatusEnum.public) {
-        throw MsgError.msg('File not found or access denied');
-      }
-      if (!fileRow?.path) {
-        throw MsgError.msg('File not found');
-      }
-      const appConfig = yield* AppConfigService;
-      const filePath = join(appConfig.uploadDir, fileRow.path);
 
-      return new FileWarpItem(
-        filePath,
-        fileRow,
-      ) as unknown as /** 客户端实际接受的是文件而非 FileWarpItem */ File;
+      // 使用文件访问服务验证权限并获取安全路径
+      const fileWarpItem = yield* FileAccessService.createFileWarpItemEffect(fileRow!, {
+        checkOwnership: false,
+        publicOnly: true,
+      });
+
+      return fileWarpItem as unknown as File;
     });
   },
 };
