@@ -1,15 +1,15 @@
-import { Effect } from 'effect';
-import { AuthService } from '../../service/Auth';
 import { File as FileModel, StorageType } from '@zenstackhq/runtime/models';
-import { unlink } from 'fs/promises';
-import { join, resolve } from 'path/posix';
-import { v7 as uuidv7 } from 'uuid';
-import { MsgError } from '../../util/error';
-import { AppConfigService } from '../../service/AppConfigService';
-import { ReqCtxService } from '../../service/ReqCtx';
+import { Effect } from 'effect';
 import { createReadStream, createWriteStream } from 'fs';
+import { mkdir, unlink } from 'fs/promises';
+import { join } from 'path/posix';
+import { v7 as uuidv7 } from 'uuid';
+import { AppConfigService } from '../../service/AppConfigService';
+import { AuthService } from '../../service/Auth';
+import { FileAccessService } from '../../service/FileAccessService';
 import { FilePathService } from '../../service/FilePathService';
-import { mkdir } from 'fs/promises';
+import { ReqCtxService } from '../../service/ReqCtx';
+import { MsgError } from '../../util/error';
 
 export const fileApi = {
   /** file 这种二进制对象传递比较特殊，使用 superJSON 的话会大幅增加请求大小，并且如果不是流式读写的话也会导致内存占用过高
@@ -27,12 +27,12 @@ export const fileApi = {
       const filePath = FilePathService.generateUserFilePath(
         auth.user.id,
         fileId,
-        appConfig.uploadDir
+        appConfig.uploadDir,
       );
 
       /** 确保用户目录存在 */
-      yield* Effect.promise(() => 
-        mkdir(join(appConfig.uploadDir, auth.user.id), { recursive: true })
+      yield* Effect.promise(() =>
+        mkdir(join(appConfig.uploadDir, auth.user.id), { recursive: true }),
       );
 
       /**  获取文件流并写入文件流 */
@@ -99,40 +99,15 @@ export const fileApi = {
           },
         }),
       );
-      
-      // 验证文件存在性和所有权
-      if (!fileRow?.path) {
-        throw MsgError.msg('File not found');
-      }
-      
-      // 检查文件所有权或公开状态
-      const isOwner = fileRow.authorId === auth.user.id;
-      const isPublic = fileRow.status === 'public';
-      
-      if (!isOwner && !isPublic) {
-        throw MsgError.msg('Access denied: File ownership verification failed');
-      }
-      
-      const appConfig = yield* AppConfigService;
-      
-      // 生成并验证安全的文件路径
-      const filePath = FilePathService.generateUserFilePath(
-        fileRow.authorId,
-        fileRow.path,
-        appConfig.uploadDir
-      );
-      
-      // 验证文件访问权限
-      const validatedPath = FilePathService.validateFileAccess(
-        filePath,
-        appConfig.uploadDir,
-        fileRow.authorId
-      );
 
-      return new FileWarpItem(
-        validatedPath,
-        fileRow,
-      ) as unknown as /** 客户端实际接受的是文件而非 FileWarpItem */ File;
+      // 使用文件访问服务验证权限并获取安全路径
+      const fileWarpItem = yield* FileAccessService.createFileWarpItemEffect(fileRow!, {
+        checkOwnership: true,
+        userId: auth.user.id,
+        publicOnly: false,
+      });
+
+      return fileWarpItem as unknown as File;
     });
   },
   /** 移除本地文件以及数据库记录 */
@@ -147,33 +122,24 @@ export const fileApi = {
           },
         }),
       );
-      
+
       // 验证文件存在性和所有权
       if (!fileRow) {
         throw MsgError.msg('File not found');
       }
-      
+
       // 只有文件所有者才能删除文件
       if (fileRow.authorId !== auth.user.id) {
         throw MsgError.msg('Access denied: File ownership verification failed');
       }
-      
-      const appConfig = yield* AppConfigService;
-      
-      // 生成并验证安全的文件路径
-      const filePath = FilePathService.generateUserFilePath(
-        fileRow.authorId,
-        fileRow.path,
-        appConfig.uploadDir
-      );
-      
-      // 验证文件访问权限
-      const validatedPath = FilePathService.validateFileAccess(
-        filePath,
-        appConfig.uploadDir,
-        fileRow.authorId
-      );
-      
+
+      // 使用文件访问服务获取安全路径
+      const { validatedPath } = yield* FileAccessService.validateFileAccessEffect(fileRow, {
+        checkOwnership: true,
+        userId: auth.user.id,
+        publicOnly: false,
+      });
+
       yield* Effect.promise(() =>
         unlink(validatedPath).catch((e) => {
           throw MsgError.msg('删除文件失败' + e);
