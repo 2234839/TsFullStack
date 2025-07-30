@@ -96,6 +96,18 @@ timer_start
 ssh $SSH_OPTS "$SSH_TARGET" "
     cd $REMOTE_PATH/
 
+    # 停止应用服务，释放数据库锁定
+    echo '停止应用服务...'
+    pm2 stop TsFullStack || true
+
+    # 等待进程完全停止
+    sleep 2
+
+    # 删除 SQLite 日志文件（如果有）
+    echo '清理数据库锁定文件...'
+    rm -f prisma/dev.db-journal
+    rm -f prisma/dev.db-wal
+
     # 数据库迁移
     echo '执行数据库迁移...'
     pnpm prisma migrate deploy || exit 1
