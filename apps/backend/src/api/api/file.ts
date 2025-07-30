@@ -1,13 +1,15 @@
 import { Effect } from 'effect';
 import { AuthService } from '../../service/Auth';
 import { File as FileModel, StorageType } from '@zenstackhq/runtime/models';
-import { readFile, writeFile, unlink } from 'fs/promises';
+import { unlink } from 'fs/promises';
 import { join, resolve } from 'path/posix';
 import { v7 as uuidv7 } from 'uuid';
 import { MsgError } from '../../util/error';
 import { AppConfigService } from '../../service/AppConfigService';
 import { ReqCtxService } from '../../service/ReqCtx';
 import { createReadStream, createWriteStream } from 'fs';
+import { FilePathService } from '../../service/FilePathService';
+import { mkdir } from 'fs/promises';
 
 export const fileApi = {
   /** file 这种二进制对象传递比较特殊，使用 superJSON 的话会大幅增加请求大小，并且如果不是流式读写的话也会导致内存占用过高
@@ -21,7 +23,17 @@ export const fileApi = {
 
       const reqCtx = yield* ReqCtxService;
 
-      const filePath = join(appConfig.uploadDir, fileId);
+      // 生成安全的用户专属文件路径
+      const filePath = FilePathService.generateUserFilePath(
+        auth.user.id,
+        fileId,
+        appConfig.uploadDir
+      );
+
+      /** 确保用户目录存在 */
+      yield* Effect.promise(() => 
+        mkdir(join(appConfig.uploadDir, auth.user.id), { recursive: true })
+      );
 
       /**  获取文件流并写入文件流 */
 
@@ -59,9 +71,9 @@ export const fileApi = {
       const res = yield* Effect.promise(() =>
         auth.db.file.create({
           data: {
-            filename: reqFile.filename,
+            filename: FilePathService.sanitizeFilename(reqFile.filename),
             mimetype: reqFile.mimetype,
-            path: fileId,
+            path: fileId, // 存储相对路径中的文件ID部分
             size: fileSize,
             storageType: StorageType.LOCAL,
             authorId: auth.user.id,
@@ -87,16 +99,38 @@ export const fileApi = {
           },
         }),
       );
+      
+      // 验证文件存在性和所有权
       if (!fileRow?.path) {
         throw MsgError.msg('File not found');
       }
+      
+      // 检查文件所有权或公开状态
+      const isOwner = fileRow.authorId === auth.user.id;
+      const isPublic = fileRow.status === 'public';
+      
+      if (!isOwner && !isPublic) {
+        throw MsgError.msg('Access denied: File ownership verification failed');
+      }
+      
       const appConfig = yield* AppConfigService;
-      // 读取文件内容,将相对路径转为绝对路径,fastify似乎需要绝对路径
-      // TODO 当前是默认读取本地，之后应该要适配成支持多种存储方式
-      const filePath = join(appConfig.uploadDir, fileRow.path);
+      
+      // 生成并验证安全的文件路径
+      const filePath = FilePathService.generateUserFilePath(
+        fileRow.authorId,
+        fileRow.path,
+        appConfig.uploadDir
+      );
+      
+      // 验证文件访问权限
+      const validatedPath = FilePathService.validateFileAccess(
+        filePath,
+        appConfig.uploadDir,
+        fileRow.authorId
+      );
 
       return new FileWarpItem(
-        filePath,
+        validatedPath,
         fileRow,
       ) as unknown as /** 客户端实际接受的是文件而非 FileWarpItem */ File;
     });
@@ -113,13 +147,35 @@ export const fileApi = {
           },
         }),
       );
+      
+      // 验证文件存在性和所有权
       if (!fileRow) {
         throw MsgError.msg('File not found');
       }
+      
+      // 只有文件所有者才能删除文件
+      if (fileRow.authorId !== auth.user.id) {
+        throw MsgError.msg('Access denied: File ownership verification failed');
+      }
+      
       const appConfig = yield* AppConfigService;
-      const filePath = join(appConfig.uploadDir, fileRow.path);
+      
+      // 生成并验证安全的文件路径
+      const filePath = FilePathService.generateUserFilePath(
+        fileRow.authorId,
+        fileRow.path,
+        appConfig.uploadDir
+      );
+      
+      // 验证文件访问权限
+      const validatedPath = FilePathService.validateFileAccess(
+        filePath,
+        appConfig.uploadDir,
+        fileRow.authorId
+      );
+      
       yield* Effect.promise(() =>
-        unlink(filePath).catch((e) => {
+        unlink(validatedPath).catch((e) => {
           throw MsgError.msg('删除文件失败' + e);
         }),
       );
