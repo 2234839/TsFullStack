@@ -8,8 +8,8 @@ export interface Database {
   user: Omit<Prisma.UserGetPayload<{ include: { role: true; userSession: true } }>, 'password'>;
 }
 
-export class AuthService extends Context.Tag('AuthService')<
-  AuthService,
+export class AuthContext extends Context.Tag('AuthContext')<
+  AuthContext,
   {
     db: Database['db'];
     user: Database['user'];

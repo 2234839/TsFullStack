@@ -1,7 +1,7 @@
 import { File as FileModel } from '@zenstackhq/runtime/models';
 import { Effect } from 'effect';
-import { PrismaService } from '../../service/PrismaService';
-import { FileAccessService } from '../../service/FileAccessService';
+import { PrismaService } from '../../Context/PrismaService';
+import { FileAccessService } from '../../Context/FileAccessService';
 
 export const fileApi = {
   /** 这里同样是为了解决非流式传递导致的内存占用过大问题

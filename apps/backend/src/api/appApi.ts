@@ -1,12 +1,12 @@
 import { compareSync } from 'bcryptjs';
 import { Effect } from 'effect';
-import { PrismaService } from '../service/PrismaService';
-import { ReqCtxService } from '../service/ReqCtx';
+import { PrismaService } from '../Context/PrismaService';
+import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
-import { genUserSession } from './app/_genUserSession';
-import { githubApi } from './app/github';
-import { fileApi } from './app/file';
-import { shareApi } from './app/share';
+import { genUserSession } from './appApi/_genUserSession';
+import { githubApi } from './appApi/github';
+import { fileApi } from './appApi/file';
+import { shareApi } from './appApi/share';
 
 async function randomDelay(baseDelay = 500) {
   await new Promise((r) => setTimeout(r, baseDelay + 2_000 * Math.random()));

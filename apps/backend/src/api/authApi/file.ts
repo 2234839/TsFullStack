@@ -4,11 +4,11 @@ import { createReadStream, createWriteStream } from 'fs';
 import { mkdir, unlink } from 'fs/promises';
 import { join } from 'path/posix';
 import { v7 as uuidv7 } from 'uuid';
-import { AppConfigService } from '../../service/AppConfigService';
-import { AuthService } from '../../service/Auth';
-import { FileAccessService } from '../../service/FileAccessService';
-import { FilePathService } from '../../service/FilePathService';
-import { ReqCtxService } from '../../service/ReqCtx';
+import { AppConfigContext } from '../../Context/AppConfig';
+import { AuthContext } from '../../Context/Auth';
+import { FileAccessService } from '../../Context/FileAccessService';
+import { FilePathService } from '../../Context/FilePathService';
+import { ReqCtxService } from '../../Context/ReqCtx';
 import { MsgError } from '../../util/error';
 
 export const fileApi = {
@@ -17,9 +17,9 @@ export const fileApi = {
    */
   upload(_file: File) {
     return Effect.gen(function* () {
-      const auth = yield* AuthService;
+      const auth = yield* AuthContext;
       const fileId = uuidv7();
-      const appConfig = yield* AppConfigService;
+      const appConfig = yield* AppConfigContext;
 
       const reqCtx = yield* ReqCtxService;
 
@@ -90,7 +90,7 @@ export const fileApi = {
    */
   file(id: FileModel['id']) {
     return Effect.gen(function* () {
-      const auth = yield* AuthService;
+      const auth = yield* AuthContext;
 
       const fileRow = yield* Effect.promise(() =>
         auth.db.file.findUnique({
@@ -113,7 +113,7 @@ export const fileApi = {
   /** 移除本地文件以及数据库记录 */
   delete(id: FileModel['id']) {
     return Effect.gen(function* () {
-      const auth = yield* AuthService;
+      const auth = yield* AuthContext;
 
       const fileRow = yield* Effect.promise(() =>
         auth.db.file.findUnique({

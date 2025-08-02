@@ -1,6 +1,6 @@
 import { UserData as UserDataModel } from '@zenstackhq/runtime/models';
 import { Effect } from 'effect';
-import { PrismaService } from '../../service/PrismaService';
+import { PrismaService } from '../../Context/PrismaService';
 
 export const shareApi = {
   detail(id: UserDataModel['id']) {
