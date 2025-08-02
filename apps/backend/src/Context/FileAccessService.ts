@@ -1,9 +1,9 @@
 import { Effect } from 'effect';
 import { File as FileModel } from '@zenstackhq/runtime/models';
 import { MsgError } from '../util/error';
-import { FilePathService } from '../service/FilePathService';
-import { AppConfigService } from './AppConfigService';
-import { FileWarpItem } from '../api/api/file';
+import { FilePathService } from './FilePathService';
+import { AppConfigContext } from './AppConfig';
+import { FileWarpItem } from '../api/authApi/file';
 
 /**
  * 文件访问选项
@@ -29,7 +29,7 @@ export interface FileAccessResult {
  * 文件访问服务 - 提供统一的文件访问逻辑
  */
 export class FileAccessService {
-  
+
   /**
    * 验证文件访问权限并返回安全的文件路径
    * @param fileRow 文件记录
@@ -71,7 +71,7 @@ export class FileAccessService {
 
     // 如果没有提供 uploadDir，则使用默认值（但应该总是提供）
     const finalUploadDir = uploadDir || process.env.UPLOAD_DIR || './uploads';
-    
+
     const filePath = FilePathService.generateUserFilePath(
       fileRow.authorId,
       fileRow.path,
@@ -102,7 +102,7 @@ export class FileAccessService {
     options: FileAccessOptions = {}
   ) {
     return Effect.gen(function* () {
-      const appConfig = yield* AppConfigService;
+      const appConfig = yield* AppConfigContext;
       return FileAccessService.validateFileAccess(fileRow, options, appConfig.uploadDir);
     });
   }
@@ -120,7 +120,7 @@ export class FileAccessService {
     uploadDir?: string
   ): FileWarpItem {
     const { validatedPath } = FileAccessService.validateFileAccess(fileRow, options, uploadDir);
-    
+
     return new FileWarpItem(validatedPath, fileRow);
   }
 
@@ -135,7 +135,7 @@ export class FileAccessService {
     options: FileAccessOptions = {}
   ) {
     return Effect.gen(function* () {
-      const appConfig = yield* AppConfigService;
+      const appConfig = yield* AppConfigContext;
       return FileAccessService.createFileWarpItem(fileRow, options, appConfig.uploadDir);
     });
   }

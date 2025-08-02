@@ -9,13 +9,13 @@ import os from 'os';
 import path from 'path/posix';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { apis, type APIRaw } from '../api';
-import { FileWarpItem } from '../api/api/file';
+import { FileWarpItem } from '../api/authApi/file';
 import { appApis } from '../api/appApi';
 import { SessionAuthSign } from '../lib';
 import { createRPC } from '../rpc';
-import { AuthService } from '../service/Auth';
-import { ReqCtxService, type ReqCtx } from '../service/ReqCtx';
-import { systemLog } from '../service/SystemLog';
+import { AuthContext } from '../Context/Auth';
+import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
+import { systemLog } from '../Context/SystemLog';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
 const MAX_WAIT_MS = 360_000;
@@ -156,7 +156,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
           return res;
         })
           // 提供 apis 模块所需要的依赖
-          .pipe(Effect.provideService(AuthService, { db, user }));
+          .pipe(Effect.provideService(AuthContext, { db, user }));
       } catch (error) {
         result = error;
       }

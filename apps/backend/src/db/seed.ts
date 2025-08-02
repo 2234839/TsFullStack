@@ -1,7 +1,7 @@
 import { compareSync, hashSync } from 'bcryptjs';
 import { Effect } from 'effect';
-import { PrismaService } from '../service/PrismaService';
-import { AppConfigService } from '../service/AppConfigService';
+import { PrismaService } from '../Context/PrismaService';
+import { AppConfigContext } from '../Context/AppConfig';
 
 /** 对数据库进行一些初始化设置 */
 export const seedDB = Effect.gen(function* () {
@@ -25,7 +25,7 @@ const seedAdmin = () =>
   Effect.gen(function* () {
     const { prisma } = yield* PrismaService;
 
-    const { systemAdminUser } = yield* AppConfigService;
+    const { systemAdminUser } = yield* AppConfigContext;
     let admin = yield* Effect.promise(() =>
       prisma.user.findUnique({
         where: {

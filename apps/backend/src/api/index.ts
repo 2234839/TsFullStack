@@ -1,19 +1,19 @@
 import type { PrismaClient } from '@zenstackhq/runtime';
 import { Effect } from 'effect';
-import type { allowedMethods } from '../service/PrismaService';
-import { AuthService } from '../service/Auth';
+import type { allowedMethods } from '../Context/PrismaService';
+import { AuthContext } from '../Context/Auth';
 import { systemApis } from './systemApis';
 import { testApi } from './testApi';
-import { fileApi } from './api/file';
+import { fileApi } from './authApi/file';
 
 export const apis = {
   system: systemApis,
   testApi,
   fileApi,
-  // 直接获取数据库 db 操作对象,这个函数仅用于给 Effect 提供 apis 依赖 AuthService 的类型提示 ， server/index.ts 中会覆盖此变量交给用户，覆盖之后的类型参考下面的  API 类型
+  // 直接获取数据库 db 操作对象,这个函数仅用于给 Effect 提供 apis 依赖 AuthContext 的类型提示 ， server/index.ts 中会覆盖此变量交给用户，覆盖之后的类型参考下面的  API 类型
   db() {
     return Effect.gen(function* () {
-      const auth = yield* AuthService;
+      const auth = yield* AuthContext;
       return auth.db;
     });
   },

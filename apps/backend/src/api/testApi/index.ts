@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { ReqCtxService } from '../../service/ReqCtx';
+import { ReqCtxService } from '../../Context/ReqCtx';
 
 let id = 0;
 /** 实验测试功能 */

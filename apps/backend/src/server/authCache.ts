@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { PrismaService } from '../service/PrismaService';
+import { PrismaService } from '../Context/PrismaService';
 
 const userCache = new Map<string, { res: any; timestamp: number }>();
 const CACHE_TTL = 60 * 1000; // 1分钟缓存时间
