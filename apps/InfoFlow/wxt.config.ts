@@ -3,12 +3,13 @@ import tailwindcss from '@tailwindcss/vite';
 // See https://wxt.dev/api/config.html
 export default defineConfig({
   modules: ['@wxt-dev/module-vue'],
+  // @ts-ignore
   vite: () => ({
     plugins: [tailwindcss()],
   }),
   // 修改了这里记得去浏览器重载扩展
-  imports: false,
+  // imports: true,
   manifest: {
-    permissions: ['storage', 'tabs'],
+    permissions: ['storage', 'tabs', 'notifications', 'activeTab'],
   },
 });
