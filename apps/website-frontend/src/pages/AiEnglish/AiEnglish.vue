@@ -207,7 +207,7 @@
 
                       <Slider
                         v-model="selectedWord.memoryLevel"
-                        @change="adjustMemoryLevel(selectedWord.word, $event)"
+                        @change="adjustMemoryLevel(selectedWord.word, Array.isArray($event) ? $event[0] : $event)"
                         :min="0"
                         :max="10"
                         :step="1"
