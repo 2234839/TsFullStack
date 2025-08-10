@@ -11,8 +11,8 @@ NC='\033[0m' # No Color
 
 # 配置变量
 SSH_USER="root"
-SSH_HOST="47.236.134.32"
-DEPLOY_PATH="/root/app/TsFullStack"
+SSH_HOST="shenzilong.cn"
+DEPLOY_PATH="/tmp/ossfs/apps/TsFullStack"
 
 # 构建目标地址
 SSH_TARGET="$SSH_USER@$SSH_HOST"
