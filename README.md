@@ -39,6 +39,11 @@ Other application examples
 - Browser Extension - InfoFlow
   - Built with https://wxt.dev/guide/installation.html to demonstrate using tsfullstack as backend support for browser extensions.
 
+- API Proxy
+  - Cloudflare Workers-based API proxy service for solving GitHub/npm access issues in restricted network environments.
+  - Supports both direct proxy and universal proxy modes.
+  - See `apps/api-proxy/` for details.
+
 ## Quick Start
 
 1. Clone the project

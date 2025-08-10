@@ -1,0 +1,27 @@
+{
+  "name": "api-proxy",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers API proxy for solving external API access issues",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "build": "wrangler deploy --dry-run",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.0.0",
+    "typescript": "^5.9.2",
+    "wrangler": "^4.28.1"
+  },
+  "keywords": [
+    "api",
+    "proxy",
+    "cloudflare",
+    "workers",
+    "github",
+    "npm"
+  ],
+  "author": "",
+  "license": "MIT"
+}
