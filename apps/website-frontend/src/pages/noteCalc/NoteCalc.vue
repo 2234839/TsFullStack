@@ -258,7 +258,7 @@
   import { exampleContent } from '@/pages/noteCalc/exampleContent';
   import { useAsyncState, useDebounceFn, useThrottleFn, useTimestamp } from '@vueuse/core';
   import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
-  import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
   import { API } from '@/api';
   import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
@@ -297,7 +297,7 @@
 
   //#region 状态管理
   const content = ref(props.c || props.id ? '' : exampleContent);
-  const config = reactive({
+  const config = ref({
     isAutoCalculate: true,
     precision: 64,
     showPrecision: 4,
@@ -393,7 +393,7 @@
       currentNote.value && getContentFromData(currentNote.value) !== content.value;
     const configIsDifferent =
       currentNote.value &&
-      JSON.stringify(getConfigFromData(currentNote.value)) !== JSON.stringify(config);
+      JSON.stringify(getConfigFromData(currentNote.value)) !== JSON.stringify(config.value);
 
     return contentIsDifferent || configIsDifferent;
   });
@@ -639,7 +639,7 @@
     content.value = noteContent || '';
 
     if (noteConfig) {
-      Object.assign(config, noteConfig);
+      Object.assign(config.value, noteConfig);
     }
 
     currentNote.value = note;
@@ -662,7 +662,7 @@
     try {
       const noteData = {
         content: content.value,
-        config,
+        config:config.value,
       };
 
       if (currentNote.value) {
@@ -744,12 +744,12 @@
   const setupAutoSave = () => {
     clearAutoSave();
 
-    if (config.autoSaveEnabled && authInfo_isLogin.value) {
+    if (config.value.autoSaveEnabled && authInfo_isLogin.value) {
       autoSaveTimer = window.setInterval(() => {
         if (unsavedChanges.value && currentNote.value) {
           saveCurrentNote();
         }
-      }, config.autoSaveInterval * 1000);
+      }, config.value.autoSaveInterval * 1000);
     }
   };
 
@@ -997,7 +997,7 @@
 
   // 监听自动保存设置变化
   watch(
-    () => [config.autoSaveEnabled, config.autoSaveInterval],
+    () => [config.value.autoSaveEnabled, config.value.autoSaveInterval],
     () => {
       setupAutoSave();
     },
