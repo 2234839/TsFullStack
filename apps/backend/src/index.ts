@@ -17,6 +17,7 @@ const main = Effect.gen(function* () {
             password: 'adminpassword123',
           },
           uploadDir: './uploads',
+          ApiProxy: {},
         } satisfies AppConfig;
       },
     }),
@@ -33,11 +34,11 @@ const main = Effect.gen(function* () {
 
   yield* seedDB.pipe(
     Effect.provideService(AppConfigContext, config),
-    Effect.provideService(PrismaService, PrismaServiceLive)
+    Effect.provideService(PrismaService, PrismaServiceLive),
   );
 
   // 监控内存使用情况
-  let lastUsage = {rssMB:0, heapTotalMB:0};
+  let lastUsage = { rssMB: 0, heapTotalMB: 0 };
   let lastTime = Date.now();
 
   function logMemoryUsage() {
@@ -81,7 +82,7 @@ const main = Effect.gen(function* () {
   // yield* queue_scheduler;
   yield* startServer.pipe(
     Effect.provideService(AppConfigContext, config),
-    Effect.provideService(PrismaService, PrismaServiceLive)
+    Effect.provideService(PrismaService, PrismaServiceLive),
   );
 });
 

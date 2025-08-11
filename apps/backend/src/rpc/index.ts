@@ -216,7 +216,7 @@ export type DeepUnEffectReturnTypeUnion<T> = T extends (...args: any[]) => any
   : T extends object
   ? { [K in keyof T]: DeepUnEffectReturnTypeUnion<T[K]> }[keyof T]
   : never;
-/** 解开可��是 Effect 的返回值，如果是 Effect 则返回其成功类型，否则返回原类型 */
+/** 解开可能是 Effect 的返回值，如果是 Effect 则返回其成功类型，否则返回原类型 */
 export type ExtractEffectSuccess<T> = T extends Effect.Effect<infer A, infer E, infer P> ? A : T;
 
 /**
