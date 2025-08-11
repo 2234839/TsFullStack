@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { AppConfigContext } from '../Context/AppConfig';
+import { ReqCtxService } from '../Context/ReqCtx';
 
 /**
  * Enhanced fetch options with proxy support
@@ -20,10 +21,12 @@ export function fetchWithProxy(url: string | URL, options: ProxyFetchOptions = {
     const { useProxy = true, ...fetchOptions } = options;
     const appConfig = yield* AppConfigContext;
     const githubProxyUrl = appConfig.ApiProxy.github;
+    const ctx = yield* ReqCtxService;
 
+    ctx.log(`fetch proxy, githubProxyUrl:${githubProxyUrl}  targetUrl:${url}`);
     // If proxy is not configured or explicitly disabled, use direct fetch
     if (!useProxy || !githubProxyUrl) {
-      return fetch(url, fetchOptions);
+      return yield* Effect.promise(() => fetch(url, fetchOptions));
     }
 
     // Use proxy for GitHub API calls
@@ -45,7 +48,7 @@ export function fetchWithProxy(url: string | URL, options: ProxyFetchOptions = {
       try {
         // For generic proxy, we need to send the original URL and method
         if (proxyUrl.pathname === '/proxy') {
-          return Effect.promise(() =>
+          return yield* Effect.promise(() =>
             fetch(proxyUrl, {
               method: 'POST',
               headers: {
@@ -65,15 +68,15 @@ export function fetchWithProxy(url: string | URL, options: ProxyFetchOptions = {
             }),
           );
         } else {
-          return Effect.promise(() => fetch(proxyUrl, fetchOptions));
+          return yield* Effect.promise(() => fetch(proxyUrl, fetchOptions));
         }
       } catch (error) {
         console.warn('Proxy request failed, falling back to direct fetch:', error);
-        return Effect.promise(() => fetch(proxyUrl, fetchOptions));
+        return yield* Effect.promise(() => fetch(url, fetchOptions));
       }
     }
 
     // For non-GitHub URLs, use direct fetch
-    return Effect.promise(() => fetch(url, fetchOptions));
+    return yield* Effect.promise(() => fetch(url, fetchOptions));
   });
 }

@@ -2,11 +2,19 @@ name = "api-proxy"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+# 禁用 workers.dev 域名
+workers_dev = false
+
+# 禁用开发模式预览
+[env.development]
+vars = { ENVIRONMENT = "development" }
+# 开发环境也禁用预览
+workers_dev = false
+
 [env.production]
 vars = { ENVIRONMENT = "production" }
+workers_dev = false
 
 [env.staging]
 vars = { ENVIRONMENT = "staging" }
-
-[env.development]
-vars = { ENVIRONMENT = "development" }
+workers_dev = false
