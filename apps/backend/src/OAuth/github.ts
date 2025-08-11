@@ -13,6 +13,10 @@ const DEFAULT_SCOPES = ["read:user", "user:email"] as const
 const GITHUB_OAUTH_URL = "https://github.com/login/oauth"
 const GITHUB_API_URL = "https://api.github.com"
 
+// Import proxy utilities
+import { fetchWithProxy } from '../util/github-proxy';
+import { Effect, Either } from 'effect';
+
 // ===== 接口定义 =====
 
 /**
@@ -115,6 +119,23 @@ export class GitHubAuthError extends Error {
   }
 }
 
+// Effect error type
+export type GitHubAuthErrorType = GitHubAuthError | Error
+
+// Effect tag for GitHub Auth service
+export class GitHubAuthService extends Effect.Tag('GitHubAuthService')<
+  GitHubAuthService,
+  {
+    readonly validateConfig: (config: GitHubAuthConfig) => Effect.Effect<void, GitHubAuthError>
+    readonly getAccessToken: (code: string) => Effect.Effect<TokenResponse, GitHubAuthError>
+    readonly getUser: (accessToken: string) => Effect.Effect<GitHubUser, GitHubAuthError>
+    readonly authenticate: (code: string) => Effect.Effect<{ user: GitHubUser; accessToken: string }, GitHubAuthError>
+    readonly verifyToken: (accessToken: string) => Effect.Effect<boolean, GitHubAuthError>
+    readonly revokeToken: (accessToken: string) => Effect.Effect<void, GitHubAuthError>
+    readonly getAuthorizationUrl: (state?: string) => Effect.Effect<string, GitHubAuthError>
+  }
+>() {}
+
 // ===== 主要类实现 =====
 
 /**
@@ -136,7 +157,6 @@ export class GitHubAuth {
   protected readonly config: Required<GitHubAuthConfig>
 
   constructor(config: GitHubAuthConfig) {
-    this.validateConfig(config)
     this.config = {
       ...config,
       clientSecret: config.clientSecret || "",
@@ -144,33 +164,13 @@ export class GitHubAuth {
     }
   }
 
-  /**
-   * 验证配置
-   * @throws {GitHubAuthError} 当配置无效时抛出
-   */
-  private validateConfig(config: GitHubAuthConfig): void {
-    if (!config.clientId?.trim()) {
-      throw new GitHubAuthError("Client ID is required", GitHubAuthErrorCode.INVALID_CONFIG)
-    }
-
-    if (!config.redirectUri?.trim()) {
-      throw new GitHubAuthError("Redirect URI is required", GitHubAuthErrorCode.INVALID_CONFIG)
-    }
-
-    // 验证 redirectUri 是否为有效的 URL
-    try {
-      new URL(config.redirectUri)
-    } catch {
-      throw new GitHubAuthError("Invalid redirect URI format", GitHubAuthErrorCode.INVALID_CONFIG)
-    }
-  }
 
   /**
    * 获取授权 URL
    * @param state - 可选的状态参数，用于防止 CSRF 攻击
-   * @returns GitHub 授权页面 URL
+   * @returns Effect that returns GitHub 授权页面 URL
    */
-  getAuthorizationUrl(state?: string): string {
+  getAuthorizationUrl(state?: string): Effect.Effect<string, GitHubAuthError> {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       redirect_uri: this.config.redirectUri,
@@ -181,47 +181,52 @@ export class GitHubAuth {
       params.append("state", state)
     }
 
-    return `${GITHUB_OAUTH_URL}/authorize?${params.toString()}`
+    return Effect.succeed(`${GITHUB_OAUTH_URL}/authorize?${params.toString()}`)
   }
 
   /**
    * 使用授权码交换访问令牌（仅服务器端）
    * @param code - GitHub 返回的授权码
-   * @returns 访问令牌信息
-   * @throws {GitHubAuthError} 当请求失败时抛出
+   * @returns Effect that returns 访问令牌信息
    */
-  async getAccessToken(code: string): Promise<TokenResponse> {
-    if (!code?.trim()) {
-      throw new GitHubAuthError("Authorization code is required", GitHubAuthErrorCode.INVALID_CODE)
-    }
+  getAccessToken(code: string): Effect.Effect<TokenResponse, GitHubAuthError> {
+    const config = this.config
+    return Effect.gen(function* () {
+      if (!code?.trim()) {
+        yield* Effect.fail(new GitHubAuthError("Authorization code is required", GitHubAuthErrorCode.INVALID_CODE))
+      }
 
-    if (!this.config.clientSecret) {
-      throw new GitHubAuthError("Client secret is required for token exchange", GitHubAuthErrorCode.INVALID_CONFIG)
-    }
+      if (!config.clientSecret) {
+        yield* Effect.fail(new GitHubAuthError("Client secret is required for token exchange", GitHubAuthErrorCode.INVALID_CONFIG))
+      }
 
-    try {
-      const response = await fetch(`${GITHUB_OAUTH_URL}/access_token`, {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          client_id: this.config.clientId,
-          client_secret: this.config.clientSecret,
-          code,
-          redirect_uri: this.config.redirectUri,
-        }),
+      const response = yield* Effect.promise(() =>
+        fetch(`${GITHUB_OAUTH_URL}/access_token`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            client_id: config.clientId,
+            client_secret: config.clientSecret,
+            code,
+            redirect_uri: config.redirectUri,
+          }),
+        })
+      )
+
+      const data = yield* Effect.tryPromise({
+        try: () => response.json() as Promise<any>,
+        catch: () => new GitHubAuthError("Failed to parse response", GitHubAuthErrorCode.API_ERROR)
       })
 
-      const data = await response.json()
-
       if (data.error) {
-        throw new GitHubAuthError(
+        yield* Effect.fail(new GitHubAuthError(
           data.error_description || "Failed to get access token",
           GitHubAuthErrorCode.API_ERROR,
           response.status,
-        )
+        ))
       }
 
       return {
@@ -229,39 +234,39 @@ export class GitHubAuth {
         tokenType: data.token_type || "bearer",
         scope: data.scope || "",
       }
-    } catch (error) {
-      if (error instanceof GitHubAuthError) {
-        throw error
-      }
-
-      throw new GitHubAuthError("Network request failed", GitHubAuthErrorCode.NETWORK_ERROR)
-    }
+    }).pipe(Effect.catchAll((error) =>
+      Effect.fail(error instanceof GitHubAuthError ? error : new GitHubAuthError("Network request failed", GitHubAuthErrorCode.NETWORK_ERROR))
+    ))
   }
 
   /**
    * 获取用户信息
    * @param accessToken - 访问令牌
-   * @returns GitHub 用户信息
-   * @throws {GitHubAuthError} 当请求失败时抛出
+   * @returns Effect that returns GitHub 用户信息
    */
-  async getUser(accessToken: string): Promise<GitHubUser> {
-    if (!accessToken?.trim()) {
-      throw new GitHubAuthError("Access token is required", GitHubAuthErrorCode.INVALID_TOKEN)
-    }
-
-    try {
-      const response = await fetch(`${GITHUB_API_URL}/user`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/vnd.github.v3+json",
-        },
-      })
-
-      if (!response.ok) {
-        throw new GitHubAuthError("Failed to get user information", GitHubAuthErrorCode.API_ERROR, response.status)
+  getUser(accessToken: string): Effect.Effect<GitHubUser, GitHubAuthError> {
+    return Effect.gen(function* () {
+      if (!accessToken?.trim()) {
+        yield* Effect.fail(new GitHubAuthError("Access token is required", GitHubAuthErrorCode.INVALID_TOKEN))
       }
 
-      const data = await response.json()
+      const response = yield* Effect.promise(() =>
+        fetch(`${GITHUB_API_URL}/user`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/vnd.github.v3+json",
+          },
+        })
+      )
+
+      if (!response.ok) {
+        yield* Effect.fail(new GitHubAuthError("Failed to get user information", GitHubAuthErrorCode.API_ERROR, response.status))
+      }
+
+      const data = yield* Effect.tryPromise({
+        try: () => response.json() as Promise<any>,
+        catch: () => new GitHubAuthError("Failed to parse response", GitHubAuthErrorCode.API_ERROR)
+      })
 
       return {
         id: data.id,
@@ -279,81 +284,81 @@ export class GitHubAuth {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       }
-    } catch (error) {
-      if (error instanceof GitHubAuthError) {
-        throw error
-      }
-
-      throw new GitHubAuthError("Network request failed", GitHubAuthErrorCode.NETWORK_ERROR)
-    }
+    }).pipe(Effect.catchAll((error) =>
+      Effect.fail(error instanceof GitHubAuthError ? error : new GitHubAuthError("Network request failed", GitHubAuthErrorCode.NETWORK_ERROR))
+    ))
   }
 
   /**
    * 完整的认证流程（仅服务器端）
    * @param code - GitHub 返回的授权码
-   * @returns 用户信息和访问令牌
-   * @throws {GitHubAuthError} 当认证失败时抛出
+   * @returns Effect that returns 用户信息和访问令牌
    */
-  async authenticate(code: string): Promise<{
+  authenticate(code: string): Effect.Effect<{
     user: GitHubUser
     accessToken: string
-  }> {
-    const { accessToken } = await this.getAccessToken(code)
-    const user = await this.getUser(accessToken)
+  }, GitHubAuthError> {
+    const getAccessToken = this.getAccessToken.bind(this)
+    const getUser = this.getUser.bind(this)
 
-    return { user, accessToken }
+    return Effect.gen(function* () {
+      const tokenResponse = yield* getAccessToken(code)
+      const user = yield* getUser(tokenResponse.accessToken)
+
+      return { user, accessToken: tokenResponse.accessToken }
+    })
   }
 
   /**
    * 验证访问令牌是否有效
    * @param accessToken - 访问令牌
-   * @returns 是否有效
+   * @returns Effect that returns 是否有效
    */
-  async verifyToken(accessToken: string): Promise<boolean> {
-    try {
-      await this.getUser(accessToken)
-      return true
-    } catch {
-      return false
-    }
+  verifyToken(accessToken: string): Effect.Effect<boolean, GitHubAuthError> {
+    const getUser = this.getUser.bind(this)
+
+    return Effect.match(getUser(accessToken), {
+      onSuccess: () => true,
+      onFailure: () => false
+    })
   }
 
   /**
    * 撤销访问令牌（仅服务器端）
    * @param accessToken - 访问令牌
-   * @throws {GitHubAuthError} 当撤销失败时抛出
+   * @returns Effect that completes when token is revoked
    */
-  async revokeToken(accessToken: string): Promise<void> {
-    if (!this.config.clientSecret) {
-      throw new GitHubAuthError("Client secret is required for token revocation", GitHubAuthErrorCode.INVALID_CONFIG)
-    }
+  revokeToken(accessToken: string): Effect.Effect<void, GitHubAuthError> {
+    const config = this.config
 
-    try {
+    return Effect.gen(function* () {
+      if (!config.clientSecret) {
+        yield* Effect.fail(new GitHubAuthError("Client secret is required for token revocation", GitHubAuthErrorCode.INVALID_CONFIG))
+      }
+
       // 使用 btoa 替代 Buffer（浏览器兼容）
-      const credentials = btoa(`${this.config.clientId}:${this.config.clientSecret}`)
+      const credentials = btoa(`${config.clientId}:${config.clientSecret}`)
 
-      const response = await fetch(`${GITHUB_API_URL}/applications/${this.config.clientId}/token`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Basic ${credentials}`,
-          Accept: "application/vnd.github.v3+json",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          access_token: accessToken,
-        }),
-      })
+      const response = yield* Effect.promise(() =>
+        fetch(`${GITHUB_API_URL}/applications/${config.clientId}/token`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            Accept: "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            access_token: accessToken,
+          }),
+        })
+      )
 
       if (!response.ok) {
-        throw new GitHubAuthError("Failed to revoke token", GitHubAuthErrorCode.REVOKE_ERROR, response.status)
+        yield* Effect.fail(new GitHubAuthError("Failed to revoke token", GitHubAuthErrorCode.REVOKE_ERROR, response.status))
       }
-    } catch (error) {
-      if (error instanceof GitHubAuthError) {
-        throw error
-      }
-
-      throw new GitHubAuthError("Failed to revoke token", GitHubAuthErrorCode.REVOKE_ERROR)
-    }
+    }).pipe(Effect.catchAll((error) =>
+      Effect.fail(error instanceof GitHubAuthError ? error : new GitHubAuthError("Failed to revoke token", GitHubAuthErrorCode.REVOKE_ERROR))
+    ))
   }
 
   /**
@@ -393,4 +398,184 @@ export class ServerGitHubAuth extends GitHubAuth {
       scope: this.config.scope,
     }
   }
+}
+
+// Effect service implementation
+export const GitHubAuthServiceLive = (config: GitHubAuthConfig) => {
+  const getAccessToken = (code: string) => {
+    if (!config.clientSecret) {
+      return Effect.fail(new GitHubAuthError("Client secret is required for token exchange", GitHubAuthErrorCode.INVALID_CONFIG))
+    }
+
+    return Effect.gen(function* () {
+      if (!code?.trim()) {
+        yield* Effect.fail(new GitHubAuthError("Authorization code is required", GitHubAuthErrorCode.INVALID_CODE))
+      }
+
+      const response = yield* Effect.promise(() =>
+        fetch(`${GITHUB_OAUTH_URL}/access_token`, {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            client_id: config.clientId,
+            client_secret: config.clientSecret,
+            code,
+            redirect_uri: config.redirectUri,
+          }),
+        })
+      )
+
+      const data = yield* Effect.tryPromise({
+        try: () => response.json() as Promise<any>,
+        catch: () => new GitHubAuthError("Failed to parse response", GitHubAuthErrorCode.API_ERROR)
+      })
+
+      if (data.error) {
+        yield* Effect.fail(new GitHubAuthError(
+          data.error_description || "Failed to get access token",
+          GitHubAuthErrorCode.API_ERROR,
+          response.status,
+        ))
+      }
+
+      return {
+        accessToken: data.access_token,
+        tokenType: data.token_type || "bearer",
+        scope: data.scope || "",
+      }
+    }).pipe(Effect.catchAll((error) =>
+      Effect.fail(error instanceof GitHubAuthError ? error : new GitHubAuthError("Network request failed", GitHubAuthErrorCode.NETWORK_ERROR))
+    ))
+  }
+
+  const getUser = (accessToken: string) => Effect.gen(function* () {
+    if (!accessToken?.trim()) {
+      yield* Effect.fail(new GitHubAuthError("Access token is required", GitHubAuthErrorCode.INVALID_TOKEN))
+    }
+
+    const response = yield* Effect.promise(() =>
+      fetch(`${GITHUB_API_URL}/user`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/vnd.github.v3+json",
+        },
+      })
+    )
+
+    if (!response.ok) {
+      yield* Effect.fail(new GitHubAuthError("Failed to get user information", GitHubAuthErrorCode.API_ERROR, response.status))
+    }
+
+    const data = yield* Effect.tryPromise({
+      try: () => response.json() as Promise<any>,
+      catch: () => new GitHubAuthError("Failed to parse response", GitHubAuthErrorCode.API_ERROR)
+    })
+
+    return {
+      id: data.id,
+      login: data.login,
+      name: data.name,
+      email: data.email,
+      avatarUrl: data.avatar_url,
+      htmlUrl: data.html_url,
+      bio: data.bio,
+      company: data.company,
+      location: data.location,
+      publicRepos: data.public_repos,
+      followers: data.followers,
+      following: data.following,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    }
+  }).pipe(Effect.catchAll((error) =>
+    Effect.fail(error instanceof GitHubAuthError ? error : new GitHubAuthError("Network request failed", GitHubAuthErrorCode.NETWORK_ERROR))
+  ))
+
+  const authenticate = (code: string) => {
+    return getAccessToken(code).pipe(
+      Effect.andThen((tokenResponse) =>
+        getUser(tokenResponse.accessToken).pipe(
+          Effect.map((user) => ({ user, accessToken: tokenResponse.accessToken }))
+        )
+      )
+    )
+  }
+
+  const verifyToken = (accessToken: string) => {
+    return Effect.match(getUser(accessToken), {
+      onSuccess: () => true,
+      onFailure: () => false
+    })
+  }
+
+  const revokeToken = (accessToken: string) => {
+    if (!config.clientSecret) {
+      return Effect.fail(new GitHubAuthError("Client secret is required for token revocation", GitHubAuthErrorCode.INVALID_CONFIG))
+    }
+
+    return Effect.gen(function* () {
+      const credentials = btoa(`${config.clientId}:${config.clientSecret}`)
+
+      const response = yield* Effect.promise(() =>
+        fetch(`${GITHUB_API_URL}/applications/${config.clientId}/token`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Basic ${credentials}`,
+            Accept: "application/vnd.github.v3+json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            access_token: accessToken,
+          }),
+        })
+      )
+
+      if (!response.ok) {
+        yield* Effect.fail(new GitHubAuthError("Failed to revoke token", GitHubAuthErrorCode.REVOKE_ERROR, response.status))
+      }
+    }).pipe(Effect.catchAll((error) =>
+      Effect.fail(error instanceof GitHubAuthError ? error : new GitHubAuthError("Failed to revoke token", GitHubAuthErrorCode.REVOKE_ERROR))
+    ))
+  }
+
+  return GitHubAuthService.of({
+    validateConfig: (config: GitHubAuthConfig) => Effect.gen(function* () {
+      if (!config.clientId?.trim()) {
+        yield* Effect.fail(new GitHubAuthError("Client ID is required", GitHubAuthErrorCode.INVALID_CONFIG))
+      }
+
+      if (!config.redirectUri?.trim()) {
+        yield* Effect.fail(new GitHubAuthError("Redirect URI is required", GitHubAuthErrorCode.INVALID_CONFIG))
+      }
+
+      try {
+        new URL(config.redirectUri)
+      } catch {
+        yield* Effect.fail(new GitHubAuthError("Invalid redirect URI format", GitHubAuthErrorCode.INVALID_CONFIG))
+      }
+    }),
+
+    getAuthorizationUrl: (state?: string) => {
+      const params = new URLSearchParams({
+        client_id: config.clientId,
+        redirect_uri: config.redirectUri,
+        scope: (config.scope || DEFAULT_SCOPES).join(" "),
+      })
+
+      if (state) {
+        params.append("state", state)
+      }
+
+      return Effect.succeed(`${GITHUB_OAUTH_URL}/authorize?${params.toString()}`)
+    },
+
+    getAccessToken,
+    getUser,
+    authenticate,
+    verifyToken,
+    revokeToken
+  })
 }

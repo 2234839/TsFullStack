@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { GitHubAuth } from '../../OAuth/github';
+import { GitHubAuth, GitHubAuthService, GitHubAuthServiceLive } from '../../OAuth/github';
 import { AppConfigContext } from '../../Context/AppConfig';
 import { MsgError } from '../../util/error';
 import { PrismaService } from '../../Context/PrismaService';
@@ -12,14 +12,14 @@ export const githubApi = {
   getAuthorizationUrl() {
     return Effect.gen(function* () {
       const auth = yield* githubAuth;
-      return auth.getAuthorizationUrl();
+      return yield* auth.getAuthorizationUrl();
     });
   },
   authenticate(code: string) {
     return Effect.gen(function* () {
       const { prisma } = yield* PrismaService;
       const auth = yield* githubAuth;
-      const { user: githubUser } = yield* Effect.promise(() => auth.authenticate(code));
+      const { user: githubUser } = yield* auth.authenticate(code);
 
       let user = yield* Effect.promise(() =>
         prisma.user.findFirst({
