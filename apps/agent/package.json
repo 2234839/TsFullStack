@@ -1,0 +1,51 @@
+{
+  "name": "@tsagent/core",
+  "version": "1.0.0",
+  "description": "A lightweight TypeScript Agent system",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "test:fast": "jest tests/agent-fast.test.ts",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "start": "node dist/index.js",
+    "example:basic": "pnpm tsx examples/basic-example.ts",
+    "example:files": "pnpm tsx examples/file-operations.ts",
+    "example:http": "pnpm tsx examples/http-example.ts",
+    "example:multimedia": "pnpm tsx examples/multimedia-example.ts",
+    "example:interactive": "pnpm tsx examples/interactive-example.ts",
+    "example:quick": "pnpm tsx examples/quick-start.ts",
+    "example:all": "pnpm example:basic && pnpm example:files && pnpm example:http && pnpm example:multimedia && pnpm example:interactive && pnpm example:quick"
+  },
+  "keywords": [
+    "typescript",
+    "agent",
+    "automation",
+    "ai",
+    "tools"
+  ],
+  "author": "TsAgent Team",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "jest": "^29.0.0",
+    "ts-jest": "^29.0.0",
+    "tsx": "^4.20.3",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
