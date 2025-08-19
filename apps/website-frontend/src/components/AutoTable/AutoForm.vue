@@ -62,7 +62,7 @@
     modelMeta: ModelMeta;
   }>();
   const selectModel = computed(() => props.modelMeta.models[props.modelKey]);
-  const modelFields = computed(() => selectModel.value.fields);
+  const modelFields = computed(() => selectModel.value?.fields || {});
   const emit = defineEmits(['created', 'update:visible']);
 
   // 表单状态

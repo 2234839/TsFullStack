@@ -164,11 +164,13 @@
    */
   async function removeUploadedFile(index: number) {
     const file = uploadedFiles.value[index];
-    try {
-      await API.fileApi.delete(file.id);
-      uploadedFiles.value.splice(index, 1);
-    } catch (error) {
-      console.error('Failed to delete file:', error);
+    if (file) {
+      try {
+        await API.fileApi.delete(file.id);
+        uploadedFiles.value.splice(index, 1);
+      } catch (error) {
+        console.error('Failed to delete file:', error);
+      }
     }
   }
 

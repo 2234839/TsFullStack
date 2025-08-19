@@ -28,7 +28,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
   // 计算属性
   const mathInstance = computed(() => {
-    return create(all, {
+    return create(all || {}, {
       number: 'number',
       precision: config.precision,
     });
@@ -206,7 +206,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
         const char = i < safeExpression.length ? safeExpression[i] : '';
 
         // 如果是字母、数字、下划线或中文，可能是变量名的一部分
-        if (/[a-zA-Z0-9_\u4e00-\u9fa5]/.test(char)) {
+        if (/[a-zA-Z0-9_\u4e00-\u9fa5]/.test(char || '')) {
           currentToken += char;
           inVariable = true;
         } else {
@@ -286,7 +286,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       const char = i < expression.length ? expression[i] : '';
 
       // 如果是字母、数字、下划线或中文，可能是变量名的一部分
-      if (/[a-zA-Z0-9_\u4e00-\u9fa5]/.test(char)) {
+      if (/[a-zA-Z0-9_\u4e00-\u9fa5]/.test(char || '')) {
         currentToken += char;
       } else {
         // 如果当前有词元，检查是否是变量名
@@ -387,8 +387,8 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 首先尝试识别变量赋值（允许等号前有空格）
     const assignmentMatch = line.match(/^([a-zA-Z0-9_\u4e00-\u9fa5]+)\s*=\s*(.+)$/);
     if (assignmentMatch) {
-      const varName = assignmentMatch[1].trim();
-      const expression = assignmentMatch[2].trim();
+      const varName = assignmentMatch[1]?.trim() || '';
+      const expression = assignmentMatch[2]?.trim() || '';
 
       // 检查右侧是否是一个表达式而不是等式验证
       // 如果右侧不包含等号，则视为变量赋值
@@ -439,8 +439,8 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 处理等号表达式（如 "1+2 = 3"）
     const equalsMatch = line.match(/^(.+)=(.+)$/);
     if (equalsMatch) {
-      const leftExpression = equalsMatch[1].trim();
-      const rightExpression = equalsMatch[2].trim();
+      const leftExpression = equalsMatch[1]?.trim() || '';
+      const rightExpression = equalsMatch[2]?.trim() || '';
 
       // 检查左侧是否是简单变量名，如果是，已经在上面处理过了
       if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]+$/.test(leftExpression)) {
@@ -501,7 +501,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 处理单位转换 (如 "距离 to m")
     const unitConvMatch = line.match(/^(.+)\s+to\s+([a-zA-Z]+)$/);
     if (unitConvMatch) {
-      const varName = unitConvMatch[1].trim();
+      const varName = unitConvMatch[1]?.trim() || '';
 
       try {
         // 提取表达式中使用的变量
@@ -577,8 +577,8 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       // 使用与calculateLine中相同的正则表达式来识别变量赋值
       const assignmentMatch = line.match(/^([a-zA-Z0-9_\u4e00-\u9fa5]+)\s*=\s*(.+)$/);
       if (assignmentMatch) {
-        const varName = assignmentMatch[1].trim();
-        const expression = assignmentMatch[2].trim();
+        const varName = assignmentMatch[1]?.trim() || '';
+        const expression = assignmentMatch[2]?.trim() || '';
 
         // 确保右侧不包含等号，是真正的变量赋值
         if (!expression.includes('=') && !varMap[varName]) {
@@ -672,7 +672,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
         /** 防止卡死ui */
         if (i % 10 === 0) await delay(1);
 
-        const result = calculateLine(line, i);
+        const result = calculateLine(line || '', i);
         results.push(result);
         lineResults[i] = result;
       }
@@ -881,7 +881,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
           /** 防止卡死ui */
           if (lineIndex % 10 === 0) await delay(1);
 
-          const result = calculateLine(line, lineIndex);
+          const result = calculateLine(line || '', lineIndex);
           lineResults[lineIndex] = result;
         }
       }
@@ -890,11 +890,11 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       const results: CalculationResult[] = [];
       for (let i = 0; i < newLines.length; i++) {
         if (lineResults[i]) {
-          results.push(lineResults[i]);
+          results.push(lineResults[i]!);
         } else {
           // 如果没有计算结果（可能是新增的行），计算它
           const line = newLines[i];
-          const result = calculateLine(line, i);
+          const result = calculateLine(line || '', i);
           lineResults[i] = result;
           results.push(result);
         }
@@ -965,7 +965,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 更新依赖图
     for (const varName in dependencyGraph) {
       const newDependents = new Set<number>();
-      for (const line of dependencyGraph[varName]) {
+      for (const line of dependencyGraph[varName] || []) {
         if (line >= startIndex) {
           newDependents.add(line + offset);
         } else {

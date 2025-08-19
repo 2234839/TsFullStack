@@ -266,7 +266,7 @@
         if (savedCurrentScene && scenes.value.some((s) => s.id === savedCurrentScene)) {
           currentScene.value = savedCurrentScene;
         } else {
-          currentScene.value = scenes.value[0].id;
+          currentScene.value = scenes.value[0]?.id || 'office';
         }
       } else {
         // 使用默认场景数据

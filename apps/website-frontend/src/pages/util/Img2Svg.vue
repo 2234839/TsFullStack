@@ -78,7 +78,7 @@
       img.src = e.target?.result as string;
       originImgUrl.value = img.src;
     };
-    reader.readAsDataURL(event.files[0]);
+    reader.readAsDataURL(event.files[0]!);
   };
 
   const processImage = (img: HTMLImageElement) => {
@@ -109,9 +109,9 @@
   const invertImage = (imageData: ImageData) => {
     const data = imageData.data;
     for (let i = 0; i < data.length; i += 4) {
-      data[i] = 255 - data[i];
-      data[i + 1] = 255 - data[i + 1];
-      data[i + 2] = 255 - data[i + 2];
+      data[i] = 255 - (data[i] || 0);
+      data[i + 1] = 255 - (data[i + 1] || 0);
+      data[i + 2] = 255 - (data[i + 2] || 0);
     }
     if (canvas.value) {
       const ctx = canvas.value.getContext('2d');
@@ -123,7 +123,7 @@
     const data = imageData.data;
 
     for (let i = 0; i < data.length; i += 4) {
-      const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+      const avg = ((data[i] || 0) + (data[i + 1] || 0) + (data[i + 2] || 0)) / 3;
       const value = avg > binarizeThreshold.value ? 255 : 0;
       data[i] = data[i + 1] = data[i + 2] = value;
     }
@@ -138,7 +138,7 @@
     const data = imageData.data;
 
     for (let i = 0; i < data.length; i += 4) {
-      const alpha = data[i + 3];
+      const alpha = data[i + 3] || 0;
       const value = alpha > alphaThreshold.value ? 255 : 0;
       data[i] = data[i + 1] = data[i + 2] = value;
       data[i + 3] = 255;
@@ -178,7 +178,7 @@ const traceImageToSVG = (imageData: ImageData): string[] => {
   const isBlack = (x: number, y: number): boolean => {
     if (x < 0 || x >= width || y < 0 || y >= height) return false;
     const index = (y * width + x) * 4;
-    return data[index] === 0 && data[index + 3] > 0;
+    return (data[index] || 0) === 0 && (data[index + 3] || 0) > 0;
   };
 
   /** 生成实心路径 - 优化版 */

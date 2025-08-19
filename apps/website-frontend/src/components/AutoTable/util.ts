@@ -13,7 +13,7 @@ export function findIdField(modelMeta: ModelMeta, modelName: string): FieldInfo 
  * TODO 之后应该要支持自定义显示字段，这里暂时先用第一个 string 类型的字段代替
  */
 export function findDisplayField(modelMeta: ModelMeta, refModelKey: string) {
-  const displayField = Object.values(modelMeta.models[refModelKey].fields).find(
+  const displayField = Object.values(modelMeta.models[refModelKey]?.fields || {}).find(
     (f: FieldInfo) => f.type === 'String' && !f.isId,
   );
   return displayField;
@@ -21,7 +21,7 @@ export function findDisplayField(modelMeta: ModelMeta, refModelKey: string) {
 
 /** 这个 modelKey 就是用于访问 modelMeta.models[modelKey]  的，他和模型名称不一致 */
 export function getModelKey(modelMeta: ModelMeta, modelName: string): string | undefined {
-  return Object.keys(modelMeta.models).find((key) => modelMeta.models[key].name === modelName);
+  return Object.keys(modelMeta.models).find((key) => modelMeta.models[key]?.name === modelName);
 }
 
 //#region modelMeta ,只有调用 useModelMeta 之后，才会发起请求获取 modelMeta 数据

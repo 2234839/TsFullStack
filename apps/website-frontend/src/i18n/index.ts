@@ -19,7 +19,7 @@ export async function loadLocaleMessages(locale: string) {
   if (modules['./' + locale + '.json'] === undefined) {
     return false;
   }
-  const messages = (await modules['./' + locale + '.json']()) as { default: any };
+  const messages = (await (modules['./' + locale + '.json']?.() || Promise.resolve({ default: {} }))) as { default: any };
   console.log(`matched i18n locale: ${locale}`);
   i18n.global.setLocaleMessage(locale, messages.default);
   i18n.global.locale.value = locale;

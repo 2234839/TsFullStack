@@ -44,7 +44,7 @@
           :row="data"
           :field="(field as any)"
           :editValue="editData[index]?.[field.name]"
-          @update:editValue="(newVal) => (editData[index][field.name] = newVal)" />
+          @update:editValue="(newVal) => { if (editData[index]) { editData[index][field.name] = newVal; } }" />
       </template>
     </Column>
     <template #footer>
@@ -141,7 +141,7 @@
       const models = meta?.models;
       if (!meta || !models) return { list: [], modelFields: {}, count: 0 };
 
-      const modelFields = models[opt.modelKey].fields;
+      const modelFields = models[opt.modelKey]?.fields || {};
       let _count = { select: {} as { [key: string]: boolean } };
       Object.entries(modelFields).forEach(([key, field]) => {
         if (field.isDataModel && field.isArray) {
