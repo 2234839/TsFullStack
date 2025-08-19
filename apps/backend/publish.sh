@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 # 配置变量
 SSH_USER="root"
 SSH_HOST="shenzilong.cn"
-DEPLOY_PATH="/tmp/ossfs/apps/TsFullStack"
+DEPLOY_PATH="/root/app/TsFullStack"
 
 # 构建目标地址
 SSH_TARGET="$SSH_USER@$SSH_HOST"
@@ -76,8 +76,8 @@ timer_start
         ../website-frontend/dist/ "$SSH_TARGET:$REMOTE_PATH/dist/frontend/" &
     FRONTEND_PID=$!
 
-    # 数据库迁移和 Prisma 文件 以及 Prisma 引擎二进制
-    rsync -avz --delete --compress-level=9 -e "ssh $SSH_OPTS" \
+    # 数据库迁移和 Prisma 文件 以及 Prisma 引擎二进制，不使用 --delete  删除服务器上的迁移文件
+    rsync -avz --compress-level=9 -e "ssh $SSH_OPTS" \
         ./prisma/{migrations,schema.prisma} \
         ./node_modules/prisma/libquery_engine-debian-openssl-3.0.x.so.node \
         "$SSH_TARGET:$REMOTE_PATH/" &
