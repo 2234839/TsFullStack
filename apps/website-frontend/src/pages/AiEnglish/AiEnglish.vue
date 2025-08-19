@@ -89,11 +89,11 @@
                     size="small"
                     :class="[
                       'flex-1',
-                      { 'bg-green-100 border-green-300': syncData.paragraphs[index].isCompleted },
+                      { 'bg-green-100 border-green-300': syncData.paragraphs[index]?.isCompleted },
                     ]"
                     @click="goToParagraph(index)"
                     :label="String(index + 1)"
-                    :icon="syncData.paragraphs[index].isCompleted ? 'pi pi-check-circle' : ''" />
+                    :icon="syncData.paragraphs[index]?.isCompleted ? 'pi pi-check-circle' : ''" />
                 </div>
                 <Button
                   @click="handleParagraphComplete"
@@ -207,7 +207,7 @@
 
                       <Slider
                         v-model="selectedWord.memoryLevel"
-                        @change="adjustMemoryLevel(selectedWord.word, Array.isArray($event) ? $event[0] : $event)"
+                        @change="adjustMemoryLevel(selectedWord.word, Array.isArray($event) ? ($event[0] || 0) : ($event || 0))"
                         :min="0"
                         :max="10"
                         :step="1"
@@ -789,9 +789,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   const handleMouseMove = (e: MouseEvent | TouchEvent) => {
     if (!selectionState.isSelecting || !isStudying.value) return;
 
-    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const wordIndex = getWordIndexFromPoint(clientX, clientY);
+    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
+    const wordIndex = getWordIndexFromPoint(clientX || 0, clientY || 0);
     if (wordIndex !== -1 && wordIndex !== selectionState.endWordIndex) {
       updateSelection(selectionState.startWordIndex, wordIndex);
     }
@@ -814,7 +814,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
     if (selectedWordsData.length === 1) {
       /** 因为触摸设备上的事件判定机制会导致 onClick 中的逻辑无法触发，所以需要在这里处理单个单词的点击事件  */
-      handleWordClick(selectedWordsData[0]);
+      handleWordClick(selectedWordsData[0] || '');
       selectionState.selectedWords = new Set();
     } else if (selectedWordsData.length > 1) {
       await handleParagraphSelection(selectedWordsData);

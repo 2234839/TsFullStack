@@ -679,11 +679,11 @@
         // 更新本地笔记列表中的数据
         const index = notesState.state.value.findIndex((note) => note.id === currentNote.value?.id);
         if (index !== -1) {
-          notesState.state.value[index].data = noteData;
-          notesState.state.value[index].updated = new Date();
+          notesState.state.value[index]!.data = noteData;
+          notesState.state.value[index]!.updated = new Date();
 
           // 将更新的笔记移到列表顶部
-          const updatedNoteItem = notesState.state.value.splice(index, 1)[0];
+          const updatedNoteItem = notesState.state.value.splice(index, 1)[0]!;
           notesState.state.value.unshift(updatedNoteItem);
         }
 
@@ -834,8 +834,8 @@
       // 更新本地笔记列表
       const index = notesState.state.value.findIndex((note) => note.id === noteToRename.value?.id);
       if (index !== -1) {
-        notesState.state.value[index].description = renameTitle.value.trim();
-        notesState.state.value[index].updated = new Date();
+        notesState.state.value[index]!.description = renameTitle.value.trim();
+        notesState.state.value[index]!.updated = new Date();
       }
 
       // 如果重命名的是当前笔记，更新当前笔记

@@ -91,7 +91,7 @@
     }
 
     const { x, y } = middlewareData.value.arrow;
-    const placement = middlewareData.value.flip?.overflows?.[0].placement || 'top';
+    const placement = middlewareData.value.flip?.overflows?.[0]?.placement || 'top';
     return {
       left: x != null ? `${x}px` : '',
       top: y != null ? `${y}px` : '',

@@ -158,8 +158,8 @@ ${paragraphs.map((text, index) => `段落${index + 1}: "${text}"`).join('\n\n')}
     let match;
 
     while ((match = regex.exec(content)) !== null) {
-      const index = parseInt(match[1]) - 1;
-      translations[index] = match[2].trim();
+      const index = parseInt(match[1] || '') - 1;
+      translations[index] = match[2]?.trim() || '';
     }
 
     // 确保返回所有段落的翻译
@@ -172,7 +172,7 @@ ${paragraphs.map((text, index) => `段落${index + 1}: "${text}"`).join('\n\n')}
 // 单个段落翻译（使用批量优化）
 export const translateParagraphWithAI = async (text: string): Promise<string> => {
   const results = await translateParagraphsBatch([text]);
-  return results[0];
+  return results[0] || '';
 };
 
 export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> => {

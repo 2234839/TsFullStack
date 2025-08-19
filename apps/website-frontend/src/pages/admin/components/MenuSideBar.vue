@@ -359,7 +359,7 @@
           key: item.key,
           label: item.label,
           icon: item.icon,
-          to: item.to || (item.items && item.items.length > 0 ? item.items[0].to : undefined),
+          to: item.to || (item.items && item.items.length > 0 ? item.items[0]?.to : undefined),
           badge: item.badge,
           badgeSeverity: item.badgeSeverity,
           items: item.items, // 保留子菜单项

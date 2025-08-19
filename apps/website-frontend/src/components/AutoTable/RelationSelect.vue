@@ -86,13 +86,13 @@
     (model) => model.name === relatedModelName,
   )!;
   const relatedModelKey = Object.keys(modelMeta.models).find(
-    (key) => modelMeta?.models[key].name === relatedModelName,
+    (key) => modelMeta?.models[key]?.name === relatedModelName,
   ) as DBmodelNames;
 
   const refIdField = findIdField(modelMeta, relatedModelName)!;
   const displayField = findDisplayField(modelMeta, relatedModelKey) || refIdField;
 
-  const rowModelIdField = findIdField(modelMeta, relatedModel.fields[props.field.backLink!].type);
+  const rowModelIdField = findIdField(modelMeta, relatedModel.fields[props.field.backLink!]?.type || '');
   //#endregion
 
   const { API } = useAPI();

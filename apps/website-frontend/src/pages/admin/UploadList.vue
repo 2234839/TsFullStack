@@ -569,7 +569,9 @@
 
         try {
           // 调用后端API上传文件
-          await API.fileApi.upload(file);
+          if (file) {
+            await API.fileApi.upload(file);
+          }
           // 更新进度
           uploadProgress.value[i] = 100;
 

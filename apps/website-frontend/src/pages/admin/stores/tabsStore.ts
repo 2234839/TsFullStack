@@ -101,7 +101,7 @@ export function createTabsStore() {
 
     // 如果有固定页签，跳转到第一个固定页签
     if (fixedTabs.length > 0) {
-      router.push(fixedTabs[0].value.fullPath);
+      router.push(fixedTabs[0]?.value?.fullPath || '/');
     }
   };
   return reactive({
