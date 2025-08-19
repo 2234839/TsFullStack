@@ -33,7 +33,6 @@ export function useApiStorage<T>(
   const appId = opts?.appId ?? userDataAppid.storage_api;
   const storage = opts?.storage ?? 'auto';
   const serializer = opts?.serializer ?? StorageSerializers.object;
-  console.log(1111,appId,key,authInfo_isLogin.value);
 
   const options = {
     ...opts,
