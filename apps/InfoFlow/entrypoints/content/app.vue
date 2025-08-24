@@ -1,6 +1,6 @@
 <style scoped></style>
 <template>
-  <div class="fixed bottom-0">
+  <div class="fixed bottom-0 z-[999]">
     <div class="bg-red-300">2222</div>
     v: {{ infoFlowConfig }}
     <Button @click="infoFlowConfig!.test++">1111</Button>
