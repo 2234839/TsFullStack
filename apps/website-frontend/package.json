@@ -35,7 +35,6 @@
     "superjson": "^2.2.2",
     "tailwindcss": "^4.1.12",
     "tsfullstack-backend": "workspace:*",
-    "frontend-module-example": "workspace:*",
     "vue": "^3.5.18",
     "vue-i18n": "^11.1.11",
     "vue-router": "^4.5.1"
