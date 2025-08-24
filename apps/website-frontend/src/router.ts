@@ -2,18 +2,49 @@ import {
   createRouter,
   createWebHistory,
   type RouteLocationRaw,
-  type RouteMeta,
   type Router,
-  type RouteRecordRaw,
 } from 'vue-router';
 import { t as i18n_t } from './i18n';
 import { computed, reactive } from 'vue';
+import { buildNestedTree, type RouteNode, type RouteTree } from './utils/routeUtil';
 /** path 为 "" 的子路由会自动渲染在父路由中 */
 export const defaultRoute = '';
 
 const t = (key: string) => computed(() => i18n_t(key));
 
+let routeModels: Record<string, RouteNode>;
+
+routeModels = import.meta.glob(`./**/*.routeMap.ts`, {
+  import: 'default',
+  eager: true,
+});
+
+// 测试控制台输出
+console.log('Router file is being executed');
+
+// 动态导入启用的包路由
+const enabledPackages = import.meta.env.VITE_ENABLED_PACKAGES?.split(',') || [];
+console.log('Enabled packages:', enabledPackages);
+
+// 动态导入启用的包路由
+// enabledPackages.forEach(packageName => {
+//   try {
+//     // 通过正常的模块导入方式加载子包路由
+//     const packageRouteMap = require(`${packageName}/index.routeMap`).default;
+//     routeModels[`packages/${packageName}/index.routeMap`] = packageRouteMap;
+//     console.log(`Added route for package: ${packageName}`);
+//   } catch (error) {
+//     console.warn(`Failed to load route for package: ${packageName}`, error);
+//   }
+// });
+
+
+const routeModelTree = buildNestedTree(routeModels);
+
+console.log('Final routeModelTree:', routeModelTree);
+
 export const routeMap = reactive({
+  ...routeModelTree,
   index: {
     path: '/',
     component: () => import('@/pages/index.vue'),
@@ -171,14 +202,6 @@ export const routeMap = reactive({
   },
 }) satisfies RouteTree;
 
-type RouteNode = RouteRecordRaw & {
-  child?: RouteTree;
-  meta?: RouteMeta;
-};
-type RouteTree = {
-  [key: string]: RouteNode;
-};
-
 let routeNameId = 0;
 /** 将树形结构转换为 RouteRecordRaw[] 数组结构，便于路由注册使用
  * 会自动为路由添加 name 属性，如果路由没有 name 属性，会自动生成一个唯一的 name 属性
@@ -208,7 +231,7 @@ export function findRouteNode(
   for (const route of routes) {
     if (predicate(route)) return route;
     if (route.children) {
-      const found = findRouteNode(route.children, predicate);
+      const found = findRouteNode(route.children as any, predicate);
       if (found) return found;
     }
   }

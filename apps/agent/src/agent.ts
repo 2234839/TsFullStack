@@ -6,7 +6,7 @@ import { JsonStorage, StorageConfig } from './storage';
 import { Logger, LoggerConfig } from './logger';
 import { LLMService, LLMTaskType } from './llm-service';
 import { InteractiveService } from './interactive-service';
-import { 
+import {
   builtInTools,
   fileWriteTool,
   fileReadTool,
@@ -36,12 +36,17 @@ export class TsAgent {
   private interactiveService: InteractiveService;
   private isInitialized = false;
 
+  // Advanced agent features
+  private knowledge: Map<string, any> = new Map();
+  private memory: Array<{ timestamp: Date; action: string; result: any; success: boolean }> = [];
+  private maxMemorySize: number = 1000;
+
   constructor(config: AgentConfig) {
     this.config = this.validateConfig(config);
     this.logger = new Logger(this.config.logging);
     this.storage = new JsonStorage(this.config.storage);
     this.toolRegistry = new ToolRegistry(this.config.tools, this.logger);
-    
+
     // Initialize LLM service
     const llmTaskModels: LLMTaskType = {
       planning: 'glm-4.5',
@@ -50,9 +55,9 @@ export class TsAgent {
       repair: 'glm-4.5-air',
       general: 'glm-4.5'
     };
-    
+
     this.llmService = new LLMService(llmTaskModels, this.logger);
-    
+
     // Initialize interactive service
     const interactiveConfig = this.config.interactive || {
       enabled: false,
@@ -61,7 +66,7 @@ export class TsAgent {
       maxQuestions: 5
     };
     this.interactiveService = new InteractiveService(interactiveConfig, this.logger);
-    
+
     this.taskManager = new TaskManager(
       {
         maxRetries: this.config.security.maxTaskDuration > 0 ? 3 : 0,
@@ -83,9 +88,9 @@ export class TsAgent {
     }
 
     try {
-      this.logger.info('Initializing TsAgent', { 
+      this.logger.info('Initializing TsAgent', {
         version: '1.0.0',
-        config: this.config 
+        config: this.config
       }, 'TsAgent');
 
       // Initialize storage
@@ -103,28 +108,28 @@ export class TsAgent {
       // Load tools from directory if enabled
       if (this.config.tools.autoLoad && this.config.tools.directory) {
         const loadedCount = await this.toolRegistry.loadToolsFromDirectory();
-        this.logger.info(`Loaded ${loadedCount} tools from directory`, { 
-          directory: this.config.tools.directory 
+        this.logger.info(`Loaded ${loadedCount} tools from directory`, {
+          directory: this.config.tools.directory
         }, 'TsAgent');
       }
 
       // Validate all tools
       const validation = await this.toolRegistry.validateAllTools();
       if (validation.invalid.length > 0) {
-        this.logger.warn('Some tools failed validation', { 
-          invalid: validation.invalid.map(t => ({ tool: t.tool.name, errors: t.errors })) 
+        this.logger.warn('Some tools failed validation', {
+          invalid: validation.invalid.map(t => ({ tool: t.tool.name, errors: t.errors }))
         }, 'TsAgent');
       }
 
       this.isInitialized = true;
-      this.logger.info('TsAgent initialized successfully', { 
+      this.logger.info('TsAgent initialized successfully', {
         toolsCount: validation.valid.length,
         invalidTools: validation.invalid.length
       }, 'TsAgent');
 
     } catch (error) {
-      this.logger.error('Failed to initialize TsAgent', { 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.error('Failed to initialize TsAgent', {
+        error: error instanceof Error ? error.message : String(error)
       }, 'TsAgent');
       throw error;
     }
@@ -139,7 +144,7 @@ export class TsAgent {
 
     try {
       const result = await this.taskManager.executeTask(description);
-      this.logger.info('Task execution completed', { 
+      this.logger.info('Task execution completed', {
         success: result.success,
         executionTime: result.executionTime,
         stepsExecuted: result.stepsExecuted
@@ -147,7 +152,7 @@ export class TsAgent {
 
       return result;
     } catch (error) {
-      this.logger.error('Task execution failed', { 
+      this.logger.error('Task execution failed', {
         error: error instanceof Error ? error.message : String(error),
         description
       }, 'TsAgent');
@@ -160,18 +165,18 @@ export class TsAgent {
       await this.initialize();
     }
 
-    this.logger.info('Registering tool', { 
-      name: tool.name, 
-      version: tool.version 
+    this.logger.info('Registering tool', {
+      name: tool.name,
+      version: tool.version
     }, 'TsAgent');
 
     try {
       await this.toolRegistry.register(tool);
-      this.logger.info('Tool registered successfully', { 
-        name: tool.name 
+      this.logger.info('Tool registered successfully', {
+        name: tool.name
       }, 'TsAgent');
     } catch (error) {
-      this.logger.error('Failed to register tool', { 
+      this.logger.error('Failed to register tool', {
         error: error instanceof Error ? error.message : String(error),
         toolName: tool.name
       }, 'TsAgent');
@@ -195,7 +200,7 @@ export class TsAgent {
       }
       return success;
     } catch (error) {
-      this.logger.error('Failed to unregister tool', { 
+      this.logger.error('Failed to unregister tool', {
         error: error instanceof Error ? error.message : String(error),
         toolName
       }, 'TsAgent');
@@ -307,8 +312,8 @@ export class TsAgent {
       this.isInitialized = false;
       this.logger.info('TsAgent shutdown completed', null, 'TsAgent');
     } catch (error) {
-      this.logger.error('Error during shutdown', { 
-        error: error instanceof Error ? error.message : String(error) 
+      this.logger.error('Error during shutdown', {
+        error: error instanceof Error ? error.message : String(error)
       }, 'TsAgent');
     }
   }
@@ -362,14 +367,14 @@ export class TsAgent {
     for (const tool of basicTools) {
       try {
         await this.toolRegistry.register(tool);
-        this.logger.debug(`Built-in tool registered`, { 
-          name: tool.name, 
-          version: tool.version 
+        this.logger.debug(`Built-in tool registered`, {
+          name: tool.name,
+          version: tool.version
         }, 'TsAgent');
       } catch (error) {
-        this.logger.error(`Failed to register built-in tool`, { 
+        this.logger.error(`Failed to register built-in tool`, {
           error: error instanceof Error ? error.message : String(error),
-          toolName: tool.name 
+          toolName: tool.name
         }, 'TsAgent');
       }
     }
@@ -388,14 +393,14 @@ export class TsAgent {
       for (const tool of llmTools) {
         try {
           await this.toolRegistry.register(tool);
-          this.logger.debug(`LLM tool registered`, { 
-            name: tool.name, 
-            version: tool.version 
+          this.logger.debug(`LLM tool registered`, {
+            name: tool.name,
+            version: tool.version
           }, 'TsAgent');
         } catch (error) {
-          this.logger.error(`Failed to register LLM tool`, { 
+          this.logger.error(`Failed to register LLM tool`, {
             error: error instanceof Error ? error.message : String(error),
-            toolName: tool.name 
+            toolName: tool.name
           }, 'TsAgent');
         }
       }
@@ -459,7 +464,7 @@ export class TsAgent {
 
     const failedChecks = Object.values(checks).filter(check => !check).length;
     let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
-    
+
     if (failedChecks === Object.keys(checks).length) {
       status = 'unhealthy';
     } else if (failedChecks > 0) {
@@ -472,6 +477,132 @@ export class TsAgent {
   // Get agent version
   getVersion(): string {
     return '1.0.0';
+  }
+
+  // Advanced agent methods - Knowledge and Memory Management
+  async addToKnowledge(key: string, value: any): Promise<void> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    this.knowledge.set(key, value);
+    this.logger.debug('Added to knowledge base', { key, type: typeof value }, 'TsAgent');
+  }
+
+  async getFromKnowledge(key: string): Promise<any> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    return this.knowledge.get(key);
+  }
+
+  async getAllKnowledge(): Promise<Record<string, any>> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    return Object.fromEntries(this.knowledge);
+  }
+
+  async clearKnowledge(): Promise<void> {
+    this.knowledge.clear();
+    this.logger.debug('Knowledge base cleared', null, 'TsAgent');
+  }
+
+  async addToMemory(action: string, result: any, success: boolean = true): Promise<void> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    this.memory.push({
+      timestamp: new Date(),
+      action,
+      result,
+      success
+    });
+
+    // Maintain memory size limit
+    if (this.memory.length > this.maxMemorySize) {
+      this.memory = this.memory.slice(-this.maxMemorySize);
+    }
+
+    this.logger.debug('Added to memory', {
+      action: action.substring(0, 50),
+      success,
+      memorySize: this.memory.length
+    }, 'TsAgent');
+  }
+
+  async getRecentMemory(count: number = 10): Promise<Array<{
+    timestamp: Date;
+    action: string;
+    result: any;
+    success: boolean;
+  }>> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    return this.memory.slice(-count);
+  }
+
+  async searchMemory(query: string): Promise<Array<{
+    timestamp: Date;
+    action: string;
+    result: any;
+    success: boolean;
+  }>> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    const lowerQuery = query.toLowerCase();
+    return this.memory.filter(mem =>
+      mem.action.toLowerCase().includes(lowerQuery) ||
+      JSON.stringify(mem.result).toLowerCase().includes(lowerQuery)
+    );
+  }
+
+  async clearMemory(): Promise<void> {
+    this.memory = [];
+    this.logger.debug('Memory cleared', null, 'TsAgent');
+  }
+
+  async getMemoryStats(): Promise<{
+    totalEntries: number;
+    successRate: number;
+    averageActionsPerDay: number;
+    oldestEntry?: Date;
+    newestEntry?: Date;
+  }> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    const totalEntries = this.memory.length;
+    const successfulEntries = this.memory.filter(m => m.success).length;
+    const successRate = totalEntries > 0 ? successfulEntries / totalEntries : 0;
+
+    let oldestEntry: Date | undefined;
+    let newestEntry: Date | undefined;
+    let averageActionsPerDay = 0;
+
+    if (totalEntries > 0) {
+      oldestEntry = this.memory[0].timestamp;
+      newestEntry = this.memory[this.memory.length - 1].timestamp;
+
+      const daysDiff = (newestEntry.getTime() - oldestEntry.getTime()) / (1000 * 60 * 60 * 24);
+      averageActionsPerDay = daysDiff > 0 ? totalEntries / daysDiff : totalEntries;
+    }
+
+    return {
+      totalEntries,
+      successRate,
+      averageActionsPerDay,
+      oldestEntry,
+      newestEntry
+    };
   }
 
   // Check if agent is initialized
