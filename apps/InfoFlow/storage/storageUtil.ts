@@ -1,6 +1,4 @@
 import { storage } from '#imports';
-import { watchDebounced } from '@vueuse/core';
-
 type WxtStorageItemOptions<Tvalue> = Parameters<typeof storage.defineItem<Tvalue>>[1];
 type WxtStorageKey = Parameters<typeof storage.defineItem>[0];
 
@@ -18,7 +16,7 @@ export function useWxtStorage<TValue>(
   const unWatch = wxtStorage.watch((v) => {
     isUpdatingFromStorage = true;
     storageRef.value = v;
-    console.log('watch', v);
+    // console.log('watch', v);
     setTimeout(() => {
       isUpdatingFromStorage = false;
     }, 0);
@@ -33,19 +31,19 @@ export function useWxtStorage<TValue>(
     }, 0);
   });
 
-  watchDebounced(
+  watch(
     storageRef,
     (v) => {
       if (isUpdatingFromStorage) return;
 
       if (v !== undefined) {
         wxtStorage.setValue(storageRef.value);
-        console.log('save', storageRef.value);
+        // console.log('save', storageRef.value);
       } else {
         wxtStorage.removeValue();
       }
     },
-    { deep: true, debounce: 30, maxWait: 100 },
+    { deep: true },
   );
 
   return storageRef;
