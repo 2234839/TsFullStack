@@ -1,5 +1,5 @@
 import { browser } from '#imports';
-import { runTaskMessageId, type runInfoFlowGet_task } from './messageProtocol';
+import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult } from './messageProtocol';
 
 /**
  * 只能在后台运行
@@ -37,11 +37,22 @@ export async function runInfoFlowGet(task: runInfoFlowGet_task) {
       data: task,
     });
     console.log('收到 content script 的响应:', res);
+    return res as TaskResult;
   } catch (error) {
     console.log('发送消息失败:', error);
+    return {
+      url: task.url,
+      title: '',
+      timestamp: new Date().toISOString(),
+      matched: false,
+      message: 'Failed to execute task',
+      links: [],
+      images: [],
+      forms: [],
+      metadata: { description: '', keywords: '', author: '' },
+      stats: { totalElements: 0, textNodes: 0, loadTime: 0 }
+    } as TaskResult;
   } finally {
     browser.tabs.remove(openedTabId);
   }
-
-  return 1;
 }
