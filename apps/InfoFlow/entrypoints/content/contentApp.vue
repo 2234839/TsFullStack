@@ -5,7 +5,7 @@
     v: {{ infoFlowConfig }}
     <div @click="run()">runInfoFlowGet</div>
 
-    <div @click="testIdb!.a++">  testIdb:{{ testIdb }}</div>
+    <div @click="testIdb!.a.b.c++">testIdb:{{ testIdb }}</div>
     <Button>333</Button>
   </div>
 </template>

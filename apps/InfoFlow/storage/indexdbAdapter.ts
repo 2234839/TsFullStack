@@ -10,6 +10,9 @@ interface ExtensionDatabaseSchema extends DBSchema {
 
 export type ExtensionDatabase = IDBPDatabase<ExtensionDatabaseSchema>;
 
+/**
+ * 这里创建的数据可以在background 中运行，能够通过检查 popup 中的存储查看 indexdb 数据库。
+ */
 export function openExtensionDatabase(): Promise<ExtensionDatabase> {
   return openDB<ExtensionDatabaseSchema>('infoFlow', 3, {
     upgrade(database) {
