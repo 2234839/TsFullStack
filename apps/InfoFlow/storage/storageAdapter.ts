@@ -100,7 +100,7 @@ export function useReactiveStorage<TValue>(
       }
     });
 
-    function createProxy(obj: any): any {
+    function createProxy(obj: any, rootTarget: T = target): any {
       if (typeof obj !== 'object' || obj === null || Object.isFrozen(obj)) {
         return obj;
       }
@@ -115,7 +115,7 @@ export function useReactiveStorage<TValue>(
           const value = Reflect.get(target, prop, receiver);
 
           if (typeof value === 'object' && value !== null && !Object.isFrozen(value)) {
-            return createProxy(value);
+            return createProxy(value, rootTarget);
           }
 
           return value;
@@ -128,8 +128,8 @@ export function useReactiveStorage<TValue>(
             const result = Reflect.set(target, prop, value, receiver);
             if (result) {
               trigger();
-              console.log('[target, prop, value, receiver]',target, prop, value, receiver);
-              onSet(target as T);
+              // 传递根对象而不是当前层对象
+              onSet(rootTarget);
             }
             return result;
           }
