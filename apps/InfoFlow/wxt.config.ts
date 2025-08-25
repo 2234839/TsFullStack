@@ -12,4 +12,5 @@ export default defineConfig({
   manifest: {
     permissions: ['storage', 'tabs', 'notifications', 'activeTab'],
   },
+  imports:false
 });

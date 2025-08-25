@@ -1,4 +1,5 @@
 import { storage } from '#imports';
+import { ref, onUnmounted, watch } from 'vue';
 type WxtStorageItemOptions<Tvalue> = Parameters<typeof storage.defineItem<Tvalue>>[1];
 type WxtStorageKey = Parameters<typeof storage.defineItem>[0];
 

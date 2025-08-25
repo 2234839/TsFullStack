@@ -19,6 +19,7 @@
     "@primeuix/themes": "^1.2.3",
     "@tailwindcss/vite": "^4.1.12",
     "@vueuse/core": "^13.7.0",
+    "@webext-core/messaging": "^2.3.0",
     "date-fns": "^4.1.0",
     "fast-equals": "^5.2.2",
     "primeicons": "^7.0.0",
