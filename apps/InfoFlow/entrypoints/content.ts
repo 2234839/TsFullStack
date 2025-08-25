@@ -6,6 +6,8 @@ import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import App from './content/app.vue';
 import { ConfirmationService, ToastService } from 'primevue';
+import { runTaskMessageId, type runInfoFlowGet_task } from '@/services/InfoFlowGet/messageProtocol';
+import { el } from 'date-fns/locale';
 
 export default defineContentScript({
   matches: ['<all_urls>'],
@@ -14,17 +16,17 @@ export default defineContentScript({
     // 监听来自后台脚本的消息
     console.log('[browser.runtime.id]', browser.runtime.id);
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-      console.log('Content script 收到消息:', message);
-      if (message.action === 'helloFromBackground') {
-        console.log('消息数据:', message.data);
-
-        // 向后台发送响应
-        sendResponse({
-          success: true,
-          reply: 'Content script 收到消息了!',
+      // console.log('Content script 收到消息:', message);
+      if (message.action === runTaskMessageId) {
+        const task = message.data as runInfoFlowGet_task;
+        console.log('[task]', task);
+        execTask(task).then((res) => {
+          // 向后台发送响应
+          setTimeout(() => {
+            sendResponse(res);
+          }, 10_000);
         });
       }
-
       // 返回 true 表示会异步发送响应
       return true;
     });
@@ -54,3 +56,12 @@ export default defineContentScript({
     ui.mount();
   },
 });
+
+async function execTask(task: runInfoFlowGet_task) {
+  const hrefs = [...document
+    .querySelectorAll('a')
+    .values()
+    .map((el) => el.href)];
+  console.log('[hrefs]', hrefs);
+  return hrefs;
+}

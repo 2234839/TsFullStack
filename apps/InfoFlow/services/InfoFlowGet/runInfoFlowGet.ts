@@ -1,5 +1,5 @@
 import { browser } from '#imports';
-import type { runInfoFlowGet_task } from './messageProtocol';
+import { runTaskMessageId, type runInfoFlowGet_task } from './messageProtocol';
 
 /**
  * 只能在后台运行
@@ -31,20 +31,17 @@ export async function runInfoFlowGet(task: runInfoFlowGet_task) {
   });
 
   // 页面加载完成，等待一下让 content script 初始化
-  browser.tabs
-    .sendMessage(openedTabId, {
-      action: 'helloFromBackground',
-      data: '这是来自后台脚本的消息',
-    })
-    .then((response) => {
-      console.log('收到 content script 的响应:', response);
-    })
-    .catch((error) => {
-      console.log('发送消息失败:', error.message);
-    })
-    .finally(() => {
-      browser.tabs.remove(openedTabId);
+  try {
+    const res = await browser.tabs.sendMessage(openedTabId, {
+      action: runTaskMessageId,
+      data: task,
     });
+    console.log('收到 content script 的响应:', res);
+  } catch (error) {
+    console.log('发送消息失败:', error);
+  } finally {
+    browser.tabs.remove(openedTabId);
+  }
 
   return 1;
 }
