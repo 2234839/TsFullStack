@@ -9,7 +9,8 @@
 </template>
 <script setup lang="ts">
   import { infoFlowGetMessenger } from '@/services/InfoFlowGet/messageProtocol';
-  import { infoFlowConfig } from '@/storage/config';
+  import { useInfoFlowConfig } from '@/storage/config';
+  const infoFlowConfig = useInfoFlowConfig();
 
   async function run() {
     const res = await infoFlowGetMessenger.sendMessage('runInfoFlowGet', {
