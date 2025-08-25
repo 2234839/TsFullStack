@@ -24,13 +24,13 @@ export interface StorageAdapter<TValue> {
    * @returns Promise<TValue> The stored value
    */
   getValue(): Promise<VersionedStorage<TValue> | null>;
-  
+
   /**
    * Set a value in storage
    * @param value The versioned value to store
    */
   setValue(value: VersionedStorage<TValue>): Promise<void> | void;
-  
+
   /**
    * Watch for changes in storage
    * @param callback Function to call when value changes
@@ -63,12 +63,12 @@ export function useReactiveStorage<TValue>(
   options: ReactiveStorageOptions<TValue>
 ) {
   const { fallback, throttleDelay = 100, enableDebugLog = false } = options;
-  
+
   const devLog = enableDebugLog ? console.log.bind(console) : () => {};
 
   let currentVersion = 0;
   const instanceId = Math.random().toString(36).substring(2, 11);
-  
+
   let unWatch = () => {};
   onUnmounted(unWatch);
 
@@ -79,7 +79,7 @@ export function useReactiveStorage<TValue>(
     trigger: () => void,
   ): T {
     const proxyCache = new WeakMap<object, any>();
-    
+
     // Initial value fetch from remote storage
     adapter.getValue().then((v) => {
       if (v && v.version > currentVersion) {
@@ -128,6 +128,7 @@ export function useReactiveStorage<TValue>(
             const result = Reflect.set(target, prop, value, receiver);
             if (result) {
               trigger();
+              console.log('[target, prop, value, receiver]',target, prop, value, receiver);
               onSet(target as T);
             }
             return result;
@@ -140,7 +141,7 @@ export function useReactiveStorage<TValue>(
       proxyCache.set(obj, proxy);
       return proxy;
     }
-    
+
     const proxyValue = createProxy(target);
     return proxyValue;
   }

@@ -16,6 +16,6 @@ export const useInfoFlowConfig = () =>
   });
 
 export const useIdbTest = () =>
-  useIdbStorage('test:config', {
-    fallback: { a: 3 },
+  useIdbStorage('test:config2', {
+    fallback: { a: { b: { c: 6 } } },
   });
