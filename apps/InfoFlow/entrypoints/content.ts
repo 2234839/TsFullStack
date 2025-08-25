@@ -4,7 +4,7 @@ import 'primeicons/primeicons.css';
 import 'primevue';
 import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
-import App from './content/app.vue';
+import App from './content/contentApp.vue';
 import { ConfirmationService, ToastService } from 'primevue';
 import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult } from '@/services/InfoFlowGet/messageProtocol';
 
@@ -38,6 +38,7 @@ function createVueApp(container: Element) {
 }
 
 async function setupUI(ctx: any) {
+  // https://github.com/primefaces/primeuix/pull/47 不支持primevue组件样式的原因
   const ui = await createShadowRootUi(ctx, {
     name: 'infoflow-ui',
     position: 'inline',
@@ -87,7 +88,7 @@ async function waitForElement(selector: string, timeout: number = 10000): Promis
 
 async function executeWithTiming(task: runInfoFlowGet_task) {
   const timeout = task.timeout || 30000;
-  
+
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => reject(new Error('Task execution timeout')), timeout);
   });
@@ -105,7 +106,7 @@ async function executeWithTiming(task: runInfoFlowGet_task) {
         }
       }
     }
-    
+
     return await execTask(task);
   };
 
@@ -114,12 +115,12 @@ async function executeWithTiming(task: runInfoFlowGet_task) {
 
 async function execTask(task: runInfoFlowGet_task) {
   console.log(`[execTask] Starting task for URL: ${task.url}`);
-  
+
   // 检查当前URL是否匹配任务URL
   const currentUrl = window.location.href;
   if (task.url && !currentUrl.includes(task.url)) {
     console.warn(`[execTask] Current URL ${currentUrl} does not match target URL ${task.url}`);
-    return { 
+    return {
       url: currentUrl,
       title: document.title,
       timestamp: new Date().toISOString(),
@@ -146,10 +147,10 @@ async function execTask(task: runInfoFlowGet_task) {
   for (let i = 0; i < task.dataCollection.length; i++) {
     const method = task.dataCollection[i];
     const collectionKey = `collection_${i}`;
-    
+
     try {
       console.log(`[execTask] Executing collection method ${i}:`, method);
-      
+
       if (method.type === 'css') {
         // CSS 选择器收集
         const elements = document.querySelectorAll(method.selector);
@@ -159,10 +160,10 @@ async function execTask(task: runInfoFlowGet_task) {
           }
           return el.textContent?.trim() || el.outerHTML;
         }).filter(item => item !== null && item !== undefined);
-        
+
         result.collections![collectionKey] = data;
         console.log(`[execTask] CSS collection ${i} collected ${data.length} items`);
-        
+
       } else if (method.type === 'js') {
         // JavaScript 代码执行
         const asyncFunction = new Function(`
@@ -170,12 +171,12 @@ async function execTask(task: runInfoFlowGet_task) {
             ${method.code}
           }
         `)();
-        
+
         const jsResult = await asyncFunction();
         result.collections![collectionKey] = Array.isArray(jsResult) ? jsResult : [jsResult];
         console.log(`[execTask] JS collection ${i} completed`);
       }
-      
+
     } catch (error) {
       console.error(`[execTask] Error in collection method ${i}:`, error);
       result.collections![collectionKey] = [{ error: error instanceof Error ? error.message : String(error) }];

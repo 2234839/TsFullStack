@@ -5,11 +5,13 @@
     v: {{ infoFlowConfig }}
     <div @click="infoFlowConfig!.test++">1111</div>
     <div @click="run()">runInfoFlowGet</div>
+    <Button>333</Button>
   </div>
 </template>
 <script setup lang="ts">
   import { infoFlowGetMessenger } from '@/services/InfoFlowGet/messageProtocol';
   import { useInfoFlowConfig } from '@/storage/config';
+import { Button } from 'primevue'
   const infoFlowConfig = useInfoFlowConfig();
 
   async function run() {
