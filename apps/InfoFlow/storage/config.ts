@@ -1,4 +1,4 @@
-import { useWxtStorage } from './storageUtil';
+import { useIdbStorage, useWxtStorage } from './storageUtil';
 
 export const useInfoFlowConfig = () =>
   useWxtStorage('local:infoFlowConfig', {
@@ -13,4 +13,9 @@ export const useInfoFlowConfig = () =>
         };
       },
     },
+  });
+
+export const useIdbTest = () =>
+  useIdbStorage('test:config', {
+    fallback: { a: 3 },
   });

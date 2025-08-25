@@ -1,45 +1,7 @@
-import { storage } from '#imports';
-import { useReactiveStorage, type StorageAdapter, type VersionedStorage } from './storageAdapter';
-
-/**
- * Options for defining a WXT storage item
- */
-type WxtStorageItemOptions<Tvalue> = Parameters<typeof storage.defineItem<Tvalue>>[1];
-
-/**
- * Key type for WXT storage items
- */
-type WxtStorageKey = Parameters<typeof storage.defineItem>[0];
-
-/**
- * WXT storage adapter implementation
- */
-class WxtStorageAdapter<TValue> implements StorageAdapter<TValue> {
-  private wxtStorage: ReturnType<typeof storage.defineItem<VersionedStorage<TValue>>>;
-
-  constructor(key: WxtStorageKey, fallback: TValue) {
-    const versionedKey = key;
-    this.wxtStorage = storage.defineItem<VersionedStorage<TValue>>(versionedKey, {
-      fallback: {
-        value: fallback,
-        version: 0,
-        writerId: '',
-      },
-    });
-  }
-
-  async getValue(): Promise<VersionedStorage<TValue> | null> {
-    return this.wxtStorage.getValue();
-  }
-
-  setValue(value: VersionedStorage<TValue>): void {
-    this.wxtStorage.setValue(value);
-  }
-
-  watch(callback: (value: VersionedStorage<TValue> | null) => void): () => void {
-    return this.wxtStorage.watch(callback);
-  }
-}
+import type { WxtStorageItemOptions } from 'wxt/utils/storage';
+import { InexdbStorageAdapter } from './indexdbAdapter';
+import { useReactiveStorage } from './storageAdapter';
+import { WxtStorageAdapter, type WxtStorageKey } from './wxtAdapter';
 
 /**
  * 创建一个响应式的浏览器扩展存储工具，能够在多个实例（不同标签页、后台脚本、弹出窗口等）之间同步数据
@@ -47,6 +9,8 @@ class WxtStorageAdapter<TValue> implements StorageAdapter<TValue> {
  *
  * 此函数提供一个 Vue 响应式 ref，自动在所有扩展上下文中同步更改，
  * 使用版本控制来防止冲突并确保数据一致性。
+ *
+ * 数据存储在本地，并在移除扩展程序时清除。存储空间限制为 10 MB（在 Chrome 113 及更早版本中为 5 MB）:https://developer.chrome.com/docs/extensions/reference/api/storage?hl=zh-cn
  *
  * @template TValue - 要存储的值的类型
  * @param {WxtStorageKey} key - 存储项的键名
@@ -62,6 +26,19 @@ export function useWxtStorage<TValue>(
     Required<Pick<WxtStorageItemOptions<TValue>, 'fallback'>>,
 ) {
   const adapter = new WxtStorageAdapter(key, options.fallback);
+
+  return useReactiveStorage(adapter, {
+    fallback: options.fallback,
+    throttleDelay: 100,
+    enableDebugLog: import.meta.env.DEV,
+  });
+}
+
+export function useIdbStorage<TValue>(
+  key: string,
+  options: { fallback: TValue | (undefined & TValue) },
+) {
+  const adapter = new InexdbStorageAdapter(key, options.fallback);
 
   return useReactiveStorage(adapter, {
     fallback: options.fallback,
