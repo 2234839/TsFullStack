@@ -13,7 +13,10 @@
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
     "compile": "vue-tsc --noEmit",
-    "postinstall": "wxt prepare"
+    "postinstall": "wxt prepare",
+    "release": "pnpm build && pnpm build:firefox && pnpm zip && pnpm zip:firefox",
+    "release:version": "npm version patch",
+    "release:prepare": "pnpm install && pnpm tsc && pnpm release"
   },
   "dependencies": {
     "@primeuix/themes": "^1.2.3",
