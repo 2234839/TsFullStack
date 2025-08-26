@@ -55,7 +55,7 @@
     </div>
 
     <!-- Execution Records Table -->
-    <div class="bg-white rounded-lg border">
+    <div class="bg-white rounded-lg">
       <DataTable
         :value="executions"
         :loading="loading"
@@ -67,7 +67,7 @@
         responsiveLayout="scroll"
         stripedRows
         size="small">
-        
+
         <Column field="status" header="状态" class="w-[100px]">
           <template #body="slotProps">
             <span :class="['text-xs px-2 py-1 rounded-md font-medium',
@@ -92,7 +92,7 @@
           </template>
         </Column>
 
-        <Column field="createdAt" header="执行时间" class="w-[140px]">
+        <Column field="createdAt" header="执行时间" class="w-[180px]">
           <template #body="slotProps">
             <div class="text-sm">
               <div>{{ formatDateTime(slotProps.data.createdAt) }}</div>
@@ -588,7 +588,6 @@ watch([statusFilter, executionTypeFilter, dateRange], () => {
   padding: 1rem;
   background: #f8fafc;
   border-radius: 0.5rem;
-  border: 1px solid #e2e8f0;
 }
 
 :deep(.p-datatable-wrapper) {
