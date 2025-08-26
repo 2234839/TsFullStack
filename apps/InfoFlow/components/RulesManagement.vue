@@ -191,7 +191,10 @@
           </Column>
 
           <template #expansion="slotProps">
-            <RuleExecutionRecords :ruleId="slotProps.data.id" />
+            <RuleExecutionRecords 
+              :ruleId="slotProps.data.id" 
+              @read-status-changed="handleReadStatusChanged"
+              @all-marked-as-read="handleAllMarkedAsRead" />
           </template>
         </DataTable>
       </div>
@@ -524,6 +527,23 @@ return document.title;"
 
   const formatDate = (date: Date | string) => {
     return format(new Date(date), 'MM-dd HH:mm');
+  };
+
+  // 处理执行记录读取状态变更
+  const handleReadStatusChanged = async (ruleId: string) => {
+    // 重新检查该规则的未读状态
+    try {
+      const hasUnread = await rulesManager.hasUnreadExecutions(ruleId);
+      ruleUnreadStatus.value[ruleId] = hasUnread;
+    } catch (error) {
+      console.error('Failed to check rule unread status:', error);
+    }
+  };
+
+  // 处理所有记录标记为已读
+  const handleAllMarkedAsRead = async (ruleId: string) => {
+    // 更新该规则的未读状态为 false
+    ruleUnreadStatus.value[ruleId] = false;
   };
 
   // 检测规则是否有未读的执行记录
@@ -871,6 +891,12 @@ return document.title;"
             life: 5000
           });
         }
+        
+        // 延迟刷新页面以等待新任务记录创建完成
+        setTimeout(() => {
+          loadRules();
+          loadStats();
+        }, 1000);
       } else {
         toast.add({
           severity: 'error',
