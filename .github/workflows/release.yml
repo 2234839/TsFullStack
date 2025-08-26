@@ -24,13 +24,9 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'pnpm'
 
-    - name: Enable corepack and install pnpm
-      run: |
-        corepack enable
-        corepack prepare pnpm@10.14.0 --activate
-        pnpm --version
+    - name: Install pnpm
+      run: npm install -g pnpm@10.14.0
 
     - name: Install dependencies
       run: |
@@ -102,13 +98,9 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
-        cache: 'pnpm'
 
-    - name: Enable corepack and install pnpm
-      run: |
-        corepack enable
-        corepack prepare pnpm@10.14.0 --activate
-        pnpm --version
+    - name: Install pnpm
+      run: npm install -g pnpm@10.14.0
 
     - name: Install dependencies
       run: |
