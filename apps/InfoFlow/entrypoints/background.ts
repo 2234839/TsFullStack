@@ -16,6 +16,5 @@ export default defineBackground(() => {
 
   registerConfigsService();
   registerRulesService();
-
   registerTaskExecutionService();
 });

@@ -243,13 +243,27 @@ export class RulesService {
   }
 
   // 获取所有规则
-  async getAll(): Promise<Rule[]> {
-    return await db.rules.toArray();
+  async getAll(options?: { limit?: number; offset?: number }): Promise<Rule[]> {
+    let query = db.rules.toCollection();
+    
+    if (options?.limit !== undefined) {
+      const offset = options.offset || 0;
+      query = query.offset(offset).limit(options.limit);
+    }
+    
+    return await query.toArray();
   }
 
   // 获取活动规则
-  async getActiveRules(): Promise<Rule[]> {
-    return await db.rules.where('status').equals('active').toArray();
+  async getActiveRules(options?: { limit?: number; offset?: number }): Promise<Rule[]> {
+    let query = db.rules.where('status').equals('active');
+    
+    if (options?.limit !== undefined) {
+      const offset = options.offset || 0;
+      query = query.offset(offset).limit(options.limit);
+    }
+    
+    return await query.toArray();
   }
 
   // 增加执行计数

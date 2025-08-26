@@ -126,19 +126,17 @@ export class TaskExecutionService {
 
   // 标记所有为已读
   async markAllAsRead(ruleId?: string): Promise<void> {
-    // 使用 Dexie 的 where 子句进行高效查询
+    // 使用 cursor-based 批量更新，避免加载所有未读项目到内存
     let query = db.taskExecutions.where('isRead').equals(0);
     
     if (ruleId) {
       query = query.and(item => item.ruleId === ruleId);
     }
     
-    const unreadItems = await query.toArray();
-    
-    // 批量更新
-    for (const item of unreadItems) {
+    // 使用游标进行批量更新
+    await query.each(async (item) => {
       await this.update(item.id, { isRead: true });
-    }
+    });
   }
 
   // 删除任务执行记录
@@ -324,27 +322,43 @@ export class TaskExecutionService {
     // 只统计最近90天的数据
     const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
     
-    let query = db.taskExecutions.where('createdAt').aboveOrEqual(cutoffDate);
+    // 使用数据库查询而不是加载所有数据
+    let baseQuery = db.taskExecutions.where('createdAt').aboveOrEqual(cutoffDate);
     
     if (ruleId) {
-      query = query.and(item => item.ruleId === ruleId);
+      baseQuery = baseQuery.and(item => item.ruleId === ruleId);
     }
 
-    const executions = await query.toArray();
-    
-    const total = executions.length;
-    const completed = executions.filter(e => e.status === 'completed').length;
-    const failed = executions.filter(e => e.status === 'failed').length;
-    const running = executions.filter(e => e.status === 'running').length;
-    const pending = executions.filter(e => e.status === 'pending').length;
+    // 分别查询各个状态的数量，避免加载所有数据
+    const totalQuery = baseQuery.clone();
+    const completedQuery = baseQuery.clone().and(item => item.status === 'completed');
+    const failedQuery = baseQuery.clone().and(item => item.status === 'failed');
+    const runningQuery = baseQuery.clone().and(item => item.status === 'running');
+    const pendingQuery = baseQuery.clone().and(item => item.status === 'pending');
+
+    // 并行查询所有统计信息
+    const [total, completed, failed, running, pending] = await Promise.all([
+      totalQuery.count(),
+      completedQuery.count(),
+      failedQuery.count(),
+      runningQuery.count(),
+      pendingQuery.count()
+    ]);
+
     const successRate = total > 0 ? (completed / total) * 100 : 0;
 
-    // 计算平均执行时间
-    const completedExecutions = executions.filter(e => e.status === 'completed');
-    const completedWithDuration = completedExecutions.filter(e => e.duration !== undefined);
-    const averageDuration = completedWithDuration.length > 0 
-      ? completedWithDuration.reduce((sum, e) => sum + (e.duration || 0), 0) / completedWithDuration.length
-      : undefined;
+    // 计算平均执行时间 - 只查询已完成且有执行时间的记录
+    let averageDuration: number | undefined;
+    if (completed > 0) {
+      const durationQuery = baseQuery.clone()
+        .and(item => item.status === 'completed' && item.duration !== undefined);
+      
+      // 使用聚合查询计算平均执行时间
+      const completedWithDuration = await durationQuery.toArray();
+      if (completedWithDuration.length > 0) {
+        averageDuration = completedWithDuration.reduce((sum, e) => sum + (e.duration || 0), 0) / completedWithDuration.length;
+      }
+    }
 
     return {
       total,
@@ -415,16 +429,19 @@ export class TaskExecutionService {
   async cleanupOldRecords(daysToKeep: number = 30): Promise<number> {
     const cutoffDate = new Date(Date.now() - daysToKeep * 24 * 60 * 60 * 1000);
     
-    const oldRecords = await db.taskExecutions
+    // 使用 cursor-based 删除，避免加载所有记录到内存
+    let deletedCount = 0;
+    
+    await db.taskExecutions
       .where('createdAt')
       .below(cutoffDate)
-      .toArray();
+      .eachPrimaryKey((key) => {
+        // 使用主键删除，更高效
+        db.taskExecutions.delete(key);
+        deletedCount++;
+      });
     
-    for (const record of oldRecords) {
-      await db.taskExecutions.delete(record.id);
-    }
-    
-    return oldRecords.length;
+    return deletedCount;
   }
 
   // 重置数据库
