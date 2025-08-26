@@ -455,6 +455,12 @@
 
   const props = defineProps<Props>();
 
+  // Define emits
+  const emit = defineEmits<{
+    readStatusChanged: [ruleId: string];
+    allMarkedAsRead: [ruleId: string];
+  }>();
+
   // State
   const executions = ref<TaskExecutionRecord[]>([]);
   const loading = ref(false);
@@ -562,6 +568,9 @@
       try {
         await rulesManager.markExecutionAsRead(execution.id);
         loadExecutionRecords();
+        
+        // 通知父组件读取状态已变更
+        emit('readStatusChanged', props.ruleId);
       } catch (error) {
         console.error('Failed to mark as read:', error);
       }
@@ -631,6 +640,9 @@
 
       // 从服务器重新加载以确认状态
       await loadExecutionRecords();
+      
+      // 通知父组件读取状态已变更
+      emit('readStatusChanged', props.ruleId);
     } catch (error) {
       console.error('Failed to toggle read status:', error);
     }
@@ -640,6 +652,9 @@
     try {
       await rulesManager.markAllExecutionsAsRead(props.ruleId);
       loadExecutionRecords();
+      
+      // 通知父组件所有记录已标记为已读
+      emit('allMarkedAsRead', props.ruleId);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
