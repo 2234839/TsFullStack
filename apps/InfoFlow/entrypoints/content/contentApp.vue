@@ -4,17 +4,12 @@
     <div class="bg-red-300">2222</div>
     v: {{ infoFlowConfig }}
     <div @click="run()">runInfoFlowGet</div>
-
-    <div @click="testIdb!.a.b.c++">testIdb:{{ testIdb }}</div>
-    <Button>333</Button>
   </div>
 </template>
 <script setup lang="ts">
   import { infoFlowGetMessenger } from '@/services/InfoFlowGet/messageProtocol';
-  import { useIdbTest, useInfoFlowConfig } from '@/storage/config';
-  import { Button } from 'primevue';
+  import { useInfoFlowConfig } from '@/storage/config';
   const infoFlowConfig = useInfoFlowConfig();
-  const testIdb = useIdbTest();
   async function run() {
     const res = await infoFlowGetMessenger.sendMessage('runInfoFlowGet', {
       url: 'https://shenzilong.cn',
