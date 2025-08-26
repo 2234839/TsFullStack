@@ -26,11 +26,11 @@ jobs:
         node-version: '20'
         cache: 'pnpm'
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 10.14.0
-        run_install: false
+    - name: Enable corepack and install pnpm
+      run: |
+        corepack enable
+        corepack prepare pnpm@10.14.0 --activate
+        pnpm --version
 
     - name: Install dependencies
       run: |
@@ -104,11 +104,11 @@ jobs:
         node-version: '20'
         cache: 'pnpm'
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        version: 10.14.0
-        run_install: false
+    - name: Enable corepack and install pnpm
+      run: |
+        corepack enable
+        corepack prepare pnpm@10.14.0 --activate
+        pnpm --version
 
     - name: Install dependencies
       run: |
