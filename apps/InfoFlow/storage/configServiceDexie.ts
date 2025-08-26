@@ -26,8 +26,15 @@ const db = new ConfigDatabase();
 // 配置服务
 export class ConfigService {
   // 获取所有配置
-  async getAll(): Promise<ConfigItem[]> {
-    return await db.configs.toArray();
+  async getAll(options?: { limit?: number; offset?: number }): Promise<ConfigItem[]> {
+    let query = db.configs.toCollection();
+    
+    if (options?.limit !== undefined) {
+      const offset = options.offset || 0;
+      query = query.offset(offset).limit(options.limit);
+    }
+    
+    return await query.toArray();
   }
 
   // 更新或插入配置

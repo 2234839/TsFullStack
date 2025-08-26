@@ -23,8 +23,15 @@ const db = new ConfigDatabase();
 
 function createConfigsService() {
   return {
-    async getAll() {
-      return await db.configs.toArray();
+    async getAll(options?: { limit?: number; offset?: number }) {
+      let query = db.configs.toCollection();
+      
+      if (options?.limit !== undefined) {
+        const offset = options.offset || 0;
+        query = query.offset(offset).limit(options.limit);
+      }
+      
+      return await query.toArray();
     },
     async upsert(info: ConfigItem) {
       await db.configs.put(info);
