@@ -1,5 +1,5 @@
 <template>
-  <div class="min-w-10 p-4">
+  <div class="p-4">
     <RulesManagement />
   </div>
 </template>

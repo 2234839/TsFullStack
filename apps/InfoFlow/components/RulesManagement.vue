@@ -1,5 +1,5 @@
 <template>
-  <div class="min-w-[600px]">
+  <div>
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
@@ -79,7 +79,10 @@
           :rowsPerPageOptions="[10, 20, 50]"
           @page="handlePageChange"
           responsiveLayout="scroll"
-          stripedRows>
+          stripedRows
+          v-model:expandedRows="expandedRows"
+          dataKey="id">
+          <Column :expander="true" headerStyle="width: 3rem" />
           <Column field="name" header="规则名称" class="min-w-[150px] whitespace-nowrap">
             <template #body="slotProps">
               <div>
@@ -164,13 +167,7 @@
                   severity="primary"
                   v-tooltip="'立即执行'" />
                 <Button
-                  icon="pi pi-list"
-                  @click="toggleExecutionRecords(slotProps.data.id)"
-                  size="small"
-                  severity="info"
-                  v-tooltip="'查看执行记录'" />
-                <Button
-                  icon="pi pi-edit"
+                  icon="pi pi-file-edit"
                   @click="editRule(slotProps.data)"
                   size="small"
                   severity="secondary"
@@ -184,28 +181,11 @@
               </div>
             </template>
           </Column>
-        </DataTable>
 
-        <!-- Expandable Execution Records -->
-        <div v-if="expandedRuleId" class="mt-4 bg-white rounded-lg shadow-sm border">
-          <div class="p-4 border-b bg-gray-50">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <h3 class="text-lg font-medium text-gray-800">执行记录</h3>
-                <Badge :value="getRuleName(expandedRuleId)" severity="info" size="small" />
-              </div>
-              <Button
-                icon="pi pi-times"
-                @click="expandedRuleId = null"
-                severity="secondary"
-                size="small"
-                v-tooltip="'关闭'" />
-            </div>
-          </div>
-          <div class="p-4">
-            <RuleExecutionRecords :ruleId="expandedRuleId" />
-          </div>
-        </div>
+          <template #expansion="slotProps">
+            <RuleExecutionRecords :ruleId="slotProps.data.id" />
+          </template>
+        </DataTable>
       </div>
     </div>
 
@@ -468,7 +448,7 @@ return document.title;"
   const showDeleteDialog = ref(false);
   const editingRule = ref<Rule | null>(null);
   const selectedRule = ref<Rule | null>(null);
-  const expandedRuleId = ref<string | null>(null);
+  const expandedRows = ref<Record<string, boolean>>({});
 
   // Pagination
   const currentPage = ref(1);
@@ -816,19 +796,6 @@ return document.title;"
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       alert(`规则 "${rule.name}" 执行失败: ${errorMessage}`);
     }
-  };
-
-  const toggleExecutionRecords = (ruleId: string) => {
-    if (expandedRuleId.value === ruleId) {
-      expandedRuleId.value = null;
-    } else {
-      expandedRuleId.value = ruleId;
-    }
-  };
-
-  const getRuleName = (ruleId: string) => {
-    const rule = rules.value.find((r) => r.id === ruleId);
-    return rule ? rule.name : '未知规则';
   };
 
   // Lifecycle
