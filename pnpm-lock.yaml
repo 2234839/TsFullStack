@@ -28,12 +28,12 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      dexie:
+        specifier: ^4.2.0
+        version: 4.2.0
       fast-equals:
         specifier: ^5.2.2
         version: 5.2.2
-      idb:
-        specifier: ^8.0.3
-        version: 8.0.3
       primeicons:
         specifier: ^7.0.0
         version: 7.0.0
@@ -2517,6 +2517,9 @@ packages:
     resolution: {integrity: sha512-TLz+x/vEXm/Y7P7wn1EJFNLxYpUD4TgMosxY6fAVJUnJMbupHBOncxyWUG9OpTaH9EBD7uFI5LfEgmMOc54DsA==}
     engines: {node: '>=8'}
 
+  dexie@4.2.0:
+    resolution: {integrity: sha512-OSeyyWOUetDy9oFWeddJgi83OnRA3hSFh3RrbltmPgqHszE9f24eUCVLI4mPg0ifsWk0lQTdnS+jyGNrPMvhDA==}
+
   diff-sequences@29.6.3:
     resolution: {integrity: sha512-EjePK1srD3P08o2j4f0ExnylqRs5B9tJjcp9t1krH2qRi8CCdsYfwe9JgSLurFBWwq4uOlipzfk5fHNvwFKr8Q==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
@@ -2996,9 +2999,6 @@ packages:
   human-signals@8.0.1:
     resolution: {integrity: sha512-eKCa6bwnJhvxj14kZk5NCPc6Hb6BdsU9DZcOnmQKSnO1VKrfV0zCvtttPZUsBvjmNDn8rpcJfpwSYnHBjc95MQ==}
     engines: {node: '>=18.18.0'}
-
-  idb@8.0.3:
-    resolution: {integrity: sha512-LtwtVyVYO5BqRvcsKuB2iUMnHwPVByPCXFXOpuU96IZPPoPN6xjOGxZQ74pgSVVLQWtUOYgyeL4GE98BY5D3wg==}
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -7759,6 +7759,8 @@ snapshots:
 
   detect-newline@3.1.0: {}
 
+  dexie@4.2.0: {}
+
   diff-sequences@29.6.3: {}
 
   dijkstrajs@1.0.3: {}
@@ -8321,8 +8323,6 @@ snapshots:
   human-signals@4.3.1: {}
 
   human-signals@8.0.1: {}
-
-  idb@8.0.3: {}
 
   ieee754@1.2.1: {}
 

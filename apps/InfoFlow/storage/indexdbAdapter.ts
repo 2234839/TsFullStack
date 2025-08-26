@@ -1,45 +1,40 @@
-import { DBSchema, IDBPDatabase, openDB } from 'idb';
+import Dexie, { Table } from 'dexie';
 import { defineProxyService } from '@webext-core/proxy-service';
 import type { StorageAdapter, VersionedStorage } from './storageAdapter';
-interface ExtensionDatabaseSchema extends DBSchema {
-  configs: {
-    key: string;
-    value: { data: any; key: string };
-  };
+
+interface ConfigItem {
+  key: string;
+  data: any;
 }
 
-export type ExtensionDatabase = IDBPDatabase<ExtensionDatabaseSchema>;
+class ConfigDatabase extends Dexie {
+  configs!: Table<ConfigItem, string>;
 
-/**
- * 这里创建的数据可以在background 中运行，能够通过检查 popup 中的存储查看 indexdb 数据库。
- */
-export function openExtensionDatabase(): Promise<ExtensionDatabase> {
-  return openDB<ExtensionDatabaseSchema>('infoFlow', 3, {
-    upgrade(database) {
-      database.createObjectStore('configs', {
-        /** 这里定义的key是插入和查询都需要的 */ keyPath: 'key',
-      });
-    },
-  });
+  constructor() {
+    super('infoFlowConfigDB');
+    
+    this.version(1).stores({
+      configs: 'key, data'
+    });
+  }
 }
 
-function createConfigsService(_db: Promise<ExtensionDatabase>) {
+const db = new ConfigDatabase();
+
+function createConfigsService() {
   return {
     async getAll() {
-      const db = await _db;
-      return await db.getAll('configs');
+      return await db.configs.toArray();
     },
-    async upsert(info: ExtensionDatabaseSchema['configs']['value']) {
-      const db = await _db;
-      await db.put('configs', info);
+    async upsert(info: ConfigItem) {
+      await db.configs.put(info);
     },
     async getItem(key: string) {
-      const db = await _db;
-      return await db.get('configs', key);
+      const result = await db.configs.get(key);
+      return result?.data;
     },
     async setItem(key: string, data: any) {
-      const db = await _db;
-      return await db.put('configs', { key, data });
+      await db.configs.put({ key, data });
     },
   };
 }
