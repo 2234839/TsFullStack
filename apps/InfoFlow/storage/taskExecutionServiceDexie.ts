@@ -117,13 +117,16 @@ export class TaskExecutionService {
 
   // 标记所有为已读
   async markAllAsRead(ruleId?: string): Promise<void> {
-    // 使用过滤来查找未读项目
-    let unreadItems = await db.taskExecutions.filter(item => item.isRead === false).toArray();
+    // 使用 Dexie 的 where 子句进行高效查询
+    let query = db.taskExecutions.where('isRead').equals(0);
     
     if (ruleId) {
-      unreadItems = unreadItems.filter(item => item.ruleId === ruleId);
+      query = query.and(item => item.ruleId === ruleId);
     }
     
+    const unreadItems = await query.toArray();
+    
+    // 批量更新
     for (const item of unreadItems) {
       await this.update(item.id, { isRead: true });
     }
@@ -156,38 +159,66 @@ export class TaskExecutionService {
       sortOrder = 'desc'
     } = options;
 
-    // 构建查询
-    let query = db.taskExecutions.toCollection();
+    // 构建查询 - 使用 Dexie 的复合查询
+    let query: Dexie.Collection<TaskExecutionRecord, string> | undefined;
 
-    // 应用过滤条件
+    // 应用过滤条件 - 使用数据库索引查询
     if (ruleId) {
-      query = query.filter(item => item.ruleId === ruleId);
+      query = db.taskExecutions.where('ruleId').equals(ruleId);
     }
     
     if (status) {
-      query = query.filter(item => item.status === status);
+      if (query) {
+        query = query.and(item => item.status === status);
+      } else {
+        query = db.taskExecutions.where('status').equals(status);
+      }
     }
     
     if (executionType) {
-      query = query.filter(item => item.executionType === executionType);
+      if (query) {
+        query = query.and(item => item.executionType === executionType);
+      } else {
+        query = db.taskExecutions.where('executionType').equals(executionType);
+      }
     }
     
     if (isRead !== undefined) {
-      query = query.filter(item => item.isRead === isRead);
+      if (query) {
+        query = query.and(item => item.isRead === isRead);
+      } else {
+        query = db.taskExecutions.where('isRead').equals(isRead ? 1 : 0);
+      }
     }
     
     if (startDate) {
-      query = query.filter(item => item.createdAt >= startDate);
+      if (query) {
+        query = query.and(item => item.createdAt >= startDate);
+      } else {
+        query = db.taskExecutions.where('createdAt').aboveOrEqual(startDate);
+      }
     }
     
     if (endDate) {
-      query = query.filter(item => item.createdAt <= endDate);
+      if (query) {
+        query = query.and(item => item.createdAt <= endDate);
+      } else {
+        query = db.taskExecutions.where('createdAt').belowOrEqual(endDate);
+      }
     }
 
-    // 获取所有匹配的记录
-    let executions = await query.toArray();
+    // 如果没有应用任何 where 子句，使用默认集合
+    if (!query) {
+      query = db.taskExecutions.toCollection();
+    }
 
-    // 排序
+    // 获取总数用于分页
+    const total = await query.count();
+
+    // 使用 Dexie 的排序
+    let executions = await query.toArray();
+    
+    // 在内存中排序（Dexie 的 sortBy 返回 Promise，不是 Collection）
     executions.sort((a, b) => {
       let aValue = a[sortBy];
       let bValue = b[sortBy];
@@ -206,7 +237,6 @@ export class TaskExecutionService {
     });
 
     // 分页
-    const total = executions.length;
     const totalPages = Math.ceil(total / limit);
     const offset = (page - 1) * limit;
     const paginatedExecutions = executions.slice(offset, offset + limit);
@@ -241,41 +271,40 @@ export class TaskExecutionService {
     averageDuration?: number;
     successRate: number;
   }> {
-    let query = db.taskExecutions.toCollection();
-    
-    if (ruleId) {
-      query = query.filter(item => item.ruleId === ruleId);
-    }
-    
     // 只统计最近90天的数据
     const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-    query = query.filter(item => item.createdAt >= cutoffDate);
+    
+    let query = db.taskExecutions.where('createdAt').aboveOrEqual(cutoffDate);
+    
+    if (ruleId) {
+      query = query.and(item => item.ruleId === ruleId);
+    }
 
-    return query.toArray().then(executions => {
-      const total = executions.length;
-      const completed = executions.filter(e => e.status === 'completed').length;
-      const failed = executions.filter(e => e.status === 'failed').length;
-      const running = executions.filter(e => e.status === 'running').length;
-      const pending = executions.filter(e => e.status === 'pending').length;
-      const successRate = total > 0 ? (completed / total) * 100 : 0;
+    const executions = await query.toArray();
+    
+    const total = executions.length;
+    const completed = executions.filter(e => e.status === 'completed').length;
+    const failed = executions.filter(e => e.status === 'failed').length;
+    const running = executions.filter(e => e.status === 'running').length;
+    const pending = executions.filter(e => e.status === 'pending').length;
+    const successRate = total > 0 ? (completed / total) * 100 : 0;
 
-      // 计算平均执行时间
-      const completedExecutions = executions.filter(e => e.status === 'completed');
-      const completedWithDuration = completedExecutions.filter(e => e.duration !== undefined);
-      const averageDuration = completedWithDuration.length > 0 
-        ? completedWithDuration.reduce((sum, e) => sum + (e.duration || 0), 0) / completedWithDuration.length
-        : undefined;
+    // 计算平均执行时间
+    const completedExecutions = executions.filter(e => e.status === 'completed');
+    const completedWithDuration = completedExecutions.filter(e => e.duration !== undefined);
+    const averageDuration = completedWithDuration.length > 0 
+      ? completedWithDuration.reduce((sum, e) => sum + (e.duration || 0), 0) / completedWithDuration.length
+      : undefined;
 
-      return {
-        total,
-        completed,
-        failed,
-        running,
-        pending,
-        averageDuration,
-        successRate
-      };
-    });
+    return {
+      total,
+      completed,
+      failed,
+      running,
+      pending,
+      averageDuration,
+      successRate
+    };
   }
 
   // 开始执行
