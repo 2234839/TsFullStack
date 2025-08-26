@@ -1,6 +1,7 @@
 import { getRulesService } from '../storage/rulesService';
 import { taskGenerator } from '../utils/ruleTaskGenerator';
 import { infoFlowGetMessenger } from '../services/InfoFlowGet/messageProtocol';
+import { taskExecutionManager } from '../utils/taskExecutionManager';
 import type { Rule } from '../storage/rulesService';
 
 export class RulesManager {
@@ -99,36 +100,105 @@ export class RulesManager {
     };
   }
 
+  async getRuleExecutions(ruleId: string, options?: {
+    page?: number;
+    limit?: number;
+    status?: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
+    executionType?: 'manual' | 'scheduled' | 'triggered';
+    startDate?: Date;
+    endDate?: Date;
+    sortBy?: 'createdAt' | 'updatedAt' | 'startTime' | 'endTime' | 'duration';
+    sortOrder?: 'asc' | 'desc';
+  }) {
+    return await taskExecutionManager.getRuleExecutions(ruleId, options);
+  }
+
+  async getRecentExecutions(ruleId?: string, limit: number = 10) {
+    return await taskExecutionManager.getRecentExecutions(ruleId, limit);
+  }
+
+  async getExecutionStats(ruleId?: string) {
+    return await taskExecutionManager.getExecutionStats(ruleId);
+  }
+
+  async getExecutionTimeline(ruleId: string, days: number = 7) {
+    return await taskExecutionManager.getExecutionTimeline(ruleId, days);
+  }
+
+  async getExecutionById(executionId: string) {
+    return await taskExecutionManager.getExecutionById(executionId);
+  }
+
+  async deleteExecution(executionId: string) {
+    return await taskExecutionManager.deleteExecution(executionId);
+  }
+
+  async cleanupOldExecutionRecords(daysToKeep: number = 30) {
+    return await taskExecutionManager.cleanupOldRecords(daysToKeep);
+  }
+
   async executeRule(ruleId: string): Promise<{
     success: boolean;
     message: string;
     result?: any;
+    executionId?: string;
   }> {
+    let executionId: string | undefined;
+    
     try {
       const rule = await this.rulesService.getById(ruleId);
       if (!rule) {
         return { success: false, message: '规则不存在' };
       }
 
+      // Create execution record
+      const executionRecord = await taskExecutionManager.createExecutionRecord(
+        ruleId,
+        rule.name,
+        'manual'
+      );
+      executionId = executionRecord.id;
+
+      // Start execution
+      await taskExecutionManager.startExecution(executionId);
+
       const task = taskGenerator.generateTaskFromRule(rule);
       const res = await infoFlowGetMessenger.sendMessage('runInfoFlowGet', task);
       console.log('[executeRule res]', res);
 
       if (!res) {
-        return { success: false, message: '执行返回结果为空' };
+        await taskExecutionManager.failExecution(executionId, '执行返回结果为空');
+        return { success: false, message: '执行返回结果为空', executionId };
       }
+
+      // Complete execution with result
+      await taskExecutionManager.completeExecution(
+        executionId,
+        res,
+        res.matched
+      );
+
+      // Update rule execution count
+      await this.rulesService.incrementExecutionCount(ruleId);
 
       return {
         success: true,
         message: res.matched ? '执行成功' : '执行完成但未匹配到内容',
-        result: res
+        result: res,
+        executionId
       };
     } catch (error) {
       console.error('Failed to execute rule:', error);
       const errorMessage = error instanceof Error ? error.message : '未知错误';
+      
+      if (executionId) {
+        await taskExecutionManager.failExecution(executionId, errorMessage);
+      }
+
       return {
         success: false,
-        message: `执行失败: ${errorMessage}`
+        message: `执行失败: ${errorMessage}`,
+        executionId
       };
     }
   }
