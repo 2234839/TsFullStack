@@ -1,4 +1,4 @@
-import { defineBackground } from '#imports';
+import { browser, defineBackground } from '#imports';
 import { infoFlowGetMessenger } from '@/services/InfoFlowGet/messageProtocol';
 import { runInfoFlowGet } from '@/services/InfoFlowGet/runInfoFlowGet';
 import { openExtensionDatabase, registerConfigsService } from '@/storage/indexdbAdapter';
@@ -9,6 +9,8 @@ import {
 } from '@/storage/taskExecutionService';
 
 export default defineBackground(() => {
+
+
   infoFlowGetMessenger.onMessage('runInfoFlowGet', async (msg) => {
     return runInfoFlowGet(msg.data);
   });
