@@ -1,5 +1,5 @@
 import { browser, createApp, createShadowRootUi, defineContentScript } from '#imports';
-import '~/assets/tailwindcss.css';
+import '~/src/styles/app.css';
 import 'primeicons/primeicons.css';
 import 'primevue';
 import PrimeVue from 'primevue/config';

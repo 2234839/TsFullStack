@@ -137,6 +137,10 @@ export class RulesManager {
     return await taskExecutionManager.cleanupOldRecords(daysToKeep);
   }
 
+  async cancelExecution(executionId: string) {
+    return await taskExecutionManager.cancelExecution(executionId);
+  }
+
   async executeRule(ruleId: string): Promise<{
     success: boolean;
     message: string;

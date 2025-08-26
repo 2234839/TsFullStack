@@ -37,141 +37,176 @@
       </div>
     </div>
 
-    <!-- Search and Filters -->
-    <div class="bg-white p-4 rounded-lg shadow-sm border mb-6">
-      <div class="flex flex-wrap gap-4 items-center">
-        <div class="flex-1 min-w-64">
-          <IconField>
-            <InputIcon class="pi pi-search" />
-            <InputText
-              v-model="searchQuery"
-              placeholder="搜索规则名称或描述..."
-              @input="handleSearch" />
-          </IconField>
+    <!-- 规则表格 -->
+    <div class="bg-white p-2 rounded-lg shadow-sm">
+      <!-- Search and Filters -->
+      <div>
+        <div class="flex flex-wrap gap-4 items-center">
+          <div class="flex-1 min-w-64">
+            <IconField>
+              <InputIcon class="pi pi-search" />
+              <InputText
+                v-model="searchQuery"
+                placeholder="搜索规则名称或描述..."
+                @input="handleSearch" />
+            </IconField>
+          </div>
+          <Select
+            v-model="statusFilter"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="状态筛选"
+            @change="handleFilterChange"
+            class="w-40" />
+          <Button
+            icon="pi pi-filter-slash"
+            @click="clearFilters"
+            severity="secondary"
+            size="small"
+            label="清除筛选" />
         </div>
-        <Select
-          v-model="statusFilter"
-          :options="statusOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="状态筛选"
-          @change="handleFilterChange"
-          class="w-40" />
-        <Button
-          icon="pi pi-filter-slash"
-          @click="clearFilters"
-          severity="secondary"
-          size="small"
-          label="清除筛选" />
       </div>
-    </div>
 
-    <!-- Rules Table -->
-    <div class="bg-white rounded-lg shadow-sm border">
-      <DataTable
-        :value="rules"
-        :loading="loading"
-        :paginator="true"
-        :rows="pageSize"
-        :totalRecords="totalRecords"
-        :rowsPerPageOptions="[10, 20, 50]"
-        @page="handlePageChange"
-        responsiveLayout="scroll"
-        stripedRows>
-        <Column field="name" header="规则名称" class="min-w-[150px] whitespace-nowrap">
-          <template #body="slotProps">
-            <div>
-              <div class="font-medium">{{ slotProps.data.name }}</div>
-              <div class="text-sm text-gray-600">{{ slotProps.data.description }}</div>
-            </div>
-          </template>
-        </Column>
-
-        <Column field="status" header="状态" class="w-[100px] whitespace-nowrap">
-          <template #body="slotProps">
-            <span :class="['text-xs px-2 py-1 rounded-md ',
-              slotProps.data.status === 'active' ? 'bg-green-500 text-white' :
-              slotProps.data.status === 'inactive' ? 'bg-gray-500 text-white' :
-              'bg-yellow-500 text-white']">
-              {{ getStatusText(slotProps.data.status) }}
-            </span>
-          </template>
-        </Column>
-
-        <Column field="cron" header="执行计划" class="w-[120px] whitespace-nowrap">
-          <template #body="slotProps">
-            <div class="text-sm">
-              <div>{{ slotProps.data.cron }}</div>
-              <div v-if="slotProps.data.nextExecutionAt" class="text-xs text-gray-500">
-                下次: {{ formatDate(slotProps.data.nextExecutionAt) }}
+      <!-- Rules Table -->
+      <div>
+        <DataTable
+          :value="rules"
+          :loading="loading"
+          :paginator="true"
+          :rows="pageSize"
+          :totalRecords="totalRecords"
+          :rowsPerPageOptions="[10, 20, 50]"
+          @page="handlePageChange"
+          responsiveLayout="scroll"
+          stripedRows>
+          <Column field="name" header="规则名称" class="min-w-[150px] whitespace-nowrap">
+            <template #body="slotProps">
+              <div>
+                <div class="font-medium">{{ slotProps.data.name }}</div>
+                <div class="text-sm text-gray-600">{{ slotProps.data.description }}</div>
               </div>
-            </div>
-          </template>
-        </Column>
+            </template>
+          </Column>
 
-        <Column field="executionCount" header="执行次数" class="w-[80px] whitespace-nowrap">
-          <template #body="slotProps">
-            <div class="text-center">
-              <div class="font-medium">{{ slotProps.data.executionCount }}</div>
-              <div v-if="slotProps.data.lastExecutedAt" class="text-xs text-gray-500">
-                {{ formatDate(slotProps.data.lastExecutedAt) }}
+          <Column field="status" header="状态" class="w-[100px] whitespace-nowrap">
+            <template #body="slotProps">
+              <span
+                :class="[
+                  'text-xs px-2 py-1 rounded-md ',
+                  slotProps.data.status === 'active'
+                    ? 'bg-green-500 text-white'
+                    : slotProps.data.status === 'inactive'
+                    ? 'bg-gray-500 text-white'
+                    : 'bg-yellow-500 text-white',
+                ]">
+                {{ getStatusText(slotProps.data.status) }}
+              </span>
+            </template>
+          </Column>
+
+          <Column field="cron" header="执行计划" class="w-[120px] whitespace-nowrap">
+            <template #body="slotProps">
+              <div class="text-sm">
+                <div>{{ slotProps.data.cron }}</div>
+                <div v-if="slotProps.data.nextExecutionAt" class="text-xs text-gray-500">
+                  下次: {{ formatDate(slotProps.data.nextExecutionAt) }}
+                </div>
               </div>
-            </div>
-          </template>
-        </Column>
+            </template>
+          </Column>
 
-        <Column field="tags" header="标签" class="w-[150px] whitespace-nowrap">
-          <template #body="slotProps">
-            <div class="flex flex-wrap">
-              <Chip
-                v-for="tag in slotProps.data.tags || []"
-                :key="tag"
-                :label="tag"
-                size="small"
-                class="text-xs mr-1 mb-1" />
-            </div>
-          </template>
-        </Column>
+          <Column field="executionCount" header="执行次数" class="w-[80px] whitespace-nowrap">
+            <template #body="slotProps">
+              <div class="text-center">
+                <div class="font-medium">{{ slotProps.data.executionCount }}</div>
+                <div v-if="slotProps.data.lastExecutedAt" class="text-xs text-gray-500">
+                  {{ formatDate(slotProps.data.lastExecutedAt) }}
+                </div>
+              </div>
+            </template>
+          </Column>
 
-        <Column field="actions" header="操作" class="w-[240px] whitespace-nowrap">
-          <template #body="slotProps">
-            <div class="flex gap-1">
+          <Column field="tags" header="标签" class="w-[150px] whitespace-nowrap">
+            <template #body="slotProps">
+              <div class="flex flex-wrap">
+                <Chip
+                  v-for="tag in slotProps.data.tags || []"
+                  :key="tag"
+                  :label="tag"
+                  size="small"
+                  class="text-xs mr-1 mb-1" />
+              </div>
+            </template>
+          </Column>
+
+          <Column field="actions" header="操作" class="w-[280px] whitespace-nowrap">
+            <template #body="slotProps">
+              <div class="flex gap-1">
+                <Button
+                  v-if="slotProps.data.status === 'inactive'"
+                  icon="pi pi-play"
+                  @click="activateRule(slotProps.data)"
+                  size="small"
+                  severity="success"
+                  v-tooltip="'激活'" />
+                <Button
+                  v-if="slotProps.data.status === 'active'"
+                  icon="pi pi-pause"
+                  @click="pauseRule(slotProps.data)"
+                  size="small"
+                  severity="warning"
+                  v-tooltip="'暂停'" />
+                <Button
+                  icon="pi pi-play-circle"
+                  @click="executeRuleNow(slotProps.data)"
+                  size="small"
+                  severity="primary"
+                  v-tooltip="'立即执行'" />
+                <Button
+                  icon="pi pi-list"
+                  @click="toggleExecutionRecords(slotProps.data.id)"
+                  size="small"
+                  severity="info"
+                  v-tooltip="'查看执行记录'" />
+                <Button
+                  icon="pi pi-edit"
+                  @click="editRule(slotProps.data)"
+                  size="small"
+                  severity="secondary"
+                  v-tooltip="'编辑'" />
+                <Button
+                  icon="pi pi-trash"
+                  @click="confirmDelete(slotProps.data)"
+                  size="small"
+                  severity="danger"
+                  v-tooltip="'删除'" />
+              </div>
+            </template>
+          </Column>
+        </DataTable>
+
+        <!-- Expandable Execution Records -->
+        <div v-if="expandedRuleId" class="mt-4 bg-white rounded-lg shadow-sm border">
+          <div class="p-4 border-b bg-gray-50">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <h3 class="text-lg font-medium text-gray-800">执行记录</h3>
+                <Badge :value="getRuleName(expandedRuleId)" severity="info" size="small" />
+              </div>
               <Button
-                v-if="slotProps.data.status === 'inactive'"
-                icon="pi pi-play"
-                @click="activateRule(slotProps.data)"
+                icon="pi pi-times"
+                @click="expandedRuleId = null"
+                severity="secondary"
                 size="small"
-                severity="success"
-                v-tooltip="'激活'" />
-              <Button
-                v-if="slotProps.data.status === 'active'"
-                icon="pi pi-pause"
-                @click="pauseRule(slotProps.data)"
-                size="small"
-                severity="warning"
-                v-tooltip="'暂停'" />
-              <Button
-                icon="pi pi-play-circle"
-                @click="executeRuleNow(slotProps.data)"
-                size="small"
-                severity="primary"
-                v-tooltip="'立即执行'" />
-              <Button
-                icon="pi pi-edit"
-                @click="editRule(slotProps.data)"
-                size="small"
-                severity="info"
-                v-tooltip="'编辑'" />
-              <Button
-                icon="pi pi-trash"
-                @click="confirmDelete(slotProps.data)"
-                size="small"
-                severity="danger"
-                v-tooltip="'删除'" />
+                v-tooltip="'关闭'" />
             </div>
-          </template>
-        </Column>
-      </DataTable>
+          </div>
+          <div class="p-4">
+            <RuleExecutionRecords :ruleId="expandedRuleId" />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Create/Edit Rule Dialog -->
@@ -246,46 +281,57 @@
 
         <div class="col-span-2">
           <label class="block text-sm font-medium mb-2">数据收集配置</label>
-          
+
           <!-- Visual Data Collection Configuration -->
           <div class="border rounded-lg p-4 mb-4">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-medium">数据收集项</h3>
-              <Button 
-                icon="pi pi-plus" 
-                label="添加收集项" 
-                size="small" 
+              <Button
+                icon="pi pi-plus"
+                label="添加收集项"
+                size="small"
                 @click="showAddCollectionDialog" />
             </div>
-            
-            <div v-if="ruleForm.taskConfig.dataCollection && ruleForm.taskConfig.dataCollection.length > 0" class="space-y-2">
-              <div 
-                v-for="(item, index) in ruleForm.taskConfig.dataCollection" 
+
+            <div
+              v-if="
+                ruleForm.taskConfig.dataCollection && ruleForm.taskConfig.dataCollection.length > 0
+              "
+              class="space-y-2">
+              <div
+                v-for="(item, index) in ruleForm.taskConfig.dataCollection"
                 :key="index"
                 class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div class="flex-1">
                   <div class="flex items-center gap-2">
-                    <span class="px-2 py-1 text-xs rounded-md"
-                          :class="item.type === 'css' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'">
+                    <span
+                      class="px-2 py-1 text-xs rounded-md"
+                      :class="
+                        item.type === 'css'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-green-100 text-green-800'
+                      ">
                       {{ item.type === 'css' ? 'CSS' : 'JS' }}
                     </span>
                     <span class="font-medium">
                       {{ item.type === 'css' ? item.selector : 'JavaScript 代码' }}
                     </span>
-                    <span v-if="item.type === 'css' && item.attribute" class="text-sm text-gray-500">
+                    <span
+                      v-if="item.type === 'css' && item.attribute"
+                      class="text-sm text-gray-500">
                       (属性: {{ item.attribute }})
                     </span>
                   </div>
                 </div>
                 <div class="flex gap-1">
-                  <Button 
-                    icon="pi pi-edit" 
-                    size="small" 
+                  <Button
+                    icon="pi pi-edit"
+                    size="small"
                     severity="info"
                     @click="editCollectionItem(item, index)" />
-                  <Button 
-                    icon="pi pi-trash" 
-                    size="small" 
+                  <Button
+                    icon="pi pi-trash"
+                    size="small"
                     severity="danger"
                     @click="removeCollectionItem(index)" />
                 </div>
@@ -295,7 +341,7 @@
               暂无数据收集项，点击"添加收集项"开始配置
             </div>
           </div>
-          
+
           <!-- Advanced JSON Configuration -->
           <Accordion>
             <AccordionTab header="高级 JSON 配置">
@@ -331,17 +377,11 @@
           <label class="block text-sm font-medium mb-2">收集类型</label>
           <div class="flex gap-4">
             <div class="flex items-center gap-2">
-              <RadioButton 
-                v-model="collectionItemType" 
-                value="css" 
-                inputId="css-type" />
+              <RadioButton v-model="collectionItemType" value="css" inputId="css-type" />
               <label for="css-type">CSS 选择器</label>
             </div>
             <div class="flex items-center gap-2">
-              <RadioButton 
-                v-model="collectionItemType" 
-                value="js" 
-                inputId="js-type" />
+              <RadioButton v-model="collectionItemType" value="js" inputId="js-type" />
               <label for="js-type">JavaScript 代码</label>
             </div>
           </div>
@@ -354,7 +394,7 @@
             v-model="collectionForm.selector"
             placeholder="例如: .title, #content, h1"
             class="w-full" />
-          
+
           <label class="block text-sm font-medium mb-2 mt-4">属性 (可选)</label>
           <InputText
             v-model="collectionForm.attribute"
@@ -399,6 +439,7 @@ return document.title;"
   import { rulesManager } from '@/utils/rulesManager';
   import { format } from 'date-fns';
   import type { Rule } from '@/storage/rulesService';
+  import RuleExecutionRecords from './RuleExecutionRecords.vue';
 
   // PrimeVue components
   import Button from 'primevue/button';
@@ -411,6 +452,7 @@ return document.title;"
   import Select from 'primevue/select';
   import Chip from 'primevue/chip';
   import Chips from 'primevue/chips';
+  import Badge from 'primevue/badge';
   import IconField from 'primevue/iconfield';
   import InputIcon from 'primevue/inputicon';
   import Accordion from 'primevue/accordion';
@@ -426,6 +468,7 @@ return document.title;"
   const showDeleteDialog = ref(false);
   const editingRule = ref<Rule | null>(null);
   const selectedRule = ref<Rule | null>(null);
+  const expandedRuleId = ref<string | null>(null);
 
   // Pagination
   const currentPage = ref(1);
@@ -462,7 +505,7 @@ return document.title;"
 
   const taskConfigJson = ref('{}');
   const errors = ref<Record<string, string>>({});
-  
+
   // Data collection configuration
   const showDataCollectionDialog = ref(false);
   const editingCollectionItem = ref<any>(null);
@@ -470,7 +513,7 @@ return document.title;"
   const collectionForm = reactive({
     selector: '',
     attribute: '',
-    code: ''
+    code: '',
   });
 
   // Options
@@ -564,7 +607,7 @@ return document.title;"
     Object.assign(collectionForm, {
       selector: '',
       attribute: '',
-      code: ''
+      code: '',
     });
     collectionItemType.value = 'css';
     editingCollectionItem.value = null;
@@ -578,14 +621,14 @@ return document.title;"
   const editCollectionItem = (item: any, index: number) => {
     editingCollectionItem.value = index;
     collectionItemType.value = item.type;
-    
+
     if (item.type === 'css') {
       collectionForm.selector = item.selector;
       collectionForm.attribute = item.attribute || '';
     } else {
       collectionForm.code = item.code;
     }
-    
+
     showDataCollectionDialog.value = true;
   };
 
@@ -596,7 +639,7 @@ return document.title;"
     }
 
     const collectionItem: any = {
-      type: collectionItemType.value
+      type: collectionItemType.value,
     };
 
     if (collectionItemType.value === 'css') {
@@ -626,7 +669,7 @@ return document.title;"
 
     // Update JSON representation
     taskConfigJson.value = JSON.stringify(ruleForm.taskConfig, null, 2);
-    
+
     showDataCollectionDialog.value = false;
     resetCollectionForm();
   };
@@ -757,7 +800,7 @@ return document.title;"
   const executeRuleNow = async (rule: Rule) => {
     try {
       const result = await rulesManager.executeRule(rule.id);
-      
+
       if (result.success) {
         const res = result.result;
         if (res.matched) {
@@ -773,6 +816,19 @@ return document.title;"
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       alert(`规则 "${rule.name}" 执行失败: ${errorMessage}`);
     }
+  };
+
+  const toggleExecutionRecords = (ruleId: string) => {
+    if (expandedRuleId.value === ruleId) {
+      expandedRuleId.value = null;
+    } else {
+      expandedRuleId.value = ruleId;
+    }
+  };
+
+  const getRuleName = (ruleId: string) => {
+    const rule = rules.value.find((r) => r.id === ruleId);
+    return rule ? rule.name : '未知规则';
   };
 
   // Lifecycle
