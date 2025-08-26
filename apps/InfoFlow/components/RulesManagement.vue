@@ -438,6 +438,11 @@ return document.title;"
   import Accordion from 'primevue/accordion';
   import AccordionTab from 'primevue/accordiontab';
   import RadioButton from 'primevue/radiobutton';
+  import Toast from 'primevue/toast';
+  import { useToast } from 'primevue/usetoast';
+
+  // Toast service
+  const toast = useToast();
 
   // State
   const rules = ref<Rule[]>([]);
@@ -624,7 +629,12 @@ return document.title;"
 
     if (collectionItemType.value === 'css') {
       if (!collectionForm.selector.trim()) {
-        alert('CSS 选择器不能为空');
+        toast.add({
+          severity: 'error',
+          summary: '验证错误',
+          detail: 'CSS 选择器不能为空',
+          life: 3000
+        });
         return;
       }
       collectionItem.selector = collectionForm.selector.trim();
@@ -633,7 +643,12 @@ return document.title;"
       }
     } else {
       if (!collectionForm.code.trim()) {
-        alert('JavaScript 代码不能为空');
+        toast.add({
+          severity: 'error',
+          summary: '验证错误',
+          detail: 'JavaScript 代码不能为空',
+          life: 3000
+        });
         return;
       }
       collectionItem.code = collectionForm.code.trim();
@@ -784,17 +799,37 @@ return document.title;"
       if (result.success) {
         const res = result.result;
         if (res.matched) {
-          alert(`规则 "${rule.name}" 执行成功！\nURL: ${res.url}\n标题: ${res.title}`);
+          toast.add({
+            severity: 'success',
+            summary: '执行成功',
+            detail: `规则 "${rule.name}" 执行成功！\nURL: ${res.url}\n标题: ${res.title}`,
+            life: 5000
+          });
         } else {
-          alert(`规则 "${rule.name}" 执行完成，但未匹配到内容。\n消息: ${res.message || '无'}`);
+          toast.add({
+            severity: 'warn',
+            summary: '执行完成',
+            detail: `规则 "${rule.name}" 执行完成，但未匹配到内容。\n消息: ${res.message || '无'}`,
+            life: 5000
+          });
         }
       } else {
-        alert(`规则 "${rule.name}" 执行失败: ${result.message}`);
+        toast.add({
+          severity: 'error',
+          summary: '执行失败',
+          detail: `规则 "${rule.name}" 执行失败: ${result.message}`,
+          life: 5000
+        });
       }
     } catch (error) {
       console.error('Failed to execute rule:', error);
       const errorMessage = error instanceof Error ? error.message : '未知错误';
-      alert(`规则 "${rule.name}" 执行失败: ${errorMessage}`);
+      toast.add({
+        severity: 'error',
+        summary: '执行失败',
+        detail: `规则 "${rule.name}" 执行失败: ${errorMessage}`,
+        life: 5000
+      });
     }
   };
 
