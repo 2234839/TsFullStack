@@ -5,6 +5,7 @@ import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult } from './m
  * 只能在后台运行
  */
 export async function runInfoFlowGet(task: runInfoFlowGet_task) {
+  console.log('[run task]',task);
   // 在后台打开新标签页
   const tab = await browser.tabs.create({
     url: task.url,
@@ -53,6 +54,6 @@ export async function runInfoFlowGet(task: runInfoFlowGet_task) {
       stats: { totalElements: 0, textNodes: 0, loadTime: 0 }
     } as TaskResult;
   } finally {
-    browser.tabs.remove(openedTabId);
+    // browser.tabs.remove(openedTabId);
   }
 }

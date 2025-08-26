@@ -6,11 +6,12 @@ import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import App from './content/contentApp.vue';
 import { ConfirmationService, ToastService } from 'primevue';
-import type { runInfoFlowGet_task, TaskResult } from '@/services/InfoFlowGet/messageProtocol';
+import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult } from '@/services/InfoFlowGet/messageProtocol';
 
 function setupMessageListener() {
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === 'runInfoFlowGet') {
+    console.log('[message]',message);
+    if (message.action === runTaskMessageId) {
       const task = message.data as runInfoFlowGet_task;
       console.log('[task]', task);
       executeWithTiming(task).then((res) => {

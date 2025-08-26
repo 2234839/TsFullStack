@@ -1,5 +1,6 @@
 import { getRulesService } from '../storage/rulesService';
 import { taskGenerator } from '../utils/ruleTaskGenerator';
+import { infoFlowGetMessenger } from '../services/InfoFlowGet/messageProtocol';
 import type { Rule } from '../storage/rulesService';
 
 export class RulesManager {
@@ -96,6 +97,40 @@ export class RulesManager {
       paused: allRules.filter(r => r.status === 'paused').length,
       totalExecutions: allRules.reduce((sum, r) => sum + r.executionCount, 0)
     };
+  }
+
+  async executeRule(ruleId: string): Promise<{
+    success: boolean;
+    message: string;
+    result?: any;
+  }> {
+    try {
+      const rule = await this.rulesService.getById(ruleId);
+      if (!rule) {
+        return { success: false, message: '规则不存在' };
+      }
+
+      const task = taskGenerator.generateTaskFromRule(rule);
+      const res = await infoFlowGetMessenger.sendMessage('runInfoFlowGet', task);
+      console.log('[executeRule res]', res);
+
+      if (!res) {
+        return { success: false, message: '执行返回结果为空' };
+      }
+
+      return {
+        success: true,
+        message: res.matched ? '执行成功' : '执行完成但未匹配到内容',
+        result: res
+      };
+    } catch (error) {
+      console.error('Failed to execute rule:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      return {
+        success: false,
+        message: `执行失败: ${errorMessage}`
+      };
+    }
   }
 }
 
