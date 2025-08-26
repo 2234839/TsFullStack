@@ -44,8 +44,8 @@ class RulesDatabase extends Dexie {
   constructor() {
     super('infoFlowRulesDB');
     
-    // 定义数据库架构 - Dexie 会自动处理版本和索引
-    this.version(1).stores({
+    // 定义数据库架构 - 添加复合索引支持高效查询和排序
+    this.version(2).stores({
       rules: `
         ++id,
         name,
@@ -58,7 +58,13 @@ class RulesDatabase extends Dexie {
         nextExecutionAt,
         executionCount,
         tags,
-        priority
+        priority,
+        [status+createdAt],
+        [status+priority],
+        [status+name],
+        [createdAt+status],
+        [priority+status],
+        [name+status]
       `
     });
   }
@@ -122,59 +128,117 @@ export class RulesService {
       sortOrder = 'desc'
     } = options;
 
-    // 获取所有规则
-    let rules = await db.rules.toArray();
+    // 使用复合索引进行高效查询
+    let baseQuery: Dexie.Collection<Rule, string>;
 
-    // 应用过滤条件
-    if (status) {
-      rules = rules.filter(item => item.status === status);
+    // 根据过滤条件选择最优的复合索引
+    if (status && sortBy === 'createdAt') {
+      // 使用 [status+createdAt] 复合索引
+      baseQuery = sortOrder === 'desc' 
+        ? db.rules.where('[status+createdAt]').between([status, new Date(0)], [status, new Date(9999, 11, 31)]).reverse()
+        : db.rules.where('[status+createdAt]').between([status, new Date(0)], [status, new Date(9999, 11, 31)]);
+    } else if (status && sortBy === 'priority') {
+      // 使用 [status+priority] 复合索引
+      baseQuery = sortOrder === 'desc' 
+        ? db.rules.where('[status+priority]').between([status, -Infinity], [status, Infinity]).reverse()
+        : db.rules.where('[status+priority]').between([status, -Infinity], [status, Infinity]);
+    } else if (status && sortBy === 'name') {
+      // 使用 [status+name] 复合索引
+      baseQuery = db.rules.where('[status+name]').between([status, ''], [status, '\uffff']);
+    } else if (status) {
+      // 使用 status 索引
+      baseQuery = db.rules.where('status').equals(status);
+    } else if (sortBy === 'createdAt') {
+      // 使用默认的 createdAt 排序
+      baseQuery = sortOrder === 'desc' 
+        ? db.rules.orderBy('createdAt').reverse()
+        : db.rules.orderBy('createdAt');
+    } else if (sortBy === 'priority') {
+      // 使用 priority 索引
+      baseQuery = sortOrder === 'desc' 
+        ? db.rules.orderBy('priority').reverse()
+        : db.rules.orderBy('priority');
+    } else if (sortBy === 'name') {
+      // 使用 name 索引
+      baseQuery = sortOrder === 'desc' 
+        ? db.rules.orderBy('name').reverse()
+        : db.rules.orderBy('name');
+    } else {
+      // 默认集合
+      baseQuery = db.rules.toCollection();
     }
+
+    // 应用额外的过滤条件
+    let finalQuery = baseQuery;
     
+    // 标签过滤（需要在内存中进行，因为标签是数组）
     if (tags && tags.length > 0) {
-      rules = rules.filter(item => {
+      finalQuery = finalQuery.filter(item => {
         if (!item.tags || item.tags.length === 0) return false;
         return tags.every(tag => item.tags!.includes(tag));
       });
     }
     
+    // 搜索过滤（需要在内存中进行，因为涉及文本搜索）
     if (search) {
       const searchLower = search.toLowerCase();
-      rules = rules.filter(item => 
+      finalQuery = finalQuery.filter(item => 
         item.name.toLowerCase().includes(searchLower) ||
         item.description.toLowerCase().includes(searchLower)
       );
     }
 
-    // 排序
-    rules.sort((a, b) => {
-      let aValue = a[sortBy];
-      let bValue = b[sortBy];
+    // 获取总数用于分页
+    const total = await finalQuery.count();
 
-      if (aValue instanceof Date) aValue = aValue.getTime();
-      if (bValue instanceof Date) bValue = bValue.getTime();
+    // 应用排序（如果还没有被复合索引覆盖）
+    let sortedQuery = finalQuery;
+    
+    if (sortBy !== 'createdAt' && sortBy !== 'priority' && sortBy !== 'name') {
+      // 对于其他排序字段，使用 offsetLimit 进行分页
+      const offset = (page - 1) * limit;
+      const rules = await finalQuery.offset(offset).limit(limit).toArray();
+      
+      // 在内存中排序（只对当前页的数据进行排序）
+      rules.sort((a, b) => {
+        let aValue = a[sortBy];
+        let bValue = b[sortBy];
 
-      if (aValue === undefined || aValue === null) aValue = 0;
-      if (bValue === undefined || bValue === null) bValue = 0;
+        // 处理日期类型
+        let comparisonValue: number;
+        if (aValue instanceof Date || bValue instanceof Date) {
+          const timeA = aValue instanceof Date ? aValue.getTime() : 0;
+          const timeB = bValue instanceof Date ? bValue.getTime() : 0;
+          comparisonValue = timeA - timeB;
+        } else {
+          // 处理数字类型
+          const numA = typeof aValue === 'number' ? aValue : 0;
+          const numB = typeof bValue === 'number' ? bValue : 0;
+          comparisonValue = numA - numB;
+        }
 
-      if (sortOrder === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
+        return sortOrder === 'asc' ? comparisonValue : -comparisonValue;
+      });
 
-    // 分页
-    const total = rules.length;
-    const totalPages = Math.ceil(total / limit);
+      return {
+        rules,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      };
+    }
+
+    // 使用 Dexie 的分页
     const offset = (page - 1) * limit;
-    const paginatedRules = rules.slice(offset, offset + limit);
+    const rules = await sortedQuery.offset(offset).limit(limit).toArray();
 
     return {
-      rules: paginatedRules,
+      rules,
       total,
       page,
       limit,
-      totalPages
+      totalPages: Math.ceil(total / limit)
     };
   }
 
@@ -185,8 +249,7 @@ export class RulesService {
 
   // 获取活动规则
   async getActiveRules(): Promise<Rule[]> {
-    const allRules = await db.rules.toArray();
-    return allRules.filter(rule => rule.status === 'active');
+    return await db.rules.where('status').equals('active').toArray();
   }
 
   // 增加执行计数

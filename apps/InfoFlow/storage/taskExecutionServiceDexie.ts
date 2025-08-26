@@ -51,8 +51,8 @@ class TaskExecutionDatabase extends Dexie {
   constructor() {
     super('infoFlowTaskExecutionsDB');
     
-    // 定义数据库架构 - Dexie 会自动处理版本和索引
-    this.version(1).stores({
+    // 定义数据库架构 - 添加复合索引支持高效查询和排序
+    this.version(2).stores({
       taskExecutions: `
         ++id,
         ruleId,
@@ -65,7 +65,16 @@ class TaskExecutionDatabase extends Dexie {
         executionType,
         isRead,
         createdAt,
-        updatedAt
+        updatedAt,
+        [ruleId+status],
+        [ruleId+executionType],
+        [ruleId+isRead],
+        [status+createdAt],
+        [executionType+createdAt],
+        [isRead+createdAt],
+        [createdAt+ruleId],
+        [createdAt+status],
+        [createdAt+executionType]
       `
     });
   }
@@ -159,94 +168,135 @@ export class TaskExecutionService {
       sortOrder = 'desc'
     } = options;
 
-    // 构建查询 - 使用 Dexie 的复合查询
-    let query: Dexie.Collection<TaskExecutionRecord, string> | undefined;
+    // 使用复合索引进行高效查询
+    let baseQuery: Dexie.Collection<TaskExecutionRecord, string>;
 
-    // 应用过滤条件 - 使用数据库索引查询
-    if (ruleId) {
-      query = db.taskExecutions.where('ruleId').equals(ruleId);
-    }
-    
-    if (status) {
-      if (query) {
-        query = query.and(item => item.status === status);
+    // 根据过滤条件选择最优的复合索引
+    if (ruleId && status) {
+      // 使用 [ruleId+status] 复合索引
+      baseQuery = db.taskExecutions.where('[ruleId+status]').equals([ruleId, status]);
+    } else if (ruleId && executionType) {
+      // 使用 [ruleId+executionType] 复合索引
+      baseQuery = db.taskExecutions.where('[ruleId+executionType]').equals([ruleId, executionType]);
+    } else if (ruleId && isRead !== undefined) {
+      // 使用 [ruleId+isRead] 复合索引
+      baseQuery = db.taskExecutions.where('[ruleId+isRead]').equals([ruleId, isRead ? 1 : 0]);
+    } else if (status && sortBy === 'createdAt') {
+      // 使用 [status+createdAt] 复合索引
+      baseQuery = db.taskExecutions.where('[status+createdAt]').between([status, startDate || new Date(0)], [status, endDate || new Date(9999, 11, 31)]);
+    } else if (executionType && sortBy === 'createdAt') {
+      // 使用 [executionType+createdAt] 复合索引
+      baseQuery = db.taskExecutions.where('[executionType+createdAt]').between([executionType, startDate || new Date(0)], [executionType, endDate || new Date(9999, 11, 31)]);
+    } else if (isRead !== undefined && sortBy === 'createdAt') {
+      // 使用 [isRead+createdAt] 复合索引
+      baseQuery = db.taskExecutions.where('[isRead+createdAt]').between([isRead ? 1 : 0, startDate || new Date(0)], [isRead ? 1 : 0, endDate || new Date(9999, 11, 31)]);
+    } else if (ruleId) {
+      // 使用 ruleId 索引
+      baseQuery = db.taskExecutions.where('ruleId').equals(ruleId);
+    } else if (status) {
+      // 使用 status 索引
+      baseQuery = db.taskExecutions.where('status').equals(status);
+    } else if (executionType) {
+      // 使用 executionType 索引
+      baseQuery = db.taskExecutions.where('executionType').equals(executionType);
+    } else if (isRead !== undefined) {
+      // 使用 isRead 索引
+      baseQuery = db.taskExecutions.where('isRead').equals(isRead ? 1 : 0);
+    } else if (startDate || endDate) {
+      // 使用 createdAt 索引进行日期范围查询
+      if (startDate && endDate) {
+        baseQuery = db.taskExecutions.where('createdAt').between(startDate, endDate);
+      } else if (startDate) {
+        baseQuery = db.taskExecutions.where('createdAt').aboveOrEqual(startDate);
       } else {
-        query = db.taskExecutions.where('status').equals(status);
+        baseQuery = db.taskExecutions.where('createdAt').belowOrEqual(endDate);
       }
-    }
-    
-    if (executionType) {
-      if (query) {
-        query = query.and(item => item.executionType === executionType);
+    } else {
+      // 使用默认的排序索引
+      if (sortBy === 'createdAt') {
+        baseQuery = sortOrder === 'desc' 
+          ? db.taskExecutions.orderBy('createdAt').reverse()
+          : db.taskExecutions.orderBy('createdAt');
       } else {
-        query = db.taskExecutions.where('executionType').equals(executionType);
-      }
-    }
-    
-    if (isRead !== undefined) {
-      if (query) {
-        query = query.and(item => item.isRead === isRead);
-      } else {
-        query = db.taskExecutions.where('isRead').equals(isRead ? 1 : 0);
-      }
-    }
-    
-    if (startDate) {
-      if (query) {
-        query = query.and(item => item.createdAt >= startDate);
-      } else {
-        query = db.taskExecutions.where('createdAt').aboveOrEqual(startDate);
-      }
-    }
-    
-    if (endDate) {
-      if (query) {
-        query = query.and(item => item.createdAt <= endDate);
-      } else {
-        query = db.taskExecutions.where('createdAt').belowOrEqual(endDate);
+        baseQuery = db.taskExecutions.toCollection();
       }
     }
 
-    // 如果没有应用任何 where 子句，使用默认集合
-    if (!query) {
-      query = db.taskExecutions.toCollection();
+    // 应用额外的过滤条件（如果复合索引没有完全覆盖）
+    let finalQuery = baseQuery;
+    
+    // 应用未被复合索引覆盖的过滤条件
+    if (ruleId && !(status || executionType || isRead !== undefined)) {
+      // 如果只有 ruleId 过滤，但还有其他条件
+      if (status) {
+        finalQuery = finalQuery.and(item => item.status === status);
+      }
+      if (executionType) {
+        finalQuery = finalQuery.and(item => item.executionType === executionType);
+      }
+      if (isRead !== undefined) {
+        finalQuery = finalQuery.and(item => item.isRead === isRead);
+      }
+    }
+    
+    // 应用日期过滤（如果还没有被复合索引覆盖）
+    if (startDate && !(status && sortBy === 'createdAt' || executionType && sortBy === 'createdAt' || isRead !== undefined && sortBy === 'createdAt')) {
+      finalQuery = finalQuery.and(item => item.createdAt >= startDate);
+    }
+    if (endDate && !(status && sortBy === 'createdAt' || executionType && sortBy === 'createdAt' || isRead !== undefined && sortBy === 'createdAt')) {
+      finalQuery = finalQuery.and(item => item.createdAt <= endDate);
     }
 
     // 获取总数用于分页
-    const total = await query.count();
+    const total = await finalQuery.count();
 
-    // 使用 Dexie 的排序
-    let executions = await query.toArray();
+    // 应用排序（如果还没有被复合索引覆盖）
+    let sortedQuery = finalQuery;
     
-    // 在内存中排序（Dexie 的 sortBy 返回 Promise，不是 Collection）
-    executions.sort((a, b) => {
-      let aValue = a[sortBy];
-      let bValue = b[sortBy];
+    if (sortBy === 'createdAt' && !(ruleId || status || executionType || isRead !== undefined || startDate || endDate)) {
+      // 已经通过 orderBy 处理了
+    } else if (sortBy !== 'createdAt' || sortOrder === 'asc') {
+      // 对于其他排序字段，使用 offsetLimit 进行分页
+      const offset = (page - 1) * limit;
+      const executions = await finalQuery.offset(offset).limit(limit).toArray();
+      
+      // 在内存中排序（只对当前页的数据进行排序）
+      executions.sort((a, b) => {
+        let aValue = a[sortBy];
+        let bValue = b[sortBy];
 
-      if (aValue instanceof Date) aValue = aValue.getTime();
-      if (bValue instanceof Date) bValue = bValue.getTime();
+        if (aValue instanceof Date) aValue = aValue.getTime();
+        if (bValue instanceof Date) bValue = bValue.getTime();
 
-      if (aValue === undefined || aValue === null) aValue = 0;
-      if (bValue === undefined || bValue === null) bValue = 0;
+        if (aValue === undefined || aValue === null) aValue = 0;
+        if (bValue === undefined || bValue === null) bValue = 0;
 
-      if (sortOrder === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
+        if (sortOrder === 'asc') {
+          return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+        } else {
+          return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+        }
+      });
 
-    // 分页
-    const totalPages = Math.ceil(total / limit);
+      return {
+        executions,
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      };
+    }
+
+    // 使用 Dexie 的分页
     const offset = (page - 1) * limit;
-    const paginatedExecutions = executions.slice(offset, offset + limit);
+    const executions = await sortedQuery.offset(offset).limit(limit).toArray();
 
     return {
-      executions: paginatedExecutions,
+      executions,
       total,
       page,
       limit,
-      totalPages
+      totalPages: Math.ceil(total / limit)
     };
   }
 
