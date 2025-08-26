@@ -22,7 +22,7 @@ export class RulesManager {
 
     // Start scheduling the rule
     await taskGenerator.scheduleRuleExecution(rule);
-    
+
     return rule;
   }
 
@@ -40,7 +40,7 @@ export class RulesManager {
 
   async updateRule(id: string, updates: Partial<Rule>): Promise<Rule | null> {
     const rule = await this.rulesService.update(id, updates);
-    
+
     if (rule) {
       // Cancel existing scheduling and reschedule if active
       await taskGenerator.cancelRuleExecution(id);
@@ -48,7 +48,7 @@ export class RulesManager {
         await taskGenerator.scheduleRuleExecution(rule);
       }
     }
-    
+
     return rule;
   }
 
@@ -90,7 +90,7 @@ export class RulesManager {
     totalExecutions: number;
   }> {
     const allRules = await this.rulesService.getAll();
-    
+
     return {
       total: allRules.length,
       active: allRules.filter(r => r.status === 'active').length,
@@ -133,6 +133,38 @@ export class RulesManager {
     return await taskExecutionManager.deleteExecution(executionId);
   }
 
+  async markExecutionAsRead(executionId: string) {
+    return await taskExecutionManager.markAsRead(executionId);
+  }
+
+  async markExecutionAsUnread(executionId: string) {
+    return await taskExecutionManager.markAsUnread(executionId);
+  }
+
+  async markAllExecutionsAsRead(ruleId?: string) {
+    return await taskExecutionManager.markAllAsRead(ruleId);
+  }
+
+  async migrateLegacyExecutions() {
+    return await taskExecutionManager.migrateLegacyRecords();
+  }
+
+  async hasUnreadExecutions(ruleId: string): Promise<boolean> {
+    try {
+      const executions = await taskExecutionManager.getRuleExecutions(ruleId, {
+        limit: 1, // 只需要检查是否存在未读记录
+        isRead: false, // 直接查询未读记录
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+      // 如果有未读记录，则返回 true
+      return executions.executions.length > 0;
+    } catch (error) {
+      console.error('Failed to check unread executions for rule:', ruleId, error);
+      return false;
+    }
+  }
+
   async cleanupOldExecutionRecords(daysToKeep: number = 30) {
     return await taskExecutionManager.cleanupOldRecords(daysToKeep);
   }
@@ -148,7 +180,7 @@ export class RulesManager {
     executionId?: string;
   }> {
     let executionId: string | undefined;
-    
+
     try {
       const rule = await this.rulesService.getById(ruleId);
       if (!rule) {
@@ -194,7 +226,7 @@ export class RulesManager {
     } catch (error) {
       console.error('Failed to execute rule:', error);
       const errorMessage = error instanceof Error ? error.message : '未知错误';
-      
+
       if (executionId) {
         await taskExecutionManager.failExecution(executionId, errorMessage);
       }

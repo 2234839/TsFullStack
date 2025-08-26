@@ -11,7 +11,8 @@ export class TaskExecutionManager {
       status: 'pending',
       matched: false,
       executionType,
-      triggerInfo
+      triggerInfo,
+      isRead: false // 新创建的记录默认为未读
     });
   }
 
@@ -75,6 +76,22 @@ export class TaskExecutionManager {
     return await this.taskExecutionService.delete(executionId);
   }
 
+  async markAsRead(executionId: string): Promise<TaskExecutionRecord | null> {
+    return await this.taskExecutionService.markAsRead(executionId);
+  }
+
+  async markAsUnread(executionId: string): Promise<TaskExecutionRecord | null> {
+    return await this.taskExecutionService.markAsUnread(executionId);
+  }
+
+  async markAllAsRead(ruleId?: string): Promise<void> {
+    return await this.taskExecutionService.markAllAsRead(ruleId);
+  }
+
+  async migrateLegacyRecords(): Promise<void> {
+    return await this.taskExecutionService.migrateLegacyRecords();
+  }
+
   async cleanupOldRecords(daysToKeep: number = 30): Promise<number> {
     return await this.taskExecutionService.cleanupOldRecords(daysToKeep);
   }
@@ -105,7 +122,7 @@ export class TaskExecutionManager {
     }
 
     // Aggregate data
-    executions.executions.forEach(execution => {
+    executions.executions.forEach((execution: TaskExecutionRecord) => {
       const dateStr = execution.createdAt.toISOString().split('T')[0];
       const dayData = timeline.get(dateStr);
       if (dayData) {

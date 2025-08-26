@@ -77,17 +77,25 @@
           :rows="pageSize"
           :totalRecords="totalRecords"
           :rowsPerPageOptions="[10, 20, 50]"
+          :lazy="true"
           @page="handlePageChange"
           responsiveLayout="scroll"
-          stripedRows
           v-model:expandedRows="expandedRows"
-          dataKey="id">
+          dataKey="id"
+          :rowStyle="getRowStyle">
           <Column :expander="true" headerStyle="width: 3rem" />
           <Column field="name" header="规则名称" class="min-w-[150px] whitespace-nowrap">
             <template #body="slotProps">
-              <div>
-                <div class="font-medium">{{ slotProps.data.name }}</div>
-                <div class="text-sm text-gray-600">{{ slotProps.data.description }}</div>
+              <div class="flex items-center gap-2">
+                <div
+                  v-if="hasUnreadExecutions(slotProps.data.id)"
+                  class="w-2 h-2 rounded-full bg-blue-500"
+                  title="有未读的执行记录">
+                </div>
+                <div>
+                  <div class="font-medium">{{ slotProps.data.name }}</div>
+                  <div class="text-sm text-gray-600">{{ slotProps.data.description }}</div>
+                </div>
               </div>
             </template>
           </Column>
@@ -518,6 +526,13 @@ return document.title;"
     return format(new Date(date), 'MM-dd HH:mm');
   };
 
+  // 检测规则是否有未读的执行记录
+  const ruleUnreadStatus = ref<Record<string, boolean>>({});
+  
+  const hasUnreadExecutions = (ruleId: string) => {
+    return ruleUnreadStatus.value[ruleId] || false;
+  };
+
   // Methods
   const loadRules = async () => {
     loading.value = true;
@@ -533,6 +548,9 @@ return document.title;"
 
       rules.value = result.rules;
       totalRecords.value = result.total;
+      
+      // 检查每个规则的未读执行记录状态
+      await checkRulesUnreadStatus();
     } finally {
       loading.value = false;
     }
@@ -546,10 +564,50 @@ return document.title;"
     }
   };
 
+  const checkRulesUnreadStatus = async () => {
+    try {
+      // 重置未读状态
+      ruleUnreadStatus.value = {};
+      
+      // 并行检查每个规则的未读状态
+      const checkPromises = rules.value.map(async (rule: Rule) => {
+        const hasUnread = await rulesManager.hasUnreadExecutions(rule.id);
+        return { ruleId: rule.id, hasUnread };
+      });
+      
+      const results = await Promise.all(checkPromises);
+      
+      // 设置未读状态
+      for (const result of results) {
+        ruleUnreadStatus.value[result.ruleId] = result.hasUnread;
+      }
+    } catch (error) {
+      console.error('Failed to check rules unread status:', error);
+    }
+  };
+
   const handlePageChange = (event: any) => {
     currentPage.value = event.page + 1;
     pageSize.value = event.rows;
     loadRules();
+  };
+
+  const getRowStyle = (rule: Rule) => {
+    const hasUnread = hasUnreadExecutions(rule.id);
+    
+    if (hasUnread) {
+      return {
+        backgroundColor: '#ffffff',
+        borderLeft: '3px solid #3b82f6',
+        fontWeight: '500',
+        cursor: 'pointer',
+      };
+    } else {
+      return {
+        backgroundColor: '#f8fafc',
+        cursor: 'pointer',
+      };
+    }
   };
 
   const handleSearch = () => {
