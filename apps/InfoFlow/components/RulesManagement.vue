@@ -305,7 +305,7 @@
                 </div>
                 <div class="flex gap-1">
                   <Button
-                    icon="pi pi-edit"
+                    icon="pi pi-file-edit"
                     size="small"
                     severity="info"
                     @click="editCollectionItem(item, index)" />

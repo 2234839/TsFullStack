@@ -54,6 +54,6 @@ export async function runInfoFlowGet(task: runInfoFlowGet_task) {
       stats: { totalElements: 0, textNodes: 0, loadTime: 0 }
     } as TaskResult;
   } finally {
-    // browser.tabs.remove(openedTabId);
+    browser.tabs.remove(openedTabId);
   }
 }
