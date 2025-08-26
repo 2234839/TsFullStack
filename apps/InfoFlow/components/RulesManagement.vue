@@ -133,7 +133,7 @@
           </template>
         </Column>
 
-        <Column field="actions" header="操作" class="w-[200px] whitespace-nowrap">
+        <Column field="actions" header="操作" class="w-[240px] whitespace-nowrap">
           <template #body="slotProps">
             <div class="flex gap-1">
               <Button
@@ -150,6 +150,12 @@
                 size="small"
                 severity="warning"
                 v-tooltip="'暂停'" />
+              <Button
+                icon="pi pi-play-circle"
+                @click="executeRuleNow(slotProps.data)"
+                size="small"
+                severity="primary"
+                v-tooltip="'立即执行'" />
               <Button
                 icon="pi pi-edit"
                 @click="editRule(slotProps.data)"
@@ -239,22 +245,140 @@
         </div>
 
         <div class="col-span-2">
-          <label class="block text-sm font-medium mb-2">任务配置 (JSON)</label>
-          <Textarea
-            v-model="taskConfigJson"
-            placeholder='{
+          <label class="block text-sm font-medium mb-2">数据收集配置</label>
+          
+          <!-- Visual Data Collection Configuration -->
+          <div class="border rounded-lg p-4 mb-4">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-lg font-medium">数据收集项</h3>
+              <Button 
+                icon="pi pi-plus" 
+                label="添加收集项" 
+                size="small" 
+                @click="showAddCollectionDialog" />
+            </div>
+            
+            <div v-if="ruleForm.taskConfig.dataCollection && ruleForm.taskConfig.dataCollection.length > 0" class="space-y-2">
+              <div 
+                v-for="(item, index) in ruleForm.taskConfig.dataCollection" 
+                :key="index"
+                class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2 py-1 text-xs rounded-md"
+                          :class="item.type === 'css' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'">
+                      {{ item.type === 'css' ? 'CSS' : 'JS' }}
+                    </span>
+                    <span class="font-medium">
+                      {{ item.type === 'css' ? item.selector : 'JavaScript 代码' }}
+                    </span>
+                    <span v-if="item.type === 'css' && item.attribute" class="text-sm text-gray-500">
+                      (属性: {{ item.attribute }})
+                    </span>
+                  </div>
+                </div>
+                <div class="flex gap-1">
+                  <Button 
+                    icon="pi pi-edit" 
+                    size="small" 
+                    severity="info"
+                    @click="editCollectionItem(item, index)" />
+                  <Button 
+                    icon="pi pi-trash" 
+                    size="small" 
+                    severity="danger"
+                    @click="removeCollectionItem(index)" />
+                </div>
+              </div>
+            </div>
+            <div v-else class="text-center text-gray-500 py-8">
+              暂无数据收集项，点击"添加收集项"开始配置
+            </div>
+          </div>
+          
+          <!-- Advanced JSON Configuration -->
+          <Accordion>
+            <AccordionTab header="高级 JSON 配置">
+              <Textarea
+                v-model="taskConfigJson"
+                placeholder='{
   "timeout": 30000,
   "dataCollection": [
     { "type": "css", "selector": ".title" }
   ]
 }'
-            rows="6" />
+                rows="6" />
+            </AccordionTab>
+          </Accordion>
         </div>
       </div>
 
       <template #footer>
         <Button label="取消" @click="showCreateDialog = false" severity="secondary" />
         <Button label="保存" @click="saveRule" :loading="saving" />
+      </template>
+    </Dialog>
+
+    <!-- Data Collection Item Dialog -->
+    <Dialog
+      v-model:visible="showDataCollectionDialog"
+      :header="editingCollectionItem !== null ? '编辑收集项' : '添加收集项'"
+      modal
+      class="max-w-[500px]">
+      <div class="flex flex-col gap-4">
+        <!-- Collection Type Selection -->
+        <div>
+          <label class="block text-sm font-medium mb-2">收集类型</label>
+          <div class="flex gap-4">
+            <div class="flex items-center gap-2">
+              <RadioButton 
+                v-model="collectionItemType" 
+                value="css" 
+                inputId="css-type" />
+              <label for="css-type">CSS 选择器</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <RadioButton 
+                v-model="collectionItemType" 
+                value="js" 
+                inputId="js-type" />
+              <label for="js-type">JavaScript 代码</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- CSS Configuration -->
+        <div v-if="collectionItemType === 'css'">
+          <label class="block text-sm font-medium mb-2">CSS 选择器 *</label>
+          <InputText
+            v-model="collectionForm.selector"
+            placeholder="例如: .title, #content, h1"
+            class="w-full" />
+          
+          <label class="block text-sm font-medium mb-2 mt-4">属性 (可选)</label>
+          <InputText
+            v-model="collectionForm.attribute"
+            placeholder="例如: href, src, text (留空获取文本内容)"
+            class="w-full" />
+          <small class="text-gray-500">留空获取元素的文本内容，指定属性名获取对应属性值</small>
+        </div>
+
+        <!-- JavaScript Configuration -->
+        <div v-if="collectionItemType === 'js'">
+          <label class="block text-sm font-medium mb-2">JavaScript 代码 *</label>
+          <Textarea
+            v-model="collectionForm.code"
+            placeholder="// 返回要收集的数据
+return document.title;"
+            rows="4"
+            class="w-full" />
+          <small class="text-gray-500">代码必须使用 return 语句返回数据</small>
+        </div>
+      </div>
+
+      <template #footer>
+        <Button label="取消" @click="showDataCollectionDialog = false" severity="secondary" />
+        <Button label="保存" @click="saveCollectionItem" />
       </template>
     </Dialog>
 
@@ -289,6 +413,9 @@
   import Chips from 'primevue/chips';
   import IconField from 'primevue/iconfield';
   import InputIcon from 'primevue/inputicon';
+  import Accordion from 'primevue/accordion';
+  import AccordionTab from 'primevue/accordiontab';
+  import RadioButton from 'primevue/radiobutton';
 
   // State
   const rules = ref<Rule[]>([]);
@@ -327,7 +454,7 @@
     taskConfig: {
       url: '',
       timeout: 30000,
-      dataCollection: [],
+      dataCollection: [] as any[],
     },
     tags: [] as string[],
     priority: 1,
@@ -335,6 +462,16 @@
 
   const taskConfigJson = ref('{}');
   const errors = ref<Record<string, string>>({});
+  
+  // Data collection configuration
+  const showDataCollectionDialog = ref(false);
+  const editingCollectionItem = ref<any>(null);
+  const collectionItemType = ref<'css' | 'js'>('css');
+  const collectionForm = reactive({
+    selector: '',
+    attribute: '',
+    code: ''
+  });
 
   // Options
   const statusOptions = [
@@ -423,6 +560,85 @@
     editingRule.value = null;
   };
 
+  const resetCollectionForm = () => {
+    Object.assign(collectionForm, {
+      selector: '',
+      attribute: '',
+      code: ''
+    });
+    collectionItemType.value = 'css';
+    editingCollectionItem.value = null;
+  };
+
+  const showAddCollectionDialog = () => {
+    resetCollectionForm();
+    showDataCollectionDialog.value = true;
+  };
+
+  const editCollectionItem = (item: any, index: number) => {
+    editingCollectionItem.value = index;
+    collectionItemType.value = item.type;
+    
+    if (item.type === 'css') {
+      collectionForm.selector = item.selector;
+      collectionForm.attribute = item.attribute || '';
+    } else {
+      collectionForm.code = item.code;
+    }
+    
+    showDataCollectionDialog.value = true;
+  };
+
+  const saveCollectionItem = () => {
+    // Ensure dataCollection array exists
+    if (!ruleForm.taskConfig.dataCollection) {
+      ruleForm.taskConfig.dataCollection = [];
+    }
+
+    const collectionItem: any = {
+      type: collectionItemType.value
+    };
+
+    if (collectionItemType.value === 'css') {
+      if (!collectionForm.selector.trim()) {
+        alert('CSS 选择器不能为空');
+        return;
+      }
+      collectionItem.selector = collectionForm.selector.trim();
+      if (collectionForm.attribute.trim()) {
+        collectionItem.attribute = collectionForm.attribute.trim();
+      }
+    } else {
+      if (!collectionForm.code.trim()) {
+        alert('JavaScript 代码不能为空');
+        return;
+      }
+      collectionItem.code = collectionForm.code.trim();
+    }
+
+    if (editingCollectionItem.value !== null) {
+      // Edit existing item
+      ruleForm.taskConfig.dataCollection[editingCollectionItem.value] = collectionItem;
+    } else {
+      // Add new item
+      ruleForm.taskConfig.dataCollection.push(collectionItem);
+    }
+
+    // Update JSON representation
+    taskConfigJson.value = JSON.stringify(ruleForm.taskConfig, null, 2);
+    
+    showDataCollectionDialog.value = false;
+    resetCollectionForm();
+  };
+
+  const removeCollectionItem = (index: number) => {
+    if (ruleForm.taskConfig.dataCollection) {
+      ruleForm.taskConfig.dataCollection.splice(index, 1);
+      // Update JSON representation
+      taskConfigJson.value = JSON.stringify(ruleForm.taskConfig, null, 2);
+    }
+  };
+
   const validateForm = () => {
     errors.value = {};
 
@@ -486,11 +702,15 @@
       description: rule.description,
       cron: rule.cron,
       status: rule.status,
-      taskConfig: rule.taskConfig,
+      taskConfig: {
+        url: rule.taskConfig.url || '',
+        timeout: rule.taskConfig.timeout || 30000,
+        dataCollection: rule.taskConfig.dataCollection || [],
+      },
       tags: rule.tags || [],
       priority: rule.priority || 1,
     });
-    taskConfigJson.value = JSON.stringify(rule.taskConfig, null, 2);
+    taskConfigJson.value = JSON.stringify(ruleForm.taskConfig, null, 2);
     showCreateDialog.value = true;
   };
 
@@ -534,6 +754,27 @@
     }
   };
 
+  const executeRuleNow = async (rule: Rule) => {
+    try {
+      const result = await rulesManager.executeRule(rule.id);
+      
+      if (result.success) {
+        const res = result.result;
+        if (res.matched) {
+          alert(`规则 "${rule.name}" 执行成功！\nURL: ${res.url}\n标题: ${res.title}`);
+        } else {
+          alert(`规则 "${rule.name}" 执行完成，但未匹配到内容。\n消息: ${res.message || '无'}`);
+        }
+      } else {
+        alert(`规则 "${rule.name}" 执行失败: ${result.message}`);
+      }
+    } catch (error) {
+      console.error('Failed to execute rule:', error);
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      alert(`规则 "${rule.name}" 执行失败: ${errorMessage}`);
+    }
+  };
+
   // Lifecycle
   onMounted(() => {
     loadRules();
@@ -544,6 +785,13 @@
   watch(showCreateDialog, (newValue) => {
     if (!newValue) {
       resetForm();
+    }
+  });
+
+  // Watch for data collection dialog close
+  watch(showDataCollectionDialog, (newValue) => {
+    if (!newValue) {
+      resetCollectionForm();
     }
   });
 
