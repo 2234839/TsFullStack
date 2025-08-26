@@ -51,8 +51,19 @@ jobs:
     - name: Package extensions
       run: |
         cd apps/InfoFlow
-        pnpm zip
-        pnpm zip:firefox
+        # Build extensions
+        pnpm build
+        pnpm build:firefox
+        
+        # Create ZIP files manually
+        cd .output/chrome-mv3
+        zip -r ../../chrome.zip .
+        
+        cd ../firefox-mv3
+        zip -r ../../firefox.zip .
+        
+        cd ..
+        ls -la chrome.zip firefox.zip
 
     - name: Get version
       id: get_version
@@ -125,8 +136,19 @@ jobs:
     - name: Package extensions
       run: |
         cd apps/InfoFlow
-        pnpm zip
-        pnpm zip:firefox
+        # Build extensions
+        pnpm build
+        pnpm build:firefox
+        
+        # Create ZIP files manually
+        cd .output/chrome-mv3
+        zip -r ../../chrome.zip .
+        
+        cd ../firefox-mv3
+        zip -r ../../firefox.zip .
+        
+        cd ..
+        ls -la chrome.zip firefox.zip
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
