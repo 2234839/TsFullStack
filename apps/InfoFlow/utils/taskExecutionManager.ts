@@ -1,8 +1,8 @@
-import { getTaskExecutionService } from '../storage/taskExecutionService';
+import { taskExecutionService } from '../storage/taskExecutionService';
 import type { TaskExecutionRecord, TaskExecutionQueryOptions } from '../storage/taskExecutionService';
 
 export class TaskExecutionManager {
-  private taskExecutionService = getTaskExecutionService();
+  private taskExecutionService = taskExecutionService;
 
   async createExecutionRecord(ruleId: string, ruleName: string, executionType: TaskExecutionRecord['executionType'] = 'manual', triggerInfo?: string): Promise<TaskExecutionRecord> {
     return await this.taskExecutionService.create({
@@ -89,7 +89,8 @@ export class TaskExecutionManager {
   }
 
   async migrateLegacyRecords(): Promise<void> {
-    return await this.taskExecutionService.migrateLegacyRecords();
+    // Dexie 自动处理，不需要迁移
+    return;
   }
 
   async cleanupOldRecords(daysToKeep: number = 30): Promise<number> {
