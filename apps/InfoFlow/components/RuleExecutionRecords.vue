@@ -435,7 +435,9 @@
 
 <script setup lang="ts">
   import { ref, reactive, computed, onMounted, watch } from 'vue';
-  import { rulesManager } from '@/utils/rulesManager';
+  import { getTaskExecutionService } from '@/storage/taskExecutionService';
+
+const taskExecutionService = getTaskExecutionService();
   import { format } from 'date-fns';
   import type { TaskExecutionRecord } from '@/storage/taskExecutionService';
 
@@ -513,7 +515,7 @@
   const loadExecutionRecords = async () => {
     loading.value = true;
     try {
-      const result = await rulesManager.getRuleExecutions(props.ruleId, {
+      const result = await taskExecutionService.getByRuleId(props.ruleId, {
         page: currentPage.value,
         limit: pageSize.value,
         status: statusFilter.value || undefined,
@@ -566,7 +568,7 @@
     const isRead = execution.isRead ?? false;
     if (!isRead) {
       try {
-        await rulesManager.markExecutionAsRead(execution.id);
+        await taskExecutionService.markAsRead(execution.id);
         loadExecutionRecords();
         
         // 通知父组件读取状态已变更
@@ -589,7 +591,7 @@
 
     deleting.value = true;
     try {
-      await rulesManager.deleteExecution(selectedExecution.value.id);
+      await taskExecutionService.delete(selectedExecution.value.id);
       showDeleteDialog.value = false;
       selectedExecution.value = null;
       loadExecutionRecords();
@@ -610,7 +612,7 @@
 
     cancelling.value = true;
     try {
-      await rulesManager.cancelExecution(selectedExecution.value.id);
+      await taskExecutionService.cancelExecution(selectedExecution.value.id);
       showCancelDialog.value = false;
       selectedExecution.value = null;
       loadExecutionRecords();
@@ -626,9 +628,9 @@
       const currentIsRead = execution.isRead ?? false; // 如果 undefined，默认为 false
 
       if (currentIsRead) {
-        await rulesManager.markExecutionAsUnread(execution.id);
+        await taskExecutionService.markAsUnread(execution.id);
       } else {
-        await rulesManager.markExecutionAsRead(execution.id);
+        await taskExecutionService.markAsRead(execution.id);
       }
 
       // 立即更新本地状态以提供即时反馈
@@ -650,7 +652,7 @@
 
   const markAllAsRead = async () => {
     try {
-      await rulesManager.markAllExecutionsAsRead(props.ruleId);
+      await taskExecutionService.markAllAsRead(props.ruleId);
       loadExecutionRecords();
       
       // 通知父组件所有记录已标记为已读
@@ -717,13 +719,7 @@
 
   // Lifecycle
   onMounted(async () => {
-    // 首先执行迁移，确保所有记录都有 isRead 字段
-    try {
-      await rulesManager.migrateLegacyExecutions();
-    } catch (error) {
-      console.error('Failed to migrate legacy records:', error);
-    }
-
+    // Dexie 自动处理，不需要迁移
     loadExecutionRecords();
   });
 

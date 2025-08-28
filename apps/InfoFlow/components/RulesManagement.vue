@@ -157,14 +157,14 @@
                 <Button
                   v-if="slotProps.data.status === 'inactive'"
                   icon="pi pi-play"
-                  @click="activateRule(slotProps.data)"
+                  @click="rulesService.activateRule(slotProps.data)"
                   size="small"
                   severity="success"
                   v-tooltip="'激活'" />
                 <Button
                   v-if="slotProps.data.status === 'active'"
                   icon="pi pi-pause"
-                  @click="pauseRule(slotProps.data)"
+                  @click="rulesService.pauseRule(slotProps.data)"
                   size="small"
                   severity="warning"
                   v-tooltip="'暂停'" />
@@ -191,8 +191,8 @@
           </Column>
 
           <template #expansion="slotProps">
-            <RuleExecutionRecords 
-              :ruleId="slotProps.data.id" 
+            <RuleExecutionRecords
+              :ruleId="slotProps.data.id"
               @read-status-changed="handleReadStatusChanged"
               @all-marked-as-read="handleAllMarkedAsRead" />
           </template>
@@ -427,7 +427,29 @@ return document.title;"
 
 <script setup lang="ts">
   import { ref, reactive, onMounted, watch } from 'vue';
-  import { rulesManager } from '@/utils/rulesManager';
+  import { getRulesService } from '@/storage/rulesService';
+import { getTaskExecutionService } from '@/storage/taskExecutionService';
+
+const taskExecutionService = getTaskExecutionService();
+const rulesService = getRulesService();
+
+// Helper functions
+const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
+  try {
+    const executions = await taskExecutionService.getByRuleId(ruleId, {
+      limit: 1, // 只需要检查是否存在未读记录
+      isRead: false, // 直接查询未读记录
+      sortBy: 'createdAt',
+      sortOrder: 'desc'
+    });
+    // 如果有未读记录，则返回 true
+    return executions.executions.length > 0;
+  } catch (error) {
+    console.error('Failed to check unread executions for rule:', ruleId, error);
+    return false;
+  }
+};
+
   import { format } from 'date-fns';
   import type { Rule } from '@/storage/rulesService';
   import RuleExecutionRecords from './RuleExecutionRecords.vue';
@@ -533,7 +555,7 @@ return document.title;"
   const handleReadStatusChanged = async (ruleId: string) => {
     // 重新检查该规则的未读状态
     try {
-      const hasUnread = await rulesManager.hasUnreadExecutions(ruleId);
+      const hasUnread = await hasUnreadExecutionsAsync(ruleId);
       ruleUnreadStatus.value[ruleId] = hasUnread;
     } catch (error) {
       console.error('Failed to check rule unread status:', error);
@@ -548,7 +570,7 @@ return document.title;"
 
   // 检测规则是否有未读的执行记录
   const ruleUnreadStatus = ref<Record<string, boolean>>({});
-  
+
   const hasUnreadExecutions = (ruleId: string) => {
     return ruleUnreadStatus.value[ruleId] || false;
   };
@@ -557,7 +579,7 @@ return document.title;"
   const loadRules = async () => {
     loading.value = true;
     try {
-      const result = await rulesManager.getRules({
+      const result = await rulesService.query({
         page: currentPage.value,
         limit: pageSize.value,
         status: statusFilter.value || undefined,
@@ -568,7 +590,7 @@ return document.title;"
 
       rules.value = result.rules;
       totalRecords.value = result.total;
-      
+
       // 检查每个规则的未读执行记录状态
       await checkRulesUnreadStatus();
     } finally {
@@ -578,7 +600,7 @@ return document.title;"
 
   const loadStats = async () => {
     try {
-      stats.value = await rulesManager.getRuleStats();
+      stats.value = await rulesService.getRuleStats();
     } catch (error) {
       console.error('Failed to load stats:', error);
     }
@@ -588,15 +610,14 @@ return document.title;"
     try {
       // 重置未读状态
       ruleUnreadStatus.value = {};
-      
+
       // 并行检查每个规则的未读状态
       const checkPromises = rules.value.map(async (rule: Rule) => {
-        const hasUnread = await rulesManager.hasUnreadExecutions(rule.id);
+        const hasUnread = await hasUnreadExecutionsAsync(rule.id);
         return { ruleId: rule.id, hasUnread };
       });
-      
+
       const results = await Promise.all(checkPromises);
-      
       // 设置未读状态
       for (const result of results) {
         ruleUnreadStatus.value[result.ruleId] = result.hasUnread;
@@ -614,7 +635,7 @@ return document.title;"
 
   const getRowStyle = (rule: Rule) => {
     const hasUnread = hasUnreadExecutions(rule.id);
-    
+
     if (hasUnread) {
       return {
         backgroundColor: '#ffffff',
@@ -797,9 +818,9 @@ return document.title;"
       const ruleData = { ...ruleForm };
 
       if (editingRule.value) {
-        await rulesManager.updateRule(editingRule.value.id, ruleData);
+        await rulesService.updateRule(editingRule.value.id, ruleData);
       } else {
-        await rulesManager.createRule(ruleData);
+        await rulesService.createRule(ruleData);
       }
 
       showCreateDialog.value = false;
@@ -840,7 +861,7 @@ return document.title;"
 
     deleting.value = true;
     try {
-      await rulesManager.deleteRule(selectedRule.value.id);
+      await rulesService.deleteRule(selectedRule.value.id);
       showDeleteDialog.value = false;
       selectedRule.value = null;
       loadRules();
@@ -852,7 +873,7 @@ return document.title;"
 
   const activateRule = async (rule: Rule) => {
     try {
-      await rulesManager.activateRule(rule.id);
+      await rulesService.activateRule(rule.id);
       loadRules();
       loadStats();
     } catch (error) {
@@ -862,7 +883,7 @@ return document.title;"
 
   const pauseRule = async (rule: Rule) => {
     try {
-      await rulesManager.pauseRule(rule.id);
+      await rulesService.pauseRule(rule.id);
       loadRules();
       loadStats();
     } catch (error) {
@@ -872,7 +893,7 @@ return document.title;"
 
   const executeRuleNow = async (rule: Rule) => {
     try {
-      const result = await rulesManager.executeRule(rule.id);
+      const result = await rulesService.executeRule(rule.id);
 
       if (result.success) {
         const res = result.result;
@@ -891,7 +912,7 @@ return document.title;"
             life: 5000
           });
         }
-        
+
         // 延迟刷新页面以等待新任务记录创建完成
         setTimeout(() => {
           loadRules();
