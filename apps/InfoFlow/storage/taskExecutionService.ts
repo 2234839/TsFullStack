@@ -1,4 +1,5 @@
 import Dexie, { Table } from 'dexie';
+import { defineProxyService } from '@webext-core/proxy-service';
 
 // 定义任务执行记录的类型
 export interface TaskExecutionRecord {
@@ -449,13 +450,153 @@ export class TaskExecutionService {
     await db.delete();
     await db.open();
   }
+
+  // 创建执行记录 (TaskExecutionManager 的功能)
+  async createExecutionRecord(ruleId: string, ruleName: string, executionType: TaskExecutionRecord['executionType'] = 'manual', triggerInfo?: string): Promise<TaskExecutionRecord> {
+    return await this.create({
+      ruleId,
+      ruleName,
+      status: 'pending',
+      matched: false,
+      executionType,
+      triggerInfo,
+      isRead: false // 新创建的记录默认为未读
+    });
+  }
 }
 
 // 创建服务实例
-export const taskExecutionService = new TaskExecutionService();
+const taskExecutionServiceInstance = new TaskExecutionService();
 
-// 为了兼容性，提供 register 函数
-export const registerTaskExecutionService = () => {
-  // 服务已经通过 export 直接可用，这里只是为了保持 API 兼容性
-  return taskExecutionService;
-};
+// 使用 defineProxyService 模式
+function createTaskExecutionService() {
+  return {
+    // 基础 CRUD 操作
+    async create(record: Omit<TaskExecutionRecord, 'id' | 'createdAt' | 'updatedAt'>): Promise<TaskExecutionRecord> {
+      return await taskExecutionServiceInstance.create(record);
+    },
+
+    async update(id: string, updates: Partial<TaskExecutionRecord>): Promise<TaskExecutionRecord | null> {
+      return await taskExecutionServiceInstance.update(id, updates);
+    },
+
+    async markAsRead(id: string): Promise<TaskExecutionRecord | null> {
+      return await taskExecutionServiceInstance.markAsRead(id);
+    },
+
+    async markAsUnread(id: string): Promise<TaskExecutionRecord | null> {
+      return await taskExecutionServiceInstance.markAsUnread(id);
+    },
+
+    async markAllAsRead(ruleId?: string): Promise<void> {
+      return await taskExecutionServiceInstance.markAllAsRead(ruleId);
+    },
+
+    async delete(id: string): Promise<boolean> {
+      return await taskExecutionServiceInstance.delete(id);
+    },
+
+    async getById(id: string): Promise<TaskExecutionRecord | null> {
+      return await taskExecutionServiceInstance.getById(id);
+    },
+
+    async query(options: TaskExecutionQueryOptions = {}): Promise<PaginatedTaskExecutions> {
+      return await taskExecutionServiceInstance.query(options);
+    },
+
+    async getByRuleId(ruleId: string, options?: Omit<TaskExecutionQueryOptions, 'ruleId'>): Promise<PaginatedTaskExecutions> {
+      return await taskExecutionServiceInstance.getByRuleId(ruleId, options);
+    },
+
+    async getRecentExecutions(ruleId?: string, limit: number = 10): Promise<TaskExecutionRecord[]> {
+      return await taskExecutionServiceInstance.getRecentExecutions(ruleId, limit);
+    },
+
+    async getExecutionStats(ruleId?: string): Promise<{
+      total: number;
+      completed: number;
+      failed: number;
+      running: number;
+      pending: number;
+      averageDuration?: number;
+      successRate: number;
+    }> {
+      return await taskExecutionServiceInstance.getExecutionStats(ruleId);
+    },
+
+    async startExecution(id: string): Promise<void> {
+      return await taskExecutionServiceInstance.startExecution(id);
+    },
+
+    async completeExecution(id: string, result: any, matched: boolean, matchedCount?: number): Promise<void> {
+      return await taskExecutionServiceInstance.completeExecution(id, result, matched, matchedCount);
+    },
+
+    async failExecution(id: string, error: string): Promise<void> {
+      return await taskExecutionServiceInstance.failExecution(id, error);
+    },
+
+    async cancelExecution(id: string): Promise<void> {
+      return await taskExecutionServiceInstance.cancelExecution(id);
+    },
+
+    async cleanupOldRecords(daysToKeep: number = 30): Promise<number> {
+      return await taskExecutionServiceInstance.cleanupOldRecords(daysToKeep);
+    },
+
+    // TaskExecutionManager 的额外功能
+    async createExecutionRecord(ruleId: string, ruleName: string, executionType: TaskExecutionRecord['executionType'] = 'manual', triggerInfo?: string): Promise<TaskExecutionRecord> {
+      return await taskExecutionServiceInstance.createExecutionRecord(ruleId, ruleName, executionType, triggerInfo);
+    },
+
+    async getExecutionTimeline(ruleId: string, days: number = 7): Promise<{
+      date: string;
+      executions: number;
+      completed: number;
+      failed: number;
+    }[]> {
+      const endDate = new Date();
+      const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
+
+      const executions = await taskExecutionServiceInstance.query({
+        ruleId,
+        startDate,
+        endDate,
+        limit: 10000
+      });
+
+      const timeline = new Map<string, { executions: number; completed: number; failed: number }>();
+
+      // Initialize timeline
+      for (let i = 0; i < days; i++) {
+        const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
+        const dateStr = date.toISOString().split('T')[0];
+        timeline.set(dateStr, { executions: 0, completed: 0, failed: 0 });
+      }
+
+      // Aggregate data
+      executions.executions.forEach((execution: TaskExecutionRecord) => {
+        const dateStr = execution.createdAt.toISOString().split('T')[0];
+        const dayData = timeline.get(dateStr);
+        if (dayData) {
+          dayData.executions++;
+          if (execution.status === 'completed') {
+            dayData.completed++;
+          } else if (execution.status === 'failed') {
+            dayData.failed++;
+          }
+        }
+      });
+
+      return Array.from(timeline.entries()).map(([date, data]) => ({
+        date,
+        ...data
+      }));
+    }
+  };
+}
+
+export const [registerTaskExecutionService, getTaskExecutionService] = defineProxyService(
+  'task-execution-service',
+  createTaskExecutionService,
+);
