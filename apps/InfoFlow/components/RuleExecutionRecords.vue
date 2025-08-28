@@ -435,11 +435,11 @@
 
 <script setup lang="ts">
   import { ref, reactive, computed, onMounted, watch } from 'vue';
-  import { getTaskExecutionService } from '@/storage/taskExecutionService';
+  import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
 
 const taskExecutionService = getTaskExecutionService();
   import { format } from 'date-fns';
-  import type { TaskExecutionRecord } from '@/storage/taskExecutionService';
+  import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
 
   // PrimeVue components
   import Button from 'primevue/button';

@@ -1,8 +1,72 @@
 import type { runInfoFlowGet_task } from '@/services/InfoFlowGet/messageProtocol';
-import { getRulesService } from '../storage/rulesService';
-import { infoFlowGetMessenger } from '../services/InfoFlowGet/messageProtocol';
-import { getTaskExecutionService } from '../storage/taskExecutionService';
-import type { Rule } from '../storage/rulesService';
+import { getRulesService } from '../entrypoints/background/service/rulesService';
+import { getTaskExecutionService } from '../entrypoints/background/service/taskExecutionService';
+import type { Rule } from '../entrypoints/background/service/rulesService';
+import { runInfoFlowGet } from '@/services/InfoFlowGet/runInfoFlowGet';
+
+// 公共的规则执行逻辑
+export async function executeRuleLogic(
+  rule: Rule,
+  executionType: 'manual' | 'scheduled' | 'triggered' = 'manual',
+  triggerInfo?: string,
+): Promise<{
+  success: boolean;
+  message: string;
+  result?: any;
+  executionId?: string;
+}> {
+  let executionId: string | undefined;
+
+  try {
+    // Create execution record
+    const executionRecord = await getTaskExecutionService().createExecutionRecord(
+      rule.id,
+      rule.name,
+      executionType,
+      triggerInfo,
+    );
+    executionId = executionRecord.id;
+
+    // Start execution
+    await getTaskExecutionService().startExecution(executionId);
+
+    const task = taskGenerator.generateTaskFromRule(rule);
+    console.log('[task]', task);
+    const res = await runInfoFlowGet(task);
+    console.log('[executeRule res]', res);
+
+    if (!res) {
+      await getTaskExecutionService().failExecution(executionId, '执行返回结果为空');
+      return { success: false, message: '执行返回结果为空', executionId };
+    }
+
+    // Complete execution with result
+    await getTaskExecutionService().completeExecution(executionId, res, res.matched);
+
+    // Update rule execution count
+    await getRulesService().incrementExecutionCount(rule.id);
+
+    return {
+      success: true,
+      message: res.matched ? '执行成功' : '执行完成但未匹配到内容',
+      result: res,
+      executionId,
+    };
+  } catch (error) {
+    console.error('Failed to execute rule:', error);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
+
+    if (executionId) {
+      await getTaskExecutionService().failExecution(executionId, errorMessage);
+    }
+
+    return {
+      success: false,
+      message: `执行失败: ${errorMessage}`,
+      executionId,
+    };
+  }
+}
 
 export interface TaskGenerator {
   generateTaskFromRule(rule: Rule): runInfoFlowGet_task;
@@ -52,43 +116,14 @@ export class RuleTaskGenerator implements TaskGenerator {
   }
 
   private async executeRule(rule: Rule): Promise<void> {
-    let executionId: string | undefined;
+    const result = await executeRuleLogic(
+      rule,
+      'scheduled',
+      `Scheduled execution at ${new Date().toISOString()}`,
+    );
 
-    try {
-      // Create execution record for scheduled execution
-      const executionRecord = await getTaskExecutionService().createExecutionRecord(
-        rule.id,
-        rule.name,
-        'scheduled',
-        `Scheduled execution at ${new Date().toISOString()}`,
-      );
-      executionId = executionRecord.id;
-
-      // Start execution
-      await getTaskExecutionService().startExecution(executionId!);
-
-      const task = this.generateTaskFromRule(rule);
-      const res = await infoFlowGetMessenger.sendMessage('runInfoFlowGet', task);
-      console.log('[Scheduled executeRule res]', res);
-
-      if (!res) {
-        await getTaskExecutionService().failExecution(executionId!, '执行返回结果为空');
-        return;
-      }
-
-      // Complete execution with result
-      await getTaskExecutionService().completeExecution(executionId!, res, res.matched);
-
-      // Update rule execution count
-      getRulesService();
-      await getRulesService().incrementExecutionCount(rule.id);
-    } catch (error) {
-      console.error('Failed to execute scheduled rule:', error);
-      const errorMessage = error instanceof Error ? error.message : '未知错误';
-
-      if (executionId) {
-        await getTaskExecutionService().failExecution(executionId!, errorMessage);
-      }
+    if (!result.success) {
+      console.error('Failed to execute scheduled rule:', result.message);
     }
   }
 

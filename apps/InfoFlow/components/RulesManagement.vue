@@ -90,8 +90,7 @@
                 <div
                   v-if="hasUnreadExecutions(slotProps.data.id)"
                   class="w-2 h-2 rounded-full bg-blue-500"
-                  title="有未读的执行记录">
-                </div>
+                  title="有未读的执行记录"></div>
                 <div>
                   <div class="font-medium">{{ slotProps.data.name }}</div>
                   <div class="text-sm text-gray-600">{{ slotProps.data.description }}</div>
@@ -267,7 +266,7 @@
 
         <div class="col-span-2">
           <label class="block text-sm font-medium mb-2">标签</label>
-          <Chips v-model="ruleForm.tags" placeholder="添加标签..." separator="," />
+          <InputChips v-model="ruleForm.tags" placeholder="添加标签..." separator="," typeahead />
         </div>
 
         <div class="col-span-2">
@@ -334,18 +333,21 @@
           </div>
 
           <!-- Advanced JSON Configuration -->
-          <Accordion>
-            <AccordionTab header="高级 JSON 配置">
-              <Textarea
-                v-model="taskConfigJson"
-                placeholder='{
+          <Accordion :value="['0']">
+            <AccordionPanel value="0">
+              <AccordionHeader>高级 JSON 配置</AccordionHeader>
+              <AccordionContent>
+                <Textarea
+                  v-model="taskConfigJson"
+                  placeholder='{
   "timeout": 30000,
   "dataCollection": [
     { "type": "css", "selector": ".title" }
   ]
 }'
-                rows="6" />
-            </AccordionTab>
+                  rows="6" />
+              </AccordionContent>
+            </AccordionPanel>
           </Accordion>
         </div>
       </div>
@@ -426,52 +428,52 @@ return document.title;"
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, onMounted, watch } from 'vue';
-  import { getRulesService } from '@/storage/rulesService';
-import { getTaskExecutionService } from '@/storage/taskExecutionService';
+  import { getRulesService } from '@/entrypoints/background/service/rulesService';
+  import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
+  import { onMounted, reactive, ref, watch } from 'vue';
 
-const taskExecutionService = getTaskExecutionService();
-const rulesService = getRulesService();
+  const taskExecutionService = getTaskExecutionService();
+  const rulesService = getRulesService();
 
-// Helper functions
-const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
-  try {
-    const executions = await taskExecutionService.getByRuleId(ruleId, {
-      limit: 1, // 只需要检查是否存在未读记录
-      isRead: false, // 直接查询未读记录
-      sortBy: 'createdAt',
-      sortOrder: 'desc'
-    });
-    // 如果有未读记录，则返回 true
-    return executions.executions.length > 0;
-  } catch (error) {
-    console.error('Failed to check unread executions for rule:', ruleId, error);
-    return false;
-  }
-};
+  // Helper functions
+  const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
+    try {
+      const executions = await taskExecutionService.getByRuleId(ruleId, {
+        limit: 1, // 只需要检查是否存在未读记录
+        isRead: false, // 直接查询未读记录
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      });
+      // 如果有未读记录，则返回 true
+      return executions.executions.length > 0;
+    } catch (error) {
+      console.error('Failed to check unread executions for rule:', ruleId, error);
+      return false;
+    }
+  };
 
+  import type { Rule } from '@/entrypoints/background/service/rulesService';
   import { format } from 'date-fns';
-  import type { Rule } from '@/storage/rulesService';
   import RuleExecutionRecords from './RuleExecutionRecords.vue';
 
   // PrimeVue components
+  import Accordion from 'primevue/accordion';
+  import AccordionPanel from 'primevue/accordionpanel';
+  import AccordionHeader from 'primevue/accordionheader';
+  import AccordionContent from 'primevue/accordioncontent';
   import Button from 'primevue/button';
-  import DataTable from 'primevue/datatable';
-  import Column from 'primevue/column';
-  import Dialog from 'primevue/dialog';
-  import InputText from 'primevue/inputtext';
-  import Textarea from 'primevue/textarea';
-  import InputNumber from 'primevue/inputnumber';
-  import Select from 'primevue/select';
   import Chip from 'primevue/chip';
-  import Chips from 'primevue/chips';
-  import Badge from 'primevue/badge';
+  import InputChips from 'primevue/inputchips';
+  import Column from 'primevue/column';
+  import DataTable from 'primevue/datatable';
+  import Dialog from 'primevue/dialog';
   import IconField from 'primevue/iconfield';
   import InputIcon from 'primevue/inputicon';
-  import Accordion from 'primevue/accordion';
-  import AccordionTab from 'primevue/accordiontab';
+  import InputNumber from 'primevue/inputnumber';
+  import InputText from 'primevue/inputtext';
   import RadioButton from 'primevue/radiobutton';
-  import Toast from 'primevue/toast';
+  import Select from 'primevue/select';
+  import Textarea from 'primevue/textarea';
   import { useToast } from 'primevue/usetoast';
 
   // Toast service
@@ -732,7 +734,7 @@ const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
           severity: 'error',
           summary: '验证错误',
           detail: 'CSS 选择器不能为空',
-          life: 3000
+          life: 3000,
         });
         return;
       }
@@ -746,7 +748,7 @@ const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
           severity: 'error',
           summary: '验证错误',
           detail: 'JavaScript 代码不能为空',
-          life: 3000
+          life: 3000,
         });
         return;
       }
@@ -804,19 +806,9 @@ const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
     saving.value = true;
     try {
       // Parse task config JSON
-      try {
-        const parsedConfig = JSON.parse(taskConfigJson.value);
-        ruleForm.taskConfig = {
-          ...ruleForm.taskConfig,
-          ...parsedConfig,
-        };
-      } catch (error) {
-        errors.value['taskConfig'] = '任务配置 JSON 格式错误';
-        return;
-      }
-
       const ruleData = { ...ruleForm };
 
+      console.log('[ruleData]', ruleData);
       if (editingRule.value) {
         await rulesService.updateRule(editingRule.value.id, ruleData);
       } else {
@@ -894,7 +886,6 @@ const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
   const executeRuleNow = async (rule: Rule) => {
     try {
       const result = await rulesService.executeRule(rule.id);
-
       if (result.success) {
         const res = result.result;
         if (res.matched) {
@@ -902,14 +893,14 @@ const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
             severity: 'success',
             summary: '执行成功',
             detail: `规则 "${rule.name}" 执行成功！\nURL: ${res.url}\n标题: ${res.title}`,
-            life: 5000
+            life: 5000,
           });
         } else {
           toast.add({
             severity: 'warn',
             summary: '执行完成',
             detail: `规则 "${rule.name}" 执行完成，但未匹配到内容。\n消息: ${res.message || '无'}`,
-            life: 5000
+            life: 5000,
           });
         }
 
@@ -923,7 +914,7 @@ const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
           severity: 'error',
           summary: '执行失败',
           detail: `规则 "${rule.name}" 执行失败: ${result.message}`,
-          life: 5000
+          life: 5000,
         });
       }
     } catch (error) {
@@ -933,7 +924,7 @@ const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
         severity: 'error',
         summary: '执行失败',
         detail: `规则 "${rule.name}" 执行失败: ${errorMessage}`,
-        life: 5000
+        life: 5000,
       });
     }
   };
