@@ -41,14 +41,14 @@ export async function executeRuleLogic(
     }
 
     // Complete execution with result
-    await getTaskExecutionService().completeExecution(executionId, res, res.matched);
+    await getTaskExecutionService().completeExecution(executionId, res, res.matched ? 1 : 0);
 
     // Update rule execution count
     await getRulesService().incrementExecutionCount(rule.id);
 
     return {
       success: true,
-      message: res.matched ? '执行成功' : '执行完成但未匹配到内容',
+      message: res.matched === 1 ? '执行成功' : '执行完成但未匹配到内容',
       result: res,
       executionId,
     };
