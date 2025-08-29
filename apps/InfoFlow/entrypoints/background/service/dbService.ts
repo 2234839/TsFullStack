@@ -99,6 +99,12 @@ export interface PaginatedTaskExecutions {
 // - undefined
 // - 函数
 // - Symbol
+
+// 查询性能优化策略：
+// 1. 优先使用复合索引
+// 2. 避免全量扫描，设置合理的默认时间范围
+// 3. 使用批量操作替代逐条操作
+// 4. 合理使用 and() 过滤器，避免索引失效
 class InfoFlowDatabase extends Dexie {
   configs!: Table<ConfigTable, string>;
   rules!: Table<RulesTable, string>;
@@ -300,7 +306,11 @@ const rulesService = {
       baseQuery =
         sortOrder === 'desc' ? db.rules.orderBy('name').reverse() : db.rules.orderBy('name');
     } else {
-      baseQuery = db.rules.toCollection();
+      // 避免全量查询，默认使用 createdAt 索引
+      baseQuery = db.rules.orderBy('createdAt');
+      if (sortOrder === 'desc') {
+        baseQuery = baseQuery.reverse();
+      }
     }
 
     // 应用额外的过滤条件
@@ -421,15 +431,20 @@ const taskExecutionsService = {
   },
 
   async markAllAsRead(ruleId?: string): Promise<void> {
-    let query = db.taskExecutions.where('isRead').equals(0);
+    let query: Dexie.Collection<TaskExecutionsTable, string>;
 
     if (ruleId) {
-      query = query.and((item) => item.ruleId === ruleId);
+      // 使用复合索引 [ruleId+isRead] 提高性能
+      query = db.taskExecutions.where('[ruleId+isRead]').equals([ruleId, 0]);
+    } else {
+      query = db.taskExecutions.where('isRead').equals(0);
     }
 
-    await query.each(async (item) => {
-      await this.update(item.id, { isRead: 1 });
-    });
+    // 批量更新，避免逐条操作
+    const unreadIds = await query.primaryKeys();
+    if (unreadIds.length > 0) {
+      await db.taskExecutions.where(':id').anyOf(unreadIds).modify({ isRead: 1 });
+    }
   },
 
   async delete(id: string): Promise<boolean> {
@@ -500,14 +515,17 @@ const taskExecutionsService = {
       } else {
         baseQuery = db.taskExecutions.where('createdAt').belowOrEqual(endDate);
       }
+    } else if (sortBy === 'createdAt') {
+      baseQuery =
+        sortOrder === 'desc'
+          ? db.taskExecutions.orderBy('createdAt').reverse()
+          : db.taskExecutions.orderBy('createdAt');
     } else {
-      if (sortBy === 'createdAt') {
-        baseQuery =
-          sortOrder === 'desc'
-            ? db.taskExecutions.orderBy('createdAt').reverse()
-            : db.taskExecutions.orderBy('createdAt');
-      } else {
-        baseQuery = db.taskExecutions.toCollection();
+      // 避免全量查询，如果没有有效条件，使用 createdAt 索引并限制时间范围
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      baseQuery = db.taskExecutions.where('createdAt').aboveOrEqual(ninetyDaysAgo);
+      if (sortOrder === 'desc') {
+        baseQuery = baseQuery.reverse();
       }
     }
 
@@ -611,10 +629,14 @@ const taskExecutionsService = {
   }> {
     const cutoffDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
 
-    let baseQuery = db.taskExecutions.where('createdAt').aboveOrEqual(cutoffDate);
+    let baseQuery: Dexie.Collection<TaskExecutionsTable, string>;
 
     if (ruleId) {
-      baseQuery = baseQuery.and((item) => item.ruleId === ruleId);
+      // 使用复合索引 [ruleId+createdAt] 提高性能
+      baseQuery = db.taskExecutions.where('[ruleId+createdAt]')
+        .between([ruleId, cutoffDate], [ruleId, new Date(9999, 11, 31)]);
+    } else {
+      baseQuery = db.taskExecutions.where('createdAt').aboveOrEqual(cutoffDate);
     }
 
     const totalQuery = baseQuery.clone();
