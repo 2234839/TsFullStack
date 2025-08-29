@@ -21,8 +21,7 @@
   "dependencies": {
     "@primeuix/themes": "^1.2.3",
     "@tailwindcss/vite": "^4.1.12",
-    "@vueuse/core": "^13.7.0",
-    "@webext-core/messaging": "^2.3.0",
+    "@vueuse/core": "^13.8.0",
     "@webext-core/proxy-service": "^1.2.1",
     "date-fns": "^4.1.0",
     "dexie": "^4.2.0",
@@ -32,11 +31,12 @@
     "superjson": "^2.2.2",
     "tailwindcss": "^4.1.12",
     "tsfullstack-backend": "workspace:*",
-    "vue": "^3.5.19"
+    "vue": "^3.5.20"
   },
   "devDependencies": {
     "@wxt-dev/module-vue": "^1.0.2",
     "typescript": "5.9.2",
+    "vite-plugin-vue-devtools": "^8.0.0",
     "vue-tsc": "^3.0.6",
     "wxt": "^0.20.8"
   }
