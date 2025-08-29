@@ -125,7 +125,7 @@ async function execTask(task: runInfoFlowGet_task) {
       url: currentUrl,
       title: document.title,
       timestamp: new Date().toISOString(),
-      matched: false,
+      matched: 0,
       message: 'URL mismatch'
     };
   }
@@ -134,7 +134,7 @@ async function execTask(task: runInfoFlowGet_task) {
     url: currentUrl,
     title: document.title,
     timestamp: new Date().toISOString(),
-    matched: true,
+    matched: 1,
     collections: {}
   };
 

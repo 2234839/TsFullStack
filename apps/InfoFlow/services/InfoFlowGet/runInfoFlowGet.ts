@@ -45,7 +45,7 @@ export async function runInfoFlowGet(task: runInfoFlowGet_task) {
       url: task.url,
       title: '',
       timestamp: new Date().toISOString(),
-      matched: false,
+      matched: 0,
       message: 'Failed to execute task',
       links: [],
       images: [],

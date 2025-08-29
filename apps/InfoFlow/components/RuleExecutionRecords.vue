@@ -79,9 +79,9 @@
               <div
                 :class="[
                   'w-2 h-2 rounded-full',
-                  slotProps.data.isRead ?? false ? 'bg-gray-400' : 'bg-blue-500',
+                  slotProps.data.isRead ?? 0 ? 'bg-gray-400' : 'bg-blue-500',
                 ]"
-                :title="slotProps.data.isRead ?? false ? '已读' : '未读'"></div>
+                :title="slotProps.data.isRead ?? 0 ? '已读' : '未读'"></div>
               <span
                 :class="[
                   'text-xs px-2 py-1 rounded-md font-medium',
@@ -508,7 +508,7 @@ const taskExecutionService = getTaskExecutionService();
   });
 
   const unreadCount = computed(() => {
-    return executions.value.filter((exec) => !(exec.isRead ?? false)).length;
+    return executions.value.filter((exec) => !(exec.isRead ?? 0)).length;
   });
 
   // Methods
@@ -565,7 +565,7 @@ const taskExecutionService = getTaskExecutionService();
 
   const viewExecutionDetails = async (execution: TaskExecutionRecord) => {
     // 如果是未读状态，自动标记为已读
-    const isRead = execution.isRead ?? false;
+    const isRead = execution.isRead ?? 0;
     if (!isRead) {
       try {
         await taskExecutionService.markAsRead(execution.id);
@@ -625,16 +625,17 @@ const taskExecutionService = getTaskExecutionService();
 
   const toggleReadStatus = async (execution: TaskExecutionRecord) => {
     try {
-      const currentIsRead = execution.isRead ?? false; // 如果 undefined，默认为 false
+      const currentIsRead = execution.isRead ?? 0; // 如果 undefined，默认为 0（未读）
 
-      if (currentIsRead) {
+      if (currentIsRead === 1) {
         await taskExecutionService.markAsUnread(execution.id);
       } else {
         await taskExecutionService.markAsRead(execution.id);
       }
 
       // 立即更新本地状态以提供即时反馈
-      const updatedExecution = { ...execution, isRead: !currentIsRead };
+      const newIsRead: 0 | 1 = currentIsRead === 1 ? 0 : 1;
+      const updatedExecution = { ...execution, isRead: newIsRead };
       const index = executions.value.findIndex((e) => e.id === execution.id);
       if (index !== -1) {
         executions.value[index] = updatedExecution;
@@ -673,7 +674,7 @@ const taskExecutionService = getTaskExecutionService();
   };
 
   const getRowStyle = (data: TaskExecutionRecord) => {
-    const isRead = data.isRead ?? false; // 如果 undefined，默认为 false（未读）
+    const isRead = data.isRead ?? 0; // 如果 undefined，默认为 0（未读）
     if (isRead) {
       return {
         backgroundColor: '#f8fafc',

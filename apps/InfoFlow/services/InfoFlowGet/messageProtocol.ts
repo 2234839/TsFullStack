@@ -3,7 +3,7 @@ export interface TaskResult {
   url: string;
   title: string;
   timestamp: string;
-  matched: boolean;
+  matched: 0 | 1;
   message?: string;
   data?: any;
   collections?: Record<string, any[]>;

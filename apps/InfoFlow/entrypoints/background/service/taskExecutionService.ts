@@ -83,7 +83,7 @@ function createTaskExecutionService() {
       await dbService.taskExecutions.startExecution(id);
     },
 
-    async completeExecution(id: string, result: any, matched: boolean, matchedCount?: number): Promise<void> {
+    async completeExecution(id: string, result: any, matched: 0 | 1, matchedCount?: number): Promise<void> {
       const dbService = getDbService();
       await dbService.taskExecutions.completeExecution(id, result, matched, matchedCount);
     },
@@ -114,10 +114,10 @@ function createTaskExecutionService() {
         ruleId,
         ruleName,
         status: 'pending',
-        matched: false,
+        matched: 0,
         executionType,
         triggerInfo,
-        isRead: false // 新创建的记录默认为未读
+        isRead: 0 // 新创建的记录默认为未读
       });
     },
 

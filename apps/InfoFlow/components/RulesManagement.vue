@@ -440,10 +440,11 @@ return document.title;"
     try {
       const executions = await taskExecutionService.getByRuleId(ruleId, {
         limit: 1, // 只需要检查是否存在未读记录
-        isRead: false, // 直接查询未读记录
+        isRead: 0, // 直接查询未读记录
         sortBy: 'createdAt',
         sortOrder: 'desc',
       });
+      console.log('[调试] 规则', ruleId, '的未读检查结果:', executions.executions.length > 0);
       // 如果有未读记录，则返回 true
       return executions.executions.length > 0;
     } catch (error) {
@@ -888,7 +889,7 @@ return document.title;"
       const result = await rulesService.executeRule(rule.id);
       if (result.success) {
         const res = result.result;
-        if (res.matched) {
+        if (res.matched === 1) {
           toast.add({
             severity: 'success',
             summary: '执行成功',
