@@ -1,6 +1,7 @@
 import { defineProxyService } from '@webext-core/proxy-service';
 import { getDbService } from './dbService';
 import { executeRuleLogic } from '@/utils/ruleTaskGenerator';
+import { getCronService } from './cronService';
 
 // 重新导出类型，保持兼容性
 export type { Rule } from './dbService';
@@ -17,7 +18,13 @@ function createRulesService() {
       >,
     ): Promise<import('./dbService').RulesTable> {
       const dbService = getDbService();
-      return await dbService.rules.create(rule);
+      const newRule = await dbService.rules.create(rule);
+
+      // Reinitialize all crons when any rule is created
+      const cronService = getCronService();
+      await cronService.reinitializeCrons();
+
+      return newRule;
     },
 
     async update(
@@ -28,24 +35,24 @@ function createRulesService() {
       const rule = await dbService.rules.update(id, updates);
 
       if (rule) {
-        // Cancel existing scheduling and reschedule if active
-        const { taskGenerator } = await import('@/utils/ruleTaskGenerator');
-        await taskGenerator.cancelRuleExecution(id);
-        if (rule.status === 'active') {
-          await taskGenerator.scheduleRuleExecution(rule);
-        }
+        // Reinitialize all crons when any rule is updated
+        const cronService = getCronService();
+        await cronService.reinitializeCrons();
       }
 
       return rule;
     },
 
     async delete(id: string): Promise<boolean> {
-      // Cancel scheduling before deleting
-      const { taskGenerator } = await import('@/utils/ruleTaskGenerator');
-      await taskGenerator.cancelRuleExecution(id);
-
       const dbService = getDbService();
-      return await dbService.rules.delete(id);
+      const result = await dbService.rules.delete(id);
+
+      if (result) {
+        const cronService = getCronService();
+        await cronService.reinitializeCrons();
+      }
+
+      return result;
     },
 
     async getById(id: string): Promise<import('./dbService').RulesTable | null> {
@@ -104,16 +111,10 @@ function createRulesService() {
       tags?: string[];
       priority?: number;
     }): Promise<import('./dbService').RulesTable> {
-      const rule = await this.create({
+      return await this.create({
         ...ruleData,
         status: 'active',
       });
-
-      // Start scheduling the rule
-      const { taskGenerator } = await import('@/utils/ruleTaskGenerator');
-      await taskGenerator.scheduleRuleExecution(rule);
-
-      return rule;
     },
 
     async updateRule(
@@ -128,30 +129,15 @@ function createRulesService() {
     },
 
     async activateRule(id: string): Promise<import('./dbService').RulesTable | null> {
-      const rule = await this.update(id, { status: 'active' });
-      if (rule) {
-        const { taskGenerator } = await import('@/utils/ruleTaskGenerator');
-        await taskGenerator.scheduleRuleExecution(rule);
-      }
-      return rule;
+      return await this.update(id, { status: 'active' });
     },
 
     async pauseRule(id: string): Promise<import('./dbService').RulesTable | null> {
-      const rule = await this.update(id, { status: 'paused' });
-      if (rule) {
-        const { taskGenerator } = await import('@/utils/ruleTaskGenerator');
-        await taskGenerator.cancelRuleExecution(id);
-      }
-      return rule;
+      return await this.update(id, { status: 'paused' });
     },
 
     async deactivateRule(id: string): Promise<import('./dbService').RulesTable | null> {
-      const rule = await this.update(id, { status: 'inactive' });
-      if (rule) {
-        const { taskGenerator } = await import('@/utils/ruleTaskGenerator');
-        await taskGenerator.cancelRuleExecution(id);
-      }
-      return rule;
+      return await this.update(id, { status: 'inactive' });
     },
 
     async getRuleStats(): Promise<{
@@ -182,7 +168,7 @@ function createRulesService() {
       if (!rule) {
         return { success: false, message: '规则不存在' };
       }
-      
+
       return await executeRuleLogic(rule, 'manual');
     },
   };

@@ -70,13 +70,9 @@ export async function executeRuleLogic(
 
 export interface TaskGenerator {
   generateTaskFromRule(rule: Rule): runInfoFlowGet_task;
-  scheduleRuleExecution(rule: Rule): Promise<void>;
-  cancelRuleExecution(ruleId: string): Promise<void>;
 }
 
 export class RuleTaskGenerator implements TaskGenerator {
-  private scheduledJobs: Map<string, NodeJS.Timeout> = new Map();
-
   generateTaskFromRule(rule: Rule): runInfoFlowGet_task {
     const baseTask: runInfoFlowGet_task = {
       url: rule.taskConfig.url || '',
@@ -86,90 +82,6 @@ export class RuleTaskGenerator implements TaskGenerator {
     };
 
     return baseTask;
-  }
-
-  async scheduleRuleExecution(rule: Rule): Promise<void> {
-    if (rule.status !== 'active') return;
-
-    const nextExecution = this.calculateNextExecution(rule.cron);
-    if (!nextExecution) return;
-
-    const delay = nextExecution.getTime() - Date.now();
-    if (delay <= 0) return;
-
-    const timeoutId = setTimeout(async () => {
-      await this.executeRule(rule);
-      await this.scheduleRuleExecution(rule);
-    }, delay);
-
-    this.scheduledJobs.set(rule.id, timeoutId);
-
-    await getRulesService().updateNextExecution(rule.id, nextExecution);
-  }
-
-  async cancelRuleExecution(ruleId: string): Promise<void> {
-    const timeoutId = this.scheduledJobs.get(ruleId);
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      this.scheduledJobs.delete(ruleId);
-    }
-  }
-
-  private async executeRule(rule: Rule): Promise<void> {
-    const result = await executeRuleLogic(
-      rule,
-      'scheduled',
-      `Scheduled execution at ${new Date().toISOString()}`,
-    );
-
-    if (!result.success) {
-      console.error('Failed to execute scheduled rule:', result.message);
-    }
-  }
-
-  private calculateNextExecution(cronExpression: string): Date | null {
-    try {
-      const [minute, hour] = cronExpression.split(' ');
-
-      const now = new Date();
-      const next = new Date(now);
-
-      next.setSeconds(0);
-      next.setMilliseconds(0);
-
-      if (minute !== '*') {
-        next.setMinutes(parseInt(minute));
-      }
-
-      if (hour !== '*') {
-        next.setHours(parseInt(hour));
-      }
-
-      if (next <= now) {
-        next.setDate(next.getDate() + 1);
-      }
-
-      return next;
-    } catch (error) {
-      console.error('Invalid cron expression:', cronExpression);
-      return null;
-    }
-  }
-
-  async startAllActiveRules(): Promise<void> {
-    getRulesService();
-    const activeRules = await getRulesService().getActiveRules();
-
-    for (const rule of activeRules) {
-      await this.scheduleRuleExecution(rule);
-    }
-  }
-
-  async stopAllScheduledRules(): Promise<void> {
-    for (const [, timeoutId] of this.scheduledJobs) {
-      clearTimeout(timeoutId);
-    }
-    this.scheduledJobs.clear();
   }
 }
 
