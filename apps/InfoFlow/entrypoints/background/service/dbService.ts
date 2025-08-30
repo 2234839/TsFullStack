@@ -29,7 +29,7 @@ export interface RuleQueryOptions {
   limit?: number;
   status?: Rule['status'];
   search?: string;
-  sortBy?: 'createdAt' | 'updatedAt' | 'lastExecutedAt' | 'priority' | 'name';
+  sortBy?: 'createdAt' | 'updatedAt' | 'lastExecutedAt' | 'priority' | 'name' | 'nextExecutionAt' | 'unreadFirst';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -278,6 +278,11 @@ const rulesService = {
       sortOrder = 'desc',
     } = options;
 
+    // 特殊处理 unreadFirst 排序
+    if (sortBy === 'unreadFirst') {
+      return await this.queryWithUnreadFirst(options);
+    }
+
     // 使用复合索引进行高效查询
     let baseQuery: Dexie.Collection<RulesTable, string>;
 
@@ -302,6 +307,11 @@ const rulesService = {
           : db.rules.where('[status+priority]').between([status, -Infinity], [status, Infinity]);
     } else if (status && sortBy === 'name') {
       baseQuery = db.rules.where('[status+name]').between([status, ''], [status, '\\uffff']);
+    } else if (status && sortBy === 'nextExecutionAt') {
+      baseQuery =
+        sortOrder === 'desc'
+          ? db.rules.orderBy('nextExecutionAt').reverse()
+          : db.rules.orderBy('nextExecutionAt');
     } else if (status) {
       baseQuery = db.rules.where('status').equals(status);
     } else if (sortBy === 'createdAt') {
@@ -309,6 +319,16 @@ const rulesService = {
         sortOrder === 'desc'
           ? db.rules.orderBy('createdAt').reverse()
           : db.rules.orderBy('createdAt');
+    } else if (sortBy === 'updatedAt') {
+      baseQuery =
+        sortOrder === 'desc'
+          ? db.rules.orderBy('updatedAt').reverse()
+          : db.rules.orderBy('updatedAt');
+    } else if (sortBy === 'lastExecutedAt') {
+      baseQuery =
+        sortOrder === 'desc'
+          ? db.rules.orderBy('lastExecutedAt').reverse()
+          : db.rules.orderBy('lastExecutedAt');
     } else if (sortBy === 'priority') {
       baseQuery =
         sortOrder === 'desc'
@@ -317,6 +337,11 @@ const rulesService = {
     } else if (sortBy === 'name') {
       baseQuery =
         sortOrder === 'desc' ? db.rules.orderBy('name').reverse() : db.rules.orderBy('name');
+    } else if (sortBy === 'nextExecutionAt') {
+      baseQuery =
+        sortOrder === 'desc'
+          ? db.rules.orderBy('nextExecutionAt').reverse()
+          : db.rules.orderBy('nextExecutionAt');
     } else {
       // 避免全量查询，默认使用 createdAt 索引
       baseQuery = db.rules.orderBy('createdAt');
@@ -348,6 +373,82 @@ const rulesService = {
       limit,
       totalPages: Math.ceil(total / limit),
     };
+  },
+
+  /**
+   * 支持按未读执行记录优先排序的查询方法
+   */
+  async queryWithUnreadFirst(options: RuleQueryOptions = {}): Promise<PaginatedRules> {
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      search,
+      sortOrder = 'desc',
+    } = options;
+
+    // 获取所有符合基础条件的规则
+    const baseOptions = { ...options, sortBy: 'createdAt' as const, sortOrder: 'desc' as const };
+    const baseResult = await this.query(baseOptions);
+
+    // 获取所有规则并检查未读状态
+    const rulesWithUnreadStatus = await Promise.all(
+      baseResult.rules.map(async (rule) => {
+        const hasUnread = await this.hasUnreadExecutions(rule.id);
+        return { ...rule, hasUnread };
+      })
+    );
+
+    // 按未读状态和下次执行时间排序
+    const sortedRules = rulesWithUnreadStatus.sort((a, b) => {
+      // 首先按未读状态排序（有未读的排在前面）
+      if (a.hasUnread && !b.hasUnread) return -1;
+      if (!a.hasUnread && b.hasUnread) return 1;
+
+      // 如果未读状态相同，则按下次执行时间排序（即将执行的排在前面）
+      const aNextTime = a.nextExecutionAt ? new Date(a.nextExecutionAt) : null;
+      const bNextTime = b.nextExecutionAt ? new Date(b.nextExecutionAt) : null;
+
+      // 如果都没有下次执行时间，按创建时间排序
+      if (!aNextTime && !bNextTime) {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+
+      // 如果只有一个有下次执行时间，有时间的排在前面
+      if (aNextTime && !bNextTime) return -1;
+      if (!aNextTime && bNextTime) return 1;
+
+      // 如果都有下次执行时间，按时间先后排序（越早执行的排在前面）
+      return aNextTime!.getTime() - bNextTime!.getTime();
+    });
+
+    // 应用分页
+    const offset = (page - 1) * limit;
+    const paginatedRules = sortedRules.slice(offset, offset + limit);
+
+    return {
+      rules: paginatedRules,
+      total: baseResult.total,
+      page,
+      limit,
+      totalPages: Math.ceil(baseResult.total / limit),
+    };
+  },
+
+  /**
+   * 检查规则是否有未读的执行记录
+   */
+  async hasUnreadExecutions(ruleId: string): Promise<boolean> {
+    const taskExecutionService = await this.getTaskExecutionService();
+    return await taskExecutionService.hasUnreadExecutions(ruleId);
+  },
+
+  /**
+   * 获取任务执行服务实例
+   */
+  getTaskExecutionService() {
+    // 延迟导入以避免循环依赖
+    return import('./taskExecutionService').then(module => module.getTaskExecutionService());
   },
 
   async getAll(options?: { limit?: number; offset?: number }): Promise<RulesTable[]> {
