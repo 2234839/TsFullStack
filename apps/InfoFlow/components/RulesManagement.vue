@@ -97,21 +97,27 @@
           :rowsPerPageOptions="[10, 20, 50]"
           :lazy="true"
           @page="handlePageChange"
+          @row-click="handleRowClick"
           responsiveLayout="scroll"
           v-model:expandedRows="expandedRows"
           dataKey="id"
           :rowStyle="getRowStyle">
           <Column :expander="true" headerStyle="width: 3rem" />
           <Column field="name" header="规则名称" class="min-w-[150px] whitespace-nowrap">
-            <template #body="slotProps">
+            <template #body="{data}:{data:RulesTable}">
               <div class="flex items-center gap-2">
                 <div
-                  v-if="hasUnreadExecutions(slotProps.data.id)"
+                  v-if="hasUnreadExecutions(data.id)"
                   class="w-2 h-2 rounded-full bg-blue-500"
                   title="有未读的执行记录"></div>
                 <div>
-                  <div class="font-medium">{{ slotProps.data.name }}</div>
-                  <div class="text-sm text-gray-600">{{ slotProps.data.description }}</div>
+                  <a
+                    :href="data.taskConfig.url"
+                    target="_blank"
+                    class="font-medium text-blue-600 hover:text-blue-800 hover:underline">
+                    {{ data.name }}
+                  </a>
+                  <div class="text-sm text-gray-600">{{ data.description }}</div>
                 </div>
               </div>
             </template>
@@ -488,7 +494,7 @@ return document.title;"
 
 <script setup lang="ts">
   import { getRulesService } from '@/entrypoints/background/service/rulesService';
-  import { getDbService } from '@/entrypoints/background/service/dbService';
+  import { getDbService, RulesTable } from '@/entrypoints/background/service/dbService';
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
   import { useNow } from '@vueuse/core';
   import { onMounted, reactive, ref, watch } from 'vue';
@@ -773,6 +779,25 @@ return document.title;"
     rules.execute().finally(() => {
       userActionLoading.value = false;
     });
+  };
+
+  const handleRowClick = (event: any) => {
+    const rule = event.data;
+    const ruleId = rule.id;
+    
+    // 切换展开状态
+    if (expandedRows.value[ruleId]) {
+      // 如果已展开，则收缩
+      const newExpandedRows = { ...expandedRows.value };
+      delete newExpandedRows[ruleId];
+      expandedRows.value = newExpandedRows;
+    } else {
+      // 如果已收缩，则展开
+      expandedRows.value = {
+        ...expandedRows.value,
+        [ruleId]: true
+      };
+    }
   };
 
   const getRowStyle = (rule: Rule) => {

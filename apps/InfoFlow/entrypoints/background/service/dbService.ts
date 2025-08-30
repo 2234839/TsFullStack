@@ -7,13 +7,22 @@ export interface ConfigTable {
   data: any;
 }
 
+import type { ExecutionTiming, DataCollectionMethod } from '@/services/InfoFlowGet/messageProtocol';
+
+export interface TaskConfig {
+  url: string;
+  timing?: ExecutionTiming;
+  timeout?: number;
+  dataCollection?: DataCollectionMethod[];
+}
+
 export interface RulesTable {
   id: string;
   name: string;
   description: string;
   cron: string;
   status: 'active' | 'inactive' | 'paused';
-  taskConfig: any;
+  taskConfig: TaskConfig;
   createdAt: Date;
   updatedAt: Date;
   lastExecutedAt?: Date;
