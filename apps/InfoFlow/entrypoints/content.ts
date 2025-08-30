@@ -8,65 +8,28 @@ import App from './content/contentApp.vue';
 import { ConfirmationService, ToastService } from 'primevue';
 import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult } from '@/services/InfoFlowGet/messageProtocol';
 
-function setupMessageListener() {
-  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[message]',message);
-    if (message.action === runTaskMessageId) {
-      const task = message.data as runInfoFlowGet_task;
-      console.log('[task]', task);
-      executeWithTiming(task).then((res) => {
-        sendResponse(res);
-      }).catch((error) => {
-        console.error('[task execution error]', error);
-        sendResponse({ error: error.message });
-      });
-      return true;
-    }
-  });
-}
+// =============================================================================
+// Configuration Constants
+// =============================================================================
 
-function createVueApp(container: Element) {
-  const app = createApp(App);
-  app.use(PrimeVue, {
-    theme: {
-      preset: Aura,
-    },
-  });
-  app.use(ToastService);
-  app.use(ConfirmationService);
-  app.mount(container);
-  return app;
-}
+const DEFAULT_TIMEOUT = 30000;
+const POLL_INTERVAL = 500;
+const ELEMENT_WAIT_TIMEOUT = 10000;
 
-async function setupUI(ctx: any) {
-  // https://github.com/primefaces/primeuix/pull/47 不支持primevue组件样式的原因
-  const ui = await createShadowRootUi(ctx, {
-    name: 'infoflow-ui',
-    position: 'inline',
-    anchor: 'body',
-    onMount: createVueApp,
-    onRemove: (app) => app?.unmount(),
-  });
-  ui.mount();
-}
+// =============================================================================
+// Utility Functions
+// =============================================================================
 
-export default defineContentScript({
-  matches: ['<all_urls>'],
-  cssInjectionMode: 'ui',
-  async main(ctx) {
-    setupMessageListener();
-    await setupUI(ctx);
-  },
-});
+/**
+ * Wait for an element to appear in the DOM
+ */
+async function waitForElement(selector: string, timeout: number = ELEMENT_WAIT_TIMEOUT): Promise<Element> {
+  const element = document.querySelector(selector);
+  if (element) {
+    return element;
+  }
 
-async function waitForElement(selector: string, timeout: number = 10000): Promise<Element> {
   return new Promise((resolve, reject) => {
-    const element = document.querySelector(selector);
-    if (element) {
-      resolve(element);
-      return;
-    }
-
     const observer = new MutationObserver(() => {
       const element = document.querySelector(selector);
       if (element) {
@@ -82,45 +45,180 @@ async function waitForElement(selector: string, timeout: number = 10000): Promis
 
     setTimeout(() => {
       observer.disconnect();
-      reject(new Error(`Element "${selector}" not found within ${timeout}ms`));
+      reject(new Error(`Element ${selector} not found within ${timeout}ms`));
     }, timeout);
   });
 }
 
-async function executeWithTiming(task: runInfoFlowGet_task) {
-  const timeout = task.timeout || 30000;
-
-  const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => reject(new Error('Task execution timeout')), timeout);
-  });
-
-  const executionPromise = async () => {
-    if (task.timing) {
-      if (task.timing.type === 'delay') {
-        const timing = task.timing as Extract<typeof task.timing, { type: 'delay' }>;
-        await new Promise(resolve => setTimeout(resolve, timing.ms));
-      } else if (task.timing.type === 'waitForElement') {
-        const timing = task.timing as Extract<typeof task.timing, { type: 'waitForElement' }>;
-        await waitForElement(timing.selector);
-        if (timing.delay) {
-          await new Promise(resolve => setTimeout(resolve, timing.delay));
-        }
-      }
-    }
-
-    return await execTask(task);
-  };
-
-  return Promise.race([executionPromise(), timeoutPromise]);
+/**
+ * Create a delay promise
+ */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function execTask(task: runInfoFlowGet_task) {
-  console.log(`[execTask] Starting task for URL: ${task.url}`);
+/**
+ * Safe JavaScript code execution
+ */
+function createSafeAsyncFunction(code: string): () => Promise<any> {
+  return new Function(`
+    return async function() {
+      ${code}
+    }
+  `)();
+}
 
-  // 检查当前URL是否匹配任务URL
+// =============================================================================
+// Data Collection Functions
+// =============================================================================
+
+/**
+ * Collect data using CSS selector with retry mechanism
+ */
+async function collectCSSData(
+  method: any,
+  maxWaitTime: number,
+  pollInterval: number,
+  startTime: number
+): Promise<{ data: any[]; attempts: number; success: boolean }> {
+  let data: any[] = [];
+  let attempts = 0;
+
+  while (attempts === 0 || (data.length === 0 && (Date.now() - startTime) < maxWaitTime)) {
+    attempts++;
+
+    const elements = document.querySelectorAll(method.selector);
+    data = Array.from(elements).map(el => {
+      if (method.attribute) {
+        return el.getAttribute(method.attribute);
+      }
+      return el.textContent?.trim() || el.outerHTML;
+    }).filter(item => item !== null && item !== undefined && item !== '');
+
+    if (data.length > 0) {
+      return { data, attempts, success: true };
+    }
+
+    // Wait before retrying
+    if ((Date.now() - startTime) < maxWaitTime) {
+      await delay(pollInterval);
+    }
+  }
+
+  return { data: [], attempts, success: false };
+}
+
+/**
+ * Collect data using JavaScript execution with retry mechanism
+ */
+async function collectJSData(
+  method: any,
+  maxWaitTime: number,
+  pollInterval: number,
+  startTime: number
+): Promise<{ data: any; attempts: number; success: boolean }> {
+  let attempts = 0;
+
+  while (attempts === 0 || (Date.now() - startTime) < maxWaitTime) {
+    attempts++;
+
+    try {
+      const asyncFunction = createSafeAsyncFunction(method.code);
+      const jsResult = await asyncFunction();
+
+      // Check if result is valid
+      if (jsResult !== undefined && jsResult !== null && jsResult !== '') {
+        const isValid = Array.isArray(jsResult) ? jsResult.length > 0 : true;
+        if (isValid) {
+          return { data: jsResult, attempts, success: true };
+        }
+      }
+    } catch (jsError) {
+      console.warn(`[JS Execution] Attempt ${attempts} failed:`, jsError);
+    }
+
+    // Wait before retrying
+    if ((Date.now() - startTime) < maxWaitTime) {
+      await delay(pollInterval);
+    }
+  }
+
+  return { data: null, attempts, success: false };
+}
+
+// =============================================================================
+// Task Execution Functions
+// =============================================================================
+
+/**
+ * Execute timing configuration (delay or waitForElement)
+ */
+async function executeTiming(timing: any): Promise<void> {
+  if (!timing) return;
+
+  if (timing.type === 'delay') {
+    await delay(timing.ms);
+  } else if (timing.type === 'waitForElement') {
+    await waitForElement(timing.selector);
+    if (timing.delay) {
+      await delay(timing.delay);
+    }
+  }
+}
+
+/**
+ * Execute a single data collection method
+ */
+async function executeCollectionMethod(
+  method: any,
+  collectionKey: string,
+  maxWaitTime: number,
+  pollInterval: number,
+  startTime: number
+): Promise<any[]> {
+  try {
+    console.log(`[Collection] Executing ${method.type} method:`, method);
+
+    if (method.type === 'css') {
+      const result = await collectCSSData(method, maxWaitTime, pollInterval, startTime);
+
+      if (result.success) {
+        console.log(`[Collection] CSS collected ${result.data.length} items after ${result.attempts} attempts`);
+        return result.data;
+      } else {
+        console.warn(`[Collection] CSS no data found after ${result.attempts} attempts`);
+        return [];
+      }
+    } else if (method.type === 'js') {
+      const result = await collectJSData(method, maxWaitTime, pollInterval, startTime);
+
+      if (result.success) {
+        console.log(`[Collection] JS completed with result after ${result.attempts} attempts`);
+        return Array.isArray(result.data) ? result.data : [result.data];
+      } else {
+        console.warn(`[Collection] JS no valid result after ${result.attempts} attempts`);
+        return [];
+      }
+    } else {
+      console.warn(`[Collection] Unknown method type: ${method.type}`);
+      return [];
+    }
+  } catch (error) {
+    console.error(`[Collection] Error in ${method.type} method:`, error);
+    return [{ error: error instanceof Error ? error.message : String(error) }];
+  }
+}
+
+/**
+ * Execute the main task with data collection
+ */
+async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
+  console.log(`[Task] Starting execution for URL: ${task.url}`);
+
+  // URL validation
   const currentUrl = window.location.href;
   if (task.url && !currentUrl.includes(task.url)) {
-    console.warn(`[execTask] Current URL ${currentUrl} does not match target URL ${task.url}`);
+    console.warn(`[Task] URL mismatch - Current: ${currentUrl}, Target: ${task.url}`);
     return {
       url: currentUrl,
       title: document.title,
@@ -130,6 +228,7 @@ async function execTask(task: runInfoFlowGet_task) {
     };
   }
 
+  // Basic result setup
   const result: TaskResult = {
     url: currentUrl,
     title: document.title,
@@ -138,52 +237,128 @@ async function execTask(task: runInfoFlowGet_task) {
     collections: {}
   };
 
-  // 如果没有配置数据收集，返回基本信息
+  // Early return if no data collection configured
   if (!task.dataCollection || task.dataCollection.length === 0) {
-    console.log(`[execTask] No data collection configured, returning basic info`);
+    console.log(`[Task] No data collection configured, returning basic info`);
     return result;
   }
 
-  // 执行数据收集
+  // Execute data collection with retry mechanism
+  const maxWaitTime = task.timeout || DEFAULT_TIMEOUT;
+  const startTime = Date.now();
+
+  console.log(`[Task] Starting data collection with ${task.dataCollection.length} methods`);
+
   for (let i = 0; i < task.dataCollection.length; i++) {
     const method = task.dataCollection[i];
     const collectionKey = `collection_${i}`;
 
-    try {
-      console.log(`[execTask] Executing collection method ${i}:`, method);
-
-      if (method.type === 'css') {
-        // CSS 选择器收集
-        const elements = document.querySelectorAll(method.selector);
-        const data = Array.from(elements).map(el => {
-          if (method.attribute) {
-            return el.getAttribute(method.attribute);
-          }
-          return el.textContent?.trim() || el.outerHTML;
-        }).filter(item => item !== null && item !== undefined);
-
-        result.collections![collectionKey] = data;
-        console.log(`[execTask] CSS collection ${i} collected ${data.length} items`);
-
-      } else if (method.type === 'js') {
-        // JavaScript 代码执行
-        const asyncFunction = new Function(`
-          return async function() {
-            ${method.code}
-          }
-        `)();
-
-        const jsResult = await asyncFunction();
-        result.collections![collectionKey] = Array.isArray(jsResult) ? jsResult : [jsResult];
-        console.log(`[execTask] JS collection ${i} completed`);
-      }
-
-    } catch (error) {
-      console.error(`[execTask] Error in collection method ${i}:`, error);
-      result.collections![collectionKey] = [{ error: error instanceof Error ? error.message : String(error) }];
-    }
+    result.collections![collectionKey] = await executeCollectionMethod(
+      method,
+      collectionKey,
+      maxWaitTime,
+      POLL_INTERVAL,
+      startTime
+    );
   }
 
-  console.log(`[execTask] Task completed with ${Object.keys(result.collections!).length} collections`);
+  console.log(`[Task] Completed with ${Object.keys(result.collections!).length} collections`);
   return result;
 }
+
+/**
+ * Execute task with timeout protection
+ */
+async function executeWithTiming(task: runInfoFlowGet_task): Promise<TaskResult> {
+  const timeout = task.timeout || DEFAULT_TIMEOUT;
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Task execution timeout')), timeout);
+  });
+
+  const executionPromise = async (): Promise<TaskResult> => {
+    await executeTiming(task.timing);
+    return await execTask(task);
+  };
+
+  return Promise.race([executionPromise(), timeoutPromise]);
+}
+
+// =============================================================================
+// UI Setup Functions
+// =============================================================================
+
+/**
+ * Create and configure Vue application
+ */
+function createVueApp(container: Element) {
+  const app = createApp(App);
+  app.use(PrimeVue, {
+    theme: {
+      preset: Aura,
+    },
+  });
+  app.use(ToastService);
+  app.use(ConfirmationService);
+  app.mount(container);
+  return app;
+}
+
+/**
+ * Setup shadow root UI
+ */
+async function setupUI(ctx: any) {
+  const ui = await createShadowRootUi(ctx, {
+    name: 'infoflow-ui',
+    position: 'inline',
+    anchor: 'body',
+    onMount: createVueApp,
+    onRemove: (app) => app?.unmount(),
+  });
+  ui.mount();
+}
+
+// =============================================================================
+// Message Handler
+// =============================================================================
+
+/**
+ * Setup message listener for task execution
+ */
+function setupMessageListener() {
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log('[Message] Received:', message);
+
+    if (message.action === runTaskMessageId) {
+      const task = message.data as runInfoFlowGet_task;
+      console.log('[Message] Executing task:', task);
+
+      executeWithTiming(task)
+        .then((result) => {
+          console.log('[Message] Task completed successfully:', result);
+          sendResponse(result);
+        })
+        .catch((error) => {
+          console.error('[Message] Task execution failed:', error);
+          sendResponse({ error: error.message });
+        });
+
+      return true; // Keep message channel open for async response
+    }
+  });
+}
+
+// =============================================================================
+// Main Content Script
+// =============================================================================
+
+export default defineContentScript({
+  matches: ['<all_urls>'],
+  cssInjectionMode: 'ui',
+  async main(ctx) {
+    console.log('[ContentScript] Initializing InfoFlow content script');
+    setupMessageListener();
+    await setupUI(ctx);
+    console.log('[ContentScript] InfoFlow content script initialized');
+  },
+});
