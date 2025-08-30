@@ -858,6 +858,22 @@ const taskExecutionsService = {
     return lastExecution || null;
   },
 
+  async getPreviousSuccessfulExecution(ruleId: string, excludeExecutionId: string): Promise<TaskExecutionsTable | null> {
+    // 使用复合索引 [ruleId+status+createdAt] 查询最新的2条成功执行记录
+    const executions = await db.taskExecutions
+      .where('[ruleId+status+createdAt]')
+      .between([ruleId, 'completed', new Date(0)], [ruleId, 'completed', new Date(9999, 11, 31)])
+      .reverse()
+      .limit(2)
+      .toArray();
+
+    // 如果最新的一条不是要排除的，那就是上一次执行
+    // 如果最新的是要排除的，那么第二条就是上一次执行
+    const previousExecution = executions.find(exec => exec.id !== excludeExecutionId);
+    
+    return previousExecution || null;
+  },
+
   async getExecutionStats(ruleId?: string): Promise<{
     total: number;
     completed: number;

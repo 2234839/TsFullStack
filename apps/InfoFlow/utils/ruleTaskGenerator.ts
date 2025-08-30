@@ -20,17 +20,6 @@ function areExecutionResultsEqual(result1: TaskResult, result2: TaskResult): boo
   return deepEqual(result1.collections, result2.collections);
 }
 
-// 获取规则上一次成功的执行结果
-async function getLastSuccessfulExecutionResult(ruleId: string): Promise<TaskResult | null> {
-  try {
-    const taskExecutionService = getTaskExecutionService();
-    const lastExecution = await taskExecutionService.getLastSuccessfulExecution(ruleId);
-    return lastExecution?.result || null;
-  } catch (error) {
-    console.error('获取上一次执行结果失败:', error);
-    return null;
-  }
-}
 
 // 处理自动已读逻辑
 async function handleAutoRead(
@@ -39,14 +28,18 @@ async function handleAutoRead(
   currentResult: TaskResult,
 ): Promise<void> {
   try {
-    // 获取上一次成功的执行结果
-    const lastResult = await getLastSuccessfulExecutionResult(ruleId);
-    console.log('[lastResult]', lastResult);
-    if (!lastResult) {
-      // 如果没有上一次的执行结果，不需要自动已读
+    // 获取上一次成功的执行结果（排除当前执行）
+    const taskExecutionService = getTaskExecutionService();
+    const previousExecution = await taskExecutionService.getPreviousSuccessfulExecution(ruleId, currentExecutionId);
+
+    // 如果没有上一次执行结果，不需要自动已读
+    if (!previousExecution) {
       console.log(`[AutoRead] 规则 ${ruleId} 没有上一次执行结果，跳过自动已读`);
       return;
     }
+
+    const lastResult = previousExecution.result;
+    console.log('[lastResult]', lastResult);
 
     // 比较两次执行结果是否相同
     const isEqual = areExecutionResultsEqual(currentResult, lastResult);

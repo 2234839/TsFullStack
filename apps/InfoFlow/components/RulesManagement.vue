@@ -492,7 +492,6 @@ return document.title;"
   const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
     try {
       const hasUnread = await taskExecutionService.hasUnreadExecutions(ruleId);
-      console.log('[调试] 规则', ruleId, '的未读检查结果:', hasUnread);
       return hasUnread;
     } catch (error) {
       console.error('Failed to check unread executions for rule:', ruleId, error);
@@ -1079,7 +1078,7 @@ return document.title;"
   const handleExportConfirm = async (selectedRuleIds: string[]) => {
     try {
       const selectedRulesData = allRules.value.filter(rule => selectedRuleIds.includes(rule.id));
-      
+
       if (selectedRulesData.length === 0) {
         toast.add({
           severity: 'warn',
@@ -1095,11 +1094,11 @@ return document.title;"
         version: '1.0',
         rules: selectedRulesData,
       };
-      
+
       const dataStr = JSON.stringify(exportData, null, 2);
       const dataBlob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(dataBlob);
-      
+
       const link = document.createElement('a');
       link.href = url;
       link.download = `rules-export-${selectedRulesData.length}-rules-${new Date().toISOString().split('T')[0]}.json`;
@@ -1107,9 +1106,9 @@ return document.title;"
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
       showExportDialog.value = false;
-      
+
       toast.add({
         severity: 'success',
         summary: '导出成功',
@@ -1131,13 +1130,13 @@ return document.title;"
   const handleFileSelect = (event: Event) => {
     const target = event.target as HTMLInputElement;
     const file = target.files?.[0];
-    
+
     if (!file) {
       importPreview.value = [];
       importFile.value = null;
       return;
     }
-    
+
     if (!file.name.endsWith('.json')) {
       toast.add({
         severity: 'error',
@@ -1147,20 +1146,20 @@ return document.title;"
       });
       return;
     }
-    
+
     importFile.value = file;
-    
+
     // Read and preview the file
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
         const data = JSON.parse(content);
-        
+
         if (!data.rules || !Array.isArray(data.rules)) {
           throw new Error('无效的规则文件格式');
         }
-        
+
         // Add temporary IDs for selection purposes
         importPreview.value = data.rules.map((rule: any, index: number) => ({
           ...rule,
@@ -1196,7 +1195,7 @@ return document.title;"
     if (!importFile.value || importPreview.value.length === 0) {
       return;
     }
-    
+
     importing.value = true;
     try {
       const reader = new FileReader();
@@ -1204,19 +1203,19 @@ return document.title;"
         try {
           const content = e.target?.result as string;
           const data = JSON.parse(content);
-          
+
           if (!data.rules || !Array.isArray(data.rules)) {
             throw new Error('无效的规则文件格式');
           }
-          
+
           let successCount = 0;
           let skipCount = 0;
-          
+
           // Only import selected rules
           const selectedRules = data.rules.filter((rule: any, index: number) => {
             return selectedRuleIds.includes(`import-${index}`) || selectedRuleIds.includes(rule.id);
           });
-          
+
           for (const rule of selectedRules) {
             try {
               // Clean up the rule data for import
@@ -1232,13 +1231,13 @@ return document.title;"
                 },
                 priority: rule.priority || 1,
               };
-              
+
               // Validate required fields
               if (!cleanRule.name || !cleanRule.cron || !cleanRule.taskConfig.url) {
                 skipCount++;
                 continue;
               }
-              
+
               await rulesService.createRule(cleanRule);
               successCount++;
             } catch (error) {
@@ -1246,13 +1245,13 @@ return document.title;"
               skipCount++;
             }
           }
-          
+
           showImportSelectionDialog.value = false;
           showImportDialog.value = false;
           cancelImport();
           rules.execute();
           loadStats();
-          
+
           toast.add({
             severity: 'success',
             summary: '导入完成',
