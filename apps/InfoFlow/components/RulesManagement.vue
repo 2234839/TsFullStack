@@ -438,15 +438,9 @@ return document.title;"
   // Helper functions
   const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
     try {
-      const executions = await taskExecutionService.getByRuleId(ruleId, {
-        limit: 1, // 只需要检查是否存在未读记录
-        isRead: 0, // 直接查询未读记录
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
-      });
-      console.log('[调试] 规则', ruleId, '的未读检查结果:', executions.executions.length > 0);
-      // 如果有未读记录，则返回 true
-      return executions.executions.length > 0;
+      const hasUnread = await taskExecutionService.hasUnreadExecutions(ruleId);
+      console.log('[调试] 规则', ruleId, '的未读检查结果:', hasUnread);
+      return hasUnread;
     } catch (error) {
       console.error('Failed to check unread executions for rule:', ruleId, error);
       return false;

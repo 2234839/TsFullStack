@@ -157,6 +157,11 @@ class InfoFlowDatabase extends Dexie {
         [ruleId+status],
         [ruleId+executionType],
         [ruleId+isRead],
+        [ruleId+createdAt],
+        [ruleId+status+createdAt],
+        [ruleId+executionType+createdAt],
+        [ruleId+isRead+createdAt],
+        [ruleId+status+isRead+createdAt],
         [status+createdAt],
         [executionType+createdAt],
         [isRead+createdAt],
@@ -171,9 +176,9 @@ class InfoFlowDatabase extends Dexie {
       console.log('[调试] 升级数据库到版本 2');
     });
 
-    // 升级到版本 3，确保所有索引都正确创建
-    this.version(3).upgrade(async (tx) => {
-      console.log('[调试] 升级数据库到版本 3，重建索引');
+    // 升级到版本 5，添加四重复合索引
+    this.version(5).upgrade(async (tx) => {
+      console.log('[调试] 升级数据库到版本 5，添加四重复合索引');
     });
   }
 }
@@ -460,129 +465,35 @@ const taskExecutionsService = {
   async query(options: TaskExecutionQueryOptions = {}): Promise<PaginatedTaskExecutions> {
     console.log('[调试] 查询调用参数:', options);
 
-    const {
-      page = 1,
-      limit = 20,
-      ruleId,
-      status,
-      executionType,
-      isRead,
-      startDate,
-      endDate,
-      sortBy = 'createdAt',
-      sortOrder = 'desc',
-    } = options;
+    const { page = 1, limit = 20, sortBy = 'createdAt', sortOrder = 'desc' } = options;
 
-    let baseQuery: Dexie.Collection<TaskExecutionsTable, string>;
+    // 确定查询类型
+    const queryType = this.determineQueryType(options);
+    console.log('[调试] 查询类型:', queryType);
 
-    if (ruleId && status) {
-      baseQuery = db.taskExecutions.where('[ruleId+status]').equals([ruleId, status]);
-    } else if (ruleId && executionType) {
-      baseQuery = db.taskExecutions.where('[ruleId+executionType]').equals([ruleId, executionType]);
-    } else if (ruleId && isRead !== undefined) {
-      baseQuery = db.taskExecutions.where('[ruleId+isRead]').equals([ruleId, isRead]);
-    } else if (status && sortBy === 'createdAt') {
-      baseQuery = db.taskExecutions
-        .where('[status+createdAt]')
-        .between([status, startDate || new Date(0)], [status, endDate || new Date(9999, 11, 31)]);
-    } else if (executionType && sortBy === 'createdAt') {
-      baseQuery = db.taskExecutions
-        .where('[executionType+createdAt]')
-        .between(
-          [executionType, startDate || new Date(0)],
-          [executionType, endDate || new Date(9999, 11, 31)],
-        );
-    } else if (isRead !== undefined && sortBy === 'createdAt') {
-      baseQuery = db.taskExecutions
-        .where('[isRead+createdAt]')
-        .between(
-          [isRead ? 1 : 0, startDate || new Date(0)],
-          [isRead ? 1 : 0, endDate || new Date(9999, 11, 31)],
-        );
-    } else if (ruleId) {
-      baseQuery = db.taskExecutions.where('ruleId').equals(ruleId);
-    } else if (status) {
-      baseQuery = db.taskExecutions.where('status').equals(status);
-    } else if (executionType) {
-      baseQuery = db.taskExecutions.where('executionType').equals(executionType);
-    } else if (isRead !== undefined) {
-      baseQuery = db.taskExecutions.where('isRead').equals(isRead ? 1 : 0);
-    } else if (startDate || endDate) {
-      if (startDate && endDate) {
-        baseQuery = db.taskExecutions.where('createdAt').between(startDate, endDate);
-      } else if (startDate) {
-        baseQuery = db.taskExecutions.where('createdAt').aboveOrEqual(startDate);
-      } else {
-        baseQuery = db.taskExecutions.where('createdAt').belowOrEqual(endDate);
-      }
-    } else if (sortBy === 'createdAt') {
-      baseQuery =
-        sortOrder === 'desc'
-          ? db.taskExecutions.orderBy('createdAt').reverse()
-          : db.taskExecutions.orderBy('createdAt');
-    } else {
-      // 避免全量查询，如果没有有效条件，使用 createdAt 索引并限制时间范围
-      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-      baseQuery = db.taskExecutions.where('createdAt').aboveOrEqual(ninetyDaysAgo);
-      if (sortOrder === 'desc') {
-        baseQuery = baseQuery.reverse();
-      }
-    }
-
-    let finalQuery = baseQuery;
+    // 根据查询类型构建基础查询
+    let baseQuery = this.buildBaseQuery(queryType, options);
     console.log('[调试] 基础查询已选择，现在应用额外过滤器...');
 
-    // 记录应用的额外过滤条件
-    const appliedFilters: string[] = [];
-
-    if (ruleId && !(status || executionType || isRead !== undefined)) {
-      console.log('[调试] 为 ruleId 查询应用额外过滤器...');
-      if (status) {
-        finalQuery = finalQuery.and((item) => item.status === status);
-        appliedFilters.push(`状态: ${status}`);
-      }
-      if (executionType) {
-        finalQuery = finalQuery.and((item) => item.executionType === executionType);
-        appliedFilters.push(`执行类型: ${executionType}`);
-      }
-      if (isRead !== undefined) {
-        finalQuery = finalQuery.and((item) => item.isRead === isRead);
-        appliedFilters.push(`已读状态: ${isRead}`);
-      }
-    }
-
-    if (
-      startDate &&
-      !(
-        (status && sortBy === 'createdAt') ||
-        (executionType && sortBy === 'createdAt') ||
-        (isRead !== undefined && sortBy === 'createdAt')
-      )
-    ) {
-      finalQuery = finalQuery.and((item) => item.createdAt >= startDate);
-      appliedFilters.push(`开始日期 >= ${startDate}`);
-    }
-    if (
-      endDate &&
-      !(
-        (status && sortBy === 'createdAt') ||
-        (executionType && sortBy === 'createdAt') ||
-        (isRead !== undefined && sortBy === 'createdAt')
-      )
-    ) {
-      finalQuery = finalQuery.and((item) => item.createdAt <= endDate);
-      appliedFilters.push(`结束日期 <= ${endDate}`);
-    }
-
+    // 应用额外的过滤条件
+    const { finalQuery, appliedFilters } = this.applyAdditionalFilters(
+      baseQuery,
+      options,
+      queryType,
+    );
     console.log('[调试] 应用的过滤器:', appliedFilters);
 
-    const total = await finalQuery.count();
-    const offset = (page - 1) * limit;
-    const executions = await finalQuery.offset(offset).limit(limit).toArray();
+    // 应用排序逻辑
+    const sortedQuery = this.applySorting(finalQuery, sortBy, sortOrder, queryType);
 
-    console.log('[调试] 最终查询结果:', {
+    // 执行查询
+    const total = await sortedQuery.count();
+    const offset = (page - 1) * limit;
+    const executions = await sortedQuery.offset(offset).limit(limit).toArray();
+
+    console.log('[调试] 最终查询结果: ', {
       原始参数: options,
-      基础查询类型: getBaseQueryType(options),
+      查询类型: queryType,
       应用过滤器: appliedFilters,
       总记录数: total,
       返回记录数: executions.length,
@@ -606,16 +517,344 @@ const taskExecutionsService = {
     };
   },
 
-  async getByRuleId(
+  /**
+   * 确定查询类型
+   */
+  determineQueryType(options: TaskExecutionQueryOptions): 'compound' | 'single' | 'date' | 'all' {
+    const { ruleId, status, executionType, isRead, startDate, endDate, sortBy } = options;
+
+    // 复合索引查询：多个条件的组合
+    if (ruleId && (status || executionType || isRead !== undefined)) {
+      return 'compound';
+    }
+
+    // 日期范围查询：优先使用复合索引
+    if ((status || executionType || isRead !== undefined) && sortBy === 'createdAt') {
+      return 'compound';
+    }
+
+    // 单一条件查询
+    if (ruleId || status || executionType || isRead !== undefined) {
+      return 'single';
+    }
+
+    // 纯日期范围查询
+    if (startDate || endDate) {
+      return 'date';
+    }
+
+    // 默认查询所有
+    return 'all';
+  },
+
+  /**
+   * 根据查询类型构建基础查询
+   */
+  buildBaseQuery(
+    queryType: 'compound' | 'single' | 'date' | 'all',
+    options: TaskExecutionQueryOptions,
+  ): Dexie.Collection<TaskExecutionsTable, string> {
+    switch (queryType) {
+      case 'compound':
+        return this.buildCompoundQuery(options);
+
+      case 'single':
+        return this.buildSingleQuery(options);
+
+      case 'date':
+        return this.buildDateQuery(options);
+
+      case 'all':
+      default:
+        return this.buildAllQuery(options);
+    }
+  },
+
+  /**
+   * 构建复合索引查询
+   */
+  buildCompoundQuery(
+    options: TaskExecutionQueryOptions,
+  ): Dexie.Collection<TaskExecutionsTable, string> {
+    const { ruleId, status, executionType, isRead, startDate, endDate, sortBy } = options;
+
+    if (ruleId && status) {
+      return db.taskExecutions.where('[ruleId+status]').equals([ruleId, status]);
+    }
+
+    if (ruleId && executionType) {
+      return db.taskExecutions.where('[ruleId+executionType]').equals([ruleId, executionType]);
+    }
+
+    if (ruleId && isRead !== undefined) {
+      return db.taskExecutions.where('[ruleId+isRead]').equals([ruleId, isRead]);
+    }
+
+    if (status && sortBy === 'createdAt') {
+      return db.taskExecutions
+        .where('[status+createdAt]')
+        .between([status, startDate || new Date(0)], [status, endDate || new Date(9999, 11, 31)]);
+    }
+
+    if (executionType && sortBy === 'createdAt') {
+      return db.taskExecutions
+        .where('[executionType+createdAt]')
+        .between(
+          [executionType, startDate || new Date(0)],
+          [executionType, endDate || new Date(9999, 11, 31)],
+        );
+    }
+
+    if (isRead !== undefined && sortBy === 'createdAt') {
+      return db.taskExecutions
+        .where('[isRead+createdAt]')
+        .between(
+          [isRead ? 1 : 0, startDate || new Date(0)],
+          [isRead ? 1 : 0, endDate || new Date(9999, 11, 31)],
+        );
+    }
+
+    // 默认返回 ruleId 查询
+    return db.taskExecutions.where('ruleId').equals(ruleId!);
+  },
+
+  /**
+   * 构建单一条件查询
+   */
+  buildSingleQuery(
+    options: TaskExecutionQueryOptions,
+  ): Dexie.Collection<TaskExecutionsTable, string> {
+    const { ruleId, status, executionType, isRead } = options;
+
+    if (ruleId) {
+      return db.taskExecutions.where('ruleId').equals(ruleId);
+    }
+
+    if (status) {
+      return db.taskExecutions.where('status').equals(status);
+    }
+
+    if (executionType) {
+      return db.taskExecutions.where('executionType').equals(executionType);
+    }
+
+    if (isRead !== undefined) {
+      return db.taskExecutions.where('isRead').equals(isRead ? 1 : 0);
+    }
+
+    // 默认查询
+    return db.taskExecutions.toCollection();
+  },
+
+  /**
+   * 构建日期范围查询
+   */
+  buildDateQuery(
+    options: TaskExecutionQueryOptions,
+  ): Dexie.Collection<TaskExecutionsTable, string> {
+    const { startDate, endDate } = options;
+
+    if (startDate && endDate) {
+      return db.taskExecutions.where('createdAt').between(startDate, endDate);
+    }
+
+    if (startDate) {
+      return db.taskExecutions.where('createdAt').aboveOrEqual(startDate);
+    }
+
+    if (endDate) {
+      return db.taskExecutions.where('createdAt').belowOrEqual(endDate);
+    }
+
+    // 默认查询
+    return db.taskExecutions.toCollection();
+  },
+
+  /**
+   * 构建默认查询（所有记录）
+   */
+  buildAllQuery(options: TaskExecutionQueryOptions): Dexie.Collection<TaskExecutionsTable, string> {
+    const { sortOrder } = options;
+
+    // 避免全量查询，使用 createdAt 索引并限制时间范围
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    let query = db.taskExecutions.where('createdAt').aboveOrEqual(ninetyDaysAgo);
+
+    if (sortOrder === 'desc') {
+      query = query.reverse();
+    }
+
+    return query;
+  },
+
+  /**
+   * 应用额外的过滤条件
+   */
+  applyAdditionalFilters(
+    baseQuery: Dexie.Collection<TaskExecutionsTable, string>,
+    options: TaskExecutionQueryOptions,
+    queryType: 'compound' | 'single' | 'date' | 'all',
+  ): { finalQuery: Dexie.Collection<TaskExecutionsTable, string>; appliedFilters: string[] } {
+    const { ruleId, status, executionType, isRead, startDate, endDate, sortBy } = options;
+    let finalQuery = baseQuery;
+    const appliedFilters: string[] = [];
+
+    // 对于单一查询且包含 ruleId 的情况，应用其他过滤条件
+    if (queryType === 'single' && ruleId) {
+      if (status) {
+        finalQuery = finalQuery.and((item) => item.status === status);
+        appliedFilters.push(`状态: ${status}`);
+      }
+      if (executionType) {
+        finalQuery = finalQuery.and((item) => item.executionType === executionType);
+        appliedFilters.push(`执行类型: ${executionType}`);
+      }
+      if (isRead !== undefined) {
+        finalQuery = finalQuery.and((item) => item.isRead === isRead);
+        appliedFilters.push(`已读状态: ${isRead}`);
+      }
+    }
+
+    // 应用日期过滤（如果不在复合查询中已经处理）
+    const isDateInCompound =
+      (status || executionType || isRead !== undefined) && sortBy === 'createdAt';
+    if (!isDateInCompound) {
+      if (startDate) {
+        finalQuery = finalQuery.and((item) => item.createdAt >= startDate);
+        appliedFilters.push(`开始日期 >= ${startDate}`);
+      }
+      if (endDate) {
+        finalQuery = finalQuery.and((item) => item.createdAt <= endDate);
+        appliedFilters.push(`结束日期 <= ${endDate}`);
+      }
+    }
+
+    return { finalQuery, appliedFilters };
+  },
+
+  /**
+   * 应用排序逻辑
+   */
+  applySorting(
+    query: Dexie.Collection<TaskExecutionsTable, string>,
+    _sortBy: string,
+    sortOrder: 'asc' | 'desc',
+    _queryType: 'compound' | 'single' | 'date' | 'all',
+  ): Dexie.Collection<TaskExecutionsTable, string> {
+    let finalQuery = query;
+
+    // 应用排序方向
+    if (sortOrder === 'desc') {
+      finalQuery = finalQuery.reverse();
+    }
+
+    return finalQuery;
+  },
+
+  async getPaginatedExecutionsByRuleId(
     ruleId: string,
-    options?: Omit<TaskExecutionQueryOptions, 'ruleId'>,
+    options: {
+      page?: number;
+      limit?: number;
+      status?: TaskExecutionsTable['status'];
+      isRead?: 0 | 1;
+    } = {}
   ): Promise<PaginatedTaskExecutions> {
-    return await this.query({ ...options, ruleId });
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      isRead,
+    } = options;
+
+    // 优先使用复合索引，确保按 createdAt 降序
+    let baseQuery: Dexie.Collection<TaskExecutionsTable, string>;
+
+    if (status && isRead !== undefined) {
+      baseQuery = db.taskExecutions
+        .where('[ruleId+status+isRead+createdAt]')
+        .between(
+          [ruleId, status, isRead, new Date(0)],
+          [ruleId, status, isRead, new Date(9999, 11, 31)],
+        )
+        .reverse();
+    } else if (status) {
+      baseQuery = db.taskExecutions
+        .where('[ruleId+status+createdAt]')
+        .between(
+          [ruleId, status, new Date(0)],
+          [ruleId, status, new Date(9999, 11, 31)],
+        )
+        .reverse();
+    } else if (isRead !== undefined) {
+      baseQuery = db.taskExecutions
+        .where('[ruleId+isRead+createdAt]')
+        .between(
+          [ruleId, isRead, new Date(0)],
+          [ruleId, isRead, new Date(9999, 11, 31)],
+        )
+        .reverse();
+    } else {
+      // 使用 [ruleId+createdAt] 复合索引，直接按 createdAt 降序
+      baseQuery = db.taskExecutions
+        .where('[ruleId+createdAt]')
+        .between(
+          [ruleId, new Date(0)],
+          [ruleId, new Date(9999, 11, 31)],
+        )
+        .reverse();
+    }
+
+    const total = await baseQuery.count();
+    const offset = (page - 1) * limit;
+    const executions = await baseQuery.offset(offset).limit(limit).toArray();
+
+    return {
+      executions,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  },
+
+  async hasUnreadExecutions(ruleId: string): Promise<boolean> {
+    // 使用 [ruleId+isRead+createdAt] 复合索引查询是否存在未读记录
+    const count = await db.taskExecutions
+      .where('[ruleId+isRead+createdAt]')
+      .between([ruleId, 0, new Date(0)], [ruleId, 0, new Date(9999, 11, 31)])
+      .count();
+
+    return count > 0;
   },
 
   async getRecentExecutions(ruleId?: string, limit: number = 10): Promise<TaskExecutionsTable[]> {
-    const result = await this.query({ ruleId, limit, sortBy: 'createdAt', sortOrder: 'desc' });
-    return result.executions;
+    console.log('[调试] getRecentExecutions 调用参数:', { ruleId, limit });
+
+    // 专门为获取最近执行记录优化的逻辑
+    let baseQuery: Dexie.Collection<TaskExecutionsTable, string>;
+
+    if (ruleId) {
+      // 使用复合索引 [ruleId+createdAt] 直接获取降序结果
+      baseQuery = db.taskExecutions
+        .where('[ruleId+createdAt]')
+        .between([ruleId, new Date(0)], [ruleId, new Date(9999, 11, 31)])
+        .reverse();
+    } else {
+      // 直接按 createdAt 降序
+      baseQuery = db.taskExecutions.orderBy('createdAt').reverse();
+    }
+
+    const executions = await baseQuery.limit(limit).toArray();
+    console.log('[调试] getRecentExecutions 结果:', {
+      ruleId,
+      请求限制: limit,
+      返回记录数: executions.length,
+      首条记录时间: executions[0]?.createdAt,
+      末条记录时间: executions[executions.length - 1]?.createdAt,
+    });
+
+    return executions;
   },
 
   async getExecutionStats(ruleId?: string): Promise<{
@@ -633,7 +872,8 @@ const taskExecutionsService = {
 
     if (ruleId) {
       // 使用复合索引 [ruleId+createdAt] 提高性能
-      baseQuery = db.taskExecutions.where('[ruleId+createdAt]')
+      baseQuery = db.taskExecutions
+        .where('[ruleId+createdAt]')
         .between([ruleId, cutoffDate], [ruleId, new Date(9999, 11, 31)]);
     } else {
       baseQuery = db.taskExecutions.where('createdAt').aboveOrEqual(cutoffDate);
@@ -756,24 +996,6 @@ const taskExecutionsService = {
 async function reset(): Promise<void> {
   await db.delete();
   await db.open();
-}
-
-// 辅助函数：确定使用的基础查询类型
-function getBaseQueryType(options: TaskExecutionQueryOptions): string {
-  const { ruleId, status, executionType, isRead, sortBy } = options;
-
-  if (ruleId && status) return '[ruleId+status]';
-  if (ruleId && executionType) return '[ruleId+executionType]';
-  if (ruleId && isRead !== undefined) return '[ruleId+isRead]';
-  if (status && sortBy === 'createdAt') return '[status+createdAt]';
-  if (executionType && sortBy === 'createdAt') return '[executionType+createdAt]';
-  if (isRead !== undefined && sortBy === 'createdAt') return '[isRead+createdAt]';
-  if (ruleId) return 'ruleId';
-  if (status) return 'status';
-  if (executionType) return 'executionType';
-  if (isRead !== undefined) return 'isRead';
-  if (sortBy === 'createdAt') return 'createdAt';
-  return 'all';
 }
 
 // 使用 defineProxyService 模式
