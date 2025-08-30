@@ -1,5 +1,5 @@
 <template>
-  <div class="execution-records">
+  <div>
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
@@ -655,12 +655,6 @@
 </script>
 
 <style scoped>
-  .execution-records {
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 0.5rem;
-  }
-
   :deep(.p-datatable-wrapper) {
     border-radius: 0.375rem;
   }
