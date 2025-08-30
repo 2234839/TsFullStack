@@ -1,10 +1,7 @@
 import { defineProxyService } from '@webext-core/proxy-service';
-import { browser } from '#imports';
-import { useWxtStorage } from '@/storage/storageUtil';
 import { getRulesService, type Rule } from './rulesService';
 import { executeRuleLogic } from '@/utils/ruleTaskGenerator';
 import { calculateNextExecution, getCronInterval } from '@/utils/cronUtils';
-import { useCronConfig } from '@/storage/config';
 
 interface ScheduledJob {
   id: string;
@@ -16,48 +13,6 @@ interface ScheduledJob {
 
 function createCronService() {
   const scheduledJobs: Map<string, ScheduledJob> = new Map();
-
-  const storage = useCronConfig();
-
-  const storeExtensionCloseTime = async (): Promise<void> => {
-    try {
-      storage.value.extensionClosedAt = new Date().toISOString();
-      console.log('[CronService] 已存储扩展关闭时间');
-    } catch (error) {
-      console.error('[CronService] 存储扩展关闭时间失败:', error);
-    }
-  };
-
-  const getExtensionCloseTime = async (): Promise<Date | null> => {
-    try {
-      const closeTimeStr = storage.value.extensionClosedAt;
-      if (closeTimeStr) {
-        const closeTime = new Date(closeTimeStr);
-        console.log('[CronService] 获取扩展关闭时间:', closeTime.toISOString());
-        return closeTime;
-      }
-      return null;
-    } catch (error) {
-      console.error('[CronService] 获取扩展关闭时间失败:', error);
-      return null;
-    }
-  };
-
-  const clearExtensionCloseTime = async (): Promise<void> => {
-    try {
-      storage.value.extensionClosedAt = null;
-      console.log('[CronService] 已清除扩展关闭时间');
-    } catch (error) {
-      console.error('[CronService] 清除扩展关闭时间失败:', error);
-    }
-  };
-
-  // 注册扩展关闭事件
-  if (browser.runtime?.onSuspend) {
-    browser.runtime.onSuspend.addListener(async () => {
-      await storeExtensionCloseTime();
-    });
-  }
 
   const scheduleRuleExecution = async (ruleId: string, timeBase?: Date): Promise<void> => {
     const rule = await getRulesService().getById(ruleId);
@@ -87,7 +42,9 @@ function createCronService() {
     console.log(
       `[CronService] 规则 ${
         rule.name
-      } (${ruleId}) 下次执行: ${nextExecution.toISOString()}，当前时间: ${new Date(now).toISOString()}，延迟: ${delay}ms`,
+      } (${ruleId}) 下次执行: ${nextExecution.toISOString()}，当前时间: ${new Date(
+        now,
+      ).toISOString()}，延迟: ${delay}ms`,
     );
 
     // 如果延迟为负数或小于1000ms，说明计算有问题，跳过调度
@@ -101,7 +58,9 @@ function createCronService() {
     // 双重检查：确保下次执行时间确实在未来
     if (nextExecution.getTime() <= now) {
       console.warn(
-        `[CronService] 规则 ${rule.name} (${ruleId}) 的下次执行时间 ${nextExecution.toISOString()} 不在未来，跳过调度`,
+        `[CronService] 规则 ${
+          rule.name
+        } (${ruleId}) 的下次执行时间 ${nextExecution.toISOString()} 不在未来，跳过调度`,
       );
       return;
     }
@@ -109,7 +68,11 @@ function createCronService() {
     // Cancel existing job if any
     await cancelRuleExecution(ruleId);
 
-    console.log(`[CronService] 创建 setTimeout，延迟 ${delay}ms，预计执行时间: ${new Date(now + delay).toISOString()}`);
+    console.log(
+      `[CronService] 创建 setTimeout，延迟 ${delay}ms，预计执行时间: ${new Date(
+        now + delay,
+      ).toISOString()}`,
+    );
     const timeoutId = setTimeout(async () => {
       const executionStartTime = new Date();
       const expectedTime = nextExecution.getTime();
@@ -139,9 +102,7 @@ function createCronService() {
 
         // 如果错过了多次执行，只执行一次补偿（避免过度执行）
         if (missedExecutions > 1) {
-          console.log(
-            `[CronService] 规则 ${rule.name} (${ruleId}) 错过了多次执行，将执行一次补偿`,
-          );
+          console.log(`[CronService] 规则 ${rule.name} (${ruleId}) 错过了多次执行，将执行一次补偿`);
         }
 
         isCompensation = true;
@@ -156,11 +117,13 @@ function createCronService() {
       // Reschedule for next run
       // 如果是补偿执行，使用预期的执行时间作为时间基点，避免无限循环
       // 如果是正常执行，使用本次执行时间作为时间基点
-      const timeBase = isCompensation ? nextExecution : new Date();
+      const timeBase = isCompensation ? nextExecution : executionStartTime;
       console.log(
         `[CronService] 重新调度规则 ${
           rule.name
-        } (${ruleId})，时间基点: ${timeBase.toISOString()}，${isCompensation ? '补偿执行模式' : '正常执行模式'}`,
+        } (${ruleId})，时间基点: ${timeBase.toISOString()}，${
+          isCompensation ? '补偿执行模式' : '正常执行模式'
+        }`,
       );
 
       await scheduleRuleExecution(ruleId, timeBase);
@@ -195,6 +158,25 @@ function createCronService() {
     }
   };
 
+  const startAllActiveRules = async (): Promise<void> => {
+    console.log('[CronService] 启动所有活跃规则...');
+    const activeRules = await getRulesService().getActiveRules();
+
+    // 执行补偿机制
+    await executeCompensationTasks(activeRules);
+
+    // 开始正常调度
+    for (const rule of activeRules) {
+      try {
+        await scheduleRuleExecution(rule.id);
+      } catch (error) {
+        console.error(`[CronService] 调度规则 ${rule.name} (${rule.id}) 失败:`, error);
+      }
+    }
+
+    console.log(`[CronService] 已启动 ${scheduledJobs.size} 个活跃规则`);
+  };
+
   const executeCompensationTasks = async (rules: Rule[]): Promise<void> => {
     console.log('[CronService] 检查补偿任务...');
 
@@ -204,12 +186,8 @@ function createCronService() {
     for (const rule of rules) {
       if (rule.status !== 'active') continue;
 
-      // 获取规则的上次执行时间
-      const lastExecutedAt = rule.lastExecutedAt;
-      if (!lastExecutedAt) continue;
-
       // 检查是否需要补偿
-      const shouldCompensate = await shouldExecuteCompensation(rule, currentTime);
+      const shouldCompensate = shouldCompensateForRule(rule, currentTime);
 
       if (shouldCompensate) {
         try {
@@ -221,9 +199,6 @@ function createCronService() {
           );
 
           compensationCount++;
-
-          // 更新规则的最后执行时间
-          await getRulesService().updateNextExecution(rule.id, currentTime);
         } catch (error) {
           console.error(`[CronService] 执行规则 ${rule.name} (${rule.id}) 补偿任务失败: `, error);
         }
@@ -237,147 +212,23 @@ function createCronService() {
     }
   };
 
-  const shouldExecuteCompensation = async (rule: Rule, currentTime: Date): Promise<boolean> => {
-    const { lastExecutedAt } = rule;
-
-    // 如果没有上次执行时间，不需要补偿
-    if (!lastExecutedAt) {
-      return false;
-    }
-
-    // 如果上次执行时间在未来，说明数据有问题，跳过
-    if (lastExecutedAt > currentTime) {
-      console.warn(`[CronService] 规则 ${rule.name} (${rule.id}) 的上次执行时间在未来，跳过补偿`);
-      return false;
-    }
-
-    // 获取扩展关闭时间
-    const extensionClosedAt = await getExtensionCloseTime();
-
-    if (extensionClosedAt) {
-      // 如果有关闭时间，计算关闭期间是否错过了执行
-      return await shouldCompensateDuringPeriod(rule, extensionClosedAt, currentTime);
-    } else {
-      // 如果没有关闭时间，基于时间窗口判断
-      const timeSinceLastExecution = currentTime.getTime() - lastExecutedAt.getTime();
-      const cronInterval = getCronInterval(rule.cron);
-
-      // 如果超过了一个周期的1.5倍，说明可能错过了执行
-      const shouldCompensate = timeSinceLastExecution > cronInterval * 1.5;
-
-      if (shouldCompensate) {
-        console.log(
-          `[CronService] 规则 ${rule.name} (${rule.id}) 距离上次执行已 ${timeSinceLastExecution}ms，超过 cron 周期 ${cronInterval}ms 的 1.5 倍，需要补偿`,
-        );
-      }
-
-      return shouldCompensate;
-    }
-  };
-
-  const shouldCompensateDuringPeriod = async (
-    rule: Rule,
-    startTime: Date,
-    endTime: Date,
-  ): Promise<boolean> => {
+  const shouldCompensateForRule = (rule: Rule, currentTime: Date): boolean => {
     const { cron, lastExecutedAt } = rule;
 
-    // 如果没有上次执行时间，不需要补偿
+    // 如果没有上次执行时间，说明是新规则或从未执行过，需要补偿
     if (!lastExecutedAt) {
-      return false;
-    }
-
-    // 计算在指定时间段内应该执行多少次
-    const expectedExecutions = calculateExpectedExecutions(
-      cron,
-      startTime,
-      endTime,
-      lastExecutedAt,
-    );
-
-    if (expectedExecutions > 0) {
-      console.log(
-        `[CronService] 规则 ${rule.name} (${
-          rule.id
-        }) 在 ${startTime.toISOString()} 到 ${endTime.toISOString()} 期间错过了 ${expectedExecutions} 次执行`,
-      );
       return true;
     }
 
-    return false;
-  };
-
-  const calculateExpectedExecutions = (
-    cronExpression: string,
-    startTime: Date,
-    endTime: Date,
-    lastExecutedBeforeStart: Date,
-  ): number => {
-    try {
-      const [minute, hour] = cronExpression.split(' ');
-      let executionCount = 0;
-      let checkTime = new Date(startTime);
-
-      // 重置时间为整点
-      checkTime.setSeconds(0);
-      checkTime.setMilliseconds(0);
-
-      // 如果是分钟级别，需要特殊处理
-      if (minute === '*' && hour === '*') {
-        // 每分钟执行
-        const minutesDiff = Math.floor((endTime.getTime() - startTime.getTime()) / (60 * 1000));
-        return minutesDiff > 0 ? 1 : 0; // 最多补偿一次
-      }
-
-      // 遍历时间段内的每一天
-      while (checkTime <= endTime) {
-        // 设置执行时间
-        if (minute !== '*') {
-          checkTime.setMinutes(parseInt(minute));
-        }
-
-        if (hour !== '*') {
-          checkTime.setHours(parseInt(hour));
-        }
-
-        // 检查这个时间点是否在时间段内，并且是在上次执行之后
-        if (checkTime >= startTime && checkTime <= endTime && checkTime > lastExecutedBeforeStart) {
-          executionCount++;
-        }
-
-        // 移动到下一天
-        checkTime.setDate(checkTime.getDate() + 1);
-        checkTime.setHours(0);
-        checkTime.setMinutes(0);
-      }
-
-      return executionCount;
-    } catch (error) {
-      console.error('计算预期执行次数时出错:', error);
-      return 0;
-    }
-  };
-
-  const startAllActiveRules = async (): Promise<void> => {
-    console.log('[CronService] 启动所有活跃规则...');
-    const activeRules = await getRulesService().getActiveRules();
-
-    // 先执行补偿机制
-    await executeCompensationTasks(activeRules);
-
-    // 清理扩展关闭时间（因为已经处理了补偿）
-    await clearExtensionCloseTime();
-
-    // 然后开始正常调度
-    for (const rule of activeRules) {
-      try {
-        await scheduleRuleExecution(rule.id);
-      } catch (error) {
-        console.error(`[CronService] 调度规则 ${rule.name} (${rule.id}) 失败:`, error);
-      }
+    // 计算从上次执行时间开始的下一个执行时间
+    const nextExecutionAfterLast = calculateNextExecution(cron, lastExecutedAt);
+    if (!nextExecutionAfterLast) {
+      return false;
     }
 
-    console.log(`[CronService] 已启动 ${scheduledJobs.size} 个活跃规则`);
+    // 如果下一个执行时间在当前时间之前，说明需要补偿
+    // 这样就简单直接地判断是否错过了执行
+    return nextExecutionAfterLast < currentTime;
   };
 
   const reinitializeCrons = async (): Promise<void> => {

@@ -35,7 +35,7 @@ export const parseCronExpression = (cronExpression: string): ParsedCron | null =
     const result: ParsedCron = {
       parts: { minute, hour, day, month, weekday },
       interval: {},
-      type: 'fixed'
+      type: 'fixed',
     };
 
     // 检查是否为间隔类型
@@ -110,19 +110,25 @@ export const calculateNextExecution = (cronExpression: string, timeBase?: Date):
     if (day.includes('*/')) {
       // 间隔格式，如 */7 表示每7天
       const interval = parseInt(day.replace('*/', ''));
-      // 从时间基点开始计算下一个执行时间
       const baseTime = timeBase || new Date();
-      const timeDiff = next.getTime() - baseTime.getTime();
-      const daysDiff = Math.floor(timeDiff / (24 * 60 * 60 * 1000));
-      const daysFromInterval = daysDiff % interval;
-      const daysToAdd = daysFromInterval === 0 ? 0 : interval - daysFromInterval;
 
-      // 如果当前时间已经超过了基点时间，需要计算下一个间隔
-      if (daysFromInterval !== 0 || next.getTime() > baseTime.getTime()) {
-        next.setDate(next.getDate() + daysToAdd);
+      // 计算从基点时间开始经过的完整天数
+      const daysSinceBase = Math.floor(
+        (next.getTime() - baseTime.getTime()) / (24 * 60 * 60 * 1000),
+      );
+
+      // 计算下一个执行点：如果已经过了interval天，就等待下一个interval周期
+      const daysToNextInterval = interval - (daysSinceBase % interval);
+
+      // 如果正好在interval点上，直接使用当前时间
+      if (daysSinceBase % interval === 0 && next.getTime() >= baseTime.getTime()) {
+        // 已经在正确的执行点上，不需要调整
+      } else {
+        // 否则添加需要的天数到达下一个执行点
+        next.setDate(next.getDate() + daysToNextInterval);
       }
 
-      // 确保时间不会倒退
+      // 确保执行时间不会在过去
       if (next.getTime() <= Date.now()) {
         next.setDate(next.getDate() + interval);
       }
