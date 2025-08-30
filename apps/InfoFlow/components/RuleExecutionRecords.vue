@@ -10,7 +10,7 @@
       <div class="flex gap-2">
         <Button
           v-if="unreadCount > 0"
-          icon="pi pi-envelope-open"
+          icon="pi pi-circle-fill"
           @click="markAllAsRead"
           :loading="loading"
           severity="secondary"
@@ -22,39 +22,13 @@
           :loading="loading"
           severity="secondary"
           size="small" />
-        <Button
-          icon="pi pi-filter"
-          @click="showFilterDialog = true"
-          severity="secondary"
-          size="small"
-          v-tooltip="'筛选'" />
-      </div>
-    </div>
-
-    <!-- Filter Summary -->
-    <div v-if="hasActiveFilters" class="mb-4 p-3 bg-blue-50 rounded-lg">
-      <div class="flex items-center justify-between">
-        <div class="flex flex-wrap gap-2">
-          <Chip
-            v-if="statusFilter"
-            :label="`状态: ${getStatusText(statusFilter)}`"
-            removable
-            @remove="statusFilter = ''"
-            size="small" />
-          <Chip
-            v-if="executionTypeFilter"
-            :label="`类型: ${getExecutionTypeText(executionTypeFilter)}`"
-            removable
-            @remove="executionTypeFilter = ''"
-            size="small" />
-          <Chip
-            v-if="dateRange.start && dateRange.end"
-            :label="`日期: ${formatDate(dateRange.start)} - ${formatDate(dateRange.end)}`"
-            removable
-            @remove="clearDateRange"
-            size="small" />
-        </div>
-        <Button label="清除筛选" @click="clearFilters" severity="secondary" size="small" text />
+        <SelectButton
+          v-model="readStatusFilter"
+          :options="readStatusOptions"
+          optionLabel="label"
+          optionValue="value"
+          :allowEmpty="false"
+          class="text-sm" />
       </div>
     </div>
 
@@ -174,10 +148,10 @@
           <template #body="slotProps">
             <div class="flex gap-1">
               <Button
-                :icon="slotProps.data.isRead ? 'pi pi-envelope-open' : 'pi pi-envelope'"
+                :icon="slotProps.data.isRead ? 'pi pi-circle' : 'pi pi-circle-fill'"
                 @click="toggleReadStatus(slotProps.data)"
                 size="small"
-                :severity="slotProps.data.isRead ? 'secondary' : 'info'"
+                :severity="slotProps.data.isRead ? 'secondary' : ''"
                 v-tooltip="slotProps.data.isRead ? '标记为未读' : '标记为已读'" />
               <Button
                 icon="pi pi-eye"
@@ -209,58 +183,6 @@
         </template>
       </DataTable>
     </div>
-
-    <!-- Filter Dialog -->
-    <Dialog v-model:visible="showFilterDialog" header="筛选执行记录" modal class="max-w-[500px]">
-      <div class="flex flex-col gap-4">
-        <div>
-          <label class="block text-sm font-medium mb-2">执行状态</label>
-          <Select
-            v-model="statusFilter"
-            :options="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="选择状态"
-            class="w-full" />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-2">执行类型</label>
-          <Select
-            v-model="executionTypeFilter"
-            :options="executionTypeOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="选择类型"
-            class="w-full" />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium mb-2">日期范围</label>
-          <div class="grid grid-cols-2 gap-2">
-            <Calendar
-              :model-value="dateRange.start"
-              @update:model-value="(value: Date | null) => dateRange.start = value"
-              placeholder="开始日期"
-              dateFormat="yy-mm-dd"
-              :showIcon="true"
-              class="w-full" />
-            <Calendar
-              :model-value="dateRange.end"
-              @update:model-value="(value: Date | null) => dateRange.end = value"
-              placeholder="结束日期"
-              dateFormat="yy-mm-dd"
-              :showIcon="true"
-              class="w-full" />
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <Button label="取消" @click="showFilterDialog = false" severity="secondary" />
-        <Button label="应用筛选" @click="applyFilters" />
-      </template>
-    </Dialog>
 
     <!-- Execution Details Dialog -->
     <Dialog v-model:visible="showDetailsDialog" header="执行详情" modal class="max-w-[800px]">
@@ -434,10 +356,10 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, reactive, computed, onMounted, watch } from 'vue';
+  import { ref, computed, onMounted, watch } from 'vue';
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
 
-const taskExecutionService = getTaskExecutionService();
+  const taskExecutionService = getTaskExecutionService();
   import { format } from 'date-fns';
   import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
 
@@ -446,8 +368,7 @@ const taskExecutionService = getTaskExecutionService();
   import DataTable from 'primevue/datatable';
   import Column from 'primevue/column';
   import Dialog from 'primevue/dialog';
-  import Select from 'primevue/select';
-  import Calendar from 'primevue/calendar';
+  import SelectButton from 'primevue/selectbutton';
   import Badge from 'primevue/badge';
   import Chip from 'primevue/chip';
 
@@ -474,12 +395,7 @@ const taskExecutionService = getTaskExecutionService();
 
   // Filter state
   const statusFilter = ref<TaskExecutionRecord['status'] | ''>('');
-  const executionTypeFilter = ref<TaskExecutionRecord['executionType'] | ''>('');
-  const dateRange = reactive({
-    start: null as Date | null,
-    end: null as Date | null,
-  });
-  const showFilterDialog = ref(false);
+  const readStatusFilter = ref<'all' | 'read' | 'unread'>('all');
 
   // Dialog state
   const showDetailsDialog = ref(false);
@@ -502,9 +418,15 @@ const taskExecutionService = getTaskExecutionService();
     { label: '触发执行', value: 'triggered' },
   ];
 
+  const readStatusOptions = [
+    { label: '全部', value: 'all' },
+    { label: '未读', value: 'unread' },
+    { label: '已读', value: 'read' },
+  ];
+
   // Computed
   const hasActiveFilters = computed(() => {
-    return statusFilter.value || executionTypeFilter.value || dateRange.start || dateRange.end;
+    return statusFilter.value || readStatusFilter.value !== 'all';
   });
 
   const unreadCount = computed(() => {
@@ -515,15 +437,16 @@ const taskExecutionService = getTaskExecutionService();
   const loadExecutionRecords = async () => {
     loading.value = true;
     try {
-      const result = await taskExecutionService.getByRuleId(props.ruleId, {
+      const result = await taskExecutionService.getPaginatedExecutionsByRuleId(props.ruleId, {
         page: currentPage.value,
         limit: pageSize.value,
         status: statusFilter.value || undefined,
-        executionType: executionTypeFilter.value || undefined,
-        startDate: dateRange.start || undefined,
-        endDate: dateRange.end || undefined,
-        sortBy: 'createdAt',
-        sortOrder: 'desc',
+        isRead:
+          readStatusFilter.value === 'unread'
+            ? 0
+            : readStatusFilter.value === 'read'
+            ? 1
+            : undefined,
       });
 
       executions.value = result.executions;
@@ -541,24 +464,28 @@ const taskExecutionService = getTaskExecutionService();
     loadExecutionRecords();
   };
 
-  const applyFilters = () => {
+  const setReadStatusFilter = (filter: 'all' | 'read' | 'unread') => {
+    readStatusFilter.value = filter;
     currentPage.value = 1;
     loadExecutionRecords();
-    showFilterDialog.value = false;
+  };
+
+  const getReadStatusText = (filter: 'all' | 'read' | 'unread') => {
+    switch (filter) {
+      case 'all':
+        return '全部';
+      case 'read':
+        return '已读';
+      case 'unread':
+        return '未读';
+      default:
+        return filter;
+    }
   };
 
   const clearFilters = () => {
     statusFilter.value = '';
-    executionTypeFilter.value = '';
-    dateRange.start = null;
-    dateRange.end = null;
-    currentPage.value = 1;
-    loadExecutionRecords();
-  };
-
-  const clearDateRange = () => {
-    dateRange.start = null;
-    dateRange.end = null;
+    readStatusFilter.value = 'all';
     currentPage.value = 1;
     loadExecutionRecords();
   };
@@ -570,7 +497,7 @@ const taskExecutionService = getTaskExecutionService();
       try {
         await taskExecutionService.markAsRead(execution.id);
         loadExecutionRecords();
-        
+
         // 通知父组件读取状态已变更
         emit('readStatusChanged', props.ruleId);
       } catch (error) {
@@ -643,7 +570,7 @@ const taskExecutionService = getTaskExecutionService();
 
       // 从服务器重新加载以确认状态
       await loadExecutionRecords();
-      
+
       // 通知父组件读取状态已变更
       emit('readStatusChanged', props.ruleId);
     } catch (error) {
@@ -655,7 +582,7 @@ const taskExecutionService = getTaskExecutionService();
     try {
       await taskExecutionService.markAllAsRead(props.ruleId);
       loadExecutionRecords();
-      
+
       // 通知父组件所有记录已标记为已读
       emit('allMarkedAsRead', props.ruleId);
     } catch (error) {
@@ -704,10 +631,6 @@ const taskExecutionService = getTaskExecutionService();
     return format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
   };
 
-  const formatDate = (date: Date | string) => {
-    return format(new Date(date), 'yyyy-MM-dd');
-  };
-
   const formatDuration = (duration: number) => {
     if (duration < 1000) {
       return `${duration}ms`;
@@ -725,11 +648,9 @@ const taskExecutionService = getTaskExecutionService();
   });
 
   // Watch for filter changes
-  watch([statusFilter, executionTypeFilter, dateRange], () => {
-    if (!showFilterDialog.value) {
-      currentPage.value = 1;
-      loadExecutionRecords();
-    }
+  watch([statusFilter, readStatusFilter], () => {
+    currentPage.value = 1;
+    loadExecutionRecords();
   });
 </script>
 

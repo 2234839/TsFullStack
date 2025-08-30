@@ -17,7 +17,7 @@ export default defineConfig({
     ],
   }),
   manifest: {
-    permissions: ['storage', 'tabs', 'notifications', 'activeTab'],
+    permissions: ['storage', 'tabs', 'notifications', 'activeTab', 'debugger'],
   },
   /** 禁止自动 import，更清晰的依赖流 */
   imports: false,

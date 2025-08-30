@@ -1,5 +1,5 @@
 import { defineProxyService } from '@webext-core/proxy-service';
-import { getDbService } from './dbService';
+import { getDbService, type TaskExecutionsTable } from './dbService';
 
 // 重新导出类型，保持兼容性
 export type { TaskExecutionRecord } from './dbService';
@@ -9,12 +9,17 @@ export type { TaskExecutionQueryOptions, PaginatedTaskExecutions } from './dbSer
 function createTaskExecutionService() {
   return {
     // 基础 CRUD 操作
-    async create(record: Omit<import('./dbService').TaskExecutionsTable, 'id' | 'createdAt' | 'updatedAt'>): Promise<import('./dbService').TaskExecutionsTable> {
+    async create(
+      record: Omit<import('./dbService').TaskExecutionsTable, 'id' | 'createdAt' | 'updatedAt'>,
+    ): Promise<import('./dbService').TaskExecutionsTable> {
       const dbService = getDbService();
       return await dbService.taskExecutions.create(record);
     },
 
-    async update(id: string, updates: Partial<import('./dbService').TaskExecutionsTable>): Promise<import('./dbService').TaskExecutionsTable | null> {
+    async update(
+      id: string,
+      updates: Partial<import('./dbService').TaskExecutionsTable>,
+    ): Promise<import('./dbService').TaskExecutionsTable | null> {
       const dbService = getDbService();
       return await dbService.taskExecutions.update(id, updates);
     },
@@ -55,12 +60,39 @@ function createTaskExecutionService() {
       return await dbService.taskExecutions.query(options);
     },
 
-    async getByRuleId(ruleId: string, options?: Omit<any, 'ruleId'>): Promise<any> {
+    async getPaginatedExecutionsByRuleId(
+      ruleId: string,
+      options?: {
+        page?: number;
+        limit?: number;
+        status?: TaskExecutionsTable['status'];
+        isRead?: 0 | 1;
+      },
+    ): Promise<{
+      executions: TaskExecutionsTable[];
+      total: number;
+      page: number;
+      limit: number;
+      totalPages: number;
+    }> {
       const dbService = getDbService();
-      return await dbService.taskExecutions.getByRuleId(ruleId, options);
+      return await dbService.taskExecutions.getPaginatedExecutionsByRuleId(ruleId, options);
     },
 
-    async getRecentExecutions(ruleId?: string, limit: number = 10): Promise<import('./dbService').TaskExecutionsTable[]> {
+    async hasUnreadExecutions(ruleId: string): Promise<boolean> {
+      const dbService = getDbService();
+      return await dbService.taskExecutions.hasUnreadExecutions(ruleId);
+    },
+
+    // 保持向后兼容性
+    async getByRuleId(ruleId: string, options?: any): Promise<any> {
+      return await this.getPaginatedExecutionsByRuleId(ruleId, options);
+    },
+
+    async getRecentExecutions(
+      ruleId?: string,
+      limit: number = 10,
+    ): Promise<import('./dbService').TaskExecutionsTable[]> {
       const dbService = getDbService();
       return await dbService.taskExecutions.getRecentExecutions(ruleId, limit);
     },
@@ -83,7 +115,12 @@ function createTaskExecutionService() {
       await dbService.taskExecutions.startExecution(id);
     },
 
-    async completeExecution(id: string, result: any, matched: 0 | 1, matchedCount?: number): Promise<void> {
+    async completeExecution(
+      id: string,
+      result: any,
+      matched: 0 | 1,
+      matchedCount?: number,
+    ): Promise<void> {
       const dbService = getDbService();
       await dbService.taskExecutions.completeExecution(id, result, matched, matchedCount);
     },
@@ -109,7 +146,12 @@ function createTaskExecutionService() {
     },
 
     // TaskExecutionManager 的额外功能
-    async createExecutionRecord(ruleId: string, ruleName: string, executionType: import('./dbService').TaskExecutionsTable['executionType'] = 'manual', triggerInfo?: string): Promise<import('./dbService').TaskExecutionsTable> {
+    async createExecutionRecord(
+      ruleId: string,
+      ruleName: string,
+      executionType: import('./dbService').TaskExecutionsTable['executionType'] = 'manual',
+      triggerInfo?: string,
+    ): Promise<import('./dbService').TaskExecutionsTable> {
       return await this.create({
         ruleId,
         ruleName,
@@ -117,16 +159,21 @@ function createTaskExecutionService() {
         matched: 0,
         executionType,
         triggerInfo,
-        isRead: 0 // 新创建的记录默认为未读
+        isRead: 0, // 新创建的记录默认为未读
       });
     },
 
-    async getExecutionTimeline(ruleId: string, days: number = 7): Promise<{
-      date: string;
-      executions: number;
-      completed: number;
-      failed: number;
-    }[]> {
+    async getExecutionTimeline(
+      ruleId: string,
+      days: number = 7,
+    ): Promise<
+      {
+        date: string;
+        executions: number;
+        completed: number;
+        failed: number;
+      }[]
+    > {
       const endDate = new Date();
       const startDate = new Date(endDate.getTime() - days * 24 * 60 * 60 * 1000);
 
@@ -134,7 +181,7 @@ function createTaskExecutionService() {
         ruleId,
         startDate,
         endDate,
-        limit: 10000
+        limit: 10000,
       });
 
       const timeline = new Map<string, { executions: number; completed: number; failed: number }>();
@@ -162,7 +209,7 @@ function createTaskExecutionService() {
 
       return Array.from(timeline.entries()).map(([date, data]) => ({
         date,
-        ...data
+        ...data,
       }));
     },
   };
