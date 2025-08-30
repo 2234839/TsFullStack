@@ -249,6 +249,25 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
 
   console.log(`[Task] Starting data collection with ${task.dataCollection.length} methods`);
 
+  // First round of data collection
+  for (let i = 0; i < task.dataCollection.length; i++) {
+    const method = task.dataCollection[i];
+    const collectionKey = `collection_${i}`;
+
+    result.collections![collectionKey] = await executeCollectionMethod(
+      method,
+      collectionKey,
+      maxWaitTime,
+      POLL_INTERVAL,
+      startTime
+    );
+  }
+
+  // Wait 3 seconds before second collection to prevent missing data
+  console.log(`[Collection] Waiting 3 seconds before second collection round`);
+  await delay(3000);
+
+  // Second round of data collection
   for (let i = 0; i < task.dataCollection.length; i++) {
     const method = task.dataCollection[i];
     const collectionKey = `collection_${i}`;
