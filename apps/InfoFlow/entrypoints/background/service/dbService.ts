@@ -846,6 +846,18 @@ const taskExecutionsService = {
     return executions;
   },
 
+  async getLastSuccessfulExecution(ruleId: string): Promise<TaskExecutionsTable | null> {
+    // 使用复合索引 [ruleId+status+createdAt] 查询最后一次成功执行
+    const lastExecution = await db.taskExecutions
+      .where('[ruleId+status+createdAt]')
+      .between([ruleId, 'completed', new Date(0)], [ruleId, 'completed', new Date(9999, 11, 31)])
+      .reverse()
+      .limit(1)
+      .first();
+
+    return lastExecution || null;
+  },
+
   async getExecutionStats(ruleId?: string): Promise<{
     total: number;
     completed: number;
