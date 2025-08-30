@@ -705,12 +705,13 @@ return document.title;"
         limit: config.value.rulesPageSize,
         status: statusFilter.value || undefined,
         search: searchQuery.value || undefined,
-        sortBy: 'createdAt',
+        sortBy: 'unreadFirst', // 使用特殊的排序方式，将未读的排在前面
         sortOrder: 'desc',
       });
 
       // 检查每个规则的未读执行记录状态
       await checkRulesUnreadStatus();
+      
       return {
         rules: result.rules,
         total: result.total,
