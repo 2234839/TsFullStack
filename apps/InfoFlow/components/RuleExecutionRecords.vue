@@ -259,7 +259,7 @@
         <template #expansion="slotProps">
           <div class="bg-gray-50">
             <ExecutionDetails
-              :execution="getExecutionWithChanges(slotProps.data)"
+              :execution="getExecutionWithChangesLocal(slotProps.data)"
               :show-comparison="!!getPreviousExecution(slotProps.data)"
               :previous-execution="getPreviousExecution(slotProps.data)"
               :comparison-filter="config.comparisonFilter" />
@@ -308,6 +308,7 @@
   import { format } from 'date-fns';
   import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
   import { useInfoFlowConfig } from '@/storage/config';
+  import { getExecutionWithChanges } from '@/utils/changeDetection';
 
   // PrimeVue components
   import Button from 'primevue/button';
@@ -586,7 +587,7 @@
     }
   };
 
-  // Simplified comparison functions
+  // 获取前一次执行记录
   const getPreviousExecution = (
     currentExecution: TaskExecutionRecord,
   ): TaskExecutionRecord | null => {
@@ -613,104 +614,15 @@
     return previousExecutions[0];
   };
 
-  // 计算两个collection之间的变化
-  const calculateChanges = (
-    currentItems: any[],
-    previousItems: any[],
-  ): any[] => {
-    return currentItems.map((currentItem, index) => {
-      // 在前一次执行中查找相同的item
-      const previousIndex = previousItems.findIndex((prevItem) =>
-        prevItem.value === currentItem.value &&
-        prevItem.type === currentItem.type &&
-        prevItem.selector === currentItem.selector
-      );
-
-      let changeType = 'added'; // 默认为新增
-      let previousIndexInPrevious = -1;
-
-      if (previousIndex !== -1) {
-        // 找到了相同的item，检查位置是否变化
-        if (previousIndex === index) {
-          changeType = 'unchanged'; // 位置未变化
-        } else {
-          changeType = 'moved'; // 位置变化
-        }
-        previousIndexInPrevious = previousIndex;
-      }
-
-      return {
-        ...currentItem,
-        changeType,
-        currentIndex: index,
-        previousIndex: previousIndexInPrevious,
-      };
-    });
-  };
-
   // 为执行结果添加变化信息
-  const getExecutionWithChanges = (execution: TaskExecutionRecord): TaskExecutionRecord => {
-    if (!execution.result?.collections) {
-      return execution;
-    }
-
+  const getExecutionWithChangesLocal = (execution: TaskExecutionRecord): TaskExecutionRecord => {
     const previousExecution = getPreviousExecution(execution);
-    if (!previousExecution?.result?.collections) {
-      // 如果没有前一次执行，所有item都标记为新增
-      const collectionsWithChanges: Record<string, any> = {};
-      Object.keys(execution.result.collections).forEach(key => {
-        const collection = execution.result!.collections[key];
-        collectionsWithChanges[key] = {
-          ...collection,
-          items: collection.items.map((item: any, index: number) => ({
-            ...item,
-            changeType: 'added',
-            currentIndex: index,
-            previousIndex: -1,
-          })),
-        };
-      });
-
-      return {
-        ...execution,
-        result: {
-          ...execution.result,
-          collections: collectionsWithChanges,
-        },
-      };
-    }
-
-    // 有前一次执行，计算变化
-    const collectionsWithChanges: Record<string, any> = {};
-    Object.keys(execution.result.collections).forEach(key => {
-      const currentCollection = execution.result!.collections[key];
-      const previousCollection = previousExecution.result!.collections[key];
-
-      if (previousCollection?.items) {
-        collectionsWithChanges[key] = {
-          ...currentCollection,
-          items: calculateChanges(currentCollection.items, previousCollection.items),
-        };
-      } else {
-        // 前一次执行没有这个collection，所有item都标记为新增
-        collectionsWithChanges[key] = {
-          ...currentCollection,
-          items: currentCollection.items.map((item: any, index: number) => ({
-            ...item,
-            changeType: 'added',
-            currentIndex: index,
-            previousIndex: -1,
-          })),
-        };
-      }
-    });
-
+    const executionWithChanges = getExecutionWithChanges(execution, previousExecution);
+    
+    // 返回完整的 TaskExecutionRecord 对象，但替换 result 为带变化信息的版本
     return {
       ...execution,
-      result: {
-        ...execution.result,
-        collections: collectionsWithChanges,
-      },
+      result: executionWithChanges,
     };
   };
 
