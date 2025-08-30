@@ -150,6 +150,11 @@ function createTaskExecutionService() {
       return await dbService.taskExecutions.cleanupOldRecords(daysToKeep);
     },
 
+    async getTotalUnreadCount(): Promise<number> {
+      const dbService = getDbService();
+      return await dbService.taskExecutions.getTotalUnreadCount();
+    },
+
     async reset(): Promise<void> {
       const dbService = getDbService();
       await dbService.reset();

@@ -1119,6 +1119,10 @@ const taskExecutionsService = {
 
     return deletedCount;
   },
+
+  async getTotalUnreadCount(): Promise<number> {
+    return await db.taskExecutions.where('isRead').equals(0).count();
+  },
 };
 
 // 通用数据库操作

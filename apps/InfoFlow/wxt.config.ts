@@ -18,6 +18,9 @@ export default defineConfig({
   }),
   manifest: {
     permissions: ['storage', 'tabs', 'notifications', 'activeTab', 'debugger'],
+    action: {
+      default_popup: undefined, // 禁用popup，点击直接打开options
+    },
   },
   /** 禁止自动 import，更清晰的依赖流 */
   imports: false,

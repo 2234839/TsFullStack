@@ -3,8 +3,8 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800">规则管理</h1>
-        <p class="text-gray-600">管理您的自动化任务规则</p>
+        <h1 class="text-2xl font-bold text-gray-800">网页信息订阅管理</h1>
+        <p class="text-gray-600">管理您的自动化信息订阅规则</p>
         <div class="mt-2 flex items-center gap-2">
           <ToggleSwitch v-model="config.autoMarkAsRead" inputId="auto-read-switch" />
           <label for="auto-read-switch" class="text-sm text-gray-600 cursor-pointer">
