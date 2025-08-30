@@ -246,7 +246,7 @@
 
         <!-- Row Expansion Template -->
         <template #expansion="slotProps">
-          <div class="bg-gray-50 p-4 border-t border-gray-200">
+          <div class="bg-gray-50">
             <ExecutionDetails
               :execution="slotProps.data"
               :show-comparison="!!getPreviousExecution(slotProps.data)"
@@ -262,7 +262,6 @@
         </template>
       </DataTable>
     </div>
-
 
     <!-- Delete Confirmation Dialog -->
     <Dialog v-model:visible="showDeleteDialog" header="确认删除" modal class="max-w-[400px]">
@@ -411,10 +410,6 @@
     loadExecutionRecords();
   };
 
-
-
-
-
   const toggleExecutionDetails = async (execution: TaskExecutionRecord) => {
     const currentExpandedState = expandedRows.value[execution.id] || false;
     const shouldExpand = !currentExpandedState;
@@ -424,6 +419,14 @@
     if (!isRead) {
       try {
         await taskExecutionService.markAsRead(execution.id);
+
+        // 如果当前筛选器是"未读"，自动切换到"全部"以便用户能看到刚标记为已读的消息
+        if (readStatusFilter.value === 'unread') {
+          readStatusFilter.value = 'all';
+        }
+
+        // 重新加载数据以更新已读状态
+        await loadExecutionRecords();
         // 通知父组件读取状态已变更
         emit('readStatusChanged', props.ruleId);
       } catch (error) {
@@ -434,10 +437,10 @@
     // 切换展开状态 - 使用 v-model:expandedRows 的方式
     expandedRows.value = {
       ...expandedRows.value,
-      [execution.id]: shouldExpand
+      [execution.id]: shouldExpand,
     };
-    if(!shouldExpand){
-      delete expandedRows.value[execution.id]
+    if (!shouldExpand) {
+      delete expandedRows.value[execution.id];
     }
   };
 
@@ -533,8 +536,6 @@
     }
   };
 
-
-
   const getRowStyle = (data: TaskExecutionRecord) => {
     const isRead = data.isRead ?? 0; // 如果 undefined，默认为 0（未读）
     if (isRead) {
@@ -577,8 +578,10 @@
   };
 
   // Simplified comparison functions
-  const getPreviousExecution = (currentExecution: TaskExecutionRecord): TaskExecutionRecord | null => {
-    const currentIndex = executions.value.findIndex(exec => exec.id === currentExecution.id);
+  const getPreviousExecution = (
+    currentExecution: TaskExecutionRecord,
+  ): TaskExecutionRecord | null => {
+    const currentIndex = executions.value.findIndex((exec) => exec.id === currentExecution.id);
     if (currentIndex <= 0) return null;
 
     // Find the previous completed execution
