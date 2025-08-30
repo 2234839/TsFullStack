@@ -42,10 +42,13 @@
                   <span
                     :class="[
                       'inline-flex items-center justify-center w-6! h-6 rounded-full text-xs font-medium',
-                      item.changeType === 'added' ? 'bg-green-100 text-green-700' :
-                      item.changeType === 'removed' ? 'bg-red-100 text-red-700' :
-                      item.changeType === 'moved' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-gray-100 text-gray-700'
+                      item.changeType === 'added'
+                        ? 'bg-green-100 text-green-700'
+                        : item.changeType === 'removed'
+                        ? 'bg-red-100 text-red-700'
+                        : item.changeType === 'moved'
+                        ? 'bg-yellow-100 text-yellow-700'
+                        : 'bg-gray-100 text-gray-700',
                     ]">
                     {{ index + 1 }}
                   </span>
@@ -74,7 +77,7 @@
                 <div
                   v-if="shouldShowItem(item.changeType)"
                   class="flex items-start gap-2 pb-1 rounded border-b border-sky-200">
-                  <div v-html="item.value" />
+                  <div v-html="getProcessedHtml(item)" />
                 </div>
               </div>
             </div>
@@ -105,6 +108,7 @@
 <script setup lang="ts">
   import { format } from 'date-fns';
   import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
+  import type { ItemWithChanges } from '@/utils/changeDetection';
 
   interface Props {
     execution: TaskExecutionRecord;
@@ -159,5 +163,72 @@
       default:
         return true;
     }
+  };
+
+  // 将相对URL转换为绝对URL
+  const convertRelativeUrls = (html: string, baseUrl: string): string => {
+    if (!html || !baseUrl) return html;
+
+    try {
+      // 创建一个临时DOM元素来解析HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+
+      // 处理所有a标签的href属性
+      const links = tempDiv.querySelectorAll('a');
+      links.forEach((link) => {
+        // 添加蓝色链接样式
+        link.style.color = '#3b82f6';
+        link.style.textDecoration = 'underline';
+        link.style.textDecorationColor = '#3b82f6';
+        link.style.textDecorationThickness = '1px';
+        link.style.textUnderlineOffset = '2px';
+
+        // 添加hover效果
+        link.style.cursor = 'pointer';
+
+        const href = link.getAttribute('href');
+        if (
+          href &&
+          !href.startsWith('http') &&
+          !href.startsWith('#') &&
+          !href.startsWith('mailto:') &&
+          !href.startsWith('tel:')
+        ) {
+          try {
+            // 使用URL API解析相对路径
+            const absoluteUrl = new URL(href, baseUrl).href;
+            link.setAttribute('href', absoluteUrl);
+          } catch (error) {
+            console.warn('Failed to convert relative URL:', href, error);
+          }
+        }
+      });
+
+      // 处理所有img标签的src属性
+      const images = tempDiv.querySelectorAll('img[src]');
+      images.forEach((img) => {
+        const src = img.getAttribute('src');
+        if (src && !src.startsWith('http') && !src.startsWith('data:')) {
+          try {
+            const absoluteUrl = new URL(src, baseUrl).href;
+            img.setAttribute('src', absoluteUrl);
+          } catch (error) {
+            console.warn('Failed to convert relative image URL:', src, error);
+          }
+        }
+      });
+
+      return tempDiv.innerHTML;
+    } catch (error) {
+      console.error('Error converting relative URLs:', error);
+      return html;
+    }
+  };
+
+  // 获取处理后的HTML内容
+  const getProcessedHtml = (item: ItemWithChanges) => {
+    const baseUrl = props.execution.result?.url || '';
+    return convertRelativeUrls(item.value, baseUrl);
   };
 </script>
