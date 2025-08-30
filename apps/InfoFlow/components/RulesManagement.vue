@@ -126,13 +126,12 @@
                     下次: {{ formatDate(slotProps.data.nextExecutionAt) }}
                   </div>
                   <div class="w-full">
-                    <ProgressBar
+                    <CustomProgressBar
                       :value="
                         getExecutionProgress(slotProps.data.nextExecutionAt, slotProps.data.cron)
                       "
-                      class="h-2 w-full">
-                      <span> {{ getCountdownTime(slotProps.data.nextExecutionAt) }}</span>
-                    </ProgressBar>
+                      :text="getCountdownTime(slotProps.data.nextExecutionAt)"
+                      class="h-2 w-full" />
                   </div>
                 </div>
                 <div v-else class="text-xs text-gray-400">未调度</div>
@@ -519,7 +518,7 @@ return document.title;"
   import AccordionPanel from 'primevue/accordionpanel';
   import AccordionHeader from 'primevue/accordionheader';
   import AccordionContent from 'primevue/accordioncontent';
-  import ProgressBar from 'primevue/progressbar';
+  import CustomProgressBar from './CustomProgressBar.vue';
   import Button from 'primevue/button';
   import Chip from 'primevue/chip';
   import InputChips from 'primevue/inputchips';
