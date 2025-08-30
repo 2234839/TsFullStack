@@ -488,9 +488,10 @@ return document.title;"
 
 <script setup lang="ts">
   import { getRulesService } from '@/entrypoints/background/service/rulesService';
+  import { getDbService } from '@/entrypoints/background/service/dbService';
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
   import { useNow } from '@vueuse/core';
-  import { onMounted, reactive, ref, watch, computed } from 'vue';
+  import { onMounted, reactive, ref, watch } from 'vue';
   import { getCronInterval, formatCountdown } from '@/utils/cronUtils';
   import { browser } from '#imports';
   import { EVENT_TYPES } from '@/constants/events';
@@ -1177,10 +1178,13 @@ return document.title;"
           throw new Error('无效的规则文件格式');
         }
 
-        // Add temporary IDs for selection purposes
+        // Preserve original IDs for selection purposes
         importPreview.value = data.rules.map((rule: any, index: number) => ({
           ...rule,
-          id: rule.id || `import-${index}`,
+          // Ensure every rule has an ID for selection
+          id: rule.id,
+          // Store original index for fallback matching
+          originalIndex: index,
         }));
       } catch (error) {
         console.error('Failed to parse JSON file:', error);
@@ -1225,18 +1229,26 @@ return document.title;"
             throw new Error('无效的规则文件格式');
           }
 
+          console.log('[Import] 导入的规则数据:', data.rules.map((r: any) => ({ id: r.id, name: r.name })));
+
+          // 获取当前数据库中的所有规则用于调试
+          const currentRules = await rulesService.getAll();
+          console.log('[Import] 当前数据库中的规则:', currentRules.map((r: any) => ({ id: r.id, name: r.name })));
+
           let successCount = 0;
           let skipCount = 0;
 
           // Only import selected rules
-          const selectedRules = data.rules.filter((rule: any, index: number) => {
-            return selectedRuleIds.includes(`import-${index}`) || selectedRuleIds.includes(rule.id);
+          const selectedRules = data.rules.filter((rule: any) => {
+            // 检查是否通过原始ID选中
+            return selectedRuleIds.includes(rule.id);
           });
 
           for (const rule of selectedRules) {
             try {
               // Clean up the rule data for import
               const cleanRule = {
+                id: rule.id, // 保留原始ID用于覆盖检查
                 name: rule.name,
                 description: rule.description || '',
                 cron: rule.cron,
@@ -1255,7 +1267,29 @@ return document.title;"
                 continue;
               }
 
-              await rulesService.createRule(cleanRule);
+              // 检查是否已存在相同ID的规则
+              const existingRule = await rulesService.getById(rule.id);
+              console.log(`[Import] 检查规则 ${rule.name} (${rule.id}):`, existingRule ? '找到现有规则' : '未找到现有规则');
+
+              if (existingRule) {
+                // 如果存在相同ID的规则，则更新它
+                const { id, ...ruleData } = cleanRule; // 移除id字段，避免冲突
+                await rulesService.updateRule(rule.id, ruleData);
+                console.log(`[Import] 覆盖现有规则: ${rule.name} (${rule.id})`);
+              } else {
+                // 如果不存在，则创建新规则，但保持原有ID
+                // 直接使用数据库服务创建，避免服务层自动生成ID
+                const dbService = getDbService();
+                const newRule: any = {
+                  ...cleanRule,
+                  createdAt: new Date(),
+                  updatedAt: new Date(),
+                  executionCount: 0,
+                };
+                await dbService.rules.createWithId(newRule);
+                console.log(`[Import] 创建新规则并保持ID: ${rule.name} (${rule.id})`);
+              }
+
               successCount++;
             } catch (error) {
               console.error('Failed to import rule:', rule.name, error);
@@ -1272,7 +1306,7 @@ return document.title;"
           toast.add({
             severity: 'success',
             summary: '导入完成',
-            detail: `成功导入 ${successCount} 条规则，跳过 ${skipCount} 条规则`,
+            detail: `成功处理 ${successCount} 条规则（覆盖已有规则，跳过 ${skipCount} 条规则）`,
             life: 5000,
           });
         } catch (error) {

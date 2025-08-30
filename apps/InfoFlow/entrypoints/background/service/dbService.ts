@@ -233,6 +233,17 @@ const rulesService = {
     return newRule;
   },
 
+  async createWithId(rule: RulesTable): Promise<RulesTable> {
+    const newRule: RulesTable = {
+      ...rule,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await db.rules.add(newRule);
+    return newRule;
+  },
+
   async update(id: string, updates: Partial<RulesTable>): Promise<RulesTable | null> {
     const existing = await db.rules.get(id);
     if (!existing) return null;
@@ -870,7 +881,7 @@ const taskExecutionsService = {
     // 如果最新的一条不是要排除的，那就是上一次执行
     // 如果最新的是要排除的，那么第二条就是上一次执行
     const previousExecution = executions.find(exec => exec.id !== excludeExecutionId);
-    
+
     return previousExecution || null;
   },
 
