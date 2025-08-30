@@ -115,13 +115,19 @@
             </template>
           </Column>
 
-          <Column field="cron" header="执行计划" class="w-[120px] whitespace-nowrap">
+          <Column field="cron" header="执行计划" class="w-[180px] whitespace-nowrap">
             <template #body="slotProps">
               <div class="text-sm">
                 <div>{{ slotProps.data.cron }}</div>
-                <div v-if="slotProps.data.nextExecutionAt" class="text-xs text-gray-500">
+                <div v-if="slotProps.data.nextExecutionAt" class="text-xs text-gray-500 mb-1">
                   下次: {{ formatDate(slotProps.data.nextExecutionAt) }}
                 </div>
+                <div v-if="slotProps.data.nextExecutionAt" class="w-full">
+                  <ProgressBar
+                    :value="getExecutionProgress(slotProps.data.nextExecutionAt, slotProps.data.cron)"
+                    class="h-2 w-full" />
+                </div>
+                <div v-else class="text-xs text-gray-400">未调度</div>
               </div>
             </template>
           </Column>
@@ -420,10 +426,13 @@ return document.title;"
 <script setup lang="ts">
   import { getRulesService } from '@/entrypoints/background/service/rulesService';
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
+  import { useNow } from '@vueuse/core';
   import { onMounted, reactive, ref, watch } from 'vue';
+  import { getCronInterval } from '@/utils/cronUtils';
 
   const taskExecutionService = getTaskExecutionService();
   const rulesService = getRulesService();
+  const now = useNow();
 
   // Helper functions
   const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
@@ -437,6 +446,56 @@ return document.title;"
     }
   };
 
+  // 计算执行进度（基于cron表达式的实际间隔）
+  const getExecutionProgress = (nextExecutionAt: string, cronExpression?: string): number => {
+    try {
+      const nextTime = new Date(nextExecutionAt);
+      const currentTime = now.value;
+
+      // 如果下次执行时间已经过去，返回100
+      if (nextTime <= currentTime) {
+        return 100;
+      }
+
+      // 如果没有提供cron表达式，使用默认的1天间隔
+      const interval = cronExpression ? getCronInterval(cronExpression) : 24 * 60 * 60 * 1000;
+
+      // 计算本次周期的开始时间
+      const cycleStartTime = new Date(nextTime.getTime() - interval);
+
+      // 如果当前时间在周期开始时间之前，说明计算有误
+      if (currentTime < cycleStartTime) {
+        return 0;
+      }
+
+      // 计算进度
+      const elapsed = currentTime.getTime() - cycleStartTime.getTime();
+      const progress = (elapsed / interval) * 100;
+
+      const finalProgress = Math.round(Math.min(100, Math.max(0, progress)));
+
+      // 调试日志
+      if (finalProgress > 80) {
+        console.log(
+          '[进度条调试] 进度:',
+          finalProgress,
+          '%',
+          '间隔:',
+          Math.round(interval / 1000),
+          '秒',
+          '已用时间:',
+          Math.round(elapsed / 1000),
+          '秒',
+        );
+      }
+
+      return finalProgress;
+    } catch (error) {
+      console.error('Error calculating execution progress:', error);
+      return 0;
+    }
+  };
+
   import type { Rule } from '@/entrypoints/background/service/rulesService';
   import { format } from 'date-fns';
   import RuleExecutionRecords from './RuleExecutionRecords.vue';
@@ -447,6 +506,7 @@ return document.title;"
   import AccordionPanel from 'primevue/accordionpanel';
   import AccordionHeader from 'primevue/accordionheader';
   import AccordionContent from 'primevue/accordioncontent';
+  import ProgressBar from 'primevue/progressbar';
   import Button from 'primevue/button';
   import Chip from 'primevue/chip';
   import InputChips from 'primevue/inputchips';
