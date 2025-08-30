@@ -96,7 +96,6 @@ function createRulesService() {
       description: string;
       cron: string;
       taskConfig: any;
-      tags?: string[];
       priority?: number;
     }): Promise<RulesTable> {
       return await this.create({

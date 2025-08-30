@@ -19,7 +19,6 @@ export interface RulesTable {
   lastExecutedAt?: Date;
   nextExecutionAt?: Date;
   executionCount: number;
-  tags?: string[];
   priority?: number;
 }
 
@@ -29,7 +28,6 @@ export interface RuleQueryOptions {
   page?: number;
   limit?: number;
   status?: Rule['status'];
-  tags?: string[];
   search?: string;
   sortBy?: 'createdAt' | 'updatedAt' | 'lastExecutedAt' | 'priority' | 'name';
   sortOrder?: 'asc' | 'desc';
@@ -130,7 +128,6 @@ class InfoFlowDatabase extends Dexie {
         lastExecutedAt,
         nextExecutionAt,
         executionCount,
-        tags,
         priority,
         [status+createdAt],
         [status+priority],
@@ -265,7 +262,6 @@ const rulesService = {
       page = 1,
       limit = 20,
       status,
-      tags,
       search,
       sortBy = 'createdAt',
       sortOrder = 'desc',
@@ -320,13 +316,6 @@ const rulesService = {
 
     // 应用额外的过滤条件
     let finalQuery = baseQuery;
-
-    if (tags && tags.length > 0) {
-      finalQuery = finalQuery.filter((item) => {
-        if (!item.tags || item.tags.length === 0) return false;
-        return tags.every((tag) => item.tags!.includes(tag));
-      });
-    }
 
     if (search) {
       const searchLower = search.toLowerCase();
