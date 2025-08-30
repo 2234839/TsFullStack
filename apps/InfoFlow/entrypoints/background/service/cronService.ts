@@ -89,7 +89,7 @@ function createCronService() {
         rule.name
       } (${ruleId}) 下次执行: ${nextExecution.toISOString()}，当前时间: ${new Date(now).toISOString()}，延迟: ${delay}ms`,
     );
-    
+
     // 如果延迟为负数或小于1000ms，说明计算有问题，跳过调度
     if (delay < 1000) {
       console.warn(
@@ -115,35 +115,55 @@ function createCronService() {
       const expectedTime = nextExecution.getTime();
       const actualTime = executionStartTime.getTime();
       const timeDiff = Math.abs(actualTime - expectedTime);
-      
+
       console.log(
         `[CronService] setTimeout 触发执行规则 ${
           rule.name
         } (${ruleId})，时间: ${executionStartTime.toISOString()}，预计时间: ${nextExecution.toISOString()}，时间差: ${timeDiff}ms`,
       );
-      
-      // 安全检查：如果执行时间与预期时间相差超过5秒，说明可能有问题，跳过执行
+
+      // 如果执行时间与预期时间相差超过5秒，说明可能有问题，进行补偿执行
+      let isCompensation = false;
       if (timeDiff > 5000) {
         console.warn(
-          `[CronService] 规则 ${rule.name} (${ruleId}) 执行时间与预期相差 ${timeDiff}ms，跳过执行`,
+          `[CronService] 规则 ${rule.name} (${ruleId}) 执行时间与预期相差 ${timeDiff}ms，进行补偿执行`,
         );
-        return;
+
+        // 计算错过的执行次数，如果超过阈值则只执行一次
+        const cronInterval = getCronInterval(rule.cron);
+        const missedExecutions = Math.floor(timeDiff / cronInterval);
+
+        console.log(
+          `[CronService] 规则 ${rule.name} (${ruleId}) 错过了大约 ${missedExecutions} 次执行，cron间隔: ${cronInterval}ms`,
+        );
+
+        // 如果错过了多次执行，只执行一次补偿（避免过度执行）
+        if (missedExecutions > 1) {
+          console.log(
+            `[CronService] 规则 ${rule.name} (${ruleId}) 错过了多次执行，将执行一次补偿`,
+          );
+        }
+
+        isCompensation = true;
       }
+
       await executeRuleLogic(
         rule,
         'scheduled',
         `Scheduled execution at ${executionStartTime.toISOString()}`,
       );
 
-      // Reschedule for next run,使用本次执行时间作为新的时间基点
-      const executionTime = new Date();
+      // Reschedule for next run
+      // 如果是补偿执行，使用预期的执行时间作为时间基点，避免无限循环
+      // 如果是正常执行，使用本次执行时间作为时间基点
+      const timeBase = isCompensation ? nextExecution : new Date();
       console.log(
         `[CronService] 重新调度规则 ${
           rule.name
-        } (${ruleId})，时间基点: ${executionTime.toISOString()}`,
+        } (${ruleId})，时间基点: ${timeBase.toISOString()}，${isCompensation ? '补偿执行模式' : '正常执行模式'}`,
       );
-      
-      await scheduleRuleExecution(ruleId, executionTime);
+
+      await scheduleRuleExecution(ruleId, timeBase);
     }, delay);
 
     const job: ScheduledJob = {

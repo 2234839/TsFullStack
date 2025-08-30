@@ -90,7 +90,7 @@
       <div>
         <DataTable
           :value="rules.state.value.rules"
-          :loading="rules.isLoading.value"
+          :loading="userActionLoading"
           :paginator="true"
           :rows="config.rulesPageSize"
           :totalRecords="rules.state.value.total"
@@ -619,6 +619,9 @@ return document.title;"
   const searchQuery = ref('');
   const statusFilter = ref<'active' | 'inactive' | 'paused' | ''>('');
 
+  // 用户主动操作的loading状态
+  const userActionLoading = ref(false);
+
   // Statistics
   const stats = ref({
     total: 0,
@@ -711,7 +714,7 @@ return document.title;"
 
       // 检查每个规则的未读执行记录状态
       await checkRulesUnreadStatus();
-      
+
       return {
         rules: result.rules,
         total: result.total,
@@ -766,7 +769,10 @@ return document.title;"
   const handlePageChange = (event: any) => {
     currentPage.value = event.page + 1;
     config.value.rulesPageSize = event.rows;
-    rules.execute();
+    userActionLoading.value = true;
+    rules.execute().finally(() => {
+      userActionLoading.value = false;
+    });
   };
 
   const getRowStyle = (rule: Rule) => {
@@ -789,19 +795,62 @@ return document.title;"
 
   const handleSearch = () => {
     currentPage.value = 1;
-    rules.execute();
+    userActionLoading.value = true;
+    rules.execute().finally(() => {
+      userActionLoading.value = false;
+    });
   };
 
   const handleFilterChange = () => {
     currentPage.value = 1;
-    rules.execute();
+    userActionLoading.value = true;
+    rules.execute().finally(() => {
+      userActionLoading.value = false;
+    });
   };
 
   const clearFilters = () => {
     searchQuery.value = '';
     statusFilter.value = '';
     currentPage.value = 1;
-    rules.execute();
+    userActionLoading.value = true;
+    rules.execute().finally(() => {
+      userActionLoading.value = false;
+    });
+  };
+
+  // 静默更新规则数据，不显示loading，保持用户操作状态
+  const silentUpdateRules = async () => {
+    try {
+      // 保存当前的展开状态
+      const currentExpandedRows = { ...expandedRows.value };
+
+      // 获取最新的数据
+      const result = await rulesService.query({
+        page: currentPage.value,
+        limit: config.value.rulesPageSize,
+        status: statusFilter.value || undefined,
+        search: searchQuery.value || undefined,
+        sortBy: 'unreadFirst',
+        sortOrder: 'desc',
+      });
+
+      // 检查每个规则的未读执行记录状态
+      await checkRulesUnreadStatus();
+
+      // 直接更新rules数据，不触发loading状态
+      rules.state.value = {
+        rules: result.rules,
+        total: result.total,
+      };
+
+      // 恢复展开状态
+      expandedRows.value = currentExpandedRows;
+
+      console.log('[RulesManagement] 静默更新完成');
+    } catch (error) {
+      console.error('[RulesManagement] 静默更新失败:', error);
+    }
   };
 
   const resetForm = () => {
@@ -1068,8 +1117,8 @@ return document.title;"
       browser.runtime.onMessage.addListener((message: any) => {
         if (message.type === EVENT_TYPES.RULE_EXECUTION_COMPLETED) {
           console.log('[RulesManagement] 收到规则执行完成事件:', message.payload);
-          // 刷新规则列表和统计信息
-          rules.execute();
+          // 静默更新数据，不显示loading，保持用户操作状态
+          silentUpdateRules();
           loadStats();
           loadAllRules();
         }
