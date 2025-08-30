@@ -6,7 +6,18 @@ import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import App from './content/contentApp.vue';
 import { ConfirmationService, ToastService } from 'primevue';
-import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult } from '@/services/InfoFlowGet/messageProtocol';
+import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult, type CollectionItem, type CollectionResult } from '@/services/InfoFlowGet/messageProtocol';
+
+// =============================================================================
+// Utility Functions
+// =============================================================================
+
+function getOuterHTML(element: any): string {
+  if (element && typeof element.outerHTML === 'string') {
+    return element.outerHTML;
+  }
+  return String(element);
+}
 
 // =============================================================================
 // Configuration Constants
@@ -171,11 +182,10 @@ async function executeTiming(timing: any): Promise<void> {
  */
 async function executeCollectionMethod(
   method: any,
-  collectionKey: string,
   maxWaitTime: number,
   pollInterval: number,
   startTime: number
-): Promise<any[]> {
+): Promise<CollectionResult> {
   try {
     console.log(`[Collection] Executing ${method.type} method:`, method);
 
@@ -184,28 +194,72 @@ async function executeCollectionMethod(
 
       if (result.success) {
         console.log(`[Collection] CSS collected ${result.data.length} items after ${result.attempts} attempts`);
-        return result.data;
+        
+        // 转换为CollectionItem格式
+        const items: CollectionItem[] = result.data.map((item: any) => ({
+          type: method.attribute ? 'attribute' : 'text',
+          selector: method.selector,
+          attribute: method.attribute,
+          value: item,
+          html: method.collectHtml !== false ? getOuterHTML(item) : undefined,
+          timestamp: new Date().toISOString()
+        }));
+        
+        return {
+          items,
+          timestamp: new Date().toISOString(),
+          executionTime: Date.now() - startTime
+        };
       } else {
         console.warn(`[Collection] CSS no data found after ${result.attempts} attempts`);
-        return [];
+        return {
+          items: [],
+          timestamp: new Date().toISOString(),
+          executionTime: Date.now() - startTime
+        };
       }
     } else if (method.type === 'js') {
       const result = await collectJSData(method, maxWaitTime, pollInterval, startTime);
 
       if (result.success) {
         console.log(`[Collection] JS completed with result after ${result.attempts} attempts`);
-        return Array.isArray(result.data) ? result.data : [result.data];
+        
+        // 转换为CollectionItem格式
+        const items: CollectionItem[] = (Array.isArray(result.data) ? result.data : [result.data]).map((item: any) => ({
+          type: 'js',
+          value: item,
+          html: method.collectHtml !== false ? typeof item === 'string' ? item : JSON.stringify(item) : undefined,
+          timestamp: new Date().toISOString()
+        }));
+        
+        return {
+          items,
+          timestamp: new Date().toISOString(),
+          executionTime: Date.now() - startTime
+        };
       } else {
         console.warn(`[Collection] JS no valid result after ${result.attempts} attempts`);
-        return [];
+        return {
+          items: [],
+          timestamp: new Date().toISOString(),
+          executionTime: Date.now() - startTime
+        };
       }
     } else {
       console.warn(`[Collection] Unknown method type: ${method.type}`);
-      return [];
+      return {
+        items: [],
+        timestamp: new Date().toISOString(),
+        executionTime: Date.now() - startTime
+      };
     }
   } catch (error) {
     console.error(`[Collection] Error in ${method.type} method:`, error);
-    return [{ error: error instanceof Error ? error.message : String(error) }];
+    return {
+      items: [{ type: 'error', value: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() }],
+      timestamp: new Date().toISOString(),
+      executionTime: Date.now() - startTime
+    };
   }
 }
 
@@ -256,7 +310,6 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
 
     result.collections![collectionKey] = await executeCollectionMethod(
       method,
-      collectionKey,
       maxWaitTime,
       POLL_INTERVAL,
       startTime
@@ -274,7 +327,6 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
 
     result.collections![collectionKey] = await executeCollectionMethod(
       method,
-      collectionKey,
       maxWaitTime,
       POLL_INTERVAL,
       startTime

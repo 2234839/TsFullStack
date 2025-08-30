@@ -1,4 +1,19 @@
 
+export interface CollectionItem {
+  type: 'text' | 'html' | 'attribute' | 'js' | 'error';
+  selector?: string;
+  attribute?: string;
+  value: any;
+  html?: string; // 原始HTML内容
+  timestamp: string;
+}
+
+export interface CollectionResult {
+  items: CollectionItem[];
+  timestamp: string;
+  executionTime: number;
+}
+
 export interface TaskResult {
   url: string;
   title: string;
@@ -6,7 +21,7 @@ export interface TaskResult {
   matched: 0 | 1;
   message?: string;
   data?: any;
-  collections?: Record<string, any[]>;
+  collections?: Record<string, CollectionResult>;
 }
 
 /**
@@ -17,8 +32,17 @@ export type ExecutionTiming =
   | { type: 'waitForElement'; selector: string; delay?: number };
 
 export type DataCollectionMethod =
-  | { type: 'css'; selector: string; attribute?: string }
-  | { type: 'js'; code: string };
+  | {
+      type: 'css';
+      selector: string;
+      attribute?: string;
+      collectHtml?: boolean; // 是否收集HTML内容，默认为true
+    }
+  | {
+      type: 'js';
+      code: string;
+      collectHtml?: boolean; // 是否收集HTML内容，默认为true
+    };
 
 export type runInfoFlowGet_task = {
   url: string;

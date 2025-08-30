@@ -29,6 +29,71 @@
           optionValue="value"
           :allowEmpty="false"
           class="text-sm" />
+        <Button
+          icon="pi pi-filter"
+          @click="showComparisonFilter = !showComparisonFilter"
+          :severity="showComparisonFilter ? 'primary' : 'secondary'"
+          size="small"
+          v-tooltip="'对比过滤选项'" />
+      </div>
+    </div>
+
+    <!-- Comparison Filter Panel -->
+    <div v-if="showComparisonFilter" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <h4 class="text-sm font-medium text-blue-900">对比过滤选项</h4>
+        <Button
+          icon="pi pi-times"
+          @click="showComparisonFilter = false"
+          size="small"
+          text
+          severity="secondary" />
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div class="flex items-center gap-2">
+          <Checkbox
+            v-model="comparisonFilter.showAdded"
+            inputId="showAdded"
+            :binary="true"
+            size="small" />
+          <label for="showAdded" class="text-sm text-blue-800 cursor-pointer">
+            <span class="inline-block w-3 h-3 bg-green-500 rounded mr-1"></span>
+            新增数据
+          </label>
+        </div>
+        <div class="flex items-center gap-2">
+          <Checkbox
+            v-model="comparisonFilter.showRemoved"
+            inputId="showRemoved"
+            :binary="true"
+            size="small" />
+          <label for="showRemoved" class="text-sm text-blue-800 cursor-pointer">
+            <span class="inline-block w-3 h-3 bg-red-500 rounded mr-1"></span>
+            删除数据
+          </label>
+        </div>
+        <div class="flex items-center gap-2">
+          <Checkbox
+            v-model="comparisonFilter.showMoved"
+            inputId="showMoved"
+            :binary="true"
+            size="small" />
+          <label for="showMoved" class="text-sm text-blue-800 cursor-pointer">
+            <span class="inline-block w-3 h-3 bg-yellow-500 rounded mr-1"></span>
+            位置移动
+          </label>
+        </div>
+        <div class="flex items-center gap-2">
+          <Checkbox
+            v-model="comparisonFilter.showUnchanged"
+            inputId="showUnchanged"
+            :binary="true"
+            size="small" />
+          <label for="showUnchanged" class="text-sm text-blue-800 cursor-pointer">
+            <span class="inline-block w-3 h-3 bg-gray-400 rounded mr-1"></span>
+            未变化
+          </label>
+        </div>
       </div>
     </div>
 
@@ -46,7 +111,10 @@
         @row-click="onRowClick"
         responsiveLayout="scroll"
         size="small"
-        :rowStyle="getRowStyle">
+        :rowStyle="getRowStyle"
+        v-model:expandedRows="expandedRows"
+        dataKey="id">
+        <Column :expander="true" headerStyle="width: 3rem" />
         <Column field="status" header="状态" class="w-[120px]">
           <template #body="slotProps">
             <div class="flex items-center gap-2">
@@ -144,7 +212,7 @@
           </template>
         </Column>
 
-        <Column field="actions" header="操作" class="w-[150px]">
+        <Column field="actions" header="操作" class="w-[120px]">
           <template #body="slotProps">
             <div class="flex gap-1">
               <Button
@@ -154,11 +222,11 @@
                 :severity="slotProps.data.isRead ? 'secondary' : ''"
                 v-tooltip="slotProps.data.isRead ? '标记为未读' : '标记为已读'" />
               <Button
-                icon="pi pi-eye"
-                @click="viewExecutionDetails(slotProps.data)"
+                :icon="expandedRows[slotProps.data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                @click="toggleExecutionDetails(slotProps.data)"
                 size="small"
                 severity="info"
-                v-tooltip="'查看详情'" />
+                v-tooltip="expandedRows[slotProps.data.id] ? '隐藏详情' : '查看详情'" />
               <Button
                 v-if="slotProps.data.status === 'running'"
                 icon="pi pi-times"
@@ -176,6 +244,17 @@
           </template>
         </Column>
 
+        <!-- Row Expansion Template -->
+        <template #expansion="slotProps">
+          <div class="bg-gray-50 p-4 border-t border-gray-200">
+            <ExecutionDetails
+              :execution="slotProps.data"
+              :show-comparison="!!getPreviousExecution(slotProps.data)"
+              :previous-execution="getPreviousExecution(slotProps.data)"
+              :comparison-filter="comparisonFilter" />
+          </div>
+        </template>
+
         <template #empty>
           <div class="text-center py-8 text-gray-500">
             {{ hasActiveFilters ? '没有符合条件的执行记录' : '暂无执行记录' }}
@@ -184,150 +263,6 @@
       </DataTable>
     </div>
 
-    <!-- Execution Details Dialog -->
-    <Dialog v-model:visible="showDetailsDialog" header="执行详情" modal class="max-w-[800px]">
-      <div v-if="selectedExecution" class="space-y-4">
-        <!-- Basic Info -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">执行ID</label>
-            <div class="text-sm text-gray-900 font-mono">{{ selectedExecution.id }}</div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">规则名称</label>
-            <div class="text-sm text-gray-900">{{ selectedExecution.ruleName }}</div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">执行状态</label>
-            <div>
-              <span
-                :class="[
-                  'text-xs px-2 py-1 rounded-md font-medium',
-                  selectedExecution.status === 'completed'
-                    ? 'bg-green-100 text-green-800'
-                    : selectedExecution.status === 'failed'
-                    ? 'bg-red-100 text-red-800'
-                    : selectedExecution.status === 'running'
-                    ? 'bg-blue-100 text-blue-800'
-                    : selectedExecution.status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-gray-100 text-gray-800',
-                ]">
-                {{ getStatusText(selectedExecution.status) }}
-              </span>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">执行类型</label>
-            <div>
-              <span
-                :class="[
-                  'text-xs px-2 py-1 rounded-md',
-                  selectedExecution.executionType === 'manual'
-                    ? 'bg-purple-100 text-purple-800'
-                    : selectedExecution.executionType === 'scheduled'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-green-100 text-green-800',
-                ]">
-                {{ getExecutionTypeText(selectedExecution.executionType) }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Time Info -->
-        <div class="grid grid-cols-3 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">开始时间</label>
-            <div class="text-sm text-gray-900">
-              {{ selectedExecution.startTime ? formatDateTime(selectedExecution.startTime) : '-' }}
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">结束时间</label>
-            <div class="text-sm text-gray-900">
-              {{ selectedExecution.endTime ? formatDateTime(selectedExecution.endTime) : '-' }}
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">执行耗时</label>
-            <div class="text-sm text-gray-900">
-              {{ selectedExecution.duration ? formatDuration(selectedExecution.duration) : '-' }}
-            </div>
-          </div>
-        </div>
-
-        <!-- Trigger Info -->
-        <div v-if="selectedExecution.triggerInfo">
-          <label class="block text-sm font-medium text-gray-700 mb-1">触发信息</label>
-          <div class="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-            {{ selectedExecution.triggerInfo }}
-          </div>
-        </div>
-
-        <!-- Result Info -->
-        <div v-if="selectedExecution.result">
-          <label class="block text-sm font-medium text-gray-700 mb-1">执行结果</label>
-          <div class="bg-gray-50 p-3 rounded space-y-2">
-            <div v-if="selectedExecution.result.url">
-              <span class="text-sm font-medium">URL:</span>
-              <a
-                :href="selectedExecution.result.url"
-                target="_blank"
-                class="text-sm text-blue-600 hover:underline ml-2">
-                {{ selectedExecution.result.url }}
-              </a>
-            </div>
-            <div v-if="selectedExecution.result.title">
-              <span class="text-sm font-medium">标题:</span>
-              <span class="text-sm text-gray-900 ml-2">{{ selectedExecution.result.title }}</span>
-            </div>
-            <div v-if="selectedExecution.result.timestamp">
-              <span class="text-sm font-medium">时间戳:</span>
-              <span class="text-sm text-gray-900 ml-2">{{
-                selectedExecution.result.timestamp
-              }}</span>
-            </div>
-            <div v-if="selectedExecution.result.message">
-              <span class="text-sm font-medium">消息:</span>
-              <span class="text-sm text-gray-900 ml-2">{{ selectedExecution.result.message }}</span>
-            </div>
-            <div v-if="selectedExecution.result.data">
-              <span class="text-sm font-medium">数据:</span>
-              <pre class="text-sm text-gray-900 bg-white p-2 rounded mt-1 overflow-x-auto">{{
-                JSON.stringify(selectedExecution.result.data, null, 2)
-              }}</pre>
-            </div>
-            <div v-if="selectedExecution.result.collections">
-              <span class="text-sm font-medium">收集数据:</span>
-              <pre class="text-sm text-gray-900 bg-white p-2 rounded mt-1 overflow-x-auto">{{
-                JSON.stringify(selectedExecution.result.collections, null, 2)
-              }}</pre>
-            </div>
-          </div>
-        </div>
-
-        <!-- Error Info -->
-        <div v-if="selectedExecution.error">
-          <label class="block text-sm font-medium text-gray-700 mb-1">错误信息</label>
-          <div class="text-sm text-red-600 bg-red-50 p-3 rounded">
-            {{ selectedExecution.error }}
-          </div>
-        </div>
-
-        <!-- Metadata -->
-        <div v-if="selectedExecution.metadata">
-          <label class="block text-sm font-medium text-gray-700 mb-1">元数据</label>
-          <pre class="text-sm text-gray-900 bg-gray-50 p-3 rounded overflow-x-auto">{{
-            JSON.stringify(selectedExecution.metadata, null, 2)
-          }}</pre>
-        </div>
-      </div>
-
-      <template #footer>
-        <Button label="关闭" @click="showDetailsDialog = false" severity="secondary" />
-      </template>
-    </Dialog>
 
     <!-- Delete Confirmation Dialog -->
     <Dialog v-model:visible="showDeleteDialog" header="确认删除" modal class="max-w-[400px]">
@@ -370,7 +305,8 @@
   import Dialog from 'primevue/dialog';
   import SelectButton from 'primevue/selectbutton';
   import Badge from 'primevue/badge';
-  import Chip from 'primevue/chip';
+  import Checkbox from 'primevue/checkbox';
+  import ExecutionDetails from './ExecutionDetails.vue';
 
   interface Props {
     ruleId: string;
@@ -398,10 +334,21 @@
   const readStatusFilter = ref<'all' | 'read' | 'unread'>('unread');
 
   // Dialog state
-  const showDetailsDialog = ref(false);
   const showDeleteDialog = ref(false);
   const showCancelDialog = ref(false);
   const selectedExecution = ref<TaskExecutionRecord | null>(null);
+
+  // Expanded rows state
+  const expandedRows = ref<Record<string, boolean>>({});
+
+  // Comparison filter state
+  const showComparisonFilter = ref(false);
+  const comparisonFilter = ref({
+    showAdded: true,
+    showRemoved: true,
+    showMoved: true,
+    showUnchanged: false,
+  });
 
   // Options
   const statusOptions = [
@@ -464,48 +411,34 @@
     loadExecutionRecords();
   };
 
-  const setReadStatusFilter = (filter: 'all' | 'read' | 'unread') => {
-    readStatusFilter.value = filter;
-    currentPage.value = 1;
-    loadExecutionRecords();
-  };
 
-  const getReadStatusText = (filter: 'all' | 'read' | 'unread') => {
-    switch (filter) {
-      case 'all':
-        return '全部';
-      case 'read':
-        return '已读';
-      case 'unread':
-        return '未读';
-      default:
-        return filter;
-    }
-  };
 
-  const clearFilters = () => {
-    statusFilter.value = '';
-    readStatusFilter.value = 'all';
-    currentPage.value = 1;
-    loadExecutionRecords();
-  };
 
-  const viewExecutionDetails = async (execution: TaskExecutionRecord) => {
+
+  const toggleExecutionDetails = async (execution: TaskExecutionRecord) => {
+    const currentExpandedState = expandedRows.value[execution.id] || false;
+    const shouldExpand = !currentExpandedState;
+
     // 如果是未读状态，自动标记为已读
     const isRead = execution.isRead ?? 0;
     if (!isRead) {
       try {
         await taskExecutionService.markAsRead(execution.id);
-        loadExecutionRecords();
-
         // 通知父组件读取状态已变更
         emit('readStatusChanged', props.ruleId);
       } catch (error) {
         console.error('Failed to mark as read:', error);
       }
     }
-    selectedExecution.value = execution;
-    showDetailsDialog.value = true;
+
+    // 切换展开状态 - 使用 v-model:expandedRows 的方式
+    expandedRows.value = {
+      ...expandedRows.value,
+      [execution.id]: shouldExpand
+    };
+    if(!shouldExpand){
+      delete expandedRows.value[execution.id]
+    }
   };
 
   const confirmDeleteExecution = (execution: TaskExecutionRecord) => {
@@ -596,9 +529,11 @@
       event.originalEvent.target.tagName !== 'BUTTON' &&
       event.originalEvent.target.tagName !== 'I'
     ) {
-      viewExecutionDetails(event.data);
+      toggleExecutionDetails(event.data);
     }
   };
+
+
 
   const getRowStyle = (data: TaskExecutionRecord) => {
     const isRead = data.isRead ?? 0; // 如果 undefined，默认为 0（未读）
@@ -641,6 +576,22 @@
     }
   };
 
+  // Simplified comparison functions
+  const getPreviousExecution = (currentExecution: TaskExecutionRecord): TaskExecutionRecord | null => {
+    const currentIndex = executions.value.findIndex(exec => exec.id === currentExecution.id);
+    if (currentIndex <= 0) return null;
+
+    // Find the previous completed execution
+    for (let i = currentIndex - 1; i >= 0; i--) {
+      const prevExecution = executions.value[i];
+      if (prevExecution.status === 'completed' && prevExecution.result?.collections) {
+        return prevExecution;
+      }
+    }
+
+    return null;
+  };
+
   // Lifecycle
   onMounted(async () => {
     // Dexie 自动处理，不需要迁移
@@ -650,6 +601,8 @@
   // Watch for filter changes
   watch([statusFilter, readStatusFilter], () => {
     currentPage.value = 1;
+    // 注意：这里调用 loadExecutionRecords 会保持当前页面记录的展开状态
+    // 但切换筛选器后，某些记录可能不再显示，这是预期行为
     loadExecutionRecords();
   });
 </script>
