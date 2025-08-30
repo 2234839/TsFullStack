@@ -151,37 +151,37 @@
           </Column>
 
           <Column field="actions" header="操作" class="w-[280px] whitespace-nowrap">
-            <template #body="slotProps">
+            <template #body="{ data }: { data: Rule }">
               <div class="flex gap-1">
                 <Button
-                  v-if="slotProps.data.status === 'inactive'"
+                  v-if="data.status === 'paused'"
                   icon="pi pi-play"
-                  @click="rulesService.activateRule(slotProps.data)"
+                  @click="activateRule(data)"
                   size="small"
                   severity="success"
                   v-tooltip="'激活'" />
                 <Button
-                  v-if="slotProps.data.status === 'active'"
+                  v-if="data.status === 'active'"
                   icon="pi pi-pause"
-                  @click="rulesService.pauseRule(slotProps.data)"
+                  @click="pauseRule(data)"
                   size="small"
                   severity="warning"
                   v-tooltip="'暂停'" />
                 <Button
                   icon="pi pi-play-circle"
-                  @click="executeRuleNow(slotProps.data)"
+                  @click="executeRuleNow(data)"
                   size="small"
                   severity="primary"
                   v-tooltip="'立即执行'" />
                 <Button
                   icon="pi pi-file-edit"
-                  @click="editRule(slotProps.data)"
+                  @click="editRule(data)"
                   size="small"
                   severity="secondary"
                   v-tooltip="'编辑'" />
                 <Button
                   icon="pi pi-trash"
-                  @click="confirmDelete(slotProps.data)"
+                  @click="confirmDelete(data)"
                   size="small"
                   severity="danger"
                   v-tooltip="'删除'" />
@@ -896,12 +896,8 @@ return document.title;"
             life: 5000,
           });
         }
-
-        // 延迟刷新页面以等待新任务记录创建完成
-        setTimeout(() => {
-          rules.execute();
-          loadStats();
-        }, 1000);
+        rules.execute();
+        loadStats();
       } else {
         toast.add({
           severity: 'error',

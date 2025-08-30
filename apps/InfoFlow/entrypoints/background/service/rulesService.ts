@@ -1,5 +1,5 @@
 import { defineProxyService } from '@webext-core/proxy-service';
-import { getDbService } from './dbService';
+import { getDbService, type RulesTable } from './dbService';
 import { executeRuleLogic } from '@/utils/ruleTaskGenerator';
 import { getCronService } from './cronService';
 
@@ -12,11 +12,8 @@ function createRulesService() {
   return {
     // 基础 CRUD 操作
     async create(
-      rule: Omit<
-        import('./dbService').RulesTable,
-        'id' | 'createdAt' | 'updatedAt' | 'executionCount'
-      >,
-    ): Promise<import('./dbService').RulesTable> {
+      rule: Omit<RulesTable, 'id' | 'createdAt' | 'updatedAt' | 'executionCount'>,
+    ): Promise<RulesTable> {
       const dbService = getDbService();
       const newRule = await dbService.rules.create(rule);
 
@@ -27,10 +24,7 @@ function createRulesService() {
       return newRule;
     },
 
-    async update(
-      id: string,
-      updates: Partial<import('./dbService').RulesTable>,
-    ): Promise<import('./dbService').RulesTable | null> {
+    async update(id: string, updates: Partial<RulesTable>): Promise<RulesTable | null> {
       const dbService = getDbService();
       const rule = await dbService.rules.update(id, updates);
 
@@ -55,13 +49,13 @@ function createRulesService() {
       return result;
     },
 
-    async getById(id: string): Promise<import('./dbService').RulesTable | null> {
+    async getById(id: string): Promise<RulesTable | null> {
       const dbService = getDbService();
       return await dbService.rules.getById(id);
     },
 
     async query(options: any = {}): Promise<{
-      rules: import('./dbService').RulesTable[];
+      rules: RulesTable[];
       total: number;
       page: number;
       limit: number;
@@ -71,18 +65,12 @@ function createRulesService() {
       return await dbService.rules.query(options);
     },
 
-    async getAll(options?: {
-      limit?: number;
-      offset?: number;
-    }): Promise<import('./dbService').RulesTable[]> {
+    async getAll(options?: { limit?: number; offset?: number }): Promise<RulesTable[]> {
       const dbService = getDbService();
       return await dbService.rules.getAll(options);
     },
 
-    async getActiveRules(options?: {
-      limit?: number;
-      offset?: number;
-    }): Promise<import('./dbService').RulesTable[]> {
+    async getActiveRules(options?: { limit?: number; offset?: number }): Promise<RulesTable[]> {
       const dbService = getDbService();
       return await dbService.rules.getActiveRules(options);
     },
@@ -110,17 +98,14 @@ function createRulesService() {
       taskConfig: any;
       tags?: string[];
       priority?: number;
-    }): Promise<import('./dbService').RulesTable> {
+    }): Promise<RulesTable> {
       return await this.create({
         ...ruleData,
         status: 'active',
       });
     },
 
-    async updateRule(
-      id: string,
-      updates: Partial<import('./dbService').RulesTable>,
-    ): Promise<import('./dbService').RulesTable | null> {
+    async updateRule(id: string, updates: Partial<RulesTable>): Promise<RulesTable | null> {
       return await this.update(id, updates);
     },
 
@@ -128,15 +113,16 @@ function createRulesService() {
       return await this.delete(id);
     },
 
-    async activateRule(id: string): Promise<import('./dbService').RulesTable | null> {
+    async activateRule(id: string): Promise<RulesTable | null> {
       return await this.update(id, { status: 'active' });
     },
 
-    async pauseRule(id: string): Promise<import('./dbService').RulesTable | null> {
+    async pauseRule(id: string): Promise<RulesTable | null> {
+      console.log('[id]',id);
       return await this.update(id, { status: 'paused' });
     },
 
-    async deactivateRule(id: string): Promise<import('./dbService').RulesTable | null> {
+    async deactivateRule(id: string): Promise<RulesTable | null> {
       return await this.update(id, { status: 'inactive' });
     },
 
