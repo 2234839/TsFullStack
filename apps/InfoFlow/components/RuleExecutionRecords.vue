@@ -52,7 +52,7 @@
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="flex items-center gap-2">
           <Checkbox
-            v-model="comparisonFilter.showAdded"
+            v-model="config.comparisonFilter.showAdded"
             inputId="showAdded"
             :binary="true"
             size="small" />
@@ -63,7 +63,7 @@
         </div>
         <div class="flex items-center gap-2">
           <Checkbox
-            v-model="comparisonFilter.showRemoved"
+            v-model="config.comparisonFilter.showRemoved"
             inputId="showRemoved"
             :binary="true"
             size="small" />
@@ -74,7 +74,7 @@
         </div>
         <div class="flex items-center gap-2">
           <Checkbox
-            v-model="comparisonFilter.showMoved"
+            v-model="config.comparisonFilter.showMoved"
             inputId="showMoved"
             :binary="true"
             size="small" />
@@ -85,7 +85,7 @@
         </div>
         <div class="flex items-center gap-2">
           <Checkbox
-            v-model="comparisonFilter.showUnchanged"
+            v-model="config.comparisonFilter.showUnchanged"
             inputId="showUnchanged"
             :binary="true"
             size="small" />
@@ -114,7 +114,18 @@
         :rowStyle="getRowStyle"
         v-model:expandedRows="expandedRows"
         dataKey="id">
-        <Column :expander="true" headerStyle="width: 3rem" />
+        <Column :expander="true" headerStyle="width: 3rem">
+          <template #body="slotProps">
+            <Button
+              :icon="expandedRows[slotProps.data.id] ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"
+              @click="toggleExecutionDetails(slotProps.data)"
+              size="small"
+              text
+              severity="secondary"
+              class="w-8 h-8"
+            />
+          </template>
+        </Column>
         <Column field="status" header="状态" class="w-[120px]">
           <template #body="slotProps">
             <div class="flex items-center gap-2">
@@ -248,10 +259,10 @@
         <template #expansion="slotProps">
           <div class="bg-gray-50">
             <ExecutionDetails
-              :execution="slotProps.data"
+              :execution="getExecutionWithChanges(slotProps.data)"
               :show-comparison="!!getPreviousExecution(slotProps.data)"
               :previous-execution="getPreviousExecution(slotProps.data)"
-              :comparison-filter="comparisonFilter" />
+              :comparison-filter="config.comparisonFilter" />
           </div>
         </template>
 
@@ -296,6 +307,7 @@
   const taskExecutionService = getTaskExecutionService();
   import { format } from 'date-fns';
   import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
+  import { useInfoFlowConfig } from '@/storage/config';
 
   // PrimeVue components
   import Button from 'primevue/button';
@@ -340,14 +352,11 @@
   // Expanded rows state
   const expandedRows = ref<Record<string, boolean>>({});
 
+  // Configuration
+  const config = useInfoFlowConfig();
+
   // Comparison filter state
   const showComparisonFilter = ref(false);
-  const comparisonFilter = ref({
-    showAdded: true,
-    showRemoved: true,
-    showMoved: true,
-    showUnchanged: false,
-  });
 
   // Options
   const statusOptions = [
@@ -581,18 +590,128 @@
   const getPreviousExecution = (
     currentExecution: TaskExecutionRecord,
   ): TaskExecutionRecord | null => {
-    const currentIndex = executions.value.findIndex((exec) => exec.id === currentExecution.id);
-    if (currentIndex <= 0) return null;
+    if (!currentExecution.startTime) return null;
 
-    // Find the previous completed execution
-    for (let i = currentIndex - 1; i >= 0; i--) {
-      const prevExecution = executions.value[i];
-      if (prevExecution.status === 'completed' && prevExecution.result?.collections) {
-        return prevExecution;
+    const currentTime = new Date(currentExecution.startTime).getTime();
+
+    // 找到所有在当前执行时间之前的已完成执行记录
+    const previousExecutions = executions.value.filter(exec =>
+      exec.id !== currentExecution.id &&
+      exec.status === 'completed' &&
+      exec.result?.collections &&
+      exec.startTime &&
+      new Date(exec.startTime).getTime() < currentTime
+    );
+
+    if (previousExecutions.length === 0) return null;
+
+    // 按执行时间降序排序，取最近的一次
+    previousExecutions.sort((a, b) =>
+      new Date(b.startTime!).getTime() - new Date(a.startTime!).getTime()
+    );
+
+    return previousExecutions[0];
+  };
+
+  // 计算两个collection之间的变化
+  const calculateChanges = (
+    currentItems: any[],
+    previousItems: any[],
+  ): any[] => {
+    return currentItems.map((currentItem, index) => {
+      // 在前一次执行中查找相同的item
+      const previousIndex = previousItems.findIndex((prevItem) =>
+        prevItem.value === currentItem.value &&
+        prevItem.type === currentItem.type &&
+        prevItem.selector === currentItem.selector
+      );
+
+      let changeType = 'added'; // 默认为新增
+      let previousIndexInPrevious = -1;
+
+      if (previousIndex !== -1) {
+        // 找到了相同的item，检查位置是否变化
+        if (previousIndex === index) {
+          changeType = 'unchanged'; // 位置未变化
+        } else {
+          changeType = 'moved'; // 位置变化
+        }
+        previousIndexInPrevious = previousIndex;
       }
+
+      return {
+        ...currentItem,
+        changeType,
+        currentIndex: index,
+        previousIndex: previousIndexInPrevious,
+      };
+    });
+  };
+
+  // 为执行结果添加变化信息
+  const getExecutionWithChanges = (execution: TaskExecutionRecord): TaskExecutionRecord => {
+    if (!execution.result?.collections) {
+      return execution;
     }
 
-    return null;
+    const previousExecution = getPreviousExecution(execution);
+    if (!previousExecution?.result?.collections) {
+      // 如果没有前一次执行，所有item都标记为新增
+      const collectionsWithChanges: Record<string, any> = {};
+      Object.keys(execution.result.collections).forEach(key => {
+        const collection = execution.result!.collections[key];
+        collectionsWithChanges[key] = {
+          ...collection,
+          items: collection.items.map((item: any, index: number) => ({
+            ...item,
+            changeType: 'added',
+            currentIndex: index,
+            previousIndex: -1,
+          })),
+        };
+      });
+
+      return {
+        ...execution,
+        result: {
+          ...execution.result,
+          collections: collectionsWithChanges,
+        },
+      };
+    }
+
+    // 有前一次执行，计算变化
+    const collectionsWithChanges: Record<string, any> = {};
+    Object.keys(execution.result.collections).forEach(key => {
+      const currentCollection = execution.result!.collections[key];
+      const previousCollection = previousExecution.result!.collections[key];
+
+      if (previousCollection?.items) {
+        collectionsWithChanges[key] = {
+          ...currentCollection,
+          items: calculateChanges(currentCollection.items, previousCollection.items),
+        };
+      } else {
+        // 前一次执行没有这个collection，所有item都标记为新增
+        collectionsWithChanges[key] = {
+          ...currentCollection,
+          items: currentCollection.items.map((item: any, index: number) => ({
+            ...item,
+            changeType: 'added',
+            currentIndex: index,
+            previousIndex: -1,
+          })),
+        };
+      }
+    });
+
+    return {
+      ...execution,
+      result: {
+        ...execution.result,
+        collections: collectionsWithChanges,
+      },
+    };
   };
 
   // Lifecycle
