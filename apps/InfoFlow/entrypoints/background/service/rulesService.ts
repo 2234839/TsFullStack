@@ -100,7 +100,7 @@ function createRulesService() {
       name: string;
       description: string;
       cron: string;
-      taskConfig: any;
+      taskConfig: import('./dbService').TaskConfig;
       priority?: number;
     }): Promise<RulesTable> {
       return await this.create({
