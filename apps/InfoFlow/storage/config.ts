@@ -4,9 +4,10 @@ export const useInfoFlowConfig = () =>
   useWxtStorage('local:infoFlowConfig', {
     fallback: {
       test: 33,
-      autoMarkAsRead: false, // 自动已读开关
+      autoMarkAsRead: true, // 自动已读开关
+      rulesPageSize: 10, // 规则管理页面分页大小
     },
-    version: 4,
+    version: 5,
     migrations: {
       3: () => {
         return {
@@ -16,7 +17,14 @@ export const useInfoFlowConfig = () =>
       4: () => {
         return {
           test: 33,
-          autoMarkAsRead: false,
+          autoMarkAsRead: true,
+        };
+      },
+      5: () => {
+        return {
+          test: 33,
+          autoMarkAsRead: true,
+          rulesPageSize: 10,
         };
       },
     },

@@ -19,8 +19,18 @@
           :loading="rules.isLoading.value"
           severity="secondary"
           size="small" />
-        <Button icon="pi pi-download" @click="showExportDialog = true" label="导出" severity="info" size="small" />
-        <Button icon="pi pi-upload" @click="showImportDialog = true" label="导入" severity="success" size="small" />
+        <Button
+          icon="pi pi-download"
+          @click="showExportDialog = true"
+          label="导出"
+          severity="info"
+          size="small" />
+        <Button
+          icon="pi pi-upload"
+          @click="showImportDialog = true"
+          label="导入"
+          severity="success"
+          size="small" />
         <Button icon="pi pi-plus" @click="showCreateDialog = true" label="新建规则" />
       </div>
     </div>
@@ -82,7 +92,7 @@
           :value="rules.state.value.rules"
           :loading="rules.isLoading.value"
           :paginator="true"
-          :rows="pageSize"
+          :rows="config.rulesPageSize"
           :totalRecords="rules.state.value.total"
           :rowsPerPageOptions="[10, 20, 50]"
           :lazy="true"
@@ -432,7 +442,7 @@ return document.title;"
       @confirm="handleExportConfirm"
       @cancel="showExportDialog = false" />
 
-  <!-- Import Rules Dialog -->
+    <!-- Import Rules Dialog -->
     <Dialog v-model:visible="showImportDialog" header="导入规则" modal class="max-w-[600px]">
       <div class="flex flex-col gap-4">
         <div>
@@ -455,11 +465,15 @@ return document.title;"
 
       <template #footer>
         <Button label="取消" @click="cancelImport" severity="secondary" />
-        <Button label="选择导入" @click="showImportSelectionDialog = true" :disabled="!importPreview.length" severity="success" />
+        <Button
+          label="选择导入"
+          @click="showImportSelectionDialog = true"
+          :disabled="!importPreview.length"
+          severity="success" />
       </template>
     </Dialog>
 
-  <!-- Import Rules Selection Dialog -->
+    <!-- Import Rules Selection Dialog -->
     <RuleSelectionDialog
       v-model:visible="showImportSelectionDialog"
       :rules="importPreview"
@@ -599,7 +613,6 @@ return document.title;"
 
   // Pagination
   const currentPage = ref(1);
-  const pageSize = ref(10);
 
   // Search and filters
   const searchQuery = ref('');
@@ -681,12 +694,14 @@ return document.title;"
   const hasUnreadExecutions = (ruleId: string) => {
     return ruleUnreadStatus.value[ruleId] || false;
   };
-
+  /** 等待 config 加载 */
+  const awaitConfig = new Promise((r) => setTimeout(r, 100));
   const rules = useAsyncState(
     async () => {
+      await awaitConfig;
       const result = await rulesService.query({
         page: currentPage.value,
-        limit: pageSize.value,
+        limit: config.value.rulesPageSize,
         status: statusFilter.value || undefined,
         search: searchQuery.value || undefined,
         sortBy: 'createdAt',
@@ -748,7 +763,7 @@ return document.title;"
 
   const handlePageChange = (event: any) => {
     currentPage.value = event.page + 1;
-    pageSize.value = event.rows;
+    config.value.rulesPageSize = event.rows;
     rules.execute();
   };
 
@@ -1077,7 +1092,7 @@ return document.title;"
   // Handle export confirmation
   const handleExportConfirm = async (selectedRuleIds: string[]) => {
     try {
-      const selectedRulesData = allRules.value.filter(rule => selectedRuleIds.includes(rule.id));
+      const selectedRulesData = allRules.value.filter((rule) => selectedRuleIds.includes(rule.id));
 
       if (selectedRulesData.length === 0) {
         toast.add({
@@ -1101,7 +1116,9 @@ return document.title;"
 
       const link = document.createElement('a');
       link.href = url;
-      link.download = `rules-export-${selectedRulesData.length}-rules-${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `rules-export-${selectedRulesData.length}-rules-${
+        new Date().toISOString().split('T')[0]
+      }.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
