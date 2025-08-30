@@ -115,10 +115,25 @@
             </template>
           </Column>
 
+          <Column field="executionCount" header="执行次数" class="w-[80px] whitespace-nowrap">
+            <template #body="slotProps">
+              <div class="text-center">
+                <div v-if="slotProps.data.lastExecutedAt" class="text-xs text-gray-500">
+                  上次：{{ formatDate(slotProps.data.lastExecutedAt) }}
+                </div>
+                <span>
+                  共 <span class="font-medium">{{ slotProps.data.executionCount }}</span> 次
+                </span>
+              </div>
+            </template>
+          </Column>
+
           <Column field="cron" header="执行计划" class="w-[180px] whitespace-nowrap">
             <template #body="slotProps">
               <div class="text-sm" :title="slotProps.data.cron">
-                <div v-if="slotProps.data.status === 'paused'" class="text-xs text-orange-600 font-medium">
+                <div
+                  v-if="slotProps.data.status === 'paused'"
+                  class="text-xs text-orange-600 font-medium">
                   已暂停
                 </div>
                 <div v-else-if="slotProps.data.nextExecutionAt">
@@ -138,31 +153,6 @@
               </div>
             </template>
           </Column>
-
-          <Column field="executionCount" header="执行次数" class="w-[80px] whitespace-nowrap">
-            <template #body="slotProps">
-              <div class="text-center">
-                <div class="font-medium">{{ slotProps.data.executionCount }}</div>
-                <div v-if="slotProps.data.lastExecutedAt" class="text-xs text-gray-500">
-                  {{ formatDate(slotProps.data.lastExecutedAt) }}
-                </div>
-              </div>
-            </template>
-          </Column>
-
-          <Column field="tags" header="标签" class="w-[150px] whitespace-nowrap">
-            <template #body="slotProps">
-              <div class="flex flex-wrap">
-                <Chip
-                  v-for="tag in slotProps.data.tags || []"
-                  :key="tag"
-                  :label="tag"
-                  size="small"
-                  class="text-xs mr-1 mb-1" />
-              </div>
-            </template>
-          </Column>
-
           <Column field="actions" header="操作" class="w-[280px] whitespace-nowrap">
             <template #body="{ data }: { data: Rule }">
               <div class="flex gap-1">
@@ -265,11 +255,6 @@
           <small v-if="errors['taskConfig.url']" class="text-red-500">{{
             errors['taskConfig.url']
           }}</small>
-        </div>
-
-        <div class="col-span-2">
-          <label class="block text-sm font-medium mb-2">标签</label>
-          <InputChips v-model="ruleForm.tags" placeholder="添加标签..." separator="," typeahead />
         </div>
 
         <div class="col-span-2">
@@ -520,8 +505,6 @@ return document.title;"
   import AccordionContent from 'primevue/accordioncontent';
   import CustomProgressBar from './CustomProgressBar.vue';
   import Button from 'primevue/button';
-  import Chip from 'primevue/chip';
-  import InputChips from 'primevue/inputchips';
   import Column from 'primevue/column';
   import DataTable from 'primevue/datatable';
   import Dialog from 'primevue/dialog';
@@ -574,7 +557,6 @@ return document.title;"
       timeout: 30000,
       dataCollection: [] as any[],
     },
-    tags: [] as string[],
     priority: 1,
   });
 
@@ -740,7 +722,6 @@ return document.title;"
         timeout: 30000,
         dataCollection: [],
       },
-      tags: [],
       priority: 1,
     });
     taskConfigJson.value = '{}';
@@ -891,7 +872,6 @@ return document.title;"
         timeout: rule.taskConfig.timeout || 30000,
         dataCollection: rule.taskConfig.dataCollection || [],
       },
-      tags: rule.tags || [],
       priority: rule.priority || 1,
     });
     taskConfigJson.value = JSON.stringify(ruleForm.taskConfig, null, 2);

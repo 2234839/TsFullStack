@@ -395,7 +395,7 @@
 
   // Filter state
   const statusFilter = ref<TaskExecutionRecord['status'] | ''>('');
-  const readStatusFilter = ref<'all' | 'read' | 'unread'>('all');
+  const readStatusFilter = ref<'all' | 'read' | 'unread'>('unread');
 
   // Dialog state
   const showDetailsDialog = ref(false);
