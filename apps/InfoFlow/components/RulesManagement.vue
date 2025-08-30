@@ -19,6 +19,8 @@
           :loading="rules.isLoading.value"
           severity="secondary"
           size="small" />
+        <Button icon="pi pi-download" @click="showExportDialog = true" label="导出" severity="info" size="small" />
+        <Button icon="pi pi-upload" @click="showImportDialog = true" label="导入" severity="success" size="small" />
         <Button icon="pi pi-plus" @click="showCreateDialog = true" label="新建规则" />
       </div>
     </div>
@@ -418,6 +420,55 @@ return document.title;"
         <Button label="删除" @click="deleteRule" :loading="deleting" severity="danger" />
       </template>
     </Dialog>
+
+    <!-- Export Rules Selection Dialog -->
+    <RuleSelectionDialog
+      v-model:visible="showExportDialog"
+      :rules="allRules"
+      title="选择要导出的规则"
+      confirm-label="导出选中规则"
+      confirm-severity="info"
+      :show-bulk-actions="true"
+      @confirm="handleExportConfirm"
+      @cancel="showExportDialog = false" />
+
+  <!-- Import Rules Dialog -->
+    <Dialog v-model:visible="showImportDialog" header="导入规则" modal class="max-w-[600px]">
+      <div class="flex flex-col gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-2">选择 JSON 文件</label>
+          <input
+            type="file"
+            accept=".json"
+            @change="handleFileSelect"
+            class="w-full p-2 border rounded-md"
+            ref="fileInput" />
+        </div>
+        <div v-if="importPreview">
+          <label class="block text-sm font-medium mb-2">预览导入内容</label>
+          <div class="bg-gray-50 p-4 rounded-md max-h-64 overflow-y-auto">
+            <pre class="text-sm">{{ JSON.stringify(importPreview, null, 2) }}</pre>
+          </div>
+          <p class="text-sm text-gray-600 mt-2">将导入 {{ importPreview.length }} 条规则</p>
+        </div>
+      </div>
+
+      <template #footer>
+        <Button label="取消" @click="cancelImport" severity="secondary" />
+        <Button label="选择导入" @click="showImportSelectionDialog = true" :disabled="!importPreview.length" severity="success" />
+      </template>
+    </Dialog>
+
+  <!-- Import Rules Selection Dialog -->
+    <RuleSelectionDialog
+      v-model:visible="showImportSelectionDialog"
+      :rules="importPreview"
+      title="选择要导入的规则"
+      confirm-label="导入选中规则"
+      confirm-severity="success"
+      :show-bulk-actions="true"
+      @confirm="handleImportConfirm"
+      @cancel="showImportSelectionDialog = false" />
   </div>
 </template>
 
@@ -425,11 +476,12 @@ return document.title;"
   import { getRulesService } from '@/entrypoints/background/service/rulesService';
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
   import { useNow } from '@vueuse/core';
-  import { onMounted, reactive, ref, watch } from 'vue';
+  import { onMounted, reactive, ref, watch, computed } from 'vue';
   import { getCronInterval, formatCountdown } from '@/utils/cronUtils';
   import { browser } from '#imports';
   import { EVENT_TYPES } from '@/constants/events';
   import { useInfoFlowConfig } from '@/storage/config';
+  import RuleSelectionDialog from './RuleSelectionDialog.vue';
 
   const taskExecutionService = getTaskExecutionService();
   const rulesService = getRulesService();
@@ -534,9 +586,17 @@ return document.title;"
   const deleting = ref(false);
   const showCreateDialog = ref(false);
   const showDeleteDialog = ref(false);
+  const showExportDialog = ref(false);
+  const showImportDialog = ref(false);
+  const showImportSelectionDialog = ref(false);
+  const importing = ref(false);
   const editingRule = ref<Rule | null>(null);
   const selectedRule = ref<Rule | null>(null);
   const expandedRows = ref<Record<string, boolean>>({});
+  const fileInput = ref<HTMLInputElement | null>(null);
+  const importPreview = ref<any[]>([]);
+  const importFile = ref<File | null>(null);
+  const allRules = ref<Rule[]>([]);
 
   // Pagination
   const currentPage = ref(1);
@@ -655,6 +715,14 @@ return document.title;"
       stats.value = await rulesService.getRuleStats();
     } catch (error) {
       console.error('Failed to load stats:', error);
+    }
+  };
+
+  const loadAllRules = async () => {
+    try {
+      allRules.value = await rulesService.getAll();
+    } catch (error) {
+      console.error('Failed to load all rules:', error);
     }
   };
 
@@ -864,6 +932,7 @@ return document.title;"
       resetForm();
       rules.execute();
       loadStats();
+      loadAllRules();
     } finally {
       saving.value = false;
     }
@@ -902,6 +971,7 @@ return document.title;"
       selectedRule.value = null;
       rules.execute();
       loadStats();
+      loadAllRules();
     } finally {
       deleting.value = false;
     }
@@ -912,6 +982,7 @@ return document.title;"
       await rulesService.activateRule(rule.id);
       rules.execute();
       loadStats();
+      loadAllRules();
     } catch (error) {
       console.error('Failed to activate rule:', error);
     }
@@ -922,6 +993,7 @@ return document.title;"
       await rulesService.pauseRule(rule.id);
       rules.execute();
       loadStats();
+      loadAllRules();
     } catch (error) {
       console.error('Failed to pause rule:', error);
     }
@@ -973,6 +1045,7 @@ return document.title;"
   onMounted(() => {
     rules.execute();
     loadStats();
+    loadAllRules();
 
     // 监听规则执行完成事件
     if (browser.runtime) {
@@ -982,6 +1055,7 @@ return document.title;"
           // 刷新规则列表和统计信息
           rules.execute();
           loadStats();
+          loadAllRules();
         }
       });
     }
@@ -1000,6 +1074,215 @@ return document.title;"
       resetCollectionForm();
     }
   });
+
+  // Handle export confirmation
+  const handleExportConfirm = async (selectedRuleIds: string[]) => {
+    try {
+      const selectedRulesData = allRules.value.filter(rule => selectedRuleIds.includes(rule.id));
+      
+      if (selectedRulesData.length === 0) {
+        toast.add({
+          severity: 'warn',
+          summary: '没有选择规则',
+          detail: '请至少选择一条规则进行导出',
+          life: 3000,
+        });
+        return;
+      }
+
+      const exportData = {
+        exportTime: new Date().toISOString(),
+        version: '1.0',
+        rules: selectedRulesData,
+      };
+      
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rules-export-${selectedRulesData.length}-rules-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      showExportDialog.value = false;
+      
+      toast.add({
+        severity: 'success',
+        summary: '导出成功',
+        detail: `已导出 ${selectedRulesData.length} 条规则`,
+        life: 3000,
+      });
+    } catch (error) {
+      console.error('Failed to export rules:', error);
+      toast.add({
+        severity: 'error',
+        summary: '导出失败',
+        detail: '导出规则时发生错误',
+        life: 3000,
+      });
+    }
+  };
+
+  // Handle file selection for import
+  const handleFileSelect = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    
+    if (!file) {
+      importPreview.value = [];
+      importFile.value = null;
+      return;
+    }
+    
+    if (!file.name.endsWith('.json')) {
+      toast.add({
+        severity: 'error',
+        summary: '文件格式错误',
+        detail: '请选择 JSON 文件',
+        life: 3000,
+      });
+      return;
+    }
+    
+    importFile.value = file;
+    
+    // Read and preview the file
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const data = JSON.parse(content);
+        
+        if (!data.rules || !Array.isArray(data.rules)) {
+          throw new Error('无效的规则文件格式');
+        }
+        
+        // Add temporary IDs for selection purposes
+        importPreview.value = data.rules.map((rule: any, index: number) => ({
+          ...rule,
+          id: rule.id || `import-${index}`,
+        }));
+      } catch (error) {
+        console.error('Failed to parse JSON file:', error);
+        toast.add({
+          severity: 'error',
+          summary: '文件解析失败',
+          detail: '无法解析 JSON 文件',
+          life: 3000,
+        });
+        importPreview.value = [];
+        importFile.value = null;
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Cancel import
+  const cancelImport = () => {
+    showImportDialog.value = false;
+    importPreview.value = [];
+    importFile.value = null;
+    if (fileInput.value) {
+      fileInput.value.value = '';
+    }
+  };
+
+  // Handle import confirmation
+  const handleImportConfirm = async (selectedRuleIds: string[]) => {
+    if (!importFile.value || importPreview.value.length === 0) {
+      return;
+    }
+    
+    importing.value = true;
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result as string;
+          const data = JSON.parse(content);
+          
+          if (!data.rules || !Array.isArray(data.rules)) {
+            throw new Error('无效的规则文件格式');
+          }
+          
+          let successCount = 0;
+          let skipCount = 0;
+          
+          // Only import selected rules
+          const selectedRules = data.rules.filter((rule: any, index: number) => {
+            return selectedRuleIds.includes(`import-${index}`) || selectedRuleIds.includes(rule.id);
+          });
+          
+          for (const rule of selectedRules) {
+            try {
+              // Clean up the rule data for import
+              const cleanRule = {
+                name: rule.name,
+                description: rule.description || '',
+                cron: rule.cron,
+                status: rule.status || 'active',
+                taskConfig: rule.taskConfig || {
+                  url: '',
+                  timeout: 30000,
+                  dataCollection: [],
+                },
+                priority: rule.priority || 1,
+              };
+              
+              // Validate required fields
+              if (!cleanRule.name || !cleanRule.cron || !cleanRule.taskConfig.url) {
+                skipCount++;
+                continue;
+              }
+              
+              await rulesService.createRule(cleanRule);
+              successCount++;
+            } catch (error) {
+              console.error('Failed to import rule:', rule.name, error);
+              skipCount++;
+            }
+          }
+          
+          showImportSelectionDialog.value = false;
+          showImportDialog.value = false;
+          cancelImport();
+          rules.execute();
+          loadStats();
+          
+          toast.add({
+            severity: 'success',
+            summary: '导入完成',
+            detail: `成功导入 ${successCount} 条规则，跳过 ${skipCount} 条规则`,
+            life: 5000,
+          });
+        } catch (error) {
+          console.error('Failed to import rules:', error);
+          toast.add({
+            severity: 'error',
+            summary: '导入失败',
+            detail: '导入规则时发生错误',
+            life: 3000,
+          });
+        } finally {
+          importing.value = false;
+        }
+      };
+      reader.readAsText(importFile.value);
+    } catch (error) {
+      console.error('Failed to read file:', error);
+      toast.add({
+        severity: 'error',
+        summary: '导入失败',
+        detail: '读取文件时发生错误',
+        life: 3000,
+      });
+      importing.value = false;
+    }
+  };
 
   // Expose methods for parent component
   defineExpose({

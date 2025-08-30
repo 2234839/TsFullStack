@@ -1,0 +1,815 @@
+{
+  "exportTime": "2025-08-30T00:00:00.000Z",
+  "version": "1.0",
+  "rules": [
+    {
+      "name": "首页 - 知乎 关注的",
+      "description": "知乎关注页面监控",
+      "cron": "0 */23 * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.zhihu.com/follow",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "h2 > div",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "招聘 | 电鸭社区",
+      "description": "电鸭社区招聘信息监控",
+      "cron": "0 */10 * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://eleduck.com/categories/5?sort=new",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div.post-item h2",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "黑客说 - 技术驱动优质交流",
+      "description": "黑客说技术社区监控",
+      "cron": "0 0 */5 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://hackertalk.net/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div[class*='pointer'] a.text-primary",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Ruby China",
+      "description": "Ruby China社区监控",
+      "cron": "0 0 */5 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://ruby-china.org/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#main .flex .grow .topics .card-body .topic .infos .title",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "法律草案",
+      "description": "法律草案更新监控",
+      "cron": "0 0 */7 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "http://www.npc.gov.cn/flcaw/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#beingList tr .tl a",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Releases · VaalaCat/frp-panel",
+      "description": "GitHub releases监控",
+      "cron": "0 0 */2 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://github.com/VaalaCat/frp-panel/releases",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#repo-content-pjax-container .clearfix div section .d-flex div .Box .Box-body",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "V2EX",
+      "description": "V2EX创意板块监控",
+      "cron": "0 */1 * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.v2ex.com/?tab=creative",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div.item .topic-link",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "链滴 - 记录生活，连接点滴",
+      "description": "链滴社区监控",
+      "cron": "0 */1 * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://ld246.com/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "li h2 *",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "阮一峰的网络日志",
+      "description": "阮一峰博客更新监控",
+      "cron": "0 */23 * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.ruanyifeng.com/blog/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": ".entry-title",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "月抛 - 探索广场 - LINUX DO CDK",
+      "description": "LINUX DO探索广场监控",
+      "cron": "0 */34 * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://cdk.linux.do/explore",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": ".container",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "最新快问快答话题 - LINUX DO",
+      "description": "LINUX DO快问快答监控",
+      "cron": "*/18 * * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://linux.do/tag/%E5%BF%AB%E9%97%AE%E5%BF%AB%E7%AD%94",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "tr [aria-level] a",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "电鸭社区-远程",
+      "description": "电鸭社区首页远程工作监控",
+      "cron": "0 */3 * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://eleduck.com/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div h2 a",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "消息 - 链滴",
+      "description": "链滴消息通知监控",
+      "cron": "*/2 * * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://ld246.com/notifications/commented",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#notificationsPanel",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "matklad",
+      "description": "matklad博客监控",
+      "cron": "0 0 */3 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://matklad.github.io/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "li",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Prisma 博客 | 文章和更新 | Prisma、ORM、数据库",
+      "description": "Prisma官方博客监控",
+      "cron": "0 0 */6 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.prisma.io/blog",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div> a> div:nth-child(2)",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "独立开发前线周刊_独立开发前线",
+      "description": "独立开发前线周刊监控",
+      "cron": "0 0 */6 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://91wink.com/special/%e7%8b%ac%e7%ab%8b%e5%bc%80%e5%8f%91%e5%89%8d%e7%ba%bf%e5%91%a8%e5%88%8a/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "li h3 *",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "AMD Ryzen™ AI 软件",
+      "description": "AMD Ryzen AI软件更新监控",
+      "cron": "0 0 */4 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.amd.com/en/developer/resources/ryzen-ai-software.html",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div:nth-child(12) [class*='cols']",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Thorium 浏览器更新",
+      "description": "Thorium浏览器GitHub releases监控",
+      "cron": "0 0 */15 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://github.com/Alex313031/Thorium-Win/releases",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "section .Link--primary",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "设计师深海 - 哔哩哔哩视频",
+      "description": "B站UP主视频更新监控",
+      "cron": "0 0 */3 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://space.bilibili.com/7212583?spm_id_from=333.788.upinfo.detail.click",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div.items__item .bili-video-card__title",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Effect Blog",
+      "description": "Effect官方博客RSS监控",
+      "cron": "0 0 */2 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://effect.website/blog/rss.xml",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "js",
+            "code": "// RSS feed parsing\nreturn document.title;"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "DEV Community - 通知",
+      "description": "DEV社区通知监控",
+      "cron": "*/68 * * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://dev.to/notifications",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#notifications-container",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "印记中文 - 深入挖掘国外前端新领域，为国内 Web 前端开发人员提供优质文档！",
+      "description": "印记中文Node.js周刊监控",
+      "cron": "0 0 */23 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://docschina.org/news/weekly/node",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": ".cmElaC div .gtobou",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "印记中文 - js",
+      "description": "印记中文JavaScript周刊监控",
+      "cron": "0 0 */23 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://docschina.org/news/weekly/js",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": ".cmElaC div .gtobou",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Articles – tailwindcss 作者的博客",
+      "description": "Tailwind CSS作者博客监控",
+      "cron": "0 0 */8 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://adamwathan.me/archives/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "li",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "(1) 姑射山人2011 (@shanren2011) / X",
+      "description": "X(Twitter)用户动态监控",
+      "cron": "*/14 * * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://x.com/shanren2011",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div[data-testid*='Inner'] [dir='auto'] *",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Suni-blog",
+      "description": "Suni博客监控",
+      "cron": "0 0 */4 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.yysuni.com/zh/blog",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "[class*='cols'] div div:nth-child(2)",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "lemonade-sdk/lemonade 支持的设备",
+      "description": "GitHub项目README监控",
+      "cron": "0 0 */4 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://github.com/lemonade-sdk/lemonade",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "markdown-accessiblity-table:nth-child(27) table",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "江苏微腾国际贸易有限公司-风鸟",
+      "description": "企业信息监控",
+      "cron": "0 0 */4 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.riskbird.com/ent/%E6%B1%9F%E8%8B%8F%E5%BE%AE%E8%85%BE%E5%9B%BD%E9%99%85%E8%B4%B8%E6%98%93%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8.html?entid=7nwdDO7aKMTE",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": ".ent-content-page",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "风鸟-企业查询平台-轻松查企业-查失信-查法人-企业信用-工商查询",
+      "description": "个人信息查询监控",
+      "cron": "0 0 */4 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.riskbird.com/person/eTN6FY273yXj.html?personName=%E4%BB%BB%E7%BF%94",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "[class*='person-page']",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "moonbit论坛",
+      "description": "Moonbit编程语言论坛监控",
+      "cron": "*/132 * * * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://taolun.moonbitlang.cn/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": ".clearfix",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "消息中心 | 微信开放社区",
+      "description": "微信开放社区通知监控",
+      "cron": "0 0 */2 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://developers.weixin.qq.com/community/notify?page=1&notifyType=0",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#body .container_box .page_notify .main_bd .simple_container .simple_container_body .simple_container_body_body .table_list .message-list .for_pc div div .notice_content",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "malcolm-blog",
+      "description": "Malcolm博客监控",
+      "cron": "0 0 */2 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://malcolmyu.github.io/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div .post-item",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "臨池不輟",
+      "description": "Keelii博客监控",
+      "cron": "0 0 */2 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://keelii.com/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "li",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "All posts | Moonglade",
+      "description": "Moonglade博客监控",
+      "cron": "0 0 */4 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://lyn.one/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "article",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Yifei's Notes",
+      "description": "Yifei博客监控",
+      "cron": "0 0 */20 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://yifei.me/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div h2",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "张鑫旭-鑫空间-鑫生活",
+      "description": "张鑫旭博客监控",
+      "cron": "0 0 */2 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.zhangxinxu.com/wordpress/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "h2",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Vlad Esafev",
+      "description": "Vlad Esafev博客监控",
+      "cron": "0 0 */6 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://esafev.com/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "body",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "FV 悬浮球 Update",
+      "description": "FV悬浮球更新日志监控",
+      "cron": "0 0 */4 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://www.fooview.com/changelog/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "main[@id='main']",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "邵阳申氏-申氏家谱-族谱云",
+      "description": "族谱信息更新监控",
+      "cron": "0 0 */12 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "http://syshenshi.com/subnewslist.aspx",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": ".newslist li",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "我的私信 | 爱发电",
+      "description": "爱发电私信监控",
+      "cron": "0 0 */3 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://afdian.com/message",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "div[role='listitem'] [class*='between'] [class*='text']",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "pvdz.ee - js1k开创者",
+      "description": "pvdz.ee博客监控",
+      "cron": "0 0 */12 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://pvdz.ee/weblog/420",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": ".menu ul a",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "申子龙 崮生 at DuckDuckGo",
+      "description": "搜索引擎结果监控",
+      "cron": "0 0 */26 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://duckduckgo.com/?q=%E7%94%B3%E5%AD%90%E9%BE%99+%E5%B4%AE%E7%94%9F+&t=ffab&ia=web",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "article",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "如何修改firefox扩展文件 at DuckDuckGo",
+      "description": "搜索结果监控",
+      "cron": "0 0 */2 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://duckduckgo.com/?t=ffab&q=%E5%A6%82%E4%BD%95%E4%BF%AE%E6%94%B9firefox%E6%89%A9%E5%B1%95%E6%96%87%E4%BB%B6&ia=web",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#r1-1 div h2 a",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "法律草案",
+      "description": "法律草案更新监控",
+      "cron": "0 0 */5 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "http://www.npc.gov.cn/flcaw/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#beingList tr .tl a",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    },
+    {
+      "name": "Ruby China",
+      "description": "Ruby China社区监控",
+      "cron": "0 0 */5 * *",
+      "status": "active",
+      "taskConfig": {
+        "url": "https://ruby-china.org/",
+        "timeout": 30000,
+        "dataCollection": [
+          {
+            "type": "css",
+            "selector": "#main .flex .grow .topics .card-body .topic .infos .title",
+            "attribute": "text"
+          }
+        ]
+      },
+      "priority": 1
+    }
+  ]
+}
