@@ -117,15 +117,23 @@
 
           <Column field="cron" header="执行计划" class="w-[180px] whitespace-nowrap">
             <template #body="slotProps">
-              <div class="text-sm">
-                <div>{{ slotProps.data.cron }}</div>
-                <div v-if="slotProps.data.nextExecutionAt" class="text-xs text-gray-500 mb-1">
-                  下次: {{ formatDate(slotProps.data.nextExecutionAt) }}
+              <div class="text-sm" :title="slotProps.data.cron">
+                <div v-if="slotProps.data.status === 'paused'" class="text-xs text-orange-600 font-medium">
+                  已暂停
                 </div>
-                <div v-if="slotProps.data.nextExecutionAt" class="w-full">
-                  <ProgressBar
-                    :value="getExecutionProgress(slotProps.data.nextExecutionAt, slotProps.data.cron)"
-                    class="h-2 w-full" />
+                <div v-else-if="slotProps.data.nextExecutionAt">
+                  <div class="text-xs text-gray-500 mb-1">
+                    下次: {{ formatDate(slotProps.data.nextExecutionAt) }}
+                  </div>
+                  <div class="w-full">
+                    <ProgressBar
+                      :value="
+                        getExecutionProgress(slotProps.data.nextExecutionAt, slotProps.data.cron)
+                      "
+                      class="h-2 w-full">
+                      <span> {{ getCountdownTime(slotProps.data.nextExecutionAt) }}</span>
+                    </ProgressBar>
+                  </div>
                 </div>
                 <div v-else class="text-xs text-gray-400">未调度</div>
               </div>
@@ -428,7 +436,9 @@ return document.title;"
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
   import { useNow } from '@vueuse/core';
   import { onMounted, reactive, ref, watch } from 'vue';
-  import { getCronInterval } from '@/utils/cronUtils';
+  import { getCronInterval, formatCountdown } from '@/utils/cronUtils';
+  import { browser } from '#imports';
+  import { EVENT_TYPES } from '@/constants/events';
 
   const taskExecutionService = getTaskExecutionService();
   const rulesService = getRulesService();
@@ -473,26 +483,29 @@ return document.title;"
       const progress = (elapsed / interval) * 100;
 
       const finalProgress = Math.round(Math.min(100, Math.max(0, progress)));
-
-      // 调试日志
-      if (finalProgress > 80) {
-        console.log(
-          '[进度条调试] 进度:',
-          finalProgress,
-          '%',
-          '间隔:',
-          Math.round(interval / 1000),
-          '秒',
-          '已用时间:',
-          Math.round(elapsed / 1000),
-          '秒',
-        );
-      }
-
       return finalProgress;
     } catch (error) {
       console.error('Error calculating execution progress:', error);
       return 0;
+    }
+  };
+
+  // 计算倒计时时间
+  const getCountdownTime = (nextExecutionAt: string): string => {
+    try {
+      const nextTime = new Date(nextExecutionAt);
+      const currentTime = now.value;
+
+      // 如果下次执行时间已经过去，返回"立即执行"
+      if (nextTime <= currentTime) {
+        return '立即执行';
+      }
+
+      const timeUntilExecution = nextTime.getTime() - currentTime.getTime();
+      return formatCountdown(timeUntilExecution);
+    } catch (error) {
+      console.error('Error calculating countdown time:', error);
+      return '计算错误';
     }
   };
 
@@ -972,6 +985,18 @@ return document.title;"
   onMounted(() => {
     rules.execute();
     loadStats();
+
+    // 监听规则执行完成事件
+    if (browser.runtime) {
+      browser.runtime.onMessage.addListener((message: any) => {
+        if (message.type === EVENT_TYPES.RULE_EXECUTION_COMPLETED) {
+          console.log('[RulesManagement] 收到规则执行完成事件:', message.payload);
+          // 刷新规则列表和统计信息
+          rules.execute();
+          loadStats();
+        }
+      });
+    }
   });
 
   // Watch for dialog close

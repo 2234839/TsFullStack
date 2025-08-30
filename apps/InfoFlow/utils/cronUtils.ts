@@ -43,12 +43,12 @@ export const parseCronExpression = (cronExpression: string): ParsedCron | null =
       result.interval.minutes = parseInt(minute.replace('*/', ''));
       result.type = 'interval';
     }
-    
+
     if (hour.includes('*/')) {
       result.interval.hours = parseInt(hour.replace('*/', ''));
       result.type = 'interval';
     }
-    
+
     if (day.includes('*/')) {
       result.interval.days = parseInt(day.replace('*/', ''));
       result.type = 'interval';
@@ -72,7 +72,7 @@ export const calculateNextExecution = (cronExpression: string, timeBase?: Date):
 
   try {
     const { minute, hour, day, month, weekday } = parsed.parts;
-    
+
     // 使用提供的时间基点，如果没有则使用当前时间
     const baseTime = timeBase || new Date();
     const next = new Date(baseTime);
@@ -179,7 +179,7 @@ export const getCronDescription = (cronExpression: string): string => {
   // 处理固定时间
   const minuteDesc = minute === '*' ? '每分钟' : `${minute}分`;
   const hourDesc = hour === '*' ? '每小时' : `${hour}点`;
-  
+
   if (day === '*' && weekday === '*') {
     return `每天 ${hourDesc}${minuteDesc}`;
   } else if (day !== '*') {
@@ -214,4 +214,27 @@ export const getCronInterval = (cronExpression: string): number => {
 
   // 默认按天计算
   return 24 * 60 * 60 * 1000;
+};
+
+/**
+ * 格式化倒计时时间
+ */
+export const formatCountdown = (milliseconds: number): string => {
+  const seconds = Math.floor(milliseconds / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const weeks = Math.floor(days / 7);
+
+  if (weeks > 0) {
+    return `${weeks}周${days % 7}天`;
+  } else if (days > 0) {
+    return `${days}天${hours % 24}小时`;
+  } else if (hours > 0) {
+    return `${hours}小时${minutes % 60}分`;
+  } else if (minutes > 0) {
+    return `${minutes}分${seconds % 60}秒`;
+  } else {
+    return `${seconds}秒`;
+  }
 };

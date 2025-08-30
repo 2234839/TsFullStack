@@ -3,6 +3,8 @@ import { getRulesService } from '../entrypoints/background/service/rulesService'
 import { getTaskExecutionService } from '../entrypoints/background/service/taskExecutionService';
 import type { Rule } from '../entrypoints/background/service/rulesService';
 import { runInfoFlowGet } from '@/services/InfoFlowGet/runInfoFlowGet';
+import { browser } from '#imports';
+import { EVENT_TYPES } from '../constants/events';
 
 // 公共的规则执行逻辑
 export async function executeRuleLogic(
@@ -43,8 +45,11 @@ export async function executeRuleLogic(
     // Complete execution with result
     await getTaskExecutionService().completeExecution(executionId, res, res.matched ? 1 : 0);
 
-    // Update rule execution count
+    // Update rule execution count (this also updates lastExecutedAt)
     await getRulesService().incrementExecutionCount(rule.id);
+
+    // 发送任务完成事件通知前端
+    sendRuleExecutionCompletedEvent(rule.id, executionId);
 
     return {
       success: true,
@@ -86,3 +91,24 @@ export class RuleTaskGenerator implements TaskGenerator {
 }
 
 export const taskGenerator = new RuleTaskGenerator();
+
+// 发送规则执行完成事件到前端
+function sendRuleExecutionCompletedEvent(ruleId: string, executionId: string) {
+  try {
+    // 发送消息到所有前端页面
+    if (browser.runtime) {
+      browser.runtime.sendMessage({
+        type: EVENT_TYPES.RULE_EXECUTION_COMPLETED,
+        payload: {
+          ruleId,
+          executionId,
+          timestamp: new Date().toISOString(),
+        },
+      }).catch(error => {
+        console.warn('[RuleTaskGenerator] Failed to send execution completed event:', error);
+      });
+    }
+  } catch (error) {
+    console.error('[RuleTaskGenerator] Error sending execution completed event:', error);
+  }
+}
