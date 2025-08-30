@@ -24,78 +24,7 @@
 
       <!-- Collections with Comparison -->
       <div v-if="execution.result.collections">
-        <!-- Comparison Mode -->
-        <div v-if="showComparison && previousExecution" class="mt-2">
-          <div class="mb-2 p-2 bg-blue-50 rounded border border-blue-200">
-            <div class="text-xs text-blue-800">
-              <i class="pi pi-info-circle mr-1"></i>
-              对比模式: 与上一次执行结果比较
-            </div>
-          </div>
-
-          <div class="space-y-2">
-            <div
-              v-for="(collection, key) in execution.result.collections"
-              :key="key"
-              class="border border-gray-200 rounded p-2">
-              <div class="flex items-center justify-between mb-1">
-                <div class="text-xs text-gray-500">
-                  执行时间: {{ formatDateTime(collection.timestamp) }} | 耗时:
-                  {{ formatDuration(collection.executionTime) }}
-                </div>
-              </div>
-
-              <div class="space-y-1">
-                <div v-for="(item, index) in collection.items" :key="index" class="text-sm">
-                  <div
-                    v-if="shouldShowItem(item.changeType)"
-                    class="flex items-start gap-2 p-1 rounded border"
-                    :class="getChangeColorClass(item.changeType)">
-                    <div class="flex items-center gap-1">
-                      <i :class="['pi text-xs', getChangeIcon(item.changeType)]"></i>
-                      <span
-                        class="text-xs px-1 py-0.5 rounded bg-white"
-                        :class="getTypeColorClass(item.type)">
-                        {{ item.type }}
-                      </span>
-                    </div>
-                    <div class="flex-1">
-                      <div class="flex items-center gap-2 text-xs text-gray-600 mb-1">
-                        <span v-if="item.changeType === 'added'" class="text-green-700">
-                          <i class="pi pi-plus"></i> 新增
-                        </span>
-                        <span v-else-if="item.changeType === 'removed'" class="text-red-700">
-                          <i class="pi pi-minus"></i> 删除
-                        </span>
-                        <span v-else-if="item.changeType === 'moved'" class="text-yellow-700">
-                          <i class="pi pi-arrows-alt"></i>
-                          位置 {{ item.previousIndex + 1 }} → {{ item.currentIndex + 1 }}
-                        </span>
-                        <span v-else-if="item.changeType === 'unchanged'" class="text-gray-600">
-                          <i class="pi pi-check"></i> 未变化
-                        </span>
-                      </div>
-                      <div v-if="item.selector" class="text-xs text-gray-500">
-                        选择器: {{ item.selector }}
-                      </div>
-                      <div v-if="item.attribute" class="text-xs text-gray-500">
-                        属性: {{ item.attribute }}
-                      </div>
-                      <div v-if="item.html" class="mt-1">
-                        <div
-                          class="bg-white p-2 rounded text-sm border border-gray-200"
-                          v-html="item.html"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Original Display Mode -->
-        <div v-else class="mt-2 space-y-2">
+        <div class="space-y-2">
           <div
             v-for="(collection, key) in execution.result.collections"
             :key="key"
@@ -103,27 +32,49 @@
             <div class="flex items-center justify-between mb-1">
               <div class="text-xs text-gray-500">
                 执行时间: {{ formatDateTime(collection.timestamp) }} | 耗时:
+                {{ formatDuration(collection.executionTime) }}
               </div>
             </div>
+
             <div class="space-y-1">
               <div v-for="(item, index) in collection.items" :key="index" class="text-sm">
-                <div class="flex items-start gap-2">
-                  <span class="text-xs px-1 py-0.5 rounded" :class="getTypeColorClass(item.type)">
-                    {{ item.type }}
+                <div class="flex items-center gap-2 text-xs text-gray-600 mb-1">
+                  <span
+                    :class="[
+                      'inline-flex items-center justify-center w-6! h-6 rounded-full text-xs font-medium',
+                      item.changeType === 'added' ? 'bg-green-100 text-green-700' :
+                      item.changeType === 'removed' ? 'bg-red-100 text-red-700' :
+                      item.changeType === 'moved' ? 'bg-yellow-100 text-yellow-700' :
+                      'bg-gray-100 text-gray-700'
+                    ]">
+                    {{ index + 1 }}
                   </span>
-                  <div class="flex-1">
-                    <div v-if="item.selector" class="text-xs text-gray-500">
-                      选择器: {{ item.selector }}
-                    </div>
-                    <div v-if="item.attribute" class="text-xs text-gray-500">
-                      属性: {{ item.attribute }}
-                    </div>
-                    <div v-if="item.html" class="mt-1">
-                      <div
-                        class="bg-gray-50 p-2 rounded text-sm border border-gray-200"
-                        v-html="item.html"></div>
-                    </div>
+                  <span v-if="item.changeType === 'added'" class="text-green-700">
+                    <i class="pi pi-plus"></i> 新增
+                  </span>
+                  <span v-else-if="item.changeType === 'removed'" class="text-red-700">
+                    <i class="pi pi-minus"></i> 删除
+                  </span>
+                  <span v-else-if="item.changeType === 'moved'" class="text-yellow-700">
+                    <i class="pi pi-arrows-alt"></i>
+                    位置 {{ item.previousIndex + 1 }} → {{ item.currentIndex + 1 }}
+                  </span>
+                  <span v-else-if="item.changeType === 'unchanged'" class="text-gray-600">
+                    <i class="pi pi-check"></i> 无变化
+                  </span>
+                  <span v-else class="text-gray-600"> <i class="pi pi-circle"></i> 无变化 </span>
+                  <div v-if="item.selector" class="text-xs text-gray-500">
+                    选择器: {{ item.selector }}
                   </div>
+                  <div v-if="item.attribute" class="text-xs text-gray-500">
+                    属性: {{ item.attribute }}
+                  </div>
+                </div>
+                <!--    :class="getChangeColorClass(item.changeType)" -->
+                <div
+                  v-if="shouldShowItem(item.changeType)"
+                  class="flex items-start gap-2 p-1 rounded border-t border-sky-200">
+                  <div v-if="item.html" v-html="item.html" />
                 </div>
               </div>
             </div>
@@ -174,7 +125,7 @@
       showAdded: true,
       showRemoved: true,
       showMoved: true,
-      showUnchanged: false,
+      showUnchanged: true,
     }),
   });
 
