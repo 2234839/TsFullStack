@@ -83,23 +83,52 @@ function createCronService() {
     if (!nextExecution) return;
 
     const delay = nextExecution.getTime() - Date.now();
+    const now = Date.now();
     console.log(
       `[CronService] 规则 ${
         rule.name
-      } (${ruleId}) 下次执行: ${nextExecution.toISOString()}，延迟: ${delay}ms`,
+      } (${ruleId}) 下次执行: ${nextExecution.toISOString()}，当前时间: ${new Date(now).toISOString()}，延迟: ${delay}ms`,
     );
-    // calculateNextExecution 已经处理了时间过去的情况，所以这里不需要再检查 delay <= 0
+    
+    // 如果延迟为负数或小于1000ms，说明计算有问题，跳过调度
+    if (delay < 1000) {
+      console.warn(
+        `[CronService] 规则 ${rule.name} (${ruleId}) 的下次执行时间有问题 (${delay}ms)，跳过调度`,
+      );
+      return;
+    }
+
+    // 双重检查：确保下次执行时间确实在未来
+    if (nextExecution.getTime() <= now) {
+      console.warn(
+        `[CronService] 规则 ${rule.name} (${ruleId}) 的下次执行时间 ${nextExecution.toISOString()} 不在未来，跳过调度`,
+      );
+      return;
+    }
 
     // Cancel existing job if any
     await cancelRuleExecution(ruleId);
 
+    console.log(`[CronService] 创建 setTimeout，延迟 ${delay}ms，预计执行时间: ${new Date(now + delay).toISOString()}`);
     const timeoutId = setTimeout(async () => {
       const executionStartTime = new Date();
+      const expectedTime = nextExecution.getTime();
+      const actualTime = executionStartTime.getTime();
+      const timeDiff = Math.abs(actualTime - expectedTime);
+      
       console.log(
-        `[CronService] 执行规则 ${
+        `[CronService] setTimeout 触发执行规则 ${
           rule.name
-        } (${ruleId})，时间: ${executionStartTime.toISOString()}`,
+        } (${ruleId})，时间: ${executionStartTime.toISOString()}，预计时间: ${nextExecution.toISOString()}，时间差: ${timeDiff}ms`,
       );
+      
+      // 安全检查：如果执行时间与预期时间相差超过5秒，说明可能有问题，跳过执行
+      if (timeDiff > 5000) {
+        console.warn(
+          `[CronService] 规则 ${rule.name} (${ruleId}) 执行时间与预期相差 ${timeDiff}ms，跳过执行`,
+        );
+        return;
+      }
       await executeRuleLogic(
         rule,
         'scheduled',
@@ -113,6 +142,7 @@ function createCronService() {
           rule.name
         } (${ruleId})，时间基点: ${executionTime.toISOString()}`,
       );
+      
       await scheduleRuleExecution(ruleId, executionTime);
     }, delay);
 

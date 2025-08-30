@@ -29,9 +29,14 @@ function createRulesService() {
       const rule = await dbService.rules.update(id, updates);
 
       if (rule) {
-        // Reinitialize all crons when any rule is updated
-        const cronService = getCronService();
-        await cronService.reinitializeCrons();
+        // Only reinitialize crons if the update affects scheduling
+        const schedulingFields = ['cron', 'status', 'name', 'taskConfig'];
+        const affectsScheduling = Object.keys(updates).some(key => schedulingFields.includes(key));
+        
+        if (affectsScheduling) {
+          const cronService = getCronService();
+          await cronService.reinitializeCrons();
+        }
       }
 
       return rule;

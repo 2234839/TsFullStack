@@ -110,12 +110,21 @@ export const calculateNextExecution = (cronExpression: string, timeBase?: Date):
     if (day.includes('*/')) {
       // 间隔格式，如 */7 表示每7天
       const interval = parseInt(day.replace('*/', ''));
-      // 简化处理：从时间基点开始计算下一个执行时间
-      if (timeBase) {
-        const daysDiff = Math.floor((next.getTime() - timeBase.getTime()) / (24 * 60 * 60 * 1000));
-        const daysFromInterval = daysDiff % interval;
-        const daysToAdd = daysFromInterval === 0 ? 0 : interval - daysFromInterval;
+      // 从时间基点开始计算下一个执行时间
+      const baseTime = timeBase || new Date();
+      const timeDiff = next.getTime() - baseTime.getTime();
+      const daysDiff = Math.floor(timeDiff / (24 * 60 * 60 * 1000));
+      const daysFromInterval = daysDiff % interval;
+      const daysToAdd = daysFromInterval === 0 ? 0 : interval - daysFromInterval;
+
+      // 如果当前时间已经超过了基点时间，需要计算下一个间隔
+      if (daysFromInterval !== 0 || next.getTime() > baseTime.getTime()) {
         next.setDate(next.getDate() + daysToAdd);
+      }
+
+      // 确保时间不会倒退
+      if (next.getTime() <= Date.now()) {
+        next.setDate(next.getDate() + interval);
       }
     } else if (day !== '*') {
       // 固定天数
