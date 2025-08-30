@@ -4,6 +4,7 @@ import { useWxtStorage } from '@/storage/storageUtil';
 import { getRulesService, type Rule } from './rulesService';
 import { executeRuleLogic } from '@/utils/ruleTaskGenerator';
 import { calculateNextExecution, getCronInterval } from '@/utils/cronUtils';
+import { useCronConfig } from '@/storage/config';
 
 interface ScheduledJob {
   id: string;
@@ -16,12 +17,7 @@ interface ScheduledJob {
 function createCronService() {
   const scheduledJobs: Map<string, ScheduledJob> = new Map();
 
-  // 存储相关函数
-  const storage = useWxtStorage('local:cronService', {
-    fallback: {
-      extensionClosedAt: null as string | null,
-    },
-  });
+  const storage = useCronConfig();
 
   const storeExtensionCloseTime = async (): Promise<void> => {
     try {
@@ -63,7 +59,6 @@ function createCronService() {
     });
   }
 
-
   const scheduleRuleExecution = async (ruleId: string, timeBase?: Date): Promise<void> => {
     const rule = await getRulesService().getById(ruleId);
     if (!rule || rule.status !== 'active') return;
@@ -71,18 +66,28 @@ function createCronService() {
     // 检查是否已经存在相同时间基点的调度
     const existingJob = scheduledJobs.get(ruleId);
     if (existingJob && timeBase && existingJob.timeBase.getTime() === timeBase.getTime()) {
-      console.log(`[CronService] 规则 ${rule.name} (${ruleId}) 已使用相同时间基点调度，跳过重复调度`);
+      console.log(
+        `[CronService] 规则 ${rule.name} (${ruleId}) 已使用相同时间基点调度，跳过重复调度`,
+      );
       return;
     }
 
     // 使用规则的上次执行时间或提供的时间基点
     const baseTime = timeBase || rule.lastExecutedAt || new Date();
-    console.log(`[CronService] 调度规则 ${rule.name} (${ruleId})，cron: ${rule.cron}，时间基点: ${baseTime.toISOString()}`);
+    console.log(
+      `[CronService] 调度规则 ${rule.name} (${ruleId})，cron: ${
+        rule.cron
+      }，时间基点: ${baseTime.toISOString()}`,
+    );
     const nextExecution = calculateNextExecution(rule.cron, baseTime);
     if (!nextExecution) return;
 
     const delay = nextExecution.getTime() - Date.now();
-    console.log(`[CronService] 规则 ${rule.name} (${ruleId}) 下次执行: ${nextExecution.toISOString()}，延迟: ${delay}ms`);
+    console.log(
+      `[CronService] 规则 ${
+        rule.name
+      } (${ruleId}) 下次执行: ${nextExecution.toISOString()}，延迟: ${delay}ms`,
+    );
     // calculateNextExecution 已经处理了时间过去的情况，所以这里不需要再检查 delay <= 0
 
     // Cancel existing job if any
@@ -90,7 +95,11 @@ function createCronService() {
 
     const timeoutId = setTimeout(async () => {
       const executionStartTime = new Date();
-      console.log(`[CronService] 执行规则 ${rule.name} (${ruleId})，时间: ${executionStartTime.toISOString()}`);
+      console.log(
+        `[CronService] 执行规则 ${
+          rule.name
+        } (${ruleId})，时间: ${executionStartTime.toISOString()}`,
+      );
       await executeRuleLogic(
         rule,
         'scheduled',
@@ -99,7 +108,11 @@ function createCronService() {
 
       // Reschedule for next run,使用本次执行时间作为新的时间基点
       const executionTime = new Date();
-      console.log(`[CronService] 重新调度规则 ${rule.name} (${ruleId})，时间基点: ${executionTime.toISOString()}`);
+      console.log(
+        `[CronService] 重新调度规则 ${
+          rule.name
+        } (${ruleId})，时间基点: ${executionTime.toISOString()}`,
+      );
       await scheduleRuleExecution(ruleId, executionTime);
     }, delay);
 
@@ -116,7 +129,11 @@ function createCronService() {
     // Update next execution time in database
     await getRulesService().updateNextExecution(ruleId, nextExecution);
 
-    console.log(`[CronService] 已调度规则 ${rule.name} (${ruleId}) 在 ${nextExecution.toISOString()} 执行 (基点: ${baseTime.toISOString()})`);
+    console.log(
+      `[CronService] 已调度规则 ${
+        rule.name
+      } (${ruleId}) 在 ${nextExecution.toISOString()} 执行 (基点: ${baseTime.toISOString()})`,
+    );
   };
 
   const cancelRuleExecution = async (ruleId: string): Promise<void> => {
@@ -157,7 +174,6 @@ function createCronService() {
 
           // 更新规则的最后执行时间
           await getRulesService().updateNextExecution(rule.id, currentTime);
-
         } catch (error) {
           console.error(`[CronService] 执行规则 ${rule.name} (${rule.id}) 补偿任务失败: `, error);
         }
@@ -171,10 +187,7 @@ function createCronService() {
     }
   };
 
-  const shouldExecuteCompensation = async (
-    rule: Rule,
-    currentTime: Date,
-  ): Promise<boolean> => {
+  const shouldExecuteCompensation = async (rule: Rule, currentTime: Date): Promise<boolean> => {
     const { lastExecutedAt } = rule;
 
     // 如果没有上次执行时间，不需要补偿
@@ -203,7 +216,9 @@ function createCronService() {
       const shouldCompensate = timeSinceLastExecution > cronInterval * 1.5;
 
       if (shouldCompensate) {
-        console.log(`[CronService] 规则 ${rule.name} (${rule.id}) 距离上次执行已 ${timeSinceLastExecution}ms，超过 cron 周期 ${cronInterval}ms 的 1.5 倍，需要补偿`);
+        console.log(
+          `[CronService] 规则 ${rule.name} (${rule.id}) 距离上次执行已 ${timeSinceLastExecution}ms，超过 cron 周期 ${cronInterval}ms 的 1.5 倍，需要补偿`,
+        );
       }
 
       return shouldCompensate;
@@ -223,10 +238,19 @@ function createCronService() {
     }
 
     // 计算在指定时间段内应该执行多少次
-    const expectedExecutions = calculateExpectedExecutions(cron, startTime, endTime, lastExecutedAt);
+    const expectedExecutions = calculateExpectedExecutions(
+      cron,
+      startTime,
+      endTime,
+      lastExecutedAt,
+    );
 
     if (expectedExecutions > 0) {
-      console.log(`[CronService] 规则 ${rule.name} (${rule.id}) 在 ${startTime.toISOString()} 到 ${endTime.toISOString()} 期间错过了 ${expectedExecutions} 次执行`);
+      console.log(
+        `[CronService] 规则 ${rule.name} (${
+          rule.id
+        }) 在 ${startTime.toISOString()} 到 ${endTime.toISOString()} 期间错过了 ${expectedExecutions} 次执行`,
+      );
       return true;
     }
 
@@ -267,9 +291,7 @@ function createCronService() {
         }
 
         // 检查这个时间点是否在时间段内，并且是在上次执行之后
-        if (checkTime >= startTime &&
-            checkTime <= endTime &&
-            checkTime > lastExecutedBeforeStart) {
+        if (checkTime >= startTime && checkTime <= endTime && checkTime > lastExecutedBeforeStart) {
           executionCount++;
         }
 
@@ -285,7 +307,6 @@ function createCronService() {
       return 0;
     }
   };
-
 
   const startAllActiveRules = async (): Promise<void> => {
     console.log('[CronService] 启动所有活跃规则...');
@@ -349,14 +370,16 @@ function createCronService() {
     nextExecution: Date;
     timeUntilExecution: number;
   }> => {
-    return Array.from(scheduledJobs.values()).map(job => ({
+    return Array.from(scheduledJobs.values()).map((job) => ({
       ruleId: job.ruleId,
       nextExecution: job.nextExecution,
       timeUntilExecution: job.nextExecution.getTime() - Date.now(),
     }));
   };
 
-  const getScheduledJob = (ruleId: string): {
+  const getScheduledJob = (
+    ruleId: string,
+  ): {
     ruleId: string;
     nextExecution: Date;
     timeUntilExecution: number;
@@ -376,7 +399,10 @@ function createCronService() {
       const [minute, hour] = cronExpression.split(' ');
 
       // Validate minute
-      if (minute !== '*' && (isNaN(parseInt(minute)) || parseInt(minute) < 0 || parseInt(minute) > 59)) {
+      if (
+        minute !== '*' &&
+        (isNaN(parseInt(minute)) || parseInt(minute) < 0 || parseInt(minute) > 59)
+      ) {
         return false;
       }
 

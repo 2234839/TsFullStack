@@ -5,6 +5,12 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-800">规则管理</h1>
         <p class="text-gray-600">管理您的自动化任务规则</p>
+        <div class="mt-2 flex items-center gap-2">
+          <ToggleSwitch v-model="config.autoMarkAsRead" inputId="auto-read-switch" />
+          <label for="auto-read-switch" class="text-sm text-gray-600 cursor-pointer">
+            自动已读（结果相同则自动标记为已读）
+          </label>
+        </div>
       </div>
       <div class="flex gap-2">
         <Button
@@ -423,10 +429,12 @@ return document.title;"
   import { getCronInterval, formatCountdown } from '@/utils/cronUtils';
   import { browser } from '#imports';
   import { EVENT_TYPES } from '@/constants/events';
+  import { useInfoFlowConfig } from '@/storage/config';
 
   const taskExecutionService = getTaskExecutionService();
   const rulesService = getRulesService();
   const now = useNow();
+  const config = useInfoFlowConfig();
 
   // Helper functions
   const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
@@ -512,6 +520,7 @@ return document.title;"
   import InputIcon from 'primevue/inputicon';
   import InputNumber from 'primevue/inputnumber';
   import InputText from 'primevue/inputtext';
+  import ToggleSwitch from 'primevue/toggleswitch';
   import RadioButton from 'primevue/radiobutton';
   import Select from 'primevue/select';
   import Textarea from 'primevue/textarea';

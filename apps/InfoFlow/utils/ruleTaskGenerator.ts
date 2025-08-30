@@ -1,10 +1,66 @@
-import type { runInfoFlowGet_task } from '@/services/InfoFlowGet/messageProtocol';
+import type { runInfoFlowGet_task, TaskResult } from '@/services/InfoFlowGet/messageProtocol';
 import { getRulesService } from '../entrypoints/background/service/rulesService';
 import { getTaskExecutionService } from '../entrypoints/background/service/taskExecutionService';
 import type { Rule } from '../entrypoints/background/service/rulesService';
 import { runInfoFlowGet } from '@/services/InfoFlowGet/runInfoFlowGet';
 import { browser } from '#imports';
 import { EVENT_TYPES } from '../constants/events';
+import { useInfoFlowConfig } from '../storage/config';
+import { deepEqual } from 'fast-equals';
+
+// 比较两个执行结果是否相同
+function areExecutionResultsEqual(result1: TaskResult, result2: TaskResult): boolean {
+  if (!result1 || !result2) return false;
+  console.log(
+    '[result1]',
+    { result1, result2 },
+    deepEqual(result1.collections, result2.collections),
+  );
+  // 使用 fast-equals 进行深度比较
+  return deepEqual(result1.collections, result2.collections);
+}
+
+// 获取规则上一次成功的执行结果
+async function getLastSuccessfulExecutionResult(ruleId: string): Promise<TaskResult | null> {
+  try {
+    const taskExecutionService = getTaskExecutionService();
+    const lastExecution = await taskExecutionService.getLastSuccessfulExecution(ruleId);
+    return lastExecution?.result || null;
+  } catch (error) {
+    console.error('获取上一次执行结果失败:', error);
+    return null;
+  }
+}
+
+// 处理自动已读逻辑
+async function handleAutoRead(
+  ruleId: string,
+  currentExecutionId: string,
+  currentResult: TaskResult,
+): Promise<void> {
+  try {
+    // 获取上一次成功的执行结果
+    const lastResult = await getLastSuccessfulExecutionResult(ruleId);
+    console.log('[lastResult]', lastResult);
+    if (!lastResult) {
+      // 如果没有上一次的执行结果，不需要自动已读
+      console.log(`[AutoRead] 规则 ${ruleId} 没有上一次执行结果，跳过自动已读`);
+      return;
+    }
+
+    // 比较两次执行结果是否相同
+    const isEqual = areExecutionResultsEqual(currentResult, lastResult);
+
+    if (isEqual) {
+      console.log(`[AutoRead] 规则 ${ruleId} 执行结果与上一次相同，自动标记为已读`);
+      await getTaskExecutionService().markAsRead(currentExecutionId);
+    } else {
+      console.log(`[AutoRead] 规则 ${ruleId} 执行结果与上一次不同，保持未读状态`);
+    }
+  } catch (error) {
+    console.error('[AutoRead] 自动已读处理失败:', error);
+  }
+}
 
 // 公共的规则执行逻辑
 export async function executeRuleLogic(
@@ -18,6 +74,8 @@ export async function executeRuleLogic(
   executionId?: string;
 }> {
   let executionId: string | undefined;
+  /** 这个真实值的加载是异步的，所以需要放在最前面，确保到需要它的值的时候已经加载好了 */
+  const config = useInfoFlowConfig();
 
   try {
     // Create execution record
@@ -47,6 +105,11 @@ export async function executeRuleLogic(
 
     // Update rule execution count (this also updates lastExecutedAt)
     await getRulesService().incrementExecutionCount(rule.id);
+
+    // 这里如果为false 的话，有可能是值还没加载完毕
+    if (config.value.autoMarkAsRead) {
+      await handleAutoRead(rule.id, executionId, res);
+    }
 
     // 发送任务完成事件通知前端
     sendRuleExecutionCompletedEvent(rule.id, executionId);
@@ -97,16 +160,18 @@ function sendRuleExecutionCompletedEvent(ruleId: string, executionId: string) {
   try {
     // 发送消息到所有前端页面
     if (browser.runtime) {
-      browser.runtime.sendMessage({
-        type: EVENT_TYPES.RULE_EXECUTION_COMPLETED,
-        payload: {
-          ruleId,
-          executionId,
-          timestamp: new Date().toISOString(),
-        },
-      }).catch(error => {
-        console.warn('[RuleTaskGenerator] Failed to send execution completed event:', error);
-      });
+      browser.runtime
+        .sendMessage({
+          type: EVENT_TYPES.RULE_EXECUTION_COMPLETED,
+          payload: {
+            ruleId,
+            executionId,
+            timestamp: new Date().toISOString(),
+          },
+        })
+        .catch((error) => {
+          console.warn('[RuleTaskGenerator] Failed to send execution completed event:', error);
+        });
     }
   } catch (error) {
     console.error('[RuleTaskGenerator] Error sending execution completed event:', error);

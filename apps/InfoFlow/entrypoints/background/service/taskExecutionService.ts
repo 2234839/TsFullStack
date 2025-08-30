@@ -97,6 +97,11 @@ function createTaskExecutionService() {
       return await dbService.taskExecutions.getRecentExecutions(ruleId, limit);
     },
 
+    async getLastSuccessfulExecution(ruleId: string): Promise<import('./dbService').TaskExecutionsTable | null> {
+      const dbService = getDbService();
+      return await dbService.taskExecutions.getLastSuccessfulExecution(ruleId);
+    },
+
     async getExecutionStats(ruleId?: string): Promise<{
       total: number;
       completed: number;
