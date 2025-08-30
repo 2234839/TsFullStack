@@ -6,7 +6,13 @@ import PrimeVue from 'primevue/config';
 import Aura from '@primeuix/themes/aura';
 import App from './content/contentApp.vue';
 import { ConfirmationService, ToastService } from 'primevue';
-import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult, type CollectionItem, type CollectionResult } from '@/services/InfoFlowGet/messageProtocol';
+import {
+  runTaskMessageId,
+  type runInfoFlowGet_task,
+  type TaskResult,
+  type CollectionItem,
+  type CollectionResult,
+} from '@/services/InfoFlowGet/messageProtocol';
 
 // =============================================================================
 // Utility Functions
@@ -34,7 +40,10 @@ const ELEMENT_WAIT_TIMEOUT = 10000;
 /**
  * Wait for an element to appear in the DOM
  */
-async function waitForElement(selector: string, timeout: number = ELEMENT_WAIT_TIMEOUT): Promise<Element> {
+async function waitForElement(
+  selector: string,
+  timeout: number = ELEMENT_WAIT_TIMEOUT,
+): Promise<Element> {
   const element = document.querySelector(selector);
   if (element) {
     return element;
@@ -65,7 +74,7 @@ async function waitForElement(selector: string, timeout: number = ELEMENT_WAIT_T
  * Create a delay promise
  */
 function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -90,28 +99,30 @@ async function collectCSSData(
   method: any,
   maxWaitTime: number,
   pollInterval: number,
-  startTime: number
+  startTime: number,
 ): Promise<{ data: any[]; attempts: number; success: boolean }> {
   let data: any[] = [];
   let attempts = 0;
 
-  while (attempts === 0 || (data.length === 0 && (Date.now() - startTime) < maxWaitTime)) {
+  while (attempts === 0 || (data.length === 0 && Date.now() - startTime < maxWaitTime)) {
     attempts++;
 
     const elements = document.querySelectorAll(method.selector);
-    data = Array.from(elements).map(el => {
-      if (method.attribute) {
-        return el.getAttribute(method.attribute);
-      }
-      return el.textContent?.trim() || el.outerHTML;
-    }).filter(item => item !== null && item !== undefined && item !== '');
+    data = Array.from(elements)
+      .map((el) => {
+        if (method.attribute) {
+          return el.getAttribute(method.attribute);
+        }
+        return el.outerHTML;
+      })
+      .filter((item) => item !== null && item !== undefined && item !== '');
 
     if (data.length > 0) {
       return { data, attempts, success: true };
     }
 
     // Wait before retrying
-    if ((Date.now() - startTime) < maxWaitTime) {
+    if (Date.now() - startTime < maxWaitTime) {
       await delay(pollInterval);
     }
   }
@@ -126,11 +137,11 @@ async function collectJSData(
   method: any,
   maxWaitTime: number,
   pollInterval: number,
-  startTime: number
+  startTime: number,
 ): Promise<{ data: any; attempts: number; success: boolean }> {
   let attempts = 0;
 
-  while (attempts === 0 || (Date.now() - startTime) < maxWaitTime) {
+  while (attempts === 0 || Date.now() - startTime < maxWaitTime) {
     attempts++;
 
     try {
@@ -149,7 +160,7 @@ async function collectJSData(
     }
 
     // Wait before retrying
-    if ((Date.now() - startTime) < maxWaitTime) {
+    if (Date.now() - startTime < maxWaitTime) {
       await delay(pollInterval);
     }
   }
@@ -184,7 +195,7 @@ async function executeCollectionMethod(
   method: any,
   maxWaitTime: number,
   pollInterval: number,
-  startTime: number
+  startTime: number,
 ): Promise<CollectionResult> {
   try {
     console.log(`[Collection] Executing ${method.type} method:`, method);
@@ -193,8 +204,10 @@ async function executeCollectionMethod(
       const result = await collectCSSData(method, maxWaitTime, pollInterval, startTime);
 
       if (result.success) {
-        console.log(`[Collection] CSS collected ${result.data.length} items after ${result.attempts} attempts`);
-        
+        console.log(
+          `[Collection] CSS collected ${result.data.length} items after ${result.attempts} attempts`,
+        );
+
         // 转换为CollectionItem格式
         const items: CollectionItem[] = result.data.map((item: any) => ({
           type: method.attribute ? 'attribute' : 'text',
@@ -202,20 +215,20 @@ async function executeCollectionMethod(
           attribute: method.attribute,
           value: item,
           html: method.collectHtml !== false ? getOuterHTML(item) : undefined,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         }));
-        
+
         return {
           items,
           timestamp: new Date().toISOString(),
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       } else {
         console.warn(`[Collection] CSS no data found after ${result.attempts} attempts`);
         return {
           items: [],
           timestamp: new Date().toISOString(),
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
     } else if (method.type === 'js') {
@@ -223,26 +236,33 @@ async function executeCollectionMethod(
 
       if (result.success) {
         console.log(`[Collection] JS completed with result after ${result.attempts} attempts`);
-        
+
         // 转换为CollectionItem格式
-        const items: CollectionItem[] = (Array.isArray(result.data) ? result.data : [result.data]).map((item: any) => ({
+        const items: CollectionItem[] = (
+          Array.isArray(result.data) ? result.data : [result.data]
+        ).map((item: any) => ({
           type: 'js',
           value: item,
-          html: method.collectHtml !== false ? typeof item === 'string' ? item : JSON.stringify(item) : undefined,
-          timestamp: new Date().toISOString()
+          html:
+            method.collectHtml !== false
+              ? typeof item === 'string'
+                ? item
+                : JSON.stringify(item)
+              : undefined,
+          timestamp: new Date().toISOString(),
         }));
-        
+
         return {
           items,
           timestamp: new Date().toISOString(),
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       } else {
         console.warn(`[Collection] JS no valid result after ${result.attempts} attempts`);
         return {
           items: [],
           timestamp: new Date().toISOString(),
-          executionTime: Date.now() - startTime
+          executionTime: Date.now() - startTime,
         };
       }
     } else {
@@ -250,15 +270,21 @@ async function executeCollectionMethod(
       return {
         items: [],
         timestamp: new Date().toISOString(),
-        executionTime: Date.now() - startTime
+        executionTime: Date.now() - startTime,
       };
     }
   } catch (error) {
     console.error(`[Collection] Error in ${method.type} method:`, error);
     return {
-      items: [{ type: 'error', value: error instanceof Error ? error.message : String(error), timestamp: new Date().toISOString() }],
+      items: [
+        {
+          type: 'error',
+          value: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+        },
+      ],
       timestamp: new Date().toISOString(),
-      executionTime: Date.now() - startTime
+      executionTime: Date.now() - startTime,
     };
   }
 }
@@ -278,7 +304,7 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
       title: document.title,
       timestamp: new Date().toISOString(),
       matched: 0,
-      message: 'URL mismatch'
+      message: 'URL mismatch',
     };
   }
 
@@ -288,7 +314,7 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
     title: document.title,
     timestamp: new Date().toISOString(),
     matched: 1,
-    collections: {}
+    collections: {},
   };
 
   // Early return if no data collection configured
@@ -312,7 +338,7 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
       method,
       maxWaitTime,
       POLL_INTERVAL,
-      startTime
+      startTime,
     );
   }
 
@@ -329,7 +355,7 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
       method,
       maxWaitTime,
       POLL_INTERVAL,
-      startTime
+      startTime,
     );
   }
 
