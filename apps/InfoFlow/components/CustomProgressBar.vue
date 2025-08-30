@@ -1,5 +1,5 @@
 <template>
-  <div class="relative w-full h-3 bg-gray-300 rounded-full overflow-hidden">
+  <div class="relative w-full h-3 bg-gray-400 rounded-full overflow-hidden">
     <div
       class="absolute top-0 left-0 h-full bg-blue-400 rounded-full transition-all duration-300 ease-out"
       :style="{ width: `${value}%` }"></div>
