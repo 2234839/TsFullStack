@@ -12,12 +12,12 @@ import {
   type TaskResult,
   type CollectionItem,
   type CollectionResult,
+  type DataCollectionMethod,
 } from '@/services/InfoFlowGet/messageProtocol';
 
 // =============================================================================
 // Utility Functions
 // =============================================================================
-
 
 // =============================================================================
 // Configuration Constants
@@ -101,14 +101,13 @@ async function collectCSSData(
   while (attempts === 0 || (data.length === 0 && Date.now() - startTime < maxWaitTime)) {
     attempts++;
 
-    const elements = document.querySelectorAll(method.selector);
+    const elements = document.querySelectorAll<HTMLElement>(method.selector);
     data = Array.from(elements)
       .map((el) => {
         if (method.attribute) {
           return el.getAttribute(method.attribute);
         }
-        // For text collection, store text content in value, HTML in html field
-        return el.textContent || el.innerText || '';
+        return el.outerHTML || el.innerText || '';
       })
       .filter((item) => item !== null && item !== undefined && item !== '');
 
@@ -187,7 +186,7 @@ async function executeTiming(timing: any): Promise<void> {
  * Execute a single data collection method
  */
 async function executeCollectionMethod(
-  method: any,
+  method: DataCollectionMethod,
   maxWaitTime: number,
   pollInterval: number,
   startTime: number,
@@ -204,7 +203,7 @@ async function executeCollectionMethod(
         );
 
         // 转换为CollectionItem格式
-        const items: CollectionItem[] = result.data.map((item: any) => ({
+        const items: CollectionItem[] = result.data.map((item) => ({
           type: method.attribute ? 'attribute' : 'text',
           selector: method.selector,
           attribute: method.attribute,
@@ -254,7 +253,7 @@ async function executeCollectionMethod(
         };
       }
     } else {
-      console.warn(`[Collection] Unknown method type: ${method.type}`);
+      method satisfies never;
       return {
         items: [],
         timestamp: new Date().toISOString(),
@@ -282,19 +281,7 @@ async function executeCollectionMethod(
  */
 async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
   console.log(`[Task] Starting execution for URL: ${task.url}`);
-
-  // URL validation
   const currentUrl = window.location.href;
-  if (task.url && !currentUrl.includes(task.url)) {
-    console.warn(`[Task] URL mismatch - Current: ${currentUrl}, Target: ${task.url}`);
-    return {
-      url: currentUrl,
-      title: document.title,
-      timestamp: new Date().toISOString(),
-      matched: 0,
-      message: 'URL mismatch',
-    };
-  }
 
   // Basic result setup
   const result: TaskResult = {

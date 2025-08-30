@@ -8,7 +8,7 @@
         <div class="mt-2 flex items-center gap-2">
           <ToggleSwitch v-model="config.autoMarkAsRead" inputId="auto-read-switch" />
           <label for="auto-read-switch" class="text-sm text-gray-600 cursor-pointer">
-            自动已读（结果相同则自动标记为已读）
+            自动已读（结果没有新增条目时自动标记为已读）
           </label>
         </div>
       </div>
