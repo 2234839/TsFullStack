@@ -177,15 +177,8 @@
       // 处理所有a标签的href属性
       const links = tempDiv.querySelectorAll('a');
       links.forEach((link) => {
-        // 添加蓝色链接样式
-        link.style.color = '#3b82f6';
-        link.style.textDecoration = 'underline';
-        link.style.textDecorationColor = '#3b82f6';
-        link.style.textDecorationThickness = '1px';
-        link.style.textUnderlineOffset = '2px';
-
-        // 添加hover效果
-        link.style.cursor = 'pointer';
+        // 添加类名
+        link.className = 'execution-detail-link';
 
         const href = link.getAttribute('href');
         if (
@@ -232,3 +225,27 @@
     return convertRelativeUrls(item.value, baseUrl);
   };
 </script>
+
+<style scoped>
+/* 链接基础样式 */
+:deep(.execution-detail-link) {
+  color: #3b82f6 !important;
+  text-decoration: underline !important;
+  text-decoration-color: #3b82f6 !important;
+  text-decoration-thickness: 1px !important;
+  text-underline-offset: 2px !important;
+  cursor: pointer !important;
+}
+
+/* 已访问链接的样式 */
+:deep(.execution-detail-link:visited) {
+  color: #8b5cf6 !important;
+  text-decoration-color: #8b5cf6 !important;
+}
+
+/* 链接hover效果 */
+:deep(.execution-detail-link:hover) {
+  color: #2563eb !important;
+  text-decoration-color: #2563eb !important;
+}
+</style>
