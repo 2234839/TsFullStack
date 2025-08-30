@@ -6,19 +6,7 @@ import { runInfoFlowGet } from '@/services/InfoFlowGet/runInfoFlowGet';
 import { browser } from '#imports';
 import { EVENT_TYPES } from '../constants/events';
 import { useInfoFlowConfig } from '../storage/config';
-import { deepEqual } from 'fast-equals';
-
-// 比较两个执行结果是否相同
-function areExecutionResultsEqual(result1: TaskResult, result2: TaskResult): boolean {
-  if (!result1 || !result2) return false;
-  console.log(
-    '[result1]',
-    { result1, result2 },
-    deepEqual(result1.collections, result2.collections),
-  );
-  // 使用 fast-equals 进行深度比较
-  return deepEqual(result1.collections, result2.collections);
-}
+import { getExecutionWithChanges, checkIfNoAdditions } from './changeDetection';
 
 
 // 处理自动已读逻辑
@@ -39,21 +27,26 @@ async function handleAutoRead(
     }
 
     const lastResult = previousExecution.result;
-    console.log('[lastResult]', lastResult);
 
-    // 比较两次执行结果是否相同
-    const isEqual = areExecutionResultsEqual(currentResult, lastResult);
+    // 计算两次执行结果的变化，判断是否有新增项
+    const executionWithChanges = getExecutionWithChanges(
+      { result: currentResult },
+      { result: lastResult }
+    );
 
-    if (isEqual) {
-      console.log(`[AutoRead] 规则 ${ruleId} 执行结果与上一次相同，自动标记为已读`);
+    const hasNoAdditions = checkIfNoAdditions(executionWithChanges);
+
+    if (hasNoAdditions) {
+      console.log(`[AutoRead] 规则 ${ruleId} 执行结果没有新增项，自动标记为已读`);
       await getTaskExecutionService().markAsRead(currentExecutionId);
     } else {
-      console.log(`[AutoRead] 规则 ${ruleId} 执行结果与上一次不同，保持未读状态`);
+      console.log(`[AutoRead] 规则 ${ruleId} 执行结果有新增项，保持未读状态`);
     }
   } catch (error) {
     console.error('[AutoRead] 自动已读处理失败:', error);
   }
 }
+
 
 // 公共的规则执行逻辑
 export async function executeRuleLogic(

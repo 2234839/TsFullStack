@@ -4,7 +4,6 @@ export interface CollectionItem {
   selector?: string;
   attribute?: string;
   value: any;
-  html?: string; // 原始HTML内容
   timestamp: string;
 }
 
@@ -36,12 +35,10 @@ export type DataCollectionMethod =
       type: 'css';
       selector: string;
       attribute?: string;
-      collectHtml?: boolean; // 是否收集HTML内容，默认为true
     }
   | {
       type: 'js';
       code: string;
-      collectHtml?: boolean; // 是否收集HTML内容，默认为true
     };
 
 export type runInfoFlowGet_task = {

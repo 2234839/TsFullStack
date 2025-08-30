@@ -18,12 +18,6 @@ import {
 // Utility Functions
 // =============================================================================
 
-function getOuterHTML(element: any): string {
-  if (element && typeof element.outerHTML === 'string') {
-    return element.outerHTML;
-  }
-  return String(element);
-}
 
 // =============================================================================
 // Configuration Constants
@@ -113,7 +107,8 @@ async function collectCSSData(
         if (method.attribute) {
           return el.getAttribute(method.attribute);
         }
-        return el.outerHTML;
+        // For text collection, store text content in value, HTML in html field
+        return el.textContent || el.innerText || '';
       })
       .filter((item) => item !== null && item !== undefined && item !== '');
 
@@ -214,7 +209,6 @@ async function executeCollectionMethod(
           selector: method.selector,
           attribute: method.attribute,
           value: item,
-          html: method.collectHtml !== false ? getOuterHTML(item) : undefined,
           timestamp: new Date().toISOString(),
         }));
 
@@ -243,12 +237,6 @@ async function executeCollectionMethod(
         ).map((item: any) => ({
           type: 'js',
           value: item,
-          html:
-            method.collectHtml !== false
-              ? typeof item === 'string'
-                ? item
-                : JSON.stringify(item)
-              : undefined,
           timestamp: new Date().toISOString(),
         }));
 

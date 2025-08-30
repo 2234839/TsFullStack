@@ -38,7 +38,7 @@
 
             <div class="space-y-1">
               <div v-for="(item, index) in collection.items" :key="index" class="text-sm">
-                <div class="flex items-center gap-2 text-xs text-gray-600 mb-1">
+                <div class="flex items-center gap-2 text-xs text-gray-600">
                   <span
                     :class="[
                       'inline-flex items-center justify-center w-6! h-6 rounded-full text-xs font-medium',
@@ -73,8 +73,8 @@
                 <!--    :class="getChangeColorClass(item.changeType)" -->
                 <div
                   v-if="shouldShowItem(item.changeType)"
-                  class="flex items-start gap-2 p-1 rounded border-t border-sky-200">
-                  <div v-if="item.html" v-html="item.html" />
+                  class="flex items-start gap-2 pb-1 rounded border-b border-sky-200">
+                  <div v-html="item.value" />
                 </div>
               </div>
             </div>
@@ -129,32 +129,7 @@
     }),
   });
 
-  // Status options
-  const statusOptions = [
-    { label: '已完成', value: 'completed' },
-    { label: '失败', value: 'failed' },
-    { label: '运行中', value: 'running' },
-    { label: '等待中', value: 'pending' },
-    { label: '已取消', value: 'cancelled' },
-  ];
-
-  const executionTypeOptions = [
-    { label: '手动执行', value: 'manual' },
-    { label: '定时执行', value: 'scheduled' },
-    { label: '触发执行', value: 'triggered' },
-  ];
-
   // Methods
-  const getStatusText = (status: string) => {
-    const option = statusOptions.find((opt) => opt.value === status);
-    return option?.label || status;
-  };
-
-  const getExecutionTypeText = (type: string) => {
-    const option = executionTypeOptions.find((opt) => opt.value === type);
-    return option?.label || type;
-  };
-
   const formatDateTime = (date: Date | string) => {
     return format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
   };
@@ -166,23 +141,6 @@
       return `${(duration / 1000).toFixed(1)}s`;
     } else {
       return `${(duration / 60000).toFixed(1)}min`;
-    }
-  };
-
-  const getTypeColorClass = (type: string) => {
-    switch (type) {
-      case 'text':
-        return 'bg-blue-100 text-blue-800';
-      case 'html':
-        return 'bg-green-100 text-green-800';
-      case 'attribute':
-        return 'bg-purple-100 text-purple-800';
-      case 'js':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'error':
-        return 'bg-red-100 text-red-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
     }
   };
 
@@ -200,36 +158,6 @@
         return props.comparisonFilter.showUnchanged;
       default:
         return true;
-    }
-  };
-
-  const getChangeColorClass = (changeType: string) => {
-    switch (changeType) {
-      case 'added':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'removed':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'moved':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'unchanged':
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-      default:
-        return 'bg-gray-50 text-gray-700 border-gray-200';
-    }
-  };
-
-  const getChangeIcon = (changeType: string) => {
-    switch (changeType) {
-      case 'added':
-        return 'pi pi-plus';
-      case 'removed':
-        return 'pi pi-minus';
-      case 'moved':
-        return 'pi pi-arrows-alt';
-      case 'unchanged':
-        return 'pi pi-check';
-      default:
-        return 'pi pi-circle';
     }
   };
 </script>
