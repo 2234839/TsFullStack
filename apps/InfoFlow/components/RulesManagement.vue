@@ -9,8 +9,8 @@
       <div class="flex gap-2">
         <Button
           icon="pi pi-refresh"
-          @click="loadRules"
-          :loading="loading"
+          @click="rules.execute()"
+          :loading="rules.isLoading.value"
           severity="secondary"
           size="small" />
         <Button icon="pi pi-plus" @click="showCreateDialog = true" label="新建规则" />
@@ -71,11 +71,11 @@
       <!-- Rules Table -->
       <div>
         <DataTable
-          :value="rules"
-          :loading="loading"
+          :value="rules.state.value.rules"
+          :loading="rules.isLoading.value"
           :paginator="true"
           :rows="pageSize"
-          :totalRecords="totalRecords"
+          :totalRecords="rules.state.value.total"
           :rowsPerPageOptions="[10, 20, 50]"
           :lazy="true"
           @page="handlePageChange"
@@ -476,13 +476,11 @@ return document.title;"
   import Select from 'primevue/select';
   import Textarea from 'primevue/textarea';
   import { useToast } from 'primevue/usetoast';
+  import { useAsyncState } from '@vueuse/core';
 
   // Toast service
   const toast = useToast();
 
-  // State
-  const rules = ref<Rule[]>([]);
-  const loading = ref(false);
   const saving = ref(false);
   const deleting = ref(false);
   const showCreateDialog = ref(false);
@@ -494,7 +492,6 @@ return document.title;"
   // Pagination
   const currentPage = ref(1);
   const pageSize = ref(10);
-  const totalRecords = ref(0);
 
   // Search and filters
   const searchQuery = ref('');
@@ -578,10 +575,8 @@ return document.title;"
     return ruleUnreadStatus.value[ruleId] || false;
   };
 
-  // Methods
-  const loadRules = async () => {
-    loading.value = true;
-    try {
+  const rules = useAsyncState(
+    async () => {
       const result = await rulesService.query({
         page: currentPage.value,
         limit: pageSize.value,
@@ -591,15 +586,18 @@ return document.title;"
         sortOrder: 'desc',
       });
 
-      rules.value = result.rules;
-      totalRecords.value = result.total;
-
       // 检查每个规则的未读执行记录状态
       await checkRulesUnreadStatus();
-    } finally {
-      loading.value = false;
-    }
-  };
+      return {
+        rules: result.rules,
+        total: result.total,
+      };
+    },
+    {
+      rules: [],
+      total: 0,
+    },
+  );
 
   const loadStats = async () => {
     try {
@@ -615,7 +613,7 @@ return document.title;"
       ruleUnreadStatus.value = {};
 
       // 并行检查每个规则的未读状态
-      const checkPromises = rules.value.map(async (rule: Rule) => {
+      const checkPromises = rules.state.value.rules.map(async (rule: Rule) => {
         const hasUnread = await hasUnreadExecutionsAsync(rule.id);
         return { ruleId: rule.id, hasUnread };
       });
@@ -633,7 +631,7 @@ return document.title;"
   const handlePageChange = (event: any) => {
     currentPage.value = event.page + 1;
     pageSize.value = event.rows;
-    loadRules();
+    rules.execute();
   };
 
   const getRowStyle = (rule: Rule) => {
@@ -656,19 +654,19 @@ return document.title;"
 
   const handleSearch = () => {
     currentPage.value = 1;
-    loadRules();
+    rules.execute();
   };
 
   const handleFilterChange = () => {
     currentPage.value = 1;
-    loadRules();
+    rules.execute();
   };
 
   const clearFilters = () => {
     searchQuery.value = '';
     statusFilter.value = '';
     currentPage.value = 1;
-    loadRules();
+    rules.execute();
   };
 
   const resetForm = () => {
@@ -818,7 +816,7 @@ return document.title;"
 
       showCreateDialog.value = false;
       resetForm();
-      loadRules();
+      rules.execute();
       loadStats();
     } finally {
       saving.value = false;
@@ -857,7 +855,7 @@ return document.title;"
       await rulesService.deleteRule(selectedRule.value.id);
       showDeleteDialog.value = false;
       selectedRule.value = null;
-      loadRules();
+      rules.execute();
       loadStats();
     } finally {
       deleting.value = false;
@@ -867,7 +865,7 @@ return document.title;"
   const activateRule = async (rule: Rule) => {
     try {
       await rulesService.activateRule(rule.id);
-      loadRules();
+      rules.execute();
       loadStats();
     } catch (error) {
       console.error('Failed to activate rule:', error);
@@ -877,7 +875,7 @@ return document.title;"
   const pauseRule = async (rule: Rule) => {
     try {
       await rulesService.pauseRule(rule.id);
-      loadRules();
+      rules.execute();
       loadStats();
     } catch (error) {
       console.error('Failed to pause rule:', error);
@@ -907,7 +905,7 @@ return document.title;"
 
         // 延迟刷新页面以等待新任务记录创建完成
         setTimeout(() => {
-          loadRules();
+          rules.execute();
           loadStats();
         }, 1000);
       } else {
@@ -932,7 +930,7 @@ return document.title;"
 
   // Lifecycle
   onMounted(() => {
-    loadRules();
+    rules.execute();
     loadStats();
   });
 
@@ -952,7 +950,7 @@ return document.title;"
 
   // Expose methods for parent component
   defineExpose({
-    loadRules,
+    loadRules: () => rules.execute(),
     loadStats,
   });
 </script>
