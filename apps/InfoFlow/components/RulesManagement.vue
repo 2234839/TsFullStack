@@ -204,7 +204,7 @@
       v-model:visible="showCreateDialog"
       :header="editingRule ? '编辑规则' : '新建规则'"
       modal
-      class="max-w-[600px]">
+      class="max-w-[70vw] w-[800px]">
       <div class="flex flex-col gap-4">
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -223,36 +223,26 @@
         </div>
 
         <div class="col-span-2">
-          <label class="block text-sm font-medium mb-2">规则描述 *</label>
+          <label class="block text-sm font-medium mb-2">规则描述</label>
           <Textarea
             v-model="ruleForm.description"
             placeholder="输入规则描述"
-            rows="3"
-            :class="{ 'p-invalid': errors.description }" />
-          <small v-if="errors.description" class="text-red-500">{{ errors.description }}</small>
+            rows="2"
+            class="w-full" />
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-2">Cron 表达式 *</label>
-            <InputText
-              v-model="ruleForm.cron"
-              placeholder="0 9 * * *"
-              :class="{ 'p-invalid': errors.cron }" />
-            <small v-if="errors.cron" class="text-red-500">{{ errors.cron }}</small>
-            <small class="text-gray-500">格式: 分钟 小时 * * * (例如: 0 9 * * * = 每天9点)</small>
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium mb-2">状态</label>
-            <Select
-              v-model="ruleForm.status"
-              :options="statusOptions"
-              optionLabel="label"
-              optionValue="value" />
-          </div>
+        <div>
+          <CronSelector v-model="ruleForm.cron" :error="errors.cron" />
         </div>
 
+        <div>
+          <label class="block text-sm font-medium mb-2">状态</label>
+          <Select
+            v-model="ruleForm.status"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value" />
+        </div>
         <div class="col-span-2">
           <label class="block text-sm font-medium mb-2">目标 URL *</label>
           <InputText
@@ -450,6 +440,7 @@ return document.title;"
   import type { Rule } from '@/entrypoints/background/service/rulesService';
   import { format } from 'date-fns';
   import RuleExecutionRecords from './RuleExecutionRecords.vue';
+  import CronSelector from './CronSelector.vue';
 
   // PrimeVue components
   import Accordion from 'primevue/accordion';
@@ -590,6 +581,9 @@ return document.title;"
     {
       rules: [],
       total: 0,
+    },
+    {
+      resetOnExecute: false,
     },
   );
 
@@ -776,10 +770,6 @@ return document.title;"
 
     if (!ruleForm.name.trim()) {
       errors.value.name = '规则名称不能为空';
-    }
-
-    if (!ruleForm.description.trim()) {
-      errors.value.description = '规则描述不能为空';
     }
 
     if (!ruleForm.cron.trim()) {
