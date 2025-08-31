@@ -21,6 +21,7 @@ export default defineConfig({
     action: {
       default_popup: undefined, // 禁用popup，点击直接打开options
     },
+    description:'监控网页信息变化',
   },
   /** 禁止自动 import，更清晰的依赖流 */
   imports: false,

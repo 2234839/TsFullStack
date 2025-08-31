@@ -1,11 +1,12 @@
 import { browser } from '#imports';
+import { delay } from '@/utils/delay';
 import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult } from './messageProtocol';
 
 /**
  * 只能在后台运行
  */
 export async function runInfoFlowGet(task: runInfoFlowGet_task) {
-  console.log('[run task]',task);
+  console.log('[run task]', task);
   // 在后台打开新标签页
   const tab = await browser.tabs.create({
     url: task.url,
@@ -22,9 +23,11 @@ export async function runInfoFlowGet(task: runInfoFlowGet_task) {
   // 等待标签页加载完毕
   await new Promise((r) => {
     // 监听标签页更新事件，等待页面加载完成
-    const handleTabUpdate = (tabId: number, changeInfo: any) => {
+    const handleTabUpdate = async (tabId: number, changeInfo: any) => {
       if (tabId === openedTabId && changeInfo.status === 'complete') {
         browser.tabs.onUpdated.removeListener(handleTabUpdate);
+        // 等待内容脚本加载完毕
+        await delay(1200);
         r(1);
       }
     };
@@ -51,7 +54,7 @@ export async function runInfoFlowGet(task: runInfoFlowGet_task) {
       images: [],
       forms: [],
       metadata: { description: '', keywords: '', author: '' },
-      stats: { totalElements: 0, textNodes: 0, loadTime: 0 }
+      stats: { totalElements: 0, textNodes: 0, loadTime: 0 },
     } as TaskResult;
   } finally {
     browser.tabs.remove(openedTabId);

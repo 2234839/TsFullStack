@@ -14,6 +14,7 @@ import {
   type CollectionResult,
   type DataCollectionMethod,
 } from '@/services/InfoFlowGet/messageProtocol';
+import { delay } from '../utils/delay';
 
 // =============================================================================
 // Utility Functions
@@ -62,13 +63,6 @@ async function waitForElement(
       reject(new Error(`Element ${selector} not found within ${timeout}ms`));
     }, timeout);
   });
-}
-
-/**
- * Create a delay promise
- */
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
