@@ -122,8 +122,7 @@
               size="small"
               text
               severity="secondary"
-              class="w-8 h-8"
-            />
+              class="w-8 h-8" />
           </template>
         </Column>
         <Column field="status" header="状态" class="w-[120px]">
@@ -203,19 +202,19 @@
         </Column>
 
         <Column field="result" header="结果摘要" class="min-w-[200px]">
-          <template #body="slotProps">
+          <template #body="{ data }: { data: TaskExecutionsTable }">
             <div class="text-sm">
-              <div v-if="slotProps.data.status === 'completed' && slotProps.data.result">
-                <div class="font-medium">{{ slotProps.data.result.title || '无标题' }}</div>
-                <div class="text-xs text-gray-500 truncate">{{ slotProps.data.result.url }}</div>
-                <div v-if="slotProps.data.result.message" class="text-xs text-blue-600 mt-1">
-                  {{ slotProps.data.result.message }}
+              <div v-if="data.status === 'completed' && data.result">
+                <div class="font-medium">{{ data.result.title || '无标题' }}</div>
+                <div class="text-xs text-gray-500 truncate">{{ data.result.url }}</div>
+                <div v-if="data.result.message" class="text-xs text-blue-600 mt-1">
+                  {{ data.result.message }}
                 </div>
               </div>
-              <div v-else-if="slotProps.data.status === 'failed'" class="text-red-600 text-xs">
-                {{ slotProps.data.error || '执行失败' }}
+              <div v-else-if="data.status === 'failed'" class="text-red-600 text-xs">
+                {{ data.error || '执行失败' }}
               </div>
-              <div v-else-if="slotProps.data.status === 'running'" class="text-blue-600 text-xs">
+              <div v-else-if="data.status === 'running'" class="text-blue-600 text-xs">
                 执行中...
               </div>
               <div v-else class="text-gray-500 text-xs">等待执行</div>
@@ -224,30 +223,30 @@
         </Column>
 
         <Column field="actions" header="操作" class="w-[120px]">
-          <template #body="slotProps">
+          <template #body="{ data }: { data: TaskExecutionsTable }">
             <div class="flex gap-1">
               <Button
-                :icon="slotProps.data.isRead ? 'pi pi-circle' : 'pi pi-circle-fill'"
-                @click="toggleReadStatus(slotProps.data)"
+                :icon="data.isRead ? 'pi pi-circle' : 'pi pi-circle-fill'"
+                @click="toggleReadStatus(data)"
                 size="small"
-                :severity="slotProps.data.isRead ? 'secondary' : ''"
-                v-tooltip="slotProps.data.isRead ? '标记为未读' : '标记为已读'" />
+                :severity="data.isRead ? 'secondary' : ''"
+                v-tooltip="data.isRead ? '标记为未读' : '标记为已读'" />
               <Button
-                :icon="expandedRows[slotProps.data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'"
-                @click="toggleExecutionDetails(slotProps.data)"
+                :icon="expandedRows[data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                @click="toggleExecutionDetails(data)"
                 size="small"
                 severity="info"
-                v-tooltip="expandedRows[slotProps.data.id] ? '隐藏详情' : '查看详情'" />
+                v-tooltip="expandedRows[data.id] ? '隐藏详情' : '查看详情'" />
               <Button
-                v-if="slotProps.data.status === 'running'"
+                v-if="data.status === 'running'"
                 icon="pi pi-times"
-                @click="confirmCancelExecution(slotProps.data)"
+                @click="confirmCancelExecution(data)"
                 size="small"
                 severity="warning"
                 v-tooltip="'取消执行'" />
               <Button
                 icon="pi pi-trash"
-                @click="confirmDeleteExecution(slotProps.data)"
+                @click="confirmDeleteExecution(data)"
                 size="small"
                 severity="danger"
                 v-tooltip="'删除记录'" />
@@ -256,12 +255,12 @@
         </Column>
 
         <!-- Row Expansion Template -->
-        <template #expansion="slotProps">
+        <template #expansion="{ data }: { data: TaskExecutionsTable }">
           <div class="bg-gray-50">
             <ExecutionDetails
-              :execution="getExecutionWithChangesLocal(slotProps.data)"
-              :show-comparison="!!getPreviousExecution(slotProps.data)"
-              :previous-execution="getPreviousExecution(slotProps.data)"
+              :execution="getExecutionWithChangesLocal(data)"
+              :show-comparison="!!getPreviousExecution(data)"
+              :previous-execution="getPreviousExecution(data)"
               :comparison-filter="config.comparisonFilter" />
           </div>
         </template>
@@ -319,6 +318,7 @@
   import Badge from 'primevue/badge';
   import Checkbox from 'primevue/checkbox';
   import ExecutionDetails from './ExecutionDetails.vue';
+  import { Rule, TaskExecutionsTable } from '@/entrypoints/background/service/dbService';
 
   interface Props {
     ruleId: string;
@@ -596,19 +596,20 @@
     const currentTime = new Date(currentExecution.startTime).getTime();
 
     // 找到所有在当前执行时间之前的已完成执行记录
-    const previousExecutions = executions.value.filter(exec =>
-      exec.id !== currentExecution.id &&
-      exec.status === 'completed' &&
-      exec.result?.collections &&
-      exec.startTime &&
-      new Date(exec.startTime).getTime() < currentTime
+    const previousExecutions = executions.value.filter(
+      (exec) =>
+        exec.id !== currentExecution.id &&
+        exec.status === 'completed' &&
+        exec.result?.collections &&
+        exec.startTime &&
+        new Date(exec.startTime).getTime() < currentTime,
     );
 
     if (previousExecutions.length === 0) return null;
 
     // 按执行时间降序排序，取最近的一次
-    previousExecutions.sort((a, b) =>
-      new Date(b.startTime!).getTime() - new Date(a.startTime!).getTime()
+    previousExecutions.sort(
+      (a, b) => new Date(b.startTime!).getTime() - new Date(a.startTime!).getTime(),
     );
 
     return previousExecutions[0];
@@ -618,7 +619,7 @@
   const getExecutionWithChangesLocal = (execution: TaskExecutionRecord): TaskExecutionRecord => {
     const previousExecution = getPreviousExecution(execution);
     const executionWithChanges = getExecutionWithChanges(execution, previousExecution);
-    
+
     // 返回完整的 TaskExecutionRecord 对象，但替换 result 为带变化信息的版本
     return {
       ...execution,
