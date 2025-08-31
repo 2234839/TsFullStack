@@ -38,7 +38,14 @@ export interface RuleQueryOptions {
   limit?: number;
   status?: Rule['status'];
   search?: string;
-  sortBy?: 'createdAt' | 'updatedAt' | 'lastExecutedAt' | 'priority' | 'name' | 'nextExecutionAt' | 'unreadFirst';
+  sortBy?:
+    | 'createdAt'
+    | 'updatedAt'
+    | 'lastExecutedAt'
+    | 'priority'
+    | 'name'
+    | 'nextExecutionAt'
+    | 'unreadFirst';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -388,13 +395,7 @@ const rulesService = {
    * 支持按未读执行记录优先排序的查询方法
    */
   async queryWithUnreadFirst(options: RuleQueryOptions = {}): Promise<PaginatedRules> {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      search,
-      sortOrder = 'desc',
-    } = options;
+    const { page = 1, limit = 20, status, search, sortOrder = 'desc' } = options;
 
     // 获取所有符合基础条件的规则
     const baseOptions = { ...options, sortBy: 'createdAt' as const, sortOrder: 'desc' as const };
@@ -405,7 +406,7 @@ const rulesService = {
       baseResult.rules.map(async (rule) => {
         const hasUnread = await this.hasUnreadExecutions(rule.id);
         return { ...rule, hasUnread };
-      })
+      }),
     );
 
     // 按未读状态和下次执行时间排序
@@ -457,7 +458,7 @@ const rulesService = {
    */
   getTaskExecutionService() {
     // 延迟导入以避免循环依赖
-    return import('./taskExecutionService').then(module => module.getTaskExecutionService());
+    return import('./taskExecutionService').then((module) => module.getTaskExecutionService());
   },
 
   async getAll(options?: { limit?: number; offset?: number }): Promise<RulesTable[]> {
@@ -868,14 +869,9 @@ const taskExecutionsService = {
       limit?: number;
       status?: TaskExecutionsTable['status'];
       isRead?: 0 | 1;
-    } = {}
+    } = {},
   ): Promise<PaginatedTaskExecutions> {
-    const {
-      page = 1,
-      limit = 20,
-      status,
-      isRead,
-    } = options;
+    const { page = 1, limit = 20, status, isRead } = options;
 
     // 优先使用复合索引，确保按 createdAt 降序
     let baseQuery: Dexie.Collection<TaskExecutionsTable, string>;
@@ -891,27 +887,18 @@ const taskExecutionsService = {
     } else if (status) {
       baseQuery = db.taskExecutions
         .where('[ruleId+status+createdAt]')
-        .between(
-          [ruleId, status, new Date(0)],
-          [ruleId, status, new Date(9999, 11, 31)],
-        )
+        .between([ruleId, status, new Date(0)], [ruleId, status, new Date(9999, 11, 31)])
         .reverse();
     } else if (isRead !== undefined) {
       baseQuery = db.taskExecutions
         .where('[ruleId+isRead+createdAt]')
-        .between(
-          [ruleId, isRead, new Date(0)],
-          [ruleId, isRead, new Date(9999, 11, 31)],
-        )
+        .between([ruleId, isRead, new Date(0)], [ruleId, isRead, new Date(9999, 11, 31)])
         .reverse();
     } else {
       // 使用 [ruleId+createdAt] 复合索引，直接按 createdAt 降序
       baseQuery = db.taskExecutions
         .where('[ruleId+createdAt]')
-        .between(
-          [ruleId, new Date(0)],
-          [ruleId, new Date(9999, 11, 31)],
-        )
+        .between([ruleId, new Date(0)], [ruleId, new Date(9999, 11, 31)])
         .reverse();
     }
 
@@ -979,7 +966,10 @@ const taskExecutionsService = {
     return lastExecution || null;
   },
 
-  async getPreviousSuccessfulExecution(ruleId: string, excludeExecutionId: string): Promise<TaskExecutionsTable | null> {
+  async getPreviousSuccessfulExecution(
+    ruleId: string,
+    excludeExecutionId: string,
+  ): Promise<TaskExecutionsTable | null> {
     // 使用复合索引 [ruleId+status+createdAt] 查询最新的2条成功执行记录
     const executions = await db.taskExecutions
       .where('[ruleId+status+createdAt]')
@@ -990,7 +980,7 @@ const taskExecutionsService = {
 
     // 如果最新的一条不是要排除的，那就是上一次执行
     // 如果最新的是要排除的，那么第二条就是上一次执行
-    const previousExecution = executions.find(exec => exec.id !== excludeExecutionId);
+    const previousExecution = executions.find((exec) => exec.id !== excludeExecutionId);
 
     return previousExecution || null;
   },
@@ -1131,6 +1121,21 @@ const taskExecutionsService = {
 
   async getTotalUnreadCount(): Promise<number> {
     return await db.taskExecutions.where('isRead').equals(0).count();
+  },
+
+  async getRulesWithUnreadExecutions(): Promise<string[]> {
+    // 直接查询所有未读记录，然后去重
+    const unreadExecutions = await db.taskExecutions.where('isRead').equals(0).toArray();
+
+    // 去重并返回规则ID列表
+    const ruleIds = new Set<string>();
+    unreadExecutions.forEach((execution) => {
+      ruleIds.add(execution.ruleId);
+    });
+
+    const result = Array.from(ruleIds);
+    console.log('[ruleIdsWithUnread]', result);
+    return result;
   },
 };
 
