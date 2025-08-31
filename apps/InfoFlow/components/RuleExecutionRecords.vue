@@ -3,22 +3,24 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
       <div class="flex items-center gap-2">
-        <h3 class="text-lg font-medium text-gray-800">执行记录</h3>
-        <Badge :value="totalRecords" severity="info" size="small" />
-        <Badge v-if="unreadCount > 0" :value="unreadCount" severity="warning" size="small" />
+        <h3 class="text-lg font-medium text-gray-800">
+          <slot name="title">执行记录</slot>
+        </h3>
+        <!-- <Badge :value="totalRecords" severity="info" size="small" />
+        <Badge v-if="unreadCount > 0" :value="unreadCount" severity="warning" size="small" /> -->
       </div>
       <div class="flex gap-2">
         <Button
           v-if="unreadCount > 0"
-          icon="pi pi-circle-fill"
           @click="markAllAsRead"
           :loading="loading"
-          severity="secondary"
+          icon="pi pi-circle-fill"
           size="small"
           v-tooltip="'全部标记为已读'" />
         <Button
           icon="pi pi-refresh"
           @click="loadExecutionRecords"
+          v-tooltip="'刷新'"
           :loading="loading"
           severity="secondary"
           size="small" />
@@ -227,9 +229,9 @@
             <div class="flex gap-1">
               <Button
                 :icon="data.isRead ? 'pi pi-circle' : 'pi pi-circle-fill'"
+                :severity="data.isRead ? 'secondary' : ''"
                 @click="toggleReadStatus(data)"
                 size="small"
-                :severity="data.isRead ? 'secondary' : ''"
                 v-tooltip="data.isRead ? '标记为未读' : '标记为已读'" />
               <Button
                 :icon="expandedRows[data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'"
