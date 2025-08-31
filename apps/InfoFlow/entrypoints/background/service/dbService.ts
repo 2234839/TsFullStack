@@ -7,7 +7,7 @@ export interface ConfigTable {
   data: any;
 }
 
-import type { ExecutionTiming, DataCollectionMethod } from '@/services/InfoFlowGet/messageProtocol';
+import type { ExecutionTiming, DataCollectionMethod, TaskResult } from '@/services/InfoFlowGet/messageProtocol';
 
 export interface TaskConfig {
   url: string;
@@ -65,7 +65,7 @@ export interface TaskExecutionsTable {
   startTime?: Date;
   endTime?: Date;
   duration?: number;
-  result?: any;
+  result?: TaskResult;
   error?: string;
   matched: 0 | 1;
   matchedCount?: number;
@@ -1057,7 +1057,7 @@ const taskExecutionsService = {
 
   async completeExecution(
     id: string,
-    result: any,
+    result: TaskResult,
     matched: 0 | 1,
     matchedCount?: number,
   ): Promise<void> {
