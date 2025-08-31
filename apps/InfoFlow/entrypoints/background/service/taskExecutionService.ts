@@ -155,6 +155,29 @@ function createTaskExecutionService() {
       return await dbService.taskExecutions.getTotalUnreadCount();
     },
 
+    async getRulesWithUnreadExecutions(): Promise<string[]> {
+      const dbService = getDbService();
+      return await dbService.taskExecutions.getRulesWithUnreadExecutions();
+    },
+
+    async getRulesWithUnreadExecutionsWithDetails(): Promise<Array<{id: string, name: string}>> {
+      const dbService = getDbService();
+      const ruleIds = await dbService.taskExecutions.getRulesWithUnreadExecutions();
+      const rulesWithDetails = [];
+      console.log('[ruleIds]',ruleIds);
+      for (const ruleId of ruleIds) {
+        const rule = await dbService.rules.getById(ruleId);
+        if (rule) {
+          rulesWithDetails.push({
+            id: rule.id,
+            name: rule.name
+          });
+        }
+      }
+
+      return rulesWithDetails;
+    },
+
     async reset(): Promise<void> {
       const dbService = getDbService();
       await dbService.reset();
