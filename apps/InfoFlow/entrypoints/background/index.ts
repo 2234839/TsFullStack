@@ -5,6 +5,28 @@ import { registerRulesService } from './service/rulesService';
 import { registerTaskExecutionService } from './service/taskExecutionService';
 import { registerCronService, getCronService } from './service/cronService';
 import { getTaskExecutionService } from './service/taskExecutionService';
+import { contentScriptReadyMessageId } from '@/services/InfoFlowGet/messageProtocol';
+
+// 内容脚本加载状态管理
+const contentScriptReadyMap = new Map<number, { url: string; timestamp: number }>();
+
+/** 等待指定tab的内容脚本加载完成 */
+export async function waitForContentScriptReady(tabId: number): Promise<boolean> {
+  // 检查是否已经准备好
+  if (contentScriptReadyMap.has(tabId)) {
+    return true;
+  }
+
+  // 等待内容脚本通知
+  return new Promise((resolve) => {
+    const checkInterval = setInterval(() => {
+      if (contentScriptReadyMap.has(tabId)) {
+        clearInterval(checkInterval);
+        resolve(true);
+      }
+    }, 100);
+  });
+}
 
 export default defineBackground(() => {
   registerDbService();
@@ -35,6 +57,31 @@ export default defineBackground(() => {
     if (message.type === 'RULE_EXECUTION_COMPLETED') {
       updateUnreadBadge();
     }
+  });
+
+  // 监听内容脚本加载完成通知
+  browser.runtime.onMessage.addListener((message: any, sender: any) => {
+    if (message.action === contentScriptReadyMessageId) {
+      const { url, timestamp } = message.data;
+      const tabId = sender.tab?.id;
+
+      console.log(`Content script ready for tab ${tabId}: ${url}`);
+
+      // 记录内容脚本加载状态
+      if (tabId) {
+        contentScriptReadyMap.set(tabId, { url, timestamp });
+
+        // 5分钟后清理过期记录
+        setTimeout(() => {
+          contentScriptReadyMap.delete(tabId);
+        }, 5 * 60 * 1000);
+      }
+    }
+  });
+
+  // 监听标签页关闭，清理对应的内容脚本记录
+  browser.tabs.onRemoved.addListener((tabId: number) => {
+    contentScriptReadyMap.delete(tabId);
   });
 });
 

@@ -1,5 +1,5 @@
 import { browser } from '#imports';
-import { delay } from '@/utils/delay';
+import { waitForContentScriptReady } from '@/entrypoints/background';
 import { runTaskMessageId, type runInfoFlowGet_task, type TaskResult } from './messageProtocol';
 
 /**
@@ -26,8 +26,12 @@ export async function runInfoFlowGet(task: runInfoFlowGet_task) {
     const handleTabUpdate = async (tabId: number, changeInfo: any) => {
       if (tabId === openedTabId && changeInfo.status === 'complete') {
         browser.tabs.onUpdated.removeListener(handleTabUpdate);
-        // 等待内容脚本加载完毕
-        await delay(1200);
+
+        // 等待内容脚本加载完成通知
+        const isReady = await waitForContentScriptReady(openedTabId);
+        if (!isReady) {
+          console.warn(`[run task] Content script not ready for tab ${openedTabId} after timeout`);
+        }
         r(1);
       }
     };

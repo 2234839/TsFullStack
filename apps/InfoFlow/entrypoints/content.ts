@@ -8,6 +8,7 @@ import App from './content/contentApp.vue';
 import { ConfirmationService, ToastService } from 'primevue';
 import {
   runTaskMessageId,
+  contentScriptReadyMessageId,
   type runInfoFlowGet_task,
   type TaskResult,
   type CollectionItem,
@@ -393,7 +394,7 @@ async function setupUI(ctx: any) {
  */
 function setupMessageListener() {
   browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[Message] Received:', message);
+    console.log('[Message] Received:', message, 'from tab:', sender.tab?.id);
 
     if (message.action === runTaskMessageId) {
       const task = message.data as runInfoFlowGet_task;
@@ -425,6 +426,21 @@ export default defineContentScript({
     console.log('[ContentScript] Initializing InfoFlow content script');
     setupMessageListener();
     await setupUI(ctx);
+
+    // 通知background脚本内容脚本已加载完成
+    try {
+      await browser.runtime.sendMessage({
+        action: contentScriptReadyMessageId,
+        data: {
+          url: window.location.href,
+          timestamp: Date.now()
+        }
+      });
+      console.log('[ContentScript] Notified background script of ready state');
+    } catch (error) {
+      console.warn('[ContentScript] Failed to notify background script:', error);
+    }
+
     console.log('[ContentScript] InfoFlow content script initialized');
   },
 });
