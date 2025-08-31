@@ -260,7 +260,7 @@
         <template #expansion="{ data }: { data: TaskExecutionsTable }">
           <div class="bg-gray-50">
             <ExecutionDetails
-              :execution="getExecutionWithChangesLocal(data)"
+              :execution="getExecutionWithChangesLocal(data) as TaskExecutionRecord & { result?: TaskResultWithChanges }"
               :show-comparison="!!getPreviousExecution(data)"
               :previous-execution="getPreviousExecution(data)"
               :comparison-filter="config.comparisonFilter" />
@@ -309,7 +309,7 @@
   import { format } from 'date-fns';
   import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
   import { useInfoFlowConfig } from '@/storage/config';
-  import { getExecutionWithChanges } from '@/utils/changeDetection';
+  import { getExecutionWithChanges, type TaskResultWithChanges } from '@/utils/changeDetection';
 
   // PrimeVue components
   import Button from 'primevue/button';
@@ -618,7 +618,7 @@
   };
 
   // 为执行结果添加变化信息
-  const getExecutionWithChangesLocal = (execution: TaskExecutionRecord): TaskExecutionRecord => {
+  const getExecutionWithChangesLocal = (execution: TaskExecutionRecord) => {
     const previousExecution = getPreviousExecution(execution);
     const executionWithChanges = getExecutionWithChanges(execution, previousExecution);
 

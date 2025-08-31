@@ -1,7 +1,7 @@
 <template>
   <!-- Result Info -->
   <div v-if="execution.result">
-    <div class="bg-white p-3 rounded space-y-2 border border-gray-200">
+    <div class="bg-white space-y-2">
       <div v-if="execution.result.url">
         <span class="text-sm font-medium">URL:</span>
         <a
@@ -21,14 +21,13 @@
           JSON.stringify(execution.result.data, null, 2)
         }}</pre>
       </div>
-
       <!-- Collections with Comparison -->
       <div v-if="execution.result.collections">
         <div class="space-y-2">
           <div
             v-for="(collection, key) in execution.result.collections"
             :key="key"
-            class="border border-gray-200 rounded p-2">
+           >
             <div class="flex items-center justify-between mb-1">
               <div class="text-xs text-gray-500">
                 执行时间: {{ formatDateTime(collection.timestamp) }} | 耗时:
@@ -108,10 +107,10 @@
 <script setup lang="ts">
   import { format } from 'date-fns';
   import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
-  import type { ItemWithChanges } from '@/utils/changeDetection';
+  import type { ItemWithChanges, TaskResultWithChanges } from '@/utils/changeDetection';
 
   interface Props {
-    execution: TaskExecutionRecord;
+    execution: TaskExecutionRecord & { result?: TaskResultWithChanges };
     showComparison?: boolean;
     previousExecution?: TaskExecutionRecord | null;
     comparisonFilter?: {
@@ -227,25 +226,25 @@
 </script>
 
 <style scoped>
-/* 链接基础样式 */
-:deep(.execution-detail-link) {
-  color: #3b82f6 !important;
-  text-decoration: underline !important;
-  text-decoration-color: #3b82f6 !important;
-  text-decoration-thickness: 1px !important;
-  text-underline-offset: 2px !important;
-  cursor: pointer !important;
-}
+  /* 链接基础样式 */
+  :deep(.execution-detail-link) {
+    color: #3b82f6 !important;
+    text-decoration: underline !important;
+    text-decoration-color: #3b82f6 !important;
+    text-decoration-thickness: 1px !important;
+    text-underline-offset: 2px !important;
+    cursor: pointer !important;
+  }
 
-/* 已访问链接的样式 */
-:deep(.execution-detail-link:visited) {
-  color: #8b5cf6 !important;
-  text-decoration-color: #8b5cf6 !important;
-}
+  /* 已访问链接的样式 */
+  :deep(.execution-detail-link:visited) {
+    color: #8b5cf6 !important;
+    text-decoration-color: #8b5cf6 !important;
+  }
 
-/* 链接hover效果 */
-:deep(.execution-detail-link:hover) {
-  color: #2563eb !important;
-  text-decoration-color: #2563eb !important;
-}
+  /* 链接hover效果 */
+  :deep(.execution-detail-link:hover) {
+    color: #2563eb !important;
+    text-decoration-color: #2563eb !important;
+  }
 </style>
