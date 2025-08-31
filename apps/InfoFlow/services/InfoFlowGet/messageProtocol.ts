@@ -49,3 +49,4 @@ export type runInfoFlowGet_task = {
 };
 
 export const runTaskMessageId = 'runTaskMessageId';
+export const contentScriptReadyMessageId = 'contentScriptReadyMessageId';
