@@ -59,7 +59,7 @@
   const handleReadStatusChanged = (ruleId: string) => {
     console.log('Read status changed for rule:', ruleId);
     // 重新加载有未读记录的规则列表
-    loadRulesWithUnread();
+    // loadRulesWithUnread();
   };
 
   // 处理全部标记为已读事件
