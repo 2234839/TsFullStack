@@ -94,10 +94,17 @@ async function updateUnreadBadge() {
     if (unreadCount > 0) {
       // 设置badge文字
       browser.action.setBadgeText({ text: unreadCount.toString() });
-      // 设置badge背景色为红色（更醒目）
-      browser.action.setBadgeBackgroundColor({ color: '#ef442299' });
+      // 设置badge文字颜色为白色
+      browser.action.setBadgeTextColor({ color: '#ffffff' });
+      // 根据环境设置不同的badge背景色
+      const isDev = import.meta.env.DEV;
+      browser.action.setBadgeBackgroundColor({
+        color: isDev ? '#3b82f6' : '#ef4422',
+      });
       // 设置badge标题
-      browser.action.setTitle({ title: `InfoFlow - ${unreadCount} 条未读记录` });
+      browser.action.setTitle({
+        title: `InfoFlow ${isDev ? '[Dev]' : ''} - ${unreadCount} 条未读记录`,
+      });
     } else {
       // 没有未读记录时清除badge
       browser.action.setBadgeText({ text: '' });
