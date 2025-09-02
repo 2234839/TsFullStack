@@ -1,4 +1,7 @@
-## InfoFlow 浏览器扩展
+# InfoFlow 浏览器扩展
+
+## 项目代号：ChromeRanger
+## 我的名字：CodeCrusher
 
 ## 技术栈
 
