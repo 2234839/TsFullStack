@@ -5,11 +5,22 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-800">网页信息订阅管理</h1>
         <p class="text-gray-600">管理您的自动化信息订阅规则</p>
-        <div class="mt-2 flex items-center gap-2">
-          <ToggleSwitch v-model="config.autoMarkAsRead" inputId="auto-read-switch" />
-          <label for="auto-read-switch" class="text-sm text-gray-600 cursor-pointer">
-            自动已读（结果没有新增条目时自动标记为已读）
-          </label>
+        <div class="mt-2 flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <ToggleSwitch v-model="config.autoMarkAsRead" inputId="auto-read-switch" />
+            <label for="auto-read-switch" class="text-sm text-gray-600 cursor-pointer">
+              自动已读（结果没有新增条目时自动标记为已读）
+            </label>
+          </div>
+          <div class="flex items-center gap-2">
+            <Button
+              icon="pi pi-filter"
+              @click="showGlobalFilterDialog = true"
+              size="small"
+              severity="info"
+              variant="outlined"
+              label="全局过滤配置" />
+          </div>
         </div>
       </div>
       <div class="flex gap-2">
@@ -362,6 +373,70 @@
             </AccordionPanel>
           </Accordion>
         </div>
+
+        <!-- 过滤配置策略选择 -->
+        <div class="col-span-2">
+          <label class="block text-sm font-medium mb-2">信息过滤配置</label>
+
+          <!-- 过滤策略选择 -->
+          <div class="mb-4">
+            <label class="block text-sm font-medium mb-2">过滤策略</label>
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <RadioButton
+                  v-model="filterStrategy"
+                  value="inherit"
+                  inputId="inherit-strategy" />
+                <label for="inherit-strategy" class="text-sm">继承全局过滤配置</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioButton
+                  v-model="filterStrategy"
+                  value="custom"
+                  inputId="custom-strategy" />
+                <label for="custom-strategy" class="text-sm">自定义过滤配置</label>
+              </div>
+              <div class="flex items-center gap-2">
+                <RadioButton
+                  v-model="filterStrategy"
+                  value="disable"
+                  inputId="disable-strategy" />
+                <label for="disable-strategy" class="text-sm">禁用过滤</label>
+              </div>
+            </div>
+          </div>
+
+          <!-- 显示全局配置信息 -->
+          <div v-if="filterStrategy === 'inherit' && config.globalFilterConfig" class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+            <div class="flex items-center gap-2 mb-2">
+              <i class="pi pi-info-circle text-blue-600"></i>
+              <span class="text-sm font-medium text-blue-800">使用全局过滤配置</span>
+            </div>
+            <div class="text-xs text-blue-700">
+              <div v-if="config.globalFilterConfig.enable">
+                全局过滤已启用：{{ config.globalFilterConfig.filterType === 'js' ? 'JavaScript 过滤' : 'AI 过滤' }}
+              </div>
+              <div v-else>
+                全局过滤已禁用
+              </div>
+            </div>
+          </div>
+
+          <!-- 自定义过滤配置 -->
+          <div v-if="filterStrategy === 'custom'" class="border rounded-lg p-4 bg-gray-50">
+            <FilterConfig
+              :modelValue="ruleForm.taskConfig.ruleFilterConfig?.filterConfig"
+              @update:modelValue="handleFilterConfigChange" />
+          </div>
+
+          <!-- 禁用状态提示 -->
+          <div v-if="filterStrategy === 'disable'" class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-ban text-gray-600"></i>
+              <span class="text-sm text-gray-600">过滤功能已禁用</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <template #footer>
@@ -489,6 +564,33 @@ return document.title;"
       :show-bulk-actions="true"
       @confirm="handleImportConfirm"
       @cancel="showImportSelectionDialog = false" />
+
+    <!-- Global Filter Configuration Dialog -->
+    <Dialog
+      v-model:visible="showGlobalFilterDialog"
+      header="全局过滤配置"
+      modal
+      class="max-w-[600px]">
+      <div class="space-y-4">
+        <p class="text-sm text-gray-600">
+          配置全局过滤规则，这些规则将应用于所有选择"继承全局过滤配置"的订阅规则。
+        </p>
+
+        <FilterConfig
+          :modelValue="config.globalFilterConfig || {
+            enable: false,
+            filterType: 'js',
+            jsFilter: { code: '' },
+            aiFilter: { model: '', prompt: '', ollamaUrl: 'http://localhost:11434' },
+          }"
+          @update:modelValue="handleGlobalFilterConfigChange" />
+      </div>
+
+      <template #footer>
+        <Button label="取消" @click="showGlobalFilterDialog = false" severity="secondary" />
+        <Button label="保存" @click="saveGlobalFilterConfig" />
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -497,13 +599,13 @@ return document.title;"
   import { getDbService, RulesTable } from '@/entrypoints/background/service/dbService';
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
   import { useNow } from '@vueuse/core';
-  import { onMounted, reactive, ref, watch } from 'vue';
+  import { computed, onMounted, reactive, ref, watch } from 'vue';
   import { getCronInterval, formatCountdown } from '@/utils/cronUtils';
   import { browser } from '#imports';
   import { EVENT_TYPES } from '@/constants/events';
   import { useInfoFlowConfig } from '@/storage/config';
   import RuleSelectionDialog from './RuleSelectionDialog.vue';
-
+  import FilterConfig from "./FilterConfig.vue"
   const taskExecutionService = getTaskExecutionService();
   const rulesService = getRulesService();
   const now = useNow();
@@ -609,6 +711,7 @@ return document.title;"
   const showExportDialog = ref(false);
   const showImportDialog = ref(false);
   const showImportSelectionDialog = ref(false);
+  const showGlobalFilterDialog = ref(false);
   const importing = ref(false);
   const editingRule = ref<Rule | null>(null);
   const selectedRule = ref<Rule | null>(null);
@@ -647,6 +750,22 @@ return document.title;"
       url: '',
       timeout: 30000,
       dataCollection: [] as any[],
+      ruleFilterConfig: {
+        useGlobalFilter: true,
+        disableGlobalFilter: false,
+        filterConfig: {
+          enable: false,
+          filterType: 'js' as 'js' | 'ai',
+          jsFilter: {
+            code: '',
+          },
+          aiFilter: {
+            model: '',
+            prompt: '',
+            ollamaUrl: '',
+          },
+        },
+      },
     },
     priority: 1,
   });
@@ -697,6 +816,68 @@ return document.title;"
     // 更新该规则的未读状态为 false
     ruleUnreadStatus.value[ruleId] = false;
   };
+
+
+  // 处理过滤配置变化
+  const handleFilterConfigChange = (filterConfig: any) => {
+    // 确保 filterConfig 有正确的类型
+    const typedFilterConfig = {
+      enable: filterConfig.enable || false,
+      filterType: (filterConfig.filterType || 'js') as 'js' | 'ai',
+      jsFilter: filterConfig.jsFilter || { code: '' },
+      aiFilter: filterConfig.aiFilter || { model: '', prompt: '', ollamaUrl: '' },
+    };
+
+    // 确保 ruleFilterConfig 对象存在
+    if (!ruleForm.taskConfig.ruleFilterConfig) {
+      ruleForm.taskConfig.ruleFilterConfig = {
+        useGlobalFilter: false,
+        disableGlobalFilter: false,
+        filterConfig: typedFilterConfig,
+      };
+    } else {
+      ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter = false;
+      ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter = false;
+      ruleForm.taskConfig.ruleFilterConfig.filterConfig = typedFilterConfig;
+    }
+  };
+
+  // 处理全局过滤配置变化
+  const handleGlobalFilterConfigChange = (filterConfig: any) => {
+    // 直接更新配置
+    config.value.globalFilterConfig = filterConfig;
+  };
+
+  // 保存全局过滤配置
+  const saveGlobalFilterConfig = () => {
+    // 配置已经通过 v-model 自动更新到 config.globalFilterConfig
+    // 这里只需要关闭对话框
+    showGlobalFilterDialog.value = false;
+
+    toast.add({
+      severity: 'success',
+      summary: '保存成功',
+      detail: '全局过滤配置已保存',
+      life: 3000,
+    });
+  };
+
+  // 计算过滤策略
+  const filterStrategy = computed<'inherit' | 'custom' | 'disable'>(() => {
+    if (!ruleForm.taskConfig.ruleFilterConfig) {
+      return 'inherit'; // 默认继承全局配置
+    }
+
+    if (ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter) {
+      return 'disable';
+    }
+
+    if (ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter) {
+      return 'inherit';
+    }
+
+    return 'custom';
+  });
 
   // 检测规则是否有未读的执行记录
   const ruleUnreadStatus = ref<Record<string, boolean>>({});
@@ -784,7 +965,7 @@ return document.title;"
   const handleRowClick = (event: any) => {
     const rule = event.data;
     const ruleId = rule.id;
-    
+
     // 切换展开状态
     if (expandedRows.value[ruleId]) {
       // 如果已展开，则收缩
@@ -888,6 +1069,22 @@ return document.title;"
         url: '',
         timeout: 30000,
         dataCollection: [],
+        ruleFilterConfig: {
+          useGlobalFilter: true,
+          disableGlobalFilter: false,
+          filterConfig: {
+            enable: false,
+            filterType: 'js' as 'js' | 'ai',
+            jsFilter: {
+              code: '',
+            },
+            aiFilter: {
+              model: '',
+              prompt: '',
+              ollamaUrl: '',
+            },
+          },
+        },
       },
       priority: 1,
     });
@@ -1039,6 +1236,22 @@ return document.title;"
         url: rule.taskConfig.url || '',
         timeout: rule.taskConfig.timeout || 30000,
         dataCollection: rule.taskConfig.dataCollection || [],
+        ruleFilterConfig: rule.taskConfig.ruleFilterConfig || {
+          useGlobalFilter: true,
+          disableGlobalFilter: false,
+          filterConfig: {
+            enable: false,
+            filterType: 'js' as 'js' | 'ai',
+            jsFilter: {
+              code: '',
+            },
+            aiFilter: {
+              model: '',
+              prompt: '',
+              ollamaUrl: '',
+            },
+          },
+        },
       },
       priority: rule.priority || 1,
     });
