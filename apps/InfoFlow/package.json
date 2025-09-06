@@ -2,7 +2,7 @@
   "name": "info-flow",
   "description": "manifest.json description",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -26,6 +26,7 @@
     "date-fns": "^4.1.0",
     "dexie": "^4.2.0",
     "fast-equals": "^5.2.2",
+    "html-to-text": "^9.0.5",
     "primeicons": "^7.0.0",
     "primevue": "^4.3.7",
     "superjson": "^2.2.2",
@@ -34,6 +35,7 @@
     "vue": "^3.5.20"
   },
   "devDependencies": {
+    "@types/html-to-text": "^9.0.4",
     "@wxt-dev/module-vue": "^1.0.2",
     "typescript": "5.9.2",
     "vite-plugin-vue-devtools": "^8.0.0",
