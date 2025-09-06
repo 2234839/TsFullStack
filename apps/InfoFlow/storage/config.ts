@@ -12,8 +12,20 @@ export const useInfoFlowConfig = () =>
         showMoved: true,
         showUnchanged: true,
       }, // 对比过滤器设置
+      globalFilterConfig: {
+        enable: false,
+        filterType: 'js' as const,
+        jsFilter: {
+          code: '',
+        },
+        aiFilter: {
+          model: '',
+          prompt: '',
+          ollamaUrl: 'http://localhost:11434',
+        },
+      }, // 全局过滤配置
     },
-    version: 6,
+    version: 7,
     migrations: {
       3: () => {
         return {
@@ -43,6 +55,31 @@ export const useInfoFlowConfig = () =>
             showRemoved: true,
             showMoved: true,
             showUnchanged: true,
+          },
+        };
+      },
+      7: () => {
+        return {
+          test: 33,
+          autoMarkAsRead: true,
+          rulesPageSize: 10,
+          comparisonFilter: {
+            showAdded: true,
+            showRemoved: true,
+            showMoved: true,
+            showUnchanged: true,
+          },
+          globalFilterConfig: {
+            enable: false,
+            filterType: 'js' as const,
+            jsFilter: {
+              code: '',
+            },
+            aiFilter: {
+              model: '',
+              prompt: '',
+              ollamaUrl: 'http://localhost:11434',
+            },
           },
         };
       },

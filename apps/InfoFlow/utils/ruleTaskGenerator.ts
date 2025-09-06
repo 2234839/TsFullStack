@@ -7,6 +7,7 @@ import { browser } from '#imports';
 import { EVENT_TYPES } from '../constants/events';
 import { useInfoFlowConfig } from '../storage/config';
 import { getExecutionWithChanges, checkIfNoAdditions } from './changeDetection';
+import { filterService } from '../services/filterService';
 
 
 // 处理自动已读逻辑
@@ -86,15 +87,26 @@ export async function executeRuleLogic(
       return { success: false, message: '执行返回结果为空', executionId };
     }
 
-    // Complete execution with result
-    await getTaskExecutionService().completeExecution(executionId, res, res.matched ? 1 : 0);
+    // 应用过滤规则（如果启用）
+    let finalResult = res;
+
+
+    console.log('[executeRule] Applying hierarchical filter before storage');
+    finalResult = await filterService.applyHierarchicalFilter(
+      res,
+      rule.taskConfig?.ruleFilterConfig,
+      config.value.globalFilterConfig
+    );
+
+    // Complete execution with filtered result
+    await getTaskExecutionService().completeExecution(executionId, finalResult, finalResult.matched ? 1 : 0);
 
     // Update rule execution count (this also updates lastExecutedAt)
     await getRulesService().incrementExecutionCount(rule.id);
 
     // 这里如果为false 的话，有可能是值还没加载完毕
     if (config.value.autoMarkAsRead) {
-      await handleAutoRead(rule.id, executionId, res);
+      await handleAutoRead(rule.id, executionId, finalResult);
     }
 
     // 发送任务完成事件通知前端
@@ -102,8 +114,8 @@ export async function executeRuleLogic(
 
     return {
       success: true,
-      message: res.matched === 1 ? '执行成功' : '执行完成但未匹配到内容',
-      result: res,
+      message: finalResult.matched === 1 ? '执行成功' : '执行完成但未匹配到内容',
+      result: finalResult,
       executionId,
     };
   } catch (error) {

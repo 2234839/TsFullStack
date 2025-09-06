@@ -14,6 +14,28 @@ export interface TaskConfig {
   timing?: ExecutionTiming;
   timeout?: number;
   dataCollection?: DataCollectionMethod[];
+  ruleFilterConfig?: RuleFilterConfig;
+  filterConfig?: FilterConfig; // 保持向后兼容
+}
+
+export interface FilterConfig {
+  enable: boolean;
+  filterType: 'js' | 'ai';
+  jsFilter?: {
+    code: string;
+  };
+  aiFilter?: {
+    model: string;
+    prompt: string;
+    ollamaUrl: string;
+  };
+}
+
+export interface RuleFilterConfig {
+  // 规则级别的过滤配置选项
+  useGlobalFilter: boolean; // 是否使用全局过滤配置
+  disableGlobalFilter: boolean; // 是否禁用全局过滤配置
+  filterConfig?: FilterConfig; // 规则级别的过滤配置（如果不用全局的）
 }
 
 export interface RulesTable {

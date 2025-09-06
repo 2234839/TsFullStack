@@ -18,6 +18,9 @@ export default defineConfig({
   }),
   manifest: {
     permissions: ['storage', 'tabs', 'notifications', 'activeTab', 'debugger'],
+    host_permissions: [
+      '<all_urls>',
+    ],
     action: {
       default_popup: undefined, // 禁用popup，点击直接打开options
     },
