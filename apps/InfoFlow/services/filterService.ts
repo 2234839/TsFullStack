@@ -1,5 +1,16 @@
-import type { TaskResult, DataCollectionMethod } from '@/services/InfoFlowGet/messageProtocol';
+import type {
+  TaskResult,
+  DataCollectionMethod,
+  CollectionItem,
+} from '@/services/InfoFlowGet/messageProtocol';
 import type { FilterConfig, RuleFilterConfig } from '@/entrypoints/background/service/dbService';
+import { convert } from 'html-to-text';
+
+// AI 配置类型定义
+type AiFilterConfig = Required<NonNullable<FilterConfig['aiFilter']>>;
+
+// JS 过滤函数类型
+type JsFilterFunction = (item: CollectionItem) => boolean;
 
 // 过滤服务 - 处理 JS 和 AI 过滤逻辑
 export class FilterService {
@@ -93,7 +104,10 @@ export class FilterService {
   }
 
   // 过滤数据数组
-  private async filterDataArray(data: any[], filterConfig: FilterConfig): Promise<any[]> {
+  private async filterDataArray(
+    data: CollectionItem[],
+    filterConfig: FilterConfig,
+  ): Promise<CollectionItem[]> {
     if (!Array.isArray(data) || data.length === 0) {
       return data;
     }
@@ -109,7 +123,7 @@ export class FilterService {
   }
 
   // 应用 JavaScript 过滤
-  private applyJsFilter(data: any[], jsCode: string): any[] {
+  private applyJsFilter(data: CollectionItem[], jsCode: string): CollectionItem[] {
     if (!jsCode.trim()) {
       return data;
     }
@@ -134,7 +148,7 @@ export class FilterService {
   }
 
   // 创建 JavaScript 过滤函数
-  private createJsFilterFunction(jsCode: string): (item: any) => boolean {
+  private createJsFilterFunction(jsCode: string): JsFilterFunction {
     // 清理代码，移除注释和多余空格
     const cleanCode = jsCode
       .split('\n')
@@ -158,14 +172,14 @@ export class FilterService {
     }
 
     // 创建并返回函数
-    return new Function('item', functionBody) as (item: any) => boolean;
+    return new Function('item', functionBody) as JsFilterFunction;
   }
 
   // 应用 AI 过滤
   private async applyAiFilter(
-    data: any[],
-    aiConfig?: { model: string; prompt: string; ollamaUrl: string },
-  ): Promise<any[]> {
+    data: CollectionItem[],
+    aiConfig?: AiFilterConfig,
+  ): Promise<CollectionItem[]> {
     if (!aiConfig || !aiConfig.model || !aiConfig.prompt || !aiConfig.ollamaUrl) {
       console.warn('[FilterService] AI filter configuration incomplete');
       return data;
@@ -178,7 +192,7 @@ export class FilterService {
       return data; // 连接失败时返回所有数据
     }
 
-    const filteredItems: any[] = [];
+    const filteredItems: CollectionItem[] = [];
 
     // 对每个项目进行 AI 判断
     for (const item of data) {
@@ -229,10 +243,7 @@ export class FilterService {
     }
   }
   // AI 判断是否保留项目
-  private async aiShouldKeepItem(
-    item: any,
-    aiConfig: { model: string; prompt: string; ollamaUrl: string },
-  ): Promise<boolean> {
+  private async aiShouldKeepItem(item: CollectionItem, aiConfig: AiFilterConfig): Promise<boolean> {
     try {
       // 构建提示词
       const itemContent = this.extractItemContent(item);
@@ -246,8 +257,6 @@ export class FilterService {
         prompt: fullPrompt + ' /no_think ',
         stream: false,
       };
-
-      console.log('[FilterService] Request body:', requestBody);
 
       const response = await fetch(`${aiConfig.ollamaUrl}/api/generate`, {
         method: 'POST',
@@ -271,7 +280,7 @@ export class FilterService {
       const result = await response.json();
       const aiResponse = result.response?.toLowerCase() || '';
 
-      console.log('[FilterService] AI response:', aiResponse);
+      console.log('[FilterService] AI response:', { requestBody, aiResponse });
 
       // 判断 AI 的响应
       return aiResponse.includes('pass');
@@ -283,25 +292,59 @@ export class FilterService {
   }
 
   // 提取项目内容用于 AI 分析
-  private extractItemContent(item: any): string {
-    if (typeof item === 'string') {
-      return item;
+  private extractItemContent(item: CollectionItem): string {
+    // 如果是字符串，直接去除 HTML 标签
+    if (typeof item.value === 'string') {
+      return this.stripHtmlTags(item.value);
     }
 
-    if (typeof item === 'object') {
+    // 如果是对象，优先提取特定字段
+    if (typeof item.value === 'object' && item.value !== null) {
+      const obj = item.value as Record<string, unknown>;
       // 优先提取标题、内容、描述等字段
-      const fields = ['title', 'content', 'description', 'text', 'name', 'value'];
+      const fields = ['title', 'content', 'description', 'text', 'name'];
       for (const field of fields) {
-        if (item[field] && typeof item[field] === 'string') {
-          return item[field];
+        const value = obj[field];
+        if (value && typeof value === 'string') {
+          return this.stripHtmlTags(value);
         }
       }
 
       // 如果没有找到合适字段，返回对象的字符串表示
-      return JSON.stringify(item);
+      return this.stripHtmlTags(JSON.stringify(item.value));
     }
 
-    return String(item);
+    // 其他情况，返回值的字符串表示
+    return this.stripHtmlTags(String(item.value));
+  }
+
+  // 去除 HTML 标签
+  private stripHtmlTags(html: string): string {
+    if (typeof html !== 'string') {
+      return String(html);
+    }
+
+    // 使用 html-to-text 去除 HTML 标签
+    try {
+      return convert(html, {
+        wordwrap: false,
+        preserveNewlines: false,
+        selectors: [
+          { selector: 'a', options: { ignoreHref: true } },
+          { selector: 'img', options: { format: 'skip' } },
+          { selector: 'script', format: 'skip' },
+          { selector: 'style', format: 'skip' },
+          { selector: 'head', format: 'skip' },
+          { selector: 'meta', format: 'skip' },
+          { selector: 'link', format: 'skip' },
+          { selector: 'noscript', format: 'skip' },
+        ],
+      });
+    } catch (error) {
+      console.warn('[FilterService] Failed to strip HTML tags:', error);
+      // 如果解析失败，返回原始文本
+      return html;
+    }
   }
 
   // 计算结果中的项目总数

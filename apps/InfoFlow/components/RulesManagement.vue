@@ -384,22 +384,25 @@
             <div class="space-y-2">
               <div class="flex items-center gap-2">
                 <RadioButton
-                  v-model="filterStrategy"
+                  :modelValue="filterStrategy"
                   value="inherit"
+                  @update:modelValue="handleFilterStrategyChange('inherit')"
                   inputId="inherit-strategy" />
                 <label for="inherit-strategy" class="text-sm">继承全局过滤配置</label>
               </div>
               <div class="flex items-center gap-2">
                 <RadioButton
-                  v-model="filterStrategy"
+                  :modelValue="filterStrategy"
                   value="custom"
+                  @update:modelValue="handleFilterStrategyChange('custom')"
                   inputId="custom-strategy" />
                 <label for="custom-strategy" class="text-sm">自定义过滤配置</label>
               </div>
               <div class="flex items-center gap-2">
                 <RadioButton
-                  v-model="filterStrategy"
+                  :modelValue="filterStrategy"
                   value="disable"
+                  @update:modelValue="handleFilterStrategyChange('disable')"
                   inputId="disable-strategy" />
                 <label for="disable-strategy" class="text-sm">禁用过滤</label>
               </div>
@@ -878,6 +881,38 @@ return document.title;"
 
     return 'custom';
   });
+
+  // 处理过滤策略变化
+  const handleFilterStrategyChange = (strategy: 'inherit' | 'custom' | 'disable') => {
+    if (!ruleForm.taskConfig.ruleFilterConfig) {
+      // 初始化过滤配置
+      ruleForm.taskConfig.ruleFilterConfig = {
+        disableGlobalFilter: false,
+        useGlobalFilter: true,
+        filterConfig: {
+          enable: false,
+          filterType: 'js',
+          jsFilter: { code: '' },
+          aiFilter: { model: '', prompt: '', ollamaUrl: '' },
+        },
+      };
+    }
+
+    switch (strategy) {
+      case 'inherit':
+        ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter = false;
+        ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter = true;
+        break;
+      case 'custom':
+        ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter = false;
+        ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter = false;
+        break;
+      case 'disable':
+        ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter = true;
+        ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter = false;
+        break;
+    }
+  };
 
   // 检测规则是否有未读的执行记录
   const ruleUnreadStatus = ref<Record<string, boolean>>({});

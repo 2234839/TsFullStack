@@ -25,6 +25,12 @@ export default defineConfig({
       default_popup: undefined, // 禁用popup，点击直接打开options
     },
     description:'监控网页信息变化',
+    // 固定扩展ID，确保更新时能正确覆盖旧版本
+    browser_specific_settings: {
+      gecko: {
+        id: 'infoflow@heartstack.space',
+      }
+    }
   },
   /** 禁止自动 import，更清晰的依赖流 */
   imports: false,

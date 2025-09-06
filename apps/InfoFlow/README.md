@@ -4,23 +4,54 @@
 
 用户定义规则，比如监听某个网页的某个元素，当该元素内容发生变化时
 
+## 过滤器功能
+
+InfoFlow 提供了强大的信息过滤器功能，帮助用户从大量监控内容中筛选出真正有价值的信息。过滤器系统支持两种过滤方式：
+
+### 🤖 AI 过滤（推荐）
+
+**AI 过滤是本项目的核心特色功能**，通过人工智能技术对监控内容进行智能判断，实现更精准的信息筛选。
+
+#### 主要特性：
+- **智能判断**：使用本地 AI 模型（如 Ollama）对内容进行语义分析
+- **灵活配置**：支持自定义 AI 模型和提示词
+- **本地运行**：所有 AI 处理都在本地完成，保护用户隐私
+- **高精度**：相比传统的关键词过滤，AI 能理解上下文和语义
+
+#### 配置参数：
+- **AI 模型**：支持 qwen2.5:7b、llama3.2:3b 等本地模型
+- **过滤提示词**：自定义判断标准，AI 将根据提示词判断内容是否值得保留
+- **Ollama 服务地址**：配置本地 AI 服务的访问地址
+
+#### 使用示例：
 ```typescript
 {
-  "id": "rule-news",
-  "name": "科技新闻监控",
-  "target": {
-    url: string;
-    selector: string[];
-  },
-  "trigger": {
-    "corn": "0 0 * * *", // 每天午夜触发
-  },
-  "action": {
-    "aiPrompt": "用中文总结这篇科技文章的3个关键创新点: {extractedText}",
-    "notification": {
-      "enabled": true,
-      "format": "检测到新文章: {summary}"
-    }
+  "enable": true,
+  "filterType": "ai",
+  "aiFilter": {
+    "model": "qwen2.5:7b",
+    "prompt": "请判断以下新闻内容是否具有重要性或相关性，如果值得保留请回答 'pass'，否则回答 'filter'",
+    "ollamaUrl": "http://localhost:11434"
+  }
+}
+```
+
+### 🔧 JavaScript 过滤
+
+对于需要精确控制的场景，提供了 JavaScript 代码过滤功能。
+
+#### 主要特性：
+- **完全控制**：可以编写复杂的过滤逻辑
+- **高性能**：直接在浏览器中执行，响应迅速
+- **灵活匹配**：支持正则表达式、字符串操作等 JavaScript 特性
+
+#### 使用示例：
+```typescript
+{
+  "enable": true,
+  "filterType": "js",
+  "jsFilter": {
+    "code": "function filterItem(item) {\n  return item.title && item.title.includes('重要');\n}"
   }
 }
 ```
