@@ -3,6 +3,7 @@ import { seedDB } from './db/seed';
 import { startServer } from './server';
 import { loadConfig } from 'c12';
 import { AppConfigContext, type AppConfig } from './Context/AppConfig';
+import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
 import fs from 'fs/promises';
 import { PrismaQueue } from './util/prismaQueue';
 import { PrismaService, PrismaServiceLive } from './Context/PrismaService';
@@ -35,6 +36,7 @@ const main = Effect.gen(function* () {
   yield* seedDB.pipe(
     Effect.provideService(AppConfigContext, config),
     Effect.provideService(PrismaService, PrismaServiceLive),
+    Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
 
   // 监控内存使用情况
@@ -83,6 +85,7 @@ const main = Effect.gen(function* () {
   yield* startServer.pipe(
     Effect.provideService(AppConfigContext, config),
     Effect.provideService(PrismaService, PrismaServiceLive),
+    Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
 });
 
