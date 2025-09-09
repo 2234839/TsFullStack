@@ -1,4 +1,4 @@
-import { Context } from 'effect';
+import { Context, Effect } from 'effect';
 import type { Prisma } from '@prisma/client';
 import type { PrismaClient as PrismaClientType } from '@zenstackhq/runtime';
 
@@ -15,3 +15,15 @@ export class AuthContext extends Context.Tag('AuthContext')<
     user: Database['user'];
   }
 >() {}
+
+export function userIsAdmin(user: Database['user']) {
+  return !!user.role.find((el) => el.name === 'admin');
+}
+
+/** 检测当前登录的用户是否为超级管理员 */
+export function authUserIsAdmin() {
+  return Effect.gen(function* () {
+    const auth = yield* AuthContext;
+    return userIsAdmin(auth.user);
+  });
+}

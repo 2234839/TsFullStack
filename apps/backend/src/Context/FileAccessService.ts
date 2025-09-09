@@ -53,20 +53,13 @@ export class FileAccessService {
     }
 
     // 检查文件状态
-    if (publicOnly && fileRow.status !== 'public') {
+    if (publicOnly===true && fileRow.status !== 'public') {
       throw MsgError.msg('File not found or access denied');
     }
 
     // 检查所有权
-    if (checkOwnership && userId && fileRow.authorId !== userId) {
+    if (checkOwnership===true && userId && fileRow.authorId !== userId) {
       throw MsgError.msg('Access denied: File ownership verification failed');
-    }
-
-    // 如果不是公开文件且不是所有者，拒绝访问
-    if (!publicOnly && fileRow.status !== 'public') {
-      if (!checkOwnership || !userId || fileRow.authorId !== userId) {
-        throw MsgError.msg('Access denied: File ownership verification failed');
-      }
     }
 
     // 如果没有提供 uploadDir，则使用默认值（但应该总是提供）
