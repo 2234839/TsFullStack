@@ -196,7 +196,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
 
   // 拦截并处理所有错误
   return Effect.gen(function* () {
-    yield* Effect.catchAllDefect(runnable, (defect) => {
+    yield* Effect.catchAll(runnable, (defect) => {
       reqCtx.log(
         '[error]',
         /** 裁剪掉 Effect 内部的调用堆栈 */
