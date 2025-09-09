@@ -176,7 +176,7 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
       if (data.error) {
         yield* Effect.fail(
           new GitHubAuthError(
-            data.error_description || 'Failed to get access token',
+            data.error_description || 'Failed to get access token:' + data.error,
             GitHubAuthErrorCode.API_ERROR,
             response.status,
           ),

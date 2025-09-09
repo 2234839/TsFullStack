@@ -161,6 +161,11 @@ export default {
       }
 
       
+      // 代理端点 - POST 请求传递完整目标 URL
+      if (url.pathname === '/proxy') {
+        return await handleProxyRequest(request, corsHeaders);
+      }
+
       // 直接转发 GitHub API (格式: /github/...)
       if (url.pathname.startsWith('/github/')) {
         return await handleDirectProxy(request, corsHeaders, 'github');
@@ -197,6 +202,94 @@ export default {
 };
 
 
+async function handleProxyRequest(
+  request: Request,
+  corsHeaders: Record<string, string>,
+): Promise<Response> {
+  if (request.method !== 'POST') {
+    return new Response(
+      JSON.stringify({
+        error: 'Method not allowed',
+        message: 'Only POST method is supported for proxy endpoint',
+      }),
+      {
+        status: 405,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      },
+    );
+  }
+
+  try {
+    const body = await request.json() as { url: string; method?: string; headers?: Record<string, string>; body?: string };
+    const { url: targetUrl, method = 'GET', headers = {}, body: requestBody } = body;
+
+    // 验证目标 URL
+    if (!targetUrl || !isValidUrl(targetUrl)) {
+      return new Response(
+        JSON.stringify({
+          error: 'Invalid URL',
+          message: 'Target URL is not allowed',
+        }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        },
+      );
+    }
+
+    // 构建请求头
+    const proxyHeaders = new Headers();
+    Object.entries(headers).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        proxyHeaders.set(key, String(value));
+      }
+    });
+
+    // 添加默认 User-Agent
+    if (!proxyHeaders.has('User-Agent')) {
+      proxyHeaders.set('User-Agent', 'API-Gateway-Proxy/1.0');
+    }
+
+    // 发送请求
+    const response = await fetch(targetUrl, {
+      method,
+      headers: proxyHeaders,
+      body: requestBody,
+    });
+
+    // 复制响应头
+    const responseHeaders = new Headers(corsHeaders);
+    response.headers.forEach((value, key) => {
+      if (
+        ![
+          'access-control-allow-origin',
+          'access-control-allow-methods',
+          'access-control-allow-headers',
+        ].includes(key.toLowerCase())
+      ) {
+        responseHeaders.set(key, value);
+      }
+    });
+
+    return new Response(response.body, {
+      status: response.status,
+      headers: responseHeaders,
+    });
+  } catch (error) {
+    console.error('Proxy request error:', error);
+    return new Response(
+      JSON.stringify({
+        error: 'Proxy request failed',
+        message: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+      },
+    );
+  }
+}
+
 async function handleDirectProxy(
   request: Request,
   corsHeaders: Record<string, string>,
@@ -207,7 +300,15 @@ async function handleDirectProxy(
 
   if (platform === 'github') {
     const githubPath = url.pathname.replace('/github', '');
-    targetUrl = `https://api.github.com${githubPath}${url.search}`;
+    
+    // 根据路径决定目标域名
+    if (githubPath.startsWith('/login/oauth/') || githubPath.startsWith('/settings/')) {
+      // OAuth 相关端点使用 github.com
+      targetUrl = `https://github.com${githubPath}${url.search}`;
+    } else {
+      // API 端点使用 api.github.com
+      targetUrl = `https://api.github.com${githubPath}${url.search}`;
+    }
   } else {
     return new Response(
       JSON.stringify({
@@ -323,6 +424,7 @@ function isBrowserDirectAccess(request: Request): boolean {
 function isValidUrl(url: string): boolean {
   try {
     const parsedUrl = new URL(url);
+    console.log('[api-proxy] validating url:', url);
 
     // 只允许 GitHub 相关域名用于 OAuth 认证
     const allowedHostnames = ['github.com', 'api.github.com', 'raw.githubusercontent.com'];
@@ -367,8 +469,6 @@ function isValidUrl(url: string): boolean {
       if (!isAllowedApiPath) {
         return false;
       }
-    } else {
-      return false;
     }
 
     return true;
