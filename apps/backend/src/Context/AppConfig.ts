@@ -1,6 +1,6 @@
 import { Context } from 'effect';
-export class AppConfigContext extends Context.Tag('AppConfigService')<
-  AppConfigContext,
+export class AppConfigService extends Context.Tag('AppConfigService')<
+  AppConfigService,
   AppConfig
 >() {}
 

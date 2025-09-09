@@ -3,7 +3,7 @@ import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { LogLevel } from '@zenstackhq/runtime/models';
-import { Effect, Queue } from 'effect';
+import { Effect, Layer, Queue } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import os from 'os';
 import path from 'path/posix';
@@ -18,6 +18,8 @@ import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
 import { systemLog } from '../Context/SystemLog';
 import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
+import { FetchWithProxy } from '../util/github-proxy';
+import { GithubAuthLive } from '../OAuth/github';
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
@@ -119,7 +121,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
     req,
   };
   const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
-  const p = Effect.gen(function* () {
+  const program = Effect.gen(function* () {
     const waitTime = Date.now() - enqueueTime;
     if (waitTime > MAX_WAIT_MS) {
       throw MsgError.msg('请求队列处理积压超时');
@@ -174,13 +176,27 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
     } else {
       yield* Effect.promise(async () => await reply.send(superjson.serialize({ result })));
     }
-  }).pipe(
-    // 这里可以提供共用的依赖
-    Effect.provideService(ReqCtxService, reqCtx),
-  );
+  });
+  // 合成层，避免其他 service 还在依赖 FetchWithProxy
+  const unFetchProxyLayer = Layer.provide(GithubAuthLive, FetchWithProxy.Default);
+
+  const reqLayer = Layer.succeed(ReqCtxService, reqCtx);
+  /** 合成层，避免其他 service 还在依赖 ReqCtxService  */
+  const unReqLayer = Layer.provide(unFetchProxyLayer, reqLayer);
+
+  const apiLayer = unReqLayer;
+  const runnable = Effect.provide(program, [
+    apiLayer,
+    /**
+    Q:为什么这里还要传递 reqLayer，前面已经传递了 unReqLayer (apiLayer) 啊？
+    A:要注意 unReqLayer 解决的是 unReqLayer 这个声明中的层依赖 ReqCtxService 的问题，但是并没有给 program 提供 ReqCtxService，所以这里主要就是给 program 提供
+      理论上就可以不要使用 unReqLayer 了,但为了代码逻辑清晰还是使用 unReqLayer
+    */ reqLayer,
+  ]);
+
   // 拦截并处理所有错误
   return Effect.gen(function* () {
-    yield* Effect.catchAllDefect(p, (defect) => {
+    yield* Effect.catchAllDefect(runnable, (defect) => {
       reqCtx.log(
         '[error]',
         /** 裁剪掉 Effect 内部的调用堆栈 */
@@ -252,7 +268,6 @@ export const startServer = Effect.gen(function* () {
 
   fastify.all('/api/*', registerRoute('/api/'));
   fastify.all('/app-api/*', registerRoute('/app-api/'));
-
   // 处理 SPA 路由回退
   fastify.setNotFoundHandler((request, reply) => {
     if (!request.url.startsWith('/api') && !request.url.startsWith('/app-api')) {
@@ -262,7 +277,7 @@ export const startServer = Effect.gen(function* () {
     }
   });
 
-  // 启动服务器
+  //#region 启动服务器
   const address = yield* Effect.tryPromise({
     try: () => fastify.listen({ port: 5209, host: '0.0.0.0' }),
     catch(error) {
@@ -275,6 +290,7 @@ export const startServer = Effect.gen(function* () {
     throw new Error('Server failed to start');
   }
   console.log(`Server listening on ${address}`);
+  //#endregion
 
   // 创建控制最大并发数的信号量
   const cpuCount = os.cpus().length;

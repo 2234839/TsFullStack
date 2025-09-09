@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { File as FileModel } from '@zenstackhq/runtime/models';
 import { MsgError } from '../util/error';
 import { FilePathService } from './FilePathService';
-import { AppConfigContext } from './AppConfig';
+import { AppConfigService } from './AppConfig';
 import { FileWarpItem } from '../api/authApi/file';
 
 /**
@@ -102,7 +102,7 @@ export class FileAccessService {
     options: FileAccessOptions = {}
   ) {
     return Effect.gen(function* () {
-      const appConfig = yield* AppConfigContext;
+      const appConfig = yield* AppConfigService;
       return FileAccessService.validateFileAccess(fileRow, options, appConfig.uploadDir);
     });
   }
@@ -135,7 +135,7 @@ export class FileAccessService {
     options: FileAccessOptions = {}
   ) {
     return Effect.gen(function* () {
-      const appConfig = yield* AppConfigContext;
+      const appConfig = yield* AppConfigService;
       return FileAccessService.createFileWarpItem(fileRow, options, appConfig.uploadDir);
     });
   }
