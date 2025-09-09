@@ -5,7 +5,7 @@ import { mkdir, unlink } from 'fs/promises';
 import { join } from 'path/posix';
 import { v7 as uuidv7 } from 'uuid';
 import { AppConfigService } from '../../Context/AppConfig';
-import { AuthContext } from '../../Context/Auth';
+import { AuthContext, authUserIsAdmin, userIsAdmin } from '../../Context/Auth';
 import { FileAccessService } from '../../Context/FileAccessService';
 import { FilePathService } from '../../Context/FilePathService';
 import { ReqCtxService } from '../../Context/ReqCtx';
@@ -99,10 +99,10 @@ export const fileApi = {
           },
         }),
       );
-      if(!fileRow) throw MsgError.msg('file no found')
+      if (!fileRow) throw MsgError.msg('file no found');
       // 使用文件访问服务验证权限并获取安全路径
       const fileWarpItem = yield* FileAccessService.createFileWarpItemEffect(fileRow, {
-        checkOwnership: true,
+        checkOwnership: yield* checkOwnership(true),
         userId: auth.user.id,
         publicOnly: false,
       });
@@ -123,19 +123,14 @@ export const fileApi = {
         }),
       );
 
-      // 验证文件存在性和所有权
+      // 验证文件存在性
       if (!fileRow) {
         throw MsgError.msg('File not found');
       }
 
-      // 只有文件所有者才能删除文件
-      if (fileRow.authorId !== auth.user.id) {
-        throw MsgError.msg('Access denied: File ownership verification failed');
-      }
-
-      // 使用文件访问服务获取安全路径
+      // 使用文件访问服务获取安全路径并验证所有权
       const { validatedPath } = yield* FileAccessService.validateFileAccessEffect(fileRow, {
-        checkOwnership: true,
+        checkOwnership: yield* checkOwnership(true),
         userId: auth.user.id,
         publicOnly: false,
       });
@@ -157,6 +152,15 @@ export const fileApi = {
     });
   },
 };
+
+/** 对超级管理员进行特殊处理，超管无视 checkOwnership 校验  */
+function checkOwnership(boolean: boolean) {
+  return Effect.gen(function* () {
+    const isAdmin = yield* authUserIsAdmin();
+    if (isAdmin) return false;
+    return boolean;
+  });
+}
 
 export class FileWarpItem {
   constructor(public path: string, public model: FileModel) {}

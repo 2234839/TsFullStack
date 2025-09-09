@@ -3,7 +3,7 @@ import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { LogLevel } from '@zenstackhq/runtime/models';
-import { Effect, Layer, Queue } from 'effect';
+import { Cause, Effect, Exit, Layer, Queue } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import os from 'os';
 import path from 'path/posix';
@@ -196,19 +196,24 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
 
   // 拦截并处理所有错误
   return Effect.gen(function* () {
-    yield* Effect.catchAll(runnable, (defect) => {
-      reqCtx.log(
-        '[error]',
-        /** 裁剪掉 Effect 内部的调用堆栈 */
-        `${(defect as Error)?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
-      );
-      reply.send(superjson.serialize({ error: handleError(defect) }));
+    const exit = yield* Effect.exit(runnable);
+    if (Exit.isFailure(exit)) {
+      const cause = exit.cause;
+      if (Cause.isDieType(cause) && Cause.isRuntimeException(cause.defect)) {
+        reqCtx.log(
+          '[error Cause]',
+          /** 裁剪掉 Effect 内部的调用堆栈 */
+          `${cause.defect?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
+        );
+      } else {
+        reqCtx.log('[error noCause]', `${cause}`);
+      }
+      reply.send(superjson.serialize({ error: handleError(cause) }));
+    }
 
-      return Effect.succeed('catch');
-    });
     onEnd();
     const endTime = Date.now();
-    yield* systemLog(
+    return yield* systemLog(
       { level: LogLevel.INFO, message: `call:[${endTime - startTime}ms] ${method}` },
       reqCtx,
     );
