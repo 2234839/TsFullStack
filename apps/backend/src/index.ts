@@ -1,12 +1,12 @@
+import { loadConfig } from 'c12';
 import { Effect } from 'effect';
+import fs from 'fs/promises';
+import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
+import { AppConfigService, type AppConfig } from './Context/AppConfig';
+import { PrismaService, PrismaServiceLive } from './Context/PrismaService';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
-import { loadConfig } from 'c12';
-import { AppConfigContext, type AppConfig } from './Context/AppConfig';
-import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
-import fs from 'fs/promises';
 import { PrismaQueue } from './util/prismaQueue';
-import { PrismaService, PrismaServiceLive } from './Context/PrismaService';
 import { QueueScheduler } from './util/QueueScheduler';
 const main = Effect.gen(function* () {
   const { config } = yield* Effect.promise(() =>
@@ -34,7 +34,7 @@ const main = Effect.gen(function* () {
   }
 
   yield* seedDB.pipe(
-    Effect.provideService(AppConfigContext, config),
+    Effect.provideService(AppConfigService, config),
     Effect.provideService(PrismaService, PrismaServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
@@ -83,13 +83,13 @@ const main = Effect.gen(function* () {
 
   // yield* queue_scheduler;
   yield* startServer.pipe(
-    Effect.provideService(AppConfigContext, config),
+    Effect.provideService(AppConfigService, config),
     Effect.provideService(PrismaService, PrismaServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
 });
 
-Effect.runPromise(main as Effect.Effect<void, unknown, never>);
+Effect.runPromise(main);
 
 /** 队列与定时任务调度 */
 const queue_scheduler = Effect.gen(function* () {

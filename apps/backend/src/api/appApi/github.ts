@@ -1,11 +1,9 @@
 import { OauthProvider } from '@prisma/client';
 import { Effect } from 'effect';
 import { v7 as uuidv7 } from 'uuid';
-import { AppConfigContext } from '../../Context/AppConfig';
 import { PrismaService } from '../../Context/PrismaService';
 import { ReqCtxService } from '../../Context/ReqCtx';
-import { GitHubAuth } from '../../OAuth/github';
-import { MsgError } from '../../util/error';
+import { GithubAuthService } from '../../OAuth/github';
 import { genUserSession } from './_genUserSession';
 /** 通过 Github 登录 */
 export const githubApi = {
@@ -69,12 +67,5 @@ export const githubApi = {
 };
 
 const githubAuth = Effect.gen(function* () {
-  const { OAuth_github: oauth_github } = yield* AppConfigContext;
-  if (!oauth_github) {
-    throw MsgError.msg('github oauth config not found');
-  }
-  return new GitHubAuth({
-    scope: ['read:user', 'user:email'], // 可选
-    ...oauth_github,
-  });
+  return yield* GithubAuthService;
 });

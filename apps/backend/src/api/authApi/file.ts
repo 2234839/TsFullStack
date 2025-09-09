@@ -4,7 +4,7 @@ import { createReadStream, createWriteStream } from 'fs';
 import { mkdir, unlink } from 'fs/promises';
 import { join } from 'path/posix';
 import { v7 as uuidv7 } from 'uuid';
-import { AppConfigContext } from '../../Context/AppConfig';
+import { AppConfigService } from '../../Context/AppConfig';
 import { AuthContext } from '../../Context/Auth';
 import { FileAccessService } from '../../Context/FileAccessService';
 import { FilePathService } from '../../Context/FilePathService';
@@ -19,7 +19,7 @@ export const fileApi = {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
       const fileId = uuidv7();
-      const appConfig = yield* AppConfigContext;
+      const appConfig = yield* AppConfigService;
 
       const reqCtx = yield* ReqCtxService;
 
