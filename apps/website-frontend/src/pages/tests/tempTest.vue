@@ -1,7 +1,11 @@
 <style scoped></style>
 <template>
-  <SentenceAnalyzer />
+  <!-- <SentenceAnalyzer /> -->
+  <div>test:{{ test.state.value }}</div>
 </template>
 <script setup lang="ts">
-  import SentenceAnalyzer from '@/pages/AiEnglish/SentenceAnalyzer.vue';
+  import { AppAPI } from '@/api';
+  // import SentenceAnalyzer from '@/pages/AiEnglish/SentenceAnalyzer.vue';
+  import { useAsyncState } from '@vueuse/core';
+  const test = useAsyncState(() => AppAPI.moduleApi.template.test(), undefined);
 </script>

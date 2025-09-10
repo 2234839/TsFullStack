@@ -18,3 +18,8 @@ workers_dev = false
 [env.staging]
 vars = { ENVIRONMENT = "staging" }
 workers_dev = false
+
+# 启用可观察性
+[observability]
+enabled = true
+head_sampling_rate = 1 # optional. default = 1.

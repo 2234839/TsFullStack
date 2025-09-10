@@ -3,6 +3,7 @@
     /* 基础选项 */
     "target": "esnext", // 指定编译目标为较新的 ECMAScript 版本
     "moduleResolution": "bundler", // 与 Node.js 的模块解析策略兼容
+    "module": "preserve",
     "outDir": "./dist", // 输出目录
     "rootDir": "./src", // 源代码目录
     "sourceMap": true, // 生成 source map 便于调试
@@ -13,6 +14,8 @@
     "strictNullChecks": true, // 严格的 null 和 undefined 检查
     "strictFunctionTypes": true, // 严格的函数类型检查
     "strictBindCallApply": true, // 严格的 bind/call/apply 检查
+    "allowImportingTsExtensions": true,
+    "emitDeclarationOnly":true,
     "noImplicitThis": true, // 禁止隐式 this 类型
     "alwaysStrict": true, // 在解析时启用严格模式
     /* 其他推荐选项 */

@@ -1,0 +1,63 @@
+{
+  "name": "@tsfullstack/module-template",
+  "version": "1.0.0",
+  "description": "Template module for TsFullStack framework",
+  "type": "module",
+  "main": "./index.ts",
+  "module": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": {
+      "types": "./index.ts",
+      "default": "./index.ts"
+    },
+    "./backend": {
+      "types": "./backend/index.ts",
+      "default": "./backend/index.ts"
+    },
+    "./frontend": {
+      "types": "./frontend/index.ts",
+      "default": "./frontend/index.ts"
+    },
+    "./frontend/vue": {
+      "types": "./frontend/vue.ts",
+      "default": "./frontend/vue.ts"
+    },
+    "./backend/index": {
+      "types": "./backend/index.ts",
+      "default": "./backend/index.ts"
+    },
+    "./frontend/index": {
+      "types": "./frontend/index.ts",
+      "default": "./frontend/index.ts"
+    },
+    "./backend/*": {
+      "types": "./backend/*",
+      "default": "./backend/*"
+    },
+    "./frontend/*": {
+      "types": "./frontend/*",
+      "default": "./frontend/*"
+    }
+  },
+  "files": [
+    "**/*.ts",
+    "**/*.vue"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "clean": "rm -rf dist",
+    "prebuild": "pnpm clean"
+  },
+  "keywords": [
+    "template",
+    "module",
+    "tsfullstack"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

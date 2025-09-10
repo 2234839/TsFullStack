@@ -79,7 +79,7 @@ const main = Effect.gen(function* () {
     lastTime = currentTime;
   }
 
-  setInterval(logMemoryUsage, 1_000);
+  setInterval(logMemoryUsage, 5_000);
 
   // yield* queue_scheduler;
   yield* startServer.pipe(
