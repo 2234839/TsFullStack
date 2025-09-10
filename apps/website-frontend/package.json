@@ -34,6 +34,7 @@
     "quill-delta": "^5.1.0",
     "superjson": "^2.2.2",
     "tailwindcss": "^4.1.12",
+    "@tsfullstack/module-template": "workspace:*",
     "tsfullstack-backend": "workspace:*",
     "vue": "^3.5.18",
     "vue-i18n": "^11.1.11",

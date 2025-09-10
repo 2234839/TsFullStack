@@ -123,6 +123,9 @@ importers:
       '@prisma/client':
         specifier: 6.15.0
         version: 6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@5.9.2))(typescript@5.9.2)
+      '@tsfullstack/module-template':
+        specifier: workspace:*
+        version: link:../../modules/module-template
       '@zenstackhq/runtime':
         specifier: ^2.18.1
         version: 2.18.1(@prisma/client@6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@5.9.2))(typescript@5.9.2))(zod@3.25.76)
@@ -184,6 +187,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.12
         version: 4.1.12(vite@7.1.5(@types/node@24.3.1)(jiti@2.5.1)(lightningcss@1.30.1)(tsx@4.20.3)(yaml@2.7.1))
+      '@tsfullstack/module-template':
+        specifier: workspace:*
+        version: link:../../modules/module-template
       '@types/qrcode':
         specifier: ^1.5.5
         version: 1.5.5
@@ -266,6 +272,12 @@ importers:
       vue-tsc:
         specifier: ^3.0.5
         version: 3.0.6(typescript@5.9.2)
+
+  modules/module-template:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.2
 
 packages:
 
