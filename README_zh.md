@@ -47,3 +47,14 @@ https://deepwiki.com/2234839/TsFullStack
 4. 编译 tsfullstack-backend api 包:在 backend 目录下执行 `pnpm build:lib` （会报一些类型错误，我暂时没找到好的解决方案，但不影响使用，不用管）
 5. 启动后端服务：在 backend 目录下执行 `pnpm dev`
 6. 启动前端服务：在 website-frontend 目录下执行 `pnpm dev`
+
+## 项目结构设计
+
+> [设计理念](https://shenzilong.cn/index/如何实现模块化加载的前端和后端代码.html)
+
+- 项目基座
+  - apps/website-frontend 为前端基座项目
+  - apps/backend 为后端基座项目
+- 模块化前后端项目代码
+  - modules/*
+  - 模块内部的前端代码可以直接引用模块内部的后端代码接口
