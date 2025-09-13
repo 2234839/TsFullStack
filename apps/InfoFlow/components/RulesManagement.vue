@@ -584,7 +584,7 @@ return document.title;"
             enable: false,
             filterType: 'js',
             jsFilter: { code: '' },
-            aiFilter: { model: '', prompt: '', ollamaUrl: 'http://localhost:11434' },
+            aiFilter: { model: '', prompt: '', ollamaUrl: 'http://localhost:11434', apiUrl: 'http://localhost:11434', provider: 'ollama' },
           }"
           @update:modelValue="handleGlobalFilterConfigChange" />
       </div>
@@ -766,6 +766,8 @@ return document.title;"
             model: '',
             prompt: '',
             ollamaUrl: '',
+            apiUrl: 'http://localhost:11434',
+            provider: 'ollama' as const,
           },
         },
       },
@@ -828,7 +830,7 @@ return document.title;"
       enable: filterConfig.enable || false,
       filterType: (filterConfig.filterType || 'js') as 'js' | 'ai',
       jsFilter: filterConfig.jsFilter || { code: '' },
-      aiFilter: filterConfig.aiFilter || { model: '', prompt: '', ollamaUrl: '' },
+      aiFilter: filterConfig.aiFilter || { model: '', prompt: '', apiUrl: 'http://localhost:11434', provider: 'ollama' },
     };
 
     // 确保 ruleFilterConfig 对象存在
@@ -893,7 +895,7 @@ return document.title;"
           enable: false,
           filterType: 'js',
           jsFilter: { code: '' },
-          aiFilter: { model: '', prompt: '', ollamaUrl: '' },
+          aiFilter: { model: '', prompt: '', ollamaUrl: 'http://localhost:11434', apiUrl: 'http://localhost:11434', provider: 'ollama' },
         },
       };
     }

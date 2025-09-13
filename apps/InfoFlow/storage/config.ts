@@ -22,6 +22,8 @@ export const useInfoFlowConfig = () =>
           model: '',
           prompt: '',
           ollamaUrl: 'http://localhost:11434',
+          apiUrl: 'http://localhost:11434',
+          provider: 'ollama' as const,
         },
       }, // 全局过滤配置
     },
@@ -79,6 +81,8 @@ export const useInfoFlowConfig = () =>
               model: '',
               prompt: '',
               ollamaUrl: 'http://localhost:11434',
+              apiUrl: 'http://localhost:11434',
+              provider: 'ollama' as const,
             },
           },
         };

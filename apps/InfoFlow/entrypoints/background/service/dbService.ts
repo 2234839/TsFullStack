@@ -27,7 +27,10 @@ export interface FilterConfig {
   aiFilter?: {
     model: string;
     prompt: string;
-    ollamaUrl: string;
+    apiUrl: string; // 兼容 OpenAI 和 Ollama
+    apiKey?: string; // OpenAI API 密钥
+    provider: 'openai' | 'ollama' | 'custom'; // AI 服务提供商
+    ollamaUrl?: string; // 向后兼容字段
   };
 }
 
