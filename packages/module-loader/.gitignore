@@ -42,22 +42,9 @@ logs/
 *.tmp
 *.bak
 
-# Prisma
-prisma/migrations/
+# TypeScript
+*.tsbuildinfo
 
-# Vue
-vite.config.ts.timestamp-*
-*.local
-
-# WXT (Browser Extension)
-.wxt/
-.wxt-types/
-*.zip
-
-# Coverage reports
-coverage/
-.nyc_output/
-
-# Temporary files
+# Module loader specific
 *.temp
 tmp/

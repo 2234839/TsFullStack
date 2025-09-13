@@ -10,7 +10,13 @@
     "release:ci": "pnpm install && pnpm tsc && pnpm --recursive --parallel run build:lib",
     "build:backend": "cd apps/backend && pnpm build:lib",
     "build:frontend": "cd apps/website-frontend && pnpm build",
-    "build:extension": "cd apps/InfoFlow && pnpm build"
+    "build:extension": "cd apps/InfoFlow && pnpm build",
+    "modules:build": "cd packages/module-loader && pnpm build",
+    "modules:tsc": "cd packages/module-loader && pnpm tsc",
+    "modules:run": "cd packages/module-loader && node dist/cli.js run",
+    "modules:install": "cd packages/module-loader && node dist/cli.js install",
+    "modules:list": "cd packages/module-loader && node dist/cli.js list",
+    "modules:watch": "cd packages/module-loader && node dist/cli.js run --watch"
   },
   "keywords": [],
   "author": "",
