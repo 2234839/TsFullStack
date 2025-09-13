@@ -60,11 +60,41 @@ function filterItem(item) {
       <!-- AI 过滤配置 -->
       <div v-if="modelValue?.filterType === 'ai'" class="space-y-4">
         <div>
+          <label class="block text-sm font-medium mb-2">AI 服务提供商</label>
+          <div class="flex gap-4">
+            <div class="flex items-center gap-2">
+              <RadioButton
+                :modelValue="modelValue?.aiFilter?.provider"
+                value="openai"
+                inputId="openai-provider"
+                @update:modelValue="handleAiProviderChange" />
+              <label for="openai-provider">OpenAI</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <RadioButton
+                :modelValue="modelValue?.aiFilter?.provider"
+                value="ollama"
+                inputId="ollama-provider"
+                @update:modelValue="handleAiProviderChange" />
+              <label for="ollama-provider">Ollama</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <RadioButton
+                :modelValue="modelValue?.aiFilter?.provider"
+                value="custom"
+                inputId="custom-provider"
+                @update:modelValue="handleAiProviderChange" />
+              <label for="custom-provider">自定义</label>
+            </div>
+          </div>
+        </div>
+
+        <div>
           <label class="block text-sm font-medium mb-2">AI 模型</label>
           <InputText
             :modelValue="modelValue?.aiFilter?.model"
             @update:modelValue="handleAiModelChange"
-            placeholder="例如: qwen2.5:7b, llama3.2:3b"
+            :placeholder="modelValue?.aiFilter?.provider === 'openai' ? '例如: gpt-4, gpt-3.5-turbo' : '例如: qwen2.5:7b, llama3.2:3b'"
             class="w-full" />
         </div>
 
@@ -83,13 +113,28 @@ function filterItem(item) {
         </div>
 
         <div>
-          <label class="block text-sm font-medium mb-2">Ollama 服务地址</label>
-          对于本地的ollama服务，需要配置允许浏览器扩展访问的环境变量：https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-allow-additional-web-origins-to-access-ollama
+          <label class="block text-sm font-medium mb-2">API 地址</label>
           <InputText
-            :modelValue="modelValue?.aiFilter?.ollamaUrl"
+            :modelValue="modelValue?.aiFilter?.apiUrl"
             @update:modelValue="handleAiUrlChange"
-            placeholder="例如: http://localhost:11434"
+            :placeholder="modelValue?.aiFilter?.provider === 'openai' ? 'https://api.openai.com/v1' : '例如: http://localhost:11434'"
             class="w-full" />
+          <small v-if="modelValue?.aiFilter?.provider === 'ollama'" class="text-gray-500">
+            对于本地的ollama服务，需要配置允许浏览器扩展访问的环境变量：https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-allow-additional-web-origins-to-access-ollama
+          </small>
+        </div>
+
+        <div v-if="modelValue?.aiFilter?.provider === 'openai'">
+          <label class="block text-sm font-medium mb-2">API 密钥</label>
+          <InputText
+            :modelValue="modelValue?.aiFilter?.apiKey"
+            @update:modelValue="handleAiApiKeyChange"
+            placeholder="输入 OpenAI API 密钥"
+            type="password"
+            class="w-full" />
+          <small class="text-gray-500">
+            您的 API 密钥将安全存储在浏览器扩展中，不会上传到服务器
+          </small>
         </div>
       </div>
     </div>
@@ -122,7 +167,12 @@ const ensureConfig = (): FilterConfig => {
       enable: false,
       filterType: 'js',
       jsFilter: { code: '' },
-      aiFilter: { model: '', prompt: '', ollamaUrl: '' },
+      aiFilter: { 
+        model: '', 
+        prompt: '', 
+        apiUrl: 'http://localhost:11434', 
+        provider: 'ollama' 
+      },
     };
   }
 
@@ -131,7 +181,13 @@ const ensureConfig = (): FilterConfig => {
     ...current,
     filterType: current.filterType || 'js',
     jsFilter: current.jsFilter || { code: '' },
-    aiFilter: current.aiFilter || { model: '', prompt: '', ollamaUrl: '' },
+    aiFilter: {
+      model: current.aiFilter?.model || '',
+      prompt: current.aiFilter?.prompt || '',
+      apiUrl: current.aiFilter?.apiUrl || (current.aiFilter?.['ollamaUrl' as keyof typeof current.aiFilter] || 'http://localhost:11434'),
+      apiKey: current.aiFilter?.apiKey || '',
+      provider: current.aiFilter?.provider || 'ollama'
+    },
   };
 };
 
@@ -156,6 +212,21 @@ const handleJsCodeChange = (code: string | undefined) => {
   });
 };
 
+// 处理 AI 服务提供商变化
+const handleAiProviderChange = (provider: 'openai' | 'ollama' | 'custom' | undefined) => {
+  const config = ensureConfig();
+  emit('update:modelValue', {
+    ...config,
+    aiFilter: {
+      model: config.aiFilter?.model || '',
+      prompt: config.aiFilter?.prompt || '',
+      apiUrl: provider === 'openai' ? 'https://api.openai.com/v1' : config.aiFilter?.apiUrl || 'http://localhost:11434',
+      apiKey: config.aiFilter?.apiKey || '',
+      provider: provider || 'ollama'
+    },
+  });
+};
+
 // 处理 AI 模型变化
 const handleAiModelChange = (model: string | undefined) => {
   const config = ensureConfig();
@@ -164,7 +235,9 @@ const handleAiModelChange = (model: string | undefined) => {
     aiFilter: {
       model: model || '',
       prompt: config.aiFilter?.prompt || '',
-      ollamaUrl: config.aiFilter?.ollamaUrl || ''
+      apiUrl: config.aiFilter?.apiUrl || 'http://localhost:11434',
+      apiKey: config.aiFilter?.apiKey || '',
+      provider: config.aiFilter?.provider || 'ollama'
     },
   });
 };
@@ -177,7 +250,9 @@ const handleAiPromptChange = (prompt: string | undefined) => {
     aiFilter: {
       model: config.aiFilter?.model || '',
       prompt: prompt || '',
-      ollamaUrl: config.aiFilter?.ollamaUrl || ''
+      apiUrl: config.aiFilter?.apiUrl || 'http://localhost:11434',
+      apiKey: config.aiFilter?.apiKey || '',
+      provider: config.aiFilter?.provider || 'ollama'
     },
   });
 };
@@ -190,7 +265,24 @@ const handleAiUrlChange = (url: string | undefined) => {
     aiFilter: {
       model: config.aiFilter?.model || '',
       prompt: config.aiFilter?.prompt || '',
-      ollamaUrl: url || ''
+      apiUrl: url || 'http://localhost:11434',
+      apiKey: config.aiFilter?.apiKey || '',
+      provider: config.aiFilter?.provider || 'ollama'
+    },
+  });
+};
+
+// 处理 AI API 密钥变化
+const handleAiApiKeyChange = (apiKey: string | undefined) => {
+  const config = ensureConfig();
+  emit('update:modelValue', {
+    ...config,
+    aiFilter: {
+      model: config.aiFilter?.model || '',
+      prompt: config.aiFilter?.prompt || '',
+      apiUrl: config.aiFilter?.apiUrl || 'http://localhost:11434',
+      apiKey: apiKey || '',
+      provider: config.aiFilter?.provider || 'ollama'
     },
   });
 };

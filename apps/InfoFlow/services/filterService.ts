@@ -7,7 +7,13 @@ import type { FilterConfig, RuleFilterConfig } from '@/entrypoints/background/se
 import { convert } from 'html-to-text';
 
 // AI 配置类型定义
-type AiFilterConfig = Required<NonNullable<FilterConfig['aiFilter']>>;
+type AiFilterConfig = {
+  model: string;
+  prompt: string;
+  apiUrl: string;
+  apiKey?: string;
+  provider: 'openai' | 'ollama' | 'custom';
+};
 
 // JS 过滤函数类型
 type JsFilterFunction = (item: CollectionItem) => boolean;
@@ -180,16 +186,9 @@ export class FilterService {
     data: CollectionItem[],
     aiConfig?: AiFilterConfig,
   ): Promise<CollectionItem[]> {
-    if (!aiConfig || !aiConfig.model || !aiConfig.prompt || !aiConfig.ollamaUrl) {
+    if (!aiConfig || !aiConfig.model || !aiConfig.prompt || !aiConfig.apiUrl) {
       console.warn('[FilterService] AI filter configuration incomplete');
       return data;
-    }
-
-    // 首先测试连接
-    const connectionTest = await this.testOllamaConnection(aiConfig.ollamaUrl);
-    if (!connectionTest.success) {
-      console.warn('[FilterService] Ollama connection test failed:', connectionTest.error);
-      return data; // 连接失败时返回所有数据
     }
 
     const filteredItems: CollectionItem[] = [];
@@ -210,60 +209,68 @@ export class FilterService {
     return filteredItems;
   }
 
-  // 测试 Ollama 连接
-  private async testOllamaConnection(
-    ollamaUrl: string,
-  ): Promise<{ success: boolean; error?: string }> {
-    try {
-      console.log('[FilterService] Testing Ollama connection to:', ollamaUrl);
-
-      // 测试基本连接
-      const response = await fetch(`${ollamaUrl}/api/tags`, {
-        method: 'GET',
-      });
-
-      if (!response.ok) {
-        return {
-          success: false,
-          error: `HTTP ${response.status}: ${response.statusText}`,
-        };
-      }
-
-      const result = await response.json();
-      console.log(
-        '[FilterService] Ollama connection test successful, available models:',
-        result.models,
-      );
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
-  }
   // AI 判断是否保留项目
   private async aiShouldKeepItem(item: CollectionItem, aiConfig: AiFilterConfig): Promise<boolean> {
     try {
       // 构建提示词
       const itemContent = this.extractItemContent(item);
-      const fullPrompt = `${aiConfig.prompt}\n\n内容：\n${itemContent}\n\n请回答"pass"或"block"，不要解释。`;
-
-      console.log('[FilterService] Making AI request to:', `${aiConfig.ollamaUrl}/api/generate`);
-
-      const requestBody = {
-        model: aiConfig.model,
-        /** 禁用思考 https://qwenlm.github.io/blog/qwen3/#advanced-usages */
-        prompt: fullPrompt + ' /no_think ',
-        stream: false,
+      let fullPrompt: string;
+      let requestBody: any;
+      let requestUrl: string;
+      let headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
       };
 
-      const response = await fetch(`${aiConfig.ollamaUrl}/api/generate`, {
+      switch (aiConfig.provider) {
+        case 'openai':
+          fullPrompt = `${aiConfig.prompt}\n\n内容：\n${itemContent}\n\n请只回答"pass"或"block"，不要解释。`;
+          requestUrl = `${aiConfig.apiUrl}/chat/completions`;
+          requestBody = {
+            model: aiConfig.model,
+            messages: [
+              {
+                role: 'user',
+                content: fullPrompt,
+              },
+            ],
+            max_tokens: 10,
+            temperature: 0.1,
+          };
+          if (aiConfig.apiKey) {
+            headers['Authorization'] = `Bearer ${aiConfig.apiKey}`;
+          }
+          break;
+
+        case 'ollama':
+          fullPrompt = `${aiConfig.prompt}\n\n内容：\n${itemContent}\n\n请回答"pass"或"block"，不要解释。`;
+          requestUrl = `${aiConfig.apiUrl}/api/generate`;
+          requestBody = {
+            model: aiConfig.model,
+            /** 禁用思考 https://qwenlm.github.io/blog/qwen3/#advanced-usages */
+            prompt: fullPrompt + ' /no_think ',
+            stream: false,
+          };
+          break;
+
+        case 'custom':
+        default:
+          // 默认使用 Ollama 格式
+          fullPrompt = `${aiConfig.prompt}\n\n内容：\n${itemContent}\n\n请回答"pass"或"block"，不要解释。`;
+          requestUrl = `${aiConfig.apiUrl}/api/generate`;
+          requestBody = {
+            model: aiConfig.model,
+            prompt: fullPrompt,
+            stream: false,
+          };
+          break;
+      }
+
+      console.log('[FilterService] Making AI request to:', requestUrl);
+
+      const response = await fetch(requestUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
+        headers,
         body: JSON.stringify(requestBody),
       });
 
@@ -278,7 +285,19 @@ export class FilterService {
       }
 
       const result = await response.json();
-      const aiResponse = result.response?.toLowerCase() || '';
+      let aiResponse = '';
+
+      // 根据不同的提供商解析响应
+      switch (aiConfig.provider) {
+        case 'openai':
+          aiResponse = result.choices?.[0]?.message?.content?.toLowerCase() || '';
+          break;
+        case 'ollama':
+        case 'custom':
+        default:
+          aiResponse = result.response?.toLowerCase() || '';
+          break;
+      }
 
       console.log('[FilterService] AI response:', { requestBody, aiResponse });
 
