@@ -7,5 +7,5 @@
   import { AppAPI } from '@/api';
   // import SentenceAnalyzer from '@/pages/AiEnglish/SentenceAnalyzer.vue';
   import { useAsyncState } from '@vueuse/core';
-  const test = useAsyncState(() => AppAPI.moduleApi.template.test(), undefined);
+  const test = useAsyncState(() => AppAPI.moduleApi.moduleTemplate.test(), undefined);
 </script>

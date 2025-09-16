@@ -166,7 +166,7 @@
   import { routeMap, routerUtil } from '@/router';
   import { userDataAppid } from '@/storage/userDataAppid';
   import { useAsyncState, watchDebounced } from '@vueuse/core';
-  import type { Prisma } from 'tsfullstack-backend';
+  import type { Prisma } from '@tsfullstack/backend';
   import QRCode from 'qrcode';
   import { reactive, ref } from 'vue';
 

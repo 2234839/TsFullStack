@@ -10,7 +10,9 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
-    }
+    },
+    "./generated/backend.ts": "./generated/backend.ts",
+    "./generated/frontend.ts": "./generated/frontend.ts"
   },
   "files": [
     "dist/**/*"

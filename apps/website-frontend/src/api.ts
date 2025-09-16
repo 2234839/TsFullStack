@@ -6,7 +6,7 @@ import {
   type AppAPI as __AppAPI__,
   type MsgErrorOpValues,
   SessionAuthSign,
-} from 'tsfullstack-backend';
+} from '@tsfullstack/backend';
 /** 直接引用后端 ts，有完善的类型，可以直接跳转定义，并且可以查看变量引用。但是 vue-tsc 过不去,暂时没想到解决的好办法，只能作为开发时方便使用的临时方案 */
 // import type { API as __API__, AppAPI as __AppAPI__, MsgErrorOpValues } from '../../backend/src/lib';
 
