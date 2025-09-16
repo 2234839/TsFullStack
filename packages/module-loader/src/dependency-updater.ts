@@ -1,6 +1,7 @@
 // Package.json dependency updater implementation
 import fs from 'fs-extra';
 import { join } from 'path';
+import { execSync } from 'child_process';
 import { ModuleInfo } from './types.js';
 import { ModuleDiscovery } from './discovery.js';
 
@@ -62,7 +63,7 @@ export class DependencyUpdater {
   /** Update all target package files */
   async updateAllDependencies(modules: ModuleInfo[]): Promise<void> {
     console.log('Updating package dependencies...');
-    
+
     const targetPackages = this.discovery.getOptions().targetPackages;
     let updatedCount = 0;
 
@@ -79,7 +80,24 @@ export class DependencyUpdater {
 
     if (updatedCount > 0) {
       console.log(`Updated dependencies in ${updatedCount} package files`);
-      console.log('Run "pnpm install" in packages/module-loader to install new dependencies');
+      console.log('Installing dependencies...');
+
+      try {
+        const rootDir = this.discovery.getRootDir();
+        const moduleLoaderDir = join(rootDir, 'packages/module-loader');
+
+        // Change to module-loader directory and run pnpm install
+        process.chdir(moduleLoaderDir);
+        execSync('pnpm install', {
+          stdio: 'inherit',
+          cwd: moduleLoaderDir
+        });
+
+        console.log('Dependencies installed successfully');
+      } catch (error) {
+        console.error('Failed to install dependencies:', error);
+        throw error;
+      }
     } else {
       console.log('No dependency updates needed');
     }
