@@ -52,7 +52,7 @@ program
   .option('-w, --watch', 'Watch for changes')
   .option('--root <dir>', 'Root directory', process.cwd())
   .option('--modules <dir>', 'Modules directory', 'modules')
-  .option('--output <dir>', 'Output directory', 'packages/module-loader/generated')
+  .option('--output <dir>', 'Output directory', 'packages/module-loader/src/runtime-generated')
   .action(async (options) => {
     try {
       // 如果没有指定根目录，自动查找项目根目录

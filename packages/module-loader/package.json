@@ -11,8 +11,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./generated/backend.ts": "./generated/backend.ts",
-    "./generated/frontend.ts": "./generated/frontend.ts"
+    "./generated/backend.ts": {
+      "types": "./dist/runtime-generated/backend.d.ts",
+      "default": "./dist/runtime-generated/backend.js"
+    },
+    "./generated/frontend.ts": {
+      "types": "./dist/runtime-generated/frontend.d.ts",
+      "default": "./dist/runtime-generated/frontend.js"
+    }
   },
   "files": [
     "dist/**/*"
