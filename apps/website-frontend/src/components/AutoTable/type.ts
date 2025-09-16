@@ -1,7 +1,7 @@
-import type { ModelMeta } from 'tsfullstack-backend';
+import type { ModelMeta } from '@tsfullstack/backend';
 import type { API } from '../../api';
 import type { InjectionKey } from 'vue';
-export type { ModelMeta } from 'tsfullstack-backend';
+export type { ModelMeta } from '@tsfullstack/backend';
 
 //#region 当前模型的类型
 export type DBModelMeta = Awaited<ReturnType<typeof API.system.getModelMeta>>;

@@ -281,7 +281,7 @@
     useConfirm,
     useToast,
   } from 'primevue';
-  import type { Prisma } from 'tsfullstack-backend';
+  import type { Prisma } from '@tsfullstack/backend';
   import { useRoute } from 'vue-router';
 
   const toast = useToast();

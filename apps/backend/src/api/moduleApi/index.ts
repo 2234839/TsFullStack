@@ -1,4 +1,5 @@
-import { apis } from '@tsfullstack/module-template/backend/index.ts';
+import * as backend from '@tsfullstack/module-loader/generated/backend.ts';
+
 export const moduleApi = {
-  template: apis,
+  ...backend.modules,
 };

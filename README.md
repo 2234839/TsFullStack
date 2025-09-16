@@ -47,8 +47,8 @@ Other application examples
 ## Quick Start
 
 1. Clone the project
-2. Install dependencies: Enter backend directory and run `pnpm i` (ignore errors: Failed to resolve entry for package "tsfullstack-backend", we'll generate this package in later steps)
+2. Install dependencies: Enter backend directory and run `pnpm i` (ignore errors: Failed to resolve entry for package "@tsfullstack/backend", we'll generate this package in later steps)
 3. Initialize database: In backend directory, run `pnpm zenstack generate` and `pnpm prisma migrate dev`
-4. Build tsfullstack-backend api package: In backend directory run `pnpm build:lib` (some TypeScript errors may appear but won't affect usage)
+4. Build @tsfullstack/backend api package: In backend directory run `pnpm build:lib` (some TypeScript errors may appear but won't affect usage)
 5. Start backend service: In backend directory run `pnpm dev`
 6. Start frontend service: In website-frontend directory run `pnpm dev`
