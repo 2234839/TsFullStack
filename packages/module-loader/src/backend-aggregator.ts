@@ -13,12 +13,11 @@ export class BackendAggregator {
 
   /** Generate aggregated backend TypeScript file */
   async generateBackendAggregation(modules: ModuleInfo[]): Promise<void> {
-    // Use relative path to src/runtime-generated directory
-    const outputDir = 'src/runtime-generated';
+    const outputDir = 'generated';
     fs.ensureDirSync(outputDir);
 
     const backendModules = modules.filter(m => m.hasBackend);
-    
+
     if (backendModules.length === 0) {
       console.log('No backend modules found to aggregate');
       return;
@@ -36,13 +35,13 @@ export class BackendAggregator {
     const imports: string[] = [];
     const reExports: string[] = [];
     const typeExports: string[] = [];
-    
+
     for (const module of modules) {
       const moduleName = this.getImportName(module.name);
-      
-      imports.push(`import * as ${moduleName} from '${module.name}/backend';`);
+
+      imports.push(`import { apis as ${moduleName} } from '${module.name}/backend';`);
       reExports.push(`export { ${moduleName} };`);
-      
+
       // Add type exports if available
       if (module.hasBackend) {
         typeExports.push(`export type ${moduleName}Types = typeof ${moduleName};`);

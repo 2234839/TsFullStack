@@ -126,6 +126,9 @@ importers:
       '@tsfullstack/module-loader':
         specifier: workspace:*
         version: link:../../packages/module-loader
+      '@tsfullstack/module-template':
+        specifier: workspace:*
+        version: link:../../modules/module-template
       '@zenstackhq/runtime':
         specifier: ^2.18.1
         version: 2.18.1(@prisma/client@6.15.0(prisma@6.15.0(magicast@0.3.5)(typescript@5.9.2))(typescript@5.9.2))(zod@3.25.76)
@@ -193,6 +196,9 @@ importers:
       '@tsfullstack/module-loader':
         specifier: workspace:*
         version: link:../../packages/module-loader
+      '@tsfullstack/module-template':
+        specifier: workspace:*
+        version: link:../../modules/module-template
       '@types/qrcode':
         specifier: ^1.5.5
         version: 1.5.5
@@ -281,6 +287,9 @@ importers:
 
   packages/module-loader:
     dependencies:
+      '@tsfullstack/module-loader':
+        specifier: workspace:*
+        version: 'link:'
       '@tsfullstack/module-template':
         specifier: workspace:*
         version: link:../../modules/module-template

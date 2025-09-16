@@ -2,7 +2,7 @@
 // This file aggregates all backend module exports
 // DO NOT EDIT MANUALLY
 
-import * as moduleTemplate from '@tsfullstack/module-template/backend';
+import { apis as moduleTemplate } from '@tsfullstack/module-template/backend';
 
 // Re-export all modules
 export { moduleTemplate };

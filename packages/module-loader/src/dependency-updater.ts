@@ -32,20 +32,23 @@ export class DependencyUpdater {
         ...workspaceDependencies
       };
 
-      // Remove dependencies for modules that no longer exist
+      // Remove dependencies for modules that no longer exist, but only manage @tsfullstack/module- prefixed packages
       const moduleNames = new Set(modules.map(m => m.name));
       const removedDeps: string[] = [];
       for (const depName of Object.keys(updatedDependencies)) {
-        if (depName.startsWith('@tsfullstack/') && !moduleNames.has(depName)) {
+        if (depName.startsWith('@tsfullstack/module-') && !moduleNames.has(depName) && depName !== '@tsfullstack/module-loader') {
           delete updatedDependencies[depName];
           removedDeps.push(depName);
         }
       }
       
       
+      // Ensure @tsfullstack/module-loader is always present
+      updatedDependencies['@tsfullstack/module-loader'] = 'workspace:*';
+
       // Check if dependencies actually changed
       const dependenciesChanged = JSON.stringify(existingDependencies) !== JSON.stringify(updatedDependencies);
-      
+
       if (dependenciesChanged) {
         packageJson.dependencies = updatedDependencies;
         fs.writeFileSync(fullPath, JSON.stringify(packageJson, null, 2) + '\n');

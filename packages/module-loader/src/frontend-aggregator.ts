@@ -13,12 +13,11 @@ export class FrontendAggregator {
 
   /** Generate aggregated frontend TypeScript file */
   async generateFrontendAggregation(modules: ModuleInfo[]): Promise<void> {
-    // Use relative path to src/runtime-generated directory
-    const outputDir = 'src/runtime-generated';
+    const outputDir = 'generated';
     fs.ensureDirSync(outputDir);
 
     const frontendModules = modules.filter(m => m.hasFrontend);
-    
+
     if (frontendModules.length === 0) {
       console.log('No frontend modules found to aggregate');
       return;
@@ -35,10 +34,10 @@ export class FrontendAggregator {
   private generateMainFrontendFile(modules: ModuleInfo[]): string {
     const imports: string[] = [];
     const reExports: string[] = [];
-    
+
     for (const module of modules) {
       const moduleName = this.getImportName(module.name);
-      
+
       imports.push(`import * as ${moduleName} from '${module.name}/frontend';`);
       reExports.push(`export { ${moduleName} };`);
     }

@@ -34,11 +34,12 @@
     "quill-delta": "^5.1.0",
     "superjson": "^2.2.2",
     "tailwindcss": "^4.1.12",
-    "@tsfullstack/backend": "workspace:*",
-    "@tsfullstack/module-loader": "workspace:*",
     "vue": "^3.5.18",
     "vue-i18n": "^11.1.11",
-    "vue-router": "^4.5.1"
+    "vue-router": "^4.5.1",
+    "@tsfullstack/backend": "workspace:*",
+    "@tsfullstack/module-loader": "workspace:*",
+    "@tsfullstack/module-template": "workspace:*"
   },
   "devDependencies": {
     "@types/aframe": "^1.2.8",

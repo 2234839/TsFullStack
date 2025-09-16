@@ -11,7 +11,7 @@ const program = new Command();
 // 自动查找项目根目录
 function findProjectRoot(startDir: string = process.cwd()): string {
   let currentDir = startDir;
-  
+
   while (currentDir !== '/') {
     // 检查是否是项目根目录的标志
     const indicators = [
@@ -21,22 +21,22 @@ function findProjectRoot(startDir: string = process.cwd()): string {
       'packages',
       'modules'
     ];
-    
-    const hasIndicators = indicators.some(indicator => 
+
+    const hasIndicators = indicators.some(indicator =>
       fs.existsSync(join(currentDir, indicator))
     );
-    
+
     // 必须同时有 pnpm-workspace.yaml 和 modules 目录才是真正的根目录
     const hasWorkspaceYaml = fs.existsSync(join(currentDir, 'pnpm-workspace.yaml'));
     const hasModulesDir = fs.existsSync(join(currentDir, 'modules'));
-    
+
     if (hasIndicators && hasWorkspaceYaml && hasModulesDir) {
       return currentDir;
     }
-    
+
     currentDir = dirname(currentDir);
   }
-  
+
   // 如果没找到，返回当前目录
   return startDir;
 }
@@ -48,11 +48,11 @@ program
 
 program
   .command('run')
-  .description('Run module discovery and aggregation')
+  .description('Update dependencies, generate aggregated code and install packages')
   .option('-w, --watch', 'Watch for changes')
   .option('--root <dir>', 'Root directory', process.cwd())
   .option('--modules <dir>', 'Modules directory', 'modules')
-  .option('--output <dir>', 'Output directory', 'packages/module-loader/src/runtime-generated')
+  .option('--output <dir>', 'Output directory', 'packages/module-loader/generated')
   .action(async (options) => {
     try {
       // 如果没有指定根目录，自动查找项目根目录
@@ -67,6 +67,7 @@ program
       if (options.watch) {
         await loader.watch();
       } else {
+        // 执行完整的模块加载流程，包括依赖更新和聚合代码生成
         await loader.run();
       }
     } catch (error) {
@@ -90,7 +91,7 @@ program
       });
 
       const modules = await loader.getModules();
-      
+
       console.log('Discovered modules:');
       modules.forEach(module => {
         console.log(`  - ${module.name} (${module.version})`);
@@ -104,34 +105,5 @@ program
     }
   });
 
-program
-  .command('install')
-  .description('Update dependencies and install packages')
-  .option('--root <dir>', 'Root directory', process.cwd())
-  .option('--modules <dir>', 'Modules directory', 'modules')
-  .action(async (options) => {
-    try {
-      // 如果没有指定根目录，自动查找项目根目录
-      const rootDir = options.root === process.cwd() ? findProjectRoot() : options.root;
-      const loader = new ModuleLoader({
-        rootDir,
-        modulesDir: options.modules
-      });
-
-      const result = await loader.run();
-      
-      if (result.modules.length > 0) {
-        console.log('Running pnpm install...');
-        const { execSync } = await import('child_process');
-        execSync('pnpm install', { 
-          stdio: 'inherit',
-          cwd: rootDir
-        });
-      }
-    } catch (error) {
-      console.error('Error:', error);
-      process.exit(1);
-    }
-  });
 
 program.parse();
