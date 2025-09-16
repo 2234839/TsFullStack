@@ -23,7 +23,11 @@ import { GithubAuthLive } from '../OAuth/github';
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
-function handleError(error: unknown) {
+function handleError(err: any) {
+  let error = err;
+  if (/** 处理 Effect Cause 错误 */ Cause.isDieType(error)) {
+    error = error.defect;
+  }
   if (error instanceof MsgError) {
     return { message: error.message, op: error.op };
   }
@@ -39,6 +43,7 @@ function handleError(error: unknown) {
   if (error instanceof Error) {
     return { message: error.message };
   }
+
   return { message: '未知错误' };
 }
 
