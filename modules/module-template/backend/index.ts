@@ -1,5 +1,5 @@
 export const apis = {
   test() {
-    return `test ${new Date().toLocaleString()}`;
+    return ` ${new Date().toLocaleString()} 33`;
   },
 };

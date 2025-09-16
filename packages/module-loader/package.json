@@ -3,26 +3,10 @@
   "version": "1.0.0",
   "description": "Automatic module discovery and aggregation for TsFullStack",
   "type": "module",
-  "main": "./dist/index.js",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./generated/backend.ts": {
-      "types": "./dist/runtime-generated/backend.d.ts",
-      "default": "./dist/runtime-generated/backend.js"
-    },
-    "./generated/frontend.ts": {
-      "types": "./dist/runtime-generated/frontend.d.ts",
-      "default": "./dist/runtime-generated/frontend.js"
-    }
+    "./generated/backend.ts": "./generated/backend.ts",
+    "./generated/frontend.ts": "./generated/frontend.ts"
   },
-  "files": [
-    "dist/**/*"
-  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -45,7 +29,8 @@
     "commander": "^12.0.0",
     "fast-glob": "^3.3.3",
     "fs-extra": "^11.2.0",
-    "@tsfullstack/module-template": "workspace:*"
+    "@tsfullstack/module-template": "workspace:*",
+    "@tsfullstack/module-loader": "workspace:*"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
