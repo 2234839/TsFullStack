@@ -1,4 +1,5 @@
 import { useOpenAIConfig } from '@/storage';
+import { useAPI } from '@/api';
 import { type WordData } from './data';
 
 export interface AIAnalysis {
@@ -25,37 +26,67 @@ const getAIConfig = () => ({
   temperature: openAIConfig.value.temperature || 0.1,
 });
 
-// 统一的 AI 请求函数
-export async function fetchAI(prompt: string): Promise<any> {
+// 统一的 AI 请求函数 - 支持混合模式（用户配置优先，后台代理兜底）
+export async function fetchAI(prompt: string, options?: { forceProxy?: boolean }): Promise<any> {
   const config = getAIConfig();
+  const { API } = useAPI();
 
-  if (!config.apiKey) {
-    throw new Error('API Key 未配置，请在AI配置中设置');
+  // 如果用户配置了API Key且不是强制使用代理，使用用户配置
+  if (config.apiKey && !options?.forceProxy) {
+    try {
+      const response = await fetch(`${config.apiBase}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: config.temperature,
+          max_tokens: config.maxTokens,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`用户配置API请求失败: ${response.status}`);
+      }
+
+      console.log('使用用户配置的AI服务');
+      return await response.json();
+    } catch (error) {
+      console.warn('用户配置API调用失败，尝试使用后台代理:', error);
+      // 继续尝试后台代理
+    }
   }
 
+  // 使用后台代理
   try {
-    const response = await fetch(`${config.apiBase}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: config.temperature,
-        max_tokens: config.maxTokens,
-      }),
-    });
+    const response = await API.aiApi.proxyOpenAI({
+      model: config.model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: config.temperature,
+      max_tokens: config.maxTokens,
+    }) as any;
 
-    if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`);
-    }
-
-    return await response.json();
+    // 转换为OpenAI格式
+    console.log('使用后台代理AI服务');
+    return {
+      id: response.id || 'proxy-id',
+      object: response.object || 'chat.completion',
+      created: response.created || Date.now(),
+      model: response.model || config.model,
+      choices: response.choices || [],
+      usage: response.usage || {},
+    };
   } catch (error) {
-    console.error('AI请求失败:', error);
-    throw error;
+    console.error('后台代理API调用失败:', error);
+
+    if (config.apiKey) {
+      throw new Error('AI服务暂时不可用，请稍后重试');
+    } else {
+      throw new Error('后台AI服务暂时不可用，您可以配置自己的AI密钥使用');
+    }
   }
 }
 

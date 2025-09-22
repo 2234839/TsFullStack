@@ -102,6 +102,14 @@ export const routeMap = reactive({
           icon: 'pi pi-share-alt',
         },
       },
+      aiModelManager: {
+        path: 'aiModelManager',
+        component: () => import('@/pages/admin/AiModelManager.vue'),
+        meta: {
+          title: t('AI模型管理'),
+          icon: 'pi pi-microchip-ai',
+        },
+      },
     },
   },
   ShareDetail: {
