@@ -235,3 +235,52 @@ model Word extends Base {
     /// 权限控制：用户只能读取和操作自己的单词数据
     @@allow('read,create,update,delete', auth() == author)
 }
+
+/// AI 模型配置
+model AiModel extends Base {
+    /// 模型名称
+    name        String
+    /// 模型标识符
+    model       String
+    /// API基础URL
+    baseUrl     String
+    /// API密钥
+    apiKey      String @omit
+    /// 最大Token数
+    maxTokens   Int @default(2000)
+    /// 温度参数
+    temperature Float @default(0.7)
+    /// 是否启用
+    enabled     Boolean @default(true)
+    /// 权重（用于负载均衡）
+    weight      Int @default(100)
+    /// 每分钟请求限制
+    rpmLimit    Int @default(60)
+    /// 每小时请求限制
+    rphLimit    Int @default(1000)
+    /// 每日请求限制
+    rpdLimit    Int @default(10000)
+    /// 描述信息
+    description String?
+
+    /// 权限控制：只有管理员可以管理AI模型
+    @@allow('all', auth().role?[name == 'admin'])
+    @@allow('read', !!auth())
+}
+
+/// API调用频率限制记录
+model ApiRateLimit extends Base {
+    /// 客户端IP地址
+    clientIp    String
+    /// 用户ID（可选，未登录用户为null）
+    userId      String?
+    /// AI模型ID
+    aiModelId   Int
+    /// 调用时间戳
+    timestamp   DateTime @default(now())
+
+    @@index([clientIp, timestamp])
+    @@index([userId, timestamp])
+    @@index([aiModelId, timestamp])
+    @@allow('all', auth().role?[name == 'admin'])
+}

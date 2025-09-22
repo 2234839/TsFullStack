@@ -4,6 +4,7 @@ import fs from 'fs/promises';
 import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
 import { AppConfigService, type AppConfig } from './Context/AppConfig';
 import { PrismaService, PrismaServiceLive } from './Context/PrismaService';
+import { AIProxyService, AIProxyServiceLive } from './Context/AIProxyService';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
 import { PrismaQueue } from './util/prismaQueue';
@@ -36,6 +37,7 @@ const main = Effect.gen(function* () {
   yield* seedDB.pipe(
     Effect.provideService(AppConfigService, config),
     Effect.provideService(PrismaService, PrismaServiceLive),
+    Effect.provideService(AIProxyService, AIProxyServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
 
@@ -85,6 +87,7 @@ const main = Effect.gen(function* () {
   yield* startServer.pipe(
     Effect.provideService(AppConfigService, config),
     Effect.provideService(PrismaService, PrismaServiceLive),
+    Effect.provideService(AIProxyService, AIProxyServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
 });
