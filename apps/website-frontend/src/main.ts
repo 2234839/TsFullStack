@@ -12,6 +12,7 @@ import PrimeVue from 'primevue/config';
 import Tooltip from 'primevue/tooltip';
 
 const app = createApp(App);
+// @ts-expect-error 莫名报错
 app.directive('tooltip', Tooltip);
 
 app.use(i18n);
@@ -25,8 +26,8 @@ app.use(PrimeVue, {
     },
   },
 });
-app.use(ToastService);
-app.use(ConfirmationService);
+app.use(ToastService as any);
+app.use(ConfirmationService as any);
 app.use(router);
 
 app.mount('#app');
