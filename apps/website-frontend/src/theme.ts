@@ -2,6 +2,7 @@ import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
 
 /** https://primevue.org/theming/styled/#noir */
+// TODO 样式失效bug： https://github.com/primefaces/primevue/issues/7793#issuecomment-2987697067
 export const Noir = definePreset(Aura, {
   semantic: {
     primary: {
