@@ -55,3 +55,4 @@ ZenStack 模式定义了具有以下功能的模型：
 - 配置通过 c12 管理，默认值在 config.ts 中
 - 应该通过执行 pnpm tsc 检查类型错误
 - 我需要严谨的 ts 类型，尽量不要使用 any 之类的
+- backend中的api修改后需要在backend项目下执行 pnpm build:lib 其他项目才能感知到接口更新
