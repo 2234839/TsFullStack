@@ -12,7 +12,6 @@ import PrimeVue from 'primevue/config';
 import Tooltip from 'primevue/tooltip';
 
 const app = createApp(App);
-// @ts-expect-error 莫名报错
 app.directive('tooltip', Tooltip);
 
 app.use(i18n);
