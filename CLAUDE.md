@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 TsFullStack is a TypeScript full-stack framework that enables rapid MVP development by allowing direct database operations from the frontend without writing backend API code. The project consists of multiple applications in a monorepo structure:
 
 - **Backend** (`apps/backend/`) - Core API server with database and authentication
-- **Website Frontend** (`apps/website-frontend/`) - Admin panel and user-facing web application  
+- **Website Frontend** (`apps/website-frontend/`) - Admin panel and user-facing web application
 - **Browser Extension** (`apps/InfoFlow/`) - Web extension for monitoring web page changes
 
 ## Architecture Overview
@@ -156,7 +156,3 @@ pnpm tsc                       # Type check Vue components
 pnpm dev                       # Start extension development
 pnpm build                     # Build extension
 ```
-
-### Testing
-
-Currently no formal test suite is implemented. The project focuses on type safety through TypeScript and manual testing through the development interface.
