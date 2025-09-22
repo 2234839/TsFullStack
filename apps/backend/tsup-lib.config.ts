@@ -25,6 +25,6 @@ export default defineConfig({
     // options.platform = 'node';
     // options.target = 'node16';
   },
-  // 开发模式下排除所有npm包依赖
-  external: [/node_modules/],
+  // 排除所有npm包依赖，特别是 Prisma 客户端
+  external: [/node_modules/, '@prisma/client', '@zenstackhq/runtime'],
 });

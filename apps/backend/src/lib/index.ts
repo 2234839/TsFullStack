@@ -1,16 +1,28 @@
-export { Prisma } from '@prisma/client';
+/**
+ * Frontend-safe types and utilities from the backend
+ * WARNING: This file should only contain what frontend actually needs
+ */
 
-export type { API } from '../api';
+// RPC utilities - core functionality for frontend-backend communication
 export { createRPC, proxyCall } from '../rpc';
-export type { AppAPI } from '../api/appApi';
-export type { ModelMeta } from '@zenstackhq/runtime';
-export type { MsgErrorOpValues } from '../util/error';
 
+// API interface types - required for type-safe RPC calls
+export type { API } from '../api';
+export type { AppAPI } from '../api/appApi';
+
+// Session authentication - required for API calls
 export * as SessionAuthSign from './SessionAuthSign';
 
-// Export Context services
-export { PrismaService, PrismaServiceLive } from '../Context/PrismaService';
-export { AuthContext } from '../Context/Auth';
-export { AIProxyService, AIProxyServiceLive, AIProxyServiceUtils } from '../Context/AIProxyService';
-export { AppConfigService } from '../Context/AppConfig';
-export { AIConfigContext, DefaultAIConfig } from '../Context/AIConfig';
+// Error handling types - required for API error handling
+export type { MsgErrorOpValues } from '../util/error';
+
+// Prisma types - needed by some frontend components for database models
+export type { Prisma } from '@prisma/client';
+
+// ZenStack model metadata - needed for database operations
+export type { ModelMeta } from '@zenstackhq/runtime';
+
+// NOTE: Backend service classes are NOT exported to frontend:
+// - PrismaService, AuthContext, AIProxyService
+// - AppConfigService, AIConfigContext
+// These are backend-only implementations
