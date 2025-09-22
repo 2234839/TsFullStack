@@ -295,6 +295,12 @@
           icon: routeMap.admin.child.ShareList.meta.icon,
           to: routerUtil.to(routeMap.admin.child.ShareList, {}),
         },
+        {
+          key: 'aiModelManager',
+          label: t('AI模型管理'),
+          icon: 'pi pi-microchip-ai',
+          to: '/admin/aiModelManager',
+        },
       ],
     },
     {
