@@ -82,9 +82,12 @@ function parseParamsAndAuth(req: FastifyRequest) {
       sessionToken?: string;
       sessionID?: number;
     } = {};
+
+    // 只使用安全的认证方式
     if (query.session && querySignMode) {
       opt.sessionID = Number(query.session);
     } else {
+      // 使用请求头进行认证
       opt.sessionToken = req.headers['x-token-id'] as string;
     }
 
@@ -232,6 +235,10 @@ export const startServer = Effect.gen(function* () {
   fastify.register(fastifyCors, {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-token-id'],
+    exposedHeaders: ['Content-Length'],
+    credentials: false,
+    maxAge: 86400, // 预检请求结果缓存24小时
   });
   fastify.register(fastifyMultipart, {
     limits: { fileSize: 1000 * 1024 * 1024 }, // 1GB
