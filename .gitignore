@@ -61,3 +61,6 @@ coverage/
 # Temporary files
 *.temp
 tmp/
+
+
+/任务计划.md
