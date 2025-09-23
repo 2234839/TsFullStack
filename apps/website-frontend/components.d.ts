@@ -28,6 +28,7 @@ declare module 'vue' {
     GoogleAd: typeof import('./src/components/GoogleAd.vue')['default']
     HeartStackSpace_ts: typeof import('./src/components/icons/HeartStackSpace_ts.vue')['default']
     I18nSwitch: typeof import('./src/components/system/I18nSwitch.vue')['default']
+    InputSwitch: typeof import('primevue/inputswitch')['default']
     InputText: typeof import('primevue/inputtext')['default']
     Message: typeof import('primevue/message')['default']
     Paginator: typeof import('primevue/paginator')['default']
