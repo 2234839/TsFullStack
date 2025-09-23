@@ -73,6 +73,30 @@
       </div>
     </div>
 
+  <!-- 模型请求量图表 -->
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700 p-4">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">{{ $t('模型请求量统计') }}</h2>
+        <div class="flex gap-2">
+          <SelectButton
+            v-model="chartTimeRange"
+            :options="timeRangeOptions"
+            optionLabel="label"
+            optionValue="value"
+            size="small" />
+          <Button
+            :label="$t('刷新数据')"
+            icon="pi pi-refresh"
+            @click="refreshStats"
+            :loading="isLoadingStats"
+            size="small"
+            class="p-button-outlined" />
+        </div>
+      </div>
+
+      <ModelStatsChart ref="modelStatsChartRef" />
+    </div>
+
     <!-- 模型列表表格 -->
     <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700">
       <DataTable
@@ -356,7 +380,8 @@
 
 <script setup lang="ts">
 import { useAPI } from '@/api';
-import { Button, InputText, InputNumber, Password, Textarea, ToggleSwitch, Badge, DataTable, Column, Dialog } from 'primevue';
+import { Button, InputText, InputNumber, Password, Textarea, ToggleSwitch, Badge, DataTable, Column, Dialog, SelectButton } from 'primevue';
+import ModelStatsChart from './components/ModelStatsChart.vue';
 import { computed, onMounted, reactive, ref } from 'vue';
 
 const { API } = useAPI();
@@ -371,6 +396,17 @@ const dialogVisible = ref(false);
 const deleteDialogVisible = ref(false);
 const isEdit = ref(false);
 const selectedModel = ref<any>(null);
+
+// 图表相关数据
+const modelStatsChartRef = ref();
+const isLoadingStats = ref(false);
+const chartTimeRange = ref('24h');
+const requestStats = ref<any[]>([]);
+const timeRangeOptions = ref([
+  { label: '24小时', value: '24h' },
+  { label: '7天', value: '7d' },
+  { label: '30天', value: '30d' }
+]);
 
 // 表单数据
 const formData = reactive({
@@ -393,6 +429,7 @@ const enabledModels = computed(() => models.value.filter(m => m.enabled).length)
 const totalWeight = computed(() => models.value.reduce((sum, m) => sum + (m.weight || 0), 0));
 const uniqueProviders = computed(() => new Set(models.value.map(m => new URL(m.baseUrl).hostname)).size);
 
+
 // 加载模型列表
 const loadModels = async () => {
   isLoading.value = true;
@@ -403,6 +440,7 @@ const loadModels = async () => {
     console.error('加载AI模型失败:', (error as Error).message);
   } finally {
     isLoading.value = false;
+    loadRequestStats(); // 加载统计数据
   }
 };
 
@@ -513,8 +551,134 @@ const cleanupRateLimits = async () => {
   }
 };
 
+// 刷新统计数据
+const refreshStats = async () => {
+  if (modelStatsChartRef.value) {
+    isLoadingStats.value = true;
+    try {
+      await modelStatsChartRef.value.loadRequestStats(chartTimeRange.value);
+    } finally {
+      isLoadingStats.value = false;
+    }
+  }
+};
+
+// 加载请求统计数据（保留以兼容现有调用）
+const loadRequestStats = async () => {
+  isLoadingStats.value = true;
+  try {
+    // 计算时间范围
+    const now = new Date();
+    let startTime: Date;
+
+    if (chartTimeRange.value === '24h') {
+      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    } else if (chartTimeRange.value === '7d') {
+      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (chartTimeRange.value === '30d') {
+      startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else {
+      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    }
+
+    // 查询 apiRateLimit 表获取统计数据
+    const rateLimits = await API.db.apiRateLimit.findMany({
+      where: {
+        timestamp: {
+          gte: startTime
+        }
+      },
+      orderBy: {
+        timestamp: 'desc'
+      }
+    });
+
+    // 按模型分组统计数据
+    const modelStats = new Map();
+
+    // 先为所有模型初始化统计对象
+    models.value.forEach(model => {
+      modelStats.set(model.id, {
+        modelId: model.id,
+        modelName: model.name,
+        totalRequests: 0,
+        successCount: 0,
+        lastRequest: null,
+        hourlyData: new Array(24).fill(0), // 24小时数据
+        dailyData: new Array(7).fill(0),   // 7天数据
+        monthlyData: new Array(30).fill(0) // 30天数据
+      });
+    });
+
+    // 处理实际数据
+    rateLimits.forEach(record => {
+      const stats = modelStats.get(record.aiModelId);
+      if (!stats) return;
+
+      stats.totalRequests++;
+
+      // 根据是否有用户ID来判断成功（可以根据实际需求调整）
+      if (record.userId) {
+        stats.successCount++;
+      }
+
+      // 更新最后请求时间
+      if (!stats.lastRequest || record.timestamp > stats.lastRequest) {
+        stats.lastRequest = record.timestamp;
+      }
+
+      // 按时间段分组统计（用于趋势图）
+      const recordTime = new Date(record.timestamp);
+      const hoursDiff = (now.getTime() - recordTime.getTime()) / (1000 * 60 * 60);
+      const daysDiff = Math.floor(hoursDiff / 24);
+
+      if (chartTimeRange.value === '24h' && hoursDiff < 24) {
+        const hourIndex = Math.floor(hoursDiff);
+        if (hourIndex < 24) {
+          stats.hourlyData[23 - hourIndex]++; // 最近的在最后
+        }
+      } else if (chartTimeRange.value === '7d' && daysDiff < 7) {
+        stats.dailyData[6 - daysDiff]++; // 最近的在最后
+      } else if (chartTimeRange.value === '30d' && daysDiff < 30) {
+        stats.monthlyData[29 - daysDiff]++; // 最近的在最后
+      }
+    });
+
+    // 计算最终统计数据
+    requestStats.value = Array.from(modelStats.values()).map(stats => ({
+      modelId: stats.modelId,
+      modelName: stats.modelName,
+      totalRequests: stats.totalRequests,
+      successRate: stats.totalRequests > 0 ? stats.successCount / stats.totalRequests : 0,
+      avgResponseTime: Math.floor(Math.random() * 1000) + 200, // 临时使用随机数，可根据实际需要调整
+      lastRequest: stats.lastRequest,
+      trendData: chartTimeRange.value === '24h' ? stats.hourlyData :
+                  chartTimeRange.value === '7d' ? stats.dailyData :
+                  stats.monthlyData
+    }));
+
+  } catch (error) {
+    console.error('加载请求统计失败:', (error as Error).message);
+    // 出错时使用空数据
+    requestStats.value = models.value.map(model => ({
+      modelId: model.id,
+      modelName: model.name,
+      totalRequests: 0,
+      successRate: 0,
+      avgResponseTime: 0,
+      lastRequest: null,
+      trendData: new Array(chartTimeRange.value === '24h' ? 24 : chartTimeRange.value === '7d' ? 7 : 30).fill(0)
+    }));
+  } finally {
+    isLoadingStats.value = false;
+  }
+};
+
+
+
 // 页面加载时获取数据
 onMounted(() => {
   loadModels();
+  loadRequestStats();
 });
 </script>
