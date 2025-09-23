@@ -32,7 +32,7 @@
 
 ### 数据库模型
 
-修改 shcema.zmodel 文件后需要运行以下命令
+修改 shcema.zmodel 文件需要提醒用户运行以下命令，禁止你运行
 ```bash
 # 这个命令将会自动运行 prisma generate (生成 prisma/client 代码)
 pnpm zenstack generate
@@ -49,4 +49,4 @@ pnpm prisma migrate dev
 - 配置通过 c12 管理，默认值在 config.ts 中
 - 应该通过执行 pnpm tsc 检查类型错误
 - 我需要严谨的 ts 类型，尽量不要使用 any 之类的
-- backend中的api修改后需要在backend项目下执行 pnpm build:lib 其他项目才能感知到接口更新
+- backend中的api 相关代码修改和 shcema.zmodel 修改后需要在backend项目下执行 pnpm build:lib 其他项目才能感知到接口更新

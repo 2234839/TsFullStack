@@ -95,7 +95,7 @@ export class AIProxyServiceUtils {
         // 未登录用户：检查IP限制 - 使用Prisma查询优化性能
         const [globalRpmCount, globalRphCount, globalRpdCount] = yield* Effect.all([
           Effect.promise(() =>
-            prismaService.prisma.apiRateLimit.count({
+            prismaService.prisma.aiCallLog.count({
               where: {
                 clientIp,
                 timestamp: { gte: oneMinuteAgo },
@@ -103,7 +103,7 @@ export class AIProxyServiceUtils {
             })
           ).pipe(Effect.catchAll(() => Effect.succeed(0))),
           Effect.promise(() =>
-            prismaService.prisma.apiRateLimit.count({
+            prismaService.prisma.aiCallLog.count({
               where: {
                 clientIp,
                 timestamp: { gte: oneHourAgo },
@@ -111,7 +111,7 @@ export class AIProxyServiceUtils {
             })
           ).pipe(Effect.catchAll(() => Effect.succeed(0))),
           Effect.promise(() =>
-            prismaService.prisma.apiRateLimit.count({
+            prismaService.prisma.aiCallLog.count({
               where: {
                 clientIp,
                 timestamp: { gte: oneDayAgo },
@@ -138,7 +138,7 @@ export class AIProxyServiceUtils {
         // 已登录用户：检查用户特定限制 - 使用Prisma查询优化性能
         const [userRpmCount, userRphCount, userRpdCount] = yield* Effect.all([
           Effect.promise(() =>
-            prismaService.prisma.apiRateLimit.count({
+            prismaService.prisma.aiCallLog.count({
               where: {
                 userId,
                 aiModelId,
@@ -147,7 +147,7 @@ export class AIProxyServiceUtils {
             })
           ).pipe(Effect.catchAll(() => Effect.succeed(0))),
           Effect.promise(() =>
-            prismaService.prisma.apiRateLimit.count({
+            prismaService.prisma.aiCallLog.count({
               where: {
                 userId,
                 aiModelId,
@@ -156,7 +156,7 @@ export class AIProxyServiceUtils {
             })
           ).pipe(Effect.catchAll(() => Effect.succeed(0))),
           Effect.promise(() =>
-            prismaService.prisma.apiRateLimit.count({
+            prismaService.prisma.aiCallLog.count({
               where: {
                 userId,
                 aiModelId,
@@ -185,17 +185,25 @@ export class AIProxyServiceUtils {
     clientIp: string,
     userId: string | null,
     aiModelId: number,
+    modelName: string,
+    inputTokens?: number,
+    outputTokens?: number,
+    success: boolean = true,
   ): Effect.Effect<void, Error, PrismaService> =>
     Effect.gen(function* () {
       const prismaService = yield* PrismaService;
 
       yield* Effect.tryPromise({
         try: () =>
-          prismaService.prisma.apiRateLimit.create({
+          prismaService.prisma.aiCallLog.create({
             data: {
               clientIp,
               userId,
               aiModelId,
+              modelName,
+              inputTokens,
+              outputTokens,
+              success,
               timestamp: new Date(),
             },
           }),
@@ -317,25 +325,64 @@ export class AIProxyServiceUtils {
       // 检查频率限制
       const rateLimitCheck = yield* AIProxyServiceUtils.checkRateLimit(clientIp, currentUserId, selectedModel.id);
       if (!rateLimitCheck.allowed) {
+        // 记录失败的频率限制检查
+        yield* AIProxyServiceUtils.recordApiCall(
+          clientIp,
+          currentUserId,
+          selectedModel.id,
+          selectedModel.model,
+          undefined,
+          undefined,
+          false
+        );
         throw new Error(rateLimitCheck.reason || '请求频率超限');
       }
 
-      // 记录API调用
-      yield* AIProxyServiceUtils.recordApiCall(clientIp, currentUserId, selectedModel.id);
-
       // 调用OpenAI API
-      return yield* AIProxyServiceUtils.callOpenAI(request, selectedModel);
+      let response: OpenAIResponse;
+      try {
+        response = yield* AIProxyServiceUtils.callOpenAI(request, selectedModel);
+      } catch (error) {
+        // 记录失败的API调用
+        yield* AIProxyServiceUtils.recordApiCall(
+          clientIp,
+          currentUserId,
+          selectedModel.id,
+          selectedModel.model,
+          undefined,
+          undefined,
+          false
+        );
+        throw error;
+      }
+
+      // 提取Token使用量
+      const inputTokens = response.usage ? response.usage.prompt_tokens : undefined;
+      const outputTokens = response.usage ? response.usage.completion_tokens : undefined;
+
+      // 记录成功的API调用
+      yield* AIProxyServiceUtils.recordApiCall(
+        clientIp,
+        currentUserId,
+        selectedModel.id,
+        selectedModel.model,
+        inputTokens,
+        outputTokens,
+        true
+      );
+
+      return response;
     });
 
-  /** 清理过期的频率限制记录 */
-  static cleanupExpiredRateLimits = (): Effect.Effect<void, Error, PrismaService> =>
+  /** 清理过期的API调用记录 */
+  static cleanupExpiredApiCalls = (): Effect.Effect<void, Error, PrismaService> =>
     Effect.gen(function* () {
       const prismaService = yield* PrismaService;
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
       yield* Effect.tryPromise({
         try: () =>
-          prismaService.prisma.apiRateLimit.deleteMany({
+          prismaService.prisma.aiCallLog.deleteMany({
             where: {
               timestamp: { lt: thirtyDaysAgo },
             },
@@ -361,6 +408,10 @@ export class AIProxyService extends Context.Tag('AIProxyService')<
       clientIp: string,
       userId: string | null,
       aiModelId: number,
+      modelName: string,
+      inputTokens?: number,
+      outputTokens?: number,
+      success?: boolean,
     ) => Effect.Effect<void, Error, PrismaService>;
 
     /** 获取可用的AI模型列表 */
@@ -384,8 +435,8 @@ export class AIProxyService extends Context.Tag('AIProxyService')<
       userId: string | null,
     ) => Effect.Effect<OpenAIResponse, Error, PrismaService | AuthContext>;
 
-    /** 清理过期的频率限制记录 */
-    cleanupExpiredRateLimits: () => Effect.Effect<void, Error, PrismaService>;
+    /** 清理过期的API调用记录 */
+    cleanupExpiredApiCalls: () => Effect.Effect<void, Error, PrismaService>;
   }
 >() {}
 
@@ -397,5 +448,5 @@ export const AIProxyServiceLive = AIProxyService.of({
   selectModel: AIProxyServiceUtils.selectModel,
   callOpenAI: AIProxyServiceUtils.callOpenAI,
   proxyOpenAIRequest: AIProxyServiceUtils.proxyOpenAIRequest,
-  cleanupExpiredRateLimits: AIProxyServiceUtils.cleanupExpiredRateLimits,
+  cleanupExpiredApiCalls: AIProxyServiceUtils.cleanupExpiredApiCalls,
 });

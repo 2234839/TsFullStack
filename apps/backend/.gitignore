@@ -1,8 +1,11 @@
 node_modules
 .zenstack_repl_history
-/prisma
 /dist
 /dist-*
 /uploads
 
 /config.ts
+
+/prisma/*
+!/prisma/migrations
+/prisma/migrations/development
