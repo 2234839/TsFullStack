@@ -169,8 +169,11 @@
   import type { Prisma } from '@tsfullstack/backend';
   import QRCode from 'qrcode';
   import { reactive, ref } from 'vue';
+  import { useConfirm, useToast } from 'primevue';
 
   const { API } = useAPI();
+  const confirm = useConfirm();
+  const toast = useToast();
 
   // 搜索关键词
   const searchTitle = ref('');
@@ -325,23 +328,51 @@
     });
   };
   // 删除处理
-  const handleDelete = async (item: ShareItemJSON) => {
-    if (confirm('确定要删除这个分享吗？')) {
-      try {
-        if (item.data.files.length) {
-          await Promise.all(item.data.files.map((el) => API.fileApi.delete(el.id)));
-        }
+  const handleDelete = (item: ShareItemJSON) => {
+    confirm.require({
+      message: '确定要删除这个分享吗？',
+      icon: 'pi pi-exclamation-triangle',
+      rejectProps: {
+        label: '取消',
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptProps: {
+        label: '删除',
+        severity: 'danger',
+      },
+      accept: async () => {
+        try {
+          if (item.data.files.length) {
+            await Promise.all(item.data.files.map((el) => API.fileApi.delete(el.id)));
+          }
 
-        await API.db.userData.delete({
-          where: {
-            id: item.id,
-          },
-        });
-        shareList.execute(); // 刷新列表
-      } catch (error) {
-        console.error('删除失败:', error);
+          await API.db.userData.delete({
+            where: {
+              id: item.id,
+            },
+          });
+          shareList.execute(); // 刷新列表
+          toast.add({
+            severity: 'success',
+            summary: '成功',
+            detail: '删除分享成功',
+            life: 3000,
+          });
+        } catch (error) {
+          console.error('删除失败:', error);
+          toast.add({
+            severity: 'error',
+            summary: '失败',
+            detail: '删除分享失败：' + ((error as Error).message || '未知错误'),
+            life: 3000,
+          });
+        }
+      },
+      reject: () => {
+        // 用户取消操作
       }
-    }
+    });
   };
 
   // 防抖监听搜索输入
