@@ -42,9 +42,6 @@ logs/
 *.tmp
 *.bak
 
-# Prisma
-prisma/migrations/
-
 # Vue
 vite.config.ts.timestamp-*
 *.local

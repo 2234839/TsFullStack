@@ -51,11 +51,12 @@ interface DetailedStats {
   lastUsed: string
 }
 
-interface RateLimit {
+interface ApiCallLog {
   id: number
   timestamp: Date
   aiModelId: number
-  tokenUsage?: number
+  inputTokens?: number
+  outputTokens?: number
   success?: boolean
 }
 
@@ -123,14 +124,14 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
   const now = new Date()
   const startTime = new Date(now.getTime() - (timeRange === '24h' ? 24 : timeRange === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000)
 
-  // Query rate limits with model information
-  const rateLimits = await API.db.apiRateLimit.findMany({
+  // Query API call logs with model information
+  const apiCalls = await API.db.aiCallLog.findMany({
     where: {
       timestamp: {
         gte: startTime
       }
     }
-  }) as RateLimit[]
+  }) as ApiCallLog[]
 
   // Get AI models for mapping
   const aiModels = await API.db.aiModel.findMany() as { id: number; name: string }[]
@@ -149,8 +150,8 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     lastUsed: Date
   }>()
 
-  rateLimits.forEach((rateLimit: RateLimit) => {
-    const model = modelMap.get(rateLimit.aiModelId)
+  apiCalls.forEach((apiCall: ApiCallLog) => {
+    const model = modelMap.get(apiCall.aiModelId)
     if (!model) return
 
     const modelName = model.name
@@ -162,12 +163,12 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     }
 
     current.count++
-    current.tokens += rateLimit.tokenUsage || 0
-    if (rateLimit.success) {
+    current.tokens += (apiCall.inputTokens || 0) + (apiCall.outputTokens || 0)
+    if (apiCall.success) {
       current.success++
     }
-    if (rateLimit.timestamp > current.lastUsed) {
-      current.lastUsed = rateLimit.timestamp
+    if (apiCall.timestamp > current.lastUsed) {
+      current.lastUsed = apiCall.timestamp
     }
 
     modelStats.set(modelName, current)
@@ -175,8 +176,8 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
 
   // Update line chart data
   const hourlyData = new Map<number, number>()
-  rateLimits.forEach(rateLimit => {
-    const hour = new Date(rateLimit.timestamp).getHours()
+  apiCalls.forEach(apiCall => {
+    const hour = new Date(apiCall.timestamp).getHours()
     hourlyData.set(hour, (hourlyData.get(hour) || 0) + 1)
   })
 

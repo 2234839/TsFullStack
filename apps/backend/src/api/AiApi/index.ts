@@ -225,8 +225,8 @@ export const aiApi = {
       return { success: true };
     }),
 
-  /** 清理过期的频率限制记录 */
-  cleanupExpiredRateLimits: () =>
+  /** 清理过期的API调用记录 */
+  cleanupExpiredApiCalls: () =>
     Effect.gen(function* () {
       // 检查管理员权限
       const isAdmin = yield* authUserIsAdmin();
@@ -236,11 +236,11 @@ export const aiApi = {
 
       const { prisma } = yield* PrismaService;
 
-      // 删除24小时前的记录
-      const cutoffTime = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      // 删除30天前的记录
+      const cutoffTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
       const result = yield* Effect.tryPromise({
         try: () =>
-          prisma.apiRateLimit.deleteMany({
+          prisma.aiCallLog.deleteMany({
             where: {
               timestamp: {
                 lt: cutoffTime,

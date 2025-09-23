@@ -268,19 +268,36 @@ model AiModel extends Base {
     @@allow('read', !!auth())
 }
 
-/// API调用频率限制记录
-model ApiRateLimit extends Base {
+/// ai API调用日志记录
+model AiCallLog extends Base {
     /// 客户端IP地址
     clientIp    String
     /// 用户ID（可选，未登录用户为null）
     userId      String?
     /// AI模型ID
     aiModelId   Int
+    /// 模型标识符（如 gpt-3.5-turbo, claude-3-sonnet 等）
+    modelName String
+    /// 输入的token数量
+    inputTokens Int?
+    /// 输出的token数量
+    outputTokens Int?
+    /// 调用是否成功
+    success     Boolean @default(true)
     /// 调用时间戳
     timestamp   DateTime @default(now())
 
     @@index([clientIp, timestamp])
     @@index([userId, timestamp])
     @@index([aiModelId, timestamp])
+    @@index([modelName, timestamp])
+    @@index([userId, modelName])
+
+    /// 权限控制：
+    /// - 管理员可以完全访问（所有权限）
+    /// - 普通用户可以查看自己的数据（只读）
+    /// - 未登录用户不能访问
     @@allow('all', auth().role?[name == 'admin'])
+    @@allow('read', auth() != null && userId == auth().id)
 }
+

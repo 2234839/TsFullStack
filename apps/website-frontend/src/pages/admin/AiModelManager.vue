@@ -1,37 +1,36 @@
-<style scoped></style>
 <template>
   <div class="p-4 space-y-4">
     <!-- 页面标题和操作按钮 -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-gray-800 dark:text-white">{{ $t('AI模型管理') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400">{{ $t('管理系统配置的AI模型，支持多提供商负载均衡') }}</p>
+        <p class="text-gray-600 dark:text-gray-400">{{ $t('管理和配置AI模型') }}</p>
       </div>
       <div class="flex gap-2">
         <Button
-          :label="$t('新增模型')"
+          :label="$t('添加模型')"
           icon="pi pi-plus"
-          @click="openCreateDialog"
+          @click="showAddModel"
           class="p-button-primary" />
         <Button
-          :label="$t('清理限制记录')"
-          icon="pi pi-trash"
-          @click="cleanupRateLimits"
-          :loading="isCleaning"
-          class="p-button-secondary" />
+          :label="$t('刷新数据')"
+          icon="pi pi-refresh"
+          @click="loadModels"
+          :loading="isLoading"
+          class="p-button-outlined" />
       </div>
     </div>
 
-    <!-- 模型统计卡片 -->
+    <!-- 统计卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('总模型数') }}</p>
-            <p class="text-2xl font-bold text-gray-800 dark:text-white">{{ models.length }}</p>
+            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ totalModels }}</p>
           </div>
           <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-            <i class="pi pi-server text-blue-600 dark:text-blue-400 text-xl"></i>
+            <i class="pi pi-microchip text-blue-600 dark:text-blue-400 text-xl"></i>
           </div>
         </div>
       </div>
@@ -51,6 +50,18 @@
       <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('禁用模型') }}</p>
+            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ disabledModels }}</p>
+          </div>
+          <div class="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
+            <i class="pi pi-times-circle text-red-600 dark:text-red-400 text-xl"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
+        <div class="flex items-center justify-between">
+          <div>
             <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('总权重') }}</p>
             <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ totalWeight }}</p>
           </div>
@@ -59,48 +70,69 @@
           </div>
         </div>
       </div>
-
-      <div class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('提供商数') }}</p>
-            <p class="text-2xl font-bold text-orange-600 dark:text-orange-400">{{ uniqueProviders }}</p>
-          </div>
-          <div class="w-12 h-12 bg-orange-100 dark:bg-orange-900/20 rounded-lg flex items-center justify-center">
-            <i class="pi pi-globe text-orange-600 dark:text-orange-400 text-xl"></i>
-          </div>
-        </div>
-      </div>
     </div>
 
-  <!-- 模型请求量图表 -->
-    <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700 p-4">
+    <!-- 模型统计图表 -->
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700 p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-800 dark:text-white">{{ $t('模型请求量统计') }}</h2>
-        <div class="flex gap-2">
-          <SelectButton
-            v-model="chartTimeRange"
-            :options="timeRangeOptions"
-            optionLabel="label"
-            optionValue="value"
-            size="small" />
-          <Button
-            :label="$t('刷新数据')"
-            icon="pi pi-refresh"
-            @click="refreshStats"
-            :loading="isLoadingStats"
-            size="small"
-            class="p-button-outlined" />
-        </div>
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">{{ t('模型使用统计') }}</h2>
+        <Button
+          :label="$t('刷新统计')"
+          icon="pi pi-refresh"
+          @click="refreshStats"
+          :loading="isStatsLoading"
+          class="p-button-outlined p-button-sm" />
       </div>
-
       <ModelStatsChart ref="modelStatsChartRef" />
     </div>
 
-    <!-- 模型列表表格 -->
+    <!-- 搜索和筛选区域 -->
+    <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700 p-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="field">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {{ $t('搜索模型') }}
+          </label>
+          <InputText
+            v-model="searchQuery"
+            :placeholder="$t('输入模型名称或标识')"
+            class="w-full"
+            @input="handleSearch" />
+        </div>
+
+        <div class="field">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {{ $t('状态筛选') }}
+          </label>
+          <Select
+            v-model="statusFilter"
+            :options="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            :placeholder="$t('选择状态')"
+            class="w-full"
+            @change="handleFilterChange" />
+        </div>
+
+        <div class="field">
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {{ $t('排序方式') }}
+          </label>
+          <Select
+            v-model="sortBy"
+            :options="sortOptions"
+            optionLabel="label"
+            optionValue="value"
+            class="w-full"
+            @change="handleFilterChange" />
+        </div>
+      </div>
+    </div>
+
+    <!-- AI模型表格 -->
     <div class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700">
       <DataTable
-        :value="models"
+        :value="filteredModels"
         :loading="isLoading"
         :paginator="true"
         :rows="10"
@@ -110,25 +142,15 @@
 
         <Column field="id" :header="$t('ID')" style="width: 80px"></Column>
 
-        <Column field="name" :header="$t('名称')" style="min-width: 150px">
+        <Column field="name" :header="$t('模型名称')" style="min-width: 150px"></Column>
+
+        <Column field="model" :header="$t('模型标识')" style="min-width: 150px">
           <template #body="slotProps">
-            <div class="flex items-center gap-2">
-              <span>{{ slotProps.data.name }}</span>
-              <Badge
-                v-if="slotProps.data.enabled"
-                :value="$t('启用')"
-                severity="success"
-                size="small" />
-              <Badge
-                v-else
-                :value="$t('禁用')"
-                severity="danger"
-                size="small" />
-            </div>
+            <code class="text-sm bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">
+              {{ slotProps.data.model }}
+            </code>
           </template>
         </Column>
-
-        <Column field="model" :header="$t('模型标识')" style="min-width: 120px"></Column>
 
         <Column field="baseUrl" :header="$t('API地址')" style="min-width: 200px">
           <template #body="slotProps">
@@ -138,27 +160,36 @@
           </template>
         </Column>
 
-        <Column field="weight" :header="$t('权重')" style="width: 100px">
+        <Column field="enabled" :header="$t('状态')" style="width: 100px">
           <template #body="slotProps">
-            <Badge :value="slotProps.data.weight" severity="info" />
+            <Badge
+              v-if="slotProps.data.enabled"
+              :value="$t('启用')"
+              severity="success"
+              size="small" />
+            <Badge
+              v-else
+              :value="$t('禁用')"
+              severity="danger"
+              size="small" />
           </template>
         </Column>
 
-        <Column :header="$t('限制配置')" style="width: 150px">
+        <Column field="weight" :header="$t('权重')" style="width: 80px">
           <template #body="slotProps">
-            <div class="text-xs space-y-1">
-              <div>{{ $t('每分钟') }}: {{ slotProps.data.rpmLimit }}</div>
-              <div>{{ $t('每小时') }}: {{ slotProps.data.rphLimit }}</div>
-              <div>{{ $t('每日') }}: {{ slotProps.data.rpdLimit }}</div>
-            </div>
+            <span class="font-mono">{{ slotProps.data.weight }}</span>
           </template>
         </Column>
 
-        <Column field="description" :header="$t('描述')" style="min-width: 150px">
+        <Column field="maxTokens" :header="$t('最大Token')" style="width: 100px">
           <template #body="slotProps">
-            <div class="text-sm text-gray-600 dark:text-gray-400 truncate" :title="slotProps.data.description">
-              {{ slotProps.data.description || '-' }}
-            </div>
+            <span class="font-mono">{{ slotProps.data.maxTokens?.toLocaleString() || '2000' }}</span>
+          </template>
+        </Column>
+
+        <Column field="temperature" :header="$t('温度')" style="width: 80px">
+          <template #body="slotProps">
+            <span class="font-mono">{{ slotProps.data.temperature || 0.7 }}</span>
           </template>
         </Column>
 
@@ -166,519 +197,246 @@
           <template #body="slotProps">
             <div class="flex gap-1">
               <Button
-                icon="pi pi-pencil"
+                icon="pi pi-edit"
                 size="small"
-                @click="openEditDialog(slotProps.data)"
-                class="p-button-text p-button-sm" />
+                @click="editModel(slotProps.data)"
+                class="p-button-text p-button-sm"
+                :title="$t('编辑')" />
               <Button
-                :icon="slotProps.data.enabled ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                icon="pi pi-play"
                 size="small"
-                @click="toggleEnabled(slotProps.data)"
+                @click="toggleModelStatus(slotProps.data)"
                 :class="slotProps.data.enabled ? 'p-button-warning' : 'p-button-success'"
-                class="p-button-text p-button-sm" />
+                class="p-button-sm"
+                :title="slotProps.data.enabled ? $t('禁用') : $t('启用')" />
               <Button
                 icon="pi pi-trash"
                 size="small"
-                @click="confirmDelete(slotProps.data)"
-                class="p-button-danger p-button-text p-button-sm" />
+                @click="deleteModel(slotProps.data)"
+                class="p-button-text p-button-sm p-button-danger"
+                :title="$t('删除')" />
             </div>
           </template>
         </Column>
+
       </DataTable>
     </div>
-
-    <!-- 创建/编辑对话框 -->
-    <Dialog
-      v-model:visible="dialogVisible"
-      :modal="true"
-      :header="isEdit ? $t('编辑AI模型') : $t('创建AI模型')"
-      class="p-fluid"
-      style="max-width: 600px">
-
-      <div class="space-y-4">
-        <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('模型名称') }} *
-          </label>
-          <InputText
-            v-model="formData.name"
-            :placeholder="$t('请输入模型名称')"
-            class="w-full" />
-        </div>
-
-        <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('模型标识') }} *
-          </label>
-          <InputText
-            v-model="formData.model"
-            :placeholder="$t('例如：gpt-3.5-turbo')"
-            class="w-full" />
-        </div>
-
-        <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('API基础URL') }} *
-          </label>
-          <InputText
-            v-model="formData.baseUrl"
-            :placeholder="$t('例如：https://api.openai.com/v1')"
-            class="w-full" />
-        </div>
-
-        <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('API密钥') }} *
-          </label>
-          <Password
-            v-model="formData.apiKey"
-            :placeholder="$t('请输入API密钥')"
-            :feedback="false"
-            toggleMask
-            class="w-full" />
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div class="field">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ $t('最大Token数') }}
-            </label>
-            <InputNumber
-              v-model="formData.maxTokens"
-              :placeholder="$t('默认：2000')"
-              class="w-full" />
-          </div>
-
-          <div class="field">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ $t('温度参数') }}
-            </label>
-            <InputNumber
-              v-model="formData.temperature"
-              :min="0"
-              :max="2"
-              :step="0.1"
-              :placeholder="$t('默认：0.7')"
-              class="w-full" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div class="field">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ $t('权重值') }}
-            </label>
-            <InputNumber
-              v-model="formData.weight"
-              :min="1"
-              :max="1000"
-              :placeholder="$t('默认：100')"
-              class="w-full" />
-          </div>
-
-          <div class="field">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ $t('启用状态') }}
-            </label>
-            <ToggleSwitch
-              v-model="formData.enabled"
-              class="w-full" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-3 gap-4">
-          <div class="field">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ $t('每分钟限制') }}
-            </label>
-            <InputNumber
-              v-model="formData.rpmLimit"
-              :min="1"
-              :placeholder="$t('默认：60')"
-              class="w-full" />
-          </div>
-
-          <div class="field">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ $t('每小时限制') }}
-            </label>
-            <InputNumber
-              v-model="formData.rphLimit"
-              :min="1"
-              :placeholder="$t('默认：1000')"
-              class="w-full" />
-          </div>
-
-          <div class="field">
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {{ $t('每日限制') }}
-            </label>
-            <InputNumber
-              v-model="formData.rpdLimit"
-              :min="1"
-              :placeholder="$t('默认：10000')"
-              class="w-full" />
-          </div>
-        </div>
-
-        <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('描述信息') }}
-          </label>
-          <Textarea
-            v-model="formData.description"
-            :placeholder="$t('可选的模型描述信息')"
-            :rows="3"
-            class="w-full" />
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <Button
-            :label="$t('取消')"
-            icon="pi pi-times"
-            @click="dialogVisible = false"
-            class="p-button-text" />
-          <Button
-            :label="$t('保存')"
-            icon="pi pi-check"
-            @click="saveModel"
-            :loading="isSaving"
-            class="p-button-primary" />
-        </div>
-      </template>
-    </Dialog>
-
-    <!-- 删除确认对话框 -->
-    <Dialog
-      v-model:visible="deleteDialogVisible"
-      :modal="true"
-      :header="$t('确认删除')"
-      class="p-fluid">
-
-      <p>{{ $t('确定要删除AI模型 "{name}" 吗？此操作不可撤销。', { name: selectedModel?.name }) }}</p>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <Button
-            :label="$t('取消')"
-            icon="pi pi-times"
-            @click="deleteDialogVisible = false"
-            class="p-button-text" />
-          <Button
-            :label="$t('删除')"
-            icon="pi pi-trash"
-            @click="deleteModel"
-            :loading="isDeleting"
-            class="p-button-danger" />
-        </div>
-      </template>
-    </Dialog>
   </div>
+
+  <!-- 添加/编辑模型表单 -->
+  <AiModelForm
+    v-model:visible="modelFormVisible"
+    :model="selectedModel"
+    @submit="onModelSubmit" />
 </template>
 
 <script setup lang="ts">
 import { useAPI } from '@/api';
-import { Button, InputText, InputNumber, Password, Textarea, ToggleSwitch, Badge, DataTable, Column, Dialog, SelectButton } from 'primevue';
+import { authInfo } from '@/storage';
+import { computed, onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { Button, Badge, DataTable, Column, Select, InputText } from 'primevue';
+import AiModelForm from './components/AiModelForm.vue';
 import ModelStatsChart from './components/ModelStatsChart.vue';
-import { computed, onMounted, reactive, ref } from 'vue';
 
 const { API } = useAPI();
+const { t } = useI18n();
 
 // 响应式数据
-const models = ref<any[]>([]);
+type AiModelType = Awaited<ReturnType<typeof API.db.aiModel.findFirst>>;
+const models = ref([] as AiModelType[]);
 const isLoading = ref(false);
-const isSaving = ref(false);
-const isDeleting = ref(false);
-const isCleaning = ref(false);
-const dialogVisible = ref(false);
-const deleteDialogVisible = ref(false);
-const isEdit = ref(false);
-const selectedModel = ref<any>(null);
+const isAdmin = ref(false);
+const modelFormVisible = ref(false);
+const selectedModel = ref<AiModelType | null>(null);
+const isStatsLoading = ref(false);
+const modelStatsChartRef = ref<InstanceType<typeof ModelStatsChart> | null>(null);
 
-// 图表相关数据
-const modelStatsChartRef = ref();
-const isLoadingStats = ref(false);
-const chartTimeRange = ref('24h');
-const requestStats = ref<any[]>([]);
-const timeRangeOptions = ref([
-  { label: '24小时', value: '24h' },
-  { label: '7天', value: '7d' },
-  { label: '30天', value: '30d' }
-]);
+// 搜索和筛选
+const searchQuery = ref<string>('');
+const statusFilter = ref<boolean | null>(null);
+const sortBy = ref<string>('id-desc');
 
-// 表单数据
-const formData = reactive({
-  name: '',
-  model: '',
-  baseUrl: '',
-  apiKey: '',
-  maxTokens: 2000,
-  temperature: 0.7,
-  enabled: true,
-  weight: 100,
-  rpmLimit: 60,
-  rphLimit: 1000,
-  rpdLimit: 10000,
-  description: '',
-});
+// 选项数据
+const statusOptions = ref([
+  { label: '全部', value: null },
+  { label: '启用', value: true },
+  { label: '禁用', value: false }
+] as Array<{ label: string; value: boolean | null }>);
+
+const sortOptions = ref([
+  { label: 'ID (升序)', value: 'id-asc' },
+  { label: 'ID (降序)', value: 'id-desc' },
+  { label: '名称 (升序)', value: 'name-asc' },
+  { label: '名称 (降序)', value: 'name-desc' },
+  { label: '权重 (升序)', value: 'weight-asc' },
+  { label: '权重 (降序)', value: 'weight-desc' }
+] as Array<{ label: string; value: string }>);
 
 // 计算属性
-const enabledModels = computed(() => models.value.filter(m => m.enabled).length);
-const totalWeight = computed(() => models.value.reduce((sum, m) => sum + (m.weight || 0), 0));
-const uniqueProviders = computed(() => new Set(models.value.map(m => new URL(m.baseUrl).hostname)).size);
+const totalModels = computed(() => models.value.length);
+const enabledModels = computed(() => models.value.filter(model => model?.enabled).length);
+const disabledModels = computed(() => models.value.filter(model => !model?.enabled).length);
+const totalWeight = computed(() => models.value.reduce((sum, model) => sum + (model?.weight || 0), 0));
 
+// 过滤和排序后的模型列表
+const filteredModels = computed(() => {
+  let filtered = [...models.value];
 
-// 加载模型列表
+  // 搜索过滤
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase();
+    filtered = filtered.filter(model =>
+      model?.name?.toLowerCase().includes(query) ||
+      model?.model?.toLowerCase().includes(query)
+    );
+  }
+
+  // 状态过滤
+  if (statusFilter.value !== null) {
+    filtered = filtered.filter(model => model?.enabled === statusFilter.value);
+  }
+
+  // 排序
+  const [field, order] = sortBy.value.split('-');
+  filtered.sort((a, b) => {
+    if (!a || !b) return 0;
+    const aValue = a[field as keyof AiModelType] as string | number;
+    const bValue = b[field as keyof AiModelType] as string | number;
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return order === 'asc'
+        ? aValue.localeCompare(bValue)
+        : bValue.localeCompare(aValue);
+    }
+
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return order === 'asc' ? aValue - bValue : bValue - aValue;
+    }
+
+    return 0;
+  });
+
+  return filtered;
+});
+
+// 加载AI模型数据
 const loadModels = async () => {
   isLoading.value = true;
   try {
-    const result = await API.aiApi.getAIModels();
+    const result = await API.db.aiModel.findMany({
+      orderBy: { id: 'desc' }
+    });
     models.value = result;
   } catch (error) {
     console.error('加载AI模型失败:', (error as Error).message);
+    alert(t('加载失败：') + ((error as Error).message || t('未知错误')));
   } finally {
     isLoading.value = false;
-    loadRequestStats(); // 加载统计数据
   }
 };
 
-// 打开创建对话框
-const openCreateDialog = () => {
-  isEdit.value = false;
-  Object.assign(formData, {
-    name: '',
-    model: '',
-    baseUrl: '',
-    apiKey: '',
-    maxTokens: 2000,
-    temperature: 0.7,
-    enabled: true,
-    weight: 100,
-    rpmLimit: 60,
-    rphLimit: 1000,
-    rpdLimit: 10000,
-    description: '',
-  });
-  dialogVisible.value = true;
+// 显示添加模型表单
+const showAddModel = () => {
+  selectedModel.value = null;
+  modelFormVisible.value = true;
 };
 
-// 打开编辑对话框
-const openEditDialog = (model: any) => {
-  isEdit.value = true;
+// 编辑模型
+const editModel = (model: AiModelType) => {
   selectedModel.value = model;
-  Object.assign(formData, model);
-  dialogVisible.value = true;
+  modelFormVisible.value = true;
 };
 
-// 保存模型
-const saveModel = async () => {
-  if (!formData.name || !formData.model || !formData.baseUrl || !formData.apiKey) {
-    alert('请填写必填字段');
+// 切换模型状态
+const toggleModelStatus = async (model: AiModelType) => {
+  if (!model || !confirm(t('确定要{0}这个模型吗？', model.enabled ? t('禁用') : t('启用')))) {
     return;
   }
 
-  isSaving.value = true;
   try {
-    if (isEdit.value) {
-      await API.aiApi.updateAIModel({
-        id: selectedModel.value.id,
-        ...formData,
-      });
-    } else {
-      await API.aiApi.createAIModel(formData);
-    }
-    dialogVisible.value = false;
-    await loadModels();
-  } catch (error) {
-    console.error('保存AI模型失败:', (error as Error).message);
-    alert('保存失败: ' + ((error as Error).message || '未知错误'));
-  } finally {
-    isSaving.value = false;
-  }
-};
-
-// 切换启用状态
-const toggleEnabled = async (model: any) => {
-  try {
-    await API.aiApi.updateAIModel({
-      id: model.id,
-      enabled: !model.enabled,
+    await API.db.aiModel.update({
+      where: { id: model.id },
+      data: { enabled: !model.enabled }
     });
-    await loadModels();
+
+    alert(t('{0}成功', model.enabled ? t('禁用') : t('启用')));
+    await loadModels(); // 重新加载数据
   } catch (error) {
     console.error('切换模型状态失败:', (error as Error).message);
+    alert(t('操作失败：') + ((error as Error).message || t('未知错误')));
   }
-};
-
-// 确认删除
-const confirmDelete = (model: any) => {
-  selectedModel.value = model;
-  deleteDialogVisible.value = true;
 };
 
 // 删除模型
-const deleteModel = async () => {
-  isDeleting.value = true;
-  try {
-    await API.aiApi.deleteAIModel(selectedModel.value.id);
-    deleteDialogVisible.value = false;
-    await loadModels();
-  } catch (error) {
-    console.error('删除AI模型失败:', (error as Error).message);
-    alert('删除失败: ' + ((error as Error).message || '未知错误'));
-  } finally {
-    isDeleting.value = false;
-  }
-};
-
-// 清理频率限制记录
-const cleanupRateLimits = async () => {
-  if (!confirm('确定要清理过期的频率限制记录吗？')) {
+const deleteModel = async (model: AiModelType) => {
+  if (!model || !confirm(t('确定要删除这个模型吗？此操作不可恢复。'))) {
     return;
   }
 
-  isCleaning.value = true;
   try {
-    await API.aiApi.cleanupExpiredRateLimits();
-    alert('清理成功');
+    await API.db.aiModel.delete({
+      where: { id: model.id }
+    });
+
+    alert(t('删除成功'));
+    await loadModels(); // 重新加载数据
   } catch (error) {
-    console.error('清理频率限制记录失败:', (error as Error).message);
-    alert('清理失败: ' + ((error as Error).message || '未知错误'));
-  } finally {
-    isCleaning.value = false;
+    console.error('删除模型失败:', (error as Error).message);
+    alert(t('删除失败：') + ((error as Error).message || t('未知错误')));
   }
+};
+
+// 模型表单提交
+const onModelSubmit = async () => {
+  await loadModels(); // 重新加载数据
+};
+
+// 搜索处理
+const handleSearch = () => {
+  // 搜索是实时响应的，不需要额外处理
+};
+
+// 筛选变化处理
+const handleFilterChange = () => {
+  // 筛选是实时响应的，不需要额外处理
 };
 
 // 刷新统计数据
 const refreshStats = async () => {
-  if (modelStatsChartRef.value) {
-    isLoadingStats.value = true;
-    try {
-      await modelStatsChartRef.value.loadRequestStats(chartTimeRange.value);
-    } finally {
-      isLoadingStats.value = false;
-    }
-  }
-};
+  if (!modelStatsChartRef.value) return;
 
-// 加载请求统计数据（保留以兼容现有调用）
-const loadRequestStats = async () => {
-  isLoadingStats.value = true;
+  isStatsLoading.value = true;
   try {
-    // 计算时间范围
-    const now = new Date();
-    let startTime: Date;
-
-    if (chartTimeRange.value === '24h') {
-      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    } else if (chartTimeRange.value === '7d') {
-      startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    } else if (chartTimeRange.value === '30d') {
-      startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-    } else {
-      startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    }
-
-    // 查询 apiRateLimit 表获取统计数据
-    const rateLimits = await API.db.apiRateLimit.findMany({
-      where: {
-        timestamp: {
-          gte: startTime
-        }
-      },
-      orderBy: {
-        timestamp: 'desc'
-      }
-    });
-
-    // 按模型分组统计数据
-    const modelStats = new Map();
-
-    // 先为所有模型初始化统计对象
-    models.value.forEach(model => {
-      modelStats.set(model.id, {
-        modelId: model.id,
-        modelName: model.name,
-        totalRequests: 0,
-        successCount: 0,
-        lastRequest: null,
-        hourlyData: new Array(24).fill(0), // 24小时数据
-        dailyData: new Array(7).fill(0),   // 7天数据
-        monthlyData: new Array(30).fill(0) // 30天数据
-      });
-    });
-
-    // 处理实际数据
-    rateLimits.forEach(record => {
-      const stats = modelStats.get(record.aiModelId);
-      if (!stats) return;
-
-      stats.totalRequests++;
-
-      // 根据是否有用户ID来判断成功（可以根据实际需求调整）
-      if (record.userId) {
-        stats.successCount++;
-      }
-
-      // 更新最后请求时间
-      if (!stats.lastRequest || record.timestamp > stats.lastRequest) {
-        stats.lastRequest = record.timestamp;
-      }
-
-      // 按时间段分组统计（用于趋势图）
-      const recordTime = new Date(record.timestamp);
-      const hoursDiff = (now.getTime() - recordTime.getTime()) / (1000 * 60 * 60);
-      const daysDiff = Math.floor(hoursDiff / 24);
-
-      if (chartTimeRange.value === '24h' && hoursDiff < 24) {
-        const hourIndex = Math.floor(hoursDiff);
-        if (hourIndex < 24) {
-          stats.hourlyData[23 - hourIndex]++; // 最近的在最后
-        }
-      } else if (chartTimeRange.value === '7d' && daysDiff < 7) {
-        stats.dailyData[6 - daysDiff]++; // 最近的在最后
-      } else if (chartTimeRange.value === '30d' && daysDiff < 30) {
-        stats.monthlyData[29 - daysDiff]++; // 最近的在最后
-      }
-    });
-
-    // 计算最终统计数据
-    requestStats.value = Array.from(modelStats.values()).map(stats => ({
-      modelId: stats.modelId,
-      modelName: stats.modelName,
-      totalRequests: stats.totalRequests,
-      successRate: stats.totalRequests > 0 ? stats.successCount / stats.totalRequests : 0,
-      avgResponseTime: Math.floor(Math.random() * 1000) + 200, // 临时使用随机数，可根据实际需要调整
-      lastRequest: stats.lastRequest,
-      trendData: chartTimeRange.value === '24h' ? stats.hourlyData :
-                  chartTimeRange.value === '7d' ? stats.dailyData :
-                  stats.monthlyData
-    }));
-
+    await modelStatsChartRef.value.loadRequestStats();
   } catch (error) {
-    console.error('加载请求统计失败:', (error as Error).message);
-    // 出错时使用空数据
-    requestStats.value = models.value.map(model => ({
-      modelId: model.id,
-      modelName: model.name,
-      totalRequests: 0,
-      successRate: 0,
-      avgResponseTime: 0,
-      lastRequest: null,
-      trendData: new Array(chartTimeRange.value === '24h' ? 24 : chartTimeRange.value === '7d' ? 7 : 30).fill(0)
-    }));
+    console.error('刷新统计数据失败:', error);
+    alert(t('刷新统计数据失败：') + ((error as Error).message || t('未知错误')));
   } finally {
-    isLoadingStats.value = false;
+    isStatsLoading.value = false;
   }
 };
 
-
+// 检查管理员权限
+const checkAdminPermission = () => {
+  try {
+    if (authInfo.value && authInfo.value.user) {
+      // 假设 role 可能是一个数组，检查是否包含 admin
+      const userRole = authInfo.value.user.role;
+      isAdmin.value = Array.isArray(userRole)
+        ? userRole.some(role => role.name === 'admin')
+        : userRole === 'admin';
+    }
+  } catch (error) {
+    console.error('检查权限失败:', (error as Error).message);
+  }
+};
 
 // 页面加载时获取数据
-onMounted(() => {
-  loadModels();
-  loadRequestStats();
+onMounted(async () => {
+  checkAdminPermission();
+  await loadModels();
 });
 </script>
+
+<style scoped></style>
