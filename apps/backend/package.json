@@ -4,7 +4,7 @@
   "scripts": {
     "build": "tsup --config tsup-build.config.ts",
     "build:w": "",
-    "build:publish": "pnpm --filter website-frontend build && pnpm build && pnpm publish:server",
+    "build:publish": "pnpm build:lib && pnpm --filter website-frontend build && pnpm build && pnpm publish:server",
     "publish:server": "bash ./publish.sh",
     "tsc:b": "tsc -b",
     "dev": "tsup --watch --onSuccess \"pnpm run start\"",
