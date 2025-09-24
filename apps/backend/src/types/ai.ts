@@ -10,6 +10,9 @@ export interface OpenAIRequest {
   temperature?: number;
   max_tokens?: number;
   stream?: boolean;
+  thinking?: {
+    type: 'disabled' | 'auto' | 'interleaved';
+  };
 }
 
 /** OpenAI API 响应接口 */
