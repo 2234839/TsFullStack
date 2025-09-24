@@ -7,7 +7,6 @@ import { genUserSession } from './appApi/_genUserSession';
 import { githubApi } from './appApi/github';
 import { fileApi } from './appApi/file';
 import { shareApi } from './appApi/share';
-import { moduleApi } from './moduleApi';
 
 async function randomDelay(baseDelay = 500) {
   await new Promise((r) => setTimeout(r, baseDelay + 2_000 * Math.random()));
@@ -67,7 +66,6 @@ export const appApis = {
       });
     },
   },
-  moduleApi,
   githubApi,
   fileApi,
   shareApi,
