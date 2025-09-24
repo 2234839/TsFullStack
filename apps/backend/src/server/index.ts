@@ -23,27 +23,37 @@ import { GithubAuthLive } from '../OAuth/github';
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
-function handleError(err: any) {
-  let error = err;
-  if (/** 处理 Effect Cause 错误 */ Cause.isDieType(error)) {
-    error = error.defect;
-  }
-  if (error instanceof MsgError) {
-    return { message: error.message, op: error.op };
-  }
-  if (error instanceof PrismaClientKnownRequestError) {
-    if (error.meta && 'reason' in error.meta) {
-      if (error.meta.reason === 'ACCESS_POLICY_VIOLATION') {
-        return { message: '权限不足' };
+function handleCause(cause: Cause.Cause<Error>) {
+  let err;
+  function setErr(error: Error): string {
+    if (MsgError.isMsgError(error)) {
+      err = { message: error.message, op: error.op };
+    } else if (error instanceof PrismaClientKnownRequestError) {
+      if (error.meta && 'reason' in error.meta) {
+        if (error.meta.reason === 'ACCESS_POLICY_VIOLATION') {
+          err = { message: '权限不足' };
+        }
+        err = { message: error.meta.reason as string };
       }
-      return { message: error.meta.reason as string };
+      err = { message: '数据模型调用错误' };
+    } else if (error instanceof Error) {
+      err = { message: error.message };
     }
-    return { message: '数据模型调用错误' };
+    return error.message;
   }
-  if (error instanceof Error) {
-    return { message: error.message };
-  }
+  let CauseMsg = Cause.match(cause, {
+    onEmpty: '(empty)',
+    onFail: setErr,
+    onDie: (defect) => `(defect: ${defect})`,
+    onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
+    onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
+    onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
+  });
 
+  console.log('[未得到正确处理的 cause]', cause, CauseMsg);
+  if (err) {
+    return err;
+  }
   return { message: '未知错误' };
 }
 
@@ -216,7 +226,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
       } else {
         reqCtx.log('[error noCause]', `${cause}`);
       }
-      reply.send(superjson.serialize({ error: handleError(cause) }));
+      reply.send(superjson.serialize({ error: handleCause(cause) }));
     }
 
     onEnd();

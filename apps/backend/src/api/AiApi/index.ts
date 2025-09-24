@@ -3,55 +3,8 @@ import { AIProxyService } from '../../Context/AIProxyService';
 import { AuthContext, authUserIsAdmin } from '../../Context/Auth';
 import { PrismaService } from '../../Context/PrismaService';
 import { evaluateInfoQuality } from './信息分辨';
-
-/** OpenAI 代理请求接口 */
-export interface OpenAIProxyRequest {
-  model?: string;
-  messages: Array<{
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-  }>;
-  temperature?: number;
-  max_tokens?: number;
-  stream?: boolean;
-}
-
-/** OpenAI 代理响应接口 */
-export interface OpenAIProxyResponse {
-  id: string;
-  object: string;
-  created: number;
-  model: string;
-  choices: Array<{
-    index: number;
-    message: {
-      role: string;
-      content: string;
-    };
-    finish_reason: string;
-  }>;
-  usage?: {
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
-}
-
-/** AI 模型管理接口 */
-export interface AIModel {
-  id: number;
-  name: string;
-  model: string;
-  baseUrl: string;
-  maxTokens: number;
-  temperature: number;
-  enabled: boolean;
-  weight: number;
-  rpmLimit: number;
-  rphLimit: number;
-  rpdLimit: number;
-  description?: string;
-}
+import { ReqCtxService } from '../../Context/ReqCtx';
+import { OpenAIRequest as OpenAIProxyRequest, OpenAIResponse as OpenAIProxyResponse, AIModel } from '../../types/ai';
 
 /** 创建AI模型请求 */
 export interface CreateAIModelRequest {
@@ -93,11 +46,11 @@ export const aiApi = {
   proxyOpenAI: (request: OpenAIProxyRequest) =>
     Effect.gen(function* () {
       const aiProxyService = yield* AIProxyService;
-      const auth = yield* AuthContext;
+      yield* AuthContext;
 
-      // 获取客户端IP和用户ID
-      const clientIp = '127.0.0.1'; // TODO: 从Fastify请求中获取真实IP
-      const userId = auth.user.id; // 获取当前用户ID
+      const ctx = yield* ReqCtxService
+      // 获取客户端IP
+      const clientIp = ctx.req.ip;
 
       // 确保model字段有值
       const finalRequest = {
@@ -106,7 +59,7 @@ export const aiApi = {
       };
 
       // 调用AI代理服务
-      const result = yield* aiProxyService.proxyOpenAIRequest(finalRequest, clientIp, userId);
+      const result = yield* aiProxyService.proxyOpenAIRequest(finalRequest, clientIp);
       return result as OpenAIProxyResponse;
     }),
 
@@ -228,34 +181,15 @@ export const aiApi = {
   /** 清理过期的API调用记录 */
   cleanupExpiredApiCalls: () =>
     Effect.gen(function* () {
-      // 检查管理员权限
-      const isAdmin = yield* authUserIsAdmin();
-      if (!isAdmin) {
+      if (!(yield* authUserIsAdmin())) {
         throw new Error('需要管理员权限');
       }
 
-      const { prisma } = yield* PrismaService;
+      const aiProxyService = yield* AIProxyService;
+      const result = yield* aiProxyService.cleanupExpiredApiLogs();
 
-      // 删除30天前的记录
-      const cutoffTime = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-      const result = yield* Effect.tryPromise({
-        try: () =>
-          prisma.aiCallLog.deleteMany({
-            where: {
-              timestamp: {
-                lt: cutoffTime,
-              },
-            },
-          }),
-        catch: (error) =>
-          new Error(`清理过期记录失败: ${error instanceof Error ? error.message : String(error)}`),
-      });
-
-      const deleteResult = result as { count: number };
-      return {
-        success: true,
-        deletedCount: deleteResult.count,
-        message: `成功清理 ${deleteResult.count} 条过期记录`,
-      };
+      const ctx = yield* ReqCtxService;
+      ctx.log(result.message);
+      return result;
     }),
 };
