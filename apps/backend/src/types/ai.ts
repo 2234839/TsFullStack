@@ -10,6 +10,11 @@ export interface OpenAIRequest {
   temperature?: number;
   max_tokens?: number;
   stream?: boolean;
+  /**
+   * 是否开启思维链(当开启后 GLM-4.5 为模型自动判断是否思考，GLM-4.5V 为强制思考), 默认: enabled.
+   * https://docs.bigmodel.cn/api-reference/%E6%A8%A1%E5%9E%8B-api/%E5%AF%B9%E8%AF%9D%E8%A1%A5%E5%85%A8#body-thinking
+   * Available options: enabled, disabled
+   */
   thinking?: {
     type: 'disabled' | 'auto' | 'interleaved';
   };
