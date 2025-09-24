@@ -1,8 +1,5 @@
 export class MsgError extends Error {
-  constructor(public op: MsgErrorOpValues, message: string) {
-    super(message);
-    this.name = 'MsgError';
-  }
+  static errorTag = 'MsgError';
   static op_toLogin = 'op_toLogin' as const;
   static op_msgError = 'op_msgError' as const;
   static op_toRegister = 'op_toRegister' as const;
@@ -10,6 +7,14 @@ export class MsgError extends Error {
 
   static msg(message: string) {
     return new MsgError(MsgError.op_msgError, message);
+  }
+  static isMsgError(err: unknown): err is MsgError {
+    return (err as any)?.errorTag === MsgError.errorTag;
+  }
+  errorTag = MsgError.errorTag;
+  constructor(public op: MsgErrorOpValues, message: string) {
+    super(message);
+    this.name = 'MsgError';
   }
 }
 type ExtractOpKeys<T> = {

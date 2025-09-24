@@ -85,9 +85,7 @@ export const PrismaServiceLive = PrismaService.of({
         }),
       );
       if (!user) {
-        yield* Effect.fail(
-          new MsgError(MsgError.op_toLogin, 'opt is invalid or user not found'),
-        );
+        yield* Effect.fail(new MsgError(MsgError.op_toLogin, '未查询到此用户'));
       }
       const db = enhance(prisma, { user: user! }, { logPrismaQuery: DB_DEBUG });
 
