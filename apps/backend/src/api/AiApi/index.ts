@@ -1,10 +1,15 @@
 import { Effect } from 'effect';
 import { AIProxyService } from '../../Context/AIProxyService';
-import { AuthContext, authUserIsAdmin } from '../../Context/Auth';
+import { authUserIsAdmin } from '../../Context/Auth';
+import { reqClientIpEffect } from '../../Context/ClientIPService';
 import { PrismaService } from '../../Context/PrismaService';
-import { evaluateInfoQuality } from './信息分辨';
 import { ReqCtxService } from '../../Context/ReqCtx';
-import { OpenAIRequest as OpenAIProxyRequest, OpenAIResponse as OpenAIProxyResponse, AIModel } from '../../types/ai';
+import {
+  AIModel,
+  OpenAIRequest as OpenAIProxyRequest,
+  OpenAIResponse as OpenAIProxyResponse,
+} from '../../types/ai';
+import { evaluateInfoQuality } from './信息分辨';
 
 /** 创建AI模型请求 */
 export interface CreateAIModelRequest {
@@ -46,11 +51,8 @@ export const aiApi = {
   proxyOpenAI: (request: OpenAIProxyRequest) =>
     Effect.gen(function* () {
       const aiProxyService = yield* AIProxyService;
-      yield* AuthContext;
-
-      const ctx = yield* ReqCtxService
       // 获取客户端IP
-      const clientIp = ctx.req.ip;
+      const clientIp = yield* reqClientIpEffect;
 
       // 确保model字段有值
       const finalRequest = {
