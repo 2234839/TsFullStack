@@ -1,0 +1,52 @@
+{
+  "name": "@tsfullstack/module-autoload",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./api": {
+      "import": "./dist/api.js",
+      "require": "./dist/api.cjs",
+      "types": "./dist/api.d.ts"
+    },
+    "./frontend": {
+      "import": "./dist/frontend.js",
+      "require": "./dist/frontend.cjs",
+      "types": "./dist/frontend.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "tsx build-dependencies.ts",
+    "build": "tsx generate.ts && tsc --project tsconfig.build.json",
+    "build:lib": "tsc --project tsconfig.build.json",
+    "build:types": "tsc --project tsconfig.types.json",
+    "build:autoload": "pnpm prebuild && pnpm build",
+    "automate": "tsx automate-build.ts",
+    "dev": "tsx generate.ts --watch",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tsfullstack/module-template": "workspace:*",
+    "fast-glob": "^3.3.2",
+    "fs-extra": "^11.2.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "~5.8.3",
+    "turbo": "^1.12.3"
+  }
+}

@@ -7,6 +7,7 @@
     "translate-md": "mcp_agent_ts-translate-md translate -i README_zh.md -o README.md -l \"English\"",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "turbo run build",
+    "build:autoload": "cd modules/module-autoload && pnpm automate",
     "release": "pnpm install && pnpm tsc && pnpm --recursive --parallel run build",
     "release:ci": "pnpm install && pnpm tsc && pnpm --recursive --parallel run build:lib",
     "build:backend": "cd apps/backend && pnpm build:lib",
