@@ -28,9 +28,7 @@
     "chokidar": "^4.0.0",
     "commander": "^12.0.0",
     "fast-glob": "^3.3.3",
-    "fs-extra": "^11.2.0",
-    "@tsfullstack/module-template": "workspace:*",
-    "@tsfullstack/module-loader": "workspace:*"
+    "fs-extra": "^11.2.0"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

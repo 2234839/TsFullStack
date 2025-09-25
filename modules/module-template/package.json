@@ -1,63 +1,47 @@
 {
   "name": "@tsfullstack/module-template",
-  "version": "1.0.0",
-  "description": "Template module for TsFullStack framework",
+  "version": "0.1.0",
   "type": "module",
-  "main": "./index.ts",
-  "module": "./index.ts",
-  "types": "./index.ts",
+  "private": true,
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
     ".": {
-      "types": "./index.ts",
-      "default": "./index.ts"
+      "import": "./src/index.ts",
+      "require": "./src/index.ts",
+      "types": "./src/index.ts"
     },
-    "./backend": {
-      "types": "./backend/index.ts",
-      "default": "./backend/index.ts"
-    },
-    "./frontend": {
-      "types": "./frontend/index.ts",
-      "default": "./frontend/index.ts"
-    },
-    "./frontend/vue": {
-      "types": "./frontend/vue.ts",
-      "default": "./frontend/vue.ts"
-    },
-    "./backend/index": {
-      "types": "./backend/index.ts",
-      "default": "./backend/index.ts"
-    },
-    "./frontend/index": {
-      "types": "./frontend/index.ts",
-      "default": "./frontend/index.ts"
-    },
-    "./backend/*": {
-      "types": "./backend/*",
-      "default": "./backend/*"
-    },
-    "./frontend/*": {
-      "types": "./frontend/*",
-      "default": "./frontend/*"
+    "./dist": {
+      "import": "./dist/module-template.js",
+      "require": "./dist/module-template.umd.cjs",
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
-    "**/*.ts",
-    "**/*.vue"
+    "dist",
+    "api",
+    "frontend"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
-    "dev": "tsc -p tsconfig.build.json --watch",
-    "clean": "rm -rf dist",
-    "prebuild": "pnpm clean"
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "build:api": "vite build --config vite.api.config.ts",
+    "build:all": "pnpm run build && pnpm run build:api",
+    "preview": "vite preview",
+    "typecheck": "vue-tsc --noEmit",
+    "typecheck:api": "tsc --noEmit --project tsconfig.api.json",
+    "clean": "rm -rf dist"
   },
-  "keywords": [
-    "template",
-    "module",
-    "tsfullstack"
-  ],
-  "author": "",
-  "license": "ISC",
+  "dependencies": {
+    "vue": "^3.5.21"
+  },
   "devDependencies": {
-    "typescript": "^5.0.0"
+    "@types/node": "^20.10.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.8.1",
+    "typescript": "~5.8.3",
+    "vite": "npm:rolldown-vite@7.1.12",
+    "vue-tsc": "^3.0.7"
   }
 }
