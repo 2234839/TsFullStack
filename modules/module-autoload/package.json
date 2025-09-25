@@ -3,24 +3,14 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs",
-      "types": "./dist/index.d.ts"
-    },
     "./api": {
-      "import": "./dist/api.js",
-      "require": "./dist/api.cjs",
-      "types": "./dist/api.d.ts"
+      "import": "./dist/generated/api.js",
+      "types": "./dist/generated/api.d.ts"
     },
     "./frontend": {
-      "import": "./dist/frontend.js",
-      "require": "./dist/frontend.cjs",
-      "types": "./dist/frontend.d.ts"
+      "import": "./dist/generated/frontend.js",
+      "types": "./dist/generated/frontend.d.ts"
     }
   },
   "files": [
