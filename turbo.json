@@ -32,6 +32,11 @@
       "outputs": ["dist/**"],
       "cache": true
     },
+    "build:autoload": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "cache": true
+    },
     "typecheck": {
       "cache": true
     },
