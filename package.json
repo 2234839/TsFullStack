@@ -6,11 +6,13 @@
   "scripts": {
     "translate-md": "mcp_agent_ts-translate-md translate -i README_zh.md -o README.md -l \"English\"",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "turbo run build",
     "release": "pnpm install && pnpm tsc && pnpm --recursive --parallel run build",
     "release:ci": "pnpm install && pnpm tsc && pnpm --recursive --parallel run build:lib",
     "build:backend": "cd apps/backend && pnpm build:lib",
     "build:frontend": "cd apps/website-frontend && pnpm build",
     "build:extension": "cd apps/InfoFlow && pnpm build",
+    "build:modules": "cd modules/module-template && pnpm build",
     "modules:build": "cd packages/module-loader && pnpm build",
     "modules:tsc": "cd packages/module-loader && pnpm tsc",
     "modules:run": "cd packages/module-loader && node dist/cli.js run",
@@ -21,5 +23,13 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.15.1+sha512.34e538c329b5553014ca8e8f4535997f96180a1d0f614339357449935350d924e22f8614682191264ec33d1462ac21561aff97f6bb18065351c162c7e8f6de67"
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "vite": "npm:rolldown-vite@7.1.12"
+    }
+  },
+  "packageManager": "pnpm@10.17.1+sha512.17c560fca4867ae9473a3899ad84a88334914f379be46d455cbf92e5cf4b39d34985d452d2583baf19967fa76cb5c17bc9e245529d0b98745721aa7200ecaf7a"
 }

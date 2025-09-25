@@ -1,0 +1,25 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "types": ["vite/client"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist/frontend",
+    "rootDir": "./frontend",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./frontend/*"],
+      "@components/*": ["./frontend/components/*"],
+      "@assets/*": ["./frontend/assets/*"],
+      "@api/*": ["./api/*"]
+    },
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["frontend/**/*.ts", "frontend/**/*.vue"],
+  "exclude": ["**/*.test.ts", "**/*.spec.ts", "node_modules", "dist"]
+}

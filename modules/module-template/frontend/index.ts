@@ -1,26 +1,19 @@
-// Template frontend components and utilities
-export const frontendConfig = {
-  version: '1.0.0',
-  name: 'module-template-frontend'
-};
+// ABOUTME: Vue库模板入口文件，导出所有公共组件和工具函数
+export { default as HelloWorld } from '@/components/HelloWorld.vue'
+export type { HelloWorldProps } from '@/components/types'
 
-// Conditional Vue imports to avoid backend compilation issues
-let Vue: any;
-try {
-  Vue = require('vue');
-} catch {
-  // Vue not available, likely in backend context
-}
+// 版本信息
+export const version = '0.1.0'
 
-export const createFrontendPlugin = () => {
-  return {
-    install: (app: any) => {
-      console.log('Frontend template plugin installed');
-    }
-  };
-};
+// 安装函数
+import type { App } from 'vue'
+import HelloWorld from '@/components/HelloWorld.vue'
 
 export default {
-  frontendConfig,
-  createFrontendPlugin
-};
+  install(app: App) {
+    app.component('HelloWorld', HelloWorld)
+  }
+}
+
+// 导出样式
+import '@/style.css'
