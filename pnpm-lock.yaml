@@ -130,12 +130,9 @@ importers:
       '@prisma/client':
         specifier: 6.16.2
         version: 6.16.2(prisma@6.16.2(magicast@0.3.5)(typescript@5.9.2))(typescript@5.9.2)
-      '@tsfullstack/module-loader':
+      '@tsfullstack/module-autoload':
         specifier: workspace:*
-        version: link:../../packages/module-loader
-      '@tsfullstack/module-template':
-        specifier: workspace:*
-        version: link:../../modules/module-template
+        version: link:../../modules/module-autoload
       '@zenstackhq/runtime':
         specifier: ^2.19.0
         version: 2.19.0(@prisma/client@6.16.2(prisma@6.16.2(magicast@0.3.5)(typescript@5.9.2))(typescript@5.9.2))(zod@3.25.76)

@@ -6,8 +6,10 @@ import { systemApis } from './systemApis';
 import { testApi } from './testApi';
 import { fileApi } from './authApi/file';
 import { aiApi } from './AiApi';
+import { moduleApis } from './moduleApi';
 
 export const apis = {
+  moduleApis,
   system: systemApis,
   testApi,
   fileApi,

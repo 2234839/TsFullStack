@@ -8,7 +8,7 @@ export default defineConfig({
   // 生成类型声明文件
   dts: false,
   // 打包格式
-  format: 'cjs',
+  format: 'esm',
   // 代码分割
   splitting: false,
   minify: true,
