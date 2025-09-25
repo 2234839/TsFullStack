@@ -19,7 +19,7 @@
     "test:watch": "vitest watch"
   },
   "main": "./dist-lib/index.js",
-  "types": "./dist-lib/lib/index.d.ts",
+  "types": "./dist-lib/index.d.ts",
   "files": [
     "dist-lib",
     "./src/lib/index.ts"

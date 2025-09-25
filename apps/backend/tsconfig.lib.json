@@ -4,6 +4,22 @@
         "emitDeclarationOnly": true,
         "declaration": true,
         "declarationMap": true,
-        "outDir": "./dist-lib"
-    }
+        "outDir": "./dist-lib",
+        "composite": true,
+        "skipLibCheck": false,
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./src/*"]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "dist-lib",
+        "**/*.test.ts",
+        "**/*.spec.ts"
+    ]
 }

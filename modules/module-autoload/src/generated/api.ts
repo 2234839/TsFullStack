@@ -1,5 +1,5 @@
 // ABOUTME: 自动生成的 API 聚合导入导出文件
-// 生成时间: 2025-09-25T09:33:50.699Z
+// 生成时间: 2025-09-25T10:27:40.316Z
 // 包含模块: module-template
 
 import * as template from '@tsfullstack/module-template/api';

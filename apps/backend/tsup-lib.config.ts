@@ -6,7 +6,7 @@ export default defineConfig({
   // 输出目录
   outDir: 'dist-lib',
   // 生成类型声明文件,对于 prisma 的复杂类型会报错
-  // dts: true,
+  dts: true,
   // 改成使用 tsc 生成类型声明文件，因为可以输出 .d.ts.map 文件,这样就可以直接从前端跳转到后端代码
   experimentalDts: false,
   // 打包格式
@@ -25,6 +25,19 @@ export default defineConfig({
     // options.platform = 'node';
     // options.target = 'node16';
   },
-  // 排除所有npm包依赖，特别是 Prisma 客户端
-  external: [/node_modules/, '@prisma/client', '@zenstackhq/runtime'],
-});
+  // 不排除模块依赖，让 tsup 处理类型解析
+  external: [
+    '@prisma/client',
+    '@zenstackhq/runtime',
+    'effect',
+    'fastify',
+    'superjson',
+    'bcryptjs',
+    'c12',
+    'crypto-js',
+    'uuid',
+    '@fastify/cors',
+    '@fastify/multipart',
+    '@fastify/static'
+  ],
+  });
