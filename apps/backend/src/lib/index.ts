@@ -3,6 +3,7 @@
  * WARNING: This file should only contain what frontend actually needs
  */
 
+export { $Enums } from '@prisma/client';
 // RPC utilities - core functionality for frontend-backend communication
 export { createRPC, proxyCall } from '../rpc';
 
@@ -23,6 +24,7 @@ export type { Prisma } from '@prisma/client';
 export type { ModelMeta } from '@zenstackhq/runtime';
 
 export type { DeepAsyncEffect } from '../rpc/index';
+
 // NOTE: Backend service classes are NOT exported to frontend:
 // - PrismaService, AuthContext, AIProxyService
 // - AppConfigService, AIConfigContext

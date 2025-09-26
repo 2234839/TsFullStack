@@ -103,11 +103,7 @@ ssh $SSH_OPTS "$SSH_TARGET" "
     # 等待进程完全停止
     sleep 2
 
-    # 删除 SQLite 日志文件（如果有）
-    echo '清理数据库锁定文件...'
-    rm -f prisma/dev.db-journal
-    rm -f prisma/dev.db-wal
-
+    
     # 数据库迁移
     echo '执行数据库迁移...'
     pnpm prisma migrate deploy || exit 1

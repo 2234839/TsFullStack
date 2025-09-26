@@ -1,11 +1,11 @@
-import { File as FileModel, StorageType } from '@zenstackhq/runtime/models';
+import { File as FileModel, StorageType, type FileStatusEnum } from '@zenstackhq/runtime/models';
 import { Effect } from 'effect';
 import { createReadStream, createWriteStream } from 'fs';
 import { mkdir, unlink } from 'fs/promises';
 import { join } from 'path/posix';
 import { v7 as uuidv7 } from 'uuid';
 import { AppConfigService } from '../../Context/AppConfig';
-import { AuthContext, authUserIsAdmin, userIsAdmin } from '../../Context/Auth';
+import { AuthContext, authUserIsAdmin } from '../../Context/Auth';
 import { FileAccessService } from '../../Context/FileAccessService';
 import { FilePathService } from '../../Context/FilePathService';
 import { ReqCtxService } from '../../Context/ReqCtx';
@@ -77,6 +77,40 @@ export const fileApi = {
             size: fileSize,
             storageType: StorageType.LOCAL,
             authorId: auth.user.id,
+          },
+        }),
+      );
+
+      return res;
+    });
+  },
+  updateFileStatus(id: FileModel['id'], status: FileStatusEnum) {
+    return Effect.gen(function* () {
+      const auth = yield* AuthContext;
+
+      const fileRow = yield* Effect.promise(() =>
+        auth.db.file.findUnique({
+          where: {
+            id,
+          },
+        }),
+      );
+
+      if (!fileRow) throw MsgError.msg('File not found');
+
+      yield* FileAccessService.validateFileAccessEffect(fileRow, {
+        checkOwnership: yield* checkOwnership(true),
+        userId: auth.user.id,
+        publicOnly: false,
+      });
+
+      const res = yield* Effect.promise(() =>
+        auth.db.file.update({
+          where: {
+            id,
+          },
+          data: {
+            status,
           },
         }),
       );

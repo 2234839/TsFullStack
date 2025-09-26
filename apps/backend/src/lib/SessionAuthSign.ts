@@ -49,12 +49,8 @@ export async function verifySignByToken(
   sessionToken: string,
   providedSignature: string,
 ): Promise<boolean> {
-  try {
-    const expectedSignature = await signByToken(originStr, sessionToken);
+  const expectedSignature = await signByToken(originStr, sessionToken);
 
-    // 统一使用自定义的安全比较函数
-    return timingSafeEqual(expectedSignature, providedSignature);
-  } catch (error) {
-    return false;
-  }
+  // 统一使用自定义的安全比较函数
+  return timingSafeEqual(expectedSignature, providedSignature);
 }
