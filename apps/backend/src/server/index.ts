@@ -11,7 +11,6 @@ import superjson, { type SuperJSONResult } from 'superjson';
 import { apis, type APIRaw } from '../api';
 import { FileWarpItem } from '../api/authApi/file';
 import { appApis } from '../api/appApi';
-import { SessionAuthSign } from '../lib';
 import { createRPC } from '../rpc';
 import { AuthContext } from '../Context/Auth';
 import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
@@ -20,6 +19,7 @@ import { MsgError } from '../util/error';
 import { getAuthFromCache } from './authCache';
 import { FetchWithProxy } from '../util/github-proxy';
 import { GithubAuthLive } from '../OAuth/github';
+import { verifySignByToken } from '../lib/SessionAuthSign';
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
@@ -109,7 +109,7 @@ function parseParamsAndAuth(req: FastifyRequest) {
         throw new MsgError(MsgError.op_toLogin, '请提供有效的 session');
       }
       const verify = yield* Effect.promise(() =>
-        SessionAuthSign.verifySignByToken(query.args || '', session.token, query.sign || ''),
+        verifySignByToken(query.args || '', session.token, query.sign || ''),
       );
       if (!verify) {
         throw new MsgError(MsgError.op_msgError, '签名验证失败');
