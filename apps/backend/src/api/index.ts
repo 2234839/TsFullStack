@@ -9,7 +9,8 @@ import { aiApi } from './AiApi';
 import { moduleApis } from './moduleApi';
 
 export const apis = {
-  moduleApis,
+  // 这里的 as 是为了解决导出 lib 包后会存在的一些类型问题 https://shenzilong.cn/index/ts%20%E5%B5%8C%E5%A5%97%E5%8C%85%E5%AF%BC%E5%87%BA%E7%B1%BB%E5%9E%8B%E4%B8%BA%20any%20%E7%9A%84%E9%97%AE%E9%A2%98.html#20250926083301-jptx0f6
+  moduleApis: moduleApis as typeof import('@tsfullstack/module-autoload/api').api,
   system: systemApis,
   testApi,
   fileApi,

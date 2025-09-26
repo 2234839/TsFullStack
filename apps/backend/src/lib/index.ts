@@ -22,6 +22,7 @@ export type { Prisma } from '@prisma/client';
 // ZenStack model metadata - needed for database operations
 export type { ModelMeta } from '@zenstackhq/runtime';
 
+export type { DeepAsyncEffect } from '../rpc/index';
 // NOTE: Backend service classes are NOT exported to frontend:
 // - PrismaService, AuthContext, AIProxyService
 // - AppConfigService, AIConfigContext

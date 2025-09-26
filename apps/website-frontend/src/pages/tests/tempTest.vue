@@ -1,7 +1,7 @@
 <style scoped></style>
 <template>
   <!-- <SentenceAnalyzer /> -->
-  {{ test }}
+  {{ test.state.value }}
 </template>
 <script setup lang="ts">
   import { useAPI } from '@/api';
@@ -9,6 +9,6 @@
 
   const { API } = useAPI();
   const test = useAsyncState(() => {
-    return API.moduleApis.template;
+    return API.moduleApis.template.api.test();
   }, undefined);
 </script>
