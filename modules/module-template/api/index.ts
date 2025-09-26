@@ -1,7 +1,6 @@
-import { copyFile } from 'node:fs/promises';
 export const api = {
   test() {
-    copyFile;
+    return "test date : "+ new Date().toLocaleString()
   },
 };
 

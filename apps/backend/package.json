@@ -10,7 +10,7 @@
     "dev": "tsup --watch --onSuccess \"pnpm run start\"",
     "start": "node --enable-source-maps ./dist/index.js",
     "start:w": "node --enable-source-maps --watch ./dist/index.js",
-    "build:lib": "tsup --config tsup-lib.config.ts && pnpm build:lib:dmap",
+    "build:lib": "tsup --config tsup-lib.config.ts",
     "build:lib:dmap": "tsc -p tsconfig.lib.json",
     "build:lib:w": "tsup --watch --config tsup-lib.config.ts",
     "test": "vitest",

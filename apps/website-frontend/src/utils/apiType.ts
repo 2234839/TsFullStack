@@ -1,4 +1,4 @@
-import type { DeepAsyncEffect } from '@tsfullstack/backend/dist-lib/rpc';
+import type { DeepAsyncEffect } from '@tsfullstack/backend';
 import { type API as __API__, type AppAPI as __AppAPI__ } from '@tsfullstack/backend';
 
 type AppAPI = DeepAsyncEffect<__AppAPI__>;
