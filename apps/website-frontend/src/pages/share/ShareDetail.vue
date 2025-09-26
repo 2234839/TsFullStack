@@ -1,5 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+  <div
+    class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <!-- Loading -->
       <div v-if="isLoading" class="flex justify-center items-center min-h-[400px]">
@@ -8,7 +9,8 @@
 
       <!-- Error -->
       <div v-else-if="error" class="text-center py-12">
-        <div class="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
+        <div
+          class="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
           <i class="pi pi-exclamation-triangle text-2xl text-red-600 dark:text-red-400"></i>
         </div>
         <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
@@ -23,7 +25,8 @@
       <div v-else-if="state" class="space-y-8">
         <!-- Header Section -->
         <div class="text-center space-y-4">
-          <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+          <div
+            class="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full">
             <i class="pi pi-share-alt text-xl text-blue-600 dark:text-blue-400"></i>
           </div>
           <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
@@ -43,7 +46,8 @@
             :key="file.id"
             class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
             <!-- File Preview -->
-            <div class="h-48 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
+            <div
+              class="h-48 flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
               <ShareFilePreview :file="file" />
             </div>
 
@@ -95,10 +99,9 @@
 </template>
 
 <script setup lang="ts">
-  import { ref } from 'vue';
   import { useAPI } from '@/api';
   import type { ShareFileJSON, ShareItemJSON } from '@/pages/admin/share/ShareDef';
-  import { getFileTypeLabel, formatFileSize } from '@/pages/admin/share/ShareDef';
+  import { formatFileSize, getFileTypeLabel } from '@/pages/admin/share/ShareDef';
   import ShareFilePreview from '@/pages/admin/share/ShareFilePreview.vue';
   import { authInfo_isLogin } from '@/storage';
   import { useAsyncState } from '@vueuse/core';
@@ -108,11 +111,10 @@
     id: String,
   });
 
-    const { state, isLoading, error } = useAsyncState(() => {
+  const { state, isLoading, error } = useAsyncState(() => {
     return AppAPI.shareApi.detail(Number(props.id)) as unknown as Promise<ShareItemJSON>;
   }, undefined);
 
-  
   const getFileTypeClass = (mimetype: string) => {
     if (mimetype.startsWith('image/'))
       return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
@@ -148,7 +150,6 @@
     }
   }
 
-  
   async function openInNewTab(file: ShareFileJSON) {
     try {
       let url = '';
