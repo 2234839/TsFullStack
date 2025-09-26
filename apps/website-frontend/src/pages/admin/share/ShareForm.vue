@@ -76,6 +76,7 @@
   import type { ShareItemJSON } from '@/pages/admin/share/ShareDef';
   import { authInfo } from '@/storage';
   import { userDataAppid } from '@/storage/userDataAppid';
+  import { $Enums } from '@tsfullstack/backend';
   import { computed, ref, watch } from 'vue';
 
   const { API } = useAPI();
@@ -165,12 +166,8 @@
   async function removeUploadedFile(index: number) {
     const file = uploadedFiles.value[index];
     if (file) {
-      try {
-        await API.fileApi.delete(file.id);
-        uploadedFiles.value.splice(index, 1);
-      } catch (error) {
-        console.error('Failed to delete file:', error);
-      }
+      await API.fileApi.delete(file.id);
+      uploadedFiles.value.splice(index, 1);
     }
   }
 
@@ -182,7 +179,8 @@
     try {
       // 先上传所有选中的文件
       for (const file of selectedFiles.value) {
-        const result = await API.fileApi.upload(file);
+        const { id } = await API.fileApi.upload(file);
+        const result = await API.fileApi.updateFileStatus(id, $Enums.FileStatusEnum.public);
         uploadedFiles.value.push(result);
       }
 
