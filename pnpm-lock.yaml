@@ -4,6 +4,21 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+catalogs:
+  default:
+    '@types/node':
+      specifier: ^20.10.0
+      version: 20.19.10
+    typescript:
+      specifier: ~5.8.3
+      version: 5.8.3
+    vue:
+      specifier: ^3.5.21
+      version: 3.5.21
+    vue-router:
+      specifier: ^4.5.1
+      version: 4.5.1
+
 overrides:
   vite: npm:rolldown-vite@7.1.12
 
@@ -203,6 +218,9 @@ importers:
       '@tsfullstack/backend':
         specifier: workspace:*
         version: link:../backend
+      '@tsfullstack/shared-frontend':
+        specifier: workspace:*
+        version: link:../../packages/shared-frontend
       '@types/qrcode':
         specifier: ^1.5.5
         version: 1.5.5
@@ -249,13 +267,13 @@ importers:
         specifier: ^4.1.13
         version: 4.1.13
       vue:
-        specifier: ^3.5.21
+        specifier: 'catalog:'
         version: 3.5.21(typescript@5.9.2)
       vue-i18n:
         specifier: ^11.1.12
         version: 11.1.12(vue@3.5.21(typescript@5.9.2))
       vue-router:
-        specifier: ^4.5.1
+        specifier: 'catalog:'
         version: 4.5.1(vue@3.5.21(typescript@5.9.2))
     devDependencies:
       '@types/aframe':
@@ -310,12 +328,12 @@ importers:
 
   modules/module-template:
     dependencies:
-      vue:
-        specifier: ^3.5.21
-        version: 3.5.21(typescript@5.8.3)
+      '@tsfullstack/shared-frontend':
+        specifier: workspace:*
+        version: link:../../packages/shared-frontend
     devDependencies:
       '@types/node':
-        specifier: ^20.10.0
+        specifier: 'catalog:'
         version: 20.19.10
       '@vitejs/plugin-vue':
         specifier: ^6.0.1
@@ -324,7 +342,7 @@ importers:
         specifier: ^0.8.1
         version: 0.8.1(typescript@5.8.3)(vue@3.5.21(typescript@5.8.3))
       typescript:
-        specifier: ~5.8.3
+        specifier: 'catalog:'
         version: 5.8.3
       vite:
         specifier: npm:rolldown-vite@7.1.12
@@ -332,6 +350,12 @@ importers:
       vite-plugin-dts:
         specifier: ^4.5.4
         version: 4.5.4(@types/node@20.19.10)(rolldown-vite@7.1.12(@types/node@20.19.10)(esbuild@0.25.10)(jiti@2.6.0)(tsx@4.20.6)(yaml@2.7.1))(rollup@4.52.1)(typescript@5.8.3)
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.21(typescript@5.8.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.5.1(vue@3.5.21(typescript@5.8.3))
       vue-tsc:
         specifier: ^3.0.7
         version: 3.0.8(typescript@5.8.3)
@@ -360,6 +384,24 @@ importers:
       typescript:
         specifier: ^5.9.2
         version: 5.9.2
+
+  packages/shared-frontend:
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 20.19.10
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      vite:
+        specifier: npm:rolldown-vite@7.1.12
+        version: rolldown-vite@7.1.12(@types/node@20.19.10)(esbuild@0.25.10)(jiti@2.6.0)(tsx@4.20.6)(yaml@2.7.1)
+      vue:
+        specifier: 'catalog:'
+        version: 3.5.21(typescript@5.8.3)
+      vue-router:
+        specifier: 'catalog:'
+        version: 4.5.1(vue@3.5.21(typescript@5.8.3))
 
 packages:
 
@@ -11790,6 +11832,11 @@ snapshots:
       '@intlify/shared': 11.1.12
       '@vue/devtools-api': 6.6.4
       vue: 3.5.21(typescript@5.9.2)
+
+  vue-router@4.5.1(vue@3.5.21(typescript@5.8.3)):
+    dependencies:
+      '@vue/devtools-api': 6.6.4
+      vue: 3.5.21(typescript@5.8.3)
 
   vue-router@4.5.1(vue@3.5.21(typescript@5.9.2)):
     dependencies:

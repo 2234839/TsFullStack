@@ -29,9 +29,7 @@
     }
   },
   "include": [
-    "api/**/*.ts",
-    "vite.frontend.config.ts",
-    "vite.config.ts"
+    "api/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -6,7 +6,7 @@ import {
 } from 'vue-router';
 import { t as i18n_t } from './i18n';
 import { computed, reactive } from 'vue';
-import { buildNestedTree, type RouteNode, type RouteTree } from './utils/routeUtil';
+import { buildNestedTree, transformRoutes, getTargetRouter, type RouteNode, type RouteTree } from '@tsfullstack/shared-frontend/utils';
 /** path 为 "" 的子路由会自动渲染在父路由中 */
 export const defaultRoute = '';
 
@@ -19,8 +19,6 @@ routeModels = import.meta.glob(`./**/*.routeMap.ts`, {
   eager: true,
 });
 
-// 测试控制台输出
-console.log('Router file is being executed');
 
 // 动态导入启用的包路由
 const enabledPackages = import.meta.env.VITE_ENABLED_PACKAGES?.split(',') || [];
@@ -210,44 +208,11 @@ export const routeMap = reactive({
   },
 }) satisfies RouteTree;
 
-let routeNameId = 0;
-/** 将树形结构转换为 RouteRecordRaw[] 数组结构，便于路由注册使用
- * 会自动为路由添加 name 属性，如果路由没有 name 属性，会自动生成一个唯一的 name 属性
- */
-function transformRoutes(tree?: RouteTree): RouteNode[] {
-  if (tree === undefined) return [];
-  return Object.entries(tree).map(([_, route]) => {
-    if (route.name === undefined) {
-      route.name = `route-${routeNameId++}`;
-    }
-    if (route.props === undefined) {
-      route.props = (route) => ({ ...route.query, ...route.params });
-    }
-
-    return {
-      ...route,
-      children: route.child ? transformRoutes(route.child) : [],
-    };
-  });
-}
-
 export const allRoutes: RouteNode[] = transformRoutes(routeMap);
-export function findRouteNode(
-  routes: RouteNode[],
-  predicate: (node: RouteNode) => boolean,
-): RouteNode | undefined {
-  for (const route of routes) {
-    if (predicate(route)) return route;
-    if (route.children) {
-      const found = findRouteNode(route.children as any, predicate);
-      if (found) return found;
-    }
-  }
-  return undefined;
-}
+export { findRouteNode } from '@tsfullstack/shared-frontend/utils';
 export const router = createRouter({
   history: createWebHistory(),
-  routes: allRoutes,
+  routes: allRoutes as any,
 });
 
 export type RouteObjProps<T extends { component?: ((...args: any) => any) | null | undefined }> =
@@ -255,16 +220,6 @@ export type RouteObjProps<T extends { component?: ((...args: any) => any) | null
     ? InstanceType<Awaited<ReturnType<NonNullable<T['component']>>>['default']>['$props']
     : never;
 
-/** 因为vue router 的逻辑比较奇葩，如果父路由命名的话，它就不会自动的跳到子路由他必须要子路由没有名称才行。 */
-function getTargetRouter(obj: RouteNode) {
-  if (obj.child) {
-    const targetRouter =
-      Object.values(obj.child ?? {}).find((el) => el.path === defaultRoute) ?? obj;
-    return getTargetRouter(targetRouter);
-  } else {
-    return obj;
-  }
-}
 export const routerUtil = createRouteUtil(router);
 
 export function createRouteUtil(router: Router) {
