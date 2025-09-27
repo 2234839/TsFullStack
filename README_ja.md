@@ -10,7 +10,7 @@
 
 [オンライン体験](http://tsfullstack.heartstack.space/)
 
-[プロジェクトオンラインAIドキュメント](https://zread.ai/2234839/TsFullStack)
+[![zread](https://img.shields.io/badge/Ask_Zread-_.svg)](https://zread.ai/2234839/TsFullStack) [プロジェクトオンラインAIドキュメント](https://zread.ai/2234839/TsFullStack)
 
 [ドキュメントアドレス](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 

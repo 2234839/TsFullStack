@@ -1,6 +1,6 @@
 # TsFullStack
 
-[English Document](./README.md) [中文文档](./README_zh.md) [Japanese Document](./README_ja.md) [Korean Document](./README_ko.md) [French Document](./README_fr.md) [German Document](./README_de.md) [Spanish Document](./README_es.md)
+[English](./README.md) [中文](./README_zh.md) [日本語](./README_ja.md) **한국어** [Français](./README_fr.md) [Deutsch](./README_de.md) [Español](./README_es.md)
 
 ---
 
@@ -10,7 +10,7 @@
 
 [온라인 체험](http://tsfullstack.heartstack.space/)
 
-[프로젝트 온라인 AI 문서](https://zread.ai/2234839/TsFullStack)
+[![zread](https://img.shields.io/badge/Ask_Zread-_.svg)](https://zread.ai/2234839/TsFullStack) [프로젝트 온라인 AI 문서](https://zread.ai/2234839/TsFullStack)
 
 [문서 주소](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 

@@ -1,6 +1,6 @@
 # TsFullStack
 
-[English Document](./README.md) [German Document](./README_de.md) [Japanese Document](./README_ja.md) [Korean Document](./README_ko.md) [French Document](./README_fr.md) [Chinese Document](./README_zh.md)
+[English Document](./README.md) [Chinese Document](./README_zh.md) [Japanese Document](./README_ja.md) [Korean Document](./README_ko.md) [French Document](./README_fr.md) [German Document](./README_de.md) [Spanish Document](./README_es.md)
 
 ---
 
@@ -10,7 +10,7 @@ Dies ist mein TypeScript-Fullstack-Best-Practice-Projekt. Nach der Definition vo
 
 [Online Demo](http://tsfullstack.heartstack.space/)
 
-[Projekt Online AI Dokumentation](https://zread.ai/2234839/TsFullStack)
+[![zread](https://img.shields.io/badge/Ask_Zread-_.svg)](https://zread.ai/2234839/TsFullStack) [Projekt Online AI Dokumentation](https://zread.ai/2234839/TsFullStack)
 
 [Dokumentationsadresse](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 

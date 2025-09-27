@@ -1,6 +1,6 @@
 # TsFullStack
 
-[English Document](./README.md) [中文文档](./README_zh.md) [Documentación en español](./README_es.md) [日本語ドキュメント](./README_ja.md) [한국어 문서](./README_ko.md) [Documentation française](./README_fr.md) [Deutsche Dokumentation](./README_de.md)
+[English Document](./README.md) [中文文档](./README_zh.md) [Documentación en Español](./README_es.md) [日本語ドキュメント](./README_ja.md) [한국어 문서](./README_ko.md) [Documentation française](./README_fr.md) [Deutsche Dokumentation](./README_de.md)
 
 ---
 
@@ -10,7 +10,7 @@ Este es mi proyecto de mejores prácticas para full-stack con TypeScript. Permit
 
 [Experiencia en línea](http://tsfullstack.heartstack.space/)
 
-[Documentación IA del proyecto en línea](https://zread.ai/2234839/TsFullStack)
+[![zread](https://img.shields.io/badge/Ask_Zread-_.svg)](https://zread.ai/2234839/TsFullStack) [Documentación IA del proyecto en línea](https://zread.ai/2234839/TsFullStack)
 
 [Dirección de la documentación](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 
@@ -23,7 +23,7 @@ Este es mi proyecto de mejores prácticas para full-stack con TypeScript. Permit
 - Puente
   - Stack tecnológico: ts + superjson + biblioteca RPC autodesarrollada
   - El frontend llama directamente a las APIs del backend con sugerencias de tipo ts completas, sin necesidad de escribir código de capa intermedia.
-  - superjson soporta serialización y deserialización de objetos complejos como Date, Map, Set, RegExp..., asegurando que los parámetros de entrada y resultados de retorno de prisma puedan transmitirse sin problemas.
+  - superjson soporta serialización y deserialización de objetos complejos como Date, Map, Set, RegExp..., asegurando que los parámetros de entrada y resultados de prisma puedan transmitirse sin problemas.
 
 - Frontend
   - Stack tecnológico: ts + vue3 + tailwindcss + biblioteca de componentes primevue
@@ -55,6 +55,6 @@ Otros ejemplos de aplicaciones
 - Base del proyecto
   - apps/website-frontend es el proyecto base del frontend
   - apps/backend es el proyecto base del backend
-- Código de proyecto frontend y backend modular
+- Código de proyecto frontend y backend modularizado
   - modules/*
-  - El código frontend dentro del módulo puede referenciar directamente las interfaces del código backend dentro del módulo
+  - El código frontend dentro de los módulos puede referenciar directamente las interfaces del código backend dentro del mismo módulo
