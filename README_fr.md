@@ -1,16 +1,16 @@
 # TsFullStack
 
-[English Document](./README.md) [中文文档](./README_zh.md) [日本語ドキュメント](./README_ja.md) [한국어 문서](./README_ko.md) [Français](./README_fr.md) [Deutsch](./README_de.md) [Español](./README_es.md)
+[English Document](./README.md) [中文文档](./README_zh.md) [Documentation Française](./README_fr.md)
 
 ---
 
-Ceci est mon projet de meilleures pratiques TypeScript full-stack. Il permet d'opérer directement sur la base de données depuis le frontend sans écrire de code API backend après avoir défini les modèles de données, permettant un développement rapide de MVP.
+Ceci est mon projet de meilleures pratiques TypeScript full-stack. Après avoir défini les modèles de données, il permet d'opérer directement sur la base de données depuis le frontend sans écrire de code d'API backend, pour un développement rapide de modèles MVP.
 
-> Je suis vraiment fatigué des pages administratives traditionnelles, je ne veux plus jamais en écrire.
+> Je suis vraiment fatigué des pages administratives traditionnelles, je ne veux plus jamais les écrire.
 
-[Expérience en ligne](http://tsfullstack.heartstack.space/)
+[Démo en Ligne](http://tsfullstack.heartstack.space/)
 
-[Documentation IA en ligne du projet](https://zread.ai/2234839/TsFullStack)
+[![zread](https://img.shields.io/badge/Ask_Zread-_.svg)](https://zread.ai/2234839/TsFullStack) [Documentation AI du Projet](https://zread.ai/2234839/TsFullStack)
 
 [Adresse de la documentation](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 
