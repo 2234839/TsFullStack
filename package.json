@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "translate-md": "mcp_agent_ts-translate-md translate -i README_zh.md -o README.md -l \"English\"",
+    "translate-md": "tsx scripts/translate-md.ts",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "turbo run build",
     "build:autoload": "cd modules/module-autoload && pnpm automate",
@@ -25,6 +25,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.20.6",
     "turbo": "^2.0.0"
   },
   "pnpm": {
