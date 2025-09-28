@@ -49,7 +49,7 @@ export function buildNestedTree(modules: Record<string, RouteNode>): RouteTree {
 
   for (const [filePath, node] of sortedEntries) {
     // 判断是否是绝对路径
-    if (node.path.startsWith('/')) {
+    if (node.path && node.path.startsWith('/')) {
       // 提升为顶级路由
       const key = node.name || extractKeyPath(filePath).slice(-1)[0]!;
       root[key] = {
@@ -154,3 +154,27 @@ export function getTargetRouter(obj: RouteNode): RouteNode {
     return obj;
   }
 }
+
+/** 类型安全的路由展开工具 */
+export type ExpandRouteMap<T extends Record<string, RouteTree>> = {
+  [K in keyof T]: T[K] extends RouteTree ? T[K] : never;
+}[keyof T];
+
+/** 动态展开所有模块路由，等同于手动写 ...autoLoadRouteMap.template, ...autoLoadRouteMap.template2 的效果 */
+export function expandRouteMaps<T extends Record<string, RouteTree>>(
+  routeMaps: T
+): ExpandRouteMap<T> {
+  const result: RouteTree = {};
+
+  // 遍历所有模块路由映射并展开
+  for (const [, moduleRouteMap] of Object.entries(routeMaps)) {
+    Object.assign(result, moduleRouteMap);
+  }
+
+  return result as ExpandRouteMap<T>;
+}
+
+/** 获取展开后的路由类型 */
+export type ExpandedRouteMap<T extends Record<string, RouteTree>> = ReturnType<
+  typeof expandRouteMaps<T>
+>;

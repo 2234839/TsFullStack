@@ -4,11 +4,19 @@
   "type": "module",
   "private": true,
   "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
     "./api": {
       "import": "./dist/generated/api.js",
       "types": "./dist/generated/api.d.ts"
     },
     "./frontend": {
+      "import": "./dist/generated/frontend.js",
+      "types": "./dist/generated/frontend.d.ts"
+    },
+    "./routes": {
       "import": "./dist/generated/frontend.js",
       "types": "./dist/generated/frontend.d.ts"
     }
@@ -17,21 +25,17 @@
     "dist"
   ],
   "scripts": {
-    "prebuild": "tsx build-dependencies.ts",
-    "build": "tsx generate.ts && tsc --project tsconfig.build.json",
-    "build:lib": "tsc --project tsconfig.build.json",
-    "build:types": "tsc --project tsconfig.types.json",
-    "build:autoload": "pnpm prebuild && pnpm build",
-    "automate": "tsx automate-build.ts",
-    "dev": "tsx generate.ts --watch",
+    "build": "tsx automate-build.ts",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tsfullstack/module-template": "workspace:*",
-    "fast-glob": "^3.3.2"
+    "@tsfullstack/module-loader": "workspace:*",
+    "@tsfullstack/shared-frontend": "workspace:*"
   },
   "devDependencies": {
+    "fast-glob": "^3.3.2",
     "@types/node": "^20.10.0",
     "tsx": "^4.7.0",
     "turbo": "^1.12.3",

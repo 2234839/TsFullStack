@@ -9,6 +9,12 @@ catalogs:
     '@types/node':
       specifier: ^20.10.0
       version: 20.19.10
+    primeicons:
+      specifier: ^7.0.0
+      version: 7.0.0
+    primevue:
+      specifier: ^4.3.9
+      version: 4.3.9
     typescript:
       specifier: ~5.8.3
       version: 5.8.3
@@ -218,6 +224,12 @@ importers:
       '@tsfullstack/backend':
         specifier: workspace:*
         version: link:../backend
+      '@tsfullstack/module-autoload':
+        specifier: workspace:*
+        version: link:../../modules/module-autoload
+      '@tsfullstack/module-template':
+        specifier: workspace:*
+        version: link:../../modules/module-template
       '@tsfullstack/shared-frontend':
         specifier: workspace:*
         version: link:../../packages/shared-frontend
@@ -306,16 +318,22 @@ importers:
 
   modules/module-autoload:
     dependencies:
+      '@tsfullstack/module-loader':
+        specifier: workspace:*
+        version: link:../../packages/module-loader
       '@tsfullstack/module-template':
         specifier: workspace:*
         version: link:../module-template
-      fast-glob:
-        specifier: ^3.3.2
-        version: 3.3.3
+      '@tsfullstack/shared-frontend':
+        specifier: workspace:*
+        version: link:../../packages/shared-frontend
     devDependencies:
       '@types/node':
         specifier: ^20.10.0
         version: 20.19.10
+      fast-glob:
+        specifier: ^3.3.2
+        version: 3.3.3
       tsx:
         specifier: ^4.7.0
         version: 4.20.3
@@ -331,6 +349,12 @@ importers:
       '@tsfullstack/shared-frontend':
         specifier: workspace:*
         version: link:../../packages/shared-frontend
+      primeicons:
+        specifier: 'catalog:'
+        version: 7.0.0
+      primevue:
+        specifier: 'catalog:'
+        version: 4.3.9(vue@3.5.21(typescript@5.8.3))
     devDependencies:
       '@types/node':
         specifier: 'catalog:'
@@ -344,6 +368,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.8.3
+      unplugin-vue-components:
+        specifier: ^29.1.0
+        version: 29.1.0(@babel/parser@7.28.4)(vue@3.5.21(typescript@5.8.3))
       vite:
         specifier: npm:rolldown-vite@7.1.12
         version: rolldown-vite@7.1.12(@types/node@20.19.10)(esbuild@0.25.10)(jiti@2.6.0)(tsx@4.20.6)(yaml@2.7.1)
@@ -7056,11 +7083,24 @@ snapshots:
 
   '@primeuix/utils@0.6.1': {}
 
+  '@primevue/core@4.3.9(vue@3.5.21(typescript@5.8.3))':
+    dependencies:
+      '@primeuix/styled': 0.7.2
+      '@primeuix/utils': 0.6.1
+      vue: 3.5.21(typescript@5.8.3)
+
   '@primevue/core@4.3.9(vue@3.5.21(typescript@5.9.2))':
     dependencies:
       '@primeuix/styled': 0.7.2
       '@primeuix/utils': 0.6.1
       vue: 3.5.21(typescript@5.9.2)
+
+  '@primevue/icons@4.3.9(vue@3.5.21(typescript@5.8.3))':
+    dependencies:
+      '@primeuix/utils': 0.6.1
+      '@primevue/core': 4.3.9(vue@3.5.21(typescript@5.8.3))
+    transitivePeerDependencies:
+      - vue
 
   '@primevue/icons@4.3.9(vue@3.5.21(typescript@5.9.2))':
     dependencies:
@@ -10604,6 +10644,16 @@ snapshots:
 
   primeicons@7.0.0: {}
 
+  primevue@4.3.9(vue@3.5.21(typescript@5.8.3)):
+    dependencies:
+      '@primeuix/styled': 0.7.2
+      '@primeuix/styles': 1.2.3
+      '@primeuix/utils': 0.6.1
+      '@primevue/core': 4.3.9(vue@3.5.21(typescript@5.8.3))
+      '@primevue/icons': 4.3.9(vue@3.5.21(typescript@5.8.3))
+    transitivePeerDependencies:
+      - vue
+
   primevue@4.3.9(vue@3.5.21(typescript@5.9.2)):
     dependencies:
       '@primeuix/styled': 0.7.2
@@ -11508,6 +11558,22 @@ snapshots:
     dependencies:
       pathe: 2.0.3
       picomatch: 4.0.3
+
+  unplugin-vue-components@29.1.0(@babel/parser@7.28.4)(vue@3.5.21(typescript@5.8.3)):
+    dependencies:
+      chokidar: 3.6.0
+      debug: 4.4.3
+      local-pkg: 1.1.2
+      magic-string: 0.30.19
+      mlly: 1.8.0
+      tinyglobby: 0.2.15
+      unplugin: 2.3.10
+      unplugin-utils: 0.3.0
+      vue: 3.5.21(typescript@5.8.3)
+    optionalDependencies:
+      '@babel/parser': 7.28.4
+    transitivePeerDependencies:
+      - supports-color
 
   unplugin-vue-components@29.1.0(@babel/parser@7.28.4)(vue@3.5.21(typescript@5.9.2)):
     dependencies:

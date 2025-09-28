@@ -6,43 +6,30 @@ import {
 } from 'vue-router';
 import { t as i18n_t } from './i18n';
 import { computed, reactive } from 'vue';
-import { buildNestedTree, transformRoutes, getTargetRouter, type RouteNode, type RouteTree } from '@tsfullstack/shared-frontend/utils';
+import { buildNestedTree, transformRoutes, getTargetRouter, expandRouteMaps, type RouteNode, type RouteTree } from '@tsfullstack/shared-frontend/utils';
+
+// 导入 autoload 路由聚合
+import { routeMap as autoLoadRouteMap } from '@tsfullstack/module-autoload/frontend';
 /** path 为 "" 的子路由会自动渲染在父路由中 */
 export const defaultRoute = '';
 
 const t = (key: string) => computed(() => i18n_t(key));
 
-let routeModels: Record<string, RouteNode>;
-
-routeModels = import.meta.glob(`./**/*.routeMap.ts`, {
+const routeModels = import.meta.glob(`./**/*.routeMap.ts`, {
   import: 'default',
   eager: true,
-});
-
-
-// 动态导入启用的包路由
-const enabledPackages = import.meta.env.VITE_ENABLED_PACKAGES?.split(',') || [];
-console.log('Enabled packages:', enabledPackages);
-
-// 动态导入启用的包路由
-// enabledPackages.forEach(packageName => {
-//   try {
-//     // 通过正常的模块导入方式加载子包路由
-//     const packageRouteMap = require(`${packageName}/index.routeMap`).default;
-//     routeModels[`packages/${packageName}/index.routeMap`] = packageRouteMap;
-//     console.log(`Added route for package: ${packageName}`);
-//   } catch (error) {
-//     console.warn(`Failed to load route for package: ${packageName}`, error);
-//   }
-// });
-
+}) as Record<string, RouteNode>
 
 const routeModelTree = buildNestedTree(routeModels);
 
 console.log('Final routeModelTree:', routeModelTree);
 
+
+// 使用类型安全的动态路由展开，等同于手动写 ...autoLoadRouteMap.template, ...autoLoadRouteMap.template2 的效果
+const autoLoadAllRouteMap = expandRouteMaps(autoLoadRouteMap);
 export const routeMap = reactive({
   ...routeModelTree,
+  ...autoLoadAllRouteMap,
   index: {
     path: '/',
     component: () => import('@/pages/index.vue'),
@@ -207,6 +194,7 @@ export const routeMap = reactive({
     },
   },
 }) satisfies RouteTree;
+
 
 export const allRoutes: RouteNode[] = transformRoutes(routeMap);
 export { findRouteNode } from '@tsfullstack/shared-frontend/utils';

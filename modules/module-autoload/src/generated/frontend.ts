@@ -1,8 +1,10 @@
 // ABOUTME: 自动生成的前端聚合导入导出文件
-// 生成时间: 2025-09-25T10:41:13.171Z
+// 生成时间: 2025-09-28T12:03:19.865Z
 // 包含模块: module-template
 
+
 import * as template from '@tsfullstack/module-template/frontend';
+import templateRouteMap from '@tsfullstack/module-template/routeMap';
 
 export { template };
 export type * as templateTypes from '@tsfullstack/module-template/frontend';
@@ -17,8 +19,7 @@ export const components = {
   template
 };
 
-// 确保导出不被 tree-shaking 移除
-if (process.env.NODE_ENV === 'development') {
-  console.log('Frontend modules:', Object.keys(modules));
-  console.log('Frontend exports:', Object.keys(components));
-}
+// 聚合所有模块的路由映射
+export const routeMap = {
+  'template': templateRouteMap
+};

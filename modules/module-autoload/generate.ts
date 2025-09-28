@@ -12,6 +12,7 @@ interface BuildOptions {
   watch?: boolean;
   exclude?: string[];
   outputDir?: string;
+  skipDeps?: boolean;
 }
 
 async function build(options: BuildOptions = {}) {
@@ -42,17 +43,21 @@ async function build(options: BuildOptions = {}) {
   console.log('\n📝 生成聚合导入导出...');
   const { apiImports, frontendImports } = packageGenerator.generateModuleImports(modules);
 
-  // 重新安装依赖
-  console.log('\n📥 重新安装依赖...');
-  try {
-    execSync('pnpm install', {
-      cwd: __dirname,
-      stdio: 'inherit'
-    });
-    console.log('✅ 依赖安装完成');
-  } catch (error) {
-    console.error('❌ 依赖安装失败:', error);
-    process.exit(1);
+  // 重新安装依赖（除非跳过）
+  if (!options.skipDeps) {
+    console.log('\n📥 重新安装依赖...');
+    try {
+      execSync('pnpm install', {
+        cwd: __dirname,
+        stdio: 'inherit'
+      });
+      console.log('✅ 依赖安装完成');
+    } catch (error) {
+      console.error('❌ 依赖安装失败:', error);
+      process.exit(1);
+    }
+  } else {
+    console.log('\n⏭️  跳过依赖安装（使用现有依赖）');
   }
 
   // 写入生成的文件
@@ -72,19 +77,7 @@ async function build(options: BuildOptions = {}) {
   writeFileSync(join(outputDir, 'frontend.ts'), frontendImports);
   console.log('✅ 生成 Frontend 聚合导入');
 
-  // 编译 TypeScript (可选)
-  console.log('\n🔧 编译 TypeScript...');
-  try {
-    execSync('npx tsc --project tsconfig.json', {
-      cwd: __dirname,
-      stdio: 'inherit'
-    });
-    console.log('✅ TypeScript 编译完成');
-  } catch (error) {
-    console.warn('⚠️ TypeScript 编译警告，但构建继续');
-  }
-
-  console.log('\n🎉 构建完成！');
+  console.log('\n🎉 聚合代码生成完成！');
 }
 
 // 处理命令行参数
@@ -103,6 +96,10 @@ if (args.includes('--exclude')) {
 if (args.includes('--output')) {
   const outputIndex = args.indexOf('--output');
   options.outputDir = args[outputIndex + 1];
+}
+
+if (args.includes('--skip-deps')) {
+  options.skipDeps = true;
 }
 
 // 运行构建
