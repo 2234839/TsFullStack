@@ -5,7 +5,7 @@
 
 import { execSync } from 'child_process';
 import { readFileSync, writeFileSync, existsSync, readdirSync } from 'fs';
-import { join, dirname, relative } from 'path';
+import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -19,38 +19,61 @@ interface ModuleInfo {
   dependencies: string[];
 }
 
-// 获取所有模块信息
+// 获取所有模块信息 - 高性能优化版本
 function getAllModules(): ModuleInfo[] {
-  const modulesDir = join(__dirname, '..');
   const modules: ModuleInfo[] = [];
 
-  // 扫描模块目录
-  const moduleDirs = existsSync(modulesDir) ?
-    readdirSync(modulesDir).filter(dir =>
-      dir !== 'module-autoload' &&
-      existsSync(join(modulesDir, dir, 'package.json'))
-    ) : [];
+  // 使用批量文件系统操作，减少系统调用
+  const scanDirs = [
+    join(__dirname, '..'),          // modules 目录
+    join(__dirname, '..', '..', 'packages') // packages 目录
+  ];
 
-  for (const moduleDir of moduleDirs) {
-    const modulePath = join(modulesDir, moduleDir);
-    const packageJsonPath = join(modulePath, 'package.json');
-
+  // 批量检查目录存在性
+  const validDirs = scanDirs.filter(scanDir => {
     try {
-      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+      return existsSync(scanDir);
+    } catch {
+      return false;
+    }
+  });
 
-      // 获取模块依赖
-      const dependencies = Object.keys(packageJson.dependencies || {})
-        .filter(dep => dep.startsWith('@tsfullstack/') && dep !== '@tsfullstack/module-autoload');
-
-      modules.push({
-        name: moduleDir,
-        path: modulePath,
-        hasBuildScript: !!(packageJson.scripts?.build || packageJson.scripts?.['build:lib']),
-        buildOrder: 0, // 将在后续计算
-        dependencies
-      });
+  // 批量读取所有目录
+  for (const scanDir of validDirs) {
+    let dirs: string[];
+    try {
+      dirs = readdirSync(scanDir);
     } catch (error) {
-      console.warn(`⚠️  无法读取模块 ${moduleDir} 的 package.json: ${error.message}`);
+      console.warn(`⚠️  无法读取目录 ${scanDir}: ${error.message}`);
+      continue;
+    }
+
+    // 批量处理模块，减少重复的文件系统调用
+    const candidateDirs = dirs.filter(dir => dir !== 'module-autoload');
+
+    for (const dir of candidateDirs) {
+      const modulePath = join(scanDir, dir);
+      const packageJsonPath = join(modulePath, 'package.json');
+
+      if (!existsSync(packageJsonPath)) continue;
+
+      try {
+        const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+
+        // 获取模块依赖
+        const dependencies = Object.keys(packageJson.dependencies || {})
+          .filter(dep => dep.startsWith('@tsfullstack/') && dep !== '@tsfullstack/module-autoload');
+
+        modules.push({
+          name: dir,
+          path: modulePath,
+          hasBuildScript: !!(packageJson.scripts?.build || packageJson.scripts?.['build:lib']),
+          buildOrder: 0,
+          dependencies
+        });
+      } catch (error) {
+        console.warn(`⚠️  无法读取模块 ${dir} 的 package.json: ${error.message}`);
+      }
     }
   }
 
@@ -103,64 +126,41 @@ function calculateBuildOrder(modules: ModuleInfo[]): ModuleInfo[] {
   return ordered.sort((a, b) => a.buildOrder - b.buildOrder);
 }
 
-// 使用 turbo 增量构建
+// 使用 turbo 增量构建 - 简化版本，让 Turbo 自动处理并发
 function buildWithTurbo(modules: ModuleInfo[]): void {
   if (modules.length === 0) {
     console.log('📭 没有需要构建的模块');
     return;
   }
 
-  console.log('🔨 使用 turbo 进行增量构建...');
-
-  // 优化：使用正确的 workspace 名称格式
-  const moduleNames = modules.map(m => m.name);
-  const filterPattern = moduleNames.map(name => `@tsfullstack/${name}`).join(',');
+  console.log('🔨 使用 turbo 进行并行增量构建...');
 
   try {
     const rootDir = join(__dirname, '..', '..');
-    const turboCmd = `pnpm turbo build --filter="${filterPattern}"`;
 
-    console.log(`🚀 执行命令: ${turboCmd}`);
+    // 简化：直接使用 Turbo，让它自动处理依赖关系和并发
+    const moduleFilters = modules.map(m => `--filter=@tsfullstack/${m.name}`).join(' ');
+    const turboCmd = `pnpm turbo build ${moduleFilters}`;
+
+    console.log(`🚀 Turbo 自动并行构建模块: ${modules.map(m => m.name).join(', ')}`);
+    console.log(`🔧 构建命令: ${turboCmd}`);
+
     execSync(turboCmd, {
       stdio: 'inherit',
       cwd: rootDir,
-      timeout: 300000, // 5分钟超时
-      maxBuffer: 1024 * 1024 * 10 // 10MB buffer
+      timeout: 600000,
+      maxBuffer: 1024 * 1024 * 20,
+      env: { ...process.env, NODE_ENV: 'production' }
     });
 
-    console.log('✅ Turbo 增量构建完成');
+    console.log('✅ Turbo 并行增量构建完成');
   } catch (error) {
-    console.error('❌ Turbo 构建失败:', error.message);
-
-    // 回退到单独构建
-    console.log('🔄 回退到单独构建模式...');
-    buildModulesIndividually(modules);
+    console.error('❌ Turbo 并行构建失败:', error.message);
+    throw error;
   }
 }
 
-// 单独构建模块（fallback）
-function buildModulesIndividually(modules: ModuleInfo[]): void {
-  for (const module of modules) {
-    if (!module.hasBuildScript) {
-      console.log(`⏭️  跳过模块 ${module.name}（无构建脚本）`);
-      continue;
-    }
 
-    try {
-      console.log(`🔨 构建模块: ${module.name}`);
-      execSync('pnpm build', {
-        stdio: 'inherit',
-        cwd: module.path,
-        timeout: 180000, // 3分钟超时
-        maxBuffer: 1024 * 1024 * 10 // 10MB buffer
-      });
-      console.log(`✅ 模块 ${module.name} 构建完成`);
-    } catch (error) {
-      console.error(`❌ 模块 ${module.name} 构建失败:`, error.message);
-      throw error;
-    }
-  }
-}
 
 // 更新当前模块的依赖
 function updateAutoloadDependencies(modules: ModuleInfo[]): void {
@@ -187,20 +187,7 @@ function updateAutoloadDependencies(modules: ModuleInfo[]): void {
 
   writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
 
-  // 优化：只在必要时安装依赖
-  try {
-    console.log('📥 安装/更新依赖...');
-    execSync('pnpm install --frozen-lockfile=false', {
-      stdio: 'inherit',
-      cwd: __dirname,
-      timeout: 120000,
-      maxBuffer: 1024 * 1024 * 10
-    });
-    console.log('✅ 依赖更新完成');
-  } catch (error) {
-    console.error('❌ 依赖更新失败:', error.message);
-    throw error;
-  }
+  console.log('✅ 依赖配置更新完成（跳过安装，稍后统一处理）');
 }
 
 // 生成聚合代码
@@ -208,7 +195,8 @@ function generateAggregatedCode(): void {
   console.log('📝 生成聚合代码...');
 
   try {
-    execSync('tsx generate.ts', {
+    // 直接执行生成逻辑，避免重复的依赖安装
+    execSync('tsx generate.ts --skip-deps', {
       stdio: 'inherit',
       cwd: __dirname,
       timeout: 120000,
@@ -240,6 +228,71 @@ function buildAutoload(): void {
   }
 }
 
+// 统一依赖安装函数 - 高性能优化版本
+function installDependencies(): void {
+  console.log('📥 智能依赖安装...');
+
+  try {
+    const rootDir = join(__dirname, '..', '..');
+    const lockfilePath = join(rootDir, 'pnpm-lock.yaml');
+
+    // 检查是否真的需要安装依赖
+    if (existsSync(lockfilePath)) {
+      console.log('📋 检测到 lockfile，使用智能增量安装...');
+
+      // 使用更高效的 pnpm 参数
+      const installCmd = process.env.CI
+        ? 'pnpm install --frozen-lockfile=true --silent'
+        : 'pnpm install --frozen-lockfile=false --prefer-offline --reporter=silent';
+
+      execSync(installCmd, {
+        stdio: 'inherit',
+        cwd: rootDir,
+        timeout: 300000,
+        maxBuffer: 1024 * 1024 * 10,
+        env: {
+          ...process.env,
+          PNPM_CACHE_FOLDER: join(rootDir, '.pnpm-cache'),
+          NODE_ENV: 'production'
+        }
+      });
+    } else {
+      console.log('📋 未检测到 lockfile，执行优化安装...');
+
+      execSync('pnpm install --frozen-lockfile=false --prefer-offline', {
+        stdio: 'inherit',
+        cwd: rootDir,
+        timeout: 600000, // 增加超时时间
+        maxBuffer: 1024 * 1024 * 20, // 增加 buffer
+        env: {
+          ...process.env,
+          PNPM_CACHE_FOLDER: join(rootDir, '.pnpm-cache'),
+          NODE_ENV: 'production'
+        }
+      });
+    }
+
+    console.log('✅ 依赖安装完成');
+  } catch (error) {
+    console.error('❌ 依赖安装失败:', error.message);
+
+    // 回退到保守的安装方式
+    console.log('🔄 回退到保守安装方式...');
+    try {
+      const rootDir = join(__dirname, '..', '..');
+      execSync('pnpm install', {
+        stdio: 'inherit',
+        cwd: rootDir,
+        timeout: 900000,
+        maxBuffer: 1024 * 1024 * 30
+      });
+    } catch (fallbackError) {
+      console.error('❌ 保守安装也失败:', fallbackError.message);
+      throw fallbackError;
+    }
+  }
+}
+
 // 主函数
 async function main() {
   console.log('🚀 启动完全自动化构建流程...\n');
@@ -252,6 +305,10 @@ async function main() {
 
     if (allModules.length === 0) {
       console.log('📭 没有发现其他模块，跳过依赖构建');
+      // 仍然需要安装依赖、生成聚合代码和构建 autoload
+      installDependencies();
+      generateAggregatedCode();
+      buildAutoload();
     } else {
       // 2. 计算构建顺序
       console.log('📊 计算构建顺序...');
@@ -267,13 +324,18 @@ async function main() {
         buildWithTurbo(buildableModules);
       }
 
+      // 5. 更新 autoload 依赖
+      updateAutoloadDependencies(orderedModules);
+
+      // 6. 统一安装所有依赖
+      installDependencies();
+
+      // 7. 生成聚合代码（跳过重复的依赖安装）
+      generateAggregatedCode();
+
+      // 8. 构建 autoload 模块
+      buildAutoload();
     }
-
-    // 5. 生成聚合代码（内部会处理依赖更新）
-    generateAggregatedCode();
-
-    // 6. 构建 autoload 模块
-    buildAutoload();
 
     console.log('\n🎉 完全自动化构建流程完成！');
     console.log('📦 输出文件: dist/');

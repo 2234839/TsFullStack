@@ -122,21 +122,25 @@ if (process.env.NODE_ENV === 'development') {
 
   private generateFrontendImports(modules: ModuleInfo[]): string {
     if (modules.length === 0) {
-      return '// 没有找到前端模块\nexport const components = {};';
+      return '// 没有找到前端模块\nexport const components = {};\nexport const routeMap = {};';
     }
 
     const imports: string[] = [];
     const exports: string[] = [];
     const typeExports: string[] = [];
+    const routeImports: string[] = [];
+    const routeExports: string[] = [];
 
     modules.forEach(module => {
       const moduleName = module.name.replace('module-', '');
 
       imports.push(`import * as ${moduleName} from '@tsfullstack/${module.name}/frontend';`);
-      // typeImports.push(`import type * as ${moduleName}Types from '@tsfullstack/${module.name}/frontend';`);
-
       exports.push(`export { ${moduleName} };`);
       typeExports.push(`export type * as ${moduleName}Types from '@tsfullstack/${module.name}/frontend';`);
+
+      // 路由聚合 - 使用直接导入
+      routeImports.push(`import ${moduleName}RouteMap from '@tsfullstack/${module.name}/routeMap';`);
+      routeExports.push(`  '${moduleName}': ${moduleName}RouteMap`);
     });
 
     return `
@@ -144,7 +148,9 @@ if (process.env.NODE_ENV === 'development') {
 // 生成时间: ${new Date().toISOString()}
 // 包含模块: ${modules.map(m => m.name).join(', ')}
 
+
 ${imports.join('\n')}
+${routeImports.join('\n')}
 
 ${exports.join('\n')}
 ${typeExports.join('\n')}
@@ -159,14 +165,16 @@ export const components = {
 ${modules.map(m => `  ${m.name.replace('module-', '')}`).join(',\n  ')}
 };
 
-// 确保导出不被 tree-shaking 移除
-if (process.env.NODE_ENV === 'development') {
-  console.log('Frontend modules:', Object.keys(modules));
-  console.log('Frontend exports:', Object.keys(components));
-}
+// 聚合所有模块的路由映射
+export const routeMap = {
+${routeExports.map(exp => exp.replace(',', '')).join(',\n')}
+};
+
+
 `.trim();
   }
 
+  
   private generateCompletePackageJson(modules: ModuleInfo[]): any {
     const basePackage = this.readPackageJson();
 

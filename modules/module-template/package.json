@@ -16,6 +16,10 @@
       "import": "./dist/frontend/frontend.js",
       "require": "./dist/frontend/frontend.umd.cjs",
       "types": "./dist/frontend/types/index.d.ts"
+    },
+    "./routeMap": {
+      "import": "./dist/frontend/routeMap.js",
+      "types": "./dist/frontend/types/src/routeMap.d.ts"
     }
   },
   "files": [
@@ -39,13 +43,16 @@
   },
   "peerDependencies": {
     "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue-router": "catalog:",
+    "primevue": "catalog:",
+    "primeicons": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/tsconfig": "^0.8.1",
     "typescript": "catalog:",
+    "unplugin-vue-components": "^29.1.0",
     "vite": "npm:rolldown-vite@7.1.12",
     "vite-plugin-dts": "^4.5.4",
     "vue": "catalog:",
