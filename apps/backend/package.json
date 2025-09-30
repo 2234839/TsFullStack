@@ -3,7 +3,6 @@
   "type": "module",
   "scripts": {
     "build": "tsup --config tsup-build.config.ts",
-    "build:w": "",
     "build:publish": "pnpm build:lib && pnpm --filter website-frontend build && pnpm build && pnpm publish:server",
     "publish:server": "bash ./publish.sh",
     "tsc:b": "tsc -b",
@@ -16,7 +15,7 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest watch"
+    "build:projects": "tsx src/scripts/build-projects.ts"
   },
   "main": "./dist-lib/index.js",
   "types": "./dist-lib/index.d.ts",
@@ -29,7 +28,6 @@
     "@fastify/multipart": "^9.2.1",
     "@fastify/static": "^8.2.0",
     "@prisma/client": "6.16.2",
-    "@tsfullstack/module-autoload": "workspace:*",
     "@zenstackhq/runtime": "^2.19.0",
     "bcryptjs": "^3.0.2",
     "c12": "^3.3.0",
@@ -46,6 +44,7 @@
     "@vitest/coverage-v8": "^3.2.4",
     "prisma": "6.16.2",
     "tsup": "^8.5.0",
+    "tsx": "^4.6.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   }

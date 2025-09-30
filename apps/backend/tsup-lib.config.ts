@@ -27,7 +27,6 @@ export default defineConfig({
   external: [
     '@prisma/client',
     '@zenstackhq/runtime',
-    '@tsfullstack/module-autoload',
     'effect',
     'fastify',
     'superjson',

@@ -5,17 +5,14 @@
     "moduleResolution": "bundler", // 与 Node.js 的模块解析策略兼容
     "module": "preserve",
     "outDir": "./dist", // 输出目录
-    "rootDir": "./src", // 源代码目录
+    "rootDir": "./", // 项目根目录
     "sourceMap": true, // 生成 source map 便于调试
-    "declaration": true, // 生成类型声明文件 (.d.ts)
     "strict": true, // 启用所有严格类型检查选项
     /* 严格模式扩展选项 */
     "noImplicitAny": true, // 禁止隐式 any 类型
     "strictNullChecks": true, // 严格的 null 和 undefined 检查
     "strictFunctionTypes": true, // 严格的函数类型检查
     "strictBindCallApply": true, // 严格的 bind/call/apply 检查
-    "allowImportingTsExtensions": true,
-    "emitDeclarationOnly":true,
     "noImplicitThis": true, // 禁止隐式 this 类型
     "alwaysStrict": true, // 在解析时启用严格模式
     /* 其他推荐选项 */
@@ -27,11 +24,11 @@
     "noFallthroughCasesInSwitch": true, // 防止 switch 语句的 case 穿透
     "noImplicitReturns": true, // 确保函数有显式返回
     "noUncheckedIndexedAccess": true, // 索引访问时检查 undefined
-    "declarationMap": true  //生成 .d.ts.map
   },
   "include": [
-    "src/**/*"
-  ], // 包含 src 目录下的所有文件
+    "src/**/*",
+    "projects/**/*"
+  ], // 包含 src 和 projects 目录下的所有文件
   "exclude": [
     "node_modules",
     "dist"
