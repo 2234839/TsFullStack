@@ -7,7 +7,7 @@ import {
 import { t as i18n_t } from './i18n';
 import { computed, reactive } from 'vue';
 import { buildNestedTree, transformRoutes, getTargetRouter, type RouteNode, type RouteTree } from '@tsfullstack/shared-frontend/utils';
-import { routeModels, routeStats } from './routes';
+import { routeModels } from './routes';
 /** path 为 "" 的子路由会自动渲染在父路由中 */
 export const defaultRoute = '';
 

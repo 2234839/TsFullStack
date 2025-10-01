@@ -2,7 +2,6 @@
 import type { Plugin } from 'vite'
 import { readdirSync, existsSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
-import { fileURLToPath } from 'url'
 
 interface VitePluginAutoRoutesOptions {
   /** 是否在开发模式下监听文件变化 */
