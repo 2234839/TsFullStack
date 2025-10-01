@@ -9,6 +9,6 @@
 
   const { API } = useAPI();
   const test = useAsyncState(() => {
-    return API.moduleApis.template.api.test();
+    return API.testApi.并发控制();
   }, undefined);
 </script>
