@@ -6,30 +6,18 @@ import {
 } from 'vue-router';
 import { t as i18n_t } from './i18n';
 import { computed, reactive } from 'vue';
-import { buildNestedTree, transformRoutes, getTargetRouter, expandRouteMaps, type RouteNode, type RouteTree } from '@tsfullstack/shared-frontend/utils';
-
-// 导入 autoload 路由聚合
-import { routeMap as autoLoadRouteMap } from '@tsfullstack/module-autoload/frontend';
+import { buildNestedTree, transformRoutes, getTargetRouter, type RouteNode, type RouteTree } from '@tsfullstack/shared-frontend/utils';
+import { routeModels, routeStats } from './routes';
 /** path 为 "" 的子路由会自动渲染在父路由中 */
 export const defaultRoute = '';
 
 const t = (key: string) => computed(() => i18n_t(key));
 
-const routeModels = import.meta.glob(`./**/*.routeMap.ts`, {
-  import: 'default',
-  eager: true,
-}) as Record<string, RouteNode>
-
 const routeModelTree = buildNestedTree(routeModels);
 
-console.log('Final routeModelTree:', routeModelTree);
 
-
-// 使用类型安全的动态路由展开，等同于手动写 ...autoLoadRouteMap.template, ...autoLoadRouteMap.template2 的效果
-const autoLoadAllRouteMap = expandRouteMaps(autoLoadRouteMap);
 export const routeMap = reactive({
   ...routeModelTree,
-  ...autoLoadAllRouteMap,
   index: {
     path: '/',
     component: () => import('@/pages/index.vue'),
@@ -190,6 +178,22 @@ export const routeMap = reactive({
     component: () => import('@/pages/Redirect.vue'),
     meta: {
       title: t('重定向'),
+      hideTab: true,
+    },
+  },
+  debug: {
+    path: '/debug',
+    component: () => import('@/pages/debug.vue'),
+    meta: {
+      title: '调试页面',
+      hideTab: true,
+    },
+  },
+  notFound: {
+    path: '/:pathMatch(.*)*',
+    component: () => import('@/pages/NotFound.vue'),
+    meta: {
+      title: '页面不存在',
       hideTab: true,
     },
   },

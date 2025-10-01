@@ -55,7 +55,7 @@
           :longDescription="$t('支持个人资料管理、任务记录查看、自定义偏好设置等功能。')"
           imageUrl="https://image.pollinations.ai/prompt/user%20profile%20interface..."
           :routePath="routerUtil.to(routeMap.login, {}, { r: $route.fullPath })" />
-      </div>
+        </div>
     </div>
     <SponsorshipCard />
   </div>
