@@ -32,10 +32,12 @@ function handleCause(cause: Cause.Cause<Error>) {
       if (error.meta && 'reason' in error.meta) {
         if (error.meta.reason === 'ACCESS_POLICY_VIOLATION') {
           err = { message: '权限不足' };
+        } else {
+          err = { message: error.meta.reason as string };
         }
-        err = { message: error.meta.reason as string };
+      } else {
+        err = { message: '数据模型调用错误' };
       }
-      err = { message: '数据模型调用错误' };
     } else if (error instanceof Error) {
       err = { message: error.message };
     }
@@ -44,17 +46,23 @@ function handleCause(cause: Cause.Cause<Error>) {
   let CauseMsg = Cause.match(cause, {
     onEmpty: '(empty)',
     onFail: setErr,
-    onDie: (defect) => `(defect: ${defect})`,
+    onDie: (defect) => {
+      if (defect instanceof Error) {
+        err = { message: defect.message };
+      } else {
+        err = { message: String(defect) };
+      }
+      return `(defect: ${defect})`;
+    },
     onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
     onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
     onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
   });
 
-  console.log('[未得到正确处理的 cause]', cause, CauseMsg);
   if (err) {
     return err;
   }
-  return { message: '未知错误' };
+  return { message: CauseMsg };
 }
 
 // 参数解析函数

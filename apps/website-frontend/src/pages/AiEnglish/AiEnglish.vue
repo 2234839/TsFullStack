@@ -734,8 +734,20 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
     // AI分析
     isAnalyzing.value = true;
-    aiAnalysis.value = await analyzeArticleWithAI(text);
-    isAnalyzing.value = false;
+    try {
+      aiAnalysis.value = await analyzeArticleWithAI(text);
+    } catch (error) {
+      console.error('AI分析失败:', error);
+      // 显示错误提示给用户
+      toast.add({
+        severity: 'error',
+        summary: 'AI分析失败',
+        detail: error instanceof Error ? error.message : '未知错误',
+        life: 3000,
+      });
+    } finally {
+      isAnalyzing.value = false;
+    }
 
     toast.add({
       severity: 'success',
@@ -890,25 +902,36 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     // 获取AI翻译（如果缺失）
     if (!wordData.aiTranslation || options?.forceAi) {
       isTranslating.value = true;
-      const aiResult = await translateWithAI(word, currentText.value);
-      const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
-      if (oldWordData) {
-        updateWordDatas([
-          {
-            ...oldWordData,
-            memoryLevel: newMemoryLevel,
-            clickCount: oldWordData.clickCount + 1,
-            lastClickTime: new Date(),
-            aiTranslation: aiResult.translation,
-            difficulty: aiResult.difficulty,
-            examples: aiResult.examples,
-            grammar: aiResult.grammar,
-            pronunciation: aiResult.pronunciation,
-          },
-        ]);
+      try {
+        const aiResult = await translateWithAI(word, currentText.value);
+        const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
+        if (oldWordData) {
+          updateWordDatas([
+            {
+              ...oldWordData,
+              memoryLevel: newMemoryLevel,
+              clickCount: oldWordData.clickCount + 1,
+              lastClickTime: new Date(),
+              aiTranslation: aiResult.translation,
+              difficulty: aiResult.difficulty,
+              examples: aiResult.examples,
+              grammar: aiResult.grammar,
+              pronunciation: aiResult.pronunciation,
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error('AI翻译失败:', error);
+        // 显示错误提示给用户
+        toast.add({
+          severity: 'error',
+          summary: 'AI翻译失败',
+          detail: error instanceof Error ? error.message : '未知错误',
+          life: 3000,
+        });
+      } finally {
+        isTranslating.value = false;
       }
-
-      isTranslating.value = false;
     } else {
       const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
       if (oldWordData) {
