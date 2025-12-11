@@ -1,15 +1,37 @@
 /** ABOUTME: AI 相关的共享类型定义文件 */
 
+/** OpenAI Tool 定义 */
+export interface OpenAITool {
+  type: 'function';
+  function: {
+    name: string;
+    description?: string;
+    parameters: Record<string, unknown>;
+    strict?: boolean;
+  };
+}
+
 /** OpenAI API 请求接口 */
 export interface OpenAIRequest {
   model?: string;
   messages: Array<{
-    role: 'system' | 'user' | 'assistant';
-    content: string;
+    role: 'system' | 'user' | 'assistant' | 'tool';
+    content?: string;
+    tool_call_id?: string;
+    tool_calls?: Array<{
+      id: string;
+      type: 'function';
+      function: {
+        name: string;
+        arguments: string;
+      };
+    }>;
   }>;
   temperature?: number;
   max_tokens?: number;
   stream?: boolean;
+  tools?: OpenAITool[];
+  tool_choice?: 'none' | 'auto' | 'required' | { type: 'function'; function: { name: string } };
   /**
    * 是否开启思维链(当开启后 GLM-4.5 为模型自动判断是否思考，GLM-4.5V 为强制思考), 默认: enabled.
    * https://docs.bigmodel.cn/api-reference/%E6%A8%A1%E5%9E%8B-api/%E5%AF%B9%E8%AF%9D%E8%A1%A5%E5%85%A8#body-thinking
@@ -30,7 +52,15 @@ export interface OpenAIResponse {
     index: number;
     message: {
       role: string;
-      content: string;
+      content?: string;
+      tool_calls?: Array<{
+        id: string;
+        type: 'function';
+        function: {
+          name: string;
+          arguments: string;
+        };
+      }>;
     };
     finish_reason: string;
   }>;
