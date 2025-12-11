@@ -1,4 +1,4 @@
-import type { RouteNode } from '../../src/router'
+import { type RouteNode } from '@tsfullstack/shared-frontend/utils';
 
 export default {
   autoRouteTest: {

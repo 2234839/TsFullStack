@@ -1,20 +1,20 @@
 packages:
-  - 'packages/*'
-  - 'apps/*'
-  - 'modules/*'
-  - 'examples/*'
+  - packages/*
+  - apps/*
+  - modules/*
+  - examples/*
 
 catalog:
-  vue: ^3.5.21
-  vue-router: ^4.5.1
   '@types/node': ^20.10.0
+  primeicons: ^7.0.0
+  primevue: ^4.3.9
   typescript: ~5.8.3
   vite: ^7.1.7
-  primevue: ^4.3.9
-  primeicons: ^7.0.0
+  vue: ^3.5.25
+  vue-router: ^4.6.3
 
 settings:
   autoInstallPeers: true
-  excludeLinksFromLockfile: false
   dedupe-peer-dependents: true
+  excludeLinksFromLockfile: false
   prefer-workspace-packages: true

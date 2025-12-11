@@ -310,7 +310,7 @@
     try {
       const response = await callAiResponseJSON(prompt);
       if (response) {
-        analysisResult.value = response;
+        analysisResult.value = response as any;
       } else {
         error.value = 'AI返回内容为空。';
       }
