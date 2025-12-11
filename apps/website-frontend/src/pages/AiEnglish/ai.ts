@@ -15,6 +15,11 @@ export interface WordAnalysis {
   examples: string[];
   grammar: string;
   pronunciation: string;
+  definition?: string;
+  synonyms?: string[];
+  wordFamily?: string[];
+  collocations?: string[];
+  tips?: string;
 }
 const openAIConfig = useOpenAIConfig();
 // 获取动态AI配置
@@ -27,122 +32,166 @@ const getAIConfig = () => ({
 });
 
 // 统一的 AI 请求函数 - 支持混合模式（用户配置优先，后台代理兜底）
-export async function fetchAI(prompt: string, options?: { forceProxy?: boolean }): Promise<any> {
+export async function fetchAI(prompt: string, options?: {
+  forceProxy?: boolean;
+  tools?: Array<{
+    type: 'function';
+    function: {
+      name: string;
+      description?: string;
+      parameters: Record<string, unknown>;
+    };
+  }>;
+  tool_choice?: 'none' | 'auto' | 'required' | { type: 'function'; function: { name: string } };
+}) {
   const config = getAIConfig();
   const { API } = useAPI();
 
+  // 构建基础请求
+  const baseRequest = {
+    model: config.model,
+    messages: [{ role: 'user' as const, content: prompt }],
+    temperature: config.temperature,
+    max_tokens: config.maxTokens,
+    ...(options?.tools && { tools: options.tools }),
+    ...(options?.tool_choice && { tool_choice: options.tool_choice }),
+  };
+
   // 如果用户配置了API Key且不是强制使用代理，使用用户配置
   if (config.apiKey && !options?.forceProxy) {
-    try {
-      const response = await fetch(`${config.apiBase}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${config.apiKey}`,
-        },
-        body: JSON.stringify({
-          model: config.model,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: config.temperature,
-          max_tokens: config.maxTokens,
-        }),
-      });
+    console.log('使用用户配置的AI服务');
+    const response = await fetch(`${config.apiBase}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify(baseRequest),
+    });
 
-      if (!response.ok) {
-        throw new Error(`用户配置API请求失败: ${response.status}`);
-      }
-
-      console.log('使用用户配置的AI服务');
-      return await response.json();
-    } catch (error) {
-      console.warn('用户配置API调用失败，尝试使用后台代理:', error);
-      // 继续尝试后台代理
+    if (!response.ok) {
+      throw new Error(`用户配置API请求失败: ${response.status}`);
     }
+
+    return await response.json();
   }
 
   // 使用后台代理
-  try {
-    const response = await API.aiApi.proxyOpenAI({
-      model: config.model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: config.temperature,
-      max_tokens: config.maxTokens,
-    }) as any;
+  const response = await API.aiApi.proxyOpenAI(baseRequest);
+  console.log('后台代理响应:', response);
 
-    // 转换为OpenAI格式
-    console.log('使用后台代理AI服务');
-    return {
-      id: response.id || 'proxy-id',
-      object: response.object || 'chat.completion',
-      created: response.created || Date.now(),
-      model: response.model || config.model,
-      choices: response.choices || [],
-      usage: response.usage || {},
-    };
-  } catch (error) {
-    console.error('后台代理API调用失败:', error);
-
-    if (config.apiKey) {
-      throw new Error('AI服务暂时不可用，请稍后重试');
-    } else {
-      throw new Error('后台AI服务暂时不可用，您可以配置自己的AI密钥使用');
-    }
-  }
+  // RPC 系统已经返回了正确类型的数据
+  return response;
 }
 
 // 统一的JSON解析函数
-export async function callAiResponseJSON(prompt: string): Promise<any> {
+export async function callAiResponseJSON(prompt: string) {
   const data = await fetchAI(prompt);
   const content = data.choices[0].message.content;
   return JSON_parse_AIResponse(content);
 }
 
-// 批量单词分析 - 一次请求分析多个单词
+
+// 批量单词分析 - 使用 Function Calling
 export const analyzeWordsBatch = async (
   words: { word: string; context?: string }[],
 ): Promise<Record<string, WordAnalysis>> => {
   if (words.length === 0) return {};
 
-  const prompt = `作为英语词汇专家，请批量分析以下${
-    words.length
-  }个英文单词，每个单词提供完整的学习信息：
+  const wordsList = words
+    .map(
+      ({ word, context }, index) =>
+        `${index + 1}. "${word}"${context ? ` (句子:"${context}")` : ''}`,
+    )
+    .join('\n');
 
-${words
-  .map(
-    ({ word, context }, index) => `${index + 1}. "${word}"${context ? ` (句子:"${context}")` : ''}`,
-  )
-  .join('\n')}
+  const prompt = `作为英语词汇专家，请批量分析以下 ${words.length} 个英文单词：
 
-对每个单词返回以下信息：
-- translation: 精准简洁的中文翻译
-- difficulty: 难度等级(1-10，基于CEFR标准)
-- examples: 2个实用英文例句
-- grammar: 核心语法信息(词性、用法)
-- pronunciation: 标准音标
+${wordsList}
 
-请按以下JSON格式返回：
-{
-  "单词1": {"translation":"","difficulty":0,"examples":[],"grammar":"","pronunciation":""},
-  "单词2": {"translation":"","difficulty":0,"examples":[],"grammar":"","pronunciation":""}
-}`;
+为每个单词提供完整的学习信息，包括：
+- 最准确的中文翻译（1-8个字）
+- 根据CEFR标准评级（A1=1, A2=2, B1=4, B2=6, C1=8, C2=10）
+- 2个完整的英文例句（包含上下文）
+- 词性和基本用法（15-30字）
+- 国际音标
+- 英文释义
+- 近义词
+- 词族
+- 常用搭配
+- 学习提示`;
 
-  try {
-    const result = await callAiResponseJSON(prompt);
-    return result;
-  } catch {
-    // 如果批量失败，回退到单个分析
-    const results: Record<string, WordAnalysis> = {};
-    for (const { word } of words) {
-      results[word] = {
-        translation: '分析失败',
-        difficulty: 5,
-        examples: [],
-        grammar: '',
-        pronunciation: '',
-      };
-    }
-    return results;
+  // 创建 Function Calling 的参数 schema
+  const properties: Record<string, unknown> = {};
+  const required: string[] = [];
+
+  words.forEach(({ word }) => {
+    const wordProperties: Record<string, unknown> = {
+      type: 'object',
+      description: `${word} 的学习分析`,
+      properties: {
+        translation: { type: 'string', description: '中文翻译' },
+        difficulty: { type: 'number', description: '难度等级(1-10)' },
+        definition: { type: 'string', description: '英文释义' },
+        examples: { type: 'array', items: { type: 'string' }, description: '例句' },
+        grammar: { type: 'string', description: '词性和基本用法' },
+        pronunciation: { type: 'string', description: '国际音标' },
+        synonyms: { type: 'array', items: { type: 'string' }, description: '近义词' },
+        wordFamily: { type: 'array', items: { type: 'string' }, description: '词族' },
+        collocations: { type: 'array', items: { type: 'string' }, description: '搭配' },
+        tips: { type: 'string', description: '学习提示' },
+      },
+      required: [
+        'translation',
+        'difficulty',
+        'definition',
+        'examples',
+        'grammar',
+        'pronunciation',
+        'synonyms',
+        'wordFamily',
+        'collocations',
+        'tips',
+      ],
+    };
+    properties[word] = wordProperties;
+    required.push(word);
+  });
+
+  const parametersSchema: Record<string, unknown> = {
+    type: 'object',
+    properties,
+    required,
+  };
+
+  const result = await callAiWithFunctionCalling<Record<string, WordAnalysis>>(
+    prompt,
+    'analyzeWordsBatch',
+    '批量分析英文单词的学习信息',
+    parametersSchema,
+  );
+
+  if (result.success && result.data) {
+    return result.data;
   }
+
+  // 如果批量失败，回退到默认值而不是单个分析（避免额外的 API 调用）
+  const results: Record<string, WordAnalysis> = {};
+  for (const { word } of words) {
+    results[word] = {
+      translation: result.error || '分析失败',
+      difficulty: 5,
+      examples: [`分析 "${word}" 时出现错误，请稍后重试。`],
+      grammar: '',
+      pronunciation: '',
+      definition: '',
+      synonyms: [],
+      wordFamily: [],
+      collocations: [],
+      tips: `批量分析 "${word}" 失败，建议稍后重新分析。`,
+    };
+  }
+  return results;
 };
 
 // 单个单词分析（使用批量优化）
@@ -211,30 +260,61 @@ export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> =>
 
 "${text}"
 
-请提供结构化分析：
-1. 文章难度评级（1-10）：基于CEFR标准，考虑词汇复杂度、句式结构、主题深度
-2. 建议学习时间（分钟）：包含阅读、词汇学习、理解验证的时间分配
-3. 关键词汇（5个）：选择最具学习价值的核心词汇
-4. 学习建议（3条）：针对文章特点的具体学习策略
+请提供结构化分析，评估文章的学习价值和难度，包括：
+- 基于词汇复杂度、句式结构、主题深度的综合难度评级（1-10分）
+- 合理估算阅读、词汇学习、理解验证所需时间（分钟）
+- 筛选5个最有学习价值的核心词汇（排除过于简单或罕见的词汇）
+- 提供3条具体、可操作的学习建议
 
-请严格按以下JSON格式返回：
-{
-  "articleDifficulty": 7,
-  "suggestedStudyTime": 25,
-  "keyWords": ["vocabulary1", "vocabulary2", "vocabulary3", "vocabulary4", "vocabulary5"],
-  "learningTips": ["specific tip 1", "specific tip 2", "specific tip 3"]
-}`;
+评分标准：
+- A1-A2 (1-3分): 简单词汇，基础句式，日常话题
+- B1-B2 (4-7分): 中等词汇，复合句式，通用话题
+- C1-C2 (8-10分): 高级词汇，复杂句式，专业话题`;
 
-  try {
-    return await callAiResponseJSON(prompt);
-  } catch {
-    return {
-      articleDifficulty: 5,
-      suggestedStudyTime: 15,
-      keyWords: [],
-      learningTips: ['AI分析服务暂时不可用'],
-    };
+  // 创建 Function Calling 的参数 schema
+  const parametersSchema: Record<string, unknown> = {
+    type: 'object',
+    properties: {
+      articleDifficulty: {
+        type: 'number',
+        description: '文章难度等级（1-10分）',
+      },
+      suggestedStudyTime: {
+        type: 'number',
+        description: '建议学习时间（分钟）',
+      },
+      keyWords: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '核心词汇列表',
+      },
+      learningTips: {
+        type: 'array',
+        items: { type: 'string' },
+        description: '学习建议',
+      },
+    },
+    required: ['articleDifficulty', 'suggestedStudyTime', 'keyWords', 'learningTips'],
+  };
+
+  const result = await callAiWithFunctionCalling<AIAnalysis>(
+    prompt,
+    'analyzeArticle',
+    '分析英文文章的学习特征和难度',
+    parametersSchema,
+  );
+
+  if (result.success && result.data) {
+    return result.data;
   }
+
+  // 分析失败时返回默认值
+  return {
+    articleDifficulty: 5,
+    suggestedStudyTime: 15,
+    keyWords: [],
+    learningTips: [result.error || 'AI分析服务暂时不可用'],
+  };
 };
 
 export function useCreateMixedTranslation({
@@ -280,21 +360,214 @@ export function useCreateMixedTranslation({
     }
   };
 }
-export function JSON_parse_AIResponse(resStr: string) {
-  let jsonStr;
-  try {
-    // 如果ai输出的是markdown 代码块形式的json，这里去除掉外层的代码块符号
-    if (resStr.startsWith('```')) {
-      const lines = resStr.trim().split('\n');
-      lines[0] = '';
-      lines[lines.length - 1] = '';
-      jsonStr = lines.join('\n').trim();
-    } else {
-      jsonStr = resStr.trim();
+
+// JSON 模式定义，用于生成 prompt 中的格式说明
+interface JsonSchemaField {
+  type: 'string' | 'number' | 'boolean' | 'array' | 'object';
+  description: string;
+  example?: unknown;
+  required?: boolean;
+  items?: JsonSchemaField;
+  properties?: Record<string, JsonSchemaField>;
+}
+
+// 生成 JSON 格式说明
+function generateJsonFormatExample(schema: Record<string, JsonSchemaField>): string {
+  const generateExample = (field: JsonSchemaField): unknown => {
+    switch (field.type) {
+      case 'string':
+        return field.example || '';
+      case 'number':
+        return field.example || 0;
+      case 'boolean':
+        return field.example || false;
+      case 'array':
+        return field.example || [];
+      case 'object':
+        const obj: Record<string, unknown> = {};
+        if (field.properties) {
+          for (const [key, prop] of Object.entries(field.properties)) {
+            obj[key] = generateExample(prop);
+          }
+        }
+        return obj;
+      default:
+        return null;
     }
-    const jsonObj = JSON.parse(jsonStr);
-    return jsonObj;
-  } catch (error: unknown) {
-    throw error as Error;
+  };
+
+  const example: Record<string, unknown> = {};
+  for (const [key, field] of Object.entries(schema)) {
+    example[key] = generateExample(field);
   }
+
+  return JSON.stringify(example, null, 2);
+}
+
+// 生成严格的 JSON 格式 prompt
+function generateStrictJsonPrompt(
+  schema: Record<string, JsonSchemaField>,
+  additionalInstructions?: string,
+): string {
+  const formatExample = generateJsonFormatExample(schema);
+
+  return `
+📝 **重要：必须严格按照 JSON 格式返回**
+
+请严格按照以下 JSON 格式返回数据，不要包含任何其他文字说明：
+
+${formatExample}
+
+**格式要求：**
+- 返回纯 JSON 格式，不要用代码块包裹
+- 所有字符串字段使用双引号
+- 数组字段使用 []
+- 对象字段使用 {}
+- 数字不要用引号
+- 布尔值用 true/false
+
+${additionalInstructions || ''}
+
+请直接返回 JSON，不要添加任何解释文字。`;
+}
+
+// 增强的 JSON 解析函数 - 支持多种容错机制
+export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
+  // 尝试直接解析
+  try {
+    return JSON.parse(resStr.trim());
+  } catch (error) {
+    // 尝试去除 markdown 代码块
+    try {
+      if (resStr.includes('```')) {
+        const codeBlockMatch = resStr.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+        if (codeBlockMatch && codeBlockMatch[1]) {
+          const jsonStr = codeBlockMatch[1].trim();
+          return JSON.parse(jsonStr);
+        }
+      }
+    } catch (error) {
+      // 继续下一个方法
+    }
+
+    // 尝试智能修复
+    try {
+      let repairedStr = resStr.trim();
+
+      // 移除可能的前缀和后缀
+      repairedStr = repairedStr.replace(/^[\s\S]*?(\{)/, '$1');
+      repairedStr = repairedStr.replace(/(\})[\s\S]*?$/, '$1');
+
+      // 修复常见的 JSON 格式问题
+      repairedStr = repairedStr
+        .replace(/'/g, '"') // 单引号转双引号
+        .replace(/(\w+):/g, '"$1":') // 属性名加引号
+        .replace(/:\s*([^",\[\]\{\}][^",\[\]\{\}]*?)\s*([,\]}])/g, ': "$1"$2') // 未加引号的字符串值
+        .replace(/:\s*"([^"]*)\n([^"]*?)"/g, ': "$1 $2"'); // 修复换行问题
+
+      return JSON.parse(repairedStr);
+    } catch (error) {
+      // 所有方法都失败，抛出错误
+      throw new Error(`JSON解析失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    }
+  }
+}
+
+// 带有格式验证的 AI 调用函数
+export async function callAiWithStructuredResponse<T = unknown>(
+  prompt: string,
+  schema: Record<string, JsonSchemaField>,
+  additionalInstructions?: string,
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  // 添加格式说明到 prompt
+  const formatPrompt = generateStrictJsonPrompt(schema, additionalInstructions);
+  const fullPrompt = `${prompt}\n\n${formatPrompt}`;
+
+  try {
+    const data = await fetchAI(fullPrompt);
+    const content = data.choices[0].message.content;
+    const parsed = JSON_parse_AIResponse<T>(content);
+    return { success: true, data: parsed };
+  } catch (error) {
+    // 重试一次，这次强调格式
+    try {
+      const retryPrompt = `${prompt}\n\n⚠️ **上一次响应格式不正确，请严格按照以下格式返回：**\n\n${formatPrompt}`;
+      const retryData = await fetchAI(retryPrompt);
+      const retryContent = retryData.choices[0].message.content;
+      const retryParsed = JSON_parse_AIResponse<T>(retryContent);
+      return { success: true, data: retryParsed };
+    } catch (retryError) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'JSON解析失败',
+      };
+    }
+  }
+}
+
+// 使用 Function Calling 的结构化 AI 调用函数
+export async function callAiWithFunctionCalling<T = unknown>(
+  prompt: string,
+  functionName: string,
+  functionDescription: string,
+  parametersSchema: Record<string, unknown>,
+  temperature?: number,
+): Promise<{ success: boolean; data?: T; error?: string }> {
+  const config = getAIConfig();
+
+  // 准备工具定义
+  const tool = {
+    type: 'function' as const,
+    function: {
+      name: functionName,
+      description: functionDescription,
+      parameters: parametersSchema,
+    },
+  };
+
+  
+  const response = await fetchAI(prompt, {
+    tools: [tool],
+    tool_choice: { type: 'function', function: { name: functionName } },
+  });
+
+  console.log('Function Calling响应:', response);
+
+  // 检查是否有 tool_calls
+  if (response.choices && response.choices[0]?.message?.tool_calls?.length > 0) {
+    const toolCall = response.choices[0].message.tool_calls[0];
+    if (toolCall.function.name === functionName) {
+      const args = JSON.parse(toolCall.function.arguments);
+      return { success: true, data: args as T };
+    }
+  }
+
+  // 如果没有 tool_call，尝试解析普通内容
+  if (response.choices && response.choices[0]?.message?.content) {
+    try {
+      const parsedData = JSON.parse(response.choices[0].message.content);
+      if (parsedData && typeof parsedData === 'object') {
+        return { success: true, data: parsedData as T };
+      }
+    } catch (error) {
+      // 解析失败，继续下一步
+    }
+  }
+
+  // 如果 Function Calling 失败，回退到结构化响应
+  console.log('Function Calling失败，回退到结构化响应');
+  const fallbackSchema: Record<string, JsonSchemaField> = {};
+  const schemaProps = parametersSchema.properties as Record<string, unknown>;
+  const schemaRequired = parametersSchema.required as string[] | undefined;
+
+  Object.entries(schemaProps || {}).forEach(([key, value]: [string, unknown]) => {
+    const val = value as { type?: string; description?: string };
+    fallbackSchema[key] = {
+      type: (val.type as JsonSchemaField['type']) || 'string',
+      description: (val.description as string) || '',
+      required: schemaRequired?.includes(key) || false,
+    };
+  });
+
+  return await callAiWithStructuredResponse<T>(prompt, fallbackSchema);
 }

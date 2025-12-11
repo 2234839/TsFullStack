@@ -175,7 +175,7 @@ export class AIProxyServiceUtils {
         catch: (error) => new Error(`获取AI模型失败: ${error}`),
       });
 
-      return models.map((model: any) => ({
+      return models.map((model) => ({
         id: model.id,
         name: model.name,
         model: model.model,
@@ -225,22 +225,33 @@ export class AIProxyServiceUtils {
       try: async () => {
         const url = `${aiModel.baseUrl}/chat/completions`;
 
+        // 构建请求体
+        const requestBody: Record<string, unknown> = {
+          model: aiModel.model,
+          messages: request.messages,
+          temperature: request.temperature ?? aiModel.temperature,
+          max_tokens: request.max_tokens ?? aiModel.maxTokens,
+          stream: request.stream ?? false,
+          thinking: request.thinking || {
+            type: 'disabled',
+          },
+        };
+
+        // 如果有 tools 参数，添加到请求中
+        if (request.tools && request.tools.length > 0) {
+          requestBody.tools = request.tools;
+          if (request.tool_choice !== undefined) {
+            requestBody.tool_choice = request.tool_choice;
+          }
+        }
+
         const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${aiModel.apiKey}`,
           },
-          body: JSON.stringify({
-            model: aiModel.model,
-            messages: request.messages,
-            temperature: request.temperature ?? aiModel.temperature,
-            max_tokens: request.max_tokens ?? aiModel.maxTokens,
-            stream: request.stream ?? false,
-            thinking: request.thinking || {
-              type: 'disabled',
-            },
-          }),
+          body: JSON.stringify(requestBody),
         });
 
         if (!response.ok) {
