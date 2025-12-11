@@ -511,9 +511,7 @@ export async function callAiWithFunctionCalling<T = unknown>(
   functionName: string,
   functionDescription: string,
   parametersSchema: Record<string, unknown>,
-  temperature?: number,
 ): Promise<{ success: boolean; data?: T; error?: string }> {
-  const config = getAIConfig();
 
   // 准备工具定义
   const tool = {

@@ -242,6 +242,12 @@
   const viewDirection = ref<HTMLElement | null>(null);
   const hotspotFeedback = ref<HTMLElement | null>(null);
   const transitionOverlay = ref<HTMLElement | null>(null);
+
+  // 这些ref变量在模板中使用，用于DOM引用
+  void minimap;
+  void directionArrow;
+  void viewDirection;
+  void hotspotFeedback;
   const zoomEffect = ref<HTMLElement | null>(null);
   const directionIndicator = ref<HTMLElement | null>(null);
 
