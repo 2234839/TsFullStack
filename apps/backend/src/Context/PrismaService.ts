@@ -103,7 +103,6 @@ export const PrismaServiceLive = PrismaService.of({
         user: {
           id: user!.id,
           email: user!.email,
-          password: undefined,
           created: user!.created,
           updated: user!.updated,
           avatar: user!.avatar,

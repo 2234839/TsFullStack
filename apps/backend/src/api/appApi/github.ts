@@ -60,7 +60,8 @@ export const githubApi = {
       const userSession = yield* genUserSession(userId);
       const ctx = yield* ReqCtxService;
       ctx.log('user login by github', userId);
-      const userWithoutPassword = { ...user, password: undefined };
+      // 手动排除 password 字段
+      const { password: _password, ...userWithoutPassword } = user;
       return { ...userSession, user: userWithoutPassword };
     });
   },
