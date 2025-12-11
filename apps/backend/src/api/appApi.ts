@@ -61,7 +61,8 @@ export const appApis = {
         const userSession = yield* genUserSession(user.id);
         const ctx = yield* ReqCtxService;
         ctx.log('user login', user.id);
-        const userWithoutPassword = { ...user, password: undefined };
+        // 手动排除 password 字段，虽然 @omit 在某些情况下生效，但直接返回 Prisma 查询结果时需要手动处理
+        const { password: _password, ...userWithoutPassword } = user;
         return { ...userSession, user: userWithoutPassword };
       });
     },
