@@ -31,7 +31,6 @@ export default defineConfig({
     'fastify',
     'superjson',
     'bcryptjs',
-    'c12',
     'crypto-js',
     'uuid',
     '@fastify/cors',

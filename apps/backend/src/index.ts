@@ -1,29 +1,16 @@
-import { loadConfig } from 'c12';
 import { Effect } from 'effect';
 import fs from 'fs/promises';
 import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
-import { AppConfigService, type AppConfig } from './Context/AppConfig';
+import { AppConfigService } from './Context/AppConfig';
 import { PrismaService, PrismaServiceLive } from './Context/PrismaService';
 import { AIProxyService, AIProxyServiceLive } from './Context/AIProxyService';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
 import { PrismaQueue } from './util/prismaQueue';
 import { QueueScheduler } from './util/QueueScheduler';
+import { ConfigLoader } from './config/loader';
 const main = Effect.gen(function* () {
-  const { config } = yield* Effect.promise(() =>
-    loadConfig<AppConfig>({
-      defaultConfig: () => {
-        return {
-          systemAdminUser: {
-            email: 'admin@example.com',
-            password: 'adminpassword123',
-          },
-          uploadDir: './uploads',
-          ApiProxy: {},
-        } satisfies AppConfig;
-      },
-    }),
-  );
+  const config = yield* ConfigLoader.load();
 
   // 确保上传文件夹的路径存在
   const dirExists = yield* Effect.promise(() => fs.stat(config.uploadDir).catch(() => null));

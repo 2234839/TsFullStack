@@ -1,0 +1,20 @@
+{
+  "$schema": "./config.schema.json",
+  "systemAdminUser": {
+    "email": "admin@example.com",
+    "password": "your-secure-password-here"
+  },
+  "uploadDir": "./uploads",
+  "ApiProxy": {
+    "github": "https://api-proxy.example.com"
+  },
+  "OAuth_github": {
+    "clientId": "your-github-client-id",
+    "clientSecret": "your-github-client-secret",
+    "redirectUri": "https://yourdomain.com/oauth/github",
+    "scope": [
+      "read:user",
+      "user:email"
+    ]
+  }
+}

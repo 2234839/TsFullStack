@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TsFullStack Backend Configuration",
+  "description": "Configuration schema for TsFullStack backend application",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "JSON Schema 文件路径，用于编辑器智能提示"
+    },
+    "systemAdminUser": {
+      "type": "object",
+      "description": "系统管理员账户配置",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "管理员邮箱地址"
+        },
+        "password": {
+          "type": "string",
+          "minLength": 8,
+          "description": "管理员密码，至少8位字符"
+        }
+      },
+      "required": ["email", "password"],
+      "additionalProperties": false
+    },
+    "uploadDir": {
+      "type": "string",
+      "description": "文件上传目录路径，可以是相对路径或绝对路径",
+      "examples": [
+        "./uploads",
+        "/tmp/uploads",
+        "/var/www/uploads"
+      ]
+    },
+    "ApiProxy": {
+      "type": "object",
+      "description": "API 代理配置，用于代理一些无法直接访问的 API 请求",
+      "properties": {
+        "github": {
+          "type": "string",
+          "format": "uri",
+          "description": "GitHub API 代理地址，用于在国内服务器访问 GitHub API",
+          "examples": [
+            "https://api-proxy.example.com"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "OAuth_github": {
+      "type": "object",
+      "description": "GitHub OAuth 登录配置",
+      "properties": {
+        "clientId": {
+          "type": "string",
+          "description": "GitHub OAuth 应用的 Client ID"
+        },
+        "clientSecret": {
+          "type": "string",
+          "description": "GitHub OAuth 应用的 Client Secret"
+        },
+        "redirectUri": {
+          "type": "string",
+          "format": "uri",
+          "description": "OAuth 回调地址，必须在 GitHub 应用中配置"
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "请求的权限范围",
+          "default": ["read:user", "user:email"],
+          "examples": [
+            ["read:user", "user:email"],
+            ["read:user", "user:email", "repo"]
+          ]
+        }
+      },
+      "required": ["clientId", "clientSecret", "redirectUri"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "systemAdminUser",
+    "uploadDir",
+    "ApiProxy"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "systemAdminUser": {
+        "email": "admin@example.com",
+        "password": "securePassword123"
+      },
+      "uploadDir": "./uploads",
+      "ApiProxy": {
+        "github": "https://api-proxy.example.com"
+      },
+      "OAuth_github": {
+        "clientId": "your-github-client-id",
+        "clientSecret": "your-github-client-secret",
+        "redirectUri": "https://yourdomain.com/oauth/github",
+        "scope": ["read:user", "user:email"]
+      }
+    }
+  ]
+}

@@ -52,7 +52,4 @@ pnpm dev:projects     # 开发模式启动
 - **代码质量**: 函数式编程，充分利用类型推导
 - **构建要求**: API/schema 修改 api 下的代码，或者 projects 下的代码后必须执行 `pnpm build:lib`
 
-## 配置管理
-
-- **c12**: 配置管理，支持环境变量
-- **类型安全**: 完整的类型安全配置
+## 配置管理: apps/backend/CONFIG.md

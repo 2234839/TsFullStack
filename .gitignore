@@ -21,6 +21,9 @@ dist-lib/
 .env.test.local
 .env.production.local
 
+# Configuration files
+config.json
+
 # IDE
 .vscode/
 .idea/

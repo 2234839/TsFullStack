@@ -80,6 +80,9 @@ timer_start
     rsync -avz --compress-level=9 -e "ssh $SSH_OPTS" \
         ./prisma/{migrations,schema.prisma} \
         ./node_modules/prisma/libquery_engine-debian-openssl-3.0.x.so.node \
+        ./config.schema.json \
+        ./config.example.json \
+        ./CONFIG.md \
         "$SSH_TARGET:$REMOTE_PATH/" &
     DB_PID=$!
 
