@@ -8,6 +8,7 @@ import {
   useStorage,
   useStorageAsync,
   useThrottleFn,
+  tryOnUnmounted,
 } from '@vueuse/core';
 import { ref, watchEffect } from 'vue';
 
@@ -39,8 +40,7 @@ export function useApiStorage<T>(
     serializer,
   };
 
-  const isLogin = authInfo_isLogin.value;
-  /** 目前由于同步远程数据到本地也会触发一次 setItem，导致不停的触发版本升级，暂时使用一个标志位来避免，但感觉可能还会存在bug */
+    /** 目前由于同步远程数据到本地也会触发一次 setItem，导致不停的触发版本升级，暂时使用一个标志位来避免，但感觉可能还会存在bug */
   const isSyncingFromRemote = ref(false);
 
   const setItem = useThrottleFn(
@@ -111,7 +111,7 @@ export function useApiStorage<T>(
 
   function createStorage() {
     if (storage === 'auto') {
-      return isLogin
+      return authInfo_isLogin.value
         ? useStorageAsync<T>(key, defaultValue, apiStorageAsync, options)
         : useStorage<T>(key, defaultValue, undefined, options);
     }
@@ -125,6 +125,11 @@ export function useApiStorage<T>(
   const state = createStorage();
 
   async function syncStorage() {
+    // 检查用户是否处于登录状态
+    if (!authInfo_isLogin.value) {
+      return;
+    }
+
     try {
       const res = await API.db.userData.findFirst({
         where: { key, appId, userId: authInfo.value.userId },
@@ -150,7 +155,7 @@ export function useApiStorage<T>(
       console.warn(`[useApiStorage] polling error:`, err);
     }
   }
-  if (opts?.pollingInterval && isLogin) {
+  if (opts?.pollingInterval && authInfo_isLogin.value) {
     const { pause, resume, isActive } = useIntervalFn(syncStorage, opts.pollingInterval);
 
     const visibility = useDocumentVisibility();
@@ -164,6 +169,11 @@ export function useApiStorage<T>(
       } else if (visibility.value === 'hidden') {
         pause();
       }
+    });
+
+    // 组件卸载时暂停轮询，清理资源
+    tryOnUnmounted(() => {
+      pause();
     });
   }
 
