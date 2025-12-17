@@ -32,18 +32,21 @@ const getAIConfig = () => ({
 });
 
 // 统一的 AI 请求函数 - 支持混合模式（用户配置优先，后台代理兜底）
-export async function fetchAI(prompt: string, options?: {
-  forceProxy?: boolean;
-  tools?: Array<{
-    type: 'function';
-    function: {
-      name: string;
-      description?: string;
-      parameters: Record<string, unknown>;
-    };
-  }>;
-  tool_choice?: 'none' | 'auto' | 'required' | { type: 'function'; function: { name: string } };
-}) {
+export async function fetchAI(
+  prompt: string,
+  options?: {
+    forceProxy?: boolean;
+    tools?: Array<{
+      type: 'function';
+      function: {
+        name: string;
+        description?: string;
+        parameters: Record<string, unknown>;
+      };
+    }>;
+    tool_choice?: 'none' | 'auto' | 'required' | { type: 'function'; function: { name: string } };
+  },
+) {
   const config = getAIConfig();
   const { API } = useAPI();
 
@@ -53,6 +56,9 @@ export async function fetchAI(prompt: string, options?: {
     messages: [{ role: 'user' as const, content: prompt }],
     temperature: config.temperature,
     max_tokens: config.maxTokens,
+    thinking: {
+      type: 'disabled' as const,
+    },
     ...(options?.tools && { tools: options.tools }),
     ...(options?.tool_choice && { tool_choice: options.tool_choice }),
   };
@@ -90,7 +96,6 @@ export async function callAiResponseJSON(prompt: string) {
   const content = data.choices[0].message.content;
   return JSON_parse_AIResponse(content);
 }
-
 
 // 批量单词分析 - 使用 Function Calling
 export const analyzeWordsBatch = async (
@@ -415,25 +420,25 @@ export const segmentArticleWithAI = async (text: string): Promise<SmartSegmentat
             keyVocabulary: {
               type: 'array',
               items: { type: 'string' },
-              description: '该段落的核心词汇(3-5个)'
-            }
+              description: '该段落的核心词汇(3-5个)',
+            },
           },
-          required: ['text', 'reason', 'complexity', 'estimatedReadingTime', 'keyVocabulary']
+          required: ['text', 'reason', 'complexity', 'estimatedReadingTime', 'keyVocabulary'],
         },
-        description: '智能分段结果'
+        description: '智能分段结果',
       },
       totalSegments: { type: 'number', description: '总段落数' },
       estimatedTotalTime: { type: 'number', description: '总预估学习时间(分钟)' },
-      segmentationStrategy: { type: 'string', description: '分段策略说明' }
+      segmentationStrategy: { type: 'string', description: '分段策略说明' },
     },
-    required: ['paragraphs', 'totalSegments', 'estimatedTotalTime', 'segmentationStrategy']
+    required: ['paragraphs', 'totalSegments', 'estimatedTotalTime', 'segmentationStrategy'],
   };
 
   const result = await callAiWithFunctionCalling<SmartSegmentationResult>(
     prompt,
     'segmentArticle',
     '智能拆分英文文章为学习段落',
-    parametersSchema
+    parametersSchema,
   );
 
   if (result.success && result.data) {
@@ -443,8 +448,8 @@ export const segmentArticleWithAI = async (text: string): Promise<SmartSegmentat
   // AI分段失败时的回退方案
   const fallbackParagraphs = text
     .split(/\n\s*\n/)
-    .map(p => p.trim())
-    .filter(p => p.length > 0);
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
 
   return {
     paragraphs: fallbackParagraphs.map((paragraph) => ({
@@ -452,11 +457,11 @@ export const segmentArticleWithAI = async (text: string): Promise<SmartSegmentat
       reason: '默认分段（基于空行分隔）',
       complexity: 5,
       estimatedReadingTime: Math.ceil(paragraph.split(/\s+/).length * 0.3),
-      keyVocabulary: []
+      keyVocabulary: [],
     })),
     totalSegments: fallbackParagraphs.length,
     estimatedTotalTime: Math.ceil(fallbackParagraphs.length * 2),
-    segmentationStrategy: '使用传统分段方式作为回退方案'
+    segmentationStrategy: '使用传统分段方式作为回退方案',
   };
 };
 
@@ -611,7 +616,6 @@ export async function callAiWithFunctionCalling<T = unknown>(
   functionDescription: string,
   parametersSchema: Record<string, unknown>,
 ): Promise<{ success: boolean; data?: T; error?: string }> {
-
   // 准备工具定义
   const tool = {
     type: 'function' as const,
@@ -622,7 +626,6 @@ export async function callAiWithFunctionCalling<T = unknown>(
     },
   };
 
-  
   const response = await fetchAI(prompt, {
     tools: [tool],
     tool_choice: { type: 'function', function: { name: functionName } },
