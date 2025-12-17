@@ -41,24 +41,40 @@
                     class="flex-1"
                     style="resize: none" />
                 </div>
-                <div class="flex gap-2 flex-wrap">
-                  <Button
-                    v-if="syncData.article"
-                    icon="pi pi-times"
-                    severity="secondary"
-                    @click="syncData.article = ''"
-                    label="清空" />
-                  <Button
-                    @click="handleArticleSubmit()"
-                    class="flex-1"
-                    :disabled="isAnalyzing"
-                    severity="secondary"
-                    :label="isAnalyzing ? 'AI分析中...' : '分段学习'" />
-                  <Button
-                    severity="secondary"
-                    @click="loadSampleArticle()"
-                    :disabled="isAnalyzing"
-                    label="示例分段" />
+                <div class="space-y-3">
+                  <div class="flex gap-2 flex-wrap">
+                    <Button
+                      v-if="syncData.article"
+                      icon="pi pi-times"
+                      severity="secondary"
+                      @click="syncData.article = ''"
+                      label="清空" />
+                    <div class="flex-1 flex gap-1">
+                      <Button
+                        @click="handleArticleSubmit(true)"
+                        class="flex-1"
+                        :disabled="isAnalyzing || isSegmenting"
+                        severity="primary"
+                        :label="isSegmenting ? 'AI分段中...' : isAnalyzing ? 'AI分析中...' : 'AI智能分段'" />
+                      <Button
+                        @click="handleArticleSubmit(false)"
+                        severity="secondary"
+                        :disabled="isAnalyzing || isSegmenting"
+                        :label="'传统分段'"
+                        v-tooltip.top="'使用传统分段方式（基于空行和句号）'" />
+                    </div>
+                    <Button
+                      severity="secondary"
+                      @click="loadSampleArticle()"
+                      :disabled="isAnalyzing || isSegmenting"
+                      label="示例分段" />
+                  </div>
+
+                  <!-- 智能分段选项说明 -->
+                  <div class="flex items-center gap-2 text-xs text-gray-500">
+                    <i class="pi pi-sparkles text-purple-500"></i>
+                    <span>AI智能分段会根据内容逻辑和阅读体验进行优化，确保每个段落信息量适中</span>
+                  </div>
                 </div>
               </div>
             </template>
@@ -68,40 +84,68 @@
           <Card v-if="words.length > 0">
             <template #title>
               <!-- 显示段落进度和操作按钮 -->
-              <div class="flex items-center gap-2">
-                <i class="pi pi-book" style="font-size: 1.25rem" />
-                <span class="text-sm text-indigo-600" title="段落进度">
-                  {{ completedParagraphs }}/{{ syncData.paragraphs.length }} 已完成
-                </span>
-
-                <Button
-                  severity="secondary"
-                  size="small"
-                  @click="goToParagraph(syncData.currentParagraphIndex - 1)"
-                  :disabled="syncData.currentParagraphIndex === 0"
-                  icon="pi pi-angle-left"
-                  v-tooltip.top="'上一段'" />
-                <div class="flex-1 flex gap-1 overflow-x-auto">
+              <div class="space-y-2">
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-book" style="font-size: 1.25rem" />
+                  <span class="text-sm text-indigo-600" title="段落进度">
+                    {{ completedParagraphs }}/{{ syncData.paragraphs.length }} 已完成
+                  </span>
                   <Button
-                    v-for="(_, index) in syncData.paragraphs"
-                    :key="index"
-                    :severity="index === syncData.currentParagraphIndex ? 'primary' : 'secondary'"
+                    v-if="smartSegmentation"
+                    severity="info"
                     size="small"
-                    :class="[
-                      'flex-1',
-                      { 'bg-green-100 border-green-300': syncData.paragraphs[index]?.isCompleted },
-                    ]"
-                    @click="goToParagraph(index)"
-                    :label="String(index + 1)"
-                    :icon="syncData.paragraphs[index]?.isCompleted ? 'pi pi-check-circle' : ''" />
+                    text
+                    rounded
+                    @click="showSegmentationInfo = !showSegmentationInfo"
+                    v-tooltip.top="'智能分段信息'"
+                    icon="pi pi-sparkles" />
                 </div>
-                <Button
-                  @click="handleParagraphComplete"
-                  size="small"
-                  icon="pi pi-check"
-                  class="bg-blue-600 hover:bg-blue-700 text-white"
-                  :disabled="syncData.paragraphs[syncData.currentParagraphIndex]?.isCompleted"
-                  label="OK" />
+
+                <!-- 智能分段信息条 -->
+                <div v-if="showSegmentationInfo && smartSegmentation"
+                     class="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-xs">
+                  <div class="flex items-center gap-1 text-purple-700 dark:text-purple-300">
+                    <i class="pi pi-sparkles"></i>
+                    <span class="font-medium">AI智能分段</span>
+                    <span class="ml-auto">{{ smartSegmentation.estimatedTotalTime }}分钟预计</span>
+                  </div>
+                  <div class="text-purple-600 dark:text-purple-400 mt-1">
+                    {{ smartSegmentation.segmentationStrategy }}
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <Button
+                    severity="secondary"
+                    size="small"
+                    @click="goToParagraph(syncData.currentParagraphIndex - 1)"
+                    :disabled="syncData.currentParagraphIndex === 0"
+                    icon="pi pi-angle-left"
+                    v-tooltip.top="'上一段'" />
+                  <div class="flex-1 flex gap-1 overflow-x-auto">
+                    <Button
+                      v-for="(paragraph, index) in syncData.paragraphs"
+                      :key="index"
+                      :severity="index === syncData.currentParagraphIndex ? 'primary' : 'secondary'"
+                      size="small"
+                      :class="[
+                        'flex-1',
+                        { 'bg-green-100 border-green-300': paragraph.isCompleted },
+                        { 'bg-purple-100 border-purple-300': paragraph.complexity && paragraph.complexity > 7 },
+                      ]"
+                      @click="goToParagraph(index)"
+                      :label="String(index + 1)"
+                      :icon="paragraph.isCompleted ? 'pi pi-check-circle' : ''"
+                      :v-tooltip.top="getParagraphTooltip(paragraph, index)" />
+                  </div>
+                  <Button
+                    @click="handleParagraphComplete"
+                    size="small"
+                    icon="pi pi-check"
+                    class="bg-blue-600 hover:bg-blue-700 text-white"
+                    :disabled="syncData.paragraphs[syncData.currentParagraphIndex]?.isCompleted"
+                    label="OK" />
+                </div>
               </div>
             </template>
             <template #content>
@@ -111,13 +155,13 @@
                 tips="点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译，下方英文学习完毕后点击右上角的OK按钮" />
               <div
                 id="article-container"
-                class="text-lg leading-relaxed"
+                class="text-lg leading-relaxed max-h-96 overflow-y-auto"
                 @mousemove="handleMouseMove"
                 @mouseup="handleMouseUp"
                 @touchmove="handleMouseMove"
                 @touchend="handleMouseUp"
                 @touchstart="(e) => /** 防止长按选中文字以及触摸滚动 */ e.preventDefault()"
-                style="user-select: none">
+                style="user-select: none; padding: 1rem;">
                 <renderArticleWithMarkers />
               </div>
             </template>
@@ -304,6 +348,76 @@
 
         <!-- 右侧：翻译和统计 -->
         <div class="space-y-4 top-4 h-fit">
+          <!-- 智能分段信息 -->
+          <Card v-if="smartSegmentation" class="border-purple-200 bg-purple-50">
+            <template #title>
+              <div
+                class="flex items-center gap-2 cursor-pointer"
+                @click="showSegmentationInfo = !showSegmentationInfo">
+                <i class="pi pi-sparkles" style="font-size: 1.25rem; color: #9333ea" />
+                智能分段信息
+                <span class="ml-auto text-sm text-purple-600">{{
+                  showSegmentationInfo ? '收起' : '展开'
+                }}</span>
+              </div>
+            </template>
+            <template v-if="showSegmentationInfo" #content>
+              <div class="space-y-4">
+                <div class="text-sm">
+                  <div class="font-medium text-purple-700 mb-2">分段策略</div>
+                  <div class="text-purple-600">{{ smartSegmentation.segmentationStrategy }}</div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                  <div class="flex items-center gap-2">
+                    <i class="pi pi-bookmark text-purple-600" />
+                    <span>总段落数:</span>
+                    <Tag :value="smartSegmentation.totalSegments.toString()" severity="info" />
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <i class="pi pi-clock text-purple-600" />
+                    <span>预计时间:</span>
+                    <Tag :value="`${smartSegmentation.estimatedTotalTime}分钟`" />
+                  </div>
+                </div>
+
+                <!-- 当前段落详细信息 -->
+                <div v-if="currentParagraph" class="border-t pt-3">
+                  <div class="font-medium text-purple-700 mb-2">当前段落</div>
+                  <div class="space-y-2 text-sm">
+                    <div v-if="currentParagraph.complexity" class="flex items-center gap-2">
+                      <span class="text-gray-600">复杂度:</span>
+                      <Tag
+                        :value="`${currentParagraph.complexity}/10`"
+                        :class="getDifficultyColor(currentParagraph.complexity)" />
+                    </div>
+                    <div v-if="currentParagraph.estimatedReadingTime" class="flex items-center gap-2">
+                      <span class="text-gray-600">预计阅读:</span>
+                      <Tag :value="`${Math.ceil(currentParagraph.estimatedReadingTime / 60)}分钟`" severity="info" />
+                    </div>
+                    <div v-if="currentParagraph.reason" class="flex items-start gap-2">
+                      <span class="text-gray-600">分段理由:</span>
+                      <span class="text-purple-600 flex-1">{{ currentParagraph.reason }}</span>
+                    </div>
+                    <div v-if="currentParagraph.keyVocabulary && currentParagraph.keyVocabulary.length > 0"
+                         class="flex items-start gap-2">
+                      <span class="text-gray-600">关键词:</span>
+                      <div class="flex flex-wrap gap-1">
+                        <Tag
+                          v-for="word in currentParagraph.keyVocabulary"
+                          :key="word"
+                          severity="secondary"
+                          class="text-xs">
+                          {{ word }}
+                        </Tag>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </Card>
+
           <!-- AI分析结果 -->
           <Card v-if="aiAnalysis" class="border-purple-200 bg-purple-50">
             <template #title>
@@ -546,7 +660,9 @@
     translateParagraphWithAI,
     translateWithAI,
     useCreateMixedTranslation,
+    segmentArticleWithAI,
     type AIAnalysis,
+    type SmartSegmentationResult,
   } from '@/pages/AiEnglish/ai';
   import { useAiEnglishData } from '@/pages/AiEnglish/data';
   import { useTTS } from '@/pages/AiEnglish/util';
@@ -582,6 +698,10 @@
     words: string[];
     isCompleted: boolean;
     completedAt?: number;
+    reason?: string; // AI分段理由
+    complexity?: number; // 复杂度
+    estimatedReadingTime?: number; // 预估阅读时间
+    keyVocabulary?: string[]; // 关键词汇
   }
 
   // 示例文章
@@ -633,6 +753,12 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   const aiAnalysis = ref<AIAnalysis | null>(null);
   const isAnalyzing = ref(false);
   const showAiAnalysis = ref(false);
+  const smartSegmentation = ref<SmartSegmentationResult | null>(null);
+  const isSegmenting = ref(false);
+  const showSegmentationInfo = ref(false);
+
+  // 当前段落计算属性，避免重复的模板表达式
+  const currentParagraph = computed(() => syncData.value.paragraphs[syncData.value.currentParagraphIndex]);
   const selectionState = reactive<SelectionState>({
     isSelecting: false,
     startWordIndex: -1,
@@ -716,32 +842,99 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   });
 
   const splitArticleIntoParagraphs = (text: string): ParagraphData[] => {
-    const paragraphTexts = text
-      .split(/\n\s*\n|\. {2,}/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0)
-      .map((p) => (p.endsWith('.') ? p : p + '.'));
+    // 改进分段逻辑：保持原始换行，同时处理段落分隔
+    const paragraphs: string[] = [];
 
-    return paragraphTexts.map((text, index) => ({
+    // 首先按双换行分割段落
+    const majorParagraphs = text.split(/\n\s*\n/);
+
+    for (const majorParagraph of majorParagraphs) {
+      const trimmed = majorParagraph.trim();
+      if (trimmed.length > 0) {
+        // 如果段落太长，按句子进一步分割
+        const sentences = trimmed.match(/[^.!?]+[.!?]+/g) || [trimmed];
+
+        let currentParagraph = '';
+        for (const sentence of sentences) {
+          const testParagraph = currentParagraph + (currentParagraph ? ' ' : '') + sentence.trim();
+
+          // 如果当前段落超过150词，或者有明确的主题转换，则分段
+          if (currentParagraph && (tokenizeText(testParagraph).length > 150 || sentence.match(/^\s*(However|Therefore|Moreover|Furthermore|In conclusion|On the other hand)\s/i))) {
+            paragraphs.push(currentParagraph.trim());
+            currentParagraph = sentence.trim();
+          } else {
+            currentParagraph = testParagraph;
+          }
+        }
+
+        if (currentParagraph.trim()) {
+          paragraphs.push(currentParagraph.trim());
+        }
+      }
+    }
+
+    return paragraphs.map((text, index) => ({
       id: index,
-      text,
+      text: text.endsWith('.') || text.endsWith('!') || text.endsWith('?') ? text : text + '.',
       words: tokenizeText(text),
       isCompleted: false,
+      reason: '传统分段（基于换行和句子结构）',
+      complexity: 5, // 默认复杂度
+      estimatedReadingTime: Math.ceil(tokenizeText(text).length * 0.3),
+      keyVocabulary: []
     }));
   };
 
+  // AI智能分段函数
+  const segmentArticleIntelligently = async (text: string): Promise<ParagraphData[]> => {
+    isSegmenting.value = true;
+    try {
+      const result = await segmentArticleWithAI(text);
+      smartSegmentation.value = result;
+
+      return result.paragraphs.map((paragraph, index) => ({
+        id: index,
+        text: paragraph.text,
+        words: tokenizeText(paragraph.text),
+        isCompleted: false,
+        reason: paragraph.reason,
+        complexity: paragraph.complexity,
+        estimatedReadingTime: paragraph.estimatedReadingTime,
+        keyVocabulary: paragraph.keyVocabulary,
+      }));
+    } catch (error) {
+      console.error('AI智能分段失败:', error);
+      toast.add({
+        severity: 'warn',
+        summary: '智能分段失败',
+        detail: '回退到传统分段方式',
+        life: 3000,
+      });
+      return splitArticleIntoParagraphs(text);
+    } finally {
+      isSegmenting.value = false;
+    }
+  };
+
   // 核心功能
-  const initializeWords = async (text: string) => {
+  const initializeWords = async (text: string, useSmartSegmentation = true) => {
     currentSession.clickedWords = new Set();
     currentSession.startTime = Date.now();
 
-    syncData.value.paragraphs = splitArticleIntoParagraphs(text);
+    // 使用智能分段或传统分段
+    syncData.value.paragraphs = useSmartSegmentation
+      ? await segmentArticleIntelligently(text)
+      : splitArticleIntoParagraphs(text);
     syncData.value.currentParagraphIndex = 0;
 
-    // AI分析
+    // AI分析（并行执行以提高性能）
     isAnalyzing.value = true;
     try {
-      aiAnalysis.value = await analyzeArticleWithAI(text);
+      const [analysisResult] = await Promise.all([
+        analyzeArticleWithAI(text),
+        // 如果使用智能分段，可以在这里添加其他并行任务
+      ]);
+      aiAnalysis.value = analysisResult;
     } catch (error) {
       console.error('AI分析失败:', error);
       // 显示错误提示给用户
@@ -755,21 +948,48 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       isAnalyzing.value = false;
     }
 
+    const segmentInfo = smartSegmentation.value
+      ? `AI智能分段完成！${smartSegmentation.value.segmentationStrategy}`
+      : `已分割为 ${syncData.value.paragraphs.length} 个段落`;
+
     toast.add({
       severity: 'success',
       summary: '开始学习',
-      detail: `已分割为 ${syncData.value.paragraphs.length} 个段落，开始第一段学习！`,
+      detail: `${segmentInfo}，开始第一段学习！`,
       life: 3000,
     });
   };
 
-  const handleArticleSubmit = () => {
-    if (syncData.value.article.trim()) initializeWords(syncData.value.article);
+  const handleArticleSubmit = (useSmartSegmentation = true) => {
+    if (syncData.value.article.trim()) initializeWords(syncData.value.article, useSmartSegmentation);
   };
 
   const loadSampleArticle = () => {
     syncData.value.article = sampleArticle;
-    initializeWords(sampleArticle);
+    initializeWords(sampleArticle, true);
+  };
+
+  // 获取段落工具提示
+  const getParagraphTooltip = (paragraph: ParagraphData, index: number): string => {
+    let tooltip = `段落 ${index + 1}`;
+
+    if (paragraph.complexity) {
+      tooltip += ` • 复杂度: ${paragraph.complexity}/10`;
+    }
+
+    if (paragraph.estimatedReadingTime) {
+      tooltip += ` • 预计: ${Math.ceil(paragraph.estimatedReadingTime / 60)}分钟`;
+    }
+
+    if (paragraph.keyVocabulary && paragraph.keyVocabulary.length > 0) {
+      tooltip += ` • 关键词: ${paragraph.keyVocabulary.slice(0, 3).join(', ')}`;
+    }
+
+    if (paragraph.reason && paragraph.reason.length > 0) {
+      tooltip += `\n分段理由: ${paragraph.reason}`;
+    }
+
+    return tooltip;
   };
 
   const getWordIndexFromPoint = (x: number, y: number): number => {
@@ -818,7 +1038,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   const handleMouseUp = async () => {
     if (!selectionState.isSelecting || !isStudying.value) return;
 
-    const selectedWordIndices = [...selectionState.selectedWords].sort((a, b) => a - b);
+    const selectedWordIndices = Array.from(selectionState.selectedWords).sort((a, b) => a - b);
     selectionState.isSelecting = false;
     selectionState.startWordIndex = -1;
     selectionState.endWordIndex = -1;
@@ -1020,8 +1240,91 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   function renderArticleWithMarkers() {
     if (!currentText.value) return null;
 
-    const tokens = currentText.value.split(/(\s+|[^\w\s])/);
-    let wordIndex = 0;
+    // 获取当前段落的复杂度和关键词
+    const currentParagraphComplexity = currentParagraph.value?.complexity || 5;
+    const currentParagraphKeyWords = currentParagraph.value?.keyVocabulary || [];
+
+    return (
+      <div class="space-y-4">
+        {/* 段落复杂度指示器 */}
+        {currentParagraphComplexity > 7 && (
+          <div class="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
+            <i class="pi pi-exclamation-triangle"></i>
+            <span>较高难度段落 • 建议仔细阅读</span>
+          </div>
+        )}
+
+        {/* 段落文本 - 处理换行和格式 */}
+        <div class="leading-relaxed text-lg">
+          {renderParagraphText(currentText.value, currentParagraphKeyWords)}
+        </div>
+
+        {/* 段落信息 */}
+        {currentParagraph.value && (
+          <div class="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
+            <span>字数: {currentParagraph.value.text.split(/\s+/).length}</span>
+            {currentParagraph.value.estimatedReadingTime && (
+              <span>预计阅读: {Math.ceil(currentParagraph.value.estimatedReadingTime / 60)}分钟</span>
+            )}
+            {currentParagraph.value.complexity && (
+              <span>复杂度: {currentParagraph.value.complexity}/10</span>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 渲染段落文本，处理单词标记和换行
+  function renderParagraphText(text: string, currentParagraphKeyWords: string[]) {
+    // 按行分割文本，保留换行结构
+    const lines = text.split('\n');
+    let globalWordIndex = 0; // 全局单词索引
+
+    return lines.map((line, lineIndex) => {
+      const lineStartWordIndex = globalWordIndex; // 记录当前行的起始索引
+
+      // 计算当前行的单词数量，更新全局索引
+      if (line.trim()) {
+        // 先渲染这一行来获取实际的单词数量
+        const lineWords = getLineWordCount(line);
+        globalWordIndex += lineWords;
+      }
+
+      return (
+        <div key={lineIndex} class="mb-4 last:mb-0">
+          {line.length === 0 ? (
+            // 空行渲染为换行
+            <br />
+          ) : (
+            // 渲染有内容的行，传递正确的起始索引
+            renderLineWithWordMarkers(line, currentParagraphKeyWords, lineStartWordIndex)
+          )}
+        </div>
+      );
+    });
+  }
+
+  // 计算一行中的单词数量
+  function getLineWordCount(line: string): number {
+    const tokens = line.split(/(\s+|[^\w\s])/);
+    let wordCount = 0;
+
+    for (const token of tokens) {
+      const cleanWord = token.toLowerCase().replace(/[^\w]/g, '');
+      if (cleanWord && words.value.some(w => w.word === cleanWord)) {
+        wordCount++;
+      }
+    }
+
+    return wordCount;
+  }
+
+  // 渲染一行文本，处理单词标记
+  function renderLineWithWordMarkers(line: string, currentParagraphKeyWords: string[], lineStartWordIndex: number) {
+    const tokens = line.split(/(\s+|[^\w\s])/);
+    let wordIndex = lineStartWordIndex;
+
     return tokens.map((token, tokenIndex) => {
       const cleanWord = token.toLowerCase().replace(/[^\w]/g, '');
       const wordData = getWordData(cleanWord);
@@ -1030,7 +1333,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         const currentWordIndex = wordIndex++;
         const color = getMemoryColor(wordData.memoryLevel);
         const isClicked = currentSession.clickedWords.has(cleanWord);
-        const isKeyWord = aiAnalysis.value?.keyWords.includes(cleanWord);
+        const isKeyWord = aiAnalysis.value?.keyWords.includes(cleanWord) || currentParagraphKeyWords.includes(cleanWord);
         const isSelected = selectionState.selectedWords.has(currentWordIndex);
         const isHighlighted = highlightedWord.value === cleanWord;
 
@@ -1052,8 +1355,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
             class={className}
             style={{
               borderBottom: `1px solid ${color}`,
-              lineHeight: '1.5',
+              lineHeight: '1.6',
               display: 'inline-block',
+              margin: '1px 0',
             }}
             onMousedown={(e) => handleMouseDown(e, currentWordIndex)}
             onTouchstart={(e) => handleMouseDown(e, currentWordIndex)}
@@ -1073,8 +1377,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         );
       }
 
+      // 处理非单词字符（空格、标点等）
       return (
-        <span key={tokenIndex} class="select-none">
+        <span key={tokenIndex} class="select-none" style={{ lineHeight: '1.6' }}>
           {token}
         </span>
       );
@@ -1149,6 +1454,49 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     }
     50% {
       box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    }
+  }
+
+  /* 段落排版优化 */
+  #article-container {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 0.5rem;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  #article-container .leading-relaxed {
+    line-height: 1.8;
+    text-align: justify;
+    hyphens: auto;
+  }
+
+  /* 段落间间距 */
+  .mb-4 {
+    margin-bottom: 1.5rem;
+  }
+
+  /* 单词间距优化 */
+  .inline-block {
+    margin-right: 0.2rem;
+    margin-left: 0.1rem;
+  }
+
+  /* 暗色模式适配 */
+  @media (prefers-color-scheme: dark) {
+    #article-container {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    }
+  }
+
+  /* 响应式排版 */
+  @media (max-width: 640px) {
+    #article-container {
+      padding: 0.75rem;
+      font-size: 1rem;
+    }
+
+    .text-lg {
+      font-size: 1.125rem;
     }
   }
 </style>

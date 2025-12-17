@@ -361,6 +361,105 @@ export function useCreateMixedTranslation({
   };
 }
 
+// 智能段落拆分接口定义
+export interface SmartParagraph {
+  text: string;
+  reason: string; // 拆分原因
+  complexity: number; // 复杂度 1-10
+  estimatedReadingTime: number; // 预估阅读时间（秒）
+  keyVocabulary: string[]; // 关键词汇
+}
+
+export interface SmartSegmentationResult {
+  paragraphs: SmartParagraph[];
+  totalSegments: number;
+  estimatedTotalTime: number; // 总预估学习时间（分钟）
+  segmentationStrategy: string; // 分段策略说明
+}
+
+// AI智能段落拆分功能
+export const segmentArticleWithAI = async (text: string): Promise<SmartSegmentationResult> => {
+  const prompt = `作为英语教学专家，请将以下英文文章智能拆分为适合学习的段落：
+
+原文：
+"${text}"
+
+拆分要求：
+1. 每个段落长度控制在50-150词，确保信息量适中
+2. 保持语义完整性，不在句子中间拆分
+3. 根据内容逻辑和主题转换进行分段
+4. 考虑学习者的阅读耐心，复杂内容适当缩短
+5. 为每个段落提供拆分理由和学习指导
+6. 保持段落的原始文本格式，包括换行符
+
+分析维度：
+- 语义连贯性和主题边界
+- 句式复杂度和词汇难度
+- 信息密度和学习负荷
+- 逻辑关系和论证结构
+
+重要：返回的段落文本必须保持原始格式，包含正确的换行符。请返回结构化的分段结果，包括每个段落的详细分析。`;
+
+  const parametersSchema: Record<string, unknown> = {
+    type: 'object',
+    properties: {
+      paragraphs: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            text: { type: 'string', description: '段落文本' },
+            reason: { type: 'string', description: '拆分该段落的理由' },
+            complexity: { type: 'number', description: '复杂度评级(1-10)' },
+            estimatedReadingTime: { type: 'number', description: '预估阅读时间(秒)' },
+            keyVocabulary: {
+              type: 'array',
+              items: { type: 'string' },
+              description: '该段落的核心词汇(3-5个)'
+            }
+          },
+          required: ['text', 'reason', 'complexity', 'estimatedReadingTime', 'keyVocabulary']
+        },
+        description: '智能分段结果'
+      },
+      totalSegments: { type: 'number', description: '总段落数' },
+      estimatedTotalTime: { type: 'number', description: '总预估学习时间(分钟)' },
+      segmentationStrategy: { type: 'string', description: '分段策略说明' }
+    },
+    required: ['paragraphs', 'totalSegments', 'estimatedTotalTime', 'segmentationStrategy']
+  };
+
+  const result = await callAiWithFunctionCalling<SmartSegmentationResult>(
+    prompt,
+    'segmentArticle',
+    '智能拆分英文文章为学习段落',
+    parametersSchema
+  );
+
+  if (result.success && result.data) {
+    return result.data;
+  }
+
+  // AI分段失败时的回退方案
+  const fallbackParagraphs = text
+    .split(/\n\s*\n/)
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
+
+  return {
+    paragraphs: fallbackParagraphs.map((paragraph) => ({
+      text: paragraph,
+      reason: '默认分段（基于空行分隔）',
+      complexity: 5,
+      estimatedReadingTime: Math.ceil(paragraph.split(/\s+/).length * 0.3),
+      keyVocabulary: []
+    })),
+    totalSegments: fallbackParagraphs.length,
+    estimatedTotalTime: Math.ceil(fallbackParagraphs.length * 2),
+    segmentationStrategy: '使用传统分段方式作为回退方案'
+  };
+};
+
 // JSON 模式定义，用于生成 prompt 中的格式说明
 interface JsonSchemaField {
   type: 'string' | 'number' | 'boolean' | 'array' | 'object';
