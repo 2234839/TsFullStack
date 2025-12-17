@@ -99,7 +99,7 @@ export const useOpenAIConfig = createSharedComposable(function () {
     },
     {
       mergeDefaults: true,
-      pollingInterval: 5_500,
+      pollingInterval: 35_500,
     },
   );
 });

@@ -605,7 +605,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     },
     {
       mergeDefaults: true,
-      pollingInterval: 5_500,
+      pollingInterval: 25_500,
     },
   );
 
