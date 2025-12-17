@@ -72,6 +72,28 @@ const { API,AppAPI } = useAPI();
 - 自定义组件应遵循 Vue 3 Composition API 模式
 - 全局组件在 `src/main.ts` 中注册
 
+#### **重要提示：始终使用 Reactive Props Destructure 形式定义组件 props**
+
+Vue 3.5+ 支持响应式 props 解构，编译器会自动将解构的 prop 转换为 `props.xxx` 形式，保持响应式特性。
+
+```typescript
+interface Props {
+  /** prop 描述 */
+  propName?: string;
+  /** 数字类型 prop，默认值为 42 */
+  count?: number;
+}
+
+const {
+  propName = 'default value',
+  count = 42
+} = defineProps<Props>();
+
+// 在 watchEffect 中直接使用，Vue 会自动转换为 props.propName
+watchEffect(() => {
+  console.log(propName, count); // 自动转换为 props.propName, props.count
+});
+```
 ## 重要说明
 
 - 项目使用 monorepo 结构，后端位于 `../backend/`

@@ -271,13 +271,18 @@
                         </div>
                       </div>
 
-                      <div class="space-y-2">
+                      <div class="space-y-2" v-if="!isTranslating && paragraphTranslation">
                         <div class="text-sm text-gray-500">完整中文翻译</div>
-                        <div class="p-3 bg-green-50 rounded-lg">
+                        <GlassBlur
+                          :key="paragraphTranslation?.originalText"
+                          :overlay-text="'鼠标悬停或点击查看翻译'"
+                          :container-class="'p-3 bg-green-50/80 rounded-lg border border-green-100/50 hover:bg-green-50/95'"
+                          :overlay-class="'bg-green-50/60 backdrop-blur-[1px]'"
+                          :overlay-text-class="'text-green-700/80'">
                           <div class="text-base leading-relaxed">
                             {{ paragraphTranslation.translatedText }}
                           </div>
-                        </div>
+                        </GlassBlur>
                       </div>
                     </div>
                   </div>
@@ -550,6 +555,7 @@
   import { computed, nextTick, reactive, ref, watch, watchEffect } from 'vue';
   import Dialog from 'primevue/dialog';
   import AiEnglishConfigPanel from '@/components/AiEnglishConfigPanel.vue';
+  import GlassBlur from '@/components/GlassBlur.vue';
 
   interface StudySession {
     clickedWords: Set<string>;
