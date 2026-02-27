@@ -8,5 +8,4 @@ export type {
   PopoverTrigger,
   UiPopoverProps,
   UiPopoverEmits,
-  UiPopoverInstance,
 } from './types';

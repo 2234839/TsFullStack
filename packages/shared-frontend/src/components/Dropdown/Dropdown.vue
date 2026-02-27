@@ -86,14 +86,14 @@ const contentStyle = {
 
     <DropdownMenuPortal>
       <DropdownMenuContent
-        class="ui-dropdown-content"
+        class="bg-white dark:bg-gray-700 rounded-md p-1.5 shadow-lg min-w-[200px] max-w-[calc(100vw-20px)] max-h-[calc(100vh-20px)] overflow-auto z-[10001] animate-in fade-in zoom-in-95 duration-200"
         :side="side"
         :align="align"
         :side-offset="sideOffset"
         :style="contentStyle">
         <div
           v-if="showCloseIcon"
-          class="ui-dropdown-close-icon"
+          class="absolute top-2 right-2 w-5 h-5 flex items-center justify-center cursor-pointer text-base text-gray-400 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-700 dark:hover:text-gray-200 transition-all z-10"
           @click="close">
           ×
         </div>
@@ -104,152 +104,5 @@ const contentStyle = {
 </template>
 
 <style>
-/**
- * Dropdown 内容区域样式
- * 使用白色背景
- * 添加平滑的动画效果
- */
-.ui-dropdown-content {
-  background-color: rgb(255, 255, 255);
-  border-radius: 6px;
-  padding: 5px;
-  box-shadow: 0 10px 38px rgba(0, 0, 0, 0.35);
-  min-width: 200px;
-  max-width: calc(100vw - 20px);
-  max-height: calc(100vh - 20px);
-  overflow: auto;
-  animation-duration: 200ms;
-  animation-timing-function: ease-out;
-  transform-origin: var(--reka-dropdown-menu-content-transform-origin);
-}
-
-/**
- * 根据位置应用不同的动画
- */
-.ui-dropdown-content[data-side='bottom'] {
-  animation-name: slideUpAndFade;
-}
-
-.ui-dropdown-content[data-side='top'] {
-  animation-name: slideDownAndFade;
-}
-
-.ui-dropdown-content[data-side='left'] {
-  animation-name: slideRightAndFade;
-}
-
-.ui-dropdown-content[data-side='right'] {
-  animation-name: slideLeftAndFade;
-}
-
-/**
- * 关闭图标样式
- */
-.ui-dropdown-close-icon {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 16px;
-  color: rgb(156, 163, 175);
-  border-radius: 9999px;
-  transition: all 0.2s;
-  z-index: 1;
-}
-
-.ui-dropdown-close-icon:hover {
-  background-color: rgb(243, 244, 246);
-  color: rgb(55, 65, 81);
-}
-
-/**
- * Dropdown 箭头样式
- * 匹配内容区域的背景色
- */
-.ui-dropdown-arrow {
-  fill: rgb(255, 255, 255);
-}
-
-/**
- * 从上方滑入淡入动画
- */
-@keyframes slideUpAndFade {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/**
- * 从下方滑入淡入动画
- */
-@keyframes slideDownAndFade {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/**
- * 从左侧滑入淡入动画
- */
-@keyframes slideLeftAndFade {
-  from {
-    opacity: 0;
-    transform: translateX(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/**
- * 从右侧滑入淡入动画
- */
-@keyframes slideRightAndFade {
-  from {
-    opacity: 0;
-    transform: translateX(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/**
- * 支持深色模式
- */
-@media (prefers-color-scheme: dark) {
-  .ui-dropdown-content {
-    background-color: rgb(31, 41, 55);
-  }
-
-  .ui-dropdown-arrow {
-    fill: rgb(31, 41, 55);
-  }
-
-  .ui-dropdown-close-icon {
-    color: rgb(156, 163, 175);
-  }
-
-  .ui-dropdown-close-icon:hover {
-    background-color: rgb(55, 65, 81);
-    color: rgb(229, 231, 235);
-  }
-}
+/* 不再需要自定义样式，全部使用 Tailwind CSS */
 </style>

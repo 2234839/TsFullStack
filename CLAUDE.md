@@ -18,8 +18,8 @@ pnpm prisma migrate dev   # 运行数据库迁移
 pnpm build:lib            # 构建后端api接口包供前端掉用
 pnpm dev                  # 启动开发服务器
 
-# 构建tsfullstack网站和后端并发布到服务器的脚本
-apps/backend/publish.sh
+# 编译构建tsfullstack网站和后端并发布到服务器
+pnpm --filter @tsfullstack/backend build:publish
 
 # 前端开发 (apps/website-frontend/)
 pnpm build                # 构建生产版本

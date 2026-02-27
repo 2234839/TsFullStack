@@ -15,7 +15,6 @@ export type {
   PopoverSide,
   PopoverTrigger,
   UiPopoverEmits,
-  UiPopoverInstance,
   UiPopoverProps,
 } from './Popover';
 

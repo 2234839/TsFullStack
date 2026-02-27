@@ -5,7 +5,7 @@
  *
  * @example
  * ```vue
- * <Popover trigger="click" :show-close-icon="true">
+ * <Popover v-model:open="isOpen" trigger="click" :show-close-icon="true">
  *   <template #trigger>
  *     <Button>点击打开</Button>
  *   </template>
@@ -13,14 +13,13 @@
  * </Popover>
  * ```
  */
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import {
   PopoverRoot,
   PopoverTrigger,
   PopoverContent,
   PopoverPortal,
   PopoverArrow,
-  useForwardPropsEmits,
 } from 'reka-ui';
 import type { PopoverRootProps } from 'reka-ui';
 import type { UiPopoverEmits, UiPopoverProps } from './types';
@@ -33,42 +32,28 @@ const props = withDefaults(defineProps<UiPopoverProps>(), {
   trigger: () => 'click' as const,
   showCloseIcon: false,
   closeOnClickOutside: true,
+  defaultOpen: false,
   delayDuration: 200,
+});
+
+/** 使用 defineModel 定义双向绑定的 open 状态 */
+const openModel = defineModel<boolean>('open', {
+  default: false,
 });
 
 /** 定义 emits */
 const emits = defineEmits<UiPopoverEmits>();
 
-/** 内部状态管理 */
-const internalOpen = ref(props.defaultOpen || false);
-
 /** 计算当前打开状态 */
-const isOpen = computed(() => props.open ?? internalOpen.value);
+const isOpen = computed(() => openModel.value);
 
-/** 更新打开状态 */
-const updateIsOpen = (value: boolean) => {
-  const wasClosed = !isOpen.value;
-  internalOpen.value = value;
-  emits('update:modelValue', value);
-  emits('update:open', value);
-  // 当从关闭变为打开时，触发 open 事件
-  if (wasClosed && value) {
-    emits('open');
-  }
-};
-
-/**
- * 转发 props 和 emits 到 reka-ui 的 PopoverRoot
- * 确保 props 变化时能够正确传递
- */
-const forwarded = useForwardPropsEmits(
-  computed<PopoverRootProps>(() => ({
-    open: props.open,
-    defaultOpen: props.defaultOpen,
-    disabled: props.disabled,
-  })),
-  emits,
-);
+/** 计算传递给 PopoverRoot 的 props */
+const popoverRootProps = computed<PopoverRootProps>(() => ({
+  open: openModel.value,
+  defaultOpen: props.defaultOpen,
+  disabled: props.disabled,
+  delayDuration: props.delayDuration,
+}));
 
 /** 计算内容区域的样式 */
 const contentStyle = computed(() => ({
@@ -78,38 +63,22 @@ const contentStyle = computed(() => ({
 
 /** 关闭 Popover */
 const close = () => {
-  updateIsOpen(false);
+  openModel.value = false;
 };
 
 /** 打开 Popover */
 const open = () => {
-  updateIsOpen(true);
+  openModel.value = true;
+  // 当从关闭变为打开时，触发 open 事件
+  if (!isOpen.value) {
+    emits('open');
+  }
 };
 
 /** 切换 Popover 状态 */
 const toggle = () => {
   isOpen.value ? close() : open();
 };
-
-/** 监听 props.open 变化 */
-watch(
-  () => props.open,
-  (value) => {
-    if (value !== undefined) {
-      internalOpen.value = value;
-    }
-  },
-);
-
-/** 监听 modelValue 变化 */
-watch(
-  () => props.modelValue,
-  (value) => {
-    if (value !== undefined) {
-      internalOpen.value = value;
-    }
-  },
-);
 
 /** 暴露方法供外部调用 */
 defineExpose({
@@ -120,7 +89,7 @@ defineExpose({
 </script>
 
 <template>
-  <PopoverRoot v-bind="forwarded">
+  <PopoverRoot v-bind="popoverRootProps">
     <PopoverTrigger as-child>
       <slot name="trigger" :open="isOpen" :toggle="toggle" />
     </PopoverTrigger>
@@ -274,22 +243,20 @@ defineExpose({
 /**
  * 支持深色模式
  */
-@media (prefers-color-scheme: dark) {
-  .ui-popover-content {
-    background-color: rgb(31, 41, 55);
-  }
+.dark .ui-popover-content {
+  background-color: rgb(31, 41, 55);
+}
 
-  .ui-popover-arrow {
-    fill: rgb(31, 41, 55);
-  }
+.dark .ui-popover-arrow {
+  fill: rgb(31, 41, 55);
+}
 
-  .ui-popover-close-icon {
-    color: rgb(156, 163, 175);
-  }
+.dark .ui-popover-close-icon {
+  color: rgb(156, 163, 175);
+}
 
-  .ui-popover-close-icon:hover {
-    background-color: rgb(55, 65, 81);
-    color: rgb(229, 231, 235);
-  }
+.dark .ui-popover-close-icon:hover {
+  background-color: rgb(55, 65, 81);
+  color: rgb(229, 231, 235);
 }
 </style>

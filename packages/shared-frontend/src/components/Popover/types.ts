@@ -33,8 +33,6 @@ export interface UiPopoverProps extends Omit<PopoverRootProps, 'open'> {
   closeOnClickOutside?: boolean;
   /** 默认是否打开 */
   defaultOpen?: boolean;
-  /** 是否打开（受控模式） */
-  open?: boolean;
   /** 是否禁用 */
   disabled?: boolean;
   /** 延迟打开时间（hover 模式） */
@@ -44,21 +42,7 @@ export interface UiPopoverProps extends Omit<PopoverRootProps, 'open'> {
 /**
  * Popover 组件 Emits
  */
-export interface UiPopoverEmits extends PopoverRootEmits {
-  /** 更新打开状态 */
-  'update:modelValue': [value: boolean];
+export interface UiPopoverEmits extends Omit<PopoverRootEmits, 'update:open'> {
   /** Popover 打开事件 */
   open: [];
-}
-
-/**
- * Popover 组件实例
- */
-export interface UiPopoverInstance {
-  /** 打开 Popover */
-  open: () => void;
-  /** 关闭 Popover */
-  close: () => void;
-  /** 切换 Popover 状态 */
-  toggle: () => void;
 }
