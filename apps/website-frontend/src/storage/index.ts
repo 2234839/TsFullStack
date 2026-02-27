@@ -41,12 +41,16 @@ export function authInfo_logout(/** 登录后重定向的页面地址   */ r?: s
 }
 
 //#region 主题功能
+/** 开发环境随机主题选项 */
+export const theme_randomMode = useStorage<boolean>(appId + 'theme_randomMode', false);
+
 export const theme = useStorage<'dark' | 'light'>(appId + 'theme', null, undefined, {
   serializer: StorageSerializers.object,
 });
 
 /**  src/style.css 中也需要设置和此处一样 */
 export const theme_darkModeClass = 'dark';
+
 export const theme_isDark = computed<boolean>({
   set(v) {
     theme.value = v ? 'dark' : 'light';
