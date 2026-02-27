@@ -11,11 +11,11 @@
     <div class="space-y-4">
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ $t('模型名称') }} <span class="text-red-500">*</span>
+          {{ t('模型名称') }} <span class="text-red-500">*</span>
         </label>
         <InputText
           v-model="form.name"
-          :placeholder="$t('请输入模型名称')"
+          :placeholder="t('请输入模型名称')"
           :class="{ 'p-invalid': errors.name }"
           @input="validateField('name')" />
         <small v-if="errors.name" class="text-red-500">{{ errors.name }}</small>
@@ -23,11 +23,11 @@
 
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ $t('模型标识') }} <span class="text-red-500">*</span>
+          {{ t('模型标识') }} <span class="text-red-500">*</span>
         </label>
         <InputText
           v-model="form.model"
-          :placeholder="$t('如：gpt-3.5-turbo, claude-3-sonnet')"
+          :placeholder="t('如：gpt-3.5-turbo, claude-3-sonnet')"
           :class="{ 'p-invalid': errors.model }"
           @input="validateField('model')" />
         <small v-if="errors.model" class="text-red-500">{{ errors.model }}</small>
@@ -35,11 +35,11 @@
 
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ $t('API基础URL') }} <span class="text-red-500">*</span>
+          {{ t('API基础URL') }} <span class="text-red-500">*</span>
         </label>
         <InputText
           v-model="form.baseUrl"
-          :placeholder="$t('请输入API基础URL')"
+          :placeholder="t('请输入API基础URL')"
           :class="{ 'p-invalid': errors.baseUrl }"
           @input="validateField('baseUrl')" />
         <small v-if="errors.baseUrl" class="text-red-500">{{ errors.baseUrl }}</small>
@@ -47,11 +47,11 @@
 
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ $t('API密钥') }} <span class="text-red-500">*</span>
+          {{ t('API密钥') }} <span class="text-red-500">*</span>
         </label>
         <Password
           v-model="form.apiKey"
-          :placeholder="$t('请输入API密钥')"
+          :placeholder="t('请输入API密钥')"
           :feedback="false"
           toggleMask
           :class="{ 'p-invalid': errors.apiKey }"
@@ -62,11 +62,11 @@
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('最大Token数') }}
+            {{ t('最大Token数') }}
           </label>
           <InputNumber
             v-model="form.maxTokens"
-            :placeholder="$t('默认：2000')"
+            :placeholder="t('默认：2000')"
             :min="1"
             :max="32000"
             showButtons
@@ -75,11 +75,11 @@
 
         <div class="field">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('温度参数') }}
+            {{ t('温度参数') }}
           </label>
           <InputNumber
             v-model="form.temperature"
-            :placeholder="$t('默认：0.7')"
+            :placeholder="t('默认：0.7')"
             :min="0"
             :max="2"
             :step="0.1"
@@ -91,11 +91,11 @@
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('权重') }}
+            {{ t('权重') }}
           </label>
           <InputNumber
             v-model="form.weight"
-            :placeholder="$t('默认：100')"
+            :placeholder="t('默认：100')"
             :min="1"
             :max="1000"
             showButtons
@@ -104,11 +104,11 @@
 
         <div class="field">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('每分钟限制') }}
+            {{ t('每分钟限制') }}
           </label>
           <InputNumber
             v-model="form.rpmLimit"
-            :placeholder="$t('默认：60')"
+            :placeholder="t('默认：60')"
             :min="1"
             showButtons
             class="w-full" />
@@ -118,11 +118,11 @@
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('每小时限制') }}
+            {{ t('每小时限制') }}
           </label>
           <InputNumber
             v-model="form.rphLimit"
-            :placeholder="$t('默认：1000')"
+            :placeholder="t('默认：1000')"
             :min="1"
             showButtons
             class="w-full" />
@@ -130,11 +130,11 @@
 
         <div class="field">
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            {{ $t('每日限制') }}
+            {{ t('每日限制') }}
           </label>
           <InputNumber
             v-model="form.rpdLimit"
-            :placeholder="$t('默认：10000')"
+            :placeholder="t('默认：10000')"
             :min="1"
             showButtons
             class="w-full" />
@@ -143,11 +143,11 @@
 
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ $t('描述信息') }}
+          {{ t('描述信息') }}
         </label>
         <Textarea
           v-model="form.description"
-          :placeholder="$t('请输入模型描述信息')"
+          :placeholder="t('请输入模型描述信息')"
           :rows="3"
           class="w-full" />
       </div>
@@ -159,7 +159,7 @@
             inputId="enabled"
             :binary="true" />
           <label for="enabled" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
-            {{ $t('启用模型') }}
+            {{ t('启用模型') }}
           </label>
         </div>
       </div>
@@ -168,12 +168,12 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button
-          :label="$t('取消')"
+          :label="t('取消')"
           icon="pi pi-times"
           @click="onCancel"
           class="p-button-text" />
         <Button
-          :label="$t('保存')"
+          :label="t('保存')"
           icon="pi pi-check"
           @click="onSubmit"
           :loading="loading"
@@ -186,7 +186,7 @@
 <script setup lang="ts">
 import { ref, reactive, watch } from 'vue'
 import { useAPI } from '@/api'
-import { useI18n } from 'vue-i18n'
+import { useI18n } from '@/composables/useI18n'
 import { Button, Dialog, InputText, Password, InputNumber, Textarea, Checkbox } from 'primevue'
 
 interface Props {

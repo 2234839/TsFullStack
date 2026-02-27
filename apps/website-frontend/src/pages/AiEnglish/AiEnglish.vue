@@ -22,7 +22,7 @@
                 文章输入
                 <Tag v-if="isStudying" severity="info" class="ml-auto"> 学习中... </Tag>
                 <CommonSettingBtns class="ml-auto" />
-                <Tooltip :content="$t('AI配置')" side="left">
+                <Tooltip :content="t('AI配置')" side="left">
                   <Button
                     icon="pi pi-cog"
                     severity="secondary"
@@ -201,7 +201,7 @@
                     :max="1.5"
                     :step="0.1"
                     class="w-32"
-                    :title="$t(`调整发音速度，当前${ttsConfig.rate}倍速`)" />
+                    :title="t(`调整发音速度，当前${ttsConfig.rate}倍速`)" />
                   <Button
                     text
                     rounded
@@ -223,7 +223,7 @@
                           )
                     "
                     class="ml-auto"
-                    :title="$t('重新使用ai翻译')">
+                    :title="t('重新使用ai翻译')">
                     <i class="pi pi-refresh" style="font-size: 1rem" />
                   </Button>
                 </div>
@@ -675,7 +675,7 @@
     <!-- AI配置对话框 -->
     <Dialog
       v-model:visible="showConfigPanel"
-      :header="$t('AI配置')"
+      :header="t('AI配置')"
       :modal="true"
       :style="{ width: '450px' }"
       :draggable="false">
@@ -705,6 +705,9 @@
   import ParagraphRenderer from '@/components/ParagraphRenderer.vue';
   import AiEnglishTips from '@/components/AiEnglishTips.vue';
   import GlassBlur from '@/components/GlassBlur.vue';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
 
   interface StudySession {
     clickedWords: Set<string>;

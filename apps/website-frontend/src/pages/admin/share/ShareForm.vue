@@ -9,23 +9,23 @@
     :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
     <div class="flex flex-col gap-4">
       <div class="field">
-        <label class="block text-sm font-medium mb-1">{{ $t('标题') }}</label>
-        <InputText v-model="formData.title" class="w-full" :placeholder="$t('请输入标题')" />
+        <label class="block text-sm font-medium mb-1">{{ t('标题') }}</label>
+        <InputText v-model="formData.title" class="w-full" :placeholder="t('请输入标题')" />
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium mb-1">{{ $t('文件上传') }}</label>
+        <label class="block text-sm font-medium mb-1">{{ t('文件上传') }}</label>
         <input
           type="file"
           multiple
           @change="onFileSelect"
           class="w-full p-2 border rounded dark:bg-gray-800 dark:border-gray-600"
-          :placeholder="$t('请选择文件')" />
+          :placeholder="t('请选择文件')" />
       </div>
 
       <!-- 已选择的文件列表 -->
       <div v-if="selectedFiles.length > 0" class="field">
-        <h4 class="text-sm font-medium mb-2">{{ $t('已选择的文件') }}</h4>
+        <h4 class="text-sm font-medium mb-2">{{ t('已选择的文件') }}</h4>
         <div
           v-for="(file, index) in selectedFiles"
           :key="index"
@@ -36,13 +36,13 @@
             text
             rounded
             @click="removeSelectedFile(index)"
-            :aria-label="$t('移除文件')" />
+            :aria-label="t('移除文件')" />
         </div>
       </div>
 
       <!-- 已上传的文件列表 -->
       <div v-if="uploadedFiles.length > 0" class="field">
-        <h4 class="text-sm font-medium mb-2">{{ $t('已上传的文件') }}</h4>
+        <h4 class="text-sm font-medium mb-2">{{ t('已上传的文件') }}</h4>
         <div
           v-for="(file, index) in uploadedFiles"
           :key="file.id"
@@ -53,15 +53,15 @@
             text
             rounded
             @click="removeUploadedFile(index)"
-            :aria-label="$t('移除文件')" />
+            :aria-label="t('移除文件')" />
         </div>
       </div>
     </div>
 
     <template #footer>
-      <Button :label="$t('取消')" icon="pi pi-times" text @click="close" />
+      <Button :label="t('取消')" icon="pi pi-times" text @click="close" />
       <Button
-        :label="$t('提交')"
+        :label="t('提交')"
         icon="pi pi-check"
         @click="submit"
         :disabled="isSubmitting"
@@ -78,8 +78,10 @@
   import { userDataAppid } from '@/storage/userDataAppid';
   import { $Enums } from '@tsfullstack/backend';
   import { computed, ref, watch } from 'vue';
+  import { useI18n } from '@/composables/useI18n';
 
   const { API } = useAPI();
+  const { t } = useI18n();
 
   /** Props */
   interface Props {

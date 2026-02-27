@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col gap-4 p-4">
     <div class="flex items-center justify-between">
-      <h3 class="text-lg font-medium">{{ $t('AI 配置') }}</h3>
+      <h3 class="text-lg font-medium">{{ t('AI 配置') }}</h3>
       <Tag severity="info" value="混合模式" />
     </div>
 
@@ -18,7 +18,7 @@
 
     <div class="flex flex-col gap-3">
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium">{{ $t('Base URL') }}</label>
+        <label class="text-sm font-medium">{{ t('Base URL') }}</label>
         <InputText
           v-model="config.baseURL"
           placeholder="https://api.openai.com/v1"
@@ -26,7 +26,7 @@
       </div>
 
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium">{{ $t('API Key') }}</label>
+        <label class="text-sm font-medium">{{ t('API Key') }}</label>
         <Password
           v-model="config.apiKey"
           placeholder="sk-..."
@@ -36,17 +36,17 @@
       </div>
 
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium">{{ $t('模型') }}</label>
+        <label class="text-sm font-medium">{{ t('模型') }}</label>
         <InputText v-model="config.model" placeholder="gpt-3.5-turbo" class="w-full" />
       </div>
 
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium">{{ $t('最大Token数') }}</label>
+        <label class="text-sm font-medium">{{ t('最大Token数') }}</label>
         <InputNumber v-model="config.maxTokens" :min="100" :max="4000" :step="100" class="w-full" />
       </div>
 
       <div class="flex flex-col gap-2">
-        <label class="text-sm font-medium">{{ $t('温度参数') }}</label>
+        <label class="text-sm font-medium">{{ t('温度参数') }}</label>
         <InputNumber
           v-model="config.temperature"
           :min="0"
@@ -58,8 +58,8 @@
     </div>
 
     <div class="flex gap-2 justify-end">
-      <Button :label="$t('重置')" severity="secondary" @click="resetConfig" />
-      <Button :label="$t('保存')" @click="saveConfig" />
+      <Button :label="t('重置')" severity="secondary" @click="resetConfig" />
+      <Button :label="t('保存')" @click="saveConfig" />
     </div>
   </div>
 </template>
@@ -72,6 +72,9 @@
   import Password from 'primevue/password';
   import Tag from 'primevue/tag';
   import { reactive, watch } from 'vue';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
 
   const emit = defineEmits<{
     save: [];

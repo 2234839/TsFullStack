@@ -1,5 +1,5 @@
 <template>
-  <Tooltip :content="$t('切换主题')">
+  <Tooltip :content="t('切换主题')">
     <div
       @click="toggleTheme"
       class="w-9 h-9 flex items-center justify-center aspect-ratio rounded-full transition-colors duration-300 cursor-pointer"
@@ -16,6 +16,9 @@
 <script setup lang="ts">
   import { theme_isDark } from '@/storage';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
 
   const toggleTheme = () => {
     theme_isDark.value = !theme_isDark.value;

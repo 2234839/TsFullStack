@@ -8,3 +8,22 @@ export type {
   UiTooltipInstance,
   UiTooltipProps,
 } from './Tooltip';
+
+export { Popover } from './Popover';
+export type {
+  PopoverAlign,
+  PopoverSide,
+  PopoverTrigger,
+  UiPopoverEmits,
+  UiPopoverInstance,
+  UiPopoverProps,
+} from './Popover';
+
+export { Dropdown } from './Dropdown';
+export type {
+  DropdownAlign,
+  DropdownSide,
+  UiDropdownEmits,
+  UiDropdownInstance,
+  UiDropdownProps,
+} from './Dropdown';

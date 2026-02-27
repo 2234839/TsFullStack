@@ -57,7 +57,7 @@
         </div>
         <a :href="url" :download="file.filename" class="download-link">
           <i class="pi pi-download mr-1"></i>
-          {{ $t('下载') }}
+          {{ t('下载') }}
         </a>
       </div>
     </div>
@@ -67,6 +67,9 @@
   import File2Url from '@/pages/admin/components/File2Url.vue';
   import { type ShareFileJSON } from '@/pages/admin/share/ShareDef';
   import { useDark } from '@vueuse/core';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
 
   defineProps({
     file: {

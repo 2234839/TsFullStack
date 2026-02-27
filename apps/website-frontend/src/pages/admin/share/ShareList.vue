@@ -2,18 +2,18 @@
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ $t('分享管理') }}</h1>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ t('分享管理') }}</h1>
         <p class="mt-2 text-gray-600 dark:text-gray-400">
-          {{ $t('浏览和管理您的分享') }}
+          {{ t('浏览和管理您的分享') }}
         </p>
       </div>
 
       <div class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
         <div class="relative w-full sm:w-1/3">
-          <InputText v-model="searchTitle" :placeholder="$t('搜索')" class="w-full pl-10" />
+          <InputText v-model="searchTitle" :placeholder="t('搜索')" class="w-full pl-10" />
         </div>
         <Button
-          :label="$t('新建分享')"
+          :label="t('新建分享')"
           icon="pi pi-plus"
           @click="openCreateDialog"
           class="p-button-success self-end sm:self-auto" />
@@ -28,7 +28,7 @@
       <!-- QR码对话框 -->
       <Dialog
         v-model:visible="qrDialogVisible"
-        :header="$t('分享二维码')"
+        :header="t('分享二维码')"
         :modal="true"
         :style="{ width: '300px' }"
         :closable="true"
@@ -39,7 +39,7 @@
               {{ (selectedQRItem?.data as unknown as ShareJSON)?.title }}
             </h3>
             <p class="text-sm text-gray-600 dark:text-gray-400">
-              {{ $t('扫描二维码访问分享') }}
+              {{ t('扫描二维码访问分享') }}
             </p>
           </div>
 
@@ -47,12 +47,12 @@
             <img
               v-if="qrCodeDataUrl"
               :src="qrCodeDataUrl"
-              :alt="$t('分享二维码')"
+              :alt="t('分享二维码')"
               class="border border-gray-300 dark:border-gray-600 rounded-lg"
               width="200"
               height="200" />
             <div v-else class="w-52 h-52 flex items-center justify-center text-gray-500">
-              {{ $t('生成二维码中...') }}
+              {{ t('生成二维码中...') }}
             </div>
           </div>
 
@@ -62,7 +62,7 @@
 
           <div class="mt-4">
             <Button
-              :label="$t('复制链接')"
+              :label="t('复制链接')"
               icon="pi pi-copy"
               class="p-button-sm"
               @click="copyToClipboard" />
@@ -87,7 +87,7 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
           <i class="pi pi-images text-4xl text-gray-400 mb-4" />
           <p class="text-gray-600 dark:text-gray-400">
-            {{ $t('暂无分享') }}
+            {{ t('暂无分享') }}
           </p>
         </div>
       </div>
@@ -112,7 +112,7 @@
                   icon="pi pi-qrcode"
                   class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
                   @click.stop="handleShowQRCode(item as any)"
-                  :aria-label="$t('显示二维码')" />
+                  :aria-label="t('显示二维码')" />
                 <Button
                   icon="pi pi-link"
                   class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
@@ -121,18 +121,18 @@
                   icon="pi pi-pencil"
                   class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
                   @click.stop="handleEdit(item as any)"
-                  :aria-label="$t('编辑')" />
+                  :aria-label="t('编辑')" />
                 <Button
                   icon="pi pi-trash"
                   class="p-button-rounded p-button-danger p-button-text p-2"
                   @click.stop="handleDelete(item as any)"
-                  :aria-label="$t('删除')" />
+                  :aria-label="t('删除')" />
               </div>
 
               <div
                 class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
                 <span
-                  >{{ (item.data as unknown as ShareJSON).files.length }} {{ $t('个文件') }}</span
+                  >{{ (item.data as unknown as ShareJSON).files.length }} {{ t('个文件') }}</span
                 >
                 <span>{{
                   formatFileSize(getTotalFileSize(item.data as unknown as ShareJSON))
@@ -170,8 +170,10 @@
   import QRCode from 'qrcode';
   import { reactive, ref } from 'vue';
   import { useConfirm, useToast } from 'primevue';
+  import { useI18n } from '@/composables/useI18n';
 
   const { API } = useAPI();
+  const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
 

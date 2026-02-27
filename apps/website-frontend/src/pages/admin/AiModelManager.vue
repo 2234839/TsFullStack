@@ -3,17 +3,17 @@
     <!-- 页面标题和操作按钮 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">{{ $t('AI模型管理') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400">{{ $t('管理和配置AI模型') }}</p>
+        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">{{ t('AI模型管理') }}</h1>
+        <p class="text-gray-600 dark:text-gray-400">{{ t('管理和配置AI模型') }}</p>
       </div>
       <div class="flex gap-2">
         <Button
-          :label="$t('添加模型')"
+          :label="t('添加模型')"
           icon="pi pi-plus"
           @click="showAddModel"
           class="p-button-primary" />
         <Button
-          :label="$t('刷新数据')"
+          :label="t('刷新数据')"
           icon="pi pi-refresh"
           @click="loadModels"
           :loading="isLoading"
@@ -27,7 +27,7 @@
         class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('总模型数') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('总模型数') }}</p>
             <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ totalModels }}</p>
           </div>
           <div
@@ -41,7 +41,7 @@
         class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('启用模型') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('启用模型') }}</p>
             <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ enabledModels }}</p>
           </div>
           <div
@@ -55,7 +55,7 @@
         class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('禁用模型') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('禁用模型') }}</p>
             <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ disabledModels }}</p>
           </div>
           <div
@@ -69,7 +69,7 @@
         class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ $t('总权重') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('总权重') }}</p>
             <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ totalWeight }}</p>
           </div>
           <div
@@ -91,11 +91,11 @@
         :rowsPerPageOptions="[10, 20, 50]"
         dataKey="id"
         class="p-datatable-sm">
-        <Column field="id" :header="$t('ID')" style="width: 80px"></Column>
+        <Column field="id" :header="t('ID')" style="width: 80px"></Column>
 
-        <Column field="name" :header="$t('模型名称')" style="min-width: 150px"></Column>
+        <Column field="name" :header="t('模型名称')" style="min-width: 150px"></Column>
 
-        <Column field="model" :header="$t('模型标识')" style="min-width: 150px">
+        <Column field="model" :header="t('模型标识')" style="min-width: 150px">
           <template #body="slotProps">
             <code class="text-sm bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">
               {{ slotProps.data.model }}
@@ -103,7 +103,7 @@
           </template>
         </Column>
 
-        <Column field="baseUrl" :header="$t('API地址')" style="min-width: 200px">
+        <Column field="baseUrl" :header="t('API地址')" style="min-width: 200px">
           <template #body="slotProps">
             <div
               class="text-sm text-gray-600 dark:text-gray-400 truncate"
@@ -113,24 +113,24 @@
           </template>
         </Column>
 
-        <Column field="enabled" :header="$t('状态')" style="width: 100px">
+        <Column field="enabled" :header="t('状态')" style="width: 100px">
           <template #body="slotProps">
             <Badge
               v-if="slotProps.data.enabled"
-              :value="$t('启用')"
+              :value="t('启用')"
               severity="success"
               size="small" />
-            <Badge v-else :value="$t('禁用')" severity="danger" size="small" />
+            <Badge v-else :value="t('禁用')" severity="danger" size="small" />
           </template>
         </Column>
 
-        <Column field="weight" :header="$t('权重')" style="width: 80px">
+        <Column field="weight" :header="t('权重')" style="width: 80px">
           <template #body="slotProps">
             <span class="font-mono">{{ slotProps.data.weight }}</span>
           </template>
         </Column>
 
-        <Column field="maxTokens" :header="$t('最大Token')" style="width: 100px">
+        <Column field="maxTokens" :header="t('最大Token')" style="width: 100px">
           <template #body="slotProps">
             <span class="font-mono">{{
               slotProps.data.maxTokens?.toLocaleString() || '2000'
@@ -138,13 +138,13 @@
           </template>
         </Column>
 
-        <Column field="temperature" :header="$t('温度')" style="width: 80px">
+        <Column field="temperature" :header="t('温度')" style="width: 80px">
           <template #body="slotProps">
             <span class="font-mono">{{ slotProps.data.temperature || 0.7 }}</span>
           </template>
         </Column>
 
-        <Column :header="$t('操作')" style="width: 150px">
+        <Column :header="t('操作')" style="width: 150px">
           <template #body="slotProps">
             <div class="flex gap-1">
               <Button
@@ -152,20 +152,20 @@
                 size="small"
                 @click="editModel(slotProps.data)"
                 class="p-button-text p-button-sm"
-                :title="$t('编辑')" />
+                :title="t('编辑')" />
               <Button
                 icon="pi pi-play"
                 size="small"
                 @click="toggleModelStatus(slotProps.data)"
                 :class="slotProps.data.enabled ? 'p-button-warning' : 'p-button-success'"
                 class="p-button-sm"
-                :title="slotProps.data.enabled ? $t('禁用') : $t('启用')" />
+                :title="slotProps.data.enabled ? t('禁用') : t('启用')" />
               <Button
                 icon="pi pi-trash"
                 size="small"
                 @click="deleteModel(slotProps.data)"
                 class="p-button-text p-button-sm p-button-danger"
-                :title="$t('删除')" />
+                :title="t('删除')" />
             </div>
           </template>
         </Column>
@@ -178,7 +178,7 @@
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white">{{ t('模型使用统计') }}</h2>
         <Button
-          :label="$t('刷新统计')"
+          :label="t('刷新统计')"
           icon="pi pi-refresh"
           @click="refreshStats"
           :loading="isStatsLoading"
@@ -195,7 +195,7 @@
 <script setup lang="ts">
   import { useAPI } from '@/api';
   import { computed, onMounted, ref } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  import { useI18n } from '@/composables/useI18n';
   import { Button, Badge, DataTable, Column, useConfirm, useToast } from 'primevue';
   import AiModelForm from './components/AiModelForm.vue';
   import ModelStatsChart from './components/ModelStatsChart.vue';

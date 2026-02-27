@@ -145,9 +145,9 @@
 <template>
   <div class="upload-list-container">
     <div class="flex justify-between items-center mb-4">
-      <h1 class="page-title">{{ $t('文件管理') }}</h1>
+      <h1 class="page-title">{{ t('文件管理') }}</h1>
       <Button
-        :label="$t('上传文件')"
+        :label="t('上传文件')"
         icon="pi pi-upload"
         @click="showUploadDialog"
         class="p-button-primary" />
@@ -158,7 +158,7 @@
       <div class="p-inputgroup">
         <InputText
           v-model="searchTerm"
-          :placeholder="$t('搜索文件名...')"
+          :placeholder="t('搜索文件名...')"
           @keyup.enter="searchFiles" />
         <Button icon="pi pi-search" @click="searchFiles" />
       </div>
@@ -177,7 +177,7 @@
       class="file-table"
       stripedRows
       responsiveLayout="scroll">
-      <Column field="name" :header="$t('文件名')" sortable>
+      <Column field="name" :header="t('文件名')" sortable>
         <template #body="slotProps">
           <div class="flex items-center">
             <div class="file-icon">
@@ -187,26 +187,26 @@
           </div>
         </template>
       </Column>
-      <Column field="type" :header="$t('类型')" sortable></Column>
-      <Column field="size" :header="$t('大小')" sortable>
+      <Column field="type" :header="t('类型')" sortable></Column>
+      <Column field="size" :header="t('大小')" sortable>
         <template #body="slotProps">
           {{ formatFileSize(slotProps.data.size) }}
         </template>
       </Column>
-      <Column field="createdAt" :header="$t('上传时间')" sortable>
+      <Column field="createdAt" :header="t('上传时间')" sortable>
         <template #body="slotProps">
           {{ formatDate(slotProps.data.createdAt) }}
         </template>
       </Column>
-      <Column :header="$t('操作')">
+      <Column :header="t('操作')">
         <template #body="slotProps">
-          <Tooltip :content="$t('预览')">
+          <Tooltip :content="t('预览')">
             <Button
               icon="pi pi-eye"
               class="p-button-rounded p-button-text"
               @click="previewFile(slotProps.data)" />
           </Tooltip>
-          <Tooltip :content="$t('下载')">
+          <Tooltip :content="t('下载')">
             <Button
               icon="pi pi-download"
               class="p-button-rounded p-button-text ml-2"
@@ -214,10 +214,10 @@
           </Tooltip>
           <Button
             icon="pi pi-copy"
-            :label="$t('复制公开链接')"
+            :label="t('复制公开链接')"
             class="p-button-rounded p-button-text ml-2"
             @click="shareFile(slotProps.data)" />
-          <Tooltip :content="$t('删除')">
+          <Tooltip :content="t('删除')">
             <Button
               icon="pi pi-times"
               class="p-button-rounded p-button-text ml-2"
@@ -230,7 +230,7 @@
     <!-- 文件上传对话框 -->
     <Dialog
       v-model:visible="uploadDialogVisible"
-      :header="$t('上传文件')"
+      :header="t('上传文件')"
       :modal="true"
       :style="{ width: '50vw' }"
       :breakpoints="{ '960px': '75vw', '641px': '95vw' }"
@@ -243,9 +243,9 @@
           @drop.prevent="onDrop"
           :class="{ 'drag-over': isDragging }">
           <i class="pi pi-cloud-upload upload-icon"></i>
-          <p>{{ $t('拖拽文件到此处或点击选择文件') }}</p>
+          <p>{{ t('拖拽文件到此处或点击选择文件') }}</p>
           <Button
-            :label="$t('选择文件')"
+            :label="t('选择文件')"
             icon="pi pi-folder"
             @click="triggerFileInput"
             class="mt-3" />
@@ -257,7 +257,7 @@
             multiple />
         </div>
         <div v-if="selectedFiles.length > 0" class="selected-files mt-4">
-          <h3>{{ $t('已选择的文件') }}</h3>
+          <h3>{{ t('已选择的文件') }}</h3>
           <ul class="file-list">
             <li v-for="(file, index) in selectedFiles" :key="index" class="file-item">
               <div class="flex items-center justify-between">
@@ -277,12 +277,12 @@
       </div>
       <template #footer>
         <Button
-          :label="$t('取消')"
+          :label="t('取消')"
           icon="pi pi-times"
           @click="uploadDialogVisible = false"
           class="p-button-text" />
         <Button
-          :label="$t('上传')"
+          :label="t('上传')"
           icon="pi pi-upload"
           @click="uploadFiles"
           :disabled="selectedFiles.length === 0 || isUploading" />
@@ -308,14 +308,14 @@
         <!-- 非图片文件显示信息 -->
         <div v-else class="text-center">
           <i :class="getFileIcon(currentFile?.type)" style="font-size: 4rem"></i>
-          <p class="mt-4">{{ $t('该文件类型不支持预览') }}</p>
-          <p class="mt-2">{{ $t('您可以下载文件以查看内容') }}</p>
+          <p class="mt-4">{{ t('该文件类型不支持预览') }}</p>
+          <p class="mt-2">{{ t('您可以下载文件以查看内容') }}</p>
         </div>
       </div>
       <template #footer>
-        <Button :label="$t('下载')" icon="pi pi-download" @click="downloadCurrentFile" />
+        <Button :label="t('下载')" icon="pi pi-download" @click="downloadCurrentFile" />
         <Button
-          :label="$t('关闭')"
+          :label="t('关闭')"
           icon="pi pi-times"
           @click="previewDialogVisible = false"
           class="p-button-text" />
@@ -329,8 +329,10 @@
   import { useClipboard } from '@vueuse/core';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { onMounted, ref } from 'vue';
+  import { useI18n } from '@/composables/useI18n';
 
   const { API, APIGetUrl, AppAPIGetUrl } = useAPI();
+  const { t } = useI18n();
 
   // 响应式数据
   const files = ref<any[]>([]);

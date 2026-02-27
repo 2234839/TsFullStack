@@ -14,10 +14,10 @@
           <i class="pi pi-exclamation-triangle text-2xl text-red-600 dark:text-red-400"></i>
         </div>
         <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
-          {{ $t('加载失败，请重试') }}
+          {{ t('加载失败，请重试') }}
         </h2>
         <p class="text-gray-600 dark:text-gray-300 max-w-md mx-auto">
-          {{ $t('无法加载分享内容，请检查网络连接') }}
+          {{ t('无法加载分享内容，请检查网络连接') }}
         </p>
       </div>
 
@@ -79,7 +79,7 @@
                   @click="openInNewTab(file)"
                   class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
                   <i class="pi pi-external-link"></i>
-                  <span>{{ $t('新标签页打开') }}</span>
+                  <span>{{ t('新标签页打开') }}</span>
                 </button>
 
                 <!-- Download Button -->
@@ -87,7 +87,7 @@
                   @click="downloadFile(file)"
                   class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
                   <i class="pi pi-download"></i>
-                  <span>{{ $t('点击下载文件') }}</span>
+                  <span>{{ t('点击下载文件') }}</span>
                 </button>
               </div>
             </div>
@@ -105,8 +105,10 @@
   import ShareFilePreview from '@/pages/admin/share/ShareFilePreview.vue';
   import { authInfo_isLogin } from '@/storage';
   import { useAsyncState } from '@vueuse/core';
+  import { useI18n } from '@/composables/useI18n';
 
   const { AppAPI, APIGetUrl, AppAPIGetUrl } = useAPI();
+  const { t } = useI18n();
   const props = defineProps({
     id: String,
   });

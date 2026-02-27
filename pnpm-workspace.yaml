@@ -6,6 +6,7 @@ packages:
 
 catalog:
   '@types/node': ^20.10.0
+  '@vitejs/plugin-vue': ^5.2.1
   primeicons: ^7.0.0
   primevue: ^4.3.9
   reka-ui: ^2.8.0

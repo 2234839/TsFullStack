@@ -3,42 +3,42 @@
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-        {{ $t('请求趋势') }}
+        {{ t('请求趋势') }}
       </h3>
       <Chart type="line" :data="lineChartData" :options="chartOptions" />
     </div>
 
     <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-        {{ $t('用户活跃度') }}
+        {{ t('用户活跃度') }}
       </h3>
       <Chart type="bar" :data="userActivityData" :options="barOptions" />
     </div>
 
     <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-        {{ $t('模型分布') }}
+        {{ t('模型分布') }}
       </h3>
       <Chart type="doughnut" :data="doughnutChartData" :options="doughnutOptions" />
     </div>
 
     <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-        {{ $t('用户排行') }}
+        {{ t('用户排行') }}
       </h3>
       <DataTable :value="userStats" stripedRows responsiveLayout="scroll">
-        <Column field="userEmail" :header="$t('用户邮箱')"></Column>
-        <Column field="requestCount" :header="$t('请求数量')"></Column>
-        <Column field="totalTokens" :header="$t('总令牌数')"></Column>
-        <Column field="lastUsed" :header="$t('最后使用时间')"></Column>
+        <Column field="userEmail" :header="t('用户邮箱')"></Column>
+        <Column field="requestCount" :header="t('请求数量')"></Column>
+        <Column field="totalTokens" :header="t('总令牌数')"></Column>
+        <Column field="lastUsed" :header="t('最后使用时间')"></Column>
       </DataTable>
 
       <!-- Pagination controls -->
       <div class="flex justify-between items-center mt-4">
         <div class="text-sm text-gray-600 dark:text-gray-400">
-          {{ $t('显示') }} {{ (userPagination.page - 1) * userPagination.pageSize + 1 }} -
+          {{ t('显示') }} {{ (userPagination.page - 1) * userPagination.pageSize + 1 }} -
           {{ Math.min(userPagination.page * userPagination.pageSize, userPagination.total) }}
-          {{ $t('共') }} {{ userPagination.total }} {{ $t('条记录') }}
+          {{ t('共') }} {{ userPagination.total }} {{ t('条记录') }}
         </div>
         <div class="flex space-x-2">
           <Button
@@ -46,14 +46,14 @@
             @click="changeUserPage(userPagination.page - 1)"
             class="p-2"
           >
-            {{ $t('上一页') }}
+            {{ t('上一页') }}
           </Button>
           <Button
             :disabled="userPagination.page === userPagination.totalPages"
             @click="changeUserPage(userPagination.page + 1)"
             class="p-2"
           >
-            {{ $t('下一页') }}
+            {{ t('下一页') }}
           </Button>
         </div>
       </div>
@@ -61,18 +61,18 @@
 
     <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-        {{ $t('详细统计') }}
+        {{ t('详细统计') }}
       </h3>
       <DataTable :value="detailedStats" stripedRows responsiveLayout="scroll">
-        <Column field="modelName" :header="$t('模型名称')"></Column>
-        <Column field="requestCount" :header="$t('请求数量')"></Column>
-        <Column field="successRate" :header="$t('成功率')">
+        <Column field="modelName" :header="t('模型名称')"></Column>
+        <Column field="requestCount" :header="t('请求数量')"></Column>
+        <Column field="successRate" :header="t('成功率')">
           <template #body="slotProps">
             {{ slotProps.data.successRate }}%
           </template>
         </Column>
-        <Column field="avgTokens" :header="$t('平均令牌数')"></Column>
-        <Column field="lastUsed" :header="$t('最后使用时间')"></Column>
+        <Column field="avgTokens" :header="t('平均令牌数')"></Column>
+        <Column field="lastUsed" :header="t('最后使用时间')"></Column>
       </DataTable>
     </div>
   </div>
@@ -84,8 +84,10 @@ import Chart from 'primevue/chart'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import { useAPI } from '@/api'
+import { useI18n } from '@/composables/useI18n'
 
 const { API } = useAPI()
+const { t } = useI18n()
 
 interface DetailedStats {
   modelName: string

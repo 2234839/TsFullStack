@@ -10,7 +10,7 @@
       :display="multiple ? 'chip' : 'comma'"
       :filter="true"
       :filterFields="['label', 'value']"
-      :filterPlaceholder="$t('搜索用户')"
+      :filterPlaceholder="t('搜索用户')"
       optionLabel="label"
       optionValue="value"
       class="w-full"
@@ -22,6 +22,9 @@
 import { MultiSelect } from 'primevue';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useAPI } from '@/api';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 interface Props {
   modelValue?: string | string[] | null;

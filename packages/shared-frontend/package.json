@@ -46,6 +46,7 @@
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "@vitejs/plugin-vue": "catalog:",
     "reka-ui": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",

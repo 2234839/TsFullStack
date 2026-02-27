@@ -1,11 +1,10 @@
 <template>
-  <SmartPopover placement="top">
+  <Dropdown v-model="dropdownOpen" @update:open="(value) => value && handleSearch()">
     <template #trigger>
       <div
-        @click="handleSearch()"
         class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-[40px]">
         <span class="bg-blue-300 drak:bg-blue-700 rounded-sm px-1 text-white">{{
-          $t('选择')
+          t('选择')
         }}</span>
         <div class="flex flex-wrap gap-1">
           <template v-if="showTag">
@@ -47,12 +46,12 @@
         :model-value="isAllSelected"
         binary
         @update:model-value="toggleSelectAll(!isAllSelected)" />
-      <span class="ml-2 font-medium">{{ $t('全选') }}</span>
+      <span class="ml-2 font-medium">{{ t('全选') }}</span>
     </div>
     <div class="max-h-60 overflow-y-auto">
       <div v-if="loading" class="p-4 text-center">
         <i class="pi pi-spin pi-spinner mr-2"></i>
-        {{ $t('加载中...') }}
+        {{ t('加载中...') }}
       </div>
       <div
         v-else
@@ -63,7 +62,7 @@
         <span class="ml-2">{{ item.label }}</span>
       </div>
       <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-gray-500">
-        {{ $t('无数据') }}
+        {{ t('无数据') }}
       </div>
     </div>
     <div>
@@ -74,7 +73,7 @@
         :loading="loading"
         @page="handlePageChange" />
     </div>
-  </SmartPopover>
+  </Dropdown>
 </template>
 <script lang="ts">
   export interface RemoteSelectItem {
@@ -104,9 +103,13 @@
   };
 </script>
 <script setup lang="ts">
-  import SmartPopover from './SmartPopover.vue';
+  import { Dropdown } from '@tsfullstack/shared-frontend/components';
   import { Checkbox, InputText, Paginator, Tag, type PageState } from 'primevue';
   import { computed, ref } from 'vue';
+  import { useI18n } from '@/composables/useI18n';
+
+  /** 获取 t 函数 */
+  const { t } = useI18n();
 
   interface Pagination {
     skip: number;
@@ -144,6 +147,7 @@
   const loading = ref(false);
   const dataList = ref<RemoteSelectItem[]>([]);
   const tagHovered = ref<Record<any, boolean>>({});
+  const dropdownOpen = ref(false);
 
   const pagination = ref<Pagination>({
     skip: 0,

@@ -20,7 +20,7 @@
       </div>
       <div
         class="compact-text text-xs font-medium mb-2 z-10 text-center text-gray-700 dark:text-gray-300">
-        {{ $t('赞助支持') }}
+        {{ t('赞助支持') }}
       </div>
       <button
         @click="showQRCode = true"
@@ -46,11 +46,11 @@
           </div>
 
           <h3 class="standard-title text-lg font-semibold mb-2 text-gray-800 dark:text-gray-200">
-            {{ $t('请我喝杯咖啡') }}
+            {{ t('请我喝杯咖啡') }}
           </h3>
           <p
             class="standard-subtitle text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
-            {{ $t('您的每一份支持都是创作路上最温暖的陪伴') }}
+            {{ t('您的每一份支持都是创作路上最温暖的陪伴') }}
           </p>
         </div>
 
@@ -62,7 +62,7 @@
               ¥{{ totalAmount }}
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-400">
-              {{ sponsorCount }} {{ $t('位朋友支持') }}
+              {{ sponsorCount }} {{ t('位朋友支持') }}
             </div>
           </div>
         </div>
@@ -73,13 +73,13 @@
             @click="showQRCode = true"
             class="action-btn flex-1 font-medium py-2.5 px-3 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-all duration-300 flex items-center justify-center text-sm shadow-sm dark:bg-gray-600 dark:hover:bg-gray-500">
             <i class="pi pi-qrcode mr-1.5 text-xs"></i>
-            {{ $t('扫码支持') }}
+            {{ t('扫码支持') }}
           </button>
           <button
             @click="handleDirectPay"
             class="action-btn flex-1 font-medium py-2.5 px-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-300 flex items-center justify-center text-sm dark:border-gray-500 dark:text-gray-300 dark:hover:bg-gray-700">
             <i class="pi pi-external-link mr-1.5 text-xs"></i>
-            {{ $t('其他方式') }}
+            {{ t('其他方式') }}
           </button>
         </div>
 
@@ -89,19 +89,19 @@
             @click="shareContent"
             class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
             <i class="pi pi-share-alt text-sm text-blue-500 mb-1"></i>
-            <span class="text-xs text-gray-600 dark:text-gray-400">{{ $t('分享') }}</span>
+            <span class="text-xs text-gray-600 dark:text-gray-400">{{ t('分享') }}</span>
           </button>
           <button
             @click="followCreator"
             class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
             <i class="pi pi-heart text-sm text-red-500 mb-1"></i>
-            <span class="text-xs text-gray-600 dark:text-gray-400">{{ $t('关注') }}</span>
+            <span class="text-xs text-gray-600 dark:text-gray-400">{{ t('关注') }}</span>
           </button>
           <button
             @click="provideFeedback"
             class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
             <i class="pi pi-comment text-sm text-green-500 mb-1"></i>
-            <span class="text-xs text-gray-600 dark:text-gray-400">{{ $t('反馈') }}</span>
+            <span class="text-xs text-gray-600 dark:text-gray-400">{{ t('反馈') }}</span>
           </button>
         </div>
       </div>
@@ -133,11 +133,11 @@
 
           <div class="creator-info flex-1">
             <h3 class="creator-title text-lg font-semibold mb-1 text-gray-800 dark:text-gray-200">
-              {{ $t('支持独立创作者') }}
+              {{ t('支持独立创作者') }}
             </h3>
             <p
               class="creator-desc text-sm text-gray-600 dark:text-gray-400 mb-2 leading-relaxed max-w-md">
-              {{ $t('每一份支持都是对原创内容最好的鼓励') }}
+              {{ t('每一份支持都是对原创内容最好的鼓励') }}
             </p>
 
             <!-- 支持者显示 -->
@@ -156,7 +156,7 @@
                 </div>
               </div>
               <span class="supporter-text text-sm text-gray-500 dark:text-gray-400">
-                {{ sponsorCount }} {{ $t('位朋友已支持') }}
+                {{ sponsorCount }} {{ t('位朋友已支持') }}
               </span>
             </div>
           </div>
@@ -170,7 +170,7 @@
               ¥{{ totalAmount }}
             </div>
             <div class="stat-label text-xs text-gray-500 dark:text-gray-400">
-              {{ $t('总支持') }}
+              {{ t('总支持') }}
             </div>
           </div>
 
@@ -180,7 +180,7 @@
               @click="showQRCode = true"
               class="expanded-btn font-medium px-4 py-2.5 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-all duration-300 flex items-center text-sm shadow-sm dark:bg-gray-600 dark:hover:bg-gray-500">
               <i class="pi pi-qrcode mr-1.5"></i>
-              {{ $t('支持') }}
+              {{ t('支持') }}
             </button>
           </div>
 
@@ -189,19 +189,19 @@
             <button
               @click="shareContent"
               class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
-              :title="$t('分享推荐')">
+              :title="t('分享推荐')">
               <i class="pi pi-share-alt text-sm text-blue-500"></i>
             </button>
             <button
               @click="followCreator"
               class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
-              :title="$t('关注作者')">
+              :title="t('关注作者')">
               <i class="pi pi-heart text-sm text-red-500"></i>
             </button>
             <button
               @click="provideFeedback"
               class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
-              :title="$t('意见反馈')">
+              :title="t('意见反馈')">
               <i class="pi pi-comment text-sm text-green-500"></i>
             </button>
           </div>
@@ -212,7 +212,7 @@
     <!-- 简化的二维码弹窗 -->
     <Dialog
       v-model:visible="showQRCode"
-      :header="$t('感谢您的支持')"
+      :header="t('感谢您的支持')"
       modal
       class="qr-dialog"
       :style="{ width: '420px' }">
@@ -229,10 +229,10 @@
             <div class="message-icon text-2xl">🙏</div>
             <div>
               <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed font-medium mb-1">
-                {{ $t('感谢您的慷慨支持！您的每一份心意都是我继续创作的动力源泉') }}
+                {{ t('感谢您的慷慨支持！您的每一份心意都是我继续创作的动力源泉') }}
               </p>
               <p class="text-xs text-gray-500 dark:text-gray-400">
-                {{ $t('支持创作，让美好持续发生 ✨') }}
+                {{ t('支持创作，让美好持续发生 ✨') }}
               </p>
             </div>
           </div>
@@ -245,16 +245,16 @@
             <div class="community-icon text-xl">👥</div>
             <div class="flex-1">
               <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">
-                {{ $t('加入创作者社群') }}
+                {{ t('加入创作者社群') }}
               </h4>
               <p class="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                {{ $t('与其他支持者交流，获取最新创作动态') }}
+                {{ t('与其他支持者交流，获取最新创作动态') }}
               </p>
               <button
                 @click="joinQQGroup"
                 class="inline-flex items-center text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md transition-colors duration-200">
                 <i class="pi pi-users mr-1"></i>
-                {{ $t('加入QQ群') }} {{ qqGroupNumber }}
+                {{ t('加入QQ群') }} {{ qqGroupNumber }}
               </button>
             </div>
           </div>
@@ -269,6 +269,9 @@
   import { useElementSize } from '@vueuse/core';
   import Dialog from 'primevue/dialog';
   import { computed, ref, useTemplateRef } from 'vue';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
 
   interface Props {
     compactThreshold?: number;

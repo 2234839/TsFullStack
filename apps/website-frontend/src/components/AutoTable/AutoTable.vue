@@ -7,7 +7,7 @@
         <Button @click="saveChanges">{{ t('保存修改结果') }}</Button>
         <Button @click="discardChanges" severity="secondary">{{ t('丢弃修改') }}</Button>
         <span>
-          {{ $t('autoTable.affectedRows', { rows: editRows.length, cells: eidtCellCount }) }}
+          {{ t('autoTable.affectedRows', { rows: editRows.length, cells: eidtCellCount }) }}
         </span>
       </template>
       <Button v-if="selectRows.length" @click="deleteConfirm($event)" severity="danger">
@@ -75,7 +75,7 @@
   import { useAsyncState } from '@vueuse/core';
   import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
   import { computed, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  import { useI18n } from '@/composables/useI18n';
   import AutoColumn from './AutoColumn.vue';
   import { injectModelMetaKey, type DBmodelNames } from './type';
   import { findIdField, useModelMeta } from './util';

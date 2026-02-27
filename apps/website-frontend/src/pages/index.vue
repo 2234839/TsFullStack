@@ -6,7 +6,7 @@
       <div class="max-w-7xl mx-auto">
         <h1 class="text-4xl font-bold text-center mb-4 flex items-center gap-1">
           <HeartStackSpace_ts class="text-6xl" type="紫动态" />
-          {{ $t('TSFullStack 在线工具集合') }}
+          {{ t('TSFullStack 在线工具集合') }}
         </h1>
       </div>
       <div class="flex justify-end">
@@ -18,43 +18,43 @@
     <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
       <Divider align="center">
         <span class="text-lg font-medium text-gray-700 dark:text-gray-300">
-          {{ $t('当前发布的工具与服务') }}
+          {{ t('当前发布的工具与服务') }}
         </span>
       </Divider>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
         <CardItem
-          :title="$t('NoteCalc在线计算')"
-          :description="$t('强大的在线计算工具，支持笔记和复杂计算')"
-          :longDescription="$t('支持公式、注释、多行计算、单位换算等功能，适用于技术人员与学生。')"
+          :title="t('NoteCalc在线计算')"
+          :description="t('强大的在线计算工具，支持笔记和复杂计算')"
+          :longDescription="t('支持公式、注释、多行计算、单位换算等功能，适用于技术人员与学生。')"
           :imageUrl="generateAIImage('notecalc')"
           :routePath="routerUtil.to(routeMap.noteCalc, {})" />
 
         <CardItem
-          :title="$t('VrImg全景虚拟展厅')"
-          :description="$t('轻松构建企业的虚拟展厅/分享美景')"
-          :longDescription="$t('支持360°全景图片浏览，可嵌入互动热点，适用于文旅、电商等场景。')"
+          :title="t('VrImg全景虚拟展厅')"
+          :description="t('轻松构建企业的虚拟展厅/分享美景')"
+          :longDescription="t('支持360°全景图片浏览，可嵌入互动热点，适用于文旅、电商等场景。')"
           :imageUrl="generateAIImage('vrimg')"
           :routePath="routerUtil.to(routeMap.VrImg, {})" />
 
         <CardItem
-          :title="$t('AI英语学习')"
-          :description="$t('在阅读中渐进式学习英语')"
-          :longDescription="$t('提供阅读辅助、单词解释、语境联想等功能，提升英语阅读能力。')"
+          :title="t('AI英语学习')"
+          :description="t('在阅读中渐进式学习英语')"
+          :longDescription="t('提供阅读辅助、单词解释、语境联想等功能，提升英语阅读能力。')"
           :imageUrl="generateAIImage('aienglish')"
           :routePath="routerUtil.to(routeMap.AiEnglish, undefined)" />
         <CardItem
-          :title="$t('管理系统')"
-          :description="$t('访问完整的管理后台，管理您的内容和设置')"
-          :longDescription="$t('适用于企业或个人项目，提供完整的用户、权限、数据管理等模块。')"
+          :title="t('管理系统')"
+          :description="t('访问完整的管理后台，管理您的内容和设置')"
+          :longDescription="t('适用于企业或个人项目，提供完整的用户、权限、数据管理等模块。')"
           :imageUrl="generateAIImage('admin')"
           :routePath="routerUtil.to(routeMap.admin, {})" />
         <CardItem
-          :title="$t('用户中心')"
-          :description="$t('登录您的账户，访问个性化内容和设置')"
-          :longDescription="$t('支持个人资料管理、任务记录查看、自定义偏好设置等功能。')"
+          :title="t('用户中心')"
+          :description="t('登录您的账户，访问个性化内容和设置')"
+          :longDescription="t('支持个人资料管理、任务记录查看、自定义偏好设置等功能。')"
           :imageUrl="generateAIImage('user')"
-          :routePath="routerUtil.to(routeMap.login, {}, { r: $route.fullPath })" />
+          :routePath="routerUtil.to(routeMap.login, {}, { r: route.fullPath })" />
         </div>
     </div>
     <SponsorshipCard />
@@ -73,6 +73,11 @@
     type RouteLocationAsPathGeneric,
     type RouteLocationAsRelativeGeneric,
   } from 'vue-router';
+  import { useI18n } from '@/composables/useI18n';
+  import { useRoute } from 'vue-router';
+
+  const { t } = useI18n();
+  const route = useRoute();
 
   const CardItem = defineComponent({
     props: {
