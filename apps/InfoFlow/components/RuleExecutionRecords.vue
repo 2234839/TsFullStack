@@ -10,20 +10,21 @@
         <Badge v-if="unreadCount > 0" :value="unreadCount" severity="warning" size="small" /> -->
       </div>
       <div class="flex gap-2">
-        <Button
-          v-if="unreadCount > 0"
-          @click="markAllAsRead"
-          :loading="loading"
-          icon="pi pi-circle-fill"
-          size="small"
-          v-tooltip="'全部标记为已读'" />
-        <Button
-          icon="pi pi-refresh"
-          @click="loadExecutionRecords"
-          v-tooltip="'刷新'"
-          :loading="loading"
-          severity="secondary"
-          size="small" />
+        <Tooltip v-if="unreadCount > 0" content="全部标记为已读">
+          <Button
+            @click="markAllAsRead"
+            :loading="loading"
+            icon="pi pi-circle-fill"
+            size="small" />
+        </Tooltip>
+        <Tooltip content="刷新">
+          <Button
+            icon="pi pi-refresh"
+            @click="loadExecutionRecords"
+            :loading="loading"
+            severity="secondary"
+            size="small" />
+        </Tooltip>
         <SelectButton
           v-model="readStatusFilter"
           :options="readStatusOptions"
@@ -31,12 +32,13 @@
           optionValue="value"
           :allowEmpty="false"
           class="text-sm" />
-        <Button
-          icon="pi pi-filter"
-          @click="showComparisonFilter = !showComparisonFilter"
-          :severity="showComparisonFilter ? 'primary' : 'secondary'"
-          size="small"
-          v-tooltip="'对比过滤选项'" />
+        <Tooltip content="对比过滤选项">
+          <Button
+            icon="pi pi-filter"
+            @click="showComparisonFilter = !showComparisonFilter"
+            :severity="showComparisonFilter ? 'primary' : 'secondary'"
+            size="small" />
+        </Tooltip>
       </div>
     </div>
 
@@ -227,31 +229,34 @@
         <Column field="actions" header="操作" class="w-[120px]">
           <template #body="{ data }: { data: TaskExecutionsTable }">
             <div class="flex gap-1">
-              <Button
-                :icon="data.isRead ? 'pi pi-circle' : 'pi pi-circle-fill'"
-                :severity="data.isRead ? 'secondary' : ''"
-                @click="toggleReadStatus(data)"
-                size="small"
-                v-tooltip="data.isRead ? '标记为未读' : '标记为已读'" />
-              <Button
-                :icon="expandedRows[data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'"
-                @click="toggleExecutionDetails(data)"
-                size="small"
-                severity="info"
-                v-tooltip="expandedRows[data.id] ? '隐藏详情' : '查看详情'" />
-              <Button
-                v-if="data.status === 'running'"
-                icon="pi pi-times"
-                @click="confirmCancelExecution(data)"
-                size="small"
-                severity="warning"
-                v-tooltip="'取消执行'" />
-              <Button
-                icon="pi pi-trash"
-                @click="confirmDeleteExecution(data)"
-                size="small"
-                severity="danger"
-                v-tooltip="'删除记录'" />
+              <Tooltip :content="data.isRead ? '标记为未读' : '标记为已读'">
+                <Button
+                  :icon="data.isRead ? 'pi pi-circle' : 'pi pi-circle-fill'"
+                  :severity="data.isRead ? 'secondary' : ''"
+                  @click="toggleReadStatus(data)"
+                  size="small" />
+              </Tooltip>
+              <Tooltip :content="expandedRows[data.id] ? '隐藏详情' : '查看详情'">
+                <Button
+                  :icon="expandedRows[data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'"
+                  @click="toggleExecutionDetails(data)"
+                  size="small"
+                  severity="info" />
+              </Tooltip>
+              <Tooltip v-if="data.status === 'running'" content="取消执行">
+                <Button
+                  icon="pi pi-times"
+                  @click="confirmCancelExecution(data)"
+                  size="small"
+                  severity="warning" />
+              </Tooltip>
+              <Tooltip content="删除记录">
+                <Button
+                  icon="pi pi-trash"
+                  @click="confirmDeleteExecution(data)"
+                  size="small"
+                  severity="danger" />
+              </Tooltip>
             </div>
           </template>
         </Column>
@@ -303,6 +308,7 @@
 
 <script setup lang="ts">
   import { ref, computed, onMounted, watch } from 'vue';
+  import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
 
   const taskExecutionService = getTaskExecutionService();

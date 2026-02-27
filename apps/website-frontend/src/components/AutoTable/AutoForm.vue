@@ -11,9 +11,11 @@
         <label :for="'field-' + field.name" class="block text-sm font-medium mb-1">
           <span class="font-bold">{{ field.name }}</span>
           <span v-if="isRequiredField(field)" class="text-red-500">*</span>
-          <span class="text-xs text-blue-400 ml-1" v-tooltip.top="JSON.stringify(field, null, 2)">
-            {{ field.type }}{{ field.isArray ? '[ ]' : '' }}
-          </span>
+          <Tooltip :content="JSON.stringify(field, null, 2)" side="top">
+            <span class="text-xs text-blue-400 ml-1">
+              {{ field.type }}{{ field.isArray ? '[ ]' : '' }}
+            </span>
+          </Tooltip>
           <span v-for="attr of field.attributes" class="text-xs text-gray-500 ml-1">{{
             attr.name
           }}</span>
@@ -47,6 +49,7 @@
   import { useAPI } from '@/api';
   import AutoColumnEdit from '@/components/AutoTable/AutoColumnEdit.vue';
   import { Button, Dialog, useToast } from 'primevue';
+  import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, onMounted, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { DBmodelNames, FieldInfo, ModelMeta } from './type';

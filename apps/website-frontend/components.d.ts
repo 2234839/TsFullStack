@@ -51,6 +51,7 @@ declare module 'vue' {
     TestWarningBanner: typeof import('./src/components/system/TestWarningBanner.vue')['default']
     Textarea: typeof import('primevue/textarea')['default']
     ThemeToggle: typeof import('./src/components/system/ThemeToggle.vue')['default']
+    Tooltip: typeof import('./src/components/base/Tooltip.vue')['default']
     UserSettingBtn: typeof import('./src/components/system/UserSettingBtn.vue')['default']
     WordRenderer: typeof import('./src/components/WordRenderer.vue')['default']
   }
@@ -97,6 +98,7 @@ declare global {
   const TestWarningBanner: typeof import('./src/components/system/TestWarningBanner.vue')['default']
   const Textarea: typeof import('primevue/textarea')['default']
   const ThemeToggle: typeof import('./src/components/system/ThemeToggle.vue')['default']
+  const Tooltip: typeof import('./src/components/base/Tooltip.vue')['default']
   const UserSettingBtn: typeof import('./src/components/system/UserSettingBtn.vue')['default']
   const WordRenderer: typeof import('./src/components/WordRenderer.vue')['default']
 }

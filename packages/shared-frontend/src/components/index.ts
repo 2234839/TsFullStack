@@ -1,3 +1,10 @@
 // ABOUTME: 共享组件导出
 // 这里可以放置需要在多个模块间共享的基础组件
-export {};
+export { Tooltip } from './Tooltip';
+export type {
+  TooltipAlign,
+  TooltipSide,
+  UiTooltipEmits,
+  UiTooltipInstance,
+  UiTooltipProps,
+} from './Tooltip';

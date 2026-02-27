@@ -67,17 +67,18 @@
         <div v-if="isCollapsed" class="collapsed-menu">
           <ul class="flex flex-col items-center space-y-1">
             <li v-for="item in collapsedMenuItems" :key="item.key" class="w-full relative">
-              <Button
-                :icon="item.icon"
-                :class="[
-                  'p-button-rounded p-button-text w-full justify-center',
-                  isActiveRoute(item)
-                    ? 'p-button-outlined text-blue-600 dark:text-cyan-400'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white',
-                  hasSubmenuItems(item) ? 'has-submenu' : '',
-                ]"
-                v-tooltip.right="item.label"
-                @click="handleCollapsedMenuClick($event, item)" />
+              <Tooltip :content="item.label" side="right">
+                <Button
+                  :icon="item.icon"
+                  :class="[
+                    'p-button-rounded p-button-text w-full justify-center',
+                    isActiveRoute(item)
+                      ? 'p-button-outlined text-blue-600 dark:text-cyan-400'
+                      : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white',
+                    hasSubmenuItems(item) ? 'has-submenu' : '',
+                  ]"
+                  @click="handleCollapsedMenuClick($event, item)" />
+              </Tooltip>
               <Badge
                 v-if="item.badge"
                 :value="item.badge"
@@ -194,11 +195,14 @@
         <div
           class="flex items-center justify-around"
           :class="{ 'flex-col space-y-4': isCollapsed }">
-          <Button
-            icon="pi pi-cog"
-            class="p-button-rounded p-button-text p-button-plain"
-            v-tooltip.right="'设置'" />
-          <ThemeSwitch v-tooltip.right="'主题切换'" />
+          <Tooltip :content="'设置'" side="right">
+            <Button
+              icon="pi pi-cog"
+              class="p-button-rounded p-button-text p-button-plain" />
+          </Tooltip>
+          <Tooltip :content="'主题切换'" side="right">
+            <ThemeSwitch />
+          </Tooltip>
           <I18nSwitch />
           <UserSettingBtn />
         </div>
@@ -220,6 +224,7 @@
   import { useComputedI18n } from '@/i18n';
   import { routeMap, router, routerUtil } from '@/router';
   import { Avatar, Badge, Button, InputText, Popover } from 'primevue';
+  import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, reactive, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
   import avatarImageSrc from '/崮生.png?url';

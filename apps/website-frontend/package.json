@@ -19,7 +19,7 @@
   "dependencies": {
     "@floating-ui/vue": "^1.1.9",
     "@primeuix/themes": "^1.2.5",
-    "@tailwindcss/vite": "^4.1.17",
+    "@tailwindcss/vite": "^4.2.1",
     "@tsfullstack/backend": "workspace:*",
     "@tsfullstack/shared-frontend": "workspace:*",
     "@types/qrcode": "^1.5.6",
@@ -35,8 +35,9 @@
     "qrcode": "^1.5.4",
     "quill": "^2.0.3",
     "quill-delta": "^5.1.0",
+    "reka-ui": "catalog:",
     "superjson": "^2.2.6",
-    "tailwindcss": "^4.1.17",
+    "tailwindcss": "^4.2.1",
     "vue": "catalog:",
     "vue-i18n": "^11.2.8",
     "vue-router": "catalog:"
@@ -47,9 +48,9 @@
     "@vitejs/plugin-vue-jsx": "^5.1.2",
     "@vue/tsconfig": "^0.8.1",
     "typescript": "^5.9.3",
-    "unplugin-vue-components": "^29.2.0",
-    "vite": "npm:rolldown-vite@7.1.12",
-    "vite-plugin-vue-devtools": "^8.0.5",
-    "vue-tsc": "^3.1.8"
+    "unplugin-vue-components": "^31.0.0",
+    "vite": "npm:rolldown-vite@7.3.1",
+    "vite-plugin-vue-devtools": "^8.0.6",
+    "vue-tsc": "^3.2.5"
   }
 }

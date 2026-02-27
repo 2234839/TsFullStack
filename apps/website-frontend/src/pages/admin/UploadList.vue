@@ -200,26 +200,29 @@
       </Column>
       <Column :header="$t('操作')">
         <template #body="slotProps">
-          <Button
-            icon="pi pi-eye"
-            class="p-button-rounded p-button-text"
-            @click="previewFile(slotProps.data)"
-            v-tooltip="$t('预览')" />
-          <Button
-            icon="pi pi-download"
-            class="p-button-rounded p-button-text ml-2"
-            @click="downloadFile(slotProps.data)"
-            v-tooltip="$t('下载')" />
+          <Tooltip :content="$t('预览')">
+            <Button
+              icon="pi pi-eye"
+              class="p-button-rounded p-button-text"
+              @click="previewFile(slotProps.data)" />
+          </Tooltip>
+          <Tooltip :content="$t('下载')">
+            <Button
+              icon="pi pi-download"
+              class="p-button-rounded p-button-text ml-2"
+              @click="downloadFile(slotProps.data)" />
+          </Tooltip>
           <Button
             icon="pi pi-copy"
             :label="$t('复制公开链接')"
             class="p-button-rounded p-button-text ml-2"
             @click="shareFile(slotProps.data)" />
-          <Button
-            icon="pi pi-times"
-            class="p-button-rounded p-button-text ml-2"
-            @click="deleteFile(slotProps.data)"
-            v-tooltip="$t('删除')" />
+          <Tooltip :content="$t('删除')">
+            <Button
+              icon="pi pi-times"
+              class="p-button-rounded p-button-text ml-2"
+              @click="deleteFile(slotProps.data)" />
+          </Tooltip>
         </template>
       </Column>
     </DataTable>
@@ -324,6 +327,7 @@
 <script setup lang="ts">
   import { useAPI } from '@/api';
   import { useClipboard } from '@vueuse/core';
+  import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { onMounted, ref } from 'vue';
 
   const { API, APIGetUrl, AppAPIGetUrl } = useAPI();

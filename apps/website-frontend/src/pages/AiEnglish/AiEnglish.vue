@@ -22,13 +22,14 @@
                 文章输入
                 <Tag v-if="isStudying" severity="info" class="ml-auto"> 学习中... </Tag>
                 <CommonSettingBtns class="ml-auto" />
-                <Button
-                  icon="pi pi-cog"
-                  severity="secondary"
-                  text
-                  rounded
-                  @click="showConfigPanel = true"
-                  v-tooltip.left="$t('AI配置')" />
+                <Tooltip :content="$t('AI配置')" side="left">
+                  <Button
+                    icon="pi pi-cog"
+                    severity="secondary"
+                    text
+                    rounded
+                    @click="showConfigPanel = true" />
+                </Tooltip>
               </div>
             </template>
             <template #content>
@@ -56,12 +57,13 @@
                         :disabled="isAnalyzing || isSegmenting"
                         severity="primary"
                         :label="isSegmenting ? 'AI分段中...' : isAnalyzing ? 'AI分析中...' : 'AI智能分段'" />
-                      <Button
-                        @click="handleArticleSubmit(false)"
-                        severity="secondary"
-                        :disabled="isAnalyzing || isSegmenting"
-                        :label="'传统分段'"
-                        v-tooltip.top="'使用传统分段方式（基于空行和句号）'" />
+                      <Tooltip content="使用传统分段方式（基于空行和句号）" side="top">
+                        <Button
+                          @click="handleArticleSubmit(false)"
+                          severity="secondary"
+                          :disabled="isAnalyzing || isSegmenting"
+                          :label="'传统分段'" />
+                      </Tooltip>
                     </div>
                     <Button
                       severity="secondary"
@@ -90,15 +92,16 @@
                   <span class="text-sm text-indigo-600" title="段落进度">
                     {{ completedParagraphs }}/{{ syncData.paragraphs.length }} 已完成
                   </span>
-                  <Button
-                    v-if="smartSegmentation"
-                    severity="info"
-                    size="small"
-                    text
-                    rounded
-                    @click="showSegmentationInfo = !showSegmentationInfo"
-                    v-tooltip.top="'智能分段信息'"
-                    icon="pi pi-sparkles" />
+                  <Tooltip content="智能分段信息" side="top">
+                    <Button
+                      v-if="smartSegmentation"
+                      severity="info"
+                      size="small"
+                      text
+                      rounded
+                      @click="showSegmentationInfo = !showSegmentationInfo"
+                      icon="pi pi-sparkles" />
+                  </Tooltip>
                 </div>
 
                 <!-- 智能分段信息条 -->
@@ -115,28 +118,32 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                  <Button
-                    severity="secondary"
-                    size="small"
-                    @click="goToParagraph(syncData.currentParagraphIndex - 1)"
-                    :disabled="syncData.currentParagraphIndex === 0"
-                    icon="pi pi-angle-left"
-                    v-tooltip.top="'上一段'" />
-                  <div class="flex-1 flex gap-1 overflow-x-auto">
+                  <Tooltip content="上一段" side="top">
                     <Button
+                      severity="secondary"
+                      size="small"
+                      @click="goToParagraph(syncData.currentParagraphIndex - 1)"
+                      :disabled="syncData.currentParagraphIndex === 0"
+                      icon="pi pi-angle-left" />
+                  </Tooltip>
+                  <div class="flex-1 flex gap-1 overflow-x-auto">
+                    <Tooltip
                       v-for="(paragraph, index) in syncData.paragraphs"
                       :key="index"
-                      :severity="index === syncData.currentParagraphIndex ? 'primary' : 'secondary'"
-                      size="small"
-                      :class="[
-                        'flex-1',
-                        { 'bg-green-100 border-green-300': paragraph.isCompleted },
-                        { 'bg-purple-100 border-purple-300': paragraph.complexity && paragraph.complexity > 7 },
-                      ]"
-                      @click="goToParagraph(index)"
-                      :label="String(index + 1)"
-                      :icon="paragraph.isCompleted ? 'pi pi-check-circle' : ''"
-                      :v-tooltip.top="getParagraphTooltip(paragraph, index)" />
+                      :content="getParagraphTooltip(paragraph, index)"
+                      side="top">
+                      <Button
+                        :severity="index === syncData.currentParagraphIndex ? 'primary' : 'secondary'"
+                        size="small"
+                        :class="[
+                          'flex-1',
+                          { 'bg-green-100 border-green-300': paragraph.isCompleted },
+                          { 'bg-purple-100 border-purple-300': paragraph.complexity && paragraph.complexity > 7 },
+                        ]"
+                        @click="goToParagraph(index)"
+                        :label="String(index + 1)"
+                        :icon="paragraph.isCompleted ? 'pi pi-check-circle' : ''" />
+                    </Tooltip>
                   </div>
                   <Button
                     @click="handleParagraphComplete"
@@ -693,6 +700,7 @@
   import { useToast } from 'primevue/usetoast';
   import { computed, reactive, ref, watch, watchEffect } from 'vue';
   import Dialog from 'primevue/dialog';
+  import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import AiEnglishConfigPanel from '@/components/AiEnglishConfigPanel.vue';
   import ParagraphRenderer from '@/components/ParagraphRenderer.vue';
   import AiEnglishTips from '@/components/AiEnglishTips.vue';

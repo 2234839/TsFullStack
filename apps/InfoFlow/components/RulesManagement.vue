@@ -191,38 +191,41 @@
           <Column field="actions" header="操作" class="w-[280px] whitespace-nowrap">
             <template #body="{ data }: { data: Rule }">
               <div class="flex gap-1">
-                <Button
-                  v-if="data.status === 'paused'"
-                  icon="pi pi-play"
-                  @click="activateRule(data)"
-                  size="small"
-                  severity="success"
-                  v-tooltip="'激活'" />
-                <Button
-                  v-if="data.status === 'active'"
-                  icon="pi pi-pause"
-                  @click="pauseRule(data)"
-                  size="small"
-                  severity="warning"
-                  v-tooltip="'暂停'" />
-                <Button
-                  icon="pi pi-play-circle"
-                  @click="executeRuleNow(data)"
-                  size="small"
-                  severity="primary"
-                  v-tooltip="'立即执行'" />
-                <Button
-                  icon="pi pi-file-edit"
-                  @click="editRule(data)"
-                  size="small"
-                  severity="secondary"
-                  v-tooltip="'编辑'" />
-                <Button
-                  icon="pi pi-trash"
-                  @click="confirmDelete(data)"
-                  size="small"
-                  severity="danger"
-                  v-tooltip="'删除'" />
+                <Tooltip v-if="data.status === 'paused'" content="激活">
+                  <Button
+                    icon="pi pi-play"
+                    @click="activateRule(data)"
+                    size="small"
+                    severity="success" />
+                </Tooltip>
+                <Tooltip v-if="data.status === 'active'" content="暂停">
+                  <Button
+                    icon="pi pi-pause"
+                    @click="pauseRule(data)"
+                    size="small"
+                    severity="warning" />
+                </Tooltip>
+                <Tooltip content="立即执行">
+                  <Button
+                    icon="pi pi-play-circle"
+                    @click="executeRuleNow(data)"
+                    size="small"
+                    severity="primary" />
+                </Tooltip>
+                <Tooltip content="编辑">
+                  <Button
+                    icon="pi pi-file-edit"
+                    @click="editRule(data)"
+                    size="small"
+                    severity="secondary" />
+                </Tooltip>
+                <Tooltip content="删除">
+                  <Button
+                    icon="pi pi-trash"
+                    @click="confirmDelete(data)"
+                    size="small"
+                    severity="danger" />
+                </Tooltip>
               </div>
             </template>
           </Column>
@@ -601,6 +604,7 @@ return document.title;"
   import { getRulesService } from '@/entrypoints/background/service/rulesService';
   import { getDbService, RulesTable } from '@/entrypoints/background/service/dbService';
   import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
+  import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { useNow } from '@vueuse/core';
   import { computed, onMounted, reactive, ref, watch } from 'vue';
   import { getCronInterval, formatCountdown } from '@/utils/cronUtils';

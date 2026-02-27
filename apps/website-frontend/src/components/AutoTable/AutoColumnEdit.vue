@@ -27,9 +27,11 @@
       </div>
     </template>
     <template v-else>
-      <span class="text-red-500 text-sm" v-tooltip.top="`Unsupported field type: ` + field.type">
-        {{ field.type }}
-      </span>
+      <Tooltip :content="`Unsupported field type: ${field.type}`" side="top">
+        <span class="text-red-500 text-sm">
+          {{ field.type }}
+        </span>
+      </Tooltip>
       {{ cellData }}
     </template>
   </div>
@@ -41,6 +43,7 @@
   import { onClickOutside } from '@vueuse/core';
   import { InputNumber, InputText } from 'primevue';
   import DatePicker from 'primevue/datepicker';
+  import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, ref, useTemplateRef } from 'vue';
   import { type FieldInfo } from './type';
 

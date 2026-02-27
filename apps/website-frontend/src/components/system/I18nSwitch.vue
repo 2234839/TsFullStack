@@ -1,10 +1,11 @@
 <style scoped></style>
 <template>
-  <Button
-    icon="pi pi-language"
-    class="p-button-rounded p-button-text p-button-plain"
-    v-tooltip.right="t('切换语言')"
-    @click="toggleLanguageMenu" />
+  <Tooltip :content="t('切换语言')" side="right">
+    <Button
+      icon="pi pi-language"
+      class="p-button-rounded p-button-text p-button-plain"
+      @click="toggleLanguageMenu" />
+  </Tooltip>
   <Menu ref="__languageMenu" :model="languageItems" :popup="true" />
 </template>
 <script setup lang="ts">
@@ -13,6 +14,8 @@
   import { Button, Menu } from 'primevue';
   import { ref, useTemplateRef } from 'vue';
   import { useI18n } from 'vue-i18n';
+  import { Tooltip } from '@tsfullstack/shared-frontend/components';
+
   const { t } = useI18n();
   const languageMenu = useTemplateRef('__languageMenu');
   const languageItems = ref([

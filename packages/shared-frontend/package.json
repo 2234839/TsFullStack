@@ -41,10 +41,12 @@
   "dependencies": {},
   "peerDependencies": {
     "vue": "catalog:",
-    "vue-router": "catalog:"
+    "vue-router": "catalog:",
+    "reka-ui": "^2.8.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "reka-ui": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vue": "catalog:",

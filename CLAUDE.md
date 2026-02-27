@@ -1,7 +1,3 @@
-# CLAUDE.md
-
-为 Claude Code 提供项目指导。
-
 ## 项目概述
 
 TsFullStack 是一个 TypeScript 全栈框架，支持前端直接操作数据库，无需编写后端 API 代码。
@@ -11,17 +7,21 @@ TsFullStack 是一个 TypeScript 全栈框架，支持前端直接操作数据�
 - **前端**: TypeScript + Vue 3 + Tailwind CSS + PrimeVue
 - **浏览器扩展**: WXT + Vue 3 + Tailwind CSS + PrimeVue
 
+注意：前端组件库要改成使用 reka-ui ，在开发过程中逐步替换掉 primeVue
+
 ### 开发工作流
 
 ```bash
 # 后端开发 (apps/backend/)
 pnpm zenstack generate    # 生成 Prisma 客户端
 pnpm prisma migrate dev   # 运行数据库迁移
-pnpm build:lib            # 构建库包供前端使用
+pnpm build:lib            # 构建后端api接口包供前端掉用
 pnpm dev                  # 启动开发服务器
 
+# 构建tsfullstack网站和后端并发布到服务器的脚本
+apps/backend/publish.sh
+
 # 前端开发 (apps/website-frontend/)
-pnpm dev                  # 启动开发服务器
 pnpm build                # 构建生产版本
 pnpm tsc                  # 类型检查
 
@@ -29,11 +29,13 @@ pnpm tsc                  # 类型检查
 pnpm dev                  # 启动开发服务器
 pnpm build                # 构建扩展
 ```
+### [Shared Frontend Package](packages/shared-frontend)
+这个子包提供在多个前端模块间共享的工具和组件
 
 ### 重要说明
 
 **数据库管理**
-- 使用 `schema.zmodel` 而不是 `prisma/schema.prisma`（自动生成）
+- 修改模型定义使用 `schema.zmodel` 而不是 `prisma/schema.prisma`（基于前者自动生成）
 - 修改 schema 后必须运行 `pnpm zenstack generate`
 
 **类型安全**
