@@ -13,18 +13,16 @@
  * </Dropdown>
  * ```
  */
-import { computed, ref } from 'vue';
+import { ref, watch } from 'vue';
 import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuPortal,
-  useForwardPropsEmits,
 } from 'reka-ui';
-import type { DropdownMenuRootProps } from 'reka-ui';
 import type { UiDropdownEmits, UiDropdownProps } from './types';
 
-/** 定义 props，带有类型默认值 */
+/** 定义 props */
 const props = withDefaults(defineProps<UiDropdownProps>(), {
   side: () => 'bottom' as const,
   align: () => 'center' as const,
@@ -34,75 +32,56 @@ const props = withDefaults(defineProps<UiDropdownProps>(), {
   defaultOpen: false,
 });
 
-/** 定义 model */
+/** 定义 model - 用于 v-model 双向绑定 */
 const modelValue = defineModel<boolean>({ default: false });
 
+/** 内部状态 - 用于 DropdownMenuRoot */
+const openState = ref(props.defaultOpen);
+
+/** 同步外部 modelValue 到内部状态 */
+watch(modelValue, (value) => {
+  openState.value = value;
+});
+
 /** 定义 emits */
-const emits = defineEmits<UiDropdownEmits>();
+const emit = defineEmits<UiDropdownEmits>();
 
-/** 内部状态管理 */
-const internalOpen = ref(props.defaultOpen);
-
-/** 计算当前打开状态 */
-const isOpen = computed(() => props.open ?? modelValue.value ?? internalOpen.value);
-
-/** 更新打开状态 */
-const updateIsOpen = (value: boolean) => {
-  const wasClosed = !isOpen.value;
-  internalOpen.value = value;
+/** 处理打开状态变化 */
+const handleUpdateOpen = (value: boolean) => {
+  openState.value = value;
   modelValue.value = value;
-  emits('update:open', value);
-  // 当从关闭变为打开时，触发 open 事件
-  if (wasClosed && value) {
-    emits('open');
+  emit('update:open', value);
+  if (value) {
+    emit('open');
   }
 };
 
-/**
- * 转发 props 到 reka-ui 的 DropdownMenuRoot
- */
-const forwarded = useForwardPropsEmits(
-  computed<DropdownMenuRootProps>(() => ({
-    open: isOpen,
-    defaultOpen: props.defaultOpen,
-    dir: props.dir,
-  })),
-  emits,
-);
-
-/** 计算内容区域的样式 */
-const contentStyle = computed(() => ({
-  zIndex: 10001,
-  '--reka-dropdown-menu-content-transform-origin': 'var(--reka-popper-transform-origin)',
-}));
-
 /** 关闭 Dropdown */
-const close = () => {
-  updateIsOpen(false);
-};
+const close = () => handleUpdateOpen(false);
 
 /** 打开 Dropdown */
-const open = () => {
-  updateIsOpen(true);
-};
+const open = () => handleUpdateOpen(true);
 
 /** 切换 Dropdown 状态 */
-const toggle = () => {
-  isOpen.value ? close() : open();
-};
+const toggle = () => (openState.value ? close() : open());
 
 /** 暴露方法供外部调用 */
-defineExpose({
-  open,
-  close,
-  toggle,
-});
+defineExpose({ open, close, toggle });
+
+/** 内容区域样式 */
+const contentStyle = {
+  zIndex: 10001,
+  '--reka-dropdown-menu-content-transform-origin': 'var(--reka-popper-transform-origin)',
+};
 </script>
 
 <template>
-  <DropdownMenuRoot v-bind="forwarded">
+  <DropdownMenuRoot
+    :open="openState"
+    :dir="props.dir"
+    @update:open="handleUpdateOpen">
     <DropdownMenuTrigger as-child>
-      <slot name="trigger" :open="isOpen" :toggle="toggle" />
+      <slot name="trigger" :open="openState" :toggle="toggle" />
     </DropdownMenuTrigger>
 
     <DropdownMenuPortal>
