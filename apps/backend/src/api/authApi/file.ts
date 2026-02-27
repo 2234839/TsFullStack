@@ -157,9 +157,9 @@ export const fileApi = {
         }),
       );
 
-      // 验证文件存在性
+      // 如果文件不存在，直接返回成功（幂等性操作）
       if (!fileRow) {
-        throw MsgError.msg('File not found');
+        return;
       }
 
       // 使用文件访问服务获取安全路径并验证所有权

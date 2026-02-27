@@ -270,7 +270,6 @@
    */
   const handleSuccess = () => {
     shareList.execute();
-    dialogVisible.value = false;
   };
 
   const onPageChange = (event: any) => {

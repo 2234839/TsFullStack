@@ -27,3 +27,10 @@ export type {
   UiDropdownInstance,
   UiDropdownProps,
 } from './Dropdown';
+
+export { Dialog } from './Dialog';
+export type {
+  UiDialogEmits,
+  UiDialogInstance,
+  UiDialogProps,
+} from './Dialog';

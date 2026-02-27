@@ -19,6 +19,8 @@ export default {
     './index.html',
     './src/**/*.{vue,js,ts,jsx,tsx}',
     './node_modules/@jctcc/js-util/src/**/*.{vue,js,ts,jsx,tsx}',
+    /** 扫描共享组件包的 tailwindcss calss 类，避免这里的样式不生效 */
+    '../../packages/shared-frontend/src/**/*.{vue,js,ts,jsx,tsx}',
   ],
   // 手动切换深色模式  https://tailwindcss.com/docs/dark-mode#toggling-dark-mode-manually
   darkMode: 'selector',

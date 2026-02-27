@@ -1,10 +1,6 @@
-# CLAUDE.md
-
-此文件为 Claude Code (claude.ai/code) 在处理此代码库时提供指导。
-
 ## 项目概述
 
-当前项目使用ts + vue3 + primevue组件库 + tailwindcss 进行开发。
+当前项目使用ts + vue3 + reka-ui + tailwindcss 进行开发。
 帮用户解决问题时请考虑上述信息
 当用户要求你生成代码的时候，请尽量仅输出代码，不要包含额外的解释。
 注释应该采用 /** */ 的形式，而不是 //,注意对于对象的字段，应该直接在字段上方加注释，而非在对象上使用 jsdoc 语法为属性加注释
@@ -71,7 +67,6 @@ const { API,AppAPI } = useAPI();
 
 ### 组件开发
 
-- 直接使用 PrimeVue 组件（自动导入）
 - 自定义组件应遵循 Vue 3 Composition API 模式
 - 全局组件在 `src/main.ts` 中注册
 
