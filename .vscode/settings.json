@@ -8,9 +8,5 @@
   "i18n-ally.localesPaths": [
     "apps/**/src/i18n"
   ],
-  // TypeScript 配置
-  "typescript.tsdk": "apps/website-frontend/node_modules/typescript/lib",
-  "typescript.enablePromptUseWorkspaceTsdk": true,
   // Vue 语言服务器配置
-  "vue.server.hybridMode": true
 }
