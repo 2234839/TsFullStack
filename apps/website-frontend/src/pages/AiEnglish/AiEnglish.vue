@@ -149,7 +149,7 @@
               </div>
             </template>
             <template #content>
-              <Tips
+              <AiEnglishTips
                 title="使用提示："
                 icon="pi-pencil"
                 tips="点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译，下方英文学习完毕后点击右上角的OK按钮" />
@@ -162,7 +162,19 @@
                 @touchend="handleMouseUp"
                 @touchstart="(e) => /** 防止长按选中文字以及触摸滚动 */ e.preventDefault()"
                 style="user-select: none; padding: 1rem;">
-                <renderArticleWithMarkers />
+                <ParagraphRenderer
+                  v-if="currentText"
+                  :text="currentText"
+                  :currentParagraphKeyWords="currentParagraph?.keyVocabulary || []"
+                  :complexity="currentParagraph?.complexity || 5"
+                  :estimatedReadingTime="currentParagraph?.estimatedReadingTime"
+                  :getWordData="getWordData"
+                  :currentSession="currentSession"
+                  :selectionState="selectionState"
+                  :highlightedWordIndex="highlightedWordIndex"
+                  :aiAnalysis="aiAnalysis"
+                  @wordMouseDown="handleMouseDown"
+                />
               </div>
             </template>
           </Card>
@@ -258,41 +270,52 @@
                         class="w-full" />
                     </div>
 
-                    <div class="space-y-2 mt-2">
-                      <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
-                        <i class="pi pi-refresh animate-spin" />
-                        AI翻译中...
-                      </div>
-                      <div v-else class="text-lg">
-                        {{ selectedWord.aiTranslation || '获取翻译中...' }}
-                      </div>
-                    </div>
-
-                    <div v-if="selectedWord.grammar" class="space-y-2">
-                      <div class="text-sm text-gray-500 dark:text-gray-400">语法信息</div>
-                      <div class="text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">
-                        {{ selectedWord.grammar }}
-                      </div>
-                    </div>
-
-                    <div v-if="selectedWord.examples?.length" class="space-y-2">
-                      <div class="text-sm text-gray-500 dark:text-gray-400">AI例句</div>
-                      <div class="space-y-1">
-                        <div
-                          v-for="(example, index) in selectedWord.examples"
-                          :key="index"
-                          class="text-sm bg-blue-50 dark:bg-blue-900/30 p-2 rounded italic">
-                          {{ example }}
+                    <!-- 使用GlassBlur组件控制翻译内容的显示 -->
+                    <GlassBlur
+                      :key="selectedWord.word"
+                      :initialBlurred="shouldUseBlur"
+                      :overlayText="selectedWord.memoryLevel > 4 ? '悬停查看翻译' : '点击查看翻译'"
+                      :toggleOnClick="true"
+                      :autoClear="selectedWord.memoryLevel <= 4"
+                      overlayClass="bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-[1px]"
+                      overlayTextClass="text-gray-600 dark:text-gray-400 text-xs"
+                      @click="handleTranslationClick">
+                      <div class="space-y-2">
+                        <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
+                          <i class="pi pi-refresh animate-spin" />
+                          AI翻译中...
+                        </div>
+                        <div v-else class="text-lg">
+                          {{ selectedWord.aiTranslation || '获取翻译中...' }}
                         </div>
                       </div>
-                    </div>
 
-                    <div class="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <div class="text-gray-500">查看次数</div>
-                        <div class="font-medium">{{ selectedWord.clickCount }} 次</div>
+                      <div v-if="selectedWord.grammar" class="space-y-2">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">语法信息</div>
+                        <div class="text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                          {{ selectedWord.grammar }}
+                        </div>
                       </div>
-                    </div>
+
+                      <div v-if="selectedWord.examples?.length" class="space-y-2">
+                        <div class="text-sm text-gray-500 dark:text-gray-400">AI例句</div>
+                        <div class="space-y-1">
+                          <div
+                            v-for="(example, index) in selectedWord.examples"
+                            :key="index"
+                            class="text-sm bg-blue-50 dark:bg-blue-900/30 p-2 rounded italic">
+                            {{ example }}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div class="text-gray-500">查看次数</div>
+                          <div class="font-medium">{{ selectedWord.clickCount }} 次</div>
+                        </div>
+                      </div>
+                    </GlassBlur>
                   </div>
 
                   <div v-else-if="paragraphTranslation">
@@ -335,7 +358,7 @@
                   <i class="pi pi-sparkles w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p class="text-lg font-medium mb-2">点击单词或拖拽选择段落</p>
                   <p class="text-sm mb-4">获取AI智能翻译和详细分析</p>
-                  <Tips
+                  <AiEnglishTips
                     v-if="isStudying"
                     title="💡 提示："
                     icon=""
@@ -654,7 +677,7 @@
   </div>
 </template>
 
-<script setup lang="tsx">
+<script setup lang="ts">
   import {
     analyzeArticleWithAI,
     translateParagraphWithAI,
@@ -668,9 +691,11 @@
   import { useTTS } from '@/pages/AiEnglish/util';
   import { useApiStorage } from '@/utils/hooks/UseApiStorage';
   import { useToast } from 'primevue/usetoast';
-  import { computed, nextTick, reactive, ref, watch, watchEffect } from 'vue';
+  import { computed, reactive, ref, watch, watchEffect } from 'vue';
   import Dialog from 'primevue/dialog';
   import AiEnglishConfigPanel from '@/components/AiEnglishConfigPanel.vue';
+  import ParagraphRenderer from '@/components/ParagraphRenderer.vue';
+  import AiEnglishTips from '@/components/AiEnglishTips.vue';
   import GlassBlur from '@/components/GlassBlur.vue';
 
   interface StudySession {
@@ -765,9 +790,40 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     endWordIndex: -1,
     selectedWords: new Set(),
   });
-  const wordElements = ref<{ word: string; element: HTMLElement; index: number }[]>([]);
+  // wordElements 已移除，改为直接通过单词索引获取
   const highlightedWord = ref('');
+  const highlightedWordIndex = ref(-1);
   const toast = useToast();
+
+  // 判断是否应该使用模糊效果的计算属性
+  const shouldUseBlur = computed(() => {
+    return (selectedWord.value?.memoryLevel ?? 0) > 4;
+  });
+
+  // 处理翻译点击事件，只有查看模糊内容时才减少熟练度
+  const handleTranslationClick = () => {
+    if (!selectedWord.value) return;
+
+    // 只有熟练度 > 4 的单词在查看翻译内容时才减少熟练度
+    if (selectedWord.value.memoryLevel > 4) {
+      const wordData = getWordData(selectedWord.value.word);
+      if (wordData) {
+        const newMemoryLevel = Math.max(0, wordData.memoryLevel - 1);
+        const oldWordData = words.value.find((el) => el.word === selectedWord.value?.word);
+        if (oldWordData) {
+          updateWordDatas([
+            {
+              ...oldWordData,
+              memoryLevel: newMemoryLevel,
+              clickCount: oldWordData.clickCount + 1,
+              lastClickTime: new Date(),
+            },
+          ]);
+          console.log(`查看模糊翻译内容 ${selectedWord.value.word} 熟练度 -1 (当前: ${newMemoryLevel}/10)`);
+        }
+      }
+    }
+  };
 
   // 计算属性
   const stats = computed(() => {
@@ -1045,9 +1101,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
     if (selectedWordIndices.length === 0) return;
 
-    // 获取选中的单词
+    // 获取选中的单词 - 直接通过索引获取，无需DOM查询
     const selectedWordsData = selectedWordIndices
-      .map((index) => wordElements.value[index]?.word)
+      .map((index) => getWordByIndex(index))
       .filter(Boolean) as string[];
 
     if (selectedWordsData.length === 1) {
@@ -1063,6 +1119,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
 
   const handleParagraphSelection = async (selectedWordsKey: string[]) => {
     highlightedWord.value = '';
+    highlightedWordIndex.value = -1;
     const newClickedWords = new Set(currentSession.clickedWords);
 
     selectedWordsKey.forEach((word) => newClickedWords.add(word.toLowerCase()));
@@ -1108,9 +1165,17 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     selectionState.isSelecting = false;
     selectionState.selectedWords = new Set();
     highlightedWord.value = '';
+    highlightedWordIndex.value = -1;
 
     const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
     highlightedWord.value = cleanWord;
+
+    // 找到单词在段落中的索引
+    const paragraphWords = currentParagraph.value?.words || [];
+    const wordIndex = paragraphWords.indexOf(cleanWord);
+    if (wordIndex !== -1) {
+      highlightedWordIndex.value = wordIndex;
+    }
 
     const wordData = getWordData(word);
     if (!wordData) return;
@@ -1118,12 +1183,15 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     // 更新会话
     currentSession.clickedWords.add(cleanWord);
 
-    // 更新单词数据
-    const newMemoryLevel = Math.max(0, wordData.memoryLevel - 1);
     selectedWordKey.value = word;
     showTranslation.value = true;
     translationType.value = 'word';
     paragraphTranslation.value = null;
+
+    // 根据熟练度决定是否立即减少熟练度
+    // 熟练度 <= 4 的单词立即减少熟练度，熟练度 > 4 的单词在查看模糊内容时才减少
+    const shouldDecreaseNow = wordData.memoryLevel <= 4;
+    const newMemoryLevel = shouldDecreaseNow ? Math.max(0, wordData.memoryLevel - 1) : wordData.memoryLevel;
 
     // 获取AI翻译（如果缺失）
     if (!wordData.aiTranslation || options?.forceAi) {
@@ -1172,8 +1240,12 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       }
     }
 
+    // 如果立即减少了熟练度，输出日志
+    if (shouldDecreaseNow) {
+      console.log(`查看翻译 ${word} 熟练度 -1 (当前: ${newMemoryLevel}/10) - 低熟练度单词立即减少`);
+    }
+
     speakText(word);
-    console.log(`查看翻译 ${word} 熟练度 -1 (当前: ${newMemoryLevel}/10)`);
   };
 
   const handleParagraphComplete = () => {
@@ -1206,6 +1278,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     currentSession.clickedWords = new Set();
     showTranslation.value = false;
     highlightedWord.value = '';
+    highlightedWordIndex.value = -1;
     selectionState.selectedWords = new Set();
 
     toast.add({
@@ -1224,6 +1297,8 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       currentSession.clickedWords = new Set();
       showTranslation.value = false;
       selectionState.selectedWords = new Set();
+      highlightedWord.value = '';
+      highlightedWordIndex.value = -1;
     }
   };
 
@@ -1236,215 +1311,24 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     }
   };
 
-  // 渲染带标记的文章
-  function renderArticleWithMarkers() {
-    if (!currentText.value) return null;
-
-    // 获取当前段落的复杂度和关键词
-    const currentParagraphComplexity = currentParagraph.value?.complexity || 5;
-    const currentParagraphKeyWords = currentParagraph.value?.keyVocabulary || [];
-
-    return (
-      <div class="space-y-4">
-        {/* 段落复杂度指示器 */}
-        {currentParagraphComplexity > 7 && (
-          <div class="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
-            <i class="pi pi-exclamation-triangle"></i>
-            <span>较高难度段落 • 建议仔细阅读</span>
-          </div>
-        )}
-
-        {/* 段落文本 - 处理换行和格式 */}
-        <div class="leading-relaxed text-lg">
-          {renderParagraphText(currentText.value, currentParagraphKeyWords)}
-        </div>
-
-        {/* 段落信息 */}
-        {currentParagraph.value && (
-          <div class="flex items-center gap-4 text-xs text-gray-500 pt-2 border-t">
-            <span>字数: {currentParagraph.value.text.split(/\s+/).length}</span>
-            {currentParagraph.value.estimatedReadingTime && (
-              <span>预计阅读: {Math.ceil(currentParagraph.value.estimatedReadingTime / 60)}分钟</span>
-            )}
-            {currentParagraph.value.complexity && (
-              <span>复杂度: {currentParagraph.value.complexity}/10</span>
-            )}
-          </div>
-        )}
-      </div>
-    );
+  
+    
+// 通过单词索引直接获取对应的单词 - 使用当前段落的words数组
+const getWordByIndex = (wordIndex: number): string => {
+  const paragraphWords = currentParagraph.value?.words || [];
+  if (wordIndex >= 0 && wordIndex < paragraphWords.length) {
+    return paragraphWords[wordIndex] || '';
   }
-
-  // 渲染段落文本，处理单词标记和换行
-  function renderParagraphText(text: string, currentParagraphKeyWords: string[]) {
-    // 按行分割文本，保留换行结构
-    const lines = text.split('\n');
-    let globalWordIndex = 0; // 全局单词索引
-
-    return lines.map((line, lineIndex) => {
-      const lineStartWordIndex = globalWordIndex; // 记录当前行的起始索引
-
-      // 计算当前行的单词数量，更新全局索引
-      if (line.trim()) {
-        // 先渲染这一行来获取实际的单词数量
-        const lineWords = getLineWordCount(line);
-        globalWordIndex += lineWords;
-      }
-
-      return (
-        <div key={lineIndex} class="mb-4 last:mb-0">
-          {line.length === 0 ? (
-            // 空行渲染为换行
-            <br />
-          ) : (
-            // 渲染有内容的行，传递正确的起始索引
-            renderLineWithWordMarkers(line, currentParagraphKeyWords, lineStartWordIndex)
-          )}
-        </div>
-      );
-    });
-  }
-
-  // 计算一行中的单词数量
-  function getLineWordCount(line: string): number {
-    const tokens = line.split(/(\s+|[^\w\s])/);
-    let wordCount = 0;
-
-    for (const token of tokens) {
-      const cleanWord = token.toLowerCase().replace(/[^\w]/g, '');
-      if (cleanWord && words.value.some(w => w.word === cleanWord)) {
-        wordCount++;
-      }
-    }
-
-    return wordCount;
-  }
-
-  // 渲染一行文本，处理单词标记
-  function renderLineWithWordMarkers(line: string, currentParagraphKeyWords: string[], lineStartWordIndex: number) {
-    const tokens = line.split(/(\s+|[^\w\s])/);
-    let wordIndex = lineStartWordIndex;
-
-    return tokens.map((token, tokenIndex) => {
-      const cleanWord = token.toLowerCase().replace(/[^\w]/g, '');
-      const wordData = getWordData(cleanWord);
-
-      if (wordData && /^\w+$/.test(cleanWord)) {
-        const currentWordIndex = wordIndex++;
-        const color = getMemoryColor(wordData.memoryLevel);
-        const isClicked = currentSession.clickedWords.has(cleanWord);
-        const isKeyWord = aiAnalysis.value?.keyWords.includes(cleanWord) || currentParagraphKeyWords.includes(cleanWord);
-        const isSelected = selectionState.selectedWords.has(currentWordIndex);
-        const isHighlighted = highlightedWord.value === cleanWord;
-
-        let className = `cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0`;
-        if (isHighlighted)
-          className += ` bg-yellow-400 font-bold text-black custom-highlight-pulse word-highlight`;
-        else if (isSelected) className += ` bg-blue-100 font-medium word-selected`;
-        else if (isClicked) className += ` bg-blue-50/40`;
-        if (isKeyWord) className += ` font-medium`;
-
-        const titleText = `${cleanWord}: ${wordData.memoryLevel}/10 ${
-          isClicked ? '(已操作)' : ''
-        } ${isKeyWord ? '(关键词)' : ''} ${isHighlighted ? '(当前选中)' : ''}`;
-
-        return (
-          <span
-            key={tokenIndex}
-            data-word-index={currentWordIndex}
-            class={className}
-            style={{
-              borderBottom: `1px solid ${color}`,
-              lineHeight: '1.6',
-              display: 'inline-block',
-              margin: '1px 0',
-            }}
-            onMousedown={(e) => handleMouseDown(e, currentWordIndex)}
-            onTouchstart={(e) => handleMouseDown(e, currentWordIndex)}
-            title={titleText}>
-            {token}
-            {wordData.memoryLevel > 0 && (
-              <span
-                class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[9px] opacity-40 group-hover:opacity-80 pointer-events-none"
-                style={{ color }}></span>
-            )}
-            {isKeyWord && (
-              <span class="absolute -top-1 -right-1 text-xs opacity-70 pointer-events-none">
-                ⭐
-              </span>
-            )}
-          </span>
-        );
-      }
-
-      // 处理非单词字符（空格、标点等）
-      return (
-        <span key={tokenIndex} class="select-none" style={{ lineHeight: '1.6' }}>
-          {token}
-        </span>
-      );
-    });
-  }
-  // 更新单词元素引用
-  watch(
-    () => [currentText.value, words.value, syncData.value.currentParagraphIndex],
-    () => {
-      nextTick(() => {
-        const articleContainer = document.getElementById('article-container');
-        if (articleContainer) {
-          const elements = Array.from(articleContainer.querySelectorAll('[data-word-index]'));
-          wordElements.value = elements.map((element, index) => ({
-            word: element.textContent?.toLowerCase().replace(/[^\w]/g, '') || '',
-            element: element as HTMLElement,
-            index,
-          }));
-        }
-      });
-    },
-  );
+  return '';
+};
 
   watch(aiAnalysis, (val) => val && (showAiAnalysis.value = true));
 
-  function Tips(props: { tips: string; title: string; icon: string }) {
-    return (
-      <div class="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-        <div class="flex flex-col sm:flex-row items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
-          <i class={`pi ${props.icon} text-sm!`} />
-          <span class="font-medium">{props.title}</span>
-          <span>{props.tips}</span>
-        </div>
-      </div>
-    );
-  }
-</script>
+  </script>
 
 <style scoped>
   .custom-highlight-pulse {
     animation: custom-pulse 2s infinite;
-  }
-
-  .word-highlight::before {
-    content: '';
-    position: absolute;
-    top: -2px;
-    left: -2px;
-    right: -2px;
-    bottom: -2px;
-    background: rgba(245, 158, 11, 0.3);
-    border-radius: 4px;
-    z-index: -1;
-  }
-
-  .word-selected::before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    left: -1px;
-    right: -1px;
-    bottom: -1px;
-    background: rgba(59, 130, 246, 0.2);
-    border-radius: 3px;
-    z-index: -1;
   }
 
   @keyframes custom-pulse {

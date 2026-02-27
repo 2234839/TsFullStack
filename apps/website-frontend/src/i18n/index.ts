@@ -9,6 +9,7 @@ export const i18n = createI18n({
   locale: 'zh-CN',
   legacy: false,
   missingWarn: false,
+  globalInjection: true,
 });
 
 export const t = i18n.global.t;

@@ -1,158 +1,47 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+为 Claude Code 提供项目指导。
 
-## Project Overview
+## 项目概述
 
-TsFullStack is a TypeScript full-stack framework that enables rapid MVP development by allowing direct database operations from the frontend without writing backend API code. The project consists of multiple applications in a monorepo structure:
+TsFullStack 是一个 TypeScript 全栈框架，支持前端直接操作数据库，无需编写后端 API 代码。
 
-- **Backend** (`apps/backend/`) - Core API server with database and authentication
-- **Website Frontend** (`apps/website-frontend/`) - Admin panel and user-facing web application
-- **Browser Extension** (`apps/InfoFlow/`) - Web extension for monitoring web page changes
+### 核心技术栈
+- **后端**: TypeScript + Prisma + ZenStack + Effect + Fastify
+- **前端**: TypeScript + Vue 3 + Tailwind CSS + PrimeVue
+- **浏览器扩展**: WXT + Vue 3 + Tailwind CSS + PrimeVue
 
-## Architecture Overview
-
-### Core Technologies
-- **Backend**: TypeScript + Prisma + ZenStack + Effect + Fastify
-- **Frontend**: TypeScript + Vue 3 + Tailwind CSS + PrimeVue
-- **Browser Extension**: WXT + Vue 3 + Tailwind CSS + PrimeVue
-- **Database**: SQLite (development) with Prisma ORM and ZenStack for access control
-- **Build Tools**: tsup, Vite, pnpm workspace
-
-### Key Architectural Patterns
-
-1. **ZenStack Enhanced Prisma**: Database models with declarative access control and Row Level Security
-2. **Effect-based Architecture**: Functional programming patterns for error handling and dependency management
-3. **RPC System**: Custom remote procedure call system allowing frontend to directly call backend APIs with full TypeScript type safety
-4. **Context-based Dependency Injection**: Services are injected through Effect Context for testability and modularity
-5. **Job Queue System**: Prisma-based task queue with scheduling capabilities
-
-### Development Workflow
-
-#### Backend Development
-```bash
-# Navigate to backend directory
-cd apps/backend
-
-# Install dependencies
-pnpm install
-
-# Generate Prisma client from ZenStack schema
-pnpm zenstack generate
-
-# Run database migrations
-pnpm prisma migrate dev
-
-# Build library package for frontend consumption
-pnpm build:lib
-
-# Start development server with watch mode
-pnpm dev
-```
-
-#### Frontend Development
-```bash
-# Navigate to frontend directory
-cd apps/website-frontend
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Build for production
-pnpm build
-```
-
-#### Browser Extension Development
-```bash
-# Navigate to extension directory
-cd apps/InfoFlow
-
-# Install dependencies
-pnpm install
-
-# Start development server
-pnpm dev
-
-# Build extension
-pnpm build
-```
-
-### Database Schema Management
-
-The project uses ZenStack (`schema.zmodel`) which enhances Prisma with:
-- **Declarative Access Control**: `@@allow` and `@@deny` rules for row-level security
-- **Abstract Models**: `BaseAuth`, `BaseTime`, `BaseId` for common fields and policies
-- **Enhanced Types**: Better TypeScript types with access control constraints
-
-**Important**: Always modify `schema.zmodel` instead of `prisma/schema.prisma` as the latter is auto-generated.
-
-### Authentication System
-
-The backend supports multiple authentication methods:
-- **Email/Password**: Traditional authentication with bcrypt password hashing
-- **GitHub OAuth**: Third-party authentication integration
-- **Session-based**: Token-based session management with expiration
-
-### RPC System
-
-The custom RPC system enables type-safe API calls between frontend and backend:
-- **SuperJSON Serialization**: Handles complex objects (Date, Map, Set, RegExp)
-- **Full TypeScript Types**: Complete type safety from database to frontend
-- **No Middleware Code**: Frontend can directly call backend API functions
-
-### Key Backend Services
-
-- **PrismaService**: Database access with ZenStack enhancements
-- **AppConfigService**: Configuration management with c12
-- **FileAccessService**: Secure file upload and storage handling
-- **Auth**: Authentication and authorization logic
-- **QueueScheduler**: Background job processing and scheduling
-
-### Frontend Features
-
-- **AutoTable Component**: Automatic CRUD table generation (similar to Prisma Studio)
-- **Internationalization**: Vue i18n with dynamic language switching
-- **Theme System**: Light/dark mode with Tailwind CSS integration
-- **Admin Panel**: Database management interface with role-based access
-
-### File Storage
-
-Files are stored locally with metadata tracking in the database:
-- **Storage Types**: LOCAL (default) and S3 support
-- **File Status**: public, private, protected, deleted
-- **Access Control**: User-based file ownership and permissions
-
-### Development Notes
-
-- **Type Safety**: The project emphasizes strict TypeScript typing - avoid using `any`
-- **Database Migrations**: Always run `pnpm zenstack generate` after schema changes
-- **Library Building**: Backend must be built as a library (`pnpm build:lib`) for frontend to import types
-- **Memory Monitoring**: Backend includes memory usage logging for development
-- **Configuration**: Uses c12 for configuration with environment variable support
-
-### Common Commands
+### 开发工作流
 
 ```bash
-# Root level
-pnpm install                    # Install all workspace dependencies
-pnpm translate-md              # Translate Chinese README to English
+# 后端开发 (apps/backend/)
+pnpm zenstack generate    # 生成 Prisma 客户端
+pnpm prisma migrate dev   # 运行数据库迁移
+pnpm build:lib            # 构建库包供前端使用
+pnpm dev                  # 启动开发服务器
 
-# Backend
-pnpm zenstack generate         # Generate Prisma client from schema
-pnpm prisma migrate dev        # Run database migrations
-pnpm build:lib                 # Build backend library package
-pnpm dev                       # Start backend in development mode
-pnpm tsc                       # Type check only
+# 前端开发 (apps/website-frontend/)
+pnpm dev                  # 启动开发服务器
+pnpm build                # 构建生产版本
+pnpm tsc                  # 类型检查
 
-# Frontend
-pnpm dev                       # Start frontend development server
-pnpm build                     # Build for production
-pnpm tsc                       # Type check Vue components
-
-# Browser Extension
-pnpm dev                       # Start extension development
-pnpm build                     # Build extension
+# 浏览器扩展 (apps/InfoFlow/)
+pnpm dev                  # 启动开发服务器
+pnpm build                # 构建扩展
 ```
+
+### 重要说明
+
+**数据库管理**
+- 使用 `schema.zmodel` 而不是 `prisma/schema.prisma`（自动生成）
+- 修改 schema 后必须运行 `pnpm zenstack generate`
+
+**类型安全**
+- 项目强调严格的 TypeScript 类型检查
+- 避免使用 `any` 类型
+- 后端需要构建为库 (`pnpm build:lib`) 供前端导入类型
+
+**架构特性**
+- ZenStack: 声明式访问控制和行级安全
+- RPC 系统: 前端直接调用后端 API，完整类型安全
+- Effect: 函数式编程的错误处理和依赖注入

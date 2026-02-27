@@ -13,6 +13,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     AiEnglishConfigPanel: typeof import('./src/components/AiEnglishConfigPanel.vue')['default']
+    AiEnglishTips: typeof import('./src/components/AiEnglishTips.vue')['default']
     AutoColumn: typeof import('./src/components/AutoTable/AutoColumn.vue')['default']
     AutoColumnEdit: typeof import('./src/components/AutoTable/AutoColumnEdit.vue')['default']
     AutoFilter: typeof import('./src/components/AutoTable/AutoFilter.vue')['default']
@@ -33,8 +34,10 @@ declare module 'vue' {
     I18nSwitch: typeof import('./src/components/system/I18nSwitch.vue')['default']
     InputSwitch: typeof import('primevue/inputswitch')['default']
     InputText: typeof import('primevue/inputtext')['default']
+    LineRenderer: typeof import('./src/components/LineRenderer.vue')['default']
     Message: typeof import('primevue/message')['default']
     Paginator: typeof import('primevue/paginator')['default']
+    ParagraphRenderer: typeof import('./src/components/ParagraphRenderer.vue')['default']
     ProgressBar: typeof import('primevue/progressbar')['default']
     ProgressSpinner: typeof import('primevue/progressspinner')['default']
     RelationSelect: typeof import('./src/components/AutoTable/RelationSelect.vue')['default']
@@ -49,12 +52,14 @@ declare module 'vue' {
     Textarea: typeof import('primevue/textarea')['default']
     ThemeToggle: typeof import('./src/components/system/ThemeToggle.vue')['default']
     UserSettingBtn: typeof import('./src/components/system/UserSettingBtn.vue')['default']
+    WordRenderer: typeof import('./src/components/WordRenderer.vue')['default']
   }
 }
 
 // For TSX support
 declare global {
   const AiEnglishConfigPanel: typeof import('./src/components/AiEnglishConfigPanel.vue')['default']
+  const AiEnglishTips: typeof import('./src/components/AiEnglishTips.vue')['default']
   const AutoColumn: typeof import('./src/components/AutoTable/AutoColumn.vue')['default']
   const AutoColumnEdit: typeof import('./src/components/AutoTable/AutoColumnEdit.vue')['default']
   const AutoFilter: typeof import('./src/components/AutoTable/AutoFilter.vue')['default']
@@ -75,8 +80,10 @@ declare global {
   const I18nSwitch: typeof import('./src/components/system/I18nSwitch.vue')['default']
   const InputSwitch: typeof import('primevue/inputswitch')['default']
   const InputText: typeof import('primevue/inputtext')['default']
+  const LineRenderer: typeof import('./src/components/LineRenderer.vue')['default']
   const Message: typeof import('primevue/message')['default']
   const Paginator: typeof import('primevue/paginator')['default']
+  const ParagraphRenderer: typeof import('./src/components/ParagraphRenderer.vue')['default']
   const ProgressBar: typeof import('primevue/progressbar')['default']
   const ProgressSpinner: typeof import('primevue/progressspinner')['default']
   const RelationSelect: typeof import('./src/components/AutoTable/RelationSelect.vue')['default']
@@ -91,4 +98,5 @@ declare global {
   const Textarea: typeof import('primevue/textarea')['default']
   const ThemeToggle: typeof import('./src/components/system/ThemeToggle.vue')['default']
   const UserSettingBtn: typeof import('./src/components/system/UserSettingBtn.vue')['default']
+  const WordRenderer: typeof import('./src/components/WordRenderer.vue')['default']
 }

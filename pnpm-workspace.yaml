@@ -8,10 +8,10 @@ catalog:
   '@types/node': ^20.10.0
   primeicons: ^7.0.0
   primevue: ^4.3.9
-  typescript: ~5.8.3
+  typescript: ~5.9.3
   vite: ^7.1.7
-  vue: ^3.5.25
-  vue-router: ^4.6.3
+  vue: ^3.5.29
+  vue-router: ^5.0.3
 
 settings:
   autoInstallPeers: true

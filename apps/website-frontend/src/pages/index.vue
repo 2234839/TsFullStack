@@ -27,33 +27,33 @@
           :title="$t('NoteCalc在线计算')"
           :description="$t('强大的在线计算工具，支持笔记和复杂计算')"
           :longDescription="$t('支持公式、注释、多行计算、单位换算等功能，适用于技术人员与学生。')"
-          imageUrl="https://image.pollinations.ai/prompt/calculator%20application..."
+          :imageUrl="generateAIImage('notecalc')"
           :routePath="routerUtil.to(routeMap.noteCalc, {})" />
 
         <CardItem
           :title="$t('VrImg全景虚拟展厅')"
           :description="$t('轻松构建企业的虚拟展厅/分享美景')"
           :longDescription="$t('支持360°全景图片浏览，可嵌入互动热点，适用于文旅、电商等场景。')"
-          imageUrl="https://image.pollinations.ai/prompt/virtual%20exhibition%20hall..."
+          :imageUrl="generateAIImage('vrimg')"
           :routePath="routerUtil.to(routeMap.VrImg, {})" />
 
         <CardItem
           :title="$t('AI英语学习')"
           :description="$t('在阅读中渐进式学习英语')"
           :longDescription="$t('提供阅读辅助、单词解释、语境联想等功能，提升英语阅读能力。')"
-          imageUrl="https://image.pollinations.ai/prompt/English%20learning%20environment..."
+          :imageUrl="generateAIImage('aienglish')"
           :routePath="routerUtil.to(routeMap.AiEnglish, undefined)" />
         <CardItem
           :title="$t('管理系统')"
           :description="$t('访问完整的管理后台，管理您的内容和设置')"
           :longDescription="$t('适用于企业或个人项目，提供完整的用户、权限、数据管理等模块。')"
-          imageUrl="https://image.pollinations.ai/prompt/professional%20dashboard..."
+          :imageUrl="generateAIImage('admin')"
           :routePath="routerUtil.to(routeMap.admin, {})" />
         <CardItem
           :title="$t('用户中心')"
           :description="$t('登录您的账户，访问个性化内容和设置')"
           :longDescription="$t('支持个人资料管理、任务记录查看、自定义偏好设置等功能。')"
-          imageUrl="https://image.pollinations.ai/prompt/user%20profile%20interface..."
+          :imageUrl="generateAIImage('user')"
           :routePath="routerUtil.to(routeMap.login, {}, { r: $route.fullPath })" />
         </div>
     </div>
@@ -64,6 +64,7 @@
 <script setup lang="tsx">
   import HeartStackSpace_ts from '@/components/icons/HeartStackSpace_ts.vue';
   import SponsorshipCard from '@/components/SponsorshipCard.vue';
+  import { generateAIImage } from '@/utils/imageService';
   import { routeMap, routerUtil } from '@/router';
   import { Button, Card, Divider } from 'primevue';
   import { defineComponent, type PropType } from 'vue';

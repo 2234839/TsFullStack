@@ -146,6 +146,7 @@
   import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
   import 'aframe';
   import type { Entity, THREE as THREEType } from 'aframe';
+  import { generateAIPanorama } from '@/utils/imageService';
   const THREE = AFRAME.THREE;
   // 类型定义
   interface Position {
@@ -173,37 +174,33 @@
     };
   }
 
-  // 默认场景数据
+  // 默认场景数据 - 使用图片服务统一管理
   const DEFAULT_SCENES: Scene[] = [
     {
       id: 'office',
-      title: '办公室',
-      imageUrl:
-        'https://image.pollinations.ai/prompt/360arimg?width=2048&height=1024&nologo=true&model=flux',
+      title: '现代办公室',
+      imageUrl: generateAIPanorama('office'),
       position: { x: 0, y: 0 },
       connections: ['palace', 'garden', 'library'],
     },
     {
       id: 'palace',
-      title: '故宫',
-      imageUrl:
-        'https://image.pollinations.ai/prompt/360arImg_%E6%95%85%E5%AE%AB%E5%8A%9E%E5%85%AC%E5%AE%A4?width=2048&height=1024&nologo=true&model=flux',
+      title: '宫殿大厅',
+      imageUrl: generateAIPanorama('palace'),
       position: { x: 0, y: -60 }, // 北方
       connections: ['office', 'garden'],
     },
     {
       id: 'garden',
-      title: '花园',
-      imageUrl:
-        'https://image.pollinations.ai/prompt/360arImg_%E4%B8%AD%E5%9B%BD%E5%8F%A4%E5%85%B8%E8%8A%B1%E5%9B%AD?width=2048&height=1024&nologo=true&model=flux',
+      title: '美丽花园',
+      imageUrl: generateAIPanorama('garden'),
       position: { x: -60, y: 0 }, // 西方
       connections: ['office', 'palace'],
     },
     {
       id: 'library',
       title: '图书馆',
-      imageUrl:
-        'https://image.pollinations.ai/prompt/360arImg_%E5%8F%A4%E4%BB%A3%E5%9B%BE%E4%B9%A6%E9%A6%86?width=2048&height=1024&nologo=true&model=flux',
+      imageUrl: generateAIPanorama('library'),
       position: { x: 0, y: 60 }, // 南方
       connections: ['office'],
     },

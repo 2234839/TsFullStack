@@ -38,7 +38,7 @@
     "superjson": "^2.2.6",
     "tailwindcss": "^4.1.17",
     "vue": "catalog:",
-    "vue-i18n": "^11.2.2",
+    "vue-i18n": "^11.2.8",
     "vue-router": "catalog:"
   },
   "devDependencies": {
