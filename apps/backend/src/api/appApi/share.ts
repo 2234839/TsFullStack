@@ -1,13 +1,13 @@
 import { UserData as UserDataModel } from '../../../.zenstack/models';
 import { Effect } from 'effect';
-import { PrismaService } from '../../Context/PrismaService';
+import { DbService } from '../../Context/DbService';
 
 export const shareApi = {
   detail(id: UserDataModel['id']) {
     return Effect.gen(function* () {
-      const { prisma } = yield* PrismaService;
+      const { dbClient } = yield* DbService;
       const row = yield* Effect.promise(() =>
-        prisma.userData.findUnique({
+        dbClient.userData.findUnique({
           where: {
             id,
             appId: 'shareInfo',

@@ -1,14 +1,14 @@
 import { LogLevel } from '../../.zenstack/models';
 import { Effect } from 'effect';
-import { PrismaService } from './PrismaService';
+import { DbService } from './DbService';
 import type { ReqCtx } from './ReqCtx';
 import type { JsonObject } from '@zenstackhq/orm';
 
 export function systemLog(options: { level: LogLevel; message?: string }, ctx: ReqCtx) {
   return Effect.gen(function* () {
-    const { prisma } = yield* PrismaService;
+    const { dbClient } = yield* DbService;
     const log = yield* Effect.promise(() =>
-      prisma.systemLog.create({
+      dbClient.systemLog.create({
         data: {
           level: options.level,
           logs: ctx.logs as unknown as JsonObject, // JsonValue 类型

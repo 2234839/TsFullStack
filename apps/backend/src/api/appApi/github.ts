@@ -1,7 +1,7 @@
 import { OauthProvider } from '../../../.zenstack/models';
 import { Effect } from 'effect';
 import { v7 as uuidv7 } from 'uuid';
-import { PrismaService } from '../../Context/PrismaService';
+import { DbService } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { GithubAuthService } from '../../OAuth/github';
 import { genUserSession } from './_genUserSession';
@@ -16,12 +16,12 @@ export const githubApi = {
   },
   authenticate(code: string) {
     return Effect.gen(function* () {
-      const { prisma } = yield* PrismaService;
+      const { dbClient } = yield* DbService;
       const auth = yield* githubAuth;
       const { user: githubUser } = yield* auth.authenticate(code);
 
       let user = yield* Effect.promise(() =>
-        prisma.user.findFirst({
+        dbClient.user.findFirst({
           where: {
             oAuthAccount: {
               some: {
@@ -38,7 +38,7 @@ export const githubApi = {
 
       if (!user) {
         user = yield* Effect.promise(() => {
-          return prisma.user.create({
+          return dbClient.user.create({
             data: {
               email: uuidv7(),
               password: uuidv7() + githubUser.email,

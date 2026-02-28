@@ -1,6 +1,6 @@
 import { Context, Effect } from 'effect';
 import type { User, Role } from '../../.zenstack/models';
-import type { safePrisma } from './PrismaService';
+import type { safePrisma } from './DbService';
 
 // 定义数据库返回类型
 export interface Database {

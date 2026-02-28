@@ -1,11 +1,11 @@
 import { Effect } from 'effect';
-import { PrismaService } from '../../Context/PrismaService';
+import { DbService } from '../../Context/DbService';
 import type { User } from '../../../.zenstack/models';
 
 /** 注意，使用此接口时请确保用户传入的 id 是他自身的，也就是不应该让用户直接调用此接口 */
 export function genUserSession(userId: User['id']) {
   return Effect.gen(function* () {
-    const prismaService = yield* PrismaService;
+    const prismaService = yield* DbService;
     const { db } = yield* prismaService.getPrisma({ userId });
     const userSession = yield* Effect.promise(() =>
       db.userSession.create({

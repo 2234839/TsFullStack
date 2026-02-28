@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { PrismaService } from '../Context/PrismaService';
+import { DbService } from '../Context/DbService';
 import type { Database } from '../Context/Auth';
 
 const userCache = new Map<string, { res: Database; timestamp: number }>();
@@ -20,7 +20,7 @@ export function getAuthFromCache(opt: {
   email?: string;
   sessionToken?: string;
   sessionID?: number;
-}): Effect.Effect<Database, Error, PrismaService> {
+}): Effect.Effect<Database, Error, DbService> {
   return Effect.gen(function* () {
     const cacheKey = `${opt.userId}-${opt.email}-${opt.sessionToken}-${opt.sessionID}`;
     const cached = userCache.get(cacheKey);
@@ -29,7 +29,7 @@ export function getAuthFromCache(opt: {
       return res;
     } else {
       // 缓存未命中或已过期，查询数据库
-      const { getPrisma } = yield* PrismaService;
+      const { getPrisma } = yield* DbService;
       const prismaResult = yield* getPrisma(opt);
 
       const res: Database = {

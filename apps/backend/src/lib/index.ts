@@ -46,6 +46,6 @@ export const $Enums = {
 } as const;
 
 // NOTE: Backend service classes are NOT exported to frontend:
-// - PrismaService, AuthContext, AIProxyService
+// - DbService, AuthContext, AIProxyService
 // - AppConfigService, AIConfigContext
 // These are backend-only implementations

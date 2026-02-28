@@ -13,7 +13,7 @@ export interface AddTaskOptions {
 }
 
 export interface QueueOptions {
-  prisma: ClientContract<typeof schema>;
+  dbClient: ClientContract<typeof schema>;
   pollingInterval?: number;
   concurrency?: number;
   instanceId?: string;
@@ -23,7 +23,7 @@ export interface QueueOptions {
 
 
 export class PrismaQueue<T extends TaskMap> {
-  public readonly prisma: ClientContract<typeof schema>;
+  public readonly dbClient: ClientContract<typeof schema>;
   private readonly pollingInterval: number;
   private readonly concurrency: number;
   private readonly instanceId: string;
@@ -34,8 +34,8 @@ export class PrismaQueue<T extends TaskMap> {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private stuckTaskTimer: NodeJS.Timeout | null = null;
 
-  constructor({ prisma, pollingInterval = 1000, concurrency = 5, instanceId, stuckTimeoutMs = 30_000 }: QueueOptions) {
-    this.prisma = prisma;
+  constructor({ dbClient, pollingInterval = 1000, concurrency = 5, instanceId, stuckTimeoutMs = 30_000 }: QueueOptions) {
+    this.dbClient = dbClient;
     this.pollingInterval = pollingInterval;
     this.concurrency = concurrency;
     this.instanceId = instanceId ?? this.generateInstanceId();
@@ -61,7 +61,7 @@ export class PrismaQueue<T extends TaskMap> {
   }
 
   async add<K extends keyof T>(name: K, payload: T[K]['payload'], options: AddTaskOptions = {}) {
-    return this.prisma.queue.create({
+    return this.dbClient.queue.create({
       data: {
         name: name as string,
         payload,
@@ -99,7 +99,7 @@ export class PrismaQueue<T extends TaskMap> {
   private startHeartbeat() {
     this.heartbeatTimer = setInterval(async () => {
       try {
-        await this.prisma.queue.updateMany({
+        await this.dbClient.queue.updateMany({
           where: { status: 'PROCESSING', workerId: this.instanceId },
           data: { updated: new Date() },
         });
@@ -120,7 +120,7 @@ export class PrismaQueue<T extends TaskMap> {
       const taskTypes = [...this.workers.keys()];
       if (taskTypes.length === 0) return setTimeout(() => this.poll(), this.pollingInterval);
 
-      const task = await this.prisma.$transaction(async (tx) => {
+      const task = await this.dbClient.$transaction(async (tx) => {
         const candidate = await tx.queue.findFirst({
           where: {
             name: { in: taskTypes },
@@ -175,7 +175,7 @@ export class PrismaQueue<T extends TaskMap> {
       const payload = task.payload as T[keyof T]['payload'];
       const result = await handler(payload);
 
-      const updated = await this.prisma.queue.updateMany({
+      const updated = await this.dbClient.queue.updateMany({
         where: {
           id: task.id,
           workerId: this.instanceId,
@@ -194,14 +194,14 @@ export class PrismaQueue<T extends TaskMap> {
         ? console.log(`[Queue] Task ${task.id} completed`)
         : console.warn(`[Queue] Task ${task.id} update ignored`);
     } catch (err) {
-      const current = await this.prisma.queue.findUnique({ where: { id: task.id } });
+      const current = await this.dbClient.queue.findUnique({ where: { id: task.id } });
       if (!current || current.workerId !== this.instanceId) return;
 
       if (current.attempts < current.maxAttempts) {
         const backoff = this.getBackoff(current.attempts);
         const runAt = new Date(Date.now() + backoff);
 
-        await this.prisma.queue.updateMany({
+        await this.dbClient.queue.updateMany({
           where: {
             id: task.id,
             workerId: this.instanceId,
@@ -224,7 +224,7 @@ export class PrismaQueue<T extends TaskMap> {
   }
 
   private async failTask(id: number, reason: string) {
-    await this.prisma.queue.updateMany({
+    await this.dbClient.queue.updateMany({
       where: { id, status: 'PROCESSING' },
       data: {
         status: 'FAILED',
@@ -246,7 +246,7 @@ export class PrismaQueue<T extends TaskMap> {
     const stuckBefore = new Date(Date.now() - this.stuckTimeoutMs);
 
     try {
-      const stuckTasks = await this.prisma.queue.findMany({
+      const stuckTasks = await this.dbClient.queue.findMany({
         where: {
           status: 'PROCESSING',
           updated: { lt: stuckBefore },
@@ -258,7 +258,7 @@ export class PrismaQueue<T extends TaskMap> {
           const backoff = this.getBackoff(task.attempts);
           const runAt = new Date(Date.now() + backoff);
 
-          await this.prisma.queue.updateMany({
+          await this.dbClient.queue.updateMany({
             where: { id: task.id, updated: { lt: stuckBefore }, status: 'PROCESSING' },
             data: {
               status: 'PENDING',
@@ -282,11 +282,11 @@ export class PrismaQueue<T extends TaskMap> {
   }
 
   async getStats() {
-    const [pending, processing, completed, failed] = await this.prisma.$transaction([
-      this.prisma.queue.count({ where: { status: 'PENDING' } }),
-      this.prisma.queue.count({ where: { status: 'PROCESSING' } }),
-      this.prisma.queue.count({ where: { status: 'COMPLETED' } }),
-      this.prisma.queue.count({ where: { status: 'FAILED' } }),
+    const [pending, processing, completed, failed] = await this.dbClient.$transaction([
+      this.dbClient.queue.count({ where: { status: 'PENDING' } }),
+      this.dbClient.queue.count({ where: { status: 'PROCESSING' } }),
+      this.dbClient.queue.count({ where: { status: 'COMPLETED' } }),
+      this.dbClient.queue.count({ where: { status: 'FAILED' } }),
     ]);
 
     return {
@@ -304,7 +304,7 @@ export class PrismaQueue<T extends TaskMap> {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - olderThanDays);
 
-    const result = await this.prisma.queue.deleteMany({
+    const result = await this.dbClient.queue.deleteMany({
       where: {
         status: { in: ['COMPLETED', 'FAILED'] },
         completedAt: { lt: cutoff },

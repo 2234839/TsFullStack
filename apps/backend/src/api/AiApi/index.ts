@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { AIProxyService } from '../../Context/AIProxyService';
 import { authUserIsAdmin } from '../../Context/Auth';
 import { reqClientIpEffect } from '../../Context/ClientIPService';
-import { PrismaService } from '../../Context/PrismaService';
+import { DbService } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import {
   AIModel,
@@ -74,10 +74,10 @@ export const aiApi = {
         throw new Error('需要管理员权限');
       }
 
-      const { prisma } = yield* PrismaService;
+      const { dbClient } = yield* DbService;
       const models = yield* Effect.tryPromise({
         try: () =>
-          prisma.aiModel.findMany({
+          dbClient.aiModel.findMany({
             orderBy: { id: 'asc' },
           }),
         catch: (error) =>
@@ -96,10 +96,10 @@ export const aiApi = {
         throw new Error('需要管理员权限');
       }
 
-      const { prisma } = yield* PrismaService;
+      const { dbClient } = yield* DbService;
       const model = yield* Effect.tryPromise({
         try: () =>
-          prisma.aiModel.create({
+          dbClient.aiModel.create({
             data: {
               name: request.name,
               model: request.model,
@@ -131,10 +131,10 @@ export const aiApi = {
         throw new Error('需要管理员权限');
       }
 
-      const { prisma } = yield* PrismaService;
+      const { dbClient } = yield* DbService;
       const model = yield* Effect.tryPromise({
         try: () =>
-          prisma.aiModel.update({
+          dbClient.aiModel.update({
             where: { id: request.id },
             data: {
               ...(request.name !== undefined && { name: request.name }),
@@ -167,10 +167,10 @@ export const aiApi = {
         throw new Error('需要管理员权限');
       }
 
-      const { prisma } = yield* PrismaService;
+      const { dbClient } = yield* DbService;
       yield* Effect.tryPromise({
         try: () =>
-          prisma.aiModel.delete({
+          dbClient.aiModel.delete({
             where: { id },
           }),
         catch: (error) =>

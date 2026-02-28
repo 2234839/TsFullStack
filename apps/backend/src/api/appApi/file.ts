@@ -1,6 +1,6 @@
 import { File as FileModel } from '../../../.zenstack/models';
 import { Effect } from 'effect';
-import { PrismaService } from '../../Context/PrismaService';
+import { DbService } from '../../Context/DbService';
 import { FileAccessService } from '../../Context/FileAccessService';
 
 export const fileApi = {
@@ -10,9 +10,9 @@ export const fileApi = {
    */
   file(id: FileModel['id']) {
     return Effect.gen(function* () {
-      const { prisma } = yield* PrismaService;
+      const { dbClient } = yield* DbService;
       const fileRow = yield* Effect.promise(() =>
-        prisma.file.findUnique({
+        dbClient.file.findUnique({
           where: {
             id,
           },

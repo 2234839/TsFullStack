@@ -5,6 +5,7 @@
     "password": "your-secure-password-here"
   },
   "uploadDir": "./uploads",
+  "databasePath": "./database/dev.db",
   "ApiProxy": {
     "github": "https://api-proxy.example.com"
   },

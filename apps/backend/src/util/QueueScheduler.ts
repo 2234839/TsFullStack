@@ -1,4 +1,4 @@
-import type { PrismaQueue } from './prismaQueue';
+import type { PrismaQueue } from './dbQueue';
 
 type ScheduleTriggerTask = {
   scheduleTrigger: {
@@ -55,7 +55,7 @@ export class QueueScheduler<T extends ScheduleTriggerTask> {
     this.queue.start();
 
     // 添加首次调度任务（如果不存在）
-    const existing = await this.queue.prisma.queue.findFirst({
+    const existing = await this.queue.dbClient.queue.findFirst({
       where: {
         name: 'scheduleTrigger',
         status: 'PENDING',

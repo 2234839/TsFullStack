@@ -59,6 +59,7 @@ export const loadAppConfig = Effect.gen(function* () {
         password: 'adminpassword123',
       },
       uploadDir: './uploads',
+      databasePath: './database/dev.db',
       ApiProxy: {},
     } satisfies AppConfigType;
 

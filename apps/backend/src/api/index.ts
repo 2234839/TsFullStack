@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
-import type { safePrisma } from '../Context/PrismaService';
+import type { safePrisma } from '../Context/DbService';
 import { aiApi } from './AiApi';
 import { fileApi } from './authApi/file';
 import { systemApis } from './systemApis';

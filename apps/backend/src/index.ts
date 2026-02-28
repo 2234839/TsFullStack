@@ -2,11 +2,11 @@ import { Effect } from 'effect';
 import fs from 'fs/promises';
 import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
 import { AppConfigService } from './Context/AppConfig';
-import { PrismaService, PrismaServiceLive } from './Context/PrismaService';
+import { DbService, DbServiceLive } from './Context/DbService';
 import { AIProxyService, AIProxyServiceLive } from './Context/AIProxyService';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
-import { PrismaQueue } from './util/prismaQueue';
+import { PrismaQueue } from './util/dbQueue';
 import { QueueScheduler } from './util/QueueScheduler';
 import { ConfigLoader } from './config/loader';
 const main = Effect.gen(function* () {
@@ -21,9 +21,14 @@ const main = Effect.gen(function* () {
     throw new Error(`Upload directory ${config.uploadDir} is not a directory`);
   }
 
+  // 创建 DbService 实例
+  const dbService = yield* DbServiceLive.pipe(
+    Effect.provideService(AppConfigService, config),
+  );
+
   yield* seedDB.pipe(
     Effect.provideService(AppConfigService, config),
-    Effect.provideService(PrismaService, PrismaServiceLive),
+    Effect.provideService(DbService, dbService),
     Effect.provideService(AIProxyService, AIProxyServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
@@ -73,7 +78,7 @@ const main = Effect.gen(function* () {
   // yield* queue_scheduler;
   yield* startServer.pipe(
     Effect.provideService(AppConfigService, config),
-    Effect.provideService(PrismaService, PrismaServiceLive),
+    Effect.provideService(DbService, dbService),
     Effect.provideService(AIProxyService, AIProxyServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
@@ -89,8 +94,8 @@ const queue_scheduler = Effect.gen(function* () {
       result: { sent: boolean };
     };
   };
-  const { prisma } = yield* PrismaService;
-  const queue = new PrismaQueue<MyTasks>({ prisma });
+  const { dbClient } = yield* DbService;
+  const queue = new PrismaQueue<MyTasks>({ dbClient });
   // 注册任务
   queue.register('sendEmail', async (payload) => {
     // throw new Error('failTask');

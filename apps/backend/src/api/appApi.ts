@@ -1,6 +1,6 @@
 import { compareSync } from 'bcryptjs';
 import { Effect } from 'effect';
-import { PrismaService } from '../Context/PrismaService';
+import { DbService } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
 import type { User } from '../../.zenstack/models';
@@ -18,11 +18,11 @@ export const appApis = {
     async register(email: string, password: string) {
       await randomDelay();
       return Effect.gen(function* () {
-        const { prisma } = yield* PrismaService;
+        const { dbClient } = yield* DbService;
         // throw MsgError.msg('暂时关闭了直接注册帐号，请使用其他方式登录！ ');
 
         const user = yield* Effect.promise(() =>
-          prisma.user.findUnique({
+          dbClient.user.findUnique({
             where: {
               email,
             },
@@ -32,7 +32,7 @@ export const appApis = {
           throw MsgError.msg('用户已存在');
         }
         const newUser = yield* Effect.promise(() =>
-          prisma.user.create({
+          dbClient.user.create({
             data: {
               email,
               password,
@@ -47,9 +47,9 @@ export const appApis = {
     async loginByEmailPwd(email: string, password: string) {
       await randomDelay();
       return Effect.gen(function* () {
-        const { prisma } = yield* PrismaService;
+        const { dbClient } = yield* DbService;
         const user = yield* Effect.promise(() =>
-          prisma.user.findUnique({
+          dbClient.user.findUnique({
             where: {
               email,
             },

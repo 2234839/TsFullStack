@@ -35,6 +35,16 @@
         "/var/www/uploads"
       ]
     },
+    "databasePath": {
+      "type": "string",
+      "description": "SQLite 数据库文件路径，可以是相对路径或绝对路径",
+      "default": "./database/dev.db",
+      "examples": [
+        "./database/dev.db",
+        "./prisma/dev.db",
+        "/var/data/tsfullstack.db"
+      ]
+    },
     "ApiProxy": {
       "type": "object",
       "description": "API 代理配置，用于代理一些无法直接访问的 API 请求",
