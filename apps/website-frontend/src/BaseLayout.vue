@@ -1,5 +1,6 @@
 <template>
-  <RouterView v-slot="{ Component }">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <RouterView v-slot="{ Component }">
     <template v-if="Component">
       <Transition mode="out-in">
         <KeepAlive>
@@ -15,23 +16,21 @@
   </RouterView>
 
   <Toast />
-  <ConfirmPopup />
-  <GithubStar />
-  <TestWarningBanner />
+  <Confirm />
+    <GithubStar />
+    <TestWarningBanner />
+  </div>
 </template>
 
 <script setup lang="ts">
-import { setApiTempToast } from '@/api';
 import GithubStar from '@/components/system/GithubStar.vue';
-import TestWarningBanner from '@/components/system/TestWarningBanner.vue'; // 引入新组件
+import TestWarningBanner from '@/components/system/TestWarningBanner.vue';
 import { allRoutes, findRouteNode } from '@/router';
 import { useTitle } from '@vueuse/core';
-import { ConfirmPopup, Toast, useToast } from 'primevue';
+import Toast from '@/components/system/Toast.vue';
+import Confirm from '@/components/base/Confirm.vue';
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-
-const toast = useToast();
-setApiTempToast(toast);
 
 
 //#region 设置页面标题

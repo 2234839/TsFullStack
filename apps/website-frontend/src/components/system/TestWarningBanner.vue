@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="showTestWarn && visible"
-    class="fixed top-0 left-0 right-0 bg-yellow-300/80 p-2.5 text-center z-[1000] flex justify-center items-center gap-2.5 text-sm">
+    class="fixed top-0 left-0 right-0 bg-warning-300/80 p-2.5 text-center z-[1000] flex justify-center items-center gap-2.5 text-sm">
     <span class="font-bold"
       >这是测试账号，仅供测试使用!! 数据会不定时清空，请另外注册帐号使用。
     </span>

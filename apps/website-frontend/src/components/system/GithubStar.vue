@@ -12,7 +12,7 @@
           'button-hide': githubStarShow === 'hide',
         }">
         <i class="pi pi-github text-2xl!" />
-        <i class="pi pi-star-fill text-2xl! text-yellow-300" />
+        <i class="pi pi-star-fill text-2xl! text-warning-300" />
         <span class="font-medium button-text"> {{ t('支持一下 | Star 这个项目') }} </span>
         <button
           @click.prevent.stop="toggleGithubStar()"

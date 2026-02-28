@@ -1,48 +1,40 @@
 <template>
-  <div
-    class="sidebar-container h-screen transition-all duration-300 ease-in-out relative shadow"
+  <div class="sidebar-container h-screen transition-all duration-300 ease-in-out relative shadow"
     :class="[isCollapsed ? 'w-20' : '']">
     <!-- 主侧边栏 -->
     <div
       class="h-full flex flex-col relative overflow-hidden transition-colors duration-300 bg-gradient-to-b from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200 dark:border-slate-700/50">
       <!-- 顶部Logo区域 -->
-      <div
-        class="logo-area p-5 flex items-center justify-between border-b border-gray-200 dark:border-slate-700/50">
+      <div class="logo-area p-5 flex items-center justify-between border-b border-gray-200 dark:border-slate-700/50">
         <div class="flex items-center space-x-3">
-          <div
-            @click="toggleCollapse"
+          <div @click="toggleCollapse"
             class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-gradient-to-br from-blue-500 to-cyan-400 dark:from-cyan-400 dark:to-blue-600 shadow-blue-200 dark:shadow-blue-500/20">
             <i class="pi pi-bolt text-white text-xl"></i>
           </div>
           <h1
             class="font-bold text-xl tracking-wide transition-all duration-300 overflow-hidden whitespace-nowrap text-gray-800 dark:text-white"
             :class="[isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto']">
-            Ts<span class="text-blue-500 dark:text-cyan-400">FullStack</span>
+            Ts<span class="text-primary-500 dark:text-cyan-400">FullStack</span>
           </h1>
         </div>
-        <Button
-          @click="toggleCollapse"
-          icon="pi pi-bars"
-          class="p-button-rounded p-button-text p-button-plain"
-          aria-label="Toggle menu" />
+        <button @click="toggleCollapse"
+          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400"
+          aria-label="Toggle menu">
+          <i class="pi pi-bars "></i>
+        </button>
       </div>
 
       <!-- 用户信息区域 -->
-      <div
-        class="user-profile px-4 py-5 flex items-center border-b border-gray-200 dark:border-slate-700/50">
+      <div class="user-profile px-4 py-5 flex items-center border-b border-gray-200 dark:border-slate-700/50">
         <div class="relative">
           <a href="https://shenzilong.cn" target="_blank">
-            <Avatar
-              :image="avatarImageSrc"
-              class="mr-3 shadow-lg border-2 border-blue-400 dark:border-cyan-400"
-              size="large"
-              shape="circle" />
+            <Avatar :image="avatarImageSrc" class="mr-3 shadow-lg border-2 border-primary-400 dark:border-cyan-400"
+              size="large" shape="circle" />
           </a>
           <span
-            class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
+            class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
         </div>
-        <div
-          class="user-info transition-all duration-300 overflow-hidden whitespace-nowrap"
+        <div class="user-info transition-all duration-300 overflow-hidden whitespace-nowrap"
           :class="[isCollapsed ? 'opacity-0 w-0' : 'opacity-100 flex-1']">
           <h2 class="font-medium text-gray-800 dark:text-white">Alex Johnson</h2>
           <p class="text-sm text-gray-500 dark:text-slate-400">系统管理员</p>
@@ -55,9 +47,7 @@
         class="search-box px-4 py-3 transition-all duration-300 overflow-hidden border-b border-gray-200 dark:border-slate-700/50"
         :class="[isCollapsed ? 'opacity-0 h-0 py-0' : 'opacity-100']">
         <span class="p-input-icon-left w-full">
-          <InputText
-            v-model="searchQuery"
-            placeholder="搜索..."
+          <Input v-model="searchQuery" placeholder="搜索..."
             class="w-full p-input-sm rounded-lg bg-gray-100 dark:bg-slate-700/50 border-gray-300 dark:border-slate-600 text-gray-800 dark:text-white" />
         </span>
       </div>
@@ -68,50 +58,33 @@
           <ul class="flex flex-col items-center space-y-1">
             <li v-for="item in collapsedMenuItems" :key="item.key" class="w-full relative">
               <Tooltip :content="item.label" side="right">
-                <Button
-                  :icon="item.icon"
-                  :class="[
+                <Button :icon="item.icon" :class="[
                     'p-button-rounded p-button-text w-full justify-center',
                     isActiveRoute(item)
-                      ? 'p-button-outlined text-blue-600 dark:text-cyan-400'
+                      ? 'p-button-outlined text-primary-600 dark:text-cyan-400'
                       : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white',
                     hasSubmenuItems(item) ? 'has-submenu' : '',
-                  ]"
-                  @click="handleCollapsedMenuClick($event, item)" />
+                  ]" @click="handleCollapsedMenuClick($event, item)" />
               </Tooltip>
-              <Badge
-                v-if="item.badge"
-                :value="item.badge"
-                :severity="getBadgeSeverity(item)"
+              <Badge v-if="item.badge" :value="item.badge" :severity="getBadgeSeverity(item)"
                 class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"></Badge>
 
-              <!-- 使用PrimeVue的Popover -->
-              <Popover
-                :ref="(el) => setPopoverRef(item.key, el)"
-                :showCloseIcon="false"
-                class="p-popover-submenu">
+              <Popover :ref="(el) => setPopoverRef(item.key, el)" :showCloseIcon="false" class="p-popover-submenu">
                 <div class="py-1">
-                  <div
-                    v-for="subItem in getSubmenuItems(item)"
-                    :key="subItem.key"
-                    @click="navigateTo(subItem)"
+                  <div v-for="subItem in getSubmenuItems(item)" :key="subItem.key" @click="navigateTo(subItem)"
                     class="p-popover-item flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/50"
                     :class="[
                       isActiveRoute(subItem)
-                        ? 'bg-blue-50/70 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-blue-700 dark:text-white'
+                        ? 'bg-primary-50/70 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
                         : 'text-gray-600 dark:text-slate-400',
                     ]">
-                    <i
-                      :class="[
+                    <i :class="[
                         subItem.icon,
                         'mr-3 text-sm',
-                        isActiveRoute(subItem) ? 'text-blue-600 dark:text-cyan-400' : '',
+                        isActiveRoute(subItem) ? 'text-primary-600 dark:text-cyan-400' : '',
                       ]"></i>
                     <span class="flex-1 text-sm whitespace-nowrap">{{ subItem.label }}</span>
-                    <Badge
-                      v-if="subItem.badge"
-                      :value="subItem.badge"
-                      :severity="getBadgeSeverity(subItem)"></Badge>
+                    <Badge v-if="subItem.badge" :value="subItem.badge" :severity="getBadgeSeverity(subItem)"></Badge>
                   </div>
                 </div>
               </Popover>
@@ -119,70 +92,52 @@
           </ul>
         </div>
         <div v-else class="expanded-menu">
-          <div
-            v-for="(category, index) in filteredMenuItems"
-            :key="category.category"
-            class="menu-category mb-4">
+          <div v-for="(category, index) in filteredMenuItems" :key="category.category" class="menu-category mb-4">
             <div
               class="menu-category-header flex items-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-slate-400"
               v-if="index > 0">
               {{ category.category }}
             </div>
             <div v-for="menuItem in category.items" :key="menuItem.key" class="menu-item relative">
-              <div
-                @click="toggleSubmenu(menuItem)"
+              <div @click="toggleSubmenu(menuItem)"
                 class="menu-item-header flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 mb-1"
                 :class="[
                   isActiveRoute(menuItem)
-                    ? 'bg-blue-50 dark:bg-gradient-to-r dark:from-cyan-500/60 dark:to-blue-500/30 text-blue-700 dark:text-white'
+                    ? 'bg-primary-50 dark:bg-gradient-to-r dark:from-cyan-500/60 dark:to-blue-500/30 text-primary-700 dark:text-white'
                     : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-white',
                 ]">
-                <i
-                  :class="[
+                <i :class="[
                     menuItem.icon,
                     'mr-3 text-lg',
-                    isActiveRoute(menuItem) ? 'text-blue-600 dark:text-cyan-400' : '',
+                    isActiveRoute(menuItem) ? 'text-primary-600 dark:text-cyan-400' : '',
                   ]"></i>
                 <span class="flex-1">{{ menuItem.label }}</span>
-                <Badge
-                  v-if="menuItem.badge"
-                  :value="menuItem.badge"
-                  :severity="getBadgeSeverity(menuItem)"
+                <Badge v-if="menuItem.badge" :value="menuItem.badge" :severity="getBadgeSeverity(menuItem)"
                   class="mr-2"></Badge>
-                <i
-                  v-if="menuItem.items && menuItem.items.length"
-                  :class="[
+                <i v-if="menuItem.items && menuItem.items.length" :class="[
                     menuItem.expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right',
                     'text-xs transition-transform duration-200',
                   ]"></i>
               </div>
 
               <!-- 子菜单 -->
-              <div
-                v-if="menuItem.items && menuItem.items.length"
+              <div v-if="menuItem.items && menuItem.items.length"
                 class="submenu pl-4 overflow-hidden transition-all duration-300 ease-in-out"
                 :class="[menuItem.expanded ? 'max-h-96' : 'max-h-0']">
-                <div
-                  v-for="subItem in menuItem.items"
-                  :key="subItem.key"
-                  @click="navigateTo(subItem)"
+                <div v-for="subItem in menuItem.items" :key="subItem.key" @click="navigateTo(subItem)"
                   class="submenu-item flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-1"
                   :class="[
                     isActiveRoute(subItem)
-                      ? 'bg-blue-50/70 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-blue-700 dark:text-white'
+                      ? 'bg-primary-50/70 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-slate-400 dark:hover:bg-slate-700/30 dark:hover:text-white',
                   ]">
-                  <i
-                    :class="[
+                  <i :class="[
                       subItem.icon,
                       'mr-3 text-sm',
-                      isActiveRoute(subItem) ? 'text-blue-600 dark:text-cyan-400' : '',
+                      isActiveRoute(subItem) ? 'text-primary-600 dark:text-cyan-400' : '',
                     ]"></i>
                   <span class="flex-1 text-sm">{{ subItem.label }}</span>
-                  <Badge
-                    v-if="subItem.badge"
-                    :value="subItem.badge"
-                    :severity="getBadgeSeverity(subItem)"></Badge>
+                  <Badge v-if="subItem.badge" :value="subItem.badge" :severity="getBadgeSeverity(subItem)"></Badge>
                 </div>
               </div>
             </div>
@@ -192,13 +147,12 @@
 
       <!-- 底部操作区 -->
       <div class="footer border-t border-gray-200 dark:border-slate-700/50 p-4">
-        <div
-          class="flex items-center justify-around"
-          :class="{ 'flex-col space-y-4': isCollapsed }">
+        <div class="flex items-center justify-around" :class="{ 'flex-col space-y-4': isCollapsed }">
           <Tooltip :content="'设置'" side="right">
-            <Button
-              icon="pi pi-cog"
-              class="p-button-rounded p-button-text p-button-plain" />
+            <button
+              class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400">
+              <i class="pi pi-cog "></i>
+            </button>
           </Tooltip>
           <Tooltip :content="'主题切换'" side="right">
             <ThemeSwitch />
@@ -223,7 +177,11 @@
   import ThemeSwitch from '@/components/system/ThemeToggle.vue';
   import { useComputedI18n } from '@/i18n';
   import { routeMap, router, routerUtil } from '@/router';
-  import { Avatar, Badge, Button, InputText, Popover } from 'primevue';
+  import Avatar from '@/components/base/Avatar.vue';
+  import Badge from '@/components/base/Badge.vue';
+  import Button from '@/components/base/Button.vue';
+  import Input from '@/components/base/Input.vue';
+  import { Popover } from '@tsfullstack/shared-frontend/components';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, reactive, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
@@ -475,201 +433,198 @@
 </script>
 
 <style scoped>
-  /* 基础样式 */
-  .sidebar-container {
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
-    position: relative;
-    z-index: 50;
-  }
+/* 基础样式 */
+.sidebar-container {
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 50;
+}
 
-  /* 自定义滚动条 */
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
-  }
+/* 自定义滚动条 */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
 
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
-  }
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
 
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(100, 116, 139, 0.3);
-    border-radius: 20px;
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.3);
+  border-radius: 20px;
+}
 
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(100, 116, 139, 0.5);
-  }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.5);
+}
 
-  /* 有子菜单的菜单项样式 */
-  .has-submenu::after {
-    content: '';
-    position: absolute;
-    top: 65%;
-    right: 0px;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background-color: currentColor;
-    opacity: 0.5;
-  }
+/* 有子菜单的菜单项样式 */
+.has-submenu::after {
+  content: '';
+  position: absolute;
+  top: 65%;
+  right: 0px;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0.5;
+}
 
-  /* 子菜单项样式 */
-  .p-popover-item {
-    transition: background-color 0.2s ease;
-  }
+/* 子菜单项样式 */
+.p-popover-item {
+  transition: background-color 0.2s ease;
+}
 
-  /* 自定义Popover样式 */
-  :deep(.p-popover-submenu) {
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(229, 231, 235, 1);
-    padding: 0;
-    min-width: 200px;
-  }
+/* 自定义Popover样式 */
+:deep(.p-popover-submenu) {
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(229, 231, 235, 1);
+  padding: 0;
+  min-width: 200px;
+}
 
-  :deep(.dark .p-popover-submenu) {
-    background-color: rgb(30, 41, 59);
-    border-color: rgba(51, 65, 85, 0.5);
-  }
+:deep(.dark .p-popover-submenu) {
+  background-color: rgb(30, 41, 59);
+  border-color: rgba(51, 65, 85, 0.5);
+}
 
-  /* 装饰元素 */
-  .decorative-elements {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    z-index: -1;
-  }
+/* 装饰元素 */
+.decorative-elements {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: -1;
+}
 
-  .glow-effect {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(70px);
-    opacity: 0.07;
-  }
+.glow-effect {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.07;
+}
 
-  .glow-1 {
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(
-      circle,
+.glow-1 {
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle,
       rgba(59, 130, 246, 0.7) 0%,
       rgba(37, 99, 235, 0.5) 50%,
-      transparent 70%
-    );
-    top: 10%;
-    left: -150px;
-    animation: float 15s ease-in-out infinite alternate;
-  }
+      transparent 70%);
+  top: 10%;
+  left: -150px;
+  animation: float 15s ease-in-out infinite alternate;
+}
 
-  .glow-2 {
-    width: 250px;
-    height: 250px;
-    background: radial-gradient(
-      circle,
+.glow-2 {
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle,
       rgba(37, 99, 235, 0.7) 0%,
       rgba(59, 130, 246, 0.5) 50%,
-      transparent 70%
-    );
-    bottom: 10%;
-    right: -100px;
-    animation: float 20s ease-in-out infinite alternate-reverse;
+      transparent 70%);
+  bottom: 10%;
+  right: -100px;
+  animation: float 20s ease-in-out infinite alternate-reverse;
+}
+
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(to right, rgba(100, 116, 139, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(100, 116, 139, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.3;
+}
+
+/* 动画 */
+@keyframes float {
+  0% {
+    transform: translateY(0) rotate(0deg);
   }
 
-  .grid-overlay {
-    position: absolute;
-    inset: 0;
-    background-image: linear-gradient(to right, rgba(100, 116, 139, 0.05) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(100, 116, 139, 0.05) 1px, transparent 1px);
-    background-size: 20px 20px;
-    opacity: 0.3;
+  50% {
+    transform: translateY(-30px) rotate(5deg);
   }
 
-  /* 动画 */
-  @keyframes float {
-    0% {
-      transform: translateY(0) rotate(0deg);
-    }
-    50% {
-      transform: translateY(-30px) rotate(5deg);
-    }
-    100% {
-      transform: translateY(0) rotate(0deg);
-    }
+  100% {
+    transform: translateY(0) rotate(0deg);
   }
+}
 
-  /* 菜单项动画 */
-  .menu-item-header,
-  .submenu-item {
-    position: relative;
-    overflow: hidden;
-  }
+/* 菜单项动画 */
+.menu-item-header,
+.submenu-item {
+  position: relative;
+  overflow: hidden;
+}
 
-  .menu-item-header::before,
-  .submenu-item::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 0;
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), transparent);
-    transition: width 0.3s ease;
-  }
+.menu-item-header::before,
+.submenu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), transparent);
+  transition: width 0.3s ease;
+}
 
-  .menu-item-header:hover::before,
-  .submenu-item:hover::before {
-    width: 100%;
-  }
+.menu-item-header:hover::before,
+.submenu-item:hover::before {
+  width: 100%;
+}
 
-  /* Logo动画 */
-  .logo-icon {
-    position: relative;
-    overflow: hidden;
-  }
+/* Logo动画 */
+.logo-icon {
+  position: relative;
+  overflow: hidden;
+}
 
-  .logo-icon::after {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(
-      to bottom right,
+.logo-icon::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(to bottom right,
       rgba(255, 255, 255, 0) 0%,
       rgba(255, 255, 255, 0) 40%,
       rgba(255, 255, 255, 0.4) 50%,
       rgba(255, 255, 255, 0) 60%,
-      rgba(255, 255, 255, 0) 100%
-    );
-    transform: rotate(45deg);
-    animation: shine 3s infinite;
+      rgba(255, 255, 255, 0) 100%);
+  transform: rotate(45deg);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% {
+    transform: rotate(45deg) translateX(-100%);
   }
 
-  @keyframes shine {
-    0% {
-      transform: rotate(45deg) translateX(-100%);
-    }
-    20%,
-    100% {
-      transform: rotate(45deg) translateX(100%);
-    }
+  20%,
+  100% {
+    transform: rotate(45deg) translateX(100%);
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .sidebar-container {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 100;
+    transform: translateX(0);
+    transition: transform 0.3s ease;
   }
 
-  /* 响应式调整 */
-  @media (max-width: 768px) {
-    .sidebar-container {
-      position: fixed;
-      left: 0;
-      top: 0;
-      z-index: 100;
-      transform: translateX(0);
-      transition: transform 0.3s ease;
-    }
-
-    .sidebar-container.collapsed {
-      transform: translateX(-100%);
-    }
+  .sidebar-container.collapsed {
+    transform: translateX(-100%);
   }
+}
 </style>

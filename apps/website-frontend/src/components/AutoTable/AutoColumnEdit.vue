@@ -12,7 +12,7 @@
         class="w-full" />
     </template>
     <template v-else-if="field.type === 'String'">
-      <InputText v-model="editValue" class="w-full min-w-28" />
+      <Input v-model="editValue" class="w-full min-w-28" />
     </template>
     <template v-else-if="field.type === 'Int'">
       <InputNumber v-model="editValue" class="w-full min-w-28" inputClass="w-full" />
@@ -28,7 +28,7 @@
     </template>
     <template v-else>
       <Tooltip :content="`Unsupported field type: ${field.type}`" side="top">
-        <span class="text-red-500 text-sm">
+        <span class="text-danger-500 text-sm">
           {{ field.type }}
         </span>
       </Tooltip>
@@ -41,8 +41,8 @@
     type RelationSelectData,
   } from '@/components/AutoTable/RelationSelect.vue';
   import { onClickOutside } from '@vueuse/core';
-  import { InputNumber, InputText } from 'primevue';
-  import DatePicker from 'primevue/datepicker';
+  import { InputNumber, Input } from '@/components/base';
+  import { DatePicker } from '@/components/base';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, ref, useTemplateRef } from 'vue';
   import { type FieldInfo } from './type';

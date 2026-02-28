@@ -155,13 +155,13 @@
 
     <!-- 搜索框 -->
     <div class="mb-4">
-      <div class="p-inputgroup">
-        <InputText
+      <InputGroup>
+        <Input
           v-model="searchTerm"
           :placeholder="t('搜索文件名...')"
           @keyup.enter="searchFiles" />
         <Button icon="pi pi-search" @click="searchFiles" />
-      </div>
+      </InputGroup>
     </div>
 
     <!-- 文件表格 -->
@@ -326,6 +326,8 @@
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
+  import { Input, InputGroup, Button } from '@/components/base';
+  import { DataTable, Column } from '@/components/base';
   import { useClipboard } from '@vueuse/core';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { onMounted, ref } from 'vue';

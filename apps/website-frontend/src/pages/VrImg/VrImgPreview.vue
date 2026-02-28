@@ -121,7 +121,7 @@
 
     <!-- 视角中心点 -->
     <div
-      class="absolute top-1/2 left-1/2 w-1 h-1 bg-red-500 rounded-full z-30 pointer-events-none"
+      class="absolute top-1/2 left-1/2 w-1 h-1 bg-danger-500 rounded-full z-30 pointer-events-none"
       :class="{ hidden: !debugMode }"
       ref="viewDirection"></div>
 

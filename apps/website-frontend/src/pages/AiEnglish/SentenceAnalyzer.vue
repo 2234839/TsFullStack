@@ -14,7 +14,7 @@
         <textarea
           id="sentence-input"
           v-model="sentence"
-          class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+          class="w-full p-3 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
           rows="4"
           placeholder="例如：It is certain that if there are fewer people driving, there will be less air pollution."></textarea>
       </div>
@@ -22,13 +22,13 @@
       <button
         @click="analyzeSentence"
         :disabled="isAnalyzing || !sentence.trim()"
-        class="w-full px-6 py-3 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200">
+        class="w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200">
         {{ isAnalyzing ? '分析中...' : '分析句子' }}
       </button>
 
       <div
         v-if="error"
-        class="mt-6 p-4 bg-red-100 text-red-800 rounded-md dark:bg-red-900 dark:text-red-200 border border-red-300 dark:border-red-700">
+        class="mt-6 p-4 bg-danger-100 text-danger-800 rounded-md dark:bg-danger-900 dark:text-danger-200 border border-danger-300 dark:border-danger-700">
         <p class="font-medium">错误：</p>
         <p>{{ error }}</p>
       </div>
@@ -153,13 +153,13 @@
       const labelColorClass = computed(() => {
         switch (clause.label) {
           case '主句':
-            return 'bg-blue-500 text-white';
+            return 'bg-primary-500 text-white';
           case '主语从句':
-            return 'bg-yellow-500 text-white';
+            return 'bg-warning-500 text-white';
           case '状语从句':
-            return 'bg-yellow-500 text-white';
+            return 'bg-warning-500 text-white';
           case '定语从句':
-            return 'bg-green-500 text-white'; // 示例颜色
+            return 'bg-success-500 text-white'; // 示例颜色
           case '宾语从句':
             return 'bg-purple-500 text-white'; // 示例颜色
           default:
@@ -216,7 +216,7 @@
       从句对象应包含:
       - "type": "clause"
       - "label": 从句类型 (例如 "主句", "主语从句", "状语从句", "定语从句", "宾语从句")
-      - "className": 从句框的 Tailwind CSS 类名 (例如 "border-2 border-gray-300 p-4 rounded-lg", "border-2 border-dashed border-blue-300 p-4 rounded-lg mt-4")
+      - "className": 从句框的 Tailwind CSS 类名 (例如 "border-2 border-gray-300 p-4 rounded-lg", "border-2 border-dashed border-primary-300 p-4 rounded-lg mt-4")
       - "connector": (可选) 如果是从句连接词，包含其 "text", "role", "pos", "className"
       - "content": 包含词语对象或嵌套从句对象的数组
 
@@ -227,10 +227,10 @@
       - "pos": 词性 (例如 "代词", "动词", "形容词", "名词短语", "副词", "动名词", "情态动词", "连词")
       - "className": 词语框的 Tailwind CSS 类名。
         *   对于普通词语（如名词、代词、形容词、副词、介词等），请使用 "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white"。
-        *   对于动词（包括助动词、情态动词、谓语动词等），请使用 "bg-blue-500 text-white"。
+        *   对于动词（包括助动词、情态动词、谓语动词等），请使用 "bg-primary-500 text-white"。
         *   对于连接词（如 that, if），请使用 "bg-pink-500 text-white"。
       - "label": (可选) 词语上方的小标签 (例如 "adj", "sth", "定语")
-      - "labelClassName": (可选) 小标签的 Tailwind CSS 类名 (例如 "bg-teal-500 text-white", "bg-blue-500 text-white")
+      - "labelClassName": (可选) 小标签的 Tailwind CSS 类名 (例如 "bg-teal-500 text-white", "bg-primary-500 text-white")
 
       请严格按照以下示例的结构和颜色类名进行输出，不要包含任何额外文本或Markdown格式之外的内容。
 
@@ -243,7 +243,7 @@
             "className": "border-2 border-gray-300 rounded-lg dark:border-gray-600",
             "content": [
               {"type": "word", "text": "It", "role": "主语", "pos": "代词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white"},
-              {"type": "word", "text": "is", "role": "谓语", "pos": "动词", "className": "bg-blue-500 text-white"},
+              {"type": "word", "text": "is", "role": "谓语", "pos": "动词", "className": "bg-primary-500 text-white"},
               {"type": "word", "text": "certain", "role": "表语", "pos": "形容词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white", "label": "adj", "labelClassName": "bg-teal-500 text-white"},
               {
                 "type": "clause",
@@ -255,10 +255,10 @@
                   {
                     "type": "clause",
                     "label": "状语从句",
-                    "className": "border-2 border-dashed border-yellow-300 rounded-lg dark:border-yellow-700",
+                    "className": "border-2 border-dashed border-warning-300 rounded-lg dark:border-warning-700",
                     "connector": {"type": "word", "text": "there", "role": "连接词", "pos": "副词", "className": "bg-pink-500 text-white"},
                     "content": [
-                      {"type": "word", "text": "are", "role": "谓语", "pos": "动词", "className": "bg-blue-500 text-white"},
+                      {"type": "word", "text": "are", "role": "谓语", "pos": "动词", "className": "bg-primary-500 text-white"},
                       {"type": "word", "text": "fewer", "role": "定语", "pos": "形容词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white", "label": "adj", "labelClassName": "bg-teal-500 text-white"},
                       {"type": "word", "text": "people", "role": "主语", "pos": "名词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white", "label": "sth", "labelClassName": "bg-teal-500 text-white"}
                     ]
@@ -266,12 +266,12 @@
                   {
                     "type": "clause",
                     "label": "主句",
-                    "className": "border-2 border-dashed border-blue-300 rounded-lg dark:border-blue-700",
+                    "className": "border-2 border-dashed border-primary-300 rounded-lg dark:border-primary-700",
                     "content": [
-                      {"type": "word", "text": "driving,", "role": "定语", "pos": "动名词", "className": "bg-blue-500 text-white", "label": "定语", "labelClassName": "bg-blue-500 text-white"},
+                      {"type": "word", "text": "driving,", "role": "定语", "pos": "动名词", "className": "bg-primary-500 text-white", "label": "定语", "labelClassName": "bg-primary-500 text-white"},
                       {"type": "word", "text": "there", "role": "形式主语", "pos": "副词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white"},
-                      {"type": "word", "text": "will", "role": "助动词", "pos": "情态动词", "className": "bg-blue-500 text-white"},
-                      {"type": "word", "text": "be", "role": "谓语", "pos": "动词", "className": "bg-blue-500 text-white"},
+                      {"type": "word", "text": "will", "role": "助动词", "pos": "情态动词", "className": "bg-primary-500 text-white"},
+                      {"type": "word", "text": "be", "role": "谓语", "pos": "动词", "className": "bg-primary-500 text-white"},
                       {"type": "word", "text": "less air pollution", "role": "表语", "pos": "名词短语", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white", "label": "sth", "labelClassName": "bg-teal-500 text-white"}
                     ]
                   }
@@ -291,7 +291,7 @@
             "className": "border-2 border-gray-300 rounded-lg dark:border-gray-600",
             "content": [
               {"type": "word", "text": "it", "role": "主语", "pos": "代词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white"},
-              {"type": "word", "text": "returns", "role": "谓语", "pos": "动词", "className": "bg-blue-500 text-white"},
+              {"type": "word", "text": "returns", "role": "谓语", "pos": "动词", "className": "bg-primary-500 text-white"},
               {"type": "word", "text": "all", "role": "限定词", "pos": "形容词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white"},
               {"type": "word", "text": "available", "role": "定语", "pos": "形容词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white"},
               {"type": "word", "text": "items", "role": "宾语", "pos": "名词", "className": "bg-gray-100 text-gray-800 dark:bg-gray-600 dark:text-white"},

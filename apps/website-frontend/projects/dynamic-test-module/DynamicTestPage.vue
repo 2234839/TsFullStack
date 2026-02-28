@@ -61,6 +61,7 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { Card, Button, Message } from '@/components/base'
 
 const router = useRouter()
 

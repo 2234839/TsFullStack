@@ -1,5 +1,5 @@
 import { useClipboard, useShare } from '@vueuse/core';
-import { useToast } from 'primevue/usetoast';
+import { useToast } from '@/composables/useToast';
 
 /** 增强分享功能，默认使用浏览器原生分享功能，会降级为使用复制到剪贴板功能 */
 export function useSharePlus() {

@@ -66,7 +66,9 @@
   import SponsorshipCard from '@/components/SponsorshipCard.vue';
   import { generateAIImage } from '@/utils/imageService';
   import { routeMap, routerUtil } from '@/router';
-  import { Button, Card, Divider } from 'primevue';
+  import Button from '@/components/base/Button.vue';
+  import Card from '@/components/base/Card.vue';
+  import Divider from '@/components/base/Divider.vue';
   import { defineComponent, type PropType } from 'vue';
   import {
     RouterLink,
@@ -94,28 +96,20 @@
     },
     setup(props) {
       return () => (
-        <Card class="shadow-lg hover:shadow-xl transition-shadow duration-300 dark:bg-gray-800">
-          {{
-            header: () => (
-              <img alt={props.title} src={props.imageUrl} class="w-full h-48 object-cover" />
-            ),
-            title: () => (
-              <div class="text-xl font-bold text-gray-800 dark:text-gray-200">{props.title}</div>
-            ),
-            content: () => (
-              <div>
-                <p class="text-gray-600 dark:text-gray-400 mb-2">{props.description}</p>
-                {props.longDescription && (
-                  <p class="text-gray-500 dark:text-gray-500 text-sm">{props.longDescription}</p>
-                )}
-              </div>
-            ),
-            footer: () => (
-              <RouterLink to={props.routePath} class="block w-full">
-                <Button label={props.title} class="p-button-success w-full" />
-              </RouterLink>
-            ),
-          }}
+        <Card class="shadow-lg hover:shadow-xl transition-shadow duration-300">
+          <img alt={props.title} src={props.imageUrl} class="w-full h-48 object-cover" />
+          <div class="p-6">
+            <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-3">{props.title}</div>
+            <div class="mb-4">
+              <p class="text-gray-600 dark:text-gray-400 mb-2">{props.description}</p>
+              {props.longDescription && (
+                <p class="text-gray-500 dark:text-gray-500 text-sm">{props.longDescription}</p>
+              )}
+            </div>
+            <RouterLink to={props.routePath} class="block w-full">
+              <Button label={props.title} variant="secondary" class="w-full" />
+            </RouterLink>
+          </div>
         </Card>
       );
     },

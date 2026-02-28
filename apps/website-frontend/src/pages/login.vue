@@ -21,7 +21,7 @@
         :class="theme_isDark ? 'bg-teal-500/30' : 'bg-teal-300/40'"></div>
       <div
         class="glow-effect glow-2"
-        :class="theme_isDark ? 'bg-blue-500/30' : 'bg-blue-300/40'"></div>
+        :class="theme_isDark ? 'bg-primary-500/30' : 'bg-primary-300/40'"></div>
       <div
         class="glow-effect glow-3"
         :class="theme_isDark ? 'bg-cyan-500/20' : 'bg-cyan-300/30'"></div>
@@ -101,12 +101,11 @@
                 }}
               </label>
 
-              <InputText
+              <Input
                 id="username"
                 v-model="form.username"
                 :type="isLogin ? 'text' : 'email'"
                 required
-                class="w-full"
                 :placeholder="isLogin ? '请输入用户名' : '请输入邮箱'" />
             </div>
 
@@ -123,10 +122,7 @@
               <Password
                 id="password"
                 v-model="form.password"
-                toggleMask
                 required
-                class="w-full"
-                inputClass="w-full"
                 :feedback="!isLogin"
                 :placeholder="isLogin ? '请输入密码' : '请设置密码'" />
             </div>
@@ -144,17 +140,14 @@
               <Password
                 id="confirmPassword"
                 v-model="form.confirmPassword"
-                toggleMask
                 required
-                class="w-full"
-                inputClass="w-full"
                 :feedback="false"
                 placeholder="请再次输入密码" />
               <small
                 v-if="
                   form.password && form.confirmPassword && form.password !== form.confirmPassword
                 "
-                class="text-red-500 mt-1 block">
+                class="text-danger-500 mt-1 block">
                 两次输入的密码不一致
               </small>
             </div>
@@ -225,10 +218,11 @@
               label="已处于登录状态, 点击跳转首页"
               icon="pi pi-home"
               @click="routerUtil.push(routeMap.admin, {})"
-              class="w-full justify-center" />
+              variant="secondary"
+              class="w-full" />
             <Button
               type="submit"
-              class="w-full justify-center"
+              class="w-full"
               :loading="loading"
               :icon="isLogin ? 'pi pi-sign-in' : 'pi pi-user-plus'"
               :disabled="!isFormValid || loading"
@@ -241,7 +235,8 @@
               label="GitHub 登录"
               icon="pi pi-github"
               :loading="oauthLogin.isLoading.value"
-              @click="oauthLogin.execute(0, 'github')" />
+              @click="oauthLogin.execute(0, 'github')"
+              variant="secondary" />
           </div>
         </form>
 
@@ -280,7 +275,11 @@
   import { routeMap, routerUtil } from '@/router';
   import { authInfo_isLogin, localUserPwd, theme_isDark } from '@/storage';
   import { useAsyncState, useEventListener } from '@vueuse/core';
-  import { Button, Checkbox, InputText, Password, useToast } from 'primevue';
+  import Button from '@/components/base/Button.vue';
+  import Checkbox from '@/components/base/Checkbox.vue';
+  import Input from '@/components/base/Input.vue';
+  import Password from '@/components/base/Password.vue';
+  import { useToast } from '@/composables/useToast';
   import { computed, onMounted, ref } from 'vue';
 
   const props = defineProps<{

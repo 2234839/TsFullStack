@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-full overflow-hidden">
+  <div class="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
     <!-- 侧边栏 -->
     <MenuSideBar class="h-screen flex-shrink-0" />
 

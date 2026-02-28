@@ -42,7 +42,7 @@
     <!-- 其他文件类型 -->
     <div v-else class="file-preview ">
       <div class="file-icon flex items-center justify-center">
-        <i class="pi pi-file text-3xl!" :class="{ 'text-blue-500': !isDark, 'text-blue-400': isDark }"></i>
+        <i class="pi pi-file text-3xl!" :class="{ 'text-primary-500': !isDark, 'text-primary-400': isDark }"></i>
       </div>
       <div class="flex flex-col items-center">
         <div class="font-medium text-sm mb-2">

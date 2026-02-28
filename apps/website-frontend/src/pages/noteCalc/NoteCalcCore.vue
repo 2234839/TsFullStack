@@ -10,7 +10,7 @@
               @click="config.isAutoCalculate = !config.isAutoCalculate">
               <span
                 v-if="config.isAutoCalculate"
-                class="inline-flex items-center text-green-600 dark:text-green-400">
+                class="inline-flex items-center text-success-600 dark:text-success-400">
                 <i class="pi pi-plus mr-1"></i>
                 自动计算已开启
               </span>
@@ -35,7 +35,7 @@
           <div class="flex items-center justify-between mb-2">
             <h2 class="font-medium text-gray-500 dark:text-gray-400">结果区</h2>
             <div class="flex items-center gap-2">
-              <div v-if="calculator.isCalculating.value" class="text-blue-500">计算中...</div>
+              <div v-if="calculator.isCalculating.value" class="text-primary-500">计算中...</div>
               <div v-else-if="lastCalculationTime > 0" class="text-gray-400 dark:text-gray-500">
                 上次计算: {{ lastCalculationTime_v }}
               </div>
@@ -90,14 +90,14 @@
                         v-for="(part, i) in result.highlightedContent"
                         :key="i"
                         :class="{
-                          'text-blue-600 dark:text-blue-400 font-medium': part.isNumber,
+                          'text-primary-600 dark:text-primary-400 font-medium': part.isNumber,
                           'text-gray-950 dark:text-gray-100': !part.isNumber,
                         }">
                         {{ part.text }}
                       </span>
                     </span>
                     <span
-                      class="inline-block ml-2 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 font-medium px-2 py-0.5 rounded border-l-2 border-red-500 dark:border-red-600">
+                      class="inline-block ml-2 bg-danger-50 dark:bg-danger-900/30 text-danger-700 dark:text-danger-400 font-medium px-2 py-0.5 rounded border-l-2 border-danger-500 dark:border-danger-600">
                       = 错误: {{ result.error }}
                     </span>
                   </div>
@@ -115,7 +115,7 @@
                         v-for="(part, i) in result.highlightedContent"
                         :key="i"
                         :class="{
-                          'text-blue-600 dark:text-blue-400 font-medium': part.isNumber,
+                          'text-primary-600 dark:text-primary-400 font-medium': part.isNumber,
                           'text-gray-950 dark:text-gray-100': !part.isNumber,
                         }">
                         {{ part.text }}
@@ -149,14 +149,14 @@
                         v-for="(part, i) in result.highlightedContent"
                         :key="i"
                         :class="{
-                          'text-blue-600 dark:text-blue-400 font-medium': part.isNumber,
+                          'text-primary-600 dark:text-primary-400 font-medium': part.isNumber,
                           'text-gray-950 dark:text-gray-100': !part.isNumber,
                         }">
                         {{ part.text }}
                       </span>
                     </span>
                     <span
-                      class="inline-block ml-2 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium px-2 py-0.5 rounded border-l-2 border-blue-500 dark:border-blue-600">
+                      class="inline-block ml-2 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 font-medium px-2 py-0.5 rounded border-l-2 border-primary-500 dark:border-primary-600">
                       = {{ result.isLargeNumber ? result.formattedNumber : result.result }}
                     </span>
                   </div>
@@ -180,7 +180,7 @@
   import type { CalculationResult } from './types';
   import { useCalculator } from './useCalculator';
 
-  import { Button } from 'primevue';
+  import Button from '@/components/base/Button.vue';
 
   //#region 状态管理
   const content = defineModel({ default: '' });

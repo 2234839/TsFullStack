@@ -17,7 +17,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@primeuix/themes": "^1.2.5",
     "@tailwindcss/vite": "^4.2.1",
     "@tsfullstack/backend": "workspace:*",
     "@tsfullstack/shared-frontend": "workspace:*",
@@ -30,10 +29,7 @@
     "lz-string": "^1.5.0",
     "mathjs": "^14.9.1",
     "primeicons": "^7.0.0",
-    "primevue": "^4.5.3",
     "qrcode": "^1.5.4",
-    "quill": "^2.0.3",
-    "quill-delta": "^5.1.0",
     "reka-ui": "catalog:",
     "superjson": "^2.2.6",
     "tailwindcss": "^4.2.1",

@@ -33,3 +33,17 @@ export type {
   UiDialogInstance,
   UiDialogProps,
 } from './Dialog';
+
+export { default as ContextMenu } from './ContextMenu';
+export type {
+  UiContextMenuInstance,
+  UiContextMenuProps,
+  MenuItem,
+} from './ContextMenu/types';
+
+export { default as Drawer } from './Drawer';
+export type {
+  UiDrawerInstance,
+  UiDrawerProps,
+  DrawerSide,
+} from './Drawer/types';

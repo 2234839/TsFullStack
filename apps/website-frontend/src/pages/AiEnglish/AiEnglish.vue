@@ -5,7 +5,7 @@
       <!-- 标题 -->
       <div class="text-center space-y-2">
         <h1 class="text-4xl font-bold flex items-center justify-center gap-3">
-          <i class="pi pi-book text-blue-600 text-3xl" />
+          <i class="pi pi-book text-primary-600 text-3xl" />
           在阅读中渐进式学习英语
         </h1>
         <p>AI驱动 • 智能分析 • 分段学习 • 划选段落翻译</p>
@@ -137,7 +137,7 @@
                         size="small"
                         :class="[
                           'flex-1',
-                          { 'bg-green-100 border-green-300': paragraph.isCompleted },
+                          { 'bg-success-100 border-success-300': paragraph.isCompleted },
                           { 'bg-purple-100 border-purple-300': paragraph.complexity && paragraph.complexity > 7 },
                         ]"
                         @click="goToParagraph(index)"
@@ -149,7 +149,7 @@
                     @click="handleParagraphComplete"
                     size="small"
                     icon="pi pi-check"
-                    class="bg-blue-600 hover:bg-blue-700 text-white"
+                    class="bg-primary-600 hover:bg-primary-700 text-white"
                     :disabled="syncData.paragraphs[syncData.currentParagraphIndex]?.isCompleted"
                     label="OK" />
                 </div>
@@ -235,7 +235,7 @@
                 <div v-if="showTranslation">
                   <div v-if="translationType === 'word' && selectedWord">
                     <!-- 单词翻译内容 -->
-                    <div class="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">
                       {{ selectedWord.word }}
                     </div>
 
@@ -310,7 +310,7 @@
                           <div
                             v-for="(example, index) in selectedWord.examples"
                             :key="index"
-                            class="text-sm bg-blue-50 dark:bg-blue-900/30 p-2 rounded italic">
+                            class="text-sm bg-primary-50 dark:bg-primary-900/30 p-2 rounded italic">
                             {{ example }}
                           </div>
                         </div>
@@ -335,11 +335,11 @@
                             style="font-size: 1rem; animation: spin 1s linear infinite" />
                           AI翻译中...
                         </div>
-                        <div v-else class="p-3 bg-blue-50 rounded-lg">
+                        <div v-else class="p-3 bg-primary-50 rounded-lg">
                           <div class="leading-relaxed">
                             {{ paragraphTranslation.mixedTranslation }}
                           </div>
-                          <div class="text-xs text-blue-600 mt-2">
+                          <div class="text-xs text-primary-600 mt-2">
                             💡 熟悉的单词保持英文显示，帮助巩固记忆
                           </div>
                         </div>
@@ -350,9 +350,9 @@
                         <GlassBlur
                           :key="paragraphTranslation?.originalText"
                           :overlay-text="'鼠标悬停或点击查看翻译'"
-                          :container-class="'p-3 bg-green-50/80 rounded-lg border border-green-100/50 hover:bg-green-50/95'"
-                          :overlay-class="'bg-green-50/60 backdrop-blur-[1px]'"
-                          :overlay-text-class="'text-green-700/80'">
+                          :container-class="'p-3 bg-success-50/80 rounded-lg border border-success-100/50 hover:bg-success-50/95'"
+                          :overlay-class="'bg-success-50/60 backdrop-blur-[1px]'"
+                          :overlay-text-class="'text-success-700/80'">
                           <div class="text-base leading-relaxed">
                             {{ paragraphTranslation.translatedText }}
                           </div>
@@ -522,7 +522,7 @@
               <div class="space-y-4">
                 <div
                   class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
-                  <div class="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                  <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">
                     {{ stats.averageLevel }}
                   </div>
                   <div class="text-sm text-gray-500 dark:text-gray-400">平均熟练度</div>
@@ -580,7 +580,7 @@
 
                 <div class="pt-2 border-t">
                   <div class="text-center">
-                    <div class="text-2xl font-bold text-green-600">
+                    <div class="text-2xl font-bold text-success-600">
                       {{ Math.round(((stats.mastered + stats.familiar) / stats.total) * 100) }}%
                     </div>
                     <div class="text-sm text-gray-500">掌握率</div>
@@ -610,7 +610,7 @@
                     <div class="flex items-start gap-3">
                       <Avatar
                         icon="pi pi-wrench  "
-                        class="mt-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" />
+                        class="mt-0.5 bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300" />
                       <div class="flex-1 min-w-0">
                         <div class="font-medium text-gray-900 dark:text-white">
                           支持自定义 AI 模型
@@ -620,7 +620,7 @@
                         </div>
                       </div>
                       <i
-                        class="pi pi-external-link text-blue-400 dark:text-blue-500 self-center"></i>
+                        class="pi pi-external-link text-primary-400 dark:text-primary-500 self-center"></i>
                     </div>
                   </a>
                   <a
@@ -630,7 +630,7 @@
                     <div class="flex items-start gap-3">
                       <Avatar
                         icon="pi pi-microphone"
-                        class="mt-0.5 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" />
+                        class="mt-0.5 bg-primary-100 text-primary-800 dark:bg-primary-900/30 dark:text-primary-300" />
                       <div class="flex-1 min-w-0">
                         <div class="font-medium text-gray-900 dark:text-white">
                           结合使用豆包来提升口语能力
@@ -640,7 +640,7 @@
                         </div>
                       </div>
                       <i
-                        class="pi pi-external-link text-blue-400 dark:text-blue-500 self-center"></i>
+                        class="pi pi-external-link text-primary-400 dark:text-primary-500 self-center"></i>
                     </div>
                   </a>
 
@@ -649,7 +649,7 @@
                     <div class="flex items-center gap-3">
                       <Avatar
                         icon="pi pi-robot"
-                        class="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" />
+                        class="bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-300" />
                       <div class="flex-1 min-w-0">
                         <div class="font-medium text-gray-900 dark:text-white">
                           推荐使用的豆包机器人
@@ -658,7 +658,7 @@
                           资源入口 · doubao.com/bot/JpGxseZo
                         </div>
                       </div>
-                      <i class="pi pi-arrow-right text-green-400 dark:text-green-500"></i>
+                      <i class="pi pi-arrow-right text-success-400 dark:text-success-500"></i>
                     </div>
                   </a>
                 </div>
@@ -697,9 +697,9 @@
   import { useAiEnglishData } from '@/pages/AiEnglish/data';
   import { useTTS } from '@/pages/AiEnglish/util';
   import { useApiStorage } from '@/utils/hooks/UseApiStorage';
-  import { useToast } from 'primevue/usetoast';
+  import { useToast } from '@/composables/useToast';
   import { computed, reactive, ref, watch, watchEffect } from 'vue';
-  import Dialog from 'primevue/dialog';
+  import { Dialog } from '@tsfullstack/shared-frontend/components';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import AiEnglishConfigPanel from '@/components/AiEnglishConfigPanel.vue';
   import ParagraphRenderer from '@/components/ParagraphRenderer.vue';
@@ -886,9 +886,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   };
 
   const getDifficultyColor = (difficulty: number): string => {
-    if (difficulty <= 3) return 'text-green-600';
-    if (difficulty <= 6) return 'text-yellow-600';
-    return 'text-red-600';
+    if (difficulty <= 3) return 'text-success-600';
+    if (difficulty <= 6) return 'text-warning-600';
+    return 'text-danger-600';
   };
 
   // 文本处理

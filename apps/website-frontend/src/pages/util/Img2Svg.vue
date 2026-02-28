@@ -8,7 +8,12 @@
         @select="handleImageUpload" />
       <div class="flex flex-col">
         <label class="text-sm mb-1">检测模式</label>
-        <Dropdown v-model="detectionMode" :options="['二值化', '透明度']" />
+        <Select
+          v-model="detectionMode"
+          :options="[
+            { label: '二值化', value: '二值化' },
+            { label: '透明度', value: '透明度' }
+          ]" />
       </div>
       <div class="flex flex-col" v-if="detectionMode === '二值化'">
         <label class="text-sm mb-1">二值化阈值</label>
@@ -29,7 +34,7 @@
     <ProgressBar v-if="loading" mode="indeterminate" />
     <div v-if="previewData" class="preview-container p-4 border border-gray-200 rounded">
       <img :src="previewData" alt="预览" />
-      <button @click="generateSVG" class="mt-2 p-2 bg-blue-500 text-white rounded">
+      <button @click="generateSVG" class="mt-2 p-2 bg-primary-500 text-white rounded">
         生成SVG描边
       </button>
     </div>
@@ -42,9 +47,7 @@
 
 <script setup lang="ts">
   import { ref, watch } from 'vue';
-  import FileUpload from 'primevue/fileupload';
-  import ProgressBar from 'primevue/progressbar';
-  import Dropdown from 'primevue/dropdown';
+  import { FileUpload, ProgressBar, Select, Slider } from '@/components/base';
 
   const canvas = ref<HTMLCanvasElement | null>(null);
   const previewData = ref<string | null>(null);

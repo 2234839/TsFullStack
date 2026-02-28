@@ -63,9 +63,9 @@ const className = computed(() => {
   if (props.isHighlighted) {
     base += ' bg-white font-bold text-gray-800 border-2 border-gray-200 word-highlight'
   } else if (props.isSelected) {
-    base += ' bg-blue-100 font-medium word-selected'
+    base += ' bg-primary-100 font-medium word-selected'
   } else if (props.isClicked) {
-    base += ' bg-blue-50/40'
+    base += ' bg-primary-50/40'
   }
 
   if (props.isKeyWord) {

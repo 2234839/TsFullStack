@@ -10,8 +10,8 @@
       <!-- Error -->
       <div v-else-if="error" class="text-center py-12">
         <div
-          class="inline-flex items-center justify-center w-16 h-16 bg-red-100 dark:bg-red-900/20 rounded-full mb-4">
-          <i class="pi pi-exclamation-triangle text-2xl text-red-600 dark:text-red-400"></i>
+          class="inline-flex items-center justify-center w-16 h-16 bg-danger-100 dark:bg-danger-900/20 rounded-full mb-4">
+          <i class="pi pi-exclamation-triangle text-2xl text-danger-600 dark:text-danger-400"></i>
         </div>
         <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
           {{ t('加载失败，请重试') }}
@@ -26,8 +26,8 @@
         <!-- Header Section -->
         <div class="text-center space-y-4">
           <div
-            class="inline-flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full">
-            <i class="pi pi-share-alt text-xl text-blue-600 dark:text-blue-400"></i>
+            class="inline-flex items-center justify-center w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-full">
+            <i class="pi pi-share-alt text-xl text-primary-600 dark:text-primary-400"></i>
           </div>
           <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
             {{ state.data.title }}
@@ -85,7 +85,7 @@
                 <!-- Download Button -->
                 <button
                   @click="downloadFile(file)"
-                  class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
+                  class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
                   <i class="pi pi-download"></i>
                   <span>{{ t('点击下载文件') }}</span>
                 </button>
@@ -119,15 +119,15 @@
 
   const getFileTypeClass = (mimetype: string) => {
     if (mimetype.startsWith('image/'))
-      return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+      return 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200';
     if (mimetype.startsWith('video/'))
       return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
     if (mimetype.startsWith('audio/'))
       return 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200';
     if (mimetype.includes('pdf') || mimetype.includes('document'))
-      return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      return 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200';
     if (mimetype.includes('zip') || mimetype.includes('archive'))
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      return 'bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200';
     return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
   };
 

@@ -1,18 +1,15 @@
 <template>
   <Dialog
-    v-model:visible="visible"
-    :header="t('新增记录')"
-    :modal="true"
-    :closable="true"
-    :draggable="false"
-    @hide="resetForm">
+    v-model:open="visible"
+    :title="t('新增记录')"
+    @close="resetForm">
     <div class="p-fluid min-w-72 max-w-[50vw]">
       <div v-for="field in formFields" :key="field.name" class="field col-12 md:col-6 mb-4">
         <label :for="'field-' + field.name" class="block text-sm font-medium mb-1">
           <span class="font-bold">{{ field.name }}</span>
-          <span v-if="isRequiredField(field)" class="text-red-500">*</span>
+          <span v-if="isRequiredField(field)" class="text-danger-500">*</span>
           <Tooltip :content="JSON.stringify(field, null, 2)" side="top">
-            <span class="text-xs text-blue-400 ml-1">
+            <span class="text-xs text-primary-400 ml-1">
               {{ field.type }}{{ field.isArray ? '[ ]' : '' }}
             </span>
           </Tooltip>
@@ -27,7 +24,7 @@
             :field="field"
             :cellData="undefined"
             v-model="formData[field.name]" />
-          <small v-if="fieldErrors[field.name]" class="text-red-500 block mt-1">{{
+          <small v-if="fieldErrors[field.name]" class="text-danger-500 block mt-1">{{
             fieldErrors[field.name]
           }}</small>
         </div>
@@ -37,10 +34,9 @@
     <template #footer>
       <Button
         :label="t('取消')"
-        icon="pi pi-times"
-        @click="visible = false"
-        class="p-button-text" />
-      <Button :label="t('保存')" icon="pi pi-check" @click="saveRecord" :loading="saving" />
+        variant="text"
+        @click="visible = false" />
+      <Button :label="t('保存')" @click="saveRecord" :loading="saving" />
     </template>
   </Dialog>
 </template>
@@ -48,8 +44,10 @@
 <script setup lang="ts">
   import { useAPI } from '@/api';
   import AutoColumnEdit from '@/components/AutoTable/AutoColumnEdit.vue';
-  import { Button, Dialog, useToast } from 'primevue';
+  import { Button } from '@/components/base';
+  import { Dialog } from '@tsfullstack/shared-frontend/components';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
+  import { useToast } from '@/composables/useToast';
   import { computed, onMounted, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { DBmodelNames, FieldInfo, ModelMeta } from './type';

@@ -26,7 +26,7 @@
 </template>
 <script setup lang="ts">
   import { formatDate } from '@vueuse/core';
-  import { Tag } from 'primevue';
+  import Tag from '@/components/base/Tag.vue';
   import { computed, ref } from 'vue';
   import AutoColumnEdit from './AutoColumnEdit.vue';
   import type { FieldInfo } from './type';

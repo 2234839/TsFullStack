@@ -4,15 +4,13 @@ import tailwindcss from '@tailwindcss/vite';
 import path from 'path';
 import vueDevTools from 'vite-plugin-vue-devtools';
 import vueJsx from '@vitejs/plugin-vue-jsx';
-
-import { PrimeVueResolver } from 'unplugin-vue-components/resolvers';
 import Components from 'unplugin-vue-components/vite';
 import { vitePluginAutoRoutes } from './src/plugins/vite-plugin-auto-routes';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    Components({ resolvers: [PrimeVueResolver()], dts: true }),
+    Components({ dts: true }),
     vitePluginAutoRoutes(),
     vue(),
     vueJsx(),

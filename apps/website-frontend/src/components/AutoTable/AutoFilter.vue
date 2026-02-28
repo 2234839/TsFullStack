@@ -48,7 +48,7 @@
           <AutoColumnEdit :row="filter.value" :field="filter.field" :cellData="undefined" v-model="filter.value" />
         </div>
         <div class="w-1/3" v-else>
-          <InputText disabled :placeholder="t('请先选择字段')" class="w-full" />
+          <Input disabled :placeholder="t('请先选择字段')" class="w-full" />
         </div>
 
         <Button
@@ -80,7 +80,9 @@
 
 <script setup lang="ts">
   import AutoColumnEdit from '@/components/AutoTable/AutoColumnEdit.vue';
-  import { Button, InputText, Select } from 'primevue';
+  import Button from '@/components/base/Button.vue';
+  import Input from '@/components/base/Input.vue';
+  import Select from '@/components/base/Select.vue';
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { FieldInfo } from './type';

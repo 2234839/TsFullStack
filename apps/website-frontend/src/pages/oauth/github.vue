@@ -59,7 +59,7 @@
   import { useAPI } from '@/api';
   import { loginGoto } from '@/pages/loginUtil';
   import { useAsyncState } from '@vueuse/core';
-  import { useToast } from 'primevue';
+  import { useToast } from '@/composables/useToast';
 
   const props = defineProps({
     code: String,

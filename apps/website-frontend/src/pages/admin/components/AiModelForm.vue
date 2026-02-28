@@ -1,53 +1,53 @@
 <template>
   <Dialog
-    :visible="visible"
+    :open="visible"
     :modal="true"
     :header="isEdit ? t('编辑AI模型') : t('添加AI模型')"
     class="p-fluid"
     style="max-width: 600px"
-    @update:visible="emit('update:visible', $event)"
+    @update:open="emit('update:visible', $event)"
     @hide="onHide">
 
     <div class="space-y-4">
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ t('模型名称') }} <span class="text-red-500">*</span>
+          {{ t('模型名称') }} <span class="text-danger-500">*</span>
         </label>
-        <InputText
+        <Input
           v-model="form.name"
           :placeholder="t('请输入模型名称')"
           :class="{ 'p-invalid': errors.name }"
           @input="validateField('name')" />
-        <small v-if="errors.name" class="text-red-500">{{ errors.name }}</small>
+        <small v-if="errors.name" class="text-danger-500">{{ errors.name }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ t('模型标识') }} <span class="text-red-500">*</span>
+          {{ t('模型标识') }} <span class="text-danger-500">*</span>
         </label>
-        <InputText
+        <Input
           v-model="form.model"
           :placeholder="t('如：gpt-3.5-turbo, claude-3-sonnet')"
           :class="{ 'p-invalid': errors.model }"
           @input="validateField('model')" />
-        <small v-if="errors.model" class="text-red-500">{{ errors.model }}</small>
+        <small v-if="errors.model" class="text-danger-500">{{ errors.model }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ t('API基础URL') }} <span class="text-red-500">*</span>
+          {{ t('API基础URL') }} <span class="text-danger-500">*</span>
         </label>
-        <InputText
+        <Input
           v-model="form.baseUrl"
           :placeholder="t('请输入API基础URL')"
           :class="{ 'p-invalid': errors.baseUrl }"
           @input="validateField('baseUrl')" />
-        <small v-if="errors.baseUrl" class="text-red-500">{{ errors.baseUrl }}</small>
+        <small v-if="errors.baseUrl" class="text-danger-500">{{ errors.baseUrl }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-          {{ t('API密钥') }} <span class="text-red-500">*</span>
+          {{ t('API密钥') }} <span class="text-danger-500">*</span>
         </label>
         <Password
           v-model="form.apiKey"
@@ -56,7 +56,7 @@
           toggleMask
           :class="{ 'p-invalid': errors.apiKey }"
           @input="validateField('apiKey')" />
-        <small v-if="errors.apiKey" class="text-red-500">{{ errors.apiKey }}</small>
+        <small v-if="errors.apiKey" class="text-danger-500">{{ errors.apiKey }}</small>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -187,7 +187,13 @@
 import { ref, reactive, watch } from 'vue'
 import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
-import { Button, Dialog, InputText, Password, InputNumber, Textarea, Checkbox } from 'primevue'
+import Button from '@/components/base/Button.vue'
+import { Dialog } from '@tsfullstack/shared-frontend/components'
+import Input from '@/components/base/Input.vue'
+import Password from '@/components/base/Password.vue'
+import InputNumber from '@/components/base/InputNumber.vue'
+import Textarea from '@/components/base/Textarea.vue'
+import Checkbox from '@/components/base/Checkbox.vue'
 
 interface Props {
   visible: boolean
@@ -381,7 +387,7 @@ watch(() => props.model, (newVal) => {
   border-color: #ef4444 !important;
 }
 
-.text-red-500 {
+.text-danger-500 {
   color: #ef4444;
 }
 </style>

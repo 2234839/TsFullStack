@@ -10,12 +10,12 @@
 
       <!-- 文件上传区域 -->
       <div
-        class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-gray-50 dark:bg-gray-800 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+        class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-gray-50 dark:bg-gray-800 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
         @click="triggerFileInput" @dragover.prevent="handleDragOver" @dragleave.prevent="handleDragLeave"
         @drop.prevent="handleDrop">
         <input ref="fileInputRef" type="file" multiple @change="onFileSelect" class="hidden"
           :placeholder="t('请选择文件')" />
-        <div class="text-blue-500 mb-4 flex justify-center">
+        <div class="text-primary-500 mb-4 flex justify-center">
           <i class="pi pi-cloud-upload text-5xl"></i>
         </div>
         <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">{{ t('点击或拖拽文件到此处上传') }}</div>
@@ -33,7 +33,7 @@
             <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0 ml-2">{{ formatFileSize(file.size) }}</span>
           </div>
           <button
-            class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-red-100 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all"
+            class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-danger-100 dark:hover:bg-danger-900/20 hover:text-danger-600 dark:hover:text-danger-400 transition-all"
             @click="removeSelectedFile(index)" :aria-label="t('移除文件')">
             <i class="pi pi-times"></i>
           </button>
@@ -66,7 +66,7 @@
             type="button"
             class="px-3 py-2 rounded-md text-sm font-medium transition-all"
             :class="isFileMarkedForDeletion(file.id)
-              ? 'text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+              ? 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
               : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'"
             @click="isFileMarkedForDeletion(file.id) ? undoRemoveFile(file.id) : removeUploadedFile(file.id)"
             :aria-label="isFileMarkedForDeletion(file.id) ? t('撤销删除') : t('移除文件')">
@@ -87,7 +87,7 @@
         </button>
         <button
           type="button"
-          class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           @click="submit" :disabled="isSubmitting">
           {{ isSubmitting ? t('提交中...') : t('提交') }}
         </button>

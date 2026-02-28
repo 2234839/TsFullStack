@@ -12,7 +12,7 @@
         <div
           class="absolute top-2 left-2 w-2 h-2 bg-orange-300/60 rounded-full animate-pulse"></div>
         <div
-          class="absolute bottom-3 right-3 w-1.5 h-1.5 bg-blue-300/60 rounded-full animate-pulse delay-1000"></div>
+          class="absolute bottom-3 right-3 w-1.5 h-1.5 bg-primary-300/60 rounded-full animate-pulse delay-1000"></div>
       </div>
 
       <div class="compact-heart relative mb-1 z-10">
@@ -88,19 +88,19 @@
           <button
             @click="shareContent"
             class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
-            <i class="pi pi-share-alt text-sm text-blue-500 mb-1"></i>
+            <i class="pi pi-share-alt text-sm text-primary-500 mb-1"></i>
             <span class="text-xs text-gray-600 dark:text-gray-400">{{ t('分享') }}</span>
           </button>
           <button
             @click="followCreator"
             class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
-            <i class="pi pi-heart text-sm text-red-500 mb-1"></i>
+            <i class="pi pi-heart text-sm text-danger-500 mb-1"></i>
             <span class="text-xs text-gray-600 dark:text-gray-400">{{ t('关注') }}</span>
           </button>
           <button
             @click="provideFeedback"
             class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80">
-            <i class="pi pi-comment text-sm text-green-500 mb-1"></i>
+            <i class="pi pi-comment text-sm text-success-500 mb-1"></i>
             <span class="text-xs text-gray-600 dark:text-gray-400">{{ t('反馈') }}</span>
           </button>
         </div>
@@ -126,7 +126,7 @@
               🎨
             </div>
             <div
-              class="avatar-status absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
+              class="avatar-status absolute -bottom-1 -right-1 w-4 h-4 bg-success-400 rounded-full border-2 border-white flex items-center justify-center">
               <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
             </div>
           </div>
@@ -190,19 +190,19 @@
               @click="shareContent"
               class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
               :title="t('分享推荐')">
-              <i class="pi pi-share-alt text-sm text-blue-500"></i>
+              <i class="pi pi-share-alt text-sm text-primary-500"></i>
             </button>
             <button
               @click="followCreator"
               class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
               :title="t('关注作者')">
-              <i class="pi pi-heart text-sm text-red-500"></i>
+              <i class="pi pi-heart text-sm text-danger-500"></i>
             </button>
             <button
               @click="provideFeedback"
               class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-gray-200/60 dark:bg-gray-700/60 dark:border-gray-600 dark:hover:bg-gray-600/80"
               :title="t('意见反馈')">
-              <i class="pi pi-comment text-sm text-green-500"></i>
+              <i class="pi pi-comment text-sm text-success-500"></i>
             </button>
           </div>
         </div>
@@ -211,9 +211,8 @@
 
     <!-- 简化的二维码弹窗 -->
     <Dialog
-      v-model:visible="showQRCode"
-      :header="t('感谢您的支持')"
-      modal
+      v-model:open="showQRCode"
+      :title="t('感谢您的支持')"
       class="qr-dialog"
       :style="{ width: '420px' }">
       <div class="qr-content space-y-4">
@@ -240,7 +239,7 @@
 
         <!-- QQ群引导 -->
         <div
-          class="community-invite bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-700">
+          class="community-invite bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4 border border-primary-200 dark:border-primary-700">
           <div class="flex items-center space-x-3">
             <div class="community-icon text-xl">👥</div>
             <div class="flex-1">
@@ -252,7 +251,7 @@
               </p>
               <button
                 @click="joinQQGroup"
-                class="inline-flex items-center text-xs bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md transition-colors duration-200">
+                class="inline-flex items-center text-xs bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md transition-colors duration-200">
                 <i class="pi pi-users mr-1"></i>
                 {{ t('加入QQ群') }} {{ qqGroupNumber }}
               </button>
@@ -267,7 +266,7 @@
 <script setup lang="ts">
   import { useSharePlus } from '@/utils/hooks/useSharePlus';
   import { useElementSize } from '@vueuse/core';
-  import Dialog from 'primevue/dialog';
+  import { Dialog } from '@tsfullstack/shared-frontend/components';
   import { computed, ref, useTemplateRef } from 'vue';
   import { useI18n } from '@/composables/useI18n';
 

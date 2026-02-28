@@ -3,7 +3,7 @@
     <template #trigger>
       <div
         class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-[40px]">
-        <span class="bg-blue-300 drak:bg-blue-700 rounded-sm px-1 text-white">{{
+        <span class="bg-primary-300 drak:bg-primary-700 rounded-sm px-1 text-white">{{
           t('选择')
         }}</span>
         <div class="flex flex-wrap gap-1">
@@ -22,7 +22,7 @@
                     'ml-1',
                     'text-xs',
                     'cursor-pointer',
-                    'hover:text-red-500',
+                    'hover:text-danger-500',
                     { 'hidden!': !isTagHovered(item) },
                   ]"
                   @mouseover="setTagHovered(item, true)"
@@ -35,7 +35,7 @@
       </div>
     </template>
     <div class="p-3">
-      <InputText
+      <Input
         v-model="searchText"
         class="w-full"
         placeholder="搜索..."
@@ -56,7 +56,7 @@
       <div
         v-else
         v-for="item in dataList"
-        class="p-3 cursor-pointer flex items-center hover:bg-blue-50 dark:hover:bg-blue-950 transition-colors"
+        class="p-3 cursor-pointer flex items-center hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
         @click.capture.stop.prevent="handleSelect(item)">
         <Checkbox :model-value="modelValue.some((el) => itemEquals(el, item))" binary />
         <span class="ml-2">{{ item.label }}</span>
@@ -104,9 +104,17 @@
 </script>
 <script setup lang="ts">
   import { Dropdown } from '@tsfullstack/shared-frontend/components';
-  import { Checkbox, InputText, Paginator, Tag, type PageState } from 'primevue';
+  import { Checkbox, Input, Paginator, Tag } from '@/components/base';
   import { computed, ref } from 'vue';
   import { useI18n } from '@/composables/useI18n';
+
+  /** PageState 接口定义 */
+  interface PageState {
+    first: number;
+    page: number;
+    pageCount: number;
+    rows: number;
+  }
 
   /** 获取 t 函数 */
   const { t } = useI18n();

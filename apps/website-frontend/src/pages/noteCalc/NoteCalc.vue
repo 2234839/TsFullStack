@@ -44,7 +44,7 @@
     <!-- 主体内容区 -->
     <div class="flex flex-1 overflow-hidden">
       <!-- 侧边栏抽屉 -->
-      <Drawer v-model:visible="sidebarVisible" :pt="{ root: { class: 'w-80 p-0' } }">
+      <Drawer v-model:open="sidebarVisible" side="left" width="320px">
         <template #header>
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-purple-700 dark:text-purple-400">
@@ -53,7 +53,8 @@
             <div class="flex gap-2">
               <Button
                 icon="pi pi-refresh"
-                class="p-button-text p-button-rounded"
+                variant="text"
+                rounded
                 @click="refreshNotes"
                 :loading="notesState.isLoading.value"
                 :title="ti18n('刷新笔记列表')" />
@@ -65,7 +66,7 @@
             <InputGroupAddon>
               <i class="pi pi-search" />
             </InputGroupAddon>
-            <InputText v-model="searchQuery" :placeholder="ti18n('搜索笔记...')" class="w-full" />
+            <Input v-model="searchQuery" :placeholder="ti18n('搜索笔记...')" class="w-full" />
             <InputGroupAddon v-if="searchQuery">
               <i class="pi pi-times" @click="clearSearch()" />
             </InputGroupAddon>
@@ -87,7 +88,7 @@
           <div
             v-else-if="notesState.isLoading.value && !notesState.state.value.length"
             class="flex-1 flex items-center justify-center">
-            <ProgressSpinner style="width: 50px; height: 50px" />
+            <ProgressSpinner size="normal" />
           </div>
 
           <div
@@ -182,7 +183,7 @@
     <SponsorshipCard class="mt-6" />
 
     <!-- 设置面板 -->
-    <Dialog v-model:visible="showSettings" :header="ti18n('设置')" modal class="w-[30rem]">
+    <Dialog v-model:open="showSettings" :title="ti18n('设置')">
       <div class="space-y-4">
         <div class="flex items-center justify-between">
           <label class="font-medium">{{ ti18n('自动计算') }}</label>
@@ -200,10 +201,7 @@
               :min="5"
               :max="60"
               :disabled="!config.autoSaveEnabled"
-              showButtons
-              buttonLayout="horizontal"
-              decrementButtonClass="p-button-secondary"
-              incrementButtonClass="p-button-secondary" />
+              show-buttons />
             <span class="ml-2 text-gray-500">{{ ti18n('秒') }}</span>
           </div>
         </div>
@@ -214,10 +212,7 @@
               v-model="config.showPrecision"
               :min="1"
               :max="100"
-              showButtons
-              buttonLayout="horizontal"
-              decrementButtonClass="p-button-secondary"
-              incrementButtonClass="p-button-secondary" />
+              show-buttons />
             <span class="ml-2 text-gray-500">{{ ti18n('位') }}</span>
           </div>
         </div>
@@ -228,10 +223,7 @@
               v-model="config.precision"
               :min="1"
               :max="100"
-              showButtons
-              buttonLayout="horizontal"
-              decrementButtonClass="p-button-secondary"
-              incrementButtonClass="p-button-secondary" />
+              show-buttons />
             <span class="ml-2 text-gray-500">{{ ti18n('位') }}</span>
           </div>
         </div>
@@ -239,14 +231,14 @@
     </Dialog>
 
     <!-- 重命名对话框 -->
-    <Dialog v-model:visible="showRenameModal" :header="ti18n('重命名笔记')" modal class="w-[25rem]">
+    <Dialog v-model:open="showRenameModal" :title="ti18n('重命名笔记')">
       <div class="space-y-4">
         <div class="flex flex-col">
           <label for="noteTitle" class="mb-2 font-medium">{{ ti18n('笔记标题') }}</label>
-          <InputText id="noteTitle" v-model="renameTitle" class="w-full" />
+          <Input id="noteTitle" v-model="renameTitle" class="w-full" />
         </div>
         <div class="flex justify-end gap-2 mt-4">
-          <Button :label="ti18n('取消')" class="p-button-text" @click="showRenameModal = false" />
+          <Button :label="ti18n('取消')" variant="text" @click="showRenameModal = false" />
           <Button :label="ti18n('保存')" @click="saveRename" :disabled="!renameTitle.trim()" />
         </div>
       </div>
@@ -268,19 +260,10 @@
   import { authInfo, authInfo_isLogin } from '@/storage';
   import { userDataAppid } from '@/storage/userDataAppid';
   import { useSharePlus } from '@/utils/hooks/useSharePlus';
-  import {
-    Button,
-    Dialog,
-    Drawer,
-    InputGroup,
-    InputGroupAddon,
-    InputNumber,
-    InputText,
-    ProgressSpinner,
-    ToggleSwitch,
-    useConfirm,
-    useToast,
-  } from 'primevue';
+  import { Button, Input, InputNumber, InputGroup, InputGroupAddon, ProgressSpinner, ToggleSwitch } from '@/components/base';
+  import { Dialog, Drawer } from '@tsfullstack/shared-frontend/components';
+  import { useConfirm } from '@/composables/useConfirm';
+  import { useToast } from '@/composables/useToast';
   import type { Prisma } from '@tsfullstack/backend';
   import { useRoute } from 'vue-router';
   import { useI18n } from '@/composables/useI18n';
@@ -764,9 +747,8 @@
   };
 
   // 确认删除笔记
-  const confirmDeleteNote = (note: Note, event: MouseEvent) => {
+  const confirmDeleteNote = (note: Note, _event: MouseEvent) => {
     confirm.require({
-      target: event.currentTarget as HTMLElement,
       message: `确定要删除笔记"${getNoteTitle(note)}"吗？`,
       icon: 'pi pi-exclamation-triangle',
       acceptClass: 'p-button-danger',
@@ -864,7 +846,7 @@
   };
 
   // 处理新建文档
-  const handleNewDocument = (event: MouseEvent) => {
+  const handleNewDocument = (_event: MouseEvent) => {
     const confirmNewDocument = () => {
       content.value = '';
       currentNote.value = null;
@@ -879,7 +861,6 @@
     }
 
     confirm.require({
-      target: event.currentTarget! as HTMLElement,
       message: t('是否确定新建文档？当前内容将被清空。'),
       icon: 'pi pi-exclamation-triangle',
       rejectProps: {

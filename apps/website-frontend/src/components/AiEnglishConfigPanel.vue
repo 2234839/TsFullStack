@@ -6,7 +6,7 @@
     </div>
 
     <!-- 说明信息 -->
-    <div class="text-sm text-gray-600 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+    <div class="text-sm text-gray-600 dark:text-gray-400 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg">
       <p class="mb-2"><strong>混合模式说明：</strong></p>
       <ul class="space-y-1 text-xs">
         <li>• 优先使用您配置的AI服务</li>
@@ -19,7 +19,7 @@
     <div class="flex flex-col gap-3">
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium">{{ t('Base URL') }}</label>
-        <InputText
+        <Input
           v-model="config.baseURL"
           placeholder="https://api.openai.com/v1"
           class="w-full" />
@@ -37,7 +37,7 @@
 
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium">{{ t('模型') }}</label>
-        <InputText v-model="config.model" placeholder="gpt-3.5-turbo" class="w-full" />
+        <Input v-model="config.model" placeholder="gpt-3.5-turbo" class="w-full" />
       </div>
 
       <div class="flex flex-col gap-2">
@@ -66,11 +66,11 @@
 
 <script setup lang="ts">
   import { useOpenAIConfig } from '@/storage';
-  import Button from 'primevue/button';
-  import InputNumber from 'primevue/inputnumber';
-  import InputText from 'primevue/inputtext';
-  import Password from 'primevue/password';
-  import Tag from 'primevue/tag';
+  import Button from '@/components/base/Button.vue';
+  import InputNumber from '@/components/base/InputNumber.vue';
+  import Input from '@/components/base/Input.vue';
+  import Password from '@/components/base/Password.vue';
+  import Tag from '@/components/base/Tag.vue';
   import { reactive, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
 

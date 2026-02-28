@@ -10,31 +10,37 @@ import {
 /** 直接引用后端 ts，有完善的类型，可以直接跳转定义，并且可以查看变量引用。但是 vue-tsc 过不去,暂时没想到解决的好办法，只能作为开发时方便使用的临时方案 */
 // import type { API as __API__, AppAPI as __AppAPI__, MsgErrorOpValues } from '../../backend/src/lib';
 
-import { type ToastMessageOptions } from 'primevue/toast';
 import superjson from 'superjson';
 import { routeMap, routerUtil } from './router';
 import { authInfo } from './storage';
 const baseServer = import.meta.env.VITE_API_BASE_URL || '';
 
-/** 有些api在组件还没加载的时候可能就要调用 toast 了，万一遇到这种情况了先用 alert 顶顶 */
-let apiTempToast = {
-  add(message: ToastMessageOptions) {
-    alert(message.detail);
-  },
-  remove(_message: ToastMessageOptions) {},
-  removeGroup(_group: string) {},
-  removeAllGroups() {},
-};
+/** Toast 消息接口 */
+interface ToastMessage {
+  severity?: 'success' | 'error' | 'info' | 'warn';
+  summary: string;
+  detail?: string;
+  life?: number;
+}
 
+/** Toast 接口 */
+interface ToastInstance {
+  add(message: ToastMessage): void;
+}
+
+/** 默认的 toast 实现，使用 alert */
+let apiTempToast: ToastInstance = {
+  add(message: ToastMessage) {
+    alert(message.detail || message.summary);
+  },
+};
 /** 替换临时 toast 方案为正规方案 */
-export function setApiTempToast(toast: typeof apiTempToast) {
+export function setApiTempToast(toast: ToastInstance) {
   apiTempToast = toast;
 }
-/** 全局的 API 实例，方便在非 vue 组件中使用， 一般情况请使用 useAPI()   */
-export const { API, AppAPI } = useAPI();
 
 /** 方便组件调用时进行一些定制操作 */
-export function useAPI(toast?: typeof apiTempToast) {
+export function useAPI(toast?: ToastInstance) {
   const { API } = createRPC<__API__>('apiConsumer', {
     remoteCall: genPostRemoteCall(`${baseServer}/api/`),
   });
@@ -113,3 +119,6 @@ export function useAPI(toast?: typeof apiTempToast) {
     return remoteCall;
   }
 }
+
+/** 全局的 API 实例，方便在非 vue 组件中使用， 一般情况请使用 useAPI()   */
+export const { API, AppAPI } = useAPI();

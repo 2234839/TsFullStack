@@ -80,9 +80,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import Chart from 'primevue/chart'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
+import { Chart, DataTable, Column, Button } from '@/components/base'
 import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
 
@@ -171,7 +169,7 @@ const chartOptions = computed(() => ({
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'top'
+      position: 'top' as const
     }
   },
   scales: {
@@ -189,7 +187,7 @@ const doughnutOptions = computed(() => ({
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'right'
+      position: 'right' as const
     }
   }
 }))
@@ -199,7 +197,7 @@ const barOptions = computed(() => ({
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'top'
+      position: 'top' as const
     }
   },
   scales: {

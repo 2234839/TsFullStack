@@ -73,7 +73,9 @@
   import AutoForm from '@/components/AutoTable/AutoForm.vue';
   import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
   import { useAsyncState } from '@vueuse/core';
-  import { Button, Column, DataTable, Paginator, useConfirm, useToast } from 'primevue';
+  import { Button, Column, DataTable, Paginator } from '@/components/base';
+  import { useConfirm } from '@/composables/useConfirm';
+  import { useToast } from '@/composables/useToast';
   import { computed, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
   import AutoColumn from './AutoColumn.vue';
@@ -285,16 +287,10 @@
     });
     reloadTableData();
   }
-  function deleteConfirm(event: MouseEvent) {
+  function deleteConfirm(_event: MouseEvent) {
     confirm.require({
-      target: event.currentTarget as HTMLElement,
       message: '确定删除吗？',
       icon: 'pi pi-exclamation-triangle',
-      rejectProps: {
-        label: 'Cancel',
-        severity: 'secondary',
-        outlined: true,
-      },
       acceptProps: {
         label: 'Delete！',
         severity: 'danger',

@@ -19,7 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { MultiSelect } from 'primevue';
+import { MultiSelect } from '@/components/base';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';

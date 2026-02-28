@@ -8,7 +8,7 @@
         :class="[
           'tab-item flex items-center h-8 px-2.5 mr-1 rounded cursor-pointer select-none whitespace-nowrap',
           tab.value.fullPath === tabsStore.activeTab
-            ? 'bg-blue-50 dark:bg-blue-900 border border-blue-300 dark:border-blue-600 text-blue-600 dark:text-blue-300'
+            ? 'bg-primary-50 dark:bg-primary-900 border border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-300'
             : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600',
         ]"
         @click="handleTabClick(tab.value)"
@@ -34,7 +34,7 @@
 <script setup lang="ts">
   import { useTabsStore, type TabItem } from '@/pages/admin/stores/tabsStore';
   import { routeMap, routerUtil } from '@/router';
-  import { ContextMenu } from 'primevue';
+  import { ContextMenu } from '@tsfullstack/shared-frontend/components';
   import { computed, ref, useTemplateRef, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
 

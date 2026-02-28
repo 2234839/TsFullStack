@@ -28,11 +28,11 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('总模型数') }}</p>
-            <p class="text-2xl font-bold text-blue-600 dark:text-blue-400">{{ totalModels }}</p>
+            <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ totalModels }}</p>
           </div>
           <div
-            class="w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-lg flex items-center justify-center">
-            <i class="pi pi-microchip text-blue-600 dark:text-blue-400 text-xl"></i>
+            class="w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-lg flex items-center justify-center">
+            <i class="pi pi-microchip text-primary-600 dark:text-primary-400 text-xl"></i>
           </div>
         </div>
       </div>
@@ -42,11 +42,11 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('启用模型') }}</p>
-            <p class="text-2xl font-bold text-green-600 dark:text-green-400">{{ enabledModels }}</p>
+            <p class="text-2xl font-bold text-success-600 dark:text-success-400">{{ enabledModels }}</p>
           </div>
           <div
-            class="w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-lg flex items-center justify-center">
-            <i class="pi pi-check-circle text-green-600 dark:text-green-400 text-xl"></i>
+            class="w-12 h-12 bg-success-100 dark:bg-success-900/20 rounded-lg flex items-center justify-center">
+            <i class="pi pi-check-circle text-success-600 dark:text-success-400 text-xl"></i>
           </div>
         </div>
       </div>
@@ -56,11 +56,11 @@
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('禁用模型') }}</p>
-            <p class="text-2xl font-bold text-red-600 dark:text-red-400">{{ disabledModels }}</p>
+            <p class="text-2xl font-bold text-danger-600 dark:text-danger-400">{{ disabledModels }}</p>
           </div>
           <div
-            class="w-12 h-12 bg-red-100 dark:bg-red-900/20 rounded-lg flex items-center justify-center">
-            <i class="pi pi-times-circle text-red-600 dark:text-red-400 text-xl"></i>
+            class="w-12 h-12 bg-danger-100 dark:bg-danger-900/20 rounded-lg flex items-center justify-center">
+            <i class="pi pi-times-circle text-danger-600 dark:text-danger-400 text-xl"></i>
           </div>
         </div>
       </div>
@@ -91,11 +91,11 @@
         :rowsPerPageOptions="[10, 20, 50]"
         dataKey="id"
         class="p-datatable-sm">
-        <Column field="id" :header="t('ID')" style="width: 80px"></Column>
+        <Column field="id" :header="t('ID')" :style="'width: 80px'"></Column>
 
-        <Column field="name" :header="t('模型名称')" style="min-width: 150px"></Column>
+        <Column field="name" :header="t('模型名称')" :style="'min-width: 150px'"></Column>
 
-        <Column field="model" :header="t('模型标识')" style="min-width: 150px">
+        <Column field="model" :header="t('模型标识')" :style="'min-width: 150px'">
           <template #body="slotProps">
             <code class="text-sm bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">
               {{ slotProps.data.model }}
@@ -103,7 +103,7 @@
           </template>
         </Column>
 
-        <Column field="baseUrl" :header="t('API地址')" style="min-width: 200px">
+        <Column field="baseUrl" :header="t('API地址')" :style="'min-width: 200px'">
           <template #body="slotProps">
             <div
               class="text-sm text-gray-600 dark:text-gray-400 truncate"
@@ -113,7 +113,7 @@
           </template>
         </Column>
 
-        <Column field="enabled" :header="t('状态')" style="width: 100px">
+        <Column field="enabled" :header="t('状态')" :style="'width: 100px'">
           <template #body="slotProps">
             <Badge
               v-if="slotProps.data.enabled"
@@ -124,13 +124,13 @@
           </template>
         </Column>
 
-        <Column field="weight" :header="t('权重')" style="width: 80px">
+        <Column field="weight" :header="t('权重')" :style="'width: 80px'">
           <template #body="slotProps">
             <span class="font-mono">{{ slotProps.data.weight }}</span>
           </template>
         </Column>
 
-        <Column field="maxTokens" :header="t('最大Token')" style="width: 100px">
+        <Column field="maxTokens" :header="t('最大Token')" :style="'width: 100px'">
           <template #body="slotProps">
             <span class="font-mono">{{
               slotProps.data.maxTokens?.toLocaleString() || '2000'
@@ -138,13 +138,13 @@
           </template>
         </Column>
 
-        <Column field="temperature" :header="t('温度')" style="width: 80px">
+        <Column field="temperature" :header="t('温度')" :style="'width: 80px'">
           <template #body="slotProps">
             <span class="font-mono">{{ slotProps.data.temperature || 0.7 }}</span>
           </template>
         </Column>
 
-        <Column :header="t('操作')" style="width: 150px">
+        <Column :header="t('操作')" :style="'width: 150px'">
           <template #body="slotProps">
             <div class="flex gap-1">
               <Button
@@ -196,7 +196,9 @@
   import { useAPI } from '@/api';
   import { computed, onMounted, ref } from 'vue';
   import { useI18n } from '@/composables/useI18n';
-  import { Button, Badge, DataTable, Column, useConfirm, useToast } from 'primevue';
+  import { Button, Badge, DataTable, Column } from '@/components/base';
+  import { useConfirm } from '@/composables/useConfirm';
+  import { useToast } from '@/composables/useToast';
   import AiModelForm from './components/AiModelForm.vue';
   import ModelStatsChart from './components/ModelStatsChart.vue';
 

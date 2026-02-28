@@ -10,7 +10,7 @@
 
       <div class="mb-6 flex flex-col sm:flex-row justify-between gap-4">
         <div class="relative w-full sm:w-1/3">
-          <InputText v-model="searchTitle" :placeholder="t('搜索')" class="w-full pl-10" />
+          <Input v-model="searchTitle" :placeholder="t('搜索')" class="w-full pl-10" />
         </div>
         <Button
           :label="t('新建分享')"
@@ -155,6 +155,8 @@
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
+  import { Button, Input } from '@/components/base';
+  import { Dialog } from '@tsfullstack/shared-frontend/components';
   import ShareCard from '@/pages/admin/share/ShareCard.vue';
   import {
     formatFileSize,
@@ -169,7 +171,8 @@
   import type { Prisma } from '@tsfullstack/backend';
   import QRCode from 'qrcode';
   import { reactive, ref } from 'vue';
-  import { useConfirm, useToast } from 'primevue';
+  import { useConfirm } from '@/composables/useConfirm';
+  import { useToast } from '@/composables/useToast';
   import { useI18n } from '@/composables/useI18n';
 
   const { API } = useAPI();
