@@ -36,7 +36,7 @@
       case 'dark':
         return 'bg-gray-800 text-warning-400 hover:bg-gray-700';
       case 'random':
-        return 'bg-gradient-to-br from-pink-500 to-orange-400 text-white hover:from-pink-600 hover:to-orange-500';
+        return 'bg-linear-to-br from-pink-500 to-orange-400 text-white hover:from-pink-600 hover:to-orange-500';
       case 'light':
       default:
         return 'bg-white text-gray-800 hover:bg-gray-100';

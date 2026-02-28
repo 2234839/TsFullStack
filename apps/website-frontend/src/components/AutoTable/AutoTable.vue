@@ -5,12 +5,12 @@
       <Button icon="pi pi-plus" @click="openCreateForm" :tooltip="t('新增记录')" />
       <template v-if="editRows.length">
         <Button @click="saveChanges">{{ t('保存修改结果') }}</Button>
-        <Button @click="discardChanges" severity="secondary">{{ t('丢弃修改') }}</Button>
+        <Button @click="discardChanges" variant="secondary">{{ t('丢弃修改') }}</Button>
         <span>
           {{ t('autoTable.affectedRows', { rows: editRows.length, cells: eidtCellCount }) }}
         </span>
       </template>
-      <Button v-if="selectRows.length" @click="deleteConfirm($event)" severity="danger">
+      <Button v-if="selectRows.length" @click="deleteConfirm($event)" variant="danger">
         Delete( {{ selectRows.length }} )
       </Button>
     </div>
@@ -26,39 +26,27 @@
       }
     " />
   <DataTable
+    :data="tableData.state.value.list"
     :loading="tableData.isLoading.value"
-    :value="tableData.state.value.list"
-    v-model:selection="selectRows"
-    tableStyle="--p-datatable-body-cell-sm-padding:0"
+    :selectedRowKeys="selectRows"
+    @update:selectedRowKeys="selectRows = $event"
+    rowKey="id"
     size="small"
-    showGridlines
-    stripedRows
-    editMode="cell">
-    <Column selectionMode="multiple" body-style="padding:0 7px"></Column>
-    <Column
-      :field="field.name"
-      :header="field.name"
-      v-for="field of tableData.state.value.modelFields">
-      <template #body="{ data, index }">
-        <AutoColumn
-          :row="data"
-          :field="(field as any)"
-          :editValue="editData[index]?.[field.name]"
-          @update:editValue="(newVal) => { if (editData[index]) { editData[index][field.name] = newVal; } }" />
-      </template>
-    </Column>
-    <template #footer>
-      <div class="flex justify-center gap-1 items-center">
-        <Paginator
-          v-model:rows="pageSize"
-          :totalRecords="tableData.state.value.count"
-          v-model:first="firstRecord"
-          @page="onPageChange"
-          :rowsPerPageOptions="[10, 20, 30]" />
-        {{ t('总计') }}：{{ tableData.state.value.count }} {{ t('行') }}
-      </div>
-    </template>
+    striped
+    bordered
+    selectable
+    :columns="tableColumns">
   </DataTable>
+  <!-- 分页 -->
+  <div class="flex justify-center gap-1 items-center mt-4 text-sm">
+    <Paginator
+      v-model:rows="pageSize"
+      :totalRecords="tableData.state.value.count"
+      v-model:first="firstRecord"
+      @page="onPageChange"
+      :rowsPerPageOptions="[10, 20, 30]" />
+    {{ t('总计') }}：{{ tableData.state.value.count }} {{ t('行') }}
+  </div>
   <AutoForm
     v-if="selectModelMeta && modelMeta.state.value"
     ref="__createFormRef"
@@ -73,10 +61,10 @@
   import AutoForm from '@/components/AutoTable/AutoForm.vue';
   import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
   import { useAsyncState } from '@vueuse/core';
-  import { Button, Column, DataTable, Paginator } from '@/components/base';
+  import { Button, DataTable, Paginator } from '@/components/base';
   import { useConfirm } from '@/composables/useConfirm';
   import { useToast } from '@/composables/useToast';
-  import { computed, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
+  import { computed, h, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
   import AutoColumn from './AutoColumn.vue';
   import { injectModelMetaKey, type DBmodelNames } from './type';
@@ -95,7 +83,29 @@
   const selectModelName = defineModel<string>('modelName', {
     required: true,
   });
-  const selectRows = ref([]);
+  const selectRows = ref<any[]>([]);
+
+  /** 表格列定义 */
+  const tableColumns = computed(() => {
+    const fields = tableData.state.value.modelFields;
+    return Object.entries(fields).map(([fieldName, field]) => ({
+      key: fieldName,
+      title: fieldName,
+      render: (row: any, index: number) => {
+        return h(AutoColumn, {
+          row,
+          field,
+          editValue: editData.value[index]?.[fieldName],
+          'onUpdate:editValue': (newVal: any) => {
+            if (editData.value[index]) {
+              editData.value[index][fieldName] = newVal;
+            }
+          },
+        });
+      },
+    }));
+  });
+
   const selectModelMeta = computed(() => {
     if (!selectModelName.value) return undefined;
     return findModelMeta(selectModelName.value);
@@ -264,7 +274,7 @@
     if (!idField) return console.error('No ID field found in the model');
     if (rows.length === 0)
       return toast.add({
-        severity: 'info',
+        variant: 'info',
         summary: 'Warn',
         detail: t('未选中数据'),
         life: 3000,
@@ -280,7 +290,7 @@
       },
     });
     toast.add({
-      severity: 'info',
+      variant: 'info',
       summary: '删除数据',
       detail: '删除数据完毕',
       life: 3000,
@@ -293,7 +303,7 @@
       icon: 'pi pi-exclamation-triangle',
       acceptProps: {
         label: 'Delete！',
-        severity: 'danger',
+        variant: 'danger',
       },
       accept: () => {
         deleteRows(selectRows.value);

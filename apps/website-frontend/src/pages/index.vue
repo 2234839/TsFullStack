@@ -2,7 +2,7 @@
   <div class="min-h-screen">
     <!-- 顶部区域 -->
     <div
-      class="bg-gradient-to-r from-blue-500 to-cyan-500 dark:from-blue-700 dark:to-cyan-700 text-white py-12 px-4 sm:px-6 lg:px-8">
+      class="bg-linear-to-r from-blue-500 to-cyan-500 dark:from-blue-700 dark:to-cyan-700 text-white py-12 px-4 sm:px-6 lg:px-8">
       <div class="max-w-7xl mx-auto">
         <h1 class="text-4xl font-bold text-center mb-4 flex items-center gap-1">
           <HeartStackSpace_ts class="text-6xl" type="紫动态" />

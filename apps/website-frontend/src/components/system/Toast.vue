@@ -8,7 +8,7 @@ import { useToastMessages, useToast } from '@/composables/useToast';
 
 interface ToastMessage {
   id: number;
-  severity?: 'success' | 'error' | 'info' | 'warn';
+  variant?: 'success' | 'error' | 'info' | 'warn';
   summary: string;
   detail?: string;
   life?: number;
@@ -21,14 +21,14 @@ const toast = useToast();
 const messageClasses = computed(() => (message: ToastMessage) => {
   const base = 'mb-3 p-4 rounded-lg shadow-lg flex items-start gap-3 animate-in slide-in-from-right transition-all duration-300';
 
-  const severityClasses = {
+  const variantClasses = {
     success: 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800 text-success-800 dark:text-success-200',
     error: 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800 text-danger-800 dark:text-danger-200',
     info: 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 text-primary-800 dark:text-primary-200',
     warn: 'bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800 text-warning-800 dark:text-warning-200',
   };
 
-  return `${base} ${severityClasses[message.severity || 'info']}`;
+  return `${base} ${variantClasses[message.variant || 'info']}`;
 });
 
 /** 图标类 */
@@ -46,14 +46,14 @@ const iconClasses = {
       v-for="message in messages"
       :key="message.id"
       :class="messageClasses(message)">
-      <i :class="iconClasses[message.severity || 'info']" class="text-xl flex-shrink-0 mt-0.5"></i>
+      <i :class="iconClasses[message.variant || 'info']" class="text-xl shrink-0 mt-0.5"></i>
       <div class="flex-1">
         <div class="font-medium">{{ message.summary }}</div>
         <div v-if="message.detail" class="text-sm mt-1 opacity-80">{{ message.detail }}</div>
       </div>
       <button
         @click="toast.remove(message.id)"
-        class="flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
+        class="shrink-0 opacity-50 hover:opacity-100 transition-opacity">
         <i class="pi pi-times"></i>
       </button>
     </div>

@@ -22,7 +22,7 @@ export function useSharePlus() {
     } else {
       const contentToCopy = copyTitleAndText ? `${title}\n${text}\n${url}` : url;
       await copy(contentToCopy);
-      toast.add({ severity: 'success', summary: '已复制到剪贴板', life: 3000 });
+      toast.add({ variant: 'success', summary: '已复制到剪贴板', life: 3000 });
     }
   };
 

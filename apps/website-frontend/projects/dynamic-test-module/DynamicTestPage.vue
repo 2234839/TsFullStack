@@ -10,7 +10,7 @@
       </template>
       <template #content>
         <div class="space-y-4">
-          <Message severity="info" :closable="false">
+          <Message variant="info" :closable="false">
             这是一个动态加载的测试模块，演示了自动路由系统的功能。
           </Message>
 
@@ -50,7 +50,7 @@
               label="返回首页"
               icon="pi pi-home"
               @click="goHome"
-              severity="secondary"
+              variant="secondary"
             />
           </div>
         </div>

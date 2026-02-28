@@ -152,7 +152,7 @@ const dropdownClasses = computed(() => {
           @click="handleOptionClick(option)">
           <div class="flex items-center flex-1">
             <!-- 复选框 -->
-            <div class="w-4 h-4 border rounded mr-3 flex items-center justify-center flex-shrink-0"
+            <div class="w-4 h-4 border rounded mr-3 flex items-center justify-center shrink-0"
                  :class="isSelected(option)
                    ? 'bg-primary-500 border-primary-500'
                    : 'border-gray-300 dark:border-gray-600'">

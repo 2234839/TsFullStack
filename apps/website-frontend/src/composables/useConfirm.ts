@@ -24,14 +24,14 @@ interface ConfirmOptions {
   /** 接受按钮属性（兼容 PrimeVue） */
   acceptProps?: {
     label?: string;
-    severity?: string;
+    variant?: string;
     icon?: string;
     [key: string]: any;
   };
   /** 拒绝按钮属性（兼容 PrimeVue） */
   rejectProps?: {
     label?: string;
-    severity?: string;
+    variant?: string;
     [key: string]: any;
   };
   /** 接受回调 */
@@ -67,7 +67,7 @@ export function useConfirm() {
         show: true,
         acceptLabel: options.acceptLabel || options.acceptProps?.label || '确认',
         rejectLabel: options.rejectLabel || options.rejectProps?.label || '取消',
-        acceptClass: options.acceptProps?.severity === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : options.acceptClass,
+        acceptClass: options.acceptProps?.variant === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : options.acceptClass,
         _accept: async () => {
           confirmState.value.show = false;
           try {

@@ -17,7 +17,7 @@
               icon="pi pi-filter"
               @click="showGlobalFilterDialog = true"
               size="small"
-              severity="info"
+              variant="info"
               variant="outlined"
               label="全局过滤配置" />
           </div>
@@ -28,19 +28,19 @@
           icon="pi pi-refresh"
           @click="rules.execute()"
           :loading="rules.isLoading.value"
-          severity="secondary"
+          variant="secondary"
           size="small" />
         <Button
           icon="pi pi-download"
           @click="showExportDialog = true"
           label="导出"
-          severity="info"
+          variant="info"
           size="small" />
         <Button
           icon="pi pi-upload"
           @click="showImportDialog = true"
           label="导入"
-          severity="success"
+          variant="success"
           size="small" />
         <Button icon="pi pi-plus" @click="showCreateDialog = true" label="新建规则" />
       </div>
@@ -91,7 +91,7 @@
           <Button
             icon="pi pi-filter-slash"
             @click="clearFilters"
-            severity="secondary"
+            variant="secondary"
             size="small"
             label="清除筛选" />
         </div>
@@ -196,35 +196,35 @@
                     icon="pi pi-play"
                     @click="activateRule(data)"
                     size="small"
-                    severity="success" />
+                    variant="success" />
                 </Tooltip>
                 <Tooltip v-if="data.status === 'active'" content="暂停">
                   <Button
                     icon="pi pi-pause"
                     @click="pauseRule(data)"
                     size="small"
-                    severity="warning" />
+                    variant="warning" />
                 </Tooltip>
                 <Tooltip content="立即执行">
                   <Button
                     icon="pi pi-play-circle"
                     @click="executeRuleNow(data)"
                     size="small"
-                    severity="primary" />
+                    variant="primary" />
                 </Tooltip>
                 <Tooltip content="编辑">
                   <Button
                     icon="pi pi-file-edit"
                     @click="editRule(data)"
                     size="small"
-                    severity="secondary" />
+                    variant="secondary" />
                 </Tooltip>
                 <Tooltip content="删除">
                   <Button
                     icon="pi pi-trash"
                     @click="confirmDelete(data)"
                     size="small"
-                    severity="danger" />
+                    variant="danger" />
                 </Tooltip>
               </div>
             </template>
@@ -343,12 +343,12 @@
                   <Button
                     icon="pi pi-file-edit"
                     size="small"
-                    severity="info"
+                    variant="info"
                     @click="editCollectionItem(item, index)" />
                   <Button
                     icon="pi pi-trash"
                     size="small"
-                    severity="danger"
+                    variant="danger"
                     @click="removeCollectionItem(index)" />
                 </div>
               </div>
@@ -446,7 +446,7 @@
       </div>
 
       <template #footer>
-        <Button label="取消" @click="showCreateDialog = false" severity="secondary" />
+        <Button label="取消" @click="showCreateDialog = false" variant="secondary" />
         <Button label="保存" @click="saveRule" :loading="saving" />
       </template>
     </Dialog>
@@ -503,7 +503,7 @@ return document.title;"
       </div>
 
       <template #footer>
-        <Button label="取消" @click="showDataCollectionDialog = false" severity="secondary" />
+        <Button label="取消" @click="showDataCollectionDialog = false" variant="secondary" />
         <Button label="保存" @click="saveCollectionItem" />
       </template>
     </Dialog>
@@ -513,8 +513,8 @@ return document.title;"
       <p>确定要删除规则 "{{ selectedRule?.name }}" 吗？此操作无法撤销。</p>
 
       <template #footer>
-        <Button label="取消" @click="showDeleteDialog = false" severity="secondary" />
-        <Button label="删除" @click="deleteRule" :loading="deleting" severity="danger" />
+        <Button label="取消" @click="showDeleteDialog = false" variant="secondary" />
+        <Button label="删除" @click="deleteRule" :loading="deleting" variant="danger" />
       </template>
     </Dialog>
 
@@ -524,7 +524,7 @@ return document.title;"
       :rules="allRules"
       title="选择要导出的规则"
       confirm-label="导出选中规则"
-      confirm-severity="info"
+      confirm-variant="info"
       :show-bulk-actions="true"
       @confirm="handleExportConfirm"
       @cancel="showExportDialog = false" />
@@ -551,12 +551,12 @@ return document.title;"
       </div>
 
       <template #footer>
-        <Button label="取消" @click="cancelImport" severity="secondary" />
+        <Button label="取消" @click="cancelImport" variant="secondary" />
         <Button
           label="选择导入"
           @click="showImportSelectionDialog = true"
           :disabled="!importPreview.length"
-          severity="success" />
+          variant="success" />
       </template>
     </Dialog>
 
@@ -566,7 +566,7 @@ return document.title;"
       :rules="importPreview"
       title="选择要导入的规则"
       confirm-label="导入选中规则"
-      confirm-severity="success"
+      confirm-variant="success"
       :show-bulk-actions="true"
       @confirm="handleImportConfirm"
       @cancel="showImportSelectionDialog = false" />
@@ -593,7 +593,7 @@ return document.title;"
       </div>
 
       <template #footer>
-        <Button label="取消" @click="showGlobalFilterDialog = false" severity="secondary" />
+        <Button label="取消" @click="showGlobalFilterDialog = false" variant="secondary" />
         <Button label="保存" @click="saveGlobalFilterConfig" />
       </template>
     </Dialog>
@@ -864,7 +864,7 @@ return document.title;"
     showGlobalFilterDialog.value = false;
 
     toast.add({
-      severity: 'success',
+      variant: 'success',
       summary: '保存成功',
       detail: '全局过滤配置已保存',
       life: 3000,
@@ -1176,7 +1176,7 @@ return document.title;"
     if (collectionItemType.value === 'css') {
       if (!collectionForm.selector.trim()) {
         toast.add({
-          severity: 'error',
+          variant: 'error',
           summary: '验证错误',
           detail: 'CSS 选择器不能为空',
           life: 3000,
@@ -1190,7 +1190,7 @@ return document.title;"
     } else {
       if (!collectionForm.code.trim()) {
         toast.add({
-          severity: 'error',
+          variant: 'error',
           summary: '验证错误',
           detail: 'JavaScript 代码不能为空',
           life: 3000,
@@ -1350,14 +1350,14 @@ return document.title;"
         const res = result.result;
         if (res.matched === 1) {
           toast.add({
-            severity: 'success',
+            variant: 'success',
             summary: '执行成功',
             detail: `规则 "${rule.name}" 执行成功！\nURL: ${res.url}\n标题: ${res.title}`,
             life: 5000,
           });
         } else {
           toast.add({
-            severity: 'warn',
+            variant: 'warn',
             summary: '执行完成',
             detail: `规则 "${rule.name}" 执行完成，但未匹配到内容。\n消息: ${res.message || '无'}`,
             life: 5000,
@@ -1367,7 +1367,7 @@ return document.title;"
         loadStats();
       } else {
         toast.add({
-          severity: 'error',
+          variant: 'error',
           summary: '执行失败',
           detail: `规则 "${rule.name}" 执行失败: ${result.message}`,
           life: 5000,
@@ -1377,7 +1377,7 @@ return document.title;"
       console.error('Failed to execute rule:', error);
       const errorMessage = error instanceof Error ? error.message : '未知错误';
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '执行失败',
         detail: `规则 "${rule.name}" 执行失败: ${errorMessage}`,
         life: 5000,
@@ -1426,7 +1426,7 @@ return document.title;"
 
       if (selectedRulesData.length === 0) {
         toast.add({
-          severity: 'warn',
+          variant: 'warn',
           summary: '没有选择规则',
           detail: '请至少选择一条规则进行导出',
           life: 3000,
@@ -1457,7 +1457,7 @@ return document.title;"
       showExportDialog.value = false;
 
       toast.add({
-        severity: 'success',
+        variant: 'success',
         summary: '导出成功',
         detail: `已导出 ${selectedRulesData.length} 条规则`,
         life: 3000,
@@ -1465,7 +1465,7 @@ return document.title;"
     } catch (error) {
       console.error('Failed to export rules:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '导出失败',
         detail: '导出规则时发生错误',
         life: 3000,
@@ -1486,7 +1486,7 @@ return document.title;"
 
     if (!file.name.endsWith('.json')) {
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '文件格式错误',
         detail: '请选择 JSON 文件',
         life: 3000,
@@ -1518,7 +1518,7 @@ return document.title;"
       } catch (error) {
         console.error('Failed to parse JSON file:', error);
         toast.add({
-          severity: 'error',
+          variant: 'error',
           summary: '文件解析失败',
           detail: '无法解析 JSON 文件',
           life: 3000,
@@ -1633,7 +1633,7 @@ return document.title;"
           loadStats();
 
           toast.add({
-            severity: 'success',
+            variant: 'success',
             summary: '导入完成',
             detail: `成功处理 ${successCount} 条规则（覆盖已有规则，跳过 ${skipCount} 条规则）`,
             life: 5000,
@@ -1641,7 +1641,7 @@ return document.title;"
         } catch (error) {
           console.error('Failed to import rules:', error);
           toast.add({
-            severity: 'error',
+            variant: 'error',
             summary: '导入失败',
             detail: '导入规则时发生错误',
             life: 3000,
@@ -1654,7 +1654,7 @@ return document.title;"
     } catch (error) {
       console.error('Failed to read file:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '导入失败',
         detail: '读取文件时发生错误',
         life: 3000,

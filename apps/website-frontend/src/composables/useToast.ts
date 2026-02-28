@@ -6,7 +6,7 @@ import { ref } from 'vue';
 
 interface ToastMessage {
   id: number;
-  severity?: 'success' | 'error' | 'info' | 'warn';
+  variant?: 'success' | 'error' | 'info' | 'warn';
   summary: string;
   detail?: string;
   life?: number;
@@ -42,22 +42,22 @@ function remove(id: number) {
 
 /** 成功消息 */
 function success(summary: string, detail?: string, life = 3000) {
-  return add({ severity: 'success', summary, detail, life });
+  return add({ variant: 'success', summary, detail, life });
 }
 
 /** 错误消息 */
 function error(summary: string, detail?: string, life = 5000) {
-  return add({ severity: 'error', summary, detail, life });
+  return add({ variant: 'error', summary, detail, life });
 }
 
 /** 信息消息 */
 function info(summary: string, detail?: string, life = 3000) {
-  return add({ severity: 'info', summary, detail, life });
+  return add({ variant: 'info', summary, detail, life });
 }
 
 /** 警告消息 */
 function warn(summary: string, detail?: string, life = 4000) {
-  return add({ severity: 'warn', summary, detail, life });
+  return add({ variant: 'warn', summary, detail, life });
 }
 
 /** 清除所有消息 */

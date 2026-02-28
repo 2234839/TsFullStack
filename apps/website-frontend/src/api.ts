@@ -17,7 +17,7 @@ const baseServer = import.meta.env.VITE_API_BASE_URL || '';
 
 /** Toast 消息接口 */
 interface ToastMessage {
-  severity?: 'success' | 'error' | 'info' | 'warn';
+  variant?: 'success' | 'error' | 'info' | 'warn';
   summary: string;
   detail?: string;
   life?: number;
@@ -100,14 +100,14 @@ export function useAPI(toast?: ToastInstance) {
           if (op === 'op_toLogin') {
             routerUtil.push(routeMap.login, {});
             (toast ?? apiTempToast).add({
-              severity: 'error',
+              variant: 'error',
               summary: 'Error',
               detail: res.error.message,
               life: 3000,
             });
           } else if (op === 'op_msgError') {
             (toast ?? apiTempToast).add({
-              severity: 'error',
+              variant: 'error',
               summary: 'Error',
               detail: res.error.message,
               life: 3000,

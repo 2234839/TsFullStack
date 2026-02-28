@@ -7,14 +7,14 @@
         <Button
           v-if="filters.length > 0"
           icon="pi pi-filter-slash"
-          severity="secondary"
+          variant="secondary"
           text
           size="small"
           @click="clearAllFilters"
           :tooltip="t('清除所有筛选')" />
         <Button
           icon="pi pi-plus"
-          severity="secondary"
+          variant="secondary"
           text
           size="small"
           @click="addFilter"
@@ -53,7 +53,7 @@
 
         <Button
           icon="pi pi-times"
-          severity="danger"
+          variant="danger"
           text
           size="small"
           @click="removeFilter(index)"
@@ -62,10 +62,10 @@
     </TransitionGroup>
 
     <div v-if="filters.length > 0" class="mt-3 flex justify-end space-x-2">
-      <Button severity="secondary" size="small" @click="clearAllFilters">
+      <Button variant="secondary" size="small" @click="clearAllFilters">
         {{ t('重置') }}
       </Button>
-      <Button severity="primary" size="small" @click="applyFilters">
+      <Button variant="primary" size="small" @click="applyFilters">
         {{ t('应用筛选') }}
       </Button>
     </div>

@@ -3,7 +3,7 @@
     <template #trigger>
       <div
         class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-[40px]">
-        <span class="bg-primary-300 drak:bg-primary-700 rounded-sm px-1 text-white">{{
+        <span class="bg-primary-600 dark:bg-primary-700 rounded-sm px-1 text-white">{{
           t('选择')
         }}</span>
         <div class="flex flex-wrap gap-1">
@@ -12,7 +12,7 @@
               v-for="item of modelValue"
               class="group transition-all"
               :value="item?.label ?? item?.value"
-              severity="info"
+              variant="info"
               rounded>
               <template #icon>
                 <i

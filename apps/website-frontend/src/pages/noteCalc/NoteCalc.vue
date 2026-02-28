@@ -359,7 +359,7 @@
       } catch (error) {
         console.error('加载笔记列表失败:', error);
         toast.add({
-          severity: 'error',
+          variant: 'error',
           summary: '加载失败',
           detail: '获取笔记列表时出错',
           life: 3000,
@@ -521,7 +521,7 @@
     } catch (error) {
       console.error('加载更多笔记失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '加载失败',
         detail: '获取更多笔记时出错',
         life: 3000,
@@ -552,7 +552,7 @@
 
         if (!note) {
           toast.add({
-            severity: 'error',
+            variant: 'error',
             summary: '加载失败',
             detail: '未找到指定笔记',
             life: 3000,
@@ -571,7 +571,7 @@
     } catch (error) {
       console.error('根据ID加载笔记失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '加载失败',
         detail: '加载指定笔记时出错',
         life: 3000,
@@ -600,7 +600,7 @@
     } catch (error) {
       console.error('加载笔记内容失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '加载失败',
         detail: '加载笔记内容时出错',
         life: 3000,
@@ -635,7 +635,7 @@
   const saveCurrentNote = async () => {
     if (!authInfo_isLogin.value) {
       toast.add({
-        severity: 'warn',
+        variant: 'warn',
         summary: '未登录',
         detail: '请先登录后再保存笔记',
         life: 3000,
@@ -675,7 +675,7 @@
         currentNote.value = updatedNote;
 
         toast.add({
-          severity: 'success',
+          variant: 'success',
           summary: '保存成功',
           detail: '笔记已更新',
           life: 2000,
@@ -704,7 +704,7 @@
         totalNotes.value += 1;
 
         toast.add({
-          severity: 'success',
+          variant: 'success',
           summary: '保存成功',
           detail: '新笔记已创建',
           life: 2000,
@@ -715,7 +715,7 @@
     } catch (error) {
       console.error('保存笔记失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '保存失败',
         detail: '保存笔记时出错',
         life: 3000,
@@ -779,7 +779,7 @@
       }
 
       toast.add({
-        severity: 'success',
+        variant: 'success',
         summary: '删除成功',
         detail: '笔记已删除',
         life: 2000,
@@ -787,7 +787,7 @@
     } catch (error) {
       console.error('删除笔记失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '删除失败',
         detail: '删除笔记时出错',
         life: 3000,
@@ -829,7 +829,7 @@
 
       showRenameModal.value = false;
       toast.add({
-        severity: 'success',
+        variant: 'success',
         summary: '重命名成功',
         detail: '笔记已重命名',
         life: 2000,
@@ -837,7 +837,7 @@
     } catch (error) {
       console.error('重命名笔记失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '重命名失败',
         detail: '重命名笔记时出错',
         life: 3000,
@@ -865,7 +865,7 @@
       icon: 'pi pi-exclamation-triangle',
       rejectProps: {
         label: 'Cancel',
-        severity: 'secondary',
+        variant: 'secondary',
         outlined: true,
       },
       acceptProps: {
@@ -900,7 +900,7 @@
     } catch (error) {
       console.error('分享失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '分享失败',
         detail: '生成分享链接时出错，请重试',
         life: 3000,
@@ -932,7 +932,7 @@
     } catch (error) {
       console.error('从URL加载内容失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '加载失败',
         detail: '从分享链接加载内容时出错',
         life: 3000,

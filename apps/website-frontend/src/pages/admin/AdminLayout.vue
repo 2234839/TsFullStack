@@ -1,7 +1,7 @@
 <template>
   <div class="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
     <!-- 侧边栏 -->
-    <MenuSideBar class="h-screen flex-shrink-0" />
+    <MenuSideBar class="h-screen shrink-0" />
 
     <!-- 主内容区域 - 占据剩余宽度并添加滚动 -->
     <div class="flex-1 flex flex-col overflow-hidden">

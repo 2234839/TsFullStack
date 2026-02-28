@@ -6,7 +6,7 @@
     <!-- 紧凑模式 - 小正方形 -->
     <div
       v-if="isCompact"
-      class="compact-layout relative w-full h-full min-h-[80px] flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 border border-gray-200 dark:border-gray-600">
+      class="compact-layout relative w-full h-full min-h-[80px] flex flex-col items-center justify-center bg-linear-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 border border-gray-200 dark:border-gray-600">
       <!-- 柔和的背景装饰 -->
       <div class="absolute inset-0 opacity-30">
         <div
@@ -32,7 +32,7 @@
     <!-- 标准模式 - 中等尺寸 -->
     <div
       v-else-if="isStandard"
-      class="standard-layout relative w-full h-full min-h-[280px] overflow-hidden bg-gradient-to-br from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600">
+      class="standard-layout relative w-full h-full min-h-[280px] overflow-hidden bg-linear-to-br from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600">
       <!-- 柔和的装饰元素 -->
       <div class="absolute inset-0 opacity-20">
         <div class="absolute top-4 right-4 w-8 h-8 border border-gray-300/50 rounded-full"></div>
@@ -110,7 +110,7 @@
     <!-- 展开模式 - 长条形 -->
     <div
       v-else
-      class="expanded-layout relative w-full h-full min-h-[160px] overflow-hidden bg-gradient-to-r from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600">
+      class="expanded-layout relative w-full h-full min-h-[160px] overflow-hidden bg-linear-to-r from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600">
       <!-- 柔和的装饰 -->
       <div
         class="absolute top-4 left-4 w-12 h-12 border border-gray-200/50 rounded-full opacity-30"></div>

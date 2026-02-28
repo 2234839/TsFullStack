@@ -26,7 +26,7 @@ withDefaults(defineProps<Props>(), {
       'justify-end': align === 'right',
     }">
     <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
-    <span v-if="$slots.default" class="flex-shrink-0 mx-4 text-gray-500 dark:text-gray-400">
+    <span v-if="$slots.default" class="shrink-0 mx-4 text-gray-500 dark:text-gray-400">
       <slot />
     </span>
     <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>

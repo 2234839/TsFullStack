@@ -41,7 +41,7 @@ function handleReject() {
 
           <!-- 图标和消息 -->
           <div class="flex items-start gap-4 mb-6">
-            <div v-if="confirmState.icon" class="flex-shrink-0">
+            <div v-if="confirmState.icon" class="shrink-0">
               <i :class="confirmState.icon" class="text-2xl text-warning-500" />
             </div>
             <div class="flex-1">

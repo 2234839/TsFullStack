@@ -7,8 +7,8 @@
       class="absolute inset-0 transition-all duration-500"
       :class="
         theme_isDark
-          ? 'bg-gradient-to-br from-gray-900 via-blue-900 to-teal-900'
-          : 'bg-gradient-to-br from-blue-100 via-cyan-200 to-teal-100'
+          ? 'bg-linear-to-br from-gray-900 via-blue-900 to-teal-900'
+          : 'bg-linear-to-br from-blue-100 via-cyan-200 to-teal-100'
       ">
       <!-- 动态背景元素 -->
       <div class="stars-container" v-if="theme_isDark">
@@ -29,10 +29,10 @@
       <!-- 动态光线 -->
       <div
         class="light-beam light-beam-1"
-        :class="theme_isDark ? 'bg-gradient-dark' : 'bg-gradient-light'"></div>
+        :class="theme_isDark ? 'bg-linear-dark' : 'bg-linear-light'"></div>
       <div
         class="light-beam light-beam-2"
-        :class="theme_isDark ? 'bg-gradient-dark' : 'bg-gradient-light'"></div>
+        :class="theme_isDark ? 'bg-linear-dark' : 'bg-linear-light'"></div>
 
       <!-- 网格效果 -->
       <div class="grid-overlay" :class="theme_isDark ? 'grid-dark' : 'grid-light'"></div>
@@ -55,8 +55,8 @@
         class="absolute pointer-events-none -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"
         :class="
           theme_isDark
-            ? 'bg-gradient-to-r from-teal-500 to-blue-600'
-            : 'bg-gradient-to-r from-cyan-400 to-teal-500'
+            ? 'bg-linear-to-r from-teal-500 to-blue-600'
+            : 'bg-linear-to-r from-cyan-400 to-teal-500'
         "></div>
       <div class="relative z-10">
         <!-- 顶部Logo和标题 -->
@@ -66,8 +66,8 @@
               class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow"
               :class="
                 theme_isDark
-                  ? 'bg-gradient-to-r from-teal-500 to-blue-600 shadow-teal-500/30'
-                  : 'bg-gradient-to-r from-cyan-500 to-teal-600 shadow-teal-500/20'
+                  ? 'bg-linear-to-r from-teal-500 to-blue-600 shadow-teal-500/30'
+                  : 'bg-linear-to-r from-cyan-500 to-teal-600 shadow-teal-500/20'
               ">
               <i class="pi pi-shield text-white text-3xl"></i>
             </div>
@@ -76,8 +76,8 @@
             class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient"
             :class="
               theme_isDark
-                ? 'bg-gradient-to-r from-teal-400 via-cyan-400 to-blue-400'
-                : 'bg-gradient-to-r from-teal-600 via-cyan-600 to-blue-600'
+                ? 'bg-linear-to-r from-teal-400 via-cyan-400 to-blue-400'
+                : 'bg-linear-to-r from-teal-600 via-cyan-600 to-blue-600'
             ">
             {{ isLogin ? '系统登录' : '用户注册' }}
           </h2>
@@ -384,7 +384,7 @@
           localUserPwd.value.password = form.value.password;
         }
         toast.add({
-          severity: 'success',
+          variant: 'success',
           summary: '登录成功',
           detail: '欢迎回来，正在为您跳转...',
           life: 3000,
@@ -394,7 +394,7 @@
         await AppAPI.system.register(form.value.username, form.value.password);
 
         toast.add({
-          severity: 'success',
+          variant: 'success',
           summary: '注册成功',
           detail: '账号创建成功，请登录',
           life: 3000,
@@ -569,11 +569,11 @@
     transform: rotate(45deg);
   }
 
-  .bg-gradient-dark {
+  .bg-linear-dark {
     background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   }
 
-  .bg-gradient-light {
+  .bg-linear-light {
     background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
   }
 

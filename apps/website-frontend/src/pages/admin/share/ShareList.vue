@@ -77,7 +77,7 @@
 
       <!-- 错误状态 -->
       <div v-else-if="shareList.error.value" class="text-center">
-        <Message severity="error" :closable="false">
+        <Message variant="error" :closable="false">
           {{ shareList.error.value }}
         </Message>
       </div>
@@ -338,12 +338,12 @@
       icon: 'pi pi-exclamation-triangle',
       rejectProps: {
         label: '取消',
-        severity: 'secondary',
+        variant: 'secondary',
         outlined: true,
       },
       acceptProps: {
         label: '删除',
-        severity: 'danger',
+        variant: 'danger',
       },
       accept: async () => {
         try {
@@ -358,7 +358,7 @@
           });
           shareList.execute(); // 刷新列表
           toast.add({
-            severity: 'success',
+            variant: 'success',
             summary: '成功',
             detail: '删除分享成功',
             life: 3000,
@@ -366,7 +366,7 @@
         } catch (error) {
           console.error('删除失败:', error);
           toast.add({
-            severity: 'error',
+            variant: 'error',
             summary: '失败',
             detail: '删除分享失败：' + ((error as Error).message || '未知错误'),
             life: 3000,

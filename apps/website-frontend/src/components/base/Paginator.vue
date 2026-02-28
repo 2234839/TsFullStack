@@ -115,8 +115,7 @@ const buttonClasses = (active: boolean, disabled: boolean) => {
 </script>
 
 <template>
-  <div
-    class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg">
+  <div class="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg">
     <!-- 信息显示 -->
     <div class="text-sm text-gray-700 dark:text-gray-300">
       显示 {{ firstRecord }}-{{ lastRecord }} 条，共 {{ rows }} 条
@@ -125,28 +124,20 @@ const buttonClasses = (active: boolean, disabled: boolean) => {
     <!-- 分页按钮 -->
     <div class="flex items-center gap-2">
       <!-- 上一页 -->
-      <button
-        :disabled="disabled || currentPage <= 1"
-        :class="buttonClasses(false, disabled || currentPage <= 1)"
+      <button :disabled="disabled || currentPage <= 1" :class="buttonClasses(false, disabled || currentPage <= 1)"
         @click="prevPage">
         上一页
       </button>
 
       <!-- 页码 -->
-      <button
-        v-for="(page, index) in pageNumbers"
-        :key="index"
-        :disabled="disabled || page === '...'"
-        :class="buttonClasses(page === currentPage, disabled || page === '...')"
-        @click="goToPage(page)">
+      <button v-for="(page, index) in pageNumbers" :key="index" :disabled="disabled || page === '...'"
+        :class="buttonClasses(page === currentPage, disabled || page === '...')" @click="goToPage(page)">
         {{ page }}
       </button>
 
       <!-- 下一页 -->
-      <button
-        :disabled="disabled || currentPage >= totalPages"
-        :class="buttonClasses(false, disabled || currentPage >= totalPages)"
-        @click="nextPage">
+      <button :disabled="disabled || currentPage >= totalPages"
+        :class="buttonClasses(false, disabled || currentPage >= totalPages)" @click="nextPage">
         下一页
       </button>
     </div>

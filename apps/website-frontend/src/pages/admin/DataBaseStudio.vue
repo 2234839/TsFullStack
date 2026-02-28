@@ -1,10 +1,22 @@
-<style scoped></style>
+<style scoped>
+/* 隐藏滚动条但保留滚动功能 */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+</style>
 <template>
   <div class="p-2">
-    <div v-if="hideSwitch !== 'true'" class="flex gap-1">
-      <SelectButton
-        v-model="selectModelName"
-        :options="Object.values(modelMeta.state.value?.models ?? {}).map((el) => el.name)" />
+    <div v-if="hideSwitch !== 'true'" class="flex gap-1 items-center">
+      <div class="flex-1 overflow-x-auto min-h-0 hide-scrollbar">
+        <SelectButton
+          v-model="selectModelName"
+          :options="Object.values(modelMeta.state.value?.models ?? {}).map((el) => el.name)" />
+      </div>
       <Button
         icon="pi pi-refresh"
         @click="modelMeta.execute()"

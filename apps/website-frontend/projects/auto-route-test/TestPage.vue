@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-8">
+  <div class="min-h-screen bg-linear-to-br from-purple-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 p-8">
     <div class="max-w-4xl mx-auto">
       <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
         <div class="flex items-center space-x-4 mb-8">
-          <div class="w-16 h-16 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
+          <div class="w-16 h-16 bg-linear-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
             <i class="pi pi-sparkles text-white text-2xl"></i>
           </div>
           <div>

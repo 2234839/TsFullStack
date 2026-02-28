@@ -10,14 +10,14 @@
         <Button
           :label="t('添加模型')"
           icon="pi pi-plus"
-          @click="showAddModel"
-          class="p-button-primary" />
+          variant="primary"
+          @click="showAddModel" />
         <Button
           :label="t('刷新数据')"
           icon="pi pi-refresh"
           @click="loadModels"
           :loading="isLoading"
-          class="p-button-outlined" />
+          variant="secondary" />
       </div>
     </div>
 
@@ -84,92 +84,13 @@
     <div
       class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700">
       <DataTable
-        :value="filteredModels"
+        :data="filteredModels"
         :loading="isLoading"
-        :paginator="true"
-        :rows="10"
-        :rowsPerPageOptions="[10, 20, 50]"
-        dataKey="id"
-        class="p-datatable-sm">
-        <Column field="id" :header="t('ID')" :style="'width: 80px'"></Column>
-
-        <Column field="name" :header="t('模型名称')" :style="'min-width: 150px'"></Column>
-
-        <Column field="model" :header="t('模型标识')" :style="'min-width: 150px'">
-          <template #body="slotProps">
-            <code class="text-sm bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded">
-              {{ slotProps.data.model }}
-            </code>
-          </template>
-        </Column>
-
-        <Column field="baseUrl" :header="t('API地址')" :style="'min-width: 200px'">
-          <template #body="slotProps">
-            <div
-              class="text-sm text-gray-600 dark:text-gray-400 truncate"
-              :title="slotProps.data.baseUrl">
-              {{ slotProps.data.baseUrl }}
-            </div>
-          </template>
-        </Column>
-
-        <Column field="enabled" :header="t('状态')" :style="'width: 100px'">
-          <template #body="slotProps">
-            <Badge
-              v-if="slotProps.data.enabled"
-              :value="t('启用')"
-              severity="success"
-              size="small" />
-            <Badge v-else :value="t('禁用')" severity="danger" size="small" />
-          </template>
-        </Column>
-
-        <Column field="weight" :header="t('权重')" :style="'width: 80px'">
-          <template #body="slotProps">
-            <span class="font-mono">{{ slotProps.data.weight }}</span>
-          </template>
-        </Column>
-
-        <Column field="maxTokens" :header="t('最大Token')" :style="'width: 100px'">
-          <template #body="slotProps">
-            <span class="font-mono">{{
-              slotProps.data.maxTokens?.toLocaleString() || '2000'
-            }}</span>
-          </template>
-        </Column>
-
-        <Column field="temperature" :header="t('温度')" :style="'width: 80px'">
-          <template #body="slotProps">
-            <span class="font-mono">{{ slotProps.data.temperature || 0.7 }}</span>
-          </template>
-        </Column>
-
-        <Column :header="t('操作')" :style="'width: 150px'">
-          <template #body="slotProps">
-            <div class="flex gap-1">
-              <Button
-                icon="pi pi-pencil"
-                size="small"
-                @click="editModel(slotProps.data)"
-                class="p-button-text p-button-sm"
-                :title="t('编辑')" />
-              <Button
-                icon="pi pi-play"
-                size="small"
-                @click="toggleModelStatus(slotProps.data)"
-                :class="slotProps.data.enabled ? 'p-button-warning' : 'p-button-success'"
-                class="p-button-sm"
-                :title="slotProps.data.enabled ? t('禁用') : t('启用')" />
-              <Button
-                icon="pi pi-trash"
-                size="small"
-                @click="deleteModel(slotProps.data)"
-                class="p-button-text p-button-sm p-button-danger"
-                :title="t('删除')" />
-            </div>
-          </template>
-        </Column>
-      </DataTable>
+        :columns="aiModelColumns"
+        rowKey="id"
+        size="small"
+        striped
+        bordered />
     </div>
 
     <!-- 模型统计图表 -->
@@ -182,7 +103,8 @@
           icon="pi pi-refresh"
           @click="refreshStats"
           :loading="isStatsLoading"
-          class="p-button-outlined p-button-sm" />
+          variant="secondary"
+          size="small" />
       </div>
       <ModelStatsChart ref="modelStatsChartRef" />
     </div>
@@ -196,11 +118,12 @@
   import { useAPI } from '@/api';
   import { computed, onMounted, ref } from 'vue';
   import { useI18n } from '@/composables/useI18n';
-  import { Button, Badge, DataTable, Column } from '@/components/base';
+  import { Button, Badge, DataTable } from '@/components/base';
   import { useConfirm } from '@/composables/useConfirm';
   import { useToast } from '@/composables/useToast';
   import AiModelForm from './components/AiModelForm.vue';
   import ModelStatsChart from './components/ModelStatsChart.vue';
+  import { h } from 'vue';
 
   const { API } = useAPI();
   const { t } = useI18n();
@@ -268,6 +191,91 @@
     return filtered;
   });
 
+  // 表格列定义
+  const aiModelColumns = computed(() => [
+    {
+      key: 'id',
+      title: t('ID'),
+      width: '80px',
+    },
+    {
+      key: 'name',
+      title: t('模型名称'),
+      width: '150px',
+    },
+    {
+      key: 'model',
+      title: t('模型标识'),
+      width: '150px',
+      render: (row: any) =>
+        h('code', { class: 'text-sm bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded' }, row.model),
+    },
+    {
+      key: 'baseUrl',
+      title: t('API地址'),
+      width: '200px',
+      render: (row: any) =>
+        h('div', { class: 'text-sm text-gray-600 dark:text-gray-400 truncate', title: row.baseUrl }, row.baseUrl),
+    },
+    {
+      key: 'enabled',
+      title: t('状态'),
+      width: '100px',
+      render: (row: any) =>
+        h(
+          Badge,
+          { value: row.enabled ? t('启用') : t('禁用'), variant: row.enabled ? 'success' : 'danger', size: 'small' },
+        ),
+    },
+    {
+      key: 'weight',
+      title: t('权重'),
+      width: '80px',
+      render: (row: any) => h('span', { class: 'font-mono' }, row.weight),
+    },
+    {
+      key: 'maxTokens',
+      title: t('最大Token'),
+      width: '100px',
+      render: (row: any) =>
+        h('span', { class: 'font-mono' }, (row.maxTokens || 2000).toLocaleString()),
+    },
+    {
+      key: 'temperature',
+      title: t('温度'),
+      width: '80px',
+      render: (row: any) => h('span', { class: 'font-mono' }, row.temperature || 0.7),
+    },
+    {
+      key: 'actions',
+      title: t('操作'),
+      width: '150px',
+      render: (row: any) =>
+        h('div', { class: 'flex gap-1' }, [
+          h(Button, {
+            icon: 'pi pi-pencil',
+            size: 'small',
+            onClick: () => editModel(row),
+            title: t('编辑'),
+          }),
+          h(Button, {
+            icon: 'pi pi-play',
+            size: 'small',
+            variant: row.enabled ? 'danger' : 'primary',
+            onClick: () => toggleModelStatus(row),
+            title: row.enabled ? t('禁用') : t('启用'),
+          }),
+          h(Button, {
+            icon: 'pi pi-trash',
+            size: 'small',
+            variant: 'danger',
+            onClick: () => deleteModel(row),
+            title: t('删除'),
+          }),
+        ]),
+    },
+  ]);
+
   // 加载AI模型数据
   const loadModels = async () => {
     isLoading.value = true;
@@ -279,7 +287,7 @@
     } catch (error) {
       console.error('加载AI模型失败:', (error as Error).message);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: t('失败'),
         detail: t('加载失败：') + ((error as Error).message || t('未知错误')),
         life: 3000,
@@ -310,12 +318,12 @@
       icon: 'pi pi-exclamation-triangle',
       rejectProps: {
         label: t('取消'),
-        severity: 'secondary',
+        variant: 'secondary',
         outlined: true,
       },
       acceptProps: {
         label: model.enabled ? t('禁用') : t('启用'),
-        severity: model.enabled ? 'warning' : 'success',
+        variant: model.enabled ? 'danger' : 'primary',
       },
       accept: async () => {
         try {
@@ -325,7 +333,7 @@
           });
 
           toast.add({
-            severity: 'success',
+            variant: 'success',
             summary: t('成功'),
             detail: t('{0}成功', model.enabled ? t('禁用') : t('启用')),
             life: 3000,
@@ -334,7 +342,7 @@
         } catch (error) {
           console.error('切换模型状态失败:', (error as Error).message);
           toast.add({
-            severity: 'error',
+            variant: 'error',
             summary: t('失败'),
             detail: t('操作失败：') + ((error as Error).message || t('未知错误')),
             life: 3000,
@@ -356,12 +364,12 @@
       icon: 'pi pi-exclamation-triangle',
       rejectProps: {
         label: t('取消'),
-        severity: 'secondary',
+        variant: 'secondary',
         outlined: true,
       },
       acceptProps: {
         label: t('删除'),
-        severity: 'danger',
+        variant: 'danger',
       },
       accept: async () => {
         try {
@@ -370,7 +378,7 @@
           });
 
           toast.add({
-            severity: 'success',
+            variant: 'success',
             summary: t('成功'),
             detail: t('删除成功'),
             life: 3000,
@@ -379,7 +387,7 @@
         } catch (error) {
           console.error('删除模型失败:', (error as Error).message);
           toast.add({
-            severity: 'error',
+            variant: 'error',
             summary: t('失败'),
             detail: t('删除失败：') + ((error as Error).message || t('未知错误')),
             life: 3000,
@@ -407,7 +415,7 @@
     } catch (error) {
       console.error('刷新统计数据失败:', error);
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: t('失败'),
         detail: t('刷新统计数据失败：') + ((error as Error).message || t('未知错误')),
         life: 3000,

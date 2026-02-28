@@ -73,7 +73,7 @@
     console.log('[res]', res);
     loginGoto(res, { r: props.r });
     toast.add({
-      severity: 'success',
+      variant: 'success',
       summary: '登录成功',
       detail: '欢迎回来，正在为您跳转...',
       life: 3000,

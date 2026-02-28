@@ -6,7 +6,7 @@
         v-show="githubStarShow !== 'hide'"
         href="https://github.com/2234839/TsFullStack"
         target="_blank"
-        class="github-button large-button flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+        class="github-button large-button flex items-center gap-2 px-4 py-3 bg-linear-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
         :class="{
           'button-show': githubStarShow !== 'hide',
           'button-hide': githubStarShow === 'hide',

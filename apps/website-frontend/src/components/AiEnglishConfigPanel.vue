@@ -2,7 +2,7 @@
   <div class="flex flex-col gap-4 p-4">
     <div class="flex items-center justify-between">
       <h3 class="text-lg font-medium">{{ t('AI 配置') }}</h3>
-      <Tag severity="info" value="混合模式" />
+      <Tag variant="info" value="混合模式" />
     </div>
 
     <!-- 说明信息 -->
@@ -58,7 +58,7 @@
     </div>
 
     <div class="flex gap-2 justify-end">
-      <Button :label="t('重置')" severity="secondary" @click="resetConfig" />
+      <Button :label="t('重置')" variant="secondary" @click="resetConfig" />
       <Button :label="t('保存')" @click="saveConfig" />
     </div>
   </div>

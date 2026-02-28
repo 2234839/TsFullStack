@@ -6,8 +6,8 @@
         <h3 class="text-lg font-medium text-gray-800">
           <slot name="title">执行记录</slot>
         </h3>
-        <!-- <Badge :value="totalRecords" severity="info" size="small" />
-        <Badge v-if="unreadCount > 0" :value="unreadCount" severity="warning" size="small" /> -->
+        <!-- <Badge :value="totalRecords" variant="info" size="small" />
+        <Badge v-if="unreadCount > 0" :value="unreadCount" variant="warning" size="small" /> -->
       </div>
       <div class="flex gap-2">
         <Tooltip v-if="unreadCount > 0" content="全部标记为已读">
@@ -22,7 +22,7 @@
             icon="pi pi-refresh"
             @click="loadExecutionRecords"
             :loading="loading"
-            severity="secondary"
+            variant="secondary"
             size="small" />
         </Tooltip>
         <SelectButton
@@ -36,7 +36,7 @@
           <Button
             icon="pi pi-filter"
             @click="showComparisonFilter = !showComparisonFilter"
-            :severity="showComparisonFilter ? 'primary' : 'secondary'"
+            :variant="showComparisonFilter ? 'primary' : 'secondary'"
             size="small" />
         </Tooltip>
       </div>
@@ -51,7 +51,7 @@
           @click="showComparisonFilter = false"
           size="small"
           text
-          severity="secondary" />
+          variant="secondary" />
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="flex items-center gap-2">
@@ -125,7 +125,7 @@
               @click="toggleExecutionDetails(slotProps.data)"
               size="small"
               text
-              severity="secondary"
+              variant="secondary"
               class="w-8 h-8" />
           </template>
         </Column>
@@ -232,7 +232,7 @@
               <Tooltip :content="data.isRead ? '标记为未读' : '标记为已读'">
                 <Button
                   :icon="data.isRead ? 'pi pi-circle' : 'pi pi-circle-fill'"
-                  :severity="data.isRead ? 'secondary' : ''"
+                  :variant="data.isRead ? 'secondary' : ''"
                   @click="toggleReadStatus(data)"
                   size="small" />
               </Tooltip>
@@ -241,21 +241,21 @@
                   :icon="expandedRows[data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'"
                   @click="toggleExecutionDetails(data)"
                   size="small"
-                  severity="info" />
+                  variant="info" />
               </Tooltip>
               <Tooltip v-if="data.status === 'running'" content="取消执行">
                 <Button
                   icon="pi pi-times"
                   @click="confirmCancelExecution(data)"
                   size="small"
-                  severity="warning" />
+                  variant="warning" />
               </Tooltip>
               <Tooltip content="删除记录">
                 <Button
                   icon="pi pi-trash"
                   @click="confirmDeleteExecution(data)"
                   size="small"
-                  severity="danger" />
+                  variant="danger" />
               </Tooltip>
             </div>
           </template>
@@ -285,8 +285,8 @@
       <p>确定要删除这条执行记录吗？此操作无法撤销。</p>
 
       <template #footer>
-        <Button label="取消" @click="showDeleteDialog = false" severity="secondary" />
-        <Button label="删除" @click="deleteExecution" :loading="deleting" severity="danger" />
+        <Button label="取消" @click="showDeleteDialog = false" variant="secondary" />
+        <Button label="删除" @click="deleteExecution" :loading="deleting" variant="danger" />
       </template>
     </Dialog>
 
@@ -295,12 +295,12 @@
       <p>确定要取消这次执行吗？</p>
 
       <template #footer>
-        <Button label="取消" @click="showCancelDialog = false" severity="secondary" />
+        <Button label="取消" @click="showCancelDialog = false" variant="secondary" />
         <Button
           label="确认取消"
           @click="cancelExecution"
           :loading="cancelling"
-          severity="warning" />
+          variant="warning" />
       </template>
     </Dialog>
   </div>

@@ -4,7 +4,7 @@ TsFullStack 是一个 TypeScript 全栈框架，支持前端直接操作数据�
 
 ### 核心技术栈
 - **后端**: TypeScript + Prisma + ZenStack + Effect + Fastify
-- **前端**: TypeScript + Vue 3 + Tailwind CSS + reka-ui（自定义组件库）
+- **前端**: TypeScript + Vue 3 + Tailwind CSS + reka-ui（自定义组件库）+ @vueuse/core (多多使用use来简化vue中的逻辑)
 - **浏览器扩展**: WXT + Vue 3 + Tailwind CSS + PrimeVue
 
 **✅ PrimeVue 已完全移除** - website-frontend 已完成从 PrimeVue 到自定义组件库的迁移

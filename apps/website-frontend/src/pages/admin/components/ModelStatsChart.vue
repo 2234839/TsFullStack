@@ -26,12 +26,7 @@
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
         {{ t('用户排行') }}
       </h3>
-      <DataTable :value="userStats" stripedRows responsiveLayout="scroll">
-        <Column field="userEmail" :header="t('用户邮箱')"></Column>
-        <Column field="requestCount" :header="t('请求数量')"></Column>
-        <Column field="totalTokens" :header="t('总令牌数')"></Column>
-        <Column field="lastUsed" :header="t('最后使用时间')"></Column>
-      </DataTable>
+      <DataTable :data="userStats" :columns="userStatsColumns" rowKey="userEmail" striped bordered />
 
       <!-- Pagination controls -->
       <div class="flex justify-between items-center mt-4">
@@ -63,24 +58,14 @@
       <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
         {{ t('详细统计') }}
       </h3>
-      <DataTable :value="detailedStats" stripedRows responsiveLayout="scroll">
-        <Column field="modelName" :header="t('模型名称')"></Column>
-        <Column field="requestCount" :header="t('请求数量')"></Column>
-        <Column field="successRate" :header="t('成功率')">
-          <template #body="slotProps">
-            {{ slotProps.data.successRate }}%
-          </template>
-        </Column>
-        <Column field="avgTokens" :header="t('平均令牌数')"></Column>
-        <Column field="lastUsed" :header="t('最后使用时间')"></Column>
-      </DataTable>
+      <DataTable :data="detailedStats" :columns="detailedStatsColumns" rowKey="modelName" striped bordered />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Chart, DataTable, Column, Button } from '@/components/base'
+import { Chart, DataTable, Button } from '@/components/base'
 import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
 
@@ -144,6 +129,27 @@ const doughnutChartData = ref({
 
 const detailedStats = ref<DetailedStats[]>([])
 const userStats = ref<UserStat[]>([])
+
+// 用户排行表格列定义
+const userStatsColumns = computed(() => [
+  { key: 'userEmail', title: t('用户邮箱') },
+  { key: 'requestCount', title: t('请求数量') },
+  { key: 'totalTokens', title: t('总令牌数') },
+  { key: 'lastUsed', title: t('最后使用时间') },
+])
+
+// 详细统计表格列定义
+const detailedStatsColumns = computed(() => [
+  { key: 'modelName', title: t('模型名称') },
+  { key: 'requestCount', title: t('请求数量') },
+  {
+    key: 'successRate',
+    title: t('成功率'),
+    render: (row: any) => `${row.successRate}%`,
+  },
+  { key: 'avgTokens', title: t('平均令牌数') },
+  { key: 'lastUsed', title: t('最后使用时间') },
+])
 const userActivityData = ref({
   labels: [] as string[],
   datasets: [

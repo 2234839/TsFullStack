@@ -164,7 +164,7 @@
       });
 
       toast.add({
-        severity: 'success',
+        variant: 'success',
         summary: t('成功'),
         detail: t('记录创建成功'),
         life: 3000,
@@ -176,7 +176,7 @@
       console.error('Failed to create record:', error);
 
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: t('错误'),
         detail: error.message || t('创建记录失败'),
         life: 5000,

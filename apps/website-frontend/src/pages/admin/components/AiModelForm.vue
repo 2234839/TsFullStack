@@ -170,14 +170,14 @@
         <Button
           :label="t('取消')"
           icon="pi pi-times"
-          @click="onCancel"
-          class="p-button-text" />
+          variant="text"
+          @click="onCancel" />
         <Button
           :label="t('保存')"
           icon="pi pi-check"
+          variant="primary"
           @click="onSubmit"
-          :loading="loading"
-          class="p-button-primary" />
+          :loading="loading" />
       </div>
     </template>
   </Dialog>

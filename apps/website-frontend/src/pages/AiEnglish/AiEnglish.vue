@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-900 p-4">
+    class="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-900 p-4">
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- 标题 -->
       <div class="text-center space-y-2">
@@ -20,12 +20,12 @@
               <div class="flex items-center gap-2">
                 <i class="pi pi-book" />
                 文章输入
-                <Tag v-if="isStudying" severity="info" class="ml-auto"> 学习中... </Tag>
+                <Tag v-if="isStudying" variant="info" class="ml-auto"> 学习中... </Tag>
                 <CommonSettingBtns class="ml-auto" />
                 <Tooltip :content="t('AI配置')" side="left">
                   <Button
                     icon="pi pi-cog"
-                    severity="secondary"
+                    variant="secondary"
                     text
                     rounded
                     @click="showConfigPanel = true" />
@@ -47,7 +47,7 @@
                     <Button
                       v-if="syncData.article"
                       icon="pi pi-times"
-                      severity="secondary"
+                      variant="secondary"
                       @click="syncData.article = ''"
                       label="清空" />
                     <div class="flex-1 flex gap-1">
@@ -55,18 +55,18 @@
                         @click="handleArticleSubmit(true)"
                         class="flex-1"
                         :disabled="isAnalyzing || isSegmenting"
-                        severity="primary"
+                        variant="primary"
                         :label="isSegmenting ? 'AI分段中...' : isAnalyzing ? 'AI分析中...' : 'AI智能分段'" />
                       <Tooltip content="使用传统分段方式（基于空行和句号）" side="top">
                         <Button
                           @click="handleArticleSubmit(false)"
-                          severity="secondary"
+                          variant="secondary"
                           :disabled="isAnalyzing || isSegmenting"
                           :label="'传统分段'" />
                       </Tooltip>
                     </div>
                     <Button
-                      severity="secondary"
+                      variant="secondary"
                       @click="loadSampleArticle()"
                       :disabled="isAnalyzing || isSegmenting"
                       label="示例分段" />
@@ -95,7 +95,7 @@
                   <Tooltip content="智能分段信息" side="top">
                     <Button
                       v-if="smartSegmentation"
-                      severity="info"
+                      variant="info"
                       size="small"
                       text
                       rounded
@@ -120,7 +120,7 @@
                 <div class="flex items-center gap-2">
                   <Tooltip content="上一段" side="top">
                     <Button
-                      severity="secondary"
+                      variant="secondary"
                       size="small"
                       @click="goToParagraph(syncData.currentParagraphIndex - 1)"
                       :disabled="syncData.currentParagraphIndex === 0"
@@ -133,7 +133,7 @@
                       :content="getParagraphTooltip(paragraph, index)"
                       side="top">
                       <Button
-                        :severity="index === syncData.currentParagraphIndex ? 'primary' : 'secondary'"
+                        :variant="index === syncData.currentParagraphIndex ? 'primary' : 'secondary'"
                         size="small"
                         :class="[
                           'flex-1',
@@ -402,7 +402,7 @@
                   <div class="flex items-center gap-2">
                     <i class="pi pi-bookmark text-purple-600" />
                     <span>总段落数:</span>
-                    <Tag :value="smartSegmentation.totalSegments.toString()" severity="info" />
+                    <Tag :value="smartSegmentation.totalSegments.toString()" variant="info" />
                   </div>
                   <div class="flex items-center gap-2">
                     <i class="pi pi-clock text-purple-600" />
@@ -423,7 +423,7 @@
                     </div>
                     <div v-if="currentParagraph.estimatedReadingTime" class="flex items-center gap-2">
                       <span class="text-gray-600">预计阅读:</span>
-                      <Tag :value="`${Math.ceil(currentParagraph.estimatedReadingTime / 60)}分钟`" severity="info" />
+                      <Tag :value="`${Math.ceil(currentParagraph.estimatedReadingTime / 60)}分钟`" variant="info" />
                     </div>
                     <div v-if="currentParagraph.reason" class="flex items-start gap-2">
                       <span class="text-gray-600">分段理由:</span>
@@ -436,7 +436,7 @@
                         <Tag
                           v-for="word in currentParagraph.keyVocabulary"
                           :key="word"
-                          severity="secondary"
+                          variant="secondary"
                           class="text-xs">
                           {{ word }}
                         </Tag>
@@ -484,7 +484,7 @@
                     <Tag
                       v-for="(word, index) in aiAnalysis.keyWords"
                       :key="index"
-                      severity="info"
+                      variant="info"
                       class="text-xs">
                       {{ word }}
                     </Tag>
@@ -521,7 +521,7 @@
             <template #content>
               <div class="space-y-4">
                 <div
-                  class="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
+                  class="text-center p-4 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
                   <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">
                     {{ stats.averageLevel }}
                   </div>
@@ -531,7 +531,7 @@
                 <div class="space-y-3">
                   <div class="flex justify-between items-center">
                     <span class="text-sm">总词汇量</span>
-                    <Tag :value="stats.total.toString()" severity="info" />
+                    <Tag :value="stats.total.toString()" variant="info" />
                   </div>
 
                   <div class="space-y-2">
@@ -972,7 +972,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     } catch (error) {
       console.error('AI智能分段失败:', error);
       toast.add({
-        severity: 'warn',
+        variant: 'warn',
         summary: '智能分段失败',
         detail: '回退到传统分段方式',
         life: 3000,
@@ -1006,7 +1006,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       console.error('AI分析失败:', error);
       // 显示错误提示给用户
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: 'AI分析失败',
         detail: error instanceof Error ? error.message : '未知错误',
         life: 3000,
@@ -1020,7 +1020,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       : `已分割为 ${syncData.value.paragraphs.length} 个段落`;
 
     toast.add({
-      severity: 'success',
+      variant: 'success',
       summary: '开始学习',
       detail: `${segmentInfo}，开始第一段学习！`,
       life: 3000,
@@ -1159,7 +1159,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       };
     } catch (error) {
       toast.add({
-        severity: 'error',
+        variant: 'error',
         summary: '翻译失败',
         detail: '段落翻译服务暂时不可用:' + error,
         life: 3000,
@@ -1229,7 +1229,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         console.error('AI翻译失败:', error);
         // 显示错误提示给用户
         toast.add({
-          severity: 'error',
+          variant: 'error',
           summary: 'AI翻译失败',
           detail: error instanceof Error ? error.message : '未知错误',
           life: 3000,
@@ -1293,7 +1293,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     selectionState.selectedWords = new Set();
 
     toast.add({
-      severity: 'success',
+      variant: 'success',
       summary: '段落学习完成！',
       detail: `第${
         syncData.value.currentParagraphIndex + 1

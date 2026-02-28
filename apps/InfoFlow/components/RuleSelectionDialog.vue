@@ -21,7 +21,7 @@
         <Button
           icon="pi pi-filter-slash"
           @click="clearFilters"
-          severity="secondary"
+          variant="secondary"
           size="small"
           label="清除" />
       </div>
@@ -47,28 +47,28 @@
             icon="pi pi-check-double"
             label="全选当前"
             size="small"
-            severity="info"
+            variant="info"
             @click="selectAllFiltered" />
           <Button
             v-if="showBulkActions"
             icon="pi pi-check"
             label="选择激活的"
             size="small"
-            severity="success"
+            variant="success"
             @click="selectByStatus('active')" />
           <Button
             v-if="showBulkActions"
             icon="pi pi-pause"
             label="选择暂停的"
             size="small"
-            severity="warning"
+            variant="warning"
             @click="selectByStatus('paused')" />
           <Button
             v-if="showBulkActions"
             icon="pi pi-times"
             label="选择未激活的"
             size="small"
-            severity="secondary"
+            variant="secondary"
             @click="selectByStatus('inactive')" />
         </div>
       </div>
@@ -135,12 +135,12 @@
     </div>
 
     <template #footer>
-      <Button label="取消" @click="cancel" severity="secondary" />
+      <Button label="取消" @click="cancel" variant="secondary" />
       <Button 
         :label="confirmLabel" 
         @click="confirm" 
         :disabled="selectedRules.length === 0"
-        :severity="confirmSeverity" />
+        :variant="confirmVariant" />
     </template>
   </Dialog>
 </template>
@@ -161,7 +161,7 @@ interface Props {
   rules: Rule[];
   title: string;
   confirmLabel: string;
-  confirmSeverity?: 'success' | 'info' | 'warning' | 'danger';
+  confirmVariant?: 'success' | 'info' | 'warning' | 'danger';
   showBulkActions?: boolean;
   initialSelected?: string[];
 }
@@ -173,7 +173,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  confirmSeverity: 'info',
+  confirmVariant: 'info',
   showBulkActions: true,
   initialSelected: () => [],
 });
