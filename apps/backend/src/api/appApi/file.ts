@@ -1,4 +1,4 @@
-import { File as FileModel } from '@zenstackhq/runtime/models';
+import { File as FileModel } from '../../../.zenstack/models';
 import { Effect } from 'effect';
 import { PrismaService } from '../../Context/PrismaService';
 import { FileAccessService } from '../../Context/FileAccessService';

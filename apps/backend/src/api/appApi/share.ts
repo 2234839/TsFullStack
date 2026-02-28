@@ -1,4 +1,4 @@
-import { UserData as UserDataModel } from '@zenstackhq/runtime/models';
+import { UserData as UserDataModel } from '../../../.zenstack/models';
 import { Effect } from 'effect';
 import { PrismaService } from '../../Context/PrismaService';
 

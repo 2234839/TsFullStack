@@ -1,56 +1,51 @@
 // This is a sample model to get you started.
 
+/// Policy plugin for access control
+plugin policy {
+    provider = '@zenstackhq/plugin-policy'
+}
+
+/// TypeScript plugin for code generation
+plugin typescript {
+    provider = '@core/typescript'
+    output = './.zenstack'
+}
+
 /// A sample data source using local sqlite db.
 datasource db {
     provider = 'sqlite'
     url = env('DATABASE_URL')
 }
 
-generator client {
-    provider = "prisma-client-js"
-    // 不要配置这个！！会与 zenstack 冲突
-    // output   = "client"
-}
-
-///  https://zenstack.dev/docs/guides/multiple-schema#abstract-model-inheritance
-// 控制所有模型的通用鉴权策略
-abstract model BaseAuth {
-    /// 通过多对多的关系来实现用户角色的鉴权，允许管理员角色进行所有操作
-    @@allow('all', auth().role?[name == 'admin'])
-    /// 禁止未登录用户进行任何操作
-    @@deny('all', !auth())
-}
-// 控制一些通用附加字段（模型本身不会再定义这些字段）
-abstract model BaseTime extends BaseAuth {
+/// Base types for mixin - 通用字段类型定义
+type BaseTime {
     created DateTime @default(now())
     updated DateTime @updatedAt
-    // 禁止修改创建时间
-    @@deny('update', future().created != created)
 }
-abstract model BaseId {
+
+type BaseId {
     id Int @id @default(autoincrement())
-    // 禁止修改 id
-    @@deny('update', future().id != id)
 }
-// 控制一些可能会被重写的字段，
-abstract model Base extends BaseTime, BaseId {
+
+/// 通用基础类型，包含时间和ID
+type Base with BaseTime, BaseId {
 }
 
 
 /// 角色
-model Role extends Base {
+model Role with Base {
     name  String @unique
     users User[]
-    @@allow("read",!!auth())
+    @@allow("read",auth() != null)
 }
 
 /// User model
-model User extends BaseTime {
+model User with BaseTime {
     id           String         @id @default(cuid())
-    // 禁止修改 id
-    @@allow('update', future().id == id)
+    // 注意：v3 中移除了 future()，id 是主键数据库层已禁止修改
     email        String         @unique @length(6, 32)
-    password     String         @password @omit
+    // password 字段 - 在应用层处理哈希，不再使用 @password 属性（v3 已移除）
+    password     String
     posts        Post[]
     role         Role[]
 
@@ -58,7 +53,7 @@ model User extends BaseTime {
     /// 允许用户读取和更新自己的信息
     @@allow('read', auth() == this)
     /// 禁止未登录用户进行任何操作
-    @@deny('all', !auth())
+    @@deny('all', auth() == null)
 
     file         File[]
     avatar       String?
@@ -71,7 +66,7 @@ model User extends BaseTime {
 }
 
 /// UserSession 用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
-model UserSession extends Base {
+model UserSession with Base {
     token     String   @default(cuid())
     expiresAt DateTime
     userId    String
@@ -87,7 +82,7 @@ enum OauthProvider {
     GITHUB
 }
 /// 第三方账号关联
-model OAuthAccount extends Base {
+model OAuthAccount with Base {
     userId     String        // 关联的用户ID
     user       User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -113,7 +108,7 @@ enum FileStatusEnum {
     protected
     deleted
 }
-model File extends Base {
+model File with Base {
     filename    String      // 原始文件名
     mimetype    String      // 文件类型
     size        Int         // 文件大小（字节）
@@ -133,7 +128,7 @@ enum LogLevel {
     WARN
     ERROR
 }
-model SystemLog extends BaseId,BaseAuth {
+model SystemLog with BaseId {
     level      LogLevel
     message    String?
     logs       Json?
@@ -141,7 +136,7 @@ model SystemLog extends BaseId,BaseAuth {
     created    DateTime @default(now())
 }
 /// 用户数据存储模型 - 用于存储用户的应用JSON数据
-model UserData extends Base {
+model UserData with Base {
     // 数据标识符，可用于区分不同类型或用途的数据
     key         String
     // 实际存储的JSON数据
@@ -166,7 +161,7 @@ model UserData extends Base {
 }
 
 /// 任务队列处理
-model Queue extends Base {
+model Queue with Base {
     name        String    // 队列名称，可用于区分不同类型的任务
     payload     Json    // 任务数据，JSON 格式
     status      String    // PENDING, PROCESSING, COMPLETED, FAILED
@@ -184,12 +179,12 @@ model Queue extends Base {
     @@index([name, status]) // 按队列名称和状态查询
     @@index([workerId, status]) // 按工作者和状态查询
 }
+
+
 // ===== 下面是业务模型，与系统基础无关，可自行选择需要的模块删改 =====
 
-
-
 /// Post model
-model Post  extends Base {
+model Post  with Base {
     title     String  @length(1, 256)
     content   String
     published Boolean @default(false)
@@ -197,13 +192,13 @@ model Post  extends Base {
     authorId  String
 
     // allow read for all signin users
-    @@allow('read', auth() != null && published)
+    @@allow('read',auth() != null && published)
     // full access by author
     @@allow('all', author == auth())
 }
 
 /// AI 英语学习数据模型
-model Word extends Base {
+model Word with Base {
     /// word 的小写形式，作为唯一标识符
     key           String
     /// 单词原文
@@ -237,7 +232,7 @@ model Word extends Base {
 }
 
 /// AI 模型配置
-model AiModel extends Base {
+model AiModel with Base {
     /// 模型名称
     name        String
     /// 模型标识符
@@ -245,7 +240,8 @@ model AiModel extends Base {
     /// API基础URL
     baseUrl     String
     /// API密钥
-    apiKey      String @omit
+    apiKey      String
+    // 注意：不再使用 @omit 属性（v3 已移除），需要在查询时手动排除
     /// 最大Token数
     maxTokens   Int @default(2000)
     /// 温度参数
@@ -265,11 +261,11 @@ model AiModel extends Base {
 
     /// 权限控制：只有管理员可以管理AI模型
     @@allow('all', auth().role?[name == 'admin'])
-    @@allow('read', !!auth())
+    @@allow('read', auth() != null)
 }
 
 /// ai API调用日志记录
-model AiCallLog extends Base {
+model AiCallLog with Base {
     /// 客户端IP地址
     clientIp    String
     /// 用户ID（可选，未登录用户为null）
@@ -298,6 +294,6 @@ model AiCallLog extends Base {
     /// - 普通用户可以查看自己的数据（只读）
     /// - 未登录用户不能访问
     @@allow('all', auth().role?[name == 'admin'])
-    @@allow('read', auth() != null && userId == auth().id)
+    @@allow('read',auth() != null && userId == auth().id)
 }
 

@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { File as FileModel } from '@zenstackhq/runtime/models';
+import { File as FileModel } from '../../.zenstack/models';
 import { MsgError } from '../util/error';
 import { FilePathService } from './FilePathService';
 import { AppConfigService } from './AppConfig';

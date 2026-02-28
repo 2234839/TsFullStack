@@ -26,9 +26,13 @@
   import { useAPI } from '@/api';
   import {
     injectModelMetaKey,
-    type DBmodelNames,
     type FieldInfo,
     type ModelMeta,
+    isDataModelField,
+    type ModelMetaNames,
+    getBackLinkFieldName,
+    getModelDbName,
+    getModelAPI,
   } from '@/components/AutoTable/type';
   import { findDisplayField, findIdField } from '@/components/AutoTable/util';
 
@@ -81,18 +85,22 @@
   }>();
 
   //#region 列相关数据
-  const relatedModelName = props.field.type;
+  const relatedModelName = props.field.type as string;
   const relatedModel = Object.values(modelMeta.models).find(
     (model) => model.name === relatedModelName,
   )!;
   const relatedModelKey = Object.keys(modelMeta.models).find(
-    (key) => modelMeta?.models[key]?.name === relatedModelName,
-  ) as DBmodelNames;
+    (key) => (modelMeta?.models as any)[key]?.name === relatedModelName,
+  ) as ModelMetaNames;
 
   const refIdField = findIdField(modelMeta, relatedModelName)!;
   const displayField = findDisplayField(modelMeta, relatedModelKey) || refIdField;
 
-  const rowModelIdField = findIdField(modelMeta, relatedModel.fields[props.field.backLink!]?.type || '');
+  // 获取反向字段名称（基于 ZenStack relation.opposite）
+  const backLinkFieldName = getBackLinkFieldName(props.field);
+  const rowModelIdField = backLinkFieldName
+    ? findIdField(modelMeta, (relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName]?.type as string || '')
+    : undefined;
   //#endregion
 
   const { API } = useAPI();
@@ -107,7 +115,7 @@
       list: [],
       count: 0,
     };
-    if (!field.isDataModel || !modelMeta) return initObj;
+    if (!isDataModelField(field) || !modelMeta) return initObj;
 
     const where = search
       ? {
@@ -117,34 +125,41 @@
         }
       : {};
 
-    const modelIdValue = props.row?.[rowModelIdField!.name];
+    const modelIdValue = rowModelIdField ? props.row?.[rowModelIdField.name] : undefined;
+    // 类型安全的模型访问
+    const relatedDbName = getModelDbName(relatedModelKey);
+    const relatedAPI = getModelAPI(API, relatedDbName);
     const [list, count] = await Promise.all([
-      API.db[relatedModelKey].findMany({
+      relatedAPI.findMany({
         where,
         select: {
           [refIdField.name]: true,
           [displayField.name]: true,
-          /** 需要查询出 backLink 的数据，用于判断是否被引用了  */
-          [props.field.backLink!]: {
-            /** 当没有id时就是where条件不成立了 */
-            ...(modelIdValue && {
-              where: {
-                [rowModelIdField!.name]: props.row?.[rowModelIdField!.name] ?? null,
-              },
-            }),
+          /** 需要查询出反向关系的数据，用于判断是否被引用了  */
+          ...(backLinkFieldName && {
+            [backLinkFieldName]: {
+              /** 当没有id时就是where条件不成立了 */
+              ...(rowModelIdField && modelIdValue && {
+                where: {
+                  [rowModelIdField.name]: props.row?.[rowModelIdField.name] ?? null,
+                },
+              }),
 
-            select: {
-              [rowModelIdField!.name]: true,
+              select: {
+                ...(rowModelIdField && {
+                  [rowModelIdField.name]: true,
+                }),
+              },
             },
-          },
+          }),
         },
         skip,
         take,
-      }),
-      API.db[relatedModelKey].count({ where }),
+      } as any),
+      relatedAPI.count({ where } as any),
     ]);
     list.forEach((el: any) => {
-      if (!el[props.field.backLink!].length || !modelIdValue) return;
+      if (!backLinkFieldName || !el[backLinkFieldName].length || !modelIdValue) return;
       // 应该先判断是否存在与 add 或remove 中，存在则跳过
       const selectItem = mapRemoteSelectItem(el);
       if (modelValue.add.some((item) => RemoteSelectUtils.itemEquals(item, selectItem))) return;

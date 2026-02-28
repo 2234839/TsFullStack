@@ -86,6 +86,7 @@
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { FieldInfo } from './type';
+  import { isDataModelField } from './type';
 
   const { t } = useI18n();
 
@@ -103,8 +104,8 @@
     return Object.values(props.modelFields).filter((field: FieldInfo) => {
       // 排除关系字段等不适合筛选的字段
       return (
-        !field.isDataModel &&
-        ['String', 'Int', 'Float', 'Boolean', 'DateTime', 'Decimal', 'BigInt'].includes(field.type)
+        !isDataModelField(field) &&
+        ['String', 'Int', 'Float', 'Boolean', 'DateTime', 'Decimal', 'BigInt'].includes(field.type as string)
       );
     });
   });
@@ -149,7 +150,8 @@
 
     if (!field) return [];
 
-    switch (field.type) {
+    // 使用 as string 避免 TypeScript 的类型收窄问题
+    switch (field.type as string) {
       case 'String':
         return [
           ...commonOperators,
@@ -207,11 +209,11 @@
       let value = filter.value;
 
       // Convert value to the correct type based on the field type
-      if (filter.field.type === 'Int') {
+      if (filter.field.type === 'Int' as string) {
         value = parseInt(value);
-      } else if (filter.field.type === 'Float' || filter.field.type === 'Decimal') {
+      } else if (filter.field.type === 'Float' as string || filter.field.type === 'Decimal' as string) {
         value = parseFloat(value);
-      } else if (filter.field.type === 'Boolean') {
+      } else if (filter.field.type === 'Boolean' as string) {
         value = value === 'true' || value === true; // Handle string or boolean
       }
 
@@ -222,9 +224,9 @@
         if (typeof value === 'string') {
           arrayValue = value.split(',').map((v) => v.trim());
           // Convert array values to the correct type
-          if (filter.field.type === 'Int') {
+          if (filter.field.type === 'Int' as string) {
             arrayValue = arrayValue.map((v) => parseInt(v));
-          } else if (filter.field.type === 'Float' || filter.field.type === 'Decimal') {
+          } else if (filter.field.type === 'Float' as string || filter.field.type === 'Decimal' as string) {
             arrayValue = arrayValue.map((v) => parseFloat(v));
           }
         } else if (Array.isArray(value)) {

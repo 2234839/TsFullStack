@@ -13,7 +13,6 @@
  * </Dropdown>
  * ```
  */
-import { computed } from 'vue';
 import {
   DropdownMenuRoot,
   DropdownMenuTrigger,

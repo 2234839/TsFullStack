@@ -67,8 +67,8 @@
   import { computed, h, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
   import AutoColumn from './AutoColumn.vue';
-  import { injectModelMetaKey, type DBmodelNames } from './type';
-  import { findIdField, useModelMeta } from './util';
+  import { injectModelMetaKey, type ModelMetaNames, type Model, type FieldInfo, getModelAPI, isDataModelField } from './type';
+  import { findIdField, useModelMeta, getModelDbName as exportGetModelDbName } from './util';
   const { t } = useI18n();
   const confirm = useConfirm();
   const toast = useToast();
@@ -110,15 +110,17 @@
     if (!selectModelName.value) return undefined;
     return findModelMeta(selectModelName.value);
   });
-  function findModelMeta(modelName: string) {
-    return Object.entries(models.value)
+
+  function findModelMeta(modelName: string): { modelKey: string; model: Model } | undefined {
+    const result = Object.entries(models.value)
       .map(([modelKey, model]) => {
         return {
           modelKey,
           model,
         };
       })
-      .find((el) => el.model.name === modelName);
+      .find((el) => (el.model as Model).name === modelName);
+    return result as { modelKey: string; model: Model } | undefined;
   }
   const filter = ref({});
   //#region 表格分页
@@ -145,23 +147,25 @@
 
   //#region 表格数据存储及加载
   /** 编辑数据的临时存储，用于保存每行的编辑结果  */
-  const editData = ref<Array<Record<string, any>>>([] as rowsType[]);
-  type rowsType = Awaited<ReturnType<(typeof API.db)[DBmodelNames]['findMany']>>;
+  const editData = ref<Array<Record<string, any>>>([]);
   const tableData = useAsyncState(
     async (opt: { modelKey: string; page: number; pageSize: number }) => {
       const meta = modelMeta.state.value;
       const models = meta?.models;
       if (!meta || !models) return { list: [], modelFields: {}, count: 0 };
-
-      const modelFields = models[opt.modelKey]?.fields || {};
+  
+      const modelFields = (models[opt.modelKey as ModelMetaNames]?.fields || {}) as unknown as Record<string, FieldInfo>;
       let _count = { select: {} as { [key: string]: boolean } };
       Object.entries(modelFields).forEach(([key, field]) => {
-        if (field.isDataModel && field.isArray) {
+        if ('relation' in field && 'array' in field && field.array) {
           _count.select[key] = true;
         }
       });
+      // 类型安全的模型访问
+      const modelName = exportGetModelDbName(opt.modelKey as ModelMetaNames);
+      const modelAPI = getModelAPI(API, modelName);
       const [list, count] = await Promise.all([
-        API.db[opt.modelKey as DBmodelNames].findMany({
+        modelAPI.findMany({
           take: opt.pageSize,
           skip: (opt.page - 1) * opt.pageSize,
           where: filter.value,
@@ -169,7 +173,7 @@
             include: { _count },
           }),
         }),
-        API.db[opt.modelKey as DBmodelNames].count({
+        modelAPI.count({
           where: filter.value,
         }),
       ]);
@@ -229,11 +233,11 @@
 
       /** 修改关联字段不能直接修改字段值，需要使用 connect 关联字段的 ID  */
       editFields.forEach((editFieldName) => {
-        const field = selectModelMeta.value?.model.fields[editFieldName]!;
+        const field = (selectModelMeta.value?.model.fields as unknown as Record<string, FieldInfo>)[editFieldName]!;
         /** 被引用的模型的 id 列定义 */
-        const refIdField = findIdField(modelMeta.state.value!, field.type)!;
+        const refIdField = findIdField(modelMeta.state.value!, field.type as string)!;
 
-        if (field.isDataModel) {
+        if (isDataModelField(field)) {
           const relationData = editRow[editFieldName] as RelationSelectData;
           editRow[editFieldName] = {
             connect: relationData.add.map((item) => ({
@@ -246,16 +250,17 @@
         }
       });
       console.log('[editRow]', editRow);
-      const updateRes = await API.db[selectModelMeta.value!.modelKey as DBmodelNames].update({
+      const modelKey = selectModelMeta.value!.modelKey;
+      const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
+      const modelAPI = getModelAPI(API, modelName);
+      const updateRes = await modelAPI.update({
         data: editRow,
-        // @ts-ignore
         where: {
-          // @ts-ignore
-          [idField.name]: rawRow[idField.name],
-        },
+          [idField.name]: (rawRow as any)[idField.name],
+        } as any,
         select: {
           [idField.name]: true,
-        },
+        } as any,
       });
       console.log('[updateRes]', updateRes);
     }
@@ -268,7 +273,7 @@
       });
     });
   }
-  async function deleteRows(rows: rowsType) {
+  async function deleteRows(rows: Array<Record<string, any>>) {
     /** 查找一个可以用于更新指定记录的唯一主键字段  */
     const idField = findIdField(modelMeta.state.value!, selectModelName.value);
     if (!idField) return console.error('No ID field found in the model');
@@ -279,16 +284,19 @@
         detail: t('未选中数据'),
         life: 3000,
       });
-    await API.db[selectModelMeta.value!.modelKey as DBmodelNames].deleteMany({
+    const modelKey = selectModelMeta.value!.modelKey;
+    const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
+    const modelAPI = getModelAPI(API, modelName);
+    await modelAPI.deleteMany({
       where: {
-        OR: rows.map((row) => {
+        OR: rows.map((row: Record<string, any>) => {
           return {
             // @ts-ignore
             [idField.name]: row[idField.name],
           };
         }),
       },
-    });
+    } as any);
     toast.add({
       variant: 'info',
       summary: '删除数据',

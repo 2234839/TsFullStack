@@ -1,7 +1,8 @@
 import * as os from 'os';
 import * as crypto from 'crypto';
-import type { PrismaClient } from '@zenstackhq/runtime';
-import type { Queue as QueueModel } from '@prisma/client';
+import type { ClientContract } from '@zenstackhq/orm';
+import type { Queue as QueueModel } from '../../.zenstack/models';
+import { schema } from '../../.zenstack/schema';
 
 export type TaskMap = Record<string, { payload: any; result: any }>;
 
@@ -12,7 +13,7 @@ export interface AddTaskOptions {
 }
 
 export interface QueueOptions {
-  prisma: PrismaClient;
+  prisma: ClientContract<typeof schema>;
   pollingInterval?: number;
   concurrency?: number;
   instanceId?: string;
@@ -22,7 +23,7 @@ export interface QueueOptions {
 
 
 export class PrismaQueue<T extends TaskMap> {
-  public readonly prisma: PrismaClient;
+  public readonly prisma: ClientContract<typeof schema>;
   private readonly pollingInterval: number;
   private readonly concurrency: number;
   private readonly instanceId: string;

@@ -1,7 +1,7 @@
 <style scoped></style>
 <template>
   <div ref="__editEl" class="text-nowrap">
-    <template v-if="field.type === 'DateTime'">
+    <template v-if="fieldType === 'DateTime'">
       <DatePicker
         @show="datePickerShow = true"
         @hide="datePickerShow = false"
@@ -11,25 +11,25 @@
         v-model="editValue"
         class="w-full" />
     </template>
-    <template v-else-if="field.type === 'String'">
+    <template v-else-if="fieldType === 'String'">
       <Input v-model="editValue" class="w-full min-w-28" />
     </template>
-    <template v-else-if="field.type === 'Int'">
+    <template v-else-if="fieldType === 'Int'">
       <InputNumber v-model="editValue" class="w-full min-w-28" inputClass="w-full" />
     </template>
-    <template v-else-if="field.isDataModel">
+    <template v-else-if="isRelationField">
       <div class="flex items-center">
         <!-- 关系字段非常特殊，这里做了大量不是很好的操作，以后有好办法了再优化吧 -->
         <div class="border-r pr-1">
-          {{ row?._count?.[field.name] }}
+          {{ row?._count?.[fieldName] }}
         </div>
         <RelationSelect :field="field" :row="row" @change="changeRelation" />
       </div>
     </template>
     <template v-else>
-      <Tooltip :content="`Unsupported field type: ${field.type}`" side="top">
+      <Tooltip :content="`Unsupported field type: ${fieldType}`" side="top">
         <span class="text-danger-500 text-sm">
-          {{ field.type }}
+          {{ fieldType }}
         </span>
       </Tooltip>
       {{ cellData }}
@@ -45,7 +45,7 @@
   import { DatePicker } from '@/components/base';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, ref, useTemplateRef } from 'vue';
-  import { type FieldInfo } from './type';
+  import { type FieldInfo, isDataModelField } from './type';
 
   const props = defineProps<{
     field: FieldInfo;
@@ -71,6 +71,11 @@
   const editEl = useTemplateRef<HTMLElement>('__editEl');
   const editMode = defineModel<boolean>('editMode', { default: false });
 
+  // 模板辅助属性，避免类型推断问题
+  const fieldType = computed(() => props.field.type);
+  const fieldName = computed(() => props.field.name);
+  const isRelationField = computed(() => isDataModelField(props.field));
+
   //#region 关联关系的编辑映射
   function changeRelation(relation: RelationSelectData) {
     editValue.value = relation;
@@ -82,7 +87,7 @@
     if (props.field.type === 'DateTime' && datePickerShow.value) {
       return /** 因为日期选择面板是在不在当前 div 中，所以当用户选择日期的时候先不管点击外部事件，等日期选择面板关闭后再处理点击外部事件 */;
     }
-    if (props.field.isDataModel) return;
+    if (isDataModelField(props.field)) return;
     if (eidtModel.value === undefined) {
       editMode.value = false;
     }

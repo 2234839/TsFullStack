@@ -1,7 +1,8 @@
 import { Effect } from 'effect';
 import { PrismaService } from '../Context/PrismaService';
+import type { Database } from '../Context/Auth';
 
-const userCache = new Map<string, { res: any; timestamp: number }>();
+const userCache = new Map<string, { res: Database; timestamp: number }>();
 const CACHE_TTL = 60 * 1000; // 1分钟缓存时间
 /** 定时清理过期缓存  */
 setInterval(() => {
@@ -19,7 +20,7 @@ export function getAuthFromCache(opt: {
   email?: string;
   sessionToken?: string;
   sessionID?: number;
-}) {
+}): Effect.Effect<Database, Error, PrismaService> {
   return Effect.gen(function* () {
     const cacheKey = `${opt.userId}-${opt.email}-${opt.sessionToken}-${opt.sessionID}`;
     const cached = userCache.get(cacheKey);
@@ -29,17 +30,11 @@ export function getAuthFromCache(opt: {
     } else {
       // 缓存未命中或已过期，查询数据库
       const { getPrisma } = yield* PrismaService;
-      const { user, db } = yield* getPrisma(opt);
+      const prismaResult = yield* getPrisma(opt);
 
-      if (!user) {
-        throw new Error('User not found');
-      }
-      const res = {
-        db,
-        user: {
-          ...user,
-          password: undefined,
-        },
+      const res: Database = {
+        db: prismaResult.db,
+        user: prismaResult.user,
       };
       // 更新缓存
       userCache.set(cacheKey, { res, timestamp: Date.now() });

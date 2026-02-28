@@ -48,23 +48,18 @@
           :class="isFileMarkedForDeletion(file.id)
             ? 'bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 opacity-60'
             : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600'">
-          <div class="flex items-center gap-3 text-sm min-w-0 flex-1"
-            :class="isFileMarkedForDeletion(file.id)
+          <div class="flex items-center gap-3 text-sm min-w-0 flex-1" :class="isFileMarkedForDeletion(file.id)
               ? 'text-gray-500 dark:text-gray-500 line-through'
               : 'text-gray-700 dark:text-gray-300'">
-            <i class="pi pi-file text-xl shrink-0"
-              :class="isFileMarkedForDeletion(file.id)
+            <i class="pi pi-file text-xl shrink-0" :class="isFileMarkedForDeletion(file.id)
                 ? 'text-gray-400 dark:text-gray-600'
                 : 'text-gray-500 dark:text-gray-400'"></i>
             <span class="truncate flex-1">{{ file.filename }}</span>
-            <span class="text-xs shrink-0 ml-2"
-              :class="isFileMarkedForDeletion(file.id)
+            <span class="text-xs shrink-0 ml-2" :class="isFileMarkedForDeletion(file.id)
                 ? 'text-gray-400 dark:text-gray-600'
                 : 'text-gray-500 dark:text-gray-400'">{{ formatFileSize(file.size || 0) }}</span>
           </div>
-          <button
-            type="button"
-            class="px-3 py-2 rounded-md text-sm font-medium transition-all"
+          <button type="button" class="px-3 py-2 rounded-md text-sm font-medium transition-all"
             :class="isFileMarkedForDeletion(file.id)
               ? 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
               : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'"
@@ -79,14 +74,12 @@
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <button
-          type="button"
+        <button type="button"
           class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
           @click="close">
           {{ t('取消') }}
         </button>
-        <button
-          type="button"
+        <button type="button"
           class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           @click="submit" :disabled="isSubmitting">
           {{ isSubmitting ? t('提交中...') : t('提交') }}
@@ -336,7 +329,7 @@
             data: {
               title: formData.value.title,
               files: uploadedFiles.value,
-            } satisfies ShareJSON,
+            }  as any
           },
         });
       } else if (formType.value === 'update' && editingId.value) {
@@ -347,7 +340,7 @@
             data: {
               title: formData.value.title,
               files: uploadedFiles.value,
-            } satisfies ShareJSON,
+            } as any
           },
         });
       }

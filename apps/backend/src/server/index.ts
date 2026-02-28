@@ -1,15 +1,19 @@
 import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
-import { LogLevel } from '@zenstackhq/runtime/models';
+import { ORMError, ORMErrorReason } from '@zenstackhq/orm';
+import { LogLevel } from '../../.zenstack/models';
 import { Cause, Effect, Exit, Layer, Queue } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import os from 'os';
-import path from 'path/posix';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import superjson, { type SuperJSONResult } from 'superjson';
 import { apis, type APIRaw } from '../api';
 import { FileWarpItem } from '../api/authApi/file';
+
+// ESM 模块中获取 __dirname 的替代方案
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import { appApis } from '../api/appApi';
 import { createRPC } from '../rpc';
 import { AuthContext } from '../Context/Auth';
@@ -28,15 +32,11 @@ function handleCause(cause: Cause.Cause<Error>) {
   function setErr(error: Error): string {
     if (MsgError.isMsgError(error)) {
       err = { message: error.message, op: error.op };
-    } else if (error instanceof PrismaClientKnownRequestError) {
-      if (error.meta && 'reason' in error.meta) {
-        if (error.meta.reason === 'ACCESS_POLICY_VIOLATION') {
-          err = { message: '权限不足' };
-        } else {
-          err = { message: error.meta.reason as string };
-        }
+    } else if (error instanceof ORMError) {
+      if (error.reason === ORMErrorReason.REJECTED_BY_POLICY) {
+        err = { message: '权限不足' };
       } else {
-        err = { message: '数据模型调用错误' };
+        err = { message: error.reason || '数据模型调用错误' };
       }
     } else if (error instanceof Error) {
       err = { message: error.message };

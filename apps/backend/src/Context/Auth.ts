@@ -1,11 +1,11 @@
 import { Context, Effect } from 'effect';
-import type { Prisma } from '@prisma/client';
-import type { PrismaClient as PrismaClientType } from '@zenstackhq/runtime';
+import type { User, Role } from '../../.zenstack/models';
+import type { safePrisma } from './PrismaService';
 
 // 定义数据库返回类型
 export interface Database {
-  db: PrismaClientType;
-  user: Omit<Prisma.UserGetPayload<{ include: { role: true; userSession: true } }>, 'password'>;
+  db: safePrisma;
+  user: Omit<User, 'password'> & { role: Role[]; userSession: any[] };
 }
 
 export class AuthContext extends Context.Tag('AuthContext')<

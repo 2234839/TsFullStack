@@ -12,27 +12,16 @@
         <div class="relative w-full sm:w-1/3">
           <Input v-model="searchTitle" :placeholder="t('搜索')" class="w-full pl-10" />
         </div>
-        <Button
-          :label="t('新建分享')"
-          icon="pi pi-plus"
-          @click="openCreateDialog"
+        <Button :label="t('新建分享')" icon="pi pi-plus" @click="openCreateDialog"
           class="p-button-success self-end sm:self-auto" />
       </div>
 
-      <ShareForm
-        :visible="dialogVisible"
-        :editing-item="editingItem"
-        @update:visible="dialogVisible = $event"
+      <ShareForm :visible="dialogVisible" :editing-item="editingItem" @update:visible="dialogVisible = $event"
         @success="handleSuccess" />
 
       <!-- QR码对话框 -->
-      <Dialog
-        v-model:visible="qrDialogVisible"
-        :header="t('分享二维码')"
-        :modal="true"
-        :style="{ width: '300px' }"
-        :closable="true"
-        class="p-fluid">
+      <Dialog v-model:visible="qrDialogVisible" :header="t('分享二维码')" :modal="true" :style="{ width: '300px' }"
+        :closable="true" class="p-fluid">
         <div class="text-center">
           <div class="mb-4">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -44,13 +33,8 @@
           </div>
 
           <div class="flex justify-center mb-4">
-            <img
-              v-if="qrCodeDataUrl"
-              :src="qrCodeDataUrl"
-              :alt="t('分享二维码')"
-              class="border border-gray-300 dark:border-gray-600 rounded-lg"
-              width="200"
-              height="200" />
+            <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" :alt="t('分享二维码')"
+              class="border border-gray-300 dark:border-gray-600 rounded-lg" width="200" height="200" />
             <div v-else class="w-52 h-52 flex items-center justify-center text-gray-500">
               {{ t('生成二维码中...') }}
             </div>
@@ -61,11 +45,7 @@
           </div>
 
           <div class="mt-4">
-            <Button
-              :label="t('复制链接')"
-              icon="pi pi-copy"
-              class="p-button-sm"
-              @click="copyToClipboard" />
+            <Button :label="t('复制链接')" icon="pi pi-copy" class="p-button-sm" @click="copyToClipboard" />
           </div>
         </div>
       </Dialog>
@@ -95,9 +75,7 @@
       <!-- 画廊网格 -->
       <div v-else>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
-          <div
-            v-for="item in shareList.state.value.data"
-            :key="item.id"
+          <div v-for="item in shareList.state.value.data" :key="item.id"
             class="group relative bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
             <ShareCard :data="(item as any)" />
 
@@ -108,32 +86,18 @@
               </h3>
               <div class="flex items-center">
                 <div class="flex-1"></div>
-                <Button
-                  icon="pi pi-qrcode"
-                  class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
-                  @click.stop="handleShowQRCode(item as any)"
-                  :aria-label="t('显示二维码')" />
-                <Button
-                  icon="pi pi-link"
-                  class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
+                <Button icon="pi pi-qrcode" class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
+                  @click.stop="handleShowQRCode(item as any)" :aria-label="t('显示二维码')" />
+                <Button icon="pi pi-link" class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
                   @click.stop="handleGotoDetail(item as any)" />
-                <Button
-                  icon="pi pi-pencil"
-                  class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
-                  @click.stop="handleEdit(item as any)"
-                  :aria-label="t('编辑')" />
-                <Button
-                  icon="pi pi-trash"
-                  class="p-button-rounded p-button-danger p-button-text p-2"
-                  @click.stop="handleDelete(item as any)"
-                  :aria-label="t('删除')" />
+                <Button icon="pi pi-pencil" class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
+                  @click.stop="handleEdit(item as any)" :aria-label="t('编辑')" />
+                <Button icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-text p-2"
+                  @click.stop="handleDelete(item as any)" :aria-label="t('删除')" />
               </div>
 
-              <div
-                class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-                <span
-                  >{{ (item.data as unknown as ShareJSON).files.length }} {{ t('个文件') }}</span
-                >
+              <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                <span>{{ (item.data as unknown as ShareJSON).files.length }} {{ t('个文件') }}</span>
                 <span>{{
                   formatFileSize(getTotalFileSize(item.data as unknown as ShareJSON))
                 }}</span>
@@ -143,11 +107,8 @@
         </div>
 
         <!-- 分页 -->
-        <Paginator
-          :rows="shareList.params.take"
-          :total-records="shareList.state.value.total"
-          :first="shareList.params.skip"
-          @page="onPageChange" />
+        <Paginator :rows="shareList.params.take" :total-records="shareList.state.value.total"
+          :first="shareList.params.skip" @page="onPageChange" />
       </div>
     </div>
   </div>
@@ -168,7 +129,6 @@
   import { routeMap, routerUtil } from '@/router';
   import { userDataAppid } from '@/storage/userDataAppid';
   import { useAsyncState, watchDebounced } from '@vueuse/core';
-  import type { Prisma } from '@tsfullstack/backend';
   import QRCode from 'qrcode';
   import { reactive, ref } from 'vue';
   import { useConfirm } from '@/composables/useConfirm';
@@ -189,11 +149,11 @@
       take: 12,
     });
 
-    // 构建 Prisma 查询条件
-    const where = reactive<Prisma.UserDataWhereInput>({
+    type WhereInput =NonNullable<NonNullable<Parameters<typeof API.db.userData.findMany>[0]>['where']>
+    const where = reactive({
       appId: userDataAppid.shareInfo,
-    });
-    const orderBy: Prisma.UserDataOrderByWithRelationInput[] = [{ created: 'desc' }];
+    }) as WhereInput
+    const orderBy = [{ created: 'desc' as const }];
 
     async function fetchUsers() {
       const [data, total] = await Promise.all([
@@ -402,16 +362,16 @@
 </script>
 
 <style scoped>
-  /* 添加一些额外的样式来增强视觉效果 */
-  .group:hover .absolute {
-    transform: translateX(2px) translateY(2px);
-  }
+/* 添加一些额外的样式来增强视觉效果 */
+.group:hover .absolute {
+  transform: translateX(2px) translateY(2px);
+}
 
-  .group:hover .absolute:nth-child(2) {
-    transform: translateX(4px) translateY(4px);
-  }
+.group:hover .absolute:nth-child(2) {
+  transform: translateX(4px) translateY(4px);
+}
 
-  .group:hover .absolute:nth-child(3) {
-    transform: translateX(6px) translateY(6px);
-  }
+.group:hover .absolute:nth-child(3) {
+  transform: translateX(6px) translateY(6px);
+}
 </style>

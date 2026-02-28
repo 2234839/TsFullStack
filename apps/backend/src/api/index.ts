@@ -1,11 +1,10 @@
-import type { PrismaClient } from '@zenstackhq/runtime';
 import { Effect } from 'effect';
-import type { allowedMethods } from '../Context/PrismaService';
 import { AuthContext } from '../Context/Auth';
+import type { safePrisma } from '../Context/PrismaService';
+import { aiApi } from './AiApi';
+import { fileApi } from './authApi/file';
 import { systemApis } from './systemApis';
 import { testApi } from './testApi';
-import { fileApi } from './authApi/file';
-import { aiApi } from './AiApi';
 // 导入项目聚合服务
 import { projects } from '../projects';
 
@@ -29,6 +28,6 @@ export const apis = {
   },
 };
 
-export type safePrisma = Pick<PrismaClient, (typeof allowedMethods)[number]>;
+/** ZenStack v3 客户端类型 */
 export type APIRaw = typeof apis;
 export type API = Omit<APIRaw, 'db'> & { db: safePrisma };

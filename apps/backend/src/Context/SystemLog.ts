@@ -1,7 +1,8 @@
-import { LogLevel } from '@zenstackhq/runtime/models';
+import { LogLevel } from '../../.zenstack/models';
 import { Effect } from 'effect';
 import { PrismaService } from './PrismaService';
 import type { ReqCtx } from './ReqCtx';
+import type { JsonObject } from '@zenstackhq/orm';
 
 export function systemLog(options: { level: LogLevel; message?: string }, ctx: ReqCtx) {
   return Effect.gen(function* () {
@@ -10,7 +11,7 @@ export function systemLog(options: { level: LogLevel; message?: string }, ctx: R
       prisma.systemLog.create({
         data: {
           level: options.level,
-          logs: ctx.logs,
+          logs: ctx.logs as unknown as JsonObject, // JsonValue 类型
           authUserId: ctx.user?.id,
           message: options.message,
         },

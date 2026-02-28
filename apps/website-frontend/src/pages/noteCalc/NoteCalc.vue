@@ -12,30 +12,13 @@
         </h1>
       </div>
       <div class="flex items-center gap-2">
-        <Button
-          icon="pi pi-file"
-          :label="ti18n('新建')"
-          class="p-button-outlined"
-          @click="handleNewDocument($event)"
+        <Button icon="pi pi-file" :label="ti18n('新建')" class="p-button-outlined" @click="handleNewDocument($event)"
           :title="ti18n('新建文档')" />
-        <Button
-          icon="pi pi-save"
-          :label="ti18n('保存')"
-          class="p-button-outlined"
-          @click="saveCurrentNote"
-          :disabled="!authInfo_isLogin || isSaving"
-          :loading="isSaving"
-          :title="ti18n('保存到云端,需要登录后才能使用')" />
-        <Button
-          icon="pi pi-share-alt"
-          :label="ti18n('分享')"
-          class="p-button-outlined"
-          @click="handleShare()"
+        <Button icon="pi pi-save" :label="ti18n('保存')" class="p-button-outlined" @click="saveCurrentNote"
+          :disabled="!authInfo_isLogin || isSaving" :loading="isSaving" :title="ti18n('保存到云端,需要登录后才能使用')" />
+        <Button icon="pi pi-share-alt" :label="ti18n('分享')" class="p-button-outlined" @click="handleShare()"
           :title="ti18n('分享当前文档')" />
-        <Button
-          icon="pi pi-cog"
-          class="p-button-outlined p-button-rounded"
-          @click="showSettings = !showSettings"
+        <Button icon="pi pi-cog" class="p-button-outlined p-button-rounded" @click="showSettings = !showSettings"
           :title="ti18n('设置')" />
         <CommonSettingBtns />
       </div>
@@ -51,13 +34,8 @@
               {{ ti18n('我的笔记') }}
             </h2>
             <div class="flex gap-2">
-              <Button
-                icon="pi pi-refresh"
-                variant="text"
-                rounded
-                @click="refreshNotes"
-                :loading="notesState.isLoading.value"
-                :title="ti18n('刷新笔记列表')" />
+              <Button icon="pi pi-refresh" variant="text" rounded @click="refreshNotes"
+                :loading="notesState.isLoading.value" :title="ti18n('刷新笔记列表')" />
             </div>
           </div>
         </template>
@@ -75,25 +53,19 @@
             <div class="text-center p-4">
               <i class="pi pi-lock text-4xl mb-2 text-gray-400"></i>
               <p class="text-gray-500">{{ ti18n('请登录后查看您的笔记') }}</p>
-              <Button
-                @click="
+              <Button @click="
                   routerUtil.push(routeMap.login, {}, { r: route.fullPath }),
                     (sidebarVisible = false)
-                "
-                >{{ ti18n('登录') }}</Button
-              >
+                ">{{ ti18n('登录') }}</Button>
             </div>
           </div>
 
-          <div
-            v-else-if="notesState.isLoading.value && !notesState.state.value.length"
+          <div v-else-if="notesState.isLoading.value && !notesState.state.value.length"
             class="flex-1 flex items-center justify-center">
             <ProgressSpinner size="normal" />
           </div>
 
-          <div
-            v-else-if="!notesState.state.value.length"
-            class="flex-1 flex items-center justify-center">
+          <div v-else-if="!notesState.state.value.length" class="flex-1 flex items-center justify-center">
             <div class="text-center p-4">
               <i class="pi pi-file-o text-4xl mb-2 text-gray-400"></i>
               <p class="text-gray-500">
@@ -107,23 +79,16 @@
               <li v-for="note in notesState.state.value" :key="note.id" class="mb-2">
                 <div
                   class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                  :class="{ 'bg-purple-50 dark:bg-purple-900/30': currentNoteId === note.id }"
-                  @click="loadNote(note)">
+                  :class="{ 'bg-purple-50 dark:bg-purple-900/30': currentNoteId === note.id }" @click="loadNote(note)">
                   <div class="flex items-center justify-between">
                     <div class="truncate font-medium">
                       {{ getNoteTitle(note) }}
                     </div>
                     <div class="flex gap-1">
-                      <Button
-                        icon="pi pi-pencil"
-                        class="p-button-text p-button-rounded p-button-sm"
-                        @click="showRenameDialog(note)"
-                        :title="ti18n('重命名')" />
-                      <Button
-                        icon="pi pi-trash"
-                        class="p-button-text p-button-rounded p-button-danger p-button-sm"
-                        @click.stop="confirmDeleteNote(note, $event)"
-                        :title="ti18n('删除')" />
+                      <Button icon="pi pi-pencil" class="p-button-text p-button-rounded p-button-sm"
+                        @click="showRenameDialog(note)" :title="ti18n('重命名')" />
+                      <Button icon="pi pi-trash" class="p-button-text p-button-rounded p-button-danger p-button-sm"
+                        @click.stop="confirmDeleteNote(note, $event)" :title="ti18n('删除')" />
                     </div>
                   </div>
                   <div class="text-xs text-gray-500 mt-1 flex justify-between">
@@ -136,12 +101,8 @@
 
             <!-- 分页加载更多 -->
             <div v-if="hasMoreNotes" class="mt-4 text-center">
-              <Button
-                :label="ti18n('加载更多')"
-                icon="pi pi-chevron-down"
-                class="p-button-text p-button-sm"
-                :loading="isLoadingMore"
-                @click="loadMoreNotes" />
+              <Button :label="ti18n('加载更多')" icon="pi pi-chevron-down" class="p-button-text p-button-sm"
+                :loading="isLoadingMore" @click="loadMoreNotes" />
             </div>
           </div>
         </div>
@@ -149,17 +110,13 @@
 
       <!-- 双栏编辑区 -->
       <div class="flex-1 flex flex-col overflow-hidden">
-        <div
-          class="p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center">
-          <Button
-            icon="pi pi-bars"
-            class="p-button-text p-button-rounded mr-2"
-            @click="sidebarVisible = !sidebarVisible"
-            :title="ti18n('显示/隐藏侧边栏')" />
+        <div class="p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center">
+          <Button icon="pi pi-bars" class="p-button-text p-button-rounded mr-2"
+            @click="sidebarVisible = !sidebarVisible" :title="ti18n('显示/隐藏侧边栏')" />
 
           <div class="flex-1 flex items-center">
             <span v-if="currentNote" class="font-medium truncate">
-              {{ getNoteTitle(currentNote) }}
+              {{ getNoteTitle(currentNote  as any) }}
             </span>
             <span v-else class="text-gray-500">{{ ti18n('未保存的笔记') }}</span>
 
@@ -196,11 +153,7 @@
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('自动保存间隔') }}</label>
           <div class="flex items-center">
-            <InputNumber
-              v-model="config.autoSaveInterval"
-              :min="5"
-              :max="60"
-              :disabled="!config.autoSaveEnabled"
+            <InputNumber v-model="config.autoSaveInterval" :min="5" :max="60" :disabled="!config.autoSaveEnabled"
               show-buttons />
             <span class="ml-2 text-gray-500">{{ ti18n('秒') }}</span>
           </div>
@@ -208,22 +161,14 @@
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('结果显示精度') }}</label>
           <div class="flex items-center">
-            <InputNumber
-              v-model="config.showPrecision"
-              :min="1"
-              :max="100"
-              show-buttons />
+            <InputNumber v-model="config.showPrecision" :min="1" :max="100" show-buttons />
             <span class="ml-2 text-gray-500">{{ ti18n('位') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('计算精度') }}</label>
           <div class="flex items-center">
-            <InputNumber
-              v-model="config.precision"
-              :min="1"
-              :max="100"
-              show-buttons />
+            <InputNumber v-model="config.precision" :min="1" :max="100" show-buttons />
             <span class="ml-2 text-gray-500">{{ ti18n('位') }}</span>
           </div>
         </div>
@@ -264,7 +209,6 @@
   import { Dialog, Drawer } from '@tsfullstack/shared-frontend/components';
   import { useConfirm } from '@/composables/useConfirm';
   import { useToast } from '@/composables/useToast';
-  import type { Prisma } from '@tsfullstack/backend';
   import { useRoute } from 'vue-router';
   import { useI18n } from '@/composables/useI18n';
 
@@ -303,7 +247,9 @@
   const isLoadingMore = ref(false);
   const totalNotes = ref(0);
 
-  type Note = Awaited<ReturnType<typeof API.db.userData.findMany>>[0]; // 笔记类型
+  // WhereInput 类型 - 从 API 推断
+  type UserDataWhereInput = NonNullable<Parameters<typeof API.db.userData.findMany>[0]>['where']
+  type Note = NonNullable<Awaited<ReturnType<typeof API.db.userData.findMany>>>[number]
   // 笔记状态
   const notesState = useAsyncState(
     async () => {
@@ -311,29 +257,32 @@
 
       try {
         // 获取笔记列表，根据是否有搜索关键词决定查询方式
-        const where: Prisma.UserDataWhereInput = {
+        const baseWhere = {
           appId: userDataAppid.NodeCalc,
           userId: authInfo.value?.userId,
         };
 
         // 如果有搜索关键词，添加搜索条件
-        if (searchQuery.value.trim()) {
-          where.OR = [
-            // 搜索标题
-            {
-              description: {
-                contains: searchQuery.value,
-              },
-            },
-            // 搜索内容
-            {
-              data: {
-                path: 'content',
-                string_contains: searchQuery.value,
-              },
-            },
-          ];
-        }
+        const where: UserDataWhereInput = searchQuery.value.trim()
+          ? {
+              ...baseWhere,
+              OR: [
+                // 搜索标题
+                {
+                  description: {
+                    contains: searchQuery.value,
+                  },
+                },
+                // 搜索内容
+                {
+                  data: {
+                    path: 'content',
+                    string_contains: searchQuery.value,
+                  },
+                },
+              ],
+            }
+          : baseWhere
 
         // 获取总数
         const count = await API.db.userData.count({ where });
@@ -375,10 +324,10 @@
   const currentNoteId = computed(() => currentNote.value?.id);
   const unsavedChanges = computed(() => {
     const contentIsDifferent =
-      currentNote.value && getContentFromData(currentNote.value) !== content.value;
+      currentNote.value && getConfigFromData(currentNote.value as any) !== content.value;
     const configIsDifferent =
       currentNote.value &&
-      JSON.stringify(getConfigFromData(currentNote.value)) !== JSON.stringify(config.value);
+      JSON.stringify(getConfigFromData(currentNote.value as any)) !== JSON.stringify(config.value);
 
     return contentIsDifferent || configIsDifferent;
   });
@@ -464,7 +413,7 @@
   };
 
   // 从笔记数据中获取配置
-  const getConfigFromData = (note: Note) => {
+  const getConfigFromData = (note: Note): any | null => {
     try {
       if (!note.data) return null;
       const data = typeof note.data === 'string' ? JSON.parse(note.data) : note.data;
@@ -1026,13 +975,14 @@
 </script>
 
 <style>
-  .list-enter-active,
-  .list-leave-active {
-    transition: all 0.3s ease;
-  }
-  .list-enter-from,
-  .list-leave-to {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
+.list-enter-active,
+.list-leave-active {
+  transition: all 0.3s ease;
+}
+
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
 </style>

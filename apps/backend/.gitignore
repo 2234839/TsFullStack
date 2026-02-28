@@ -4,6 +4,9 @@ node_modules
 /dist-*
 /uploads
 
+# ZenStack v3 生成的文件
+/.zenstack
+
 # 排除私有前缀的子项目目录（以 _ 开头的目录）
 /projects/_*/
 

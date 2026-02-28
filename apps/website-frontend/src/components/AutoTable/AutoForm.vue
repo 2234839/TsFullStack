@@ -10,7 +10,7 @@
           <span v-if="isRequiredField(field)" class="text-danger-500">*</span>
           <Tooltip :content="JSON.stringify(field, null, 2)" side="top">
             <span class="text-xs text-primary-400 ml-1">
-              {{ field.type }}{{ field.isArray ? '[ ]' : '' }}
+              {{ field.type }}{{ isArrayField(field) ? '[ ]' : '' }}
             </span>
           </Tooltip>
           <span v-for="attr of field.attributes" class="text-xs text-gray-500 ml-1">{{
@@ -50,8 +50,8 @@
   import { useToast } from '@/composables/useToast';
   import { computed, onMounted, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
-  import type { DBmodelNames, FieldInfo, ModelMeta } from './type';
-  import { findIdField } from './util';
+  import type { FieldInfo, ModelMeta as ModelMetaType, ModelMetaNames } from './type';
+  import { findIdField, getModelDbName, isIdField, isArrayField, isOptionalField, isDataModelField, hasDefaultField, isUpdatedAtField, getModelAPI } from './util';
   import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
 
   const { t } = useI18n();
@@ -59,10 +59,12 @@
   const { API } = useAPI();
 
   const props = defineProps<{
-    modelKey: string;
-    modelMeta: ModelMeta;
+    modelKey: string; // PascalCase 模型键，如 'Role', 'User'
+    modelMeta: ModelMetaType;
   }>();
-  const selectModel = computed(() => props.modelMeta.models[props.modelKey]);
+
+  // modelKey 是 PascalCase，用于访问 modelMeta.models
+  const selectModel = computed(() => props.modelMeta.models[props.modelKey as keyof typeof props.modelMeta.models]);
   const modelFields = computed(() => selectModel.value?.fields || {});
   const emit = defineEmits(['created', 'update:visible']);
 
@@ -75,28 +77,26 @@
   // 计算属性：表单字段
   const formFields = computed(() => {
     return Object.values(modelFields.value).filter((field) => {
+      const f = field as FieldInfo;
       // 排除自动生成的ID字段和不可编辑的字段
-      return !(field.isId && field.isAutoIncrement);
-    });
+      if ('id' in f && f.id && 'default' in f) return false;
+      return true;
+    }) as FieldInfo[];
   });
 
   // 判断字段是否必填
   function isRequiredField(field: FieldInfo) {
-    if (hasDefaultAttr(field)) return false;
-    if (hasUpdatedAtAttr(field)) return false;
-    if (field.isArray) return false;
-    return !field.isOptional && !field.defaultValueProvider && !field.isId;
+    if (hasDefaultField(field)) return false;
+    if (isUpdatedAtField(field)) return false;
+    if (isArrayField(field)) return false;
+    return !isOptionalField(field) && !isIdField(field);
   }
-  function hasDefaultAttr(field: FieldInfo) {
-    return field.attributes?.some((attr) => attr.name === '@default');
-  }
-  function hasUpdatedAtAttr(field: FieldInfo) {
-    return field.attributes?.some((attr) => attr.name === '@updatedAt');
-  }
+
   // 重置表单
   function resetForm() {
     Object.values(modelFields.value).forEach((field) => {
-      delete formData[field.name];
+      const f = field as FieldInfo;
+      delete formData[f.name];
     });
     fieldErrors.value = {};
   }
@@ -136,12 +136,12 @@
         const value = formData[fieldName];
 
         // 跳过未设置的可选字段
-        if (field.isOptional && (value === undefined || value === null || value === '')) {
+        if (isOptionalField(field) && (value === undefined || value === null || value === '')) {
           continue;
         }
 
         // 处理关系字段
-        if (field.isDataModel && props.modelMeta && value) {
+        if (isDataModelField(field) && props.modelMeta && value) {
           const relationData = value as RelationSelectData;
 
           const idField = findIdField(props.modelMeta, field.type);
@@ -158,8 +158,10 @@
         }
       }
       // 创建记录
-      const result = await API.db[props.modelKey as DBmodelNames].create({
-        // @ts-ignore
+      // 使用类型安全的模型访问
+      const modelName = getModelDbName(props.modelKey as ModelMetaNames);
+      const modelAPI = getModelAPI(API, modelName);
+      const result = await modelAPI.create({
         data,
       });
 

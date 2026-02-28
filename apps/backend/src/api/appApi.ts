@@ -3,6 +3,7 @@ import { Effect } from 'effect';
 import { PrismaService } from '../Context/PrismaService';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
+import type { User } from '../../.zenstack/models';
 import { genUserSession } from './appApi/_genUserSession';
 import { githubApi } from './appApi/github';
 import { fileApi } from './appApi/file';
@@ -61,9 +62,9 @@ export const appApis = {
         const userSession = yield* genUserSession(user.id);
         const ctx = yield* ReqCtxService;
         ctx.log('user login', user.id);
-        // 手动排除 password 字段，虽然 @omit 在某些情况下生效，但直接返回 Prisma 查询结果时需要手动处理
+        // 手动排除 password 字段并构建返回对象
         const { password: _password, ...userWithoutPassword } = user;
-        return { ...userSession, user: userWithoutPassword };
+        return Object.assign({}, userSession, { user: userWithoutPassword });
       });
     },
   },

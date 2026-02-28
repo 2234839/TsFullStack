@@ -1,4 +1,4 @@
-import { File as FileModel, StorageType, type FileStatusEnum } from '@zenstackhq/runtime/models';
+import { File as FileModel, StorageType, FileStatusEnum } from '../../../.zenstack/models';
 import { Effect } from 'effect';
 import { createReadStream, createWriteStream } from 'fs';
 import { mkdir, unlink } from 'fs/promises';

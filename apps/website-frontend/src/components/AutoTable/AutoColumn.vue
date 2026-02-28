@@ -4,9 +4,9 @@
     <template v-if="field.type === 'DateTime'">
       {{ cellData ? formatDate(cellData, 'YYYY-MM-DD HH:mm:ss') : '-' }}
     </template>
-    <template v-else-if="field.isDataModel">
+    <template v-else-if="'relation' in field">
       <Tag>
-        <template #icon v-if="field.isArray">
+        <template #icon v-if="isRelationArray">
           <div class="border-r pr-1">
             {{ row._count[field.name] }}
           </div>
@@ -30,6 +30,7 @@
   import { computed, ref } from 'vue';
   import AutoColumnEdit from './AutoColumnEdit.vue';
   import type { FieldInfo } from './type';
+  import { isArrayField } from './type';
 
   const props = defineProps<{
     field: FieldInfo;
@@ -38,6 +39,7 @@
 
   const editValue = defineModel('editValue');
   const cellData = computed(() => props.row[props.field.name]);
+  const isRelationArray = computed(() => isArrayField(props.field));
 
   const editMode = ref(false);
 </script>

@@ -25,8 +25,12 @@ export default defineConfig({
   },
   // 排除所有外部依赖
   external: [
-    '@prisma/client',
+    '@zenstackhq/orm',
+    '@zenstackhq/plugin-policy',
+    // '@zenstackhq/schema', // 不能external，生成的文件需要引用它
     '@zenstackhq/runtime',
+    'kysely',
+    'better-sqlite3',
     'effect',
     'fastify',
     'superjson',
@@ -37,4 +41,12 @@ export default defineConfig({
     '@fastify/multipart',
     '@fastify/static'
   ],
+  // 防止将生成的类型文件打包进来
+  banner: ({ format }) => {
+    if (format === 'esm') {
+      return {
+        js: '// ZenStack generated types are consumed from runtime',
+      };
+    }
+  },
   });
