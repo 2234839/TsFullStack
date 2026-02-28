@@ -3,12 +3,12 @@
     :class="[isCollapsed ? 'w-20' : '']">
     <!-- 主侧边栏 -->
     <div
-      class="h-full flex flex-col relative overflow-hidden transition-colors duration-300 bg-gradient-to-b from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200 dark:border-slate-700/50">
+      class="h-full flex flex-col relative overflow-hidden transition-colors duration-300 bg-linear-to-b from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200 dark:border-slate-700/50">
       <!-- 顶部Logo区域 -->
       <div class="logo-area p-5 flex items-center justify-between border-b border-gray-200 dark:border-slate-700/50">
         <div class="flex items-center space-x-3">
-          <div @click="toggleCollapse"
-            class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-gradient-to-br from-blue-500 to-cyan-400 dark:from-cyan-400 dark:to-blue-600 shadow-blue-200 dark:shadow-blue-500/20">
+          <div @click="navigateToHome"
+            class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-linear-to-br from-blue-500 to-cyan-400 dark:from-cyan-400 dark:to-blue-600 shadow-blue-200 dark:shadow-blue-500/20">
             <i class="pi pi-bolt text-white text-xl"></i>
           </div>
           <h1
@@ -39,7 +39,7 @@
           <h2 class="font-medium text-gray-800 dark:text-white">Alex Johnson</h2>
           <p class="text-sm text-gray-500 dark:text-slate-400">系统管理员</p>
         </div>
-        <Badge v-if="!isCollapsed" value="3" severity="info" class="ml-auto"></Badge>
+        <Badge v-if="!isCollapsed" value="3" variant="info" class="ml-auto"></Badge>
       </div>
 
       <!-- 搜索框 -->
@@ -66,7 +66,7 @@
                     hasSubmenuItems(item) ? 'has-submenu' : '',
                   ]" @click="handleCollapsedMenuClick($event, item)" />
               </Tooltip>
-              <Badge v-if="item.badge" :value="item.badge" :severity="getBadgeSeverity(item)"
+              <Badge v-if="item.badge" :value="item.badge" :variant="getBadgeVariant(item)"
                 class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"></Badge>
 
               <Popover :ref="(el) => setPopoverRef(item.key, el)" :showCloseIcon="false" class="p-popover-submenu">
@@ -75,7 +75,7 @@
                     class="p-popover-item flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/50"
                     :class="[
                       isActiveRoute(subItem)
-                        ? 'bg-primary-50/70 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
+                        ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
                         : 'text-gray-600 dark:text-slate-400',
                     ]">
                     <i :class="[
@@ -84,7 +84,7 @@
                         isActiveRoute(subItem) ? 'text-primary-600 dark:text-cyan-400' : '',
                       ]"></i>
                     <span class="flex-1 text-sm whitespace-nowrap">{{ subItem.label }}</span>
-                    <Badge v-if="subItem.badge" :value="subItem.badge" :severity="getBadgeSeverity(subItem)"></Badge>
+                    <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
                   </div>
                 </div>
               </Popover>
@@ -103,7 +103,7 @@
                 class="menu-item-header flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 mb-1"
                 :class="[
                   isActiveRoute(menuItem)
-                    ? 'bg-primary-50 dark:bg-gradient-to-r dark:from-cyan-500/60 dark:to-blue-500/30 text-primary-700 dark:text-white'
+                    ? 'bg-primary-50 dark:bg-linear-to-r dark:from-cyan-500/60 dark:to-blue-500/30 text-primary-700 dark:text-white'
                     : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-white',
                 ]">
                 <i :class="[
@@ -112,8 +112,8 @@
                     isActiveRoute(menuItem) ? 'text-primary-600 dark:text-cyan-400' : '',
                   ]"></i>
                 <span class="flex-1">{{ menuItem.label }}</span>
-                <Badge v-if="menuItem.badge" :value="menuItem.badge" :severity="getBadgeSeverity(menuItem)"
-                  class="mr-2"></Badge>
+                <Badge v-if="menuItem.badge" :value="menuItem.badge" :variant="getBadgeVariant(menuItem)" class="mr-2">
+                </Badge>
                 <i v-if="menuItem.items && menuItem.items.length" :class="[
                     menuItem.expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right',
                     'text-xs transition-transform duration-200',
@@ -128,7 +128,7 @@
                   class="submenu-item flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-1"
                   :class="[
                     isActiveRoute(subItem)
-                      ? 'bg-primary-50/70 dark:bg-gradient-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
+                      ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
                       : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-slate-400 dark:hover:bg-slate-700/30 dark:hover:text-white',
                   ]">
                   <i :class="[
@@ -137,7 +137,7 @@
                       isActiveRoute(subItem) ? 'text-primary-600 dark:text-cyan-400' : '',
                     ]"></i>
                   <span class="flex-1 text-sm">{{ subItem.label }}</span>
-                  <Badge v-if="subItem.badge" :value="subItem.badge" :severity="getBadgeSeverity(subItem)"></Badge>
+                  <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
                 </div>
               </div>
             </div>
@@ -148,15 +148,7 @@
       <!-- 底部操作区 -->
       <div class="footer border-t border-gray-200 dark:border-slate-700/50 p-4">
         <div class="flex items-center justify-around" :class="{ 'flex-col space-y-4': isCollapsed }">
-          <Tooltip :content="'设置'" side="right">
-            <button
-              class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400">
-              <i class="pi pi-cog "></i>
-            </button>
-          </Tooltip>
-          <Tooltip :content="'主题切换'" side="right">
-            <ThemeSwitch />
-          </Tooltip>
+          <ThemeSwitch />
           <I18nSwitch />
           <UserSettingBtn />
         </div>
@@ -181,8 +173,7 @@
   import Badge from '@/components/base/Badge.vue';
   import Button from '@/components/base/Button.vue';
   import Input from '@/components/base/Input.vue';
-  import { Popover } from '@tsfullstack/shared-frontend/components';
-  import { Tooltip } from '@tsfullstack/shared-frontend/components';
+  import { Popover, Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, reactive, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
   import avatarImageSrc from '/崮生.png?url';
@@ -195,7 +186,7 @@
     icon: string;
     to?: string | RouteLocationRaw;
     badge?: string;
-    badgeSeverity?: string;
+    badgeVariant?: string;
     expanded?: boolean;
     items?: MenuItem[];
   }
@@ -213,10 +204,15 @@
   const popovers = ref<Map<string, any>>(new Map());
 
   // 设置Popover引用
-  const setPopoverRef = (key: string, el: any) => {
+  const setPopoverRef = (key: string, el: unknown) => {
     if (el) {
       popovers.value.set(key, el);
     }
+  };
+
+  // 跳转到首页
+  const navigateToHome = (): void => {
+    router.push(routerUtil.to(routeMap.index, {}));
   };
 
   // 切换折叠状态
@@ -241,7 +237,7 @@
           label: t('模型管理'),
           icon: 'pi pi-th-large',
           to: routerUtil.to(routeMap.admin.child.studio, {}),
-          badgeSeverity: 'info',
+          badgeVariant: 'info',
           expanded: false,
         },
         {
@@ -249,7 +245,7 @@
           label: t('上传列表'),
           icon: 'pi pi-upload',
           to: routerUtil.to(routeMap.admin.child.UploadList, {}),
-          badgeSeverity: 'info',
+          badgeVariant: 'info',
           expanded: false,
         },
         {
@@ -330,7 +326,7 @@
           icon: item.icon,
           to: item.to || (item.items && item.items.length > 0 ? item.items[0]?.to : undefined),
           badge: item.badge,
-          badgeSeverity: item.badgeSeverity,
+          badgeVariant: item.badgeVariant,
           items: item.items, // 保留子菜单项
         });
       });
@@ -427,8 +423,8 @@
   };
 
   // 获取徽章样式
-  const getBadgeSeverity = (item: MenuItem): string => {
-    return item.badgeSeverity || 'info';
+  const getBadgeVariant = (item: MenuItem): string => {
+    return item.badgeVariant || 'info';
   };
 </script>
 

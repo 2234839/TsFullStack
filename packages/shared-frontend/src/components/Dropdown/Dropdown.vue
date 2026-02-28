@@ -13,7 +13,7 @@
  * </Dropdown>
  * ```
  */
-import { ref, watch } from 'vue';
+import { computed } from 'vue';
 import {
   DropdownMenuRoot,
   DropdownMenuTrigger,
@@ -35,22 +35,16 @@ const props = withDefaults(defineProps<UiDropdownProps>(), {
 /** 定义 model - 用于 v-model 双向绑定 */
 const modelValue = defineModel<boolean>({ default: false });
 
-/** 内部状态 - 用于 DropdownMenuRoot */
-const openState = ref(props.defaultOpen);
-
-/** 同步外部 modelValue 到内部状态 */
-watch(modelValue, (value) => {
-  openState.value = value;
-});
+/** 内部状态 - 用于 DropdownMenuRoot，直接使用 modelValue */
+const openState = modelValue;
 
 /** 定义 emits */
 const emit = defineEmits<UiDropdownEmits>();
 
 /** 处理打开状态变化 */
 const handleUpdateOpen = (value: boolean) => {
-  openState.value = value;
   modelValue.value = value;
-  emit('update:open', value);
+  emit('update:modelValue', value);
   if (value) {
     emit('open');
   }

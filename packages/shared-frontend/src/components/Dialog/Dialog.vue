@@ -25,7 +25,6 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
-  DialogClose,
 } from 'reka-ui';
 import type { DialogRootProps } from 'reka-ui';
 import type { UiDialogEmits, UiDialogProps } from './types';
@@ -96,7 +95,9 @@ defineExpose({
         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-[min(90vw,600px)] max-h-[min(85vh,600px)] w-full p-6 z-[51] overflow-auto transition-all duration-200"
         :class="{ 'opacity-0 scale-95': !isOpen, 'opacity-100 scale-100': isOpen }">
         <!-- 关闭按钮 -->
-        <DialogClose
+        <button
+          type="button"
+          @click="close"
           class="absolute top-4 right-4 inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           aria-label="关闭对话框">
           <svg
@@ -111,7 +112,7 @@ defineExpose({
               fill-rule="evenodd"
               clip-rule="evenodd" />
           </svg>
-        </DialogClose>
+        </button>
 
         <!-- 标题 -->
         <DialogTitle v-if="title" class="text-lg font-semibold text-gray-900 dark:text-gray-100 pr-8 mb-2">
@@ -119,8 +120,14 @@ defineExpose({
         </DialogTitle>
 
         <!-- 描述 -->
-        <DialogDescription v-if="description" class="text-sm text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+        <DialogDescription
+          v-if="description"
+          class="text-sm text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
           {{ description }}
+        </DialogDescription>
+        <!-- 当没有描述时，渲染一个隐藏的 DialogDescription 以满足无障碍要求 -->
+        <DialogDescription v-else class="sr-only">
+          {{ title || '对话框' }}
         </DialogDescription>
 
         <!-- 主要内容 -->
