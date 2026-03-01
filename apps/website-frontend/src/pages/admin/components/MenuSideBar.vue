@@ -5,9 +5,15 @@
     <div
       class="h-full flex flex-col relative overflow-hidden transition-colors duration-300 bg-linear-to-b from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200 dark:border-slate-700/50">
       <!-- 顶部Logo区域 -->
-      <div class="logo-area p-5 flex items-center justify-between border-b border-gray-200 dark:border-slate-700/50">
+      <div class="logo-area border-b border-gray-200 dark:border-slate-700/50"
+        :class="[
+          isCollapsed
+            ? 'p-3 flex justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors'
+            : 'p-5 flex items-center justify-between'
+        ]"
+        @click="isCollapsed ? toggleCollapse() : null">
         <div class="flex items-center space-x-3">
-          <div @click="navigateToHome"
+          <div @click.stop="navigateToHome"
             class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-linear-to-br from-blue-500 to-cyan-400 dark:from-cyan-400 dark:to-blue-600 shadow-blue-200 dark:shadow-blue-500/20">
             <i class="pi pi-bolt text-white text-xl"></i>
           </div>
@@ -17,10 +23,10 @@
             Ts<span class="text-primary-500 dark:text-cyan-400">FullStack</span>
           </h1>
         </div>
-        <button @click="toggleCollapse"
+        <button v-if="!isCollapsed" @click.stop="toggleCollapse"
           class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400"
           aria-label="Toggle menu">
-          <i class="pi pi-bars "></i>
+          <i class="pi pi-bars"></i>
         </button>
       </div>
 
