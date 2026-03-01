@@ -169,7 +169,7 @@ function getSortIcon(column: ColumnDef<T>) {
 </script>
 
 <template>
-  <ScrollArea class="w-full" orientation="horizontal">
+  <ScrollArea class="w-full" orientation="horizontal" type="scroll">
     <table class="w-full border-collapse">
       <thead class="bg-gray-50 dark:bg-gray-800">
         <tr>
