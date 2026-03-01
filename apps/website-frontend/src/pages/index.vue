@@ -91,17 +91,17 @@
     },
     setup(props) {
       return () => (
-        <Card class="shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <Card class="shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
           <img alt={props.title} src={props.imageUrl} class="w-full h-48 object-cover" />
-          <div class="p-6">
+          <div class="p-6 flex flex-col grow">
             <div class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-3">{props.title}</div>
-            <div class="mb-4">
+            <div class="grow">
               <p class="text-gray-600 dark:text-gray-400 mb-2">{props.description}</p>
               {props.longDescription && (
                 <p class="text-gray-500 dark:text-gray-500 text-sm">{props.longDescription}</p>
               )}
             </div>
-            <RouterLink to={props.routePath} class="block w-full">
+            <RouterLink to={props.routePath} class="block w-full mt-2">
               <Button label={props.title} variant="secondary" class="w-full" />
             </RouterLink>
           </div>
