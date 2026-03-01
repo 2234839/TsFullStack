@@ -8,7 +8,8 @@ import { useToastMessages, useToast } from '@/composables/useToast';
 
 interface ToastMessage {
   id: number;
-  variant?: 'success' | 'error' | 'info' | 'warn';
+  /** Toast 变体：success/error/info/warn/warning/danger */
+  variant?: 'success' | 'error' | 'info' | 'warn' | 'warning' | 'danger';
   summary: string;
   detail?: string;
   life?: number;
@@ -26,6 +27,10 @@ const messageClasses = computed(() => (message: ToastMessage) => {
     error: 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800 text-danger-800 dark:text-danger-200',
     info: 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 text-primary-800 dark:text-primary-200',
     warn: 'bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800 text-warning-800 dark:text-warning-200',
+    /** warning 是 warn 的别名 */
+    warning: 'bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800 text-warning-800 dark:text-warning-200',
+    /** danger 是 error 的别名 */
+    danger: 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800 text-danger-800 dark:text-danger-200',
   };
 
   return `${base} ${variantClasses[message.variant || 'info']}`;
@@ -37,6 +42,10 @@ const iconClasses = {
   error: 'pi pi-times-circle text-danger-600 dark:text-danger-400',
   info: 'pi pi-info-circle text-primary-600 dark:text-primary-400',
   warn: 'pi pi-exclamation-triangle text-warning-600 dark:text-warning-400',
+  /** warning 是 warn 的别名 */
+  warning: 'pi pi-exclamation-triangle text-warning-600 dark:text-warning-400',
+  /** danger 是 error 的别名 */
+  danger: 'pi pi-times-circle text-danger-600 dark:text-danger-400',
 };
 </script>
 

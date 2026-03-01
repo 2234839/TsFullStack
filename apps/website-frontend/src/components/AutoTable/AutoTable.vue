@@ -15,45 +15,25 @@
       </Button>
     </div>
   </div>
-  <AutoFilter
-    v-if="selectModelMeta"
-    :modelFields="selectModelMeta.model.fields"
-    @filter="
+  <AutoFilter v-if="selectModelMeta" :modelFields="selectModelMeta.model.fields" @filter="
       (options) => {
         filter = options;
         currentPage = 1;
         reloadTableData();
       }
     " />
-  <DataTable
-    :data="tableData.state.value.list"
-    :loading="tableData.isLoading.value"
-    :selectedRowKeys="selectRows"
-    @update:selectedRowKeys="selectRows = $event"
-    rowKey="id"
-    size="small"
-    striped
-    bordered
-    selectable
+  <DataTable :data="tableData.state.value.list" :loading="tableData.isLoading.value" :selectedRowKeys="selectRows"
+    @update:selectedRowKeys="selectRows = $event" rowKey="id" size="small" striped bordered selectable
     :columns="tableColumns">
   </DataTable>
   <!-- 分页 -->
   <div class="flex justify-center gap-1 items-center mt-4 text-sm">
-    <Paginator
-      :page="currentPage - 1"
-      :rows="tableData.state.value.count"
-      :rowsPerPage="pageSize"
-      @update:page="(page) => onPageChange({ page, first: page * pageSize })"
-    />
+    <Paginator :page="currentPage - 1" :rows="tableData.state.value.count" :rowsPerPage="pageSize"
+      @update:page="(page) => onPageChange({ page, first: page * pageSize })" />
     {{ t('总计') }}：{{ tableData.state.value.count }} {{ t('行') }}
   </div>
-  <AutoForm
-    v-if="selectModelMeta && modelMeta.state.value"
-    ref="__createFormRef"
-    :modelKey="selectModelMeta.modelKey"
-    :modelFields="selectModelMeta.model.fields || {}"
-    :modelMeta="modelMeta.state.value"
-    @created="onRecordCreated()" />
+  <AutoForm v-if="selectModelMeta && modelMeta.state.value" ref="__createFormRef" :modelKey="selectModelMeta.modelKey"
+    :modelFields="selectModelMeta.model.fields || {}" :modelMeta="modelMeta.state.value" @created="onRecordCreated()" />
 </template>
 <script setup lang="ts">
   import { useAPI } from '@/api';
@@ -83,7 +63,11 @@
   const selectModelName = defineModel<string>('modelName', {
     required: true,
   });
-  const selectRows = ref<any[]>([]);
+  /**
+   * 选中的行键值数组（存储 ID 值，不是完整对象）
+   * DataTable 组件的 update:selectedRowKeys 事件只返回 ID 值
+   */
+  const selectRows = ref<Array<string | number>>([]);
 
   /** 表格列定义 */
   const tableColumns = computed(() => {
@@ -270,7 +254,7 @@
       });
     });
   }
-  async function deleteRows(rows: Array<Record<string, any>>) {
+  async function deleteRows(rows: Array<Record<string, any> | string | number>) {
     /** 查找一个可以用于更新指定记录的唯一主键字段  */
     const idField = findIdField(modelMeta.state.value!, selectModelName.value);
     if (!idField) return console.error('No ID field found in the model');
@@ -284,23 +268,73 @@
     const modelKey = selectModelMeta.value!.modelKey;
     const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
     const modelAPI = getModelAPI(API, modelName);
-    await modelAPI.deleteMany({
-      where: {
-        OR: rows.map((row: Record<string, any>) => {
-          return {
-            // @ts-ignore
-            [idField.name]: row[idField.name],
-          };
-        }),
-      },
-    } as any);
-    toast.add({
-      variant: 'info',
-      summary: '删除数据',
-      detail: '删除数据完毕',
-      life: 3000,
+
+    /**
+     * 提取 ID 值
+     * rows 可能是：ID 数组 [1, 2, 3] 或对象数组 [{id: 1}, {id: 2}, {id: 3}]
+     */
+    const ids = rows.map((row) => {
+      // 如果是对象，取 idField 对应的值
+      if (typeof row === 'object' && row !== null) {
+        return row[idField.name];
+      }
+      // 如果已经是 ID 值，直接返回
+      return row;
     });
-    reloadTableData();
+
+    /**
+     * 过滤掉无效的 ID（null、undefined）
+     * 防止 { id: null } 导致删除全部数据
+     */
+    const validIds = ids.filter((id) => id != null);
+
+    if (validIds.length === 0) {
+      return toast.add({
+        variant: 'warning',
+        summary: '删除失败',
+        detail: '选中的数据没有有效的 ID',
+        life: 3000,
+      });
+    }
+
+    try {
+      await modelAPI.deleteMany({
+        where: {
+          OR: validIds.map((id) => ({
+            [idField.name]: id,
+          })),
+        },
+      } as any);
+
+      // 删除成功后清空选中状态并刷新表格
+      selectRows.value = [];
+      reloadTableData();
+
+      toast.add({
+        variant: 'success',
+        summary: '删除数据',
+        detail: `成功删除 ${validIds.length} 条数据`,
+        life: 3000,
+      });
+    } catch (error) {
+      // 提取错误信息并显示给用户
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // 解析 FOREIGN KEY 约束错误，给出更友好的提示
+      let userMessage = errorMessage;
+      if (errorMessage.includes('FOREIGN KEY constraint failed')) {
+        userMessage = '无法删除：该数据被其他记录引用，请先删除关联数据';
+      } 
+
+      toast.add({
+        variant: 'danger',
+        summary: '删除失败',
+        detail: userMessage,
+        life: 5000,
+      });
+
+      console.error('[deleteRows] 删除失败:', error);
+    }
   }
   function deleteConfirm(_event: MouseEvent) {
     confirm.require({

@@ -6,7 +6,8 @@ import { ref } from 'vue';
 
 interface ToastMessage {
   id: number;
-  variant?: 'success' | 'error' | 'info' | 'warn';
+  /** Toast 变体：success/error/info/warn/warning/danger */
+  variant?: 'success' | 'error' | 'info' | 'warn' | 'warning' | 'danger';
   summary: string;
   detail?: string;
   life?: number;
