@@ -1,17 +1,8 @@
 <template>
   <div class="min-h-screen">
     <!-- 顶部区域 -->
-    <div class="bg-gray-50 dark:bg-gray-900 pt-12 px-4 sm:px-6 lg:px-8  border-gray-200 dark:border-gray-800">
-      <div class="max-w-7xl mx-auto">
-        <h1
-          class="text-4xl font-bold text-center mb-4 flex items-center justify-center gap-2 text-gray-900 dark:text-gray-100">
-          <HeartStackSpace_ts class="text-6xl" type="紫动态" />
-          {{ t('TSFullStack 在线工具集合') }}
-        </h1>
-      </div>
-      <div class="flex justify-end">
-        <CommonSettingBtns class="bg-white dark:bg-gray-800 rounded-lg px-3 shadow-sm" />
-      </div>
+    <div class="flex justify-end pt-5 pr-3">
+      <CommonSettingBtns class="bg-white dark:bg-gray-800 rounded-lg px-3 shadow-sm" />
     </div>
 
     <!-- 工具功能区 -->
