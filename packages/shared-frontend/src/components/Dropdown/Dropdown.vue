@@ -79,7 +79,9 @@ const contentStyle = {
 
     <DropdownMenuPortal>
       <DropdownMenuContent
-        class="bg-white dark:bg-gray-700 rounded-md p-1.5 shadow-lg min-w-[200px] max-w-[calc(100vw-20px)] max-h-[calc(100vh-20px)] overflow-auto z-[10001] animate-in fade-in zoom-in-95 duration-200"
+        :collision-padding="16"
+        :avoid-collisions="true"
+        class="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md p-1.5 shadow-lg min-w-[200px] max-w-[calc(100vw-32px)] z-[10001] animate-in fade-in zoom-in-95 duration-200"
         :side="side"
         :align="align"
         :side-offset="sideOffset"

@@ -1,8 +1,8 @@
 <template>
-  <Dropdown v-model="dropdownOpen" @update:open="(value) => value && handleSearch()">
+  <Dropdown v-model="dropdownOpen" @open="handleSearch">
     <template #trigger>
       <div
-        class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-[40px]">
+        class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-10">
         <span class="bg-primary-600 dark:bg-primary-700 rounded-sm px-1 text-white">{{
           t('选择')
         }}</span>
@@ -31,47 +31,49 @@
               </template> </Tag
           ></template>
         </div>
-        <i class="pi pi-chevron-down ml-auto text-gray-500"></i>
+        <i class="pi pi-chevron-down ml-auto text-gray-500 dark:text-gray-400"></i>
       </div>
     </template>
-    <div class="p-3">
-      <Input
-        v-model="searchText"
-        class="w-full"
-        placeholder="搜索..."
-        @input="debounceSearch" />
-    </div>
-    <div class="flex items-center p-3">
-      <Checkbox
-        :model-value="isAllSelected"
-        binary
-        @update:model-value="toggleSelectAll(!isAllSelected)" />
-      <span class="ml-2 font-medium">{{ t('全选') }}</span>
-    </div>
-    <div class="max-h-60 overflow-y-auto">
-      <div v-if="loading" class="p-4 text-center">
-        <i class="pi pi-spin pi-spinner mr-2"></i>
-        {{ t('加载中...') }}
+    <div class="remote-select-dropdown">
+      <div class="p-3">
+        <Input
+          v-model="searchText"
+          class="w-full"
+          placeholder="搜索..."
+          @input="debounceSearch" />
       </div>
-      <div
-        v-else
-        v-for="item in dataList"
-        class="p-3 cursor-pointer flex items-center hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
-        @click.capture.stop.prevent="handleSelect(item)">
-        <Checkbox :model-value="modelValue.some((el) => itemEquals(el, item))" binary />
-        <span class="ml-2">{{ item.label }}</span>
+      <div class="flex items-center p-3">
+        <Checkbox
+          :model-value="isAllSelected"
+          binary
+          @update:model-value="toggleSelectAll(!isAllSelected)" />
+        <span class="ml-2 font-medium">{{ t('全选') }}</span>
       </div>
-      <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-gray-500">
-        {{ t('无数据') }}
+      <ScrollArea style="height: 250px;">
+          <div v-if="loading" class="p-4 text-center">
+            <i class="pi pi-spin pi-spinner mr-2"></i>
+            {{ t('加载中...') }}
+          </div>
+          <div
+            v-else
+            v-for="item in dataList"
+            class="p-3 cursor-pointer flex items-center hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
+            @click.capture.stop.prevent="handleSelect(item)">
+            <Checkbox :model-value="modelValue.some((el) => itemEquals(el, item))" binary />
+            <span class="ml-2">{{ item.label }}</span>
+          </div>
+          <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-gray-500 dark:text-gray-400">
+            {{ t('无数据') }}
+          </div>
+      </ScrollArea>
+      <div class="p-3 border-t border-gray-200 dark:border-gray-600">
+        <Paginator
+          :first="pagination.skip"
+          :rows="pagination.take"
+          :totalRecords="pagination.total"
+          :loading="loading"
+          @page="handlePageChange" />
       </div>
-    </div>
-    <div>
-      <Paginator
-        :first="pagination.skip"
-        :rows="pagination.take"
-        :totalRecords="pagination.total"
-        :loading="loading"
-        @page="handlePageChange" />
     </div>
   </Dropdown>
 </template>
@@ -104,7 +106,7 @@
 </script>
 <script setup lang="ts">
   import { Dropdown } from '@tsfullstack/shared-frontend/components';
-  import { Checkbox, Input, Paginator, Tag } from '@/components/base';
+  import { Checkbox, Input, Paginator, Tag, ScrollArea } from '@/components/base';
   import { computed, ref } from 'vue';
   import { useI18n } from '@/composables/useI18n';
 
@@ -245,4 +247,11 @@
   };
 </script>
 
-<style scoped></style>
+<style scoped>
+.remote-select-dropdown {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+</style>
