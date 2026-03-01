@@ -108,6 +108,11 @@ ssh $SSH_OPTS "$SSH_TARGET" "
 
     # 数据库迁移（生产环境使用 migrate deploy）
     echo '执行数据库迁移...'
+
+    # 先生成 Prisma schema（migrate deploy 依赖此文件）
+    echo '生成 Prisma schema...'
+    pnpm zenstack generate || exit 1
+
     # 确保服务器上安装了 ZenStack CLI（用于解析 schema.zmodel）
     # 如果没有安装的话就需要安装一下
     # pnpm add -D \
