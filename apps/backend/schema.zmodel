@@ -45,12 +45,12 @@ type NotIdBase with BaseTime, BaseGlobalAuth {
 model Role with Base {
     name  String @unique
     users User[]
+
     @@allow("read",auth() != null)
 }
 
 /// User model
 model User with NotIdBase {
-    @@allow('all', auth().role?[name == 'admin'])
     id           String         @id @default(cuid())
     // 注意：v3 中移除了 future()，id 是主键数据库层已禁止修改
     email        String         @unique @length(6, 32)
@@ -73,6 +73,72 @@ model User with NotIdBase {
     oAuthAccount OAuthAccount[]
 
     word         Word[]
+
+    /** 代币记录 */
+    tokens Token[]
+
+    /** 任务记录 */
+    tasks Task[]
+
+    /** 代币消耗记录 */
+    tokenTransactions TokenTransaction[]
+
+    /** 资源记录 */
+    resources Resource[]
+
+    /** 套餐订阅记录 */
+    tokenSubscriptions UserTokenSubscription[]
+}
+
+/// 资源类型枚举
+enum ResourceType {
+    IMAGE    // 图片
+    TEXT     // 文本
+    VIDEO    // 视频
+    AUDIO    // 音频
+    FILE     // 文件
+}
+
+/// 通用资源模型
+model Resource with Base {
+    /** 资源类型 */
+    type ResourceType
+
+    /** 资源标题 */
+    title String
+
+    /** 资源描述 */
+    description String?
+
+    /** 资源元数据（JSON存储，根据类型不同存储不同信息） */
+    metadata Json
+
+    /** 资源状态 */
+    status String @default("pending")
+
+    /** 关联的文件（如果有物理文件） */
+    fileId Int?
+    file File? @relation(fields: [fileId], references: [id])
+
+    /** 关联任务 */
+    task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+    taskId Int
+
+    /** 关联用户 */
+    user User @relation(fields: [userId], references: [id])
+    userId String
+
+    /** 标签 */
+    tags String?
+
+    /** 索引优化 */
+    @@index([userId, type])
+    @@index([taskId])
+    @@index([status, created])
+
+    /** 权限控制 */
+    @@allow('read,create,update,delete', auth() == user)
+    @@allow('read', auth() != null && status == "public")
 }
 
 /// UserSession 用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
@@ -103,7 +169,6 @@ model OAuthAccount with Base {
 
     // 权限控制，绝对不应该让用户可以直接修改这里的数据，否则就能顶替别人的账号了
     @@allow('read', auth() == user)
-    @@allow('create,update,delete', auth().role?[name == 'admin'])
 }
 
 // 存储策略枚举
@@ -128,6 +193,10 @@ model File with Base {
     status      FileStatusEnum @default(private)// 文件状态
     author      User           @relation(fields: [authorId], references: [id])
     authorId    String
+
+    /** 资源记录 */
+    resources Resource[]
+
     @@allow('read,create,delete', auth() == author)
 }
 
@@ -247,6 +316,8 @@ model AiModel with Base {
     name        String
     /// 模型标识符
     model       String
+    /// 模型类型
+    modelType   AiModelType @default(TEXT)
     /// API基础URL
     baseUrl     String
     /// API密钥
@@ -268,10 +339,19 @@ model AiModel with Base {
     rpdLimit    Int     @default(10000)
     /// 描述信息
     description String?
+    /// 模型配置（JSON存储，用于存储不同类型模型的特定配置）
+    config      Json?
 
-    /// 权限控制：只有管理员可以管理AI模型
-    @@allow('all', auth().role?[name == 'admin'])
     @@allow('read', auth() != null)
+}
+
+/// AI 模型类型枚举
+enum AiModelType {
+    TEXT       // 文本生成模型（GPT、Claude等）
+    IMAGE      // 图片生成模型（DALL-E、Stability、通义千问等）
+    VIDEO      // 视频生成模型（未来）
+    AUDIO      // 音频生成模型（未来）
+    TRANSLATION // 翻译模型（未来）
 }
 
 /// ai API调用日志记录
@@ -303,7 +383,232 @@ model AiCallLog with Base {
     /// - 管理员可以完全访问（所有权限）
     /// - 普通用户可以查看自己的数据（只读）
     /// - 未登录用户不能访问
-    @@allow('all', auth().role?[name == 'admin'])
     @@allow('read',auth() != null && userId == auth().id)
+}
+
+/// ==================== 代币系统 ====================
+
+/// 代币类型枚举
+enum TokenType {
+    MONTHLY    // 月度代币（每月重置）
+    YEARLY     // 年度代币（每年重置）
+    PERMANENT  // 永久代币（永不过期）
+}
+
+/// 代币套餐
+model TokenPackage with Base {
+    /** 套餐名称 */
+    name String
+
+    /** 套餐描述 */
+    description String?
+
+    /** 代币类型 */
+    type TokenType
+
+    /** 代币数量 */
+    amount Int
+
+    /** 价格（分） */
+    price Int?
+
+    /** 套餐时长（月数，0表示永久） */
+    durationMonths Int @default(0)
+
+    /** 是否启用 */
+    active Boolean @default(true)
+
+    /** 排序顺序 */
+    sortOrder Int @default(0)
+
+    /** 用户订阅记录 */
+    userSubscriptions UserTokenSubscription[]
+
+    /** 索引 */
+    @@index([active, sortOrder])
+
+    /** 权限控制 */
+    @@allow('read', auth() != null)
+}
+
+/// 用户代币套餐订阅
+model UserTokenSubscription with Base {
+    /** 关联用户 */
+    user User @relation(fields: [userId], references: [id])
+    userId String
+
+    /** 关联套餐 */
+    package TokenPackage @relation(fields: [packageId], references: [id])
+    packageId Int
+
+    /** 订阅开始时间 */
+    startDate DateTime @default(now())
+
+    /** 订阅结束时间（null表示永久） */
+    endDate DateTime?
+
+    /** 下次发放时间（月度套餐每月月初发放） */
+    nextGrantDate DateTime
+
+    /** 是否激活 */
+    active Boolean @default(true)
+
+    /** 发放次数（用于记录已发放了几个月） */
+    grantsCount Int @default(0)
+
+    /** 索引 */
+    @@index([userId, active])
+    @@index([nextGrantDate])
+
+    /** 权限控制 */
+    @@allow('read', auth() == user)
+}
+
+/// 代币记录
+model Token with Base {
+    /** 代币类型 */
+    type TokenType
+
+    /** 代币数量 */
+    amount Int
+
+    /** 已使用数量 */
+    used Int @default(0)
+
+    /** 过期时间 */
+    expiresAt DateTime?
+
+    /** 关联用户 */
+    user User @relation(fields: [userId], references: [id])
+    userId String
+
+    /** 代币来源（系统赠送、购买、活动奖励等） */
+    source String @default("system")
+
+    /** 来源ID（如订单ID、活动ID等） */
+    sourceId String?
+
+    /** 描述信息 */
+    description String?
+
+    /** 是否已激活（延迟发放的代币） */
+    active Boolean @default(true)
+
+    /** 索引优化 */
+    @@index([userId, type, expiresAt])
+    @@index([userId, active])
+    @@index([expiresAt])
+
+    /** 权限控制 */
+    @@allow('read', auth() == user)
+}
+
+/// 代币消耗记录
+model TokenTransaction with Base {
+    /** 消耗的代币数量 */
+    amount Int
+
+    /** 消耗时的代币类型 */
+    tokenType TokenType
+
+    /** 关联用户 */
+    user User @relation(fields: [userId], references: [id])
+    userId String
+
+    /** 关联任务 */
+    task Task @relation(fields: [taskId], references: [id])
+    taskId Int
+
+    /** 余额快照（消耗后的剩余代币） */
+    balanceSnapshot Json
+
+    /** 备注 */
+    note String?
+
+    /** 索引优化 */
+    @@index([userId, taskId])
+    @@index([userId, created])
+    @@index([taskId])
+
+    /** 权限控制 */
+    @@allow('read', auth() == user)
+}
+
+/// ==================== 任务系统 ====================
+
+/// 任务类型枚举
+enum TaskType {
+    AI_IMAGE_GENERATION    // AI 图片生成
+    AI_TEXT_GENERATION     // AI 文本生成
+    AI_TRANSLATION         // AI 翻译
+    AI_VIDEO_GENERATION    // AI 视频生成（未来）
+    CUSTOM                 // 自定义任务
+}
+
+/// 任务状态枚举
+enum TaskStatus {
+    PENDING       // 等待处理
+    PROCESSING    // 处理中
+    COMPLETED     // 已完成
+    FAILED        // 失败
+    CANCELLED     // 已取消
+}
+
+/// 通用任务模型
+model Task with Base {
+    /** 任务类型 */
+    type TaskType
+
+    /** 任务状态 */
+    status TaskStatus @default(PENDING)
+
+    /** 任务标题 */
+    title String
+
+    /** 任务描述 */
+    description String?
+
+    /** 任务参数（JSON 存储，如提示词、尺寸等） */
+    inputParams Json
+
+    /** 任务结果（JSON 存储，如生成的图片URL、文本等） */
+    outputResult Json?
+
+    /** 消耗的代币数量 */
+    tokenCost Int
+
+    /** 错误信息 */
+    error String?
+
+    /** 开始时间 */
+    startedAt DateTime?
+
+    /** 完成时间 */
+    completedAt DateTime?
+
+    /** 关联用户 */
+    user User @relation(fields: [userId], references: [id])
+    userId String
+
+    /** 代币消耗记录 */
+    transactions TokenTransaction[]
+
+    /** 外部任务ID（用于查询第三方服务进度） */
+    externalTaskId String?
+
+    /** 标签（用于分类和搜索） */
+    tags String?
+
+    /** 资源记录 */
+    resources Resource[]
+
+    /** 索引优化 */
+    @@index([userId, status])
+    @@index([userId, type])
+    @@index([status, created])
+    @@index([type, created])
+
+    /** 权限控制 */
+    @@allow('read,create,update,delete', auth() == user)
 }
 

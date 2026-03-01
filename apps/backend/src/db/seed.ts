@@ -4,7 +4,11 @@ import { DbService } from '../Context/DbService';
 import { AppConfigService } from '../Context/AppConfig';
 
 /** 对数据库进行一些初始化设置 */
-export const seedDB = Effect.gen(function* () {
+export const seedDB: Effect.Effect<
+  void,
+  Error,
+  DbService | AppConfigService
+> = Effect.gen(function* () {
   // 若是使用sqlite但不开启 WAL 模式记得调整连接数为 1
   // 类似 export DATABASE_URL="file:/home/admin/app/TsFullStack/prisma/dev.db?connection_limit=1&socket_timeout=10"
   yield* seedWAL();

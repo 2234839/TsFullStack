@@ -92,6 +92,29 @@
       },
       "required": ["clientId", "clientSecret", "redirectUri"],
       "additionalProperties": false
+    },
+    "aiImage": {
+      "type": "object",
+      "description": "AI 图片生成服务配置",
+      "properties": {
+        "qwenApiKey": {
+          "type": "string",
+          "description": "通义千问 API Key，用于 AI 图片生成"
+        },
+        "dalleApiKey": {
+          "type": "string",
+          "description": "DALL-E API Key，用于 AI 图片生成"
+        },
+        "stabilityApiKey": {
+          "type": "string",
+          "description": "Stability AI API Key，用于 AI 图片生成"
+        },
+        "glmApiKey": {
+          "type": "string",
+          "description": "智谱 GLM API Key，用于 AI 图片生成"
+        }
+      },
+      "additionalProperties": false
     }
   },
   "required": [

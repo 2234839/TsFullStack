@@ -27,7 +27,7 @@ import { verifySignByToken } from '../lib/SessionAuthSign';
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
-function handleCause(cause: Cause.Cause<Error>) {
+function handleCause(cause:any) {
   let err;
   function setErr(error: unknown): string {
     if (MsgError.isMsgError(error)) {

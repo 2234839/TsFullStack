@@ -18,6 +18,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:api": "tsx test/run-tests.ts",
+    "test:manual": "tsx test/manual-test.ts",
     "build:projects": "tsx src/scripts/build-projects.ts"
   },
   "main": "./dist-lib/index.js",

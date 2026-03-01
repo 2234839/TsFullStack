@@ -4,7 +4,7 @@ import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import Database from 'better-sqlite3';
 import { schema, type SchemaType } from '../../.zenstack/schema';
-import type { User, UserSession, Role } from '../../.zenstack/models';
+import type { User, UserSession, Role, Token, Task, Resource, TokenTransaction } from '../../.zenstack/models';
 import type { UserFindFirstArgs } from '../../.zenstack/input';
 import { modelsName } from '../db/model-meta';
 import { MsgError } from '../util/error';

@@ -6,7 +6,7 @@ import { type AppConfig as AppConfigType } from '../Context/AppConfig';
 /**
  * 加载配置文件，优先从 config.json 加载，如果不存在则尝试从 config.ts 兼容加载
  */
-export const loadAppConfig = Effect.gen(function* () {
+export const loadAppConfig: Effect.Effect<AppConfigType, Error, never> = Effect.gen(function* () {
   const configPath = path.join(process.cwd(), 'config.json');
   const configTsPath = path.join(process.cwd(), 'config.ts');
 
@@ -73,7 +73,7 @@ export const loadAppConfig = Effect.gen(function* () {
  * 配置服务类，用于加载和管理应用配置
  */
 export class ConfigLoader {
-  static load() {
+  static load(): Effect.Effect<AppConfigType, Error, never> {
     return loadAppConfig;
   }
 }

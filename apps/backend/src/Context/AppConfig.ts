@@ -28,4 +28,15 @@ export type AppConfig = {
   ApiProxy: {
     github?: string;
   };
+  /** AI 图片生成服务配置 */
+  aiImage?: {
+    /** 通义千问 API Key */
+    qwenApiKey?: string;
+    /** DALL-E API Key */
+    dalleApiKey?: string;
+    /** Stability AI API Key */
+    stabilityApiKey?: string;
+    /** 智谱 GLM API Key */
+    glmApiKey?: string;
+  };
 };
