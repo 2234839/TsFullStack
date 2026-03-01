@@ -83,6 +83,38 @@ export const routeMap = reactive({
           icon: 'pi pi-microchip-ai',
         },
       },
+      aiImageGeneration: {
+        path: 'aiImageGeneration',
+        component: () => import('@/pages/admin/AIImageGeneration.vue'),
+        meta: {
+          title: t('AI图片生成'),
+          icon: 'pi pi-sparkles',
+        },
+      },
+      tokenPackageManagement: {
+        path: 'tokenPackageManagement',
+        component: () => import('@/pages/admin/TokenPackageManagement.vue'),
+        meta: {
+          title: t('代币套餐管理'),
+          icon: 'pi pi-box',
+        },
+      },
+      userTokenManagement: {
+        path: 'userTokenManagement',
+        component: () => import('@/pages/admin/UserTokenManagement.vue'),
+        meta: {
+          title: t('用户代币管理'),
+          icon: 'pi pi-users',
+        },
+      },
+      resourceGallery: {
+        path: 'resourceGallery',
+        component: () => import('@/pages/admin/ResourceGallery.vue'),
+        meta: {
+          title: t('资源库'),
+          icon: 'pi pi-images',
+        },
+      },
     },
   },
   ShareDetail: {

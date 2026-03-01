@@ -14,6 +14,8 @@ declare module 'vue' {
   export interface GlobalComponents {
     AiEnglishConfigPanel: typeof import('./src/components/AiEnglishConfigPanel.vue')['default']
     AiEnglishTips: typeof import('./src/components/AiEnglishTips.vue')['default']
+    AIImageGenerator: typeof import('./src/components/AIImageGenerator.vue')['default']
+    AIImageSelector: typeof import('./src/components/AIImageSelector.vue')['default']
     AutoColumn: typeof import('./src/components/AutoTable/AutoColumn.vue')['default']
     AutoColumnEdit: typeof import('./src/components/AutoTable/AutoColumnEdit.vue')['default']
     AutoFilter: typeof import('./src/components/AutoTable/AutoFilter.vue')['default']
@@ -31,6 +33,7 @@ declare module 'vue' {
     Confirm: typeof import('./src/components/base/Confirm.vue')['default']
     DataTable: typeof import('./src/components/base/DataTable.vue')['default']
     DatePicker: typeof import('./src/components/base/DatePicker.vue')['default']
+    Dialog: typeof import('./src/components/base/Dialog.vue')['default']
     Divider: typeof import('./src/components/base/Divider.vue')['default']
     FileUpload: typeof import('./src/components/base/FileUpload.vue')['default']
     GithubStar: typeof import('./src/components/system/GithubStar.vue')['default']
@@ -74,6 +77,8 @@ declare module 'vue' {
 declare global {
   const AiEnglishConfigPanel: typeof import('./src/components/AiEnglishConfigPanel.vue')['default']
   const AiEnglishTips: typeof import('./src/components/AiEnglishTips.vue')['default']
+  const AIImageGenerator: typeof import('./src/components/AIImageGenerator.vue')['default']
+  const AIImageSelector: typeof import('./src/components/AIImageSelector.vue')['default']
   const AutoColumn: typeof import('./src/components/AutoTable/AutoColumn.vue')['default']
   const AutoColumnEdit: typeof import('./src/components/AutoTable/AutoColumnEdit.vue')['default']
   const AutoFilter: typeof import('./src/components/AutoTable/AutoFilter.vue')['default']
@@ -91,6 +96,7 @@ declare global {
   const Confirm: typeof import('./src/components/base/Confirm.vue')['default']
   const DataTable: typeof import('./src/components/base/DataTable.vue')['default']
   const DatePicker: typeof import('./src/components/base/DatePicker.vue')['default']
+  const Dialog: typeof import('./src/components/base/Dialog.vue')['default']
   const Divider: typeof import('./src/components/base/Divider.vue')['default']
   const FileUpload: typeof import('./src/components/base/FileUpload.vue')['default']
   const GithubStar: typeof import('./src/components/system/GithubStar.vue')['default']
