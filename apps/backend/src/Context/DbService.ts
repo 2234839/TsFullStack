@@ -64,7 +64,7 @@ export const DbServiceLive = Effect.gen(function* () {
     }) =>
       Effect.gen(function* () {
         if (Object.values(opt).filter((el) => el).length === 0) {
-          yield* Effect.fail(MsgError.msg('Invalid options'));
+          yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
         }
 
         // 构建 where 条件 - v3 中使用生成的 input 类型
@@ -106,7 +106,7 @@ export const DbServiceLive = Effect.gen(function* () {
         );
 
         if (!user) {
-          yield* Effect.fail(new MsgError(MsgError.op_toLogin, '用户登录状态失效'));
+          yield* Effect.fail(new MsgError(MsgError.op_logout, '用户登录状态失效'));
         }
 
         // v3 中使用 PolicyPlugin 来增强客户端

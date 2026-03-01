@@ -24,6 +24,7 @@ export type { AppAPI } from '../api/appApi';
 export * as SessionAuthSign from './SessionAuthSign';
 
 // Error handling types - required for API error handling
+export { MsgError } from '../util/error';
 export type { MsgErrorOpValues } from '../util/error';
 
 // ZenStack v3 基础参数类型（用于 AutoTable CRUD 接口）

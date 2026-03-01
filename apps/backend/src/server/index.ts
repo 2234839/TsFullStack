@@ -29,7 +29,7 @@ const MAX_WAIT_MS = 360_000;
 // 统一错误序列化函数
 function handleCause(cause: Cause.Cause<Error>) {
   let err;
-  function setErr(error: Error): string {
+  function setErr(error: unknown): string {
     if (MsgError.isMsgError(error)) {
       err = { message: error.message, op: error.op };
     } else if (error instanceof ORMError) {
@@ -40,20 +40,15 @@ function handleCause(cause: Cause.Cause<Error>) {
       }
     } else if (error instanceof Error) {
       err = { message: error.message };
+    } else {
+      err = { message: String(error) };
     }
-    return error.message;
+    return String(error);
   }
   let CauseMsg = Cause.match(cause, {
     onEmpty: '(empty)',
     onFail: setErr,
-    onDie: (defect) => {
-      if (defect instanceof Error) {
-        err = { message: defect.message };
-      } else {
-        err = { message: String(defect) };
-      }
-      return `(defect: ${defect})`;
-    },
+    onDie: setErr,
     onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
     onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
     onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
@@ -172,7 +167,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
         const { params, db, user } = yield* parseParamsAndAuth(req);
         result = yield* Effect.gen(function* () {
           const apisRpc = createRPC('apiProvider', {
-            genApiModule: async () => ({ ...apis, db } as unknown as APIRaw),
+            genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
           });
           const res_effect = yield* Effect.promise(() =>
             apisRpc.RC(method, params).catch((e) => {
@@ -225,11 +220,11 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
     const exit = yield* Effect.exit(runnable);
     if (Exit.isFailure(exit)) {
       const cause = exit.cause;
-      if (Cause.isDieType(cause) && Cause.isRuntimeException(cause.defect)) {
+      if (Cause.isDieType(cause)) {
         reqCtx.log(
           '[error Cause]',
           /** 裁剪掉 Effect 内部的调用堆栈 */
-          `${cause.defect?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
+          `${(cause.defect as Error)?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
         );
       } else {
         reqCtx.log('[error noCause]', `${cause}`);

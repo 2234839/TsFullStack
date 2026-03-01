@@ -40,7 +40,9 @@ import Confirm from '@/components/base/Confirm.vue';
 import { computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from '@/composables/useToast';
-import { toastBus } from '@/utils/toastBus';
+import { toastBus, authBus } from '@/buses';
+import { authInfo_logout } from '@/storage';
+import { MsgError } from '@tsfullstack/backend';
 
 
 //#region 设置页面标题
@@ -57,13 +59,19 @@ const toast = useToast();
 onMounted(() => {
   // 订阅 toastBus，将所有消息显示到 Toast 组件
   // 这会自动消费队列中已存在的消息
-  const unsubscribe = toastBus.subscribe((message) => {
+  const unsubscribeToast = toastBus.subscribe((message) => {
     toast.add(message);
+  });
+
+  // 订阅 authBus，处理登出事件
+  const unsubscribeAuth = authBus.subscribe(MsgError.op_logout, () => {
+    authInfo_logout();
   });
 
   // 组件卸载时取消订阅
   onUnmounted(() => {
-    unsubscribe();
+    unsubscribeToast();
+    unsubscribeAuth();
   });
 });
 //#endregion

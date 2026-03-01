@@ -1,8 +1,14 @@
 export class MsgError extends Error {
   static errorTag = 'MsgError';
+  /** 登出：清理本地认证信息并跳转登录页 */
+  static op_logout = 'op_logout' as const;
+  /** 跳转登录页：不清理本地数据，仅跳转 */
   static op_toLogin = 'op_toLogin' as const;
+  /** 普通消息错误：显示错误提示 */
   static op_msgError = 'op_msgError' as const;
+  /** 跳转注册页 */
   static op_toRegister = 'op_toRegister' as const;
+  /** 跳转忘记密码页 */
   static op_toForgotPassword = 'op_toForgotPassword' as const;
 
   static msg(message: string) {

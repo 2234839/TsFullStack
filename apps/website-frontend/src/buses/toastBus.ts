@@ -3,11 +3,15 @@
  * 使用发布-订阅模式，支持消息积攒和延迟消费
  */
 
+import { MsgError, type MsgErrorOpValues } from '@tsfullstack/backend';
+
 interface ToastMessage {
   variant?: 'success' | 'error' | 'info' | 'warn';
   summary: string;
   detail?: string;
   life?: number;
+  /** 操作类型，用于去重判断 */
+  op?: MsgErrorOpValues;
 }
 
 type ToastListener = (message: ToastMessage) => void;
@@ -27,31 +31,30 @@ class ToastBus {
    * 即使没有监听器，消息也会被保存到队列中等待消费
    */
   publish(message: ToastMessage): void {
-    // 对于登录失效消息，使用去重逻辑
-    if (message.detail?.includes('用户登录状态失效')) {
-      const key = 'login-error';
-      const existing = this.latestMessages.get(key);
+    // 只对 op_toLogin 进行去重处理
+    if (message.op === MsgError.op_toLogin) {
+      const existing = this.latestMessages.get(MsgError.op_toLogin);
 
       if (existing) {
-        // 如果已有相同消息，延长时间而不是新增
+        // 如果已有 op_toLogin 消息，延长时间而不是新增
         const currentLife = existing.life || 3000;
         const newLife = (message.life || 3000) + currentLife - 3000; // 累加额外时间
 
-        this.latestMessages.set(key, {
+        this.latestMessages.set('op_toLogin', {
           ...existing,
           life: newLife,
         });
 
-        console.log('[ToastBus] 延长登录失效消息时间:', newLife);
-      } else {
-        // 新消息，记录并发布
-        this.latestMessages.set(key, message);
-        this._addToQueue(message);
+        console.log('[ToastBus] 延长 op_toLogin 消息时间:', newLife);
+        return;
       }
-    } else {
-      // 其他消息直接发布
-      this._addToQueue(message);
+
+      // 记录第一条 op_toLogin 消息
+      this.latestMessages.set(MsgError.op_toLogin, message);
     }
+
+    // 添加到队列并通知监听器
+    this._addToQueue(message);
   }
 
   /**

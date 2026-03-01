@@ -4,6 +4,7 @@ import {
   proxyCall,
   type API as __API__,
   type AppAPI as __AppAPI__,
+  MsgError,
   type MsgErrorOpValues,
   SessionAuthSign,
 } from '@tsfullstack/backend';
@@ -13,7 +14,7 @@ import {
 import superjson from 'superjson';
 import { routeMap, routerUtil } from './router';
 import { authInfo } from './storage';
-import { toastBus } from './utils/toastBus';
+import { toastBus, authBus } from './buses';
 const baseServer = import.meta.env.VITE_API_BASE_URL || '';
 
 /** 方便组件调用时进行一些定制操作 */
@@ -72,23 +73,36 @@ export function useAPI() {
           if (!res.error) {
             return res.result;
           }
-          console.log('[err]', res.error);
           const op = res.error.op as MsgErrorOpValues | undefined;
-          if (op === 'op_toLogin') {
-            routerUtil.push(routeMap.login, {});
-            // 发布到 toast 总线，不依赖传入的 toast 参数
+
+          if (op === MsgError.op_logout) {
+            // 登出：发布登出事件，清理本地认证信息并跳转登录页
+            authBus.publish(MsgError.op_logout);
             toastBus.publish({
               variant: 'error',
               summary: 'Error',
               detail: res.error.message,
               life: 3000,
+              op,
             });
-          } else if (op === 'op_msgError') {
+          } else if (op === MsgError.op_toLogin) {
+            // 跳转登录页：不清理本地数据，仅跳转
+            // 显示提示信息
             toastBus.publish({
               variant: 'error',
               summary: 'Error',
               detail: res.error.message,
               life: 3000,
+              op,
+            });
+            routerUtil.push(routeMap.login, {});
+          } else if (op === MsgError.op_msgError) {
+            toastBus.publish({
+              variant: 'error',
+              summary: 'Error',
+              detail: res.error.message,
+              life: 3000,
+              op,
             });
           }
           throw res.error;
