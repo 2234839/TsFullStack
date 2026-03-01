@@ -10,7 +10,7 @@
     ".": {
       "import": "./dist/shared-frontend.es.js",
       "require": "./dist/shared-frontend.cjs.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/src/index.d.ts"
     },
     "./utils": {
       "import": "./src/utils/index.ts",

@@ -212,9 +212,7 @@
     <!-- 简化的二维码弹窗 -->
     <Dialog
       v-model:open="showQRCode"
-      :title="t('感谢您的支持')"
-      class="qr-dialog"
-      :style="{ width: '420px' }">
+      :title="t('感谢您的支持')">
       <div class="qr-content space-y-4">
         <!-- 二维码展示区 -->
         <div class="qr-display flex justify-center">

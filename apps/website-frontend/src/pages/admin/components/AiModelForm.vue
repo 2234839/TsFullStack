@@ -1,12 +1,8 @@
 <template>
   <Dialog
-    :open="visible"
-    :modal="true"
-    :header="isEdit ? t('编辑AI模型') : t('添加AI模型')"
-    class="p-fluid"
-    style="max-width: 600px"
-    @update:open="emit('update:visible', $event)"
-    @hide="onHide">
+    v-model:open="localVisible"
+    :title="isEdit ? t('编辑AI模型') : t('添加AI模型')"
+  >
 
     <div class="space-y-4">
       <div class="field">
@@ -184,7 +180,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
 import Button from '@/components/base/Button.vue'
@@ -207,6 +203,12 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+
+/** 本地的 visible 状态，支持双向绑定 */
+const localVisible = computed<boolean>({
+  get: () => props.visible,
+  set: (value: boolean) => emit('update:visible', value),
+})
 
 const { API } = useAPI()
 const { t } = useI18n()
@@ -323,10 +325,6 @@ const onSubmit = async () => {
 
 const onCancel = () => {
   emit('update:visible', false)
-  resetForm()
-}
-
-const onHide = () => {
   resetForm()
 }
 

@@ -118,8 +118,8 @@
   };
 </script>
 <script setup lang="ts">
-  import { Dropdown } from '@tsfullstack/shared-frontend/components';
-  import { Checkbox, Input, Paginator, Tag, ScrollArea } from '@/components/base';
+  import { Dropdown, ScrollArea } from '@tsfullstack/shared-frontend/components';
+  import { Checkbox, Input, Paginator, Tag } from '@/components/base';
   import { computed, ref } from 'vue';
   import { useI18n } from '@/composables/useI18n';
 

@@ -674,11 +674,8 @@
 
     <!-- AI配置对话框 -->
     <Dialog
-      v-model:visible="showConfigPanel"
-      :header="t('AI配置')"
-      :modal="true"
-      :style="{ width: '450px' }"
-      :draggable="false">
+      v-model:open="showConfigPanel"
+      :title="t('AI配置')">
       <AiEnglishConfigPanel @save="showConfigPanel = false" />
     </Dialog>
   </div>

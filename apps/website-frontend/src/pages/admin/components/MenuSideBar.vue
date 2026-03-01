@@ -261,6 +261,30 @@
           to: routerUtil.to(routeMap.admin.child.ShareList, {}),
         },
         {
+          key: 'aiImageGeneration',
+          label: t('AI图片生成'),
+          icon: routeMap.admin.child.aiImageGeneration.meta.icon,
+          to: routerUtil.to(routeMap.admin.child.aiImageGeneration, {}),
+        },
+        {
+          key: 'resourceGallery',
+          label: t('资源库'),
+          icon: routeMap.admin.child.resourceGallery.meta.icon,
+          to: routerUtil.to(routeMap.admin.child.resourceGallery, {}),
+        },
+        {
+          key: 'tokenPackageManagement',
+          label: t('代币套餐管理'),
+          icon: routeMap.admin.child.tokenPackageManagement.meta.icon,
+          to: routerUtil.to(routeMap.admin.child.tokenPackageManagement, {}),
+        },
+        {
+          key: 'userTokenManagement',
+          label: t('用户代币管理'),
+          icon: routeMap.admin.child.userTokenManagement.meta.icon,
+          to: routerUtil.to(routeMap.admin.child.userTokenManagement, {}),
+        },
+        {
           key: 'aiModelManager',
           label: t('AI模型管理'),
           icon: 'pi pi-microchip-ai',

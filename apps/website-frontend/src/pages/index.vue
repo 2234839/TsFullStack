@@ -23,39 +23,34 @@
       </Divider>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
-        <CardItem
-          :title="t('NoteCalc在线计算')"
-          :description="t('强大的在线计算工具，支持笔记和复杂计算')"
+        <CardItem :title="t('NoteCalc在线计算')" :description="t('强大的在线计算工具，支持笔记和复杂计算')"
           :longDescription="t('支持公式、注释、多行计算、单位换算等功能，适用于技术人员与学生。')"
-          :imageUrl="generateAIImage('notecalc')"
+          :imageUrl="generateAIImage('modern calculator interface with mathematical formulas floating in elegant typography, clean white background with subtle blue accent lighting, professional productivity tool aesthetic')"
           :routePath="routerUtil.to(routeMap.noteCalc, {})" />
 
-        <CardItem
+        <!-- 暂时隐藏，因为实现的还不够好 -->
+        <!-- <CardItem
           :title="t('VrImg全景虚拟展厅')"
           :description="t('轻松构建企业的虚拟展厅/分享美景')"
           :longDescription="t('支持360°全景图片浏览，可嵌入互动热点，适用于文旅、电商等场景。')"
-          :imageUrl="generateAIImage('vrimg')"
-          :routePath="routerUtil.to(routeMap.VrImg, {})" />
+          :imageUrl="generateAIImage('immersive 360 degree virtual reality gallery with floating interactive hotspots, warm ambient lighting, museum exhibition space with modern art installations')"
+          :routePath="routerUtil.to(routeMap.VrImg, {})" /> -->
 
-        <CardItem
-          :title="t('AI英语学习')"
-          :description="t('在阅读中渐进式学习英语')"
+        <CardItem :title="t('AI英语学习')" :description="t('在阅读中渐进式学习英语')"
           :longDescription="t('提供阅读辅助、单词解释、语境联想等功能，提升英语阅读能力。')"
-          :imageUrl="generateAIImage('aienglish')"
+          :imageUrl="generateAIImage('open book with glowing English words floating upward, warm desk lamp lighting, cozy study atmosphere with notebook and pen, language learning concept')"
           :routePath="routerUtil.to(routeMap.AiEnglish, undefined)" />
-        <CardItem
-          :title="t('管理系统')"
-          :description="t('访问完整的管理后台，管理您的内容和设置')"
+
+        <CardItem :title="t('管理系统')" :description="t('访问完整的管理后台，管理您的内容和设置')"
           :longDescription="t('适用于企业或个人项目，提供完整的用户、权限、数据管理等模块。')"
-          :imageUrl="generateAIImage('admin')"
+          :imageUrl="generateAIImage('professional dashboard admin panel with data visualization charts and graphs, modern dark theme interface, clean organized layout with statistics and analytics')"
           :routePath="routerUtil.to(routeMap.admin, {})" />
-        <CardItem
-          :title="t('用户中心')"
-          :description="t('登录您的账户，访问个性化内容和设置')"
+
+        <CardItem :title="t('用户中心')" :description="t('登录您的账户，访问个性化内容和设置')"
           :longDescription="t('支持个人资料管理、任务记录查看、自定义偏好设置等功能。')"
-          :imageUrl="generateAIImage('user')"
+          :imageUrl="generateAIImage('user profile interface with personalized settings and preferences, friendly modern design with avatar and organized menu options, welcoming user experience')"
           :routePath="routerUtil.to(routeMap.login, {}, { r: route.fullPath })" />
-        </div>
+      </div>
     </div>
     <SponsorshipCard />
   </div>

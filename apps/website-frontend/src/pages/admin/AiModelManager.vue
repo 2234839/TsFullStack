@@ -130,12 +130,23 @@
   const confirm = useConfirm();
   const toast = useToast();
 
+  /** AI 模型数据类型 */
+  interface AiModelVO {
+    id?: number;
+    name?: string | null;
+    model?: string | null;
+    provider?: string | null;
+    enabled?: boolean | null;
+    weight?: number | null;
+    created?: Date | null;
+    updated?: Date | null;
+  }
+
   // 响应式数据
-  type AiModelType = Awaited<ReturnType<typeof API.db.aiModel.findFirst>>;
-  const models = ref([] as AiModelType[]);
+  const models = ref<AiModelVO[]>([]);
   const isLoading = ref(false);
   const modelFormVisible = ref(false);
-  const selectedModel = ref<AiModelType | null>(null);
+  const selectedModel = ref<AiModelVO | null>(null);
   const isStatsLoading = ref(false);
   const modelStatsChartRef = ref<InstanceType<typeof ModelStatsChart> | null>(null);
 
@@ -146,11 +157,27 @@
 
   // 计算属性
   const totalModels = computed(() => models.value.length);
-  const enabledModels = computed(() => models.value.filter((model) => model?.enabled).length);
-  const disabledModels = computed(() => models.value.filter((model) => !model?.enabled).length);
-  const totalWeight = computed(() =>
-    models.value.reduce((sum, model) => sum + (model?.weight || 0), 0),
-  );
+  const enabledModels = computed(() => {
+    let count = 0;
+    for (const model of models.value) {
+      if (model?.enabled) count++;
+    }
+    return count;
+  });
+  const disabledModels = computed(() => {
+    let count = 0;
+    for (const model of models.value) {
+      if (!model?.enabled) count++;
+    }
+    return count;
+  });
+  const totalWeight = computed(() => {
+    let sum = 0;
+    for (const model of models.value) {
+      if (model?.weight) sum += model.weight;
+    }
+    return sum;
+  });
 
   // 过滤和排序后的模型列表
   const filteredModels = computed(() => {
@@ -159,10 +186,11 @@
     // 搜索过滤
     if (searchQuery.value.trim()) {
       const query = searchQuery.value.toLowerCase();
-      filtered = filtered.filter(
-        (model) =>
-          model?.name?.toLowerCase().includes(query) || model?.model?.toLowerCase().includes(query),
-      );
+      filtered = filtered.filter((model) => {
+        const name = model?.name?.toLowerCase() ?? '';
+        const modelName = model?.model?.toLowerCase() ?? '';
+        return name.includes(query) || modelName.includes(query);
+      });
     }
 
     // 状态过滤
@@ -174,8 +202,8 @@
     const [field, order] = sortBy.value.split('-');
     filtered.sort((a, b) => {
       if (!a || !b) return 0;
-      const aValue = a[field as keyof AiModelType] as string | number;
-      const bValue = b[field as keyof AiModelType] as string | number;
+      const aValue = (a as AiModelVO)[field as keyof AiModelVO] as string | number;
+      const bValue = (b as AiModelVO)[field as keyof AiModelVO] as string | number;
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
         return order === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
@@ -313,13 +341,13 @@
   };
 
   // 编辑模型
-  const editModel = (model: AiModelType) => {
+  const editModel = (model: AiModelVO) => {
     selectedModel.value = model;
     modelFormVisible.value = true;
   };
 
   // 切换模型状态
-  const toggleModelStatus = (model: AiModelType, event: MouseEvent) => {
+  const toggleModelStatus = (model: AiModelVO, event: MouseEvent) => {
     if (!model) return;
 
     confirm.require({
@@ -366,7 +394,7 @@
   };
 
   // 删除模型
-  const deleteModel = (model: AiModelType, event: MouseEvent) => {
+  const deleteModel = (model: AiModelVO, event: MouseEvent) => {
     if (!model) return;
 
     confirm.require({

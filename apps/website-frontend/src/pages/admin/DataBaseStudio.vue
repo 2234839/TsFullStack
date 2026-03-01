@@ -15,7 +15,7 @@
 <template>
   <div class="p-2">
     <div v-if="hideSwitch !== 'true'" class="flex gap-1 items-center">
-      <div class="flex-1 overflow-x-auto min-h-0 hide-scrollbar">
+      <div class="flex-1 overflow-x-auto min-h-0 hide-scrollbar" @wheel.prevent="handleWheel">
         <SelectButton v-model="selectModelName"
           :options="Object.values(modelMeta.state.value?.models ?? {}).map((el) => el.name)" />
       </div>
@@ -34,6 +34,14 @@
 
   const router = useRouter();
   const route = useRoute();
+
+  /** 将垂直滚轮转换为水平滚动 */
+  function handleWheel(e: WheelEvent) {
+    const target = e.target as HTMLElement;
+    if (e.deltaY !== 0) {
+      target.parentElement!.scrollLeft += e.deltaY;
+    }
+  }
 
   const modelMeta = await useModelMeta();
 
