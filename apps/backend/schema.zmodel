@@ -34,15 +34,12 @@ type BaseGlobalAuth {
 }
 
 /// 通用基础类型，包含时间和ID，继承全局权限
-type BaseTimeId with BaseTime, BaseId {
-    @@allow('all', auth().role?[name == 'admin'])
+type Base with BaseTime, BaseId, BaseGlobalAuth {
 }
 
-/// 通用基础类型（向后兼容）
-type Base with BaseTimeId {
-    @@allow('all', auth().role?[name == 'admin'])
+/// 纯抽象层，包含全局权限，但没有ID字段，适合需要自定义id主键的模型
+type NotIdBase with BaseTime, BaseGlobalAuth {
 }
-
 
 /// 角色
 model Role with Base {
@@ -52,7 +49,7 @@ model Role with Base {
 }
 
 /// User model
-model User with BaseTime {
+model User with NotIdBase {
     @@allow('all', auth().role?[name == 'admin'])
     id           String         @id @default(cuid())
     // 注意：v3 中移除了 future()，id 是主键数据库层已禁止修改
@@ -141,7 +138,7 @@ enum LogLevel {
     WARN
     ERROR
 }
-model SystemLog with BaseId {
+model SystemLog with BaseId,BaseGlobalAuth {
     level      LogLevel
     message    String?
     logs       Json?
@@ -256,19 +253,19 @@ model AiModel with Base {
     apiKey      String
     // 注意：不再使用 @omit 属性（v3 已移除），需要在查询时手动排除
     /// 最大Token数
-    maxTokens   Int @default(2000)
+    maxTokens   Int     @default(2000)
     /// 温度参数
-    temperature Float @default(0.7)
+    temperature Float   @default(0.7)
     /// 是否启用
     enabled     Boolean @default(true)
     /// 权重（用于负载均衡）
-    weight      Int @default(100)
+    weight      Int     @default(100)
     /// 每分钟请求限制
-    rpmLimit    Int @default(60)
+    rpmLimit    Int     @default(60)
     /// 每小时请求限制
-    rphLimit    Int @default(1000)
+    rphLimit    Int     @default(1000)
     /// 每日请求限制
-    rpdLimit    Int @default(10000)
+    rpdLimit    Int     @default(10000)
     /// 描述信息
     description String?
 
@@ -280,21 +277,21 @@ model AiModel with Base {
 /// ai API调用日志记录
 model AiCallLog with Base {
     /// 客户端IP地址
-    clientIp    String
+    clientIp     String
     /// 用户ID（可选，未登录用户为null）
-    userId      String?
+    userId       String?
     /// AI模型ID
-    aiModelId   Int
+    aiModelId    Int
     /// 模型标识符（如 gpt-3.5-turbo, claude-3-sonnet 等）
-    modelName String
+    modelName    String
     /// 输入的token数量
-    inputTokens Int?
+    inputTokens  Int?
     /// 输出的token数量
     outputTokens Int?
     /// 调用是否成功
-    success     Boolean @default(true)
+    success      Boolean  @default(true)
     /// 调用时间戳
-    timestamp   DateTime @default(now())
+    timestamp    DateTime @default(now())
 
     @@index([clientIp, timestamp])
     @@index([userId, timestamp])
