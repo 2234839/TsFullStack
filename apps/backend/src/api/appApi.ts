@@ -1,4 +1,4 @@
-import { compareSync } from 'bcryptjs';
+import { compareSync, hashSync } from 'bcryptjs';
 import { Effect } from 'effect';
 import { DbService } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
@@ -31,11 +31,13 @@ export const appApis = {
         if (user) {
           throw MsgError.msg('用户已存在');
         }
+        /** 对密码进行哈希处理（ZenStack v3 已移除 @password 属性的自动哈希功能） */
+        const hashedPassword = hashSync(password);
         const newUser = yield* Effect.promise(() =>
           dbClient.user.create({
             data: {
               email,
-              password,
+              password: hashedPassword,
             },
           }),
         );

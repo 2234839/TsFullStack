@@ -1,6 +1,7 @@
 import { OauthProvider } from '../../../.zenstack/models';
 import { Effect } from 'effect';
 import { v7 as uuidv7 } from 'uuid';
+import { hashSync } from 'bcryptjs';
 import { DbService } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { GithubAuthService } from '../../OAuth/github';
@@ -37,11 +38,15 @@ export const githubApi = {
       );
 
       if (!user) {
+        /** 为 OAuth 用户生成随机密码并哈希处理（用户不会通过密码登录，但需要满足数据库约束） */
+        const randomPassword = uuidv7() + githubUser.email;
+        const hashedPassword = hashSync(randomPassword);
+
         user = yield* Effect.promise(() => {
           return dbClient.user.create({
             data: {
               email: uuidv7(),
-              password: uuidv7() + githubUser.email,
+              password: hashedPassword,
               oAuthAccount: {
                 create: {
                   provider: OauthProvider.GITHUB,
