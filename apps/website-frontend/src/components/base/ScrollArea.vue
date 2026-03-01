@@ -5,7 +5,9 @@
       :scroll-hide-delay="scrollHideDelay"
       class="scroll-area-root">
       <ScrollAreaViewport class="scroll-area-viewport">
-        <slot />
+        <div class="scroll-area-content">
+          <slot />
+        </div>
       </ScrollAreaViewport>
       <ScrollAreaScrollbar
         v-if="showHorizontalScrollbar()"
@@ -113,17 +115,26 @@ const containerStyle = computed<CSSProperties>(() => {
 .scroll-area-root {
   position: relative;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex: 1;
   overflow: hidden;
+  /** 确保根容器至少有视口高度，允许内容撑开 */
+  min-height: 0;
 }
 
 /** 视口区域 - 实际的滚动区域 */
 .scroll-area-viewport {
   flex: 1;
   width: 100%;
-  height: 100%;
+  /** 允许内容决定高度，但超出时可以滚动 */
+  min-height: 0;
   overflow: hidden;
+}
+
+/** 内容包装器 - 确保内容可以撑开并触发滚动 */
+.scroll-area-content {
+  width: 100%;
+  min-width: max-content;
 }
 
 /** 滚动条通用样式 */
@@ -132,11 +143,15 @@ const containerStyle = computed<CSSProperties>(() => {
   border-radius: 4px;
   z-index: 10;
   flex-shrink: 0;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
 }
 
 /** 水平滚动条 */
 .scroll-area-scrollbar-horizontal {
-  height: 8px;
+  height: 12px;
   width: 100%;
 }
 
@@ -148,14 +163,14 @@ const containerStyle = computed<CSSProperties>(() => {
 
 /** 滚动条滑块 - 亮色模式 */
 .scroll-area-thumb {
-  background-color: rgb(203 213 225 / 0.8);
+  background-color: rgb(148 163 184 / 0.9);
   border-radius: 4px;
   transition: background-color 150ms ease-out;
 }
 
 /** 滚动条滑块悬停 - 亮色模式 */
 .scroll-area-thumb:hover {
-  background-color: rgb(148 163 184 / 0.9);
+  background-color: rgb(100 116 139 / 1);
 }
 
 /** 滚动条滑块 - 暗色模式 */

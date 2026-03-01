@@ -6,7 +6,6 @@
  */
 import { computed, ref } from 'vue';
 import ProgressSpinner from './ProgressSpinner.vue';
-import ScrollArea from './ScrollArea.vue';
 
 export interface ColumnDef<T = any> {
   /** 字段名 */
@@ -169,8 +168,8 @@ function getSortIcon(column: ColumnDef<T>) {
 </script>
 
 <template>
-  <ScrollArea class="w-full" orientation="horizontal" type="scroll">
-    <table class="w-full border-collapse">
+  <div class="data-table-container">
+    <table class="border-collapse w-full">
       <thead class="bg-gray-50 dark:bg-gray-800">
         <tr>
           <!-- 选择列 -->
@@ -264,5 +263,57 @@ function getSortIcon(column: ColumnDef<T>) {
         </tr>
       </tbody>
     </table>
-  </ScrollArea>
+  </div>
 </template>
+
+<style scoped>
+/** DataTable 容器 - 支持横向滚动 */
+.data-table-container {
+  width: 100%;
+  overflow-x: auto;
+  position: relative;
+}
+
+/** 美化滚动条 */
+.data-table-container::-webkit-scrollbar {
+  height: 10px;
+}
+
+.data-table-container::-webkit-scrollbar-track {
+  background: rgb(243 244 246);
+  border-radius: 5px;
+}
+
+.data-table-container::-webkit-scrollbar-thumb {
+  background: rgb(203 213 225);
+  border-radius: 5px;
+  transition: background-color 150ms ease-out;
+}
+
+.data-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgb(148 163 184);
+}
+
+/** 暗色模式支持 */
+.dark .data-table-container::-webkit-scrollbar-track {
+  background: rgb(31 41 55);
+}
+
+.dark .data-table-container::-webkit-scrollbar-thumb {
+  background: rgb(71 85 105);
+}
+
+.dark .data-table-container::-webkit-scrollbar-thumb:hover {
+  background: rgb(100 116 139);
+}
+
+/** Firefox 滚动条样式 */
+.data-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(203 213 225) rgb(243 244 246);
+}
+
+.dark .data-table-container {
+  scrollbar-color: rgb(71 85 105) rgb(31 41 55);
+}
+</style>
