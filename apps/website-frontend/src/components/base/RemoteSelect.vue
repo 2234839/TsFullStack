@@ -57,10 +57,23 @@
           <div
             v-else
             v-for="item in dataList"
-            class="p-3 cursor-pointer flex items-center hover:bg-primary-50 dark:hover:bg-primary-950 transition-colors"
+            :key="item.value"
+            class="p-3 cursor-pointer flex items-center transition-colors"
+            :class="{
+              'hover:bg-primary-50 dark:hover:bg-primary-950': !isItemDisabled(item),
+              'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800': isItemDisabled(item)
+            }"
             @click.capture.stop.prevent="handleSelect(item)">
-            <Checkbox :model-value="modelValue.some((el) => itemEquals(el, item))" binary />
-            <span class="ml-2">{{ item.label }}</span>
+            <Checkbox
+              :model-value="modelValue.some((el) => itemEquals(el, item))"
+              :binary="true"
+              :disabled="isItemDisabled(item)" />
+            <span class="ml-2" :class="{ 'text-gray-500 dark:text-gray-400': isItemDisabled(item) }">
+              {{ item.label }}
+            </span>
+            <span v-if="isItemDisabled(item)" class="ml-auto text-xs text-gray-400 dark:text-gray-500">
+              {{ t('必需') }}
+            </span>
           </div>
           <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-gray-500 dark:text-gray-400">
             {{ t('无数据') }}
@@ -68,11 +81,11 @@
       </ScrollArea>
       <div class="p-3 border-t border-gray-200 dark:border-gray-600">
         <Paginator
-          :first="pagination.skip"
-          :rows="pagination.take"
-          :totalRecords="pagination.total"
-          :loading="loading"
-          @page="handlePageChange" />
+          :rows="pagination.total"
+          :rowsPerPage="pagination.take"
+          :page="currentPage"
+          :disabled="loading"
+          @update:page="handlePageChange" />
       </div>
     </div>
   </Dropdown>
@@ -110,14 +123,6 @@
   import { computed, ref } from 'vue';
   import { useI18n } from '@/composables/useI18n';
 
-  /** PageState 接口定义 */
-  interface PageState {
-    first: number;
-    page: number;
-    pageCount: number;
-    rows: number;
-  }
-
   /** 获取 t 函数 */
   const { t } = useI18n();
 
@@ -143,6 +148,11 @@
       type: Boolean,
       default: true,
     },
+    /** 禁用的项列表（不能取消选择的项） */
+    disabledItems: {
+      type: Array as () => RemoteSelectItem[],
+      default: () => [],
+    },
   });
 
   const emit = defineEmits<{
@@ -165,6 +175,11 @@
     total: 0,
   });
 
+  /** 当前页码（从0开始） */
+  const currentPage = computed(() => {
+    return Math.floor(pagination.value.skip / pagination.value.take);
+  });
+
   let searchTimeout: any = null;
 
   const debounceSearch = () => {
@@ -180,8 +195,8 @@
     await fetchData();
   };
 
-  const handlePageChange = async (event: PageState) => {
-    pagination.value.skip = event.first;
+  const handlePageChange = async (page: number) => {
+    pagination.value.skip = page * pagination.value.take;
     await fetchData();
   };
 
@@ -201,6 +216,11 @@
   };
 
   const handleSelect = (item: RemoteSelectItem) => {
+    // 如果项被禁用，不允许操作
+    if (isItemDisabled(item)) {
+      return;
+    }
+
     const index = modelValue.value.findIndex((v) => itemEquals(v, item));
     if (index === -1) {
       add(item);
@@ -244,6 +264,11 @@
 
   const setTagHovered = (item: RemoteSelectItem, hovered: boolean) => {
     tagHovered.value[item.value] = hovered;
+  };
+
+  /** 判断某个项是否被禁用（不可取消） */
+  const isItemDisabled = (item: RemoteSelectItem) => {
+    return props.disabledItems.some((disabledItem) => itemEquals(disabledItem, item));
   };
 </script>
 

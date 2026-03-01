@@ -47,7 +47,7 @@
   import { computed, h, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
   import AutoColumn from './AutoColumn.vue';
-  import { injectModelMetaKey, type ModelMetaNames, type Model, type FieldInfo, getModelAPI, isDataModelField } from './type';
+  import { injectModelMetaKey, type ModelMetaNames, type Model, type FieldInfo, getModelAPI, isDataModelField, isArrayField, getBackLinkFieldName } from './type';
   import { findIdField, useModelMeta, getModelDbName as exportGetModelDbName } from './util';
   const { t } = useI18n();
   const confirm = useConfirm();
@@ -220,17 +220,162 @@
 
         if (isDataModelField(field)) {
           const relationData = editRow[editFieldName] as RelationSelectData;
-          editRow[editFieldName] = {
-            connect: relationData.add.map((item) => ({
+
+          console.log('[saveChanges] Processing relation field:', {
+            editFieldName,
+            fieldType: field.type,
+            isArray: isArrayField(field),
+            add: relationData.add,
+            remove: relationData.remove,
+          });
+
+          /**
+           * 区分关系类型：
+           * - 数组关系（一对多/多对多）：使用 connect/disconnect
+           * - 单对象关系（多对一）：使用 connect
+           *
+           * 对于一对多关系（如 User.userData）：
+           * - connect 只能关联自由记录（未关联任何用户的记录）
+           * - 如果需要转移所有权（将属于用户A的记录转给用户B），需要直接更新被关联模型的user字段
+           */
+          if (isArrayField(field)) {
+            // 一对多或多对多关系
+            const connectData = relationData.add.map((item) => ({
               [refIdField.name]: item.value,
-            })),
-            disconnect: relationData.remove.map((item) => ({
+            }));
+            const disconnectData = relationData.remove.map((item) => ({
               [refIdField.name]: item.value,
-            })),
-          };
+            }));
+
+            console.log('[saveChanges] Array relation operation:', {
+              connect: connectData,
+              disconnect: disconnectData,
+            });
+
+            editRow[editFieldName] = {
+              connect: connectData,
+              disconnect: disconnectData,
+            };
+          } else {
+            // 多对一关系（单个对象）
+            if (relationData?.add && relationData.add.length > 0) {
+              // 只连接第一个添加的项
+              const firstItem = relationData.add[0];
+              if (firstItem) {
+                editRow[editFieldName] = {
+                  connect: {
+                    [refIdField.name]: firstItem.value,
+                  },
+                };
+              }
+            } else if (relationData?.remove && relationData.remove.length > 0) {
+              // 断开连接
+              editRow[editFieldName] = {
+                disconnect: true,
+              };
+            }
+          }
         }
       });
       console.log('[editRow]', editRow);
+
+      /**
+       * 处理关系字段的转移所有权
+       *
+       * ## 为什么需要转移所有权？
+       *
+       * ### 场景：一对多关系（User.userData）
+       * - `UserData` 有一个必需的 `userId` 字段（NOT NULL）
+       * - 一个 `UserData` 记录只能属于一个 `User`
+       * - 当你把一个已属于用户 A 的 `UserData` 关联给用户 B 时，需要：
+       *   1. 断开与用户 A 的关联
+       *   2. 关联到用户 B
+       *
+       * ### 为什么不能用简单的 connect？
+       * - ZenStack 的 `connect` 操作只能关联自由记录（未关联任何用户的记录）
+       * - 如果尝试 `connect` 已属于其他用户的记录，会失败：
+       *   - 错误：`UNIQUE constraint failed: UserData.userId, UserData.key, UserData.appId`
+       *   - 原因：尝试更新 `UserData.userId` 但违反了唯一约束
+       *
+       * ### 解决方案：直接更新被关联模型
+       * - 不在 `User` 这边用 `connect`
+       * 而是直接调用 `UserData.update()` 更新其 `user` 关联
+       * - 这样可以正确转移所有权
+       *
+       * ### 示例
+       * - 用户 A 拥有 `UserData { id: 1, userId: 'user-a', key: 'prefs' }`
+       * - 用户 B 想要拥有这个 `UserData`
+       * - 操作：调用 `UserData.update({ where: { id: 1 }, data: { user: { connect: { id: 'user-b' } } } })`
+       * - 结果：`UserData.userId` 更新为 `'user-b'`，所有权从用户 A 转移到用户 B
+       */
+      for (const editFieldName of editFields) {
+        const field = (selectModelMeta.value?.model.fields as unknown as Record<string, FieldInfo>)[editFieldName]!;
+
+        if (isDataModelField(field) && isArrayField(field)) {
+          const relationData = editRow[editFieldName] as RelationSelectData;
+
+          // 安全检查：确保 relationData 和 relationData.add 存在
+          if (relationData?.add && relationData.add.length > 0) {
+            // 获取被关联模型的 API（如 UserData API）
+            const relatedModelKey = Object.keys(modelMeta.state.value!.models).find(
+              (key) => (modelMeta.state.value!.models as any)[key]?.name === field.type
+            ) as ModelMetaNames;
+            const relatedModelName = exportGetModelDbName(relatedModelKey);
+            const relatedAPI = getModelAPI(API, relatedModelName);
+            const relatedIdField = findIdField(modelMeta.state.value!, field.type as string)!;
+
+            // 获取反向字段名称（如 UserData.user）
+            const backLinkFieldName = getBackLinkFieldName(field);
+
+            // 找到当前记录的 ID（如 User.id）
+            const currentRecordId = (rawRow as any)[idField.name];
+
+            // 安全检查：确保 backLinkFieldName 存在
+            if (!backLinkFieldName) {
+              console.warn('[saveChanges] Missing backLinkFieldName for field:', field.name);
+              continue;
+            }
+
+            // 更新每个要关联的记录，将它们的 user 关联指向当前记录
+            for (const item of relationData.add) {
+              try {
+                await relatedAPI.update({
+                  where: {
+                    [relatedIdField.name]: item.value,
+                  },
+                  data: {
+                    [backLinkFieldName]: {
+                      connect: {
+                        [idField.name]: currentRecordId,
+                      },
+                    },
+                  },
+                });
+                console.log('[saveChanges] Transferred ownership:', {
+                  relatedModel: field.type,
+                  recordId: item.value,
+                  newOwner: currentRecordId,
+                });
+              } catch (error) {
+                console.error('[saveChanges] Failed to transfer ownership:', error);
+                // 如果转移失败（可能因为唯一约束），从 editRow 中移除这个 connect
+                if (editRow[editFieldName]?.connect) {
+                  const connectData = editRow[editFieldName].connect || [];
+                  editRow[editFieldName].connect = connectData.filter(
+                    (conn: any) => conn[relatedIdField.name] !== item.value
+                  );
+                }
+              }
+            }
+
+            // 清空 editRow 中的 connect，因为我们已经手动处理了
+            if (editRow[editFieldName]) {
+              editRow[editFieldName].connect = [];
+            }
+          }
+        }
+      }
+
       const modelKey = selectModelMeta.value!.modelKey;
       const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
       const modelAPI = getModelAPI(API, modelName);
