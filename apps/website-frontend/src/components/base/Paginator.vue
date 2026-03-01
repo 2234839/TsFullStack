@@ -14,6 +14,10 @@ interface Props {
   page?: number;
   /** 是否禁用 */
   disabled?: boolean;
+  /** 是否显示每页条数选择器 */
+  showRowsPerPageOptions?: boolean;
+  /** 每页条数选项 */
+  rowsPerPageOptions?: number[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -21,10 +25,13 @@ const props = withDefaults(defineProps<Props>(), {
   rowsPerPage: 10,
   page: 0,
   disabled: false,
+  showRowsPerPageOptions: false,
+  rowsPerPageOptions: () => [10, 20, 50, 100],
 });
 
 const emit = defineEmits<{
   'update:page': [page: number];
+  'update:rowsPerPage': [rowsPerPage: number];
 }>();
 
 /** 总页数 */
@@ -112,13 +119,40 @@ const buttonClasses = (active: boolean, disabled: boolean) => {
 
   return `${base} ${activeClass} ${disabledClass}`;
 };
+
+/**
+ * 处理每页条数变化
+ */
+function handleRowsPerPageChange(event: Event) {
+  const target = event.target as HTMLSelectElement;
+  const newValue = parseInt(target.value, 10);
+  emit('update:rowsPerPage', newValue);
+  /** 切换每页条数后重置到第一页 */
+  emit('update:page', 0);
+}
 </script>
 
 <template>
   <div class="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg">
-    <!-- 信息显示 -->
-    <div class="text-sm text-gray-700 dark:text-gray-300">
-      显示 {{ firstRecord }}-{{ lastRecord }} 条，共 {{ rows }} 条
+    <!-- 信息显示和每页条数选择器 -->
+    <div class="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
+      <div>
+        显示 {{ firstRecord }}-{{ lastRecord }} 条，共 {{ rows }} 条
+      </div>
+
+      <!-- 每页条数选择器 -->
+      <div v-if="showRowsPerPageOptions" class="flex items-center gap-2">
+        <select
+          :disabled="disabled"
+          :value="rowsPerPage"
+          @change="handleRowsPerPageChange"
+          class="px-2 py-1 text-sm border border-gray-300 rounded bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+        >
+          <option v-for="option in rowsPerPageOptions" :key="option" :value="option">
+            {{ option }} 条/页
+          </option>
+        </select>
+      </div>
     </div>
 
     <!-- 分页按钮 -->

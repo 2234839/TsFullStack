@@ -109,8 +109,14 @@
         </div>
 
         <!-- 分页 -->
-        <Paginator :rows="shareList.params.take" :total-records="shareList.state.value.total"
-          :first="shareList.params.skip" @page="onPageChange" />
+        <Paginator
+          :rows="shareList.params.take"
+          :rowsPerPage="shareList.params.take"
+          :page="Math.floor(shareList.params.skip / shareList.params.take)"
+          :show-rows-per-page-options="true"
+          @update:page="(page: number) => onPageChange({ page, first: page * shareList.params.take })"
+          @update:rows-per-page="(newSize: number) => { shareList.params.take = newSize; onPageChange({ page: 0, first: 0 }); }"
+        />
       </div>
     </div>
   </div>

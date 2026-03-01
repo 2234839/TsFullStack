@@ -28,8 +28,14 @@
   </DataTable>
   <!-- 分页 -->
   <div class="flex justify-center gap-1 items-center mt-4 text-sm">
-    <Paginator :page="currentPage - 1" :rows="tableData.state.value.count" :rowsPerPage="pageSize"
-      @update:page="(page) => onPageChange({ page, first: page * pageSize })" />
+    <Paginator
+      :page="currentPage - 1"
+      :rows="tableData.state.value.count"
+      :rowsPerPage="pageSize"
+      :show-rows-per-page-options="true"
+      @update:page="(page) => onPageChange({ page, first: page * pageSize })"
+      @update:rows-per-page="(newSize) => { pageSize = newSize; onPageChange({ page: 0, first: 0 }); }"
+    />
     {{ t('总计') }}：{{ tableData.state.value.count }} {{ t('行') }}
   </div>
   <AutoForm v-if="selectModelMeta && modelMeta.state.value" ref="__createFormRef" :modelKey="selectModelMeta.modelKey"
