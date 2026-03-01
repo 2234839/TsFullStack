@@ -24,8 +24,6 @@ export { default as Paginator } from './Paginator.vue';
 export { default as Password } from './Password.vue';
 export { default as ProgressBar } from './ProgressBar.vue';
 export { default as ProgressSpinner } from './ProgressSpinner.vue';
-export { default as ScrollArea } from './ScrollArea.vue';
-export { default as Select } from './Select.vue';
 export { default as SelectButton } from './SelectButton.vue';
 export { default as Slider } from './Slider.vue';
 export { default as Tag } from './Tag.vue';

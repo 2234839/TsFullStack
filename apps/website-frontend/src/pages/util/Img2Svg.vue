@@ -47,7 +47,8 @@
 
 <script setup lang="ts">
   import { ref, watch } from 'vue';
-  import { FileUpload, ProgressBar, Select, Slider } from '@/components/base';
+  import { FileUpload, ProgressBar, Slider } from '@/components/base';
+  import { Select } from '@tsfullstack/shared-frontend/components';
 
   const canvas = ref<HTMLCanvasElement | null>(null);
   const previewData = ref<string | null>(null);

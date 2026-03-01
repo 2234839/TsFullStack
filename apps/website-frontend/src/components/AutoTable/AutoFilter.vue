@@ -29,23 +29,26 @@
         class="filter-row flex items-center space-x-2 p-2 rounded-lg bg-white dark:bg-gray-900 shadow-sm">
         <Select
           v-model="filter.field"
-          :options="availableFields"
-          optionLabel="name"
+          :options="availableFieldsOptions"
           :placeholder="t('选择字段')"
           class="w-1/4"
-          @change="updateOperators(filter)" />
+          @update:model-value="updateOperators(filter)" />
 
         <Select
           v-model="filter.operator"
           :options="getOperatorsForField(filter.field)"
-          optionLabel="label"
           :placeholder="t('选择操作符')"
           class="w-1/4"
           :disabled="!filter.field" />
 
         <!-- 使用AutoColumn组件进行值编辑 -->
         <div class="w-1/3" v-if="filter.field">
-          <AutoColumnEdit :row="filter.value" :field="filter.field" :cellData="undefined" v-model="filter.value" />
+          <AutoColumnEdit
+            v-if="getFieldByName(filter.field)"
+            :row="filter.value"
+            :field="getFieldByName(filter.field)!"
+            :cellData="undefined"
+            v-model="filter.value" />
         </div>
         <div class="w-1/3" v-else>
           <Input disabled :placeholder="t('请先选择字段')" class="w-full" />
@@ -82,7 +85,8 @@
   import AutoColumnEdit from '@/components/AutoTable/AutoColumnEdit.vue';
   import Button from '@/components/base/Button.vue';
   import Input from '@/components/base/Input.vue';
-  import Select from '@/components/base/Select.vue';
+  import { Select } from '@tsfullstack/shared-frontend/components';
+  import type { SelectOption } from '@tsfullstack/shared-frontend/components';
   import { computed, ref } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { FieldInfo } from './type';
@@ -100,22 +104,33 @@
   const emit = defineEmits(['filter']);
 
   // 可用字段列表
-  const availableFields = computed(() => {
-    return Object.values(props.modelFields).filter((field: FieldInfo) => {
-      // 排除关系字段等不适合筛选的字段
-      return (
-        !isDataModelField(field) &&
-        ['String', 'Int', 'Float', 'Boolean', 'DateTime', 'Decimal', 'BigInt'].includes(field.type as string)
-      );
-    });
+  const availableFieldsOptions = computed<SelectOption[]>(() => {
+    return Object.values(props.modelFields)
+      .filter((field: FieldInfo) => {
+        // 排除关系字段等不适合筛选的字段
+        return (
+          !isDataModelField(field) &&
+          ['String', 'Int', 'Float', 'Boolean', 'DateTime', 'Decimal', 'BigInt'].includes(field.type as string)
+        );
+      })
+      .map((field: FieldInfo) => ({
+        value: field.name,
+        label: field.name,
+      }));
   });
+
+  // 获取字段对象（通过字段名）
+  const getFieldByName = (fieldName: string | null): FieldInfo | null => {
+    if (!fieldName) return null;
+    return Object.values(props.modelFields).find((field: FieldInfo) => field.name === fieldName) || null;
+  };
 
   // 筛选条件列表
   const filters = ref<
     Array<{
       id: string;
-      field: FieldInfo | null;
-      operator: { value: string; label: string } | null;
+      field: string | null;
+      operator: string | null;
       value: any;
     }>
   >([]);
@@ -142,12 +157,13 @@
   }
 
   // 根据字段类型获取可用的操作符
-  const getOperatorsForField = (field: FieldInfo | null) => {
-    const commonOperators = [
+  const getOperatorsForField = (fieldName: string | null): SelectOption[] => {
+    const commonOperators: SelectOption[] = [
       { value: 'equals', label: t('等于') },
       { value: 'not', label: t('不等于') },
     ];
 
+    const field = getFieldByName(fieldName);
     if (!field) return [];
 
     // 使用 as string 避免 TypeScript 的类型收窄问题
@@ -204,16 +220,19 @@
       if (!filter.field || !filter.operator || filter.value === null || filter.value === undefined)
         return;
 
-      const fieldName = filter.field.name;
-      const operator = filter.operator.value;
+      const field = getFieldByName(filter.field);
+      if (!field) return;
+
+      const fieldName = field.name;
+      const operator = filter.operator;
       let value = filter.value;
 
       // Convert value to the correct type based on the field type
-      if (filter.field.type === 'Int' as string) {
+      if (field.type === 'Int' as string) {
         value = parseInt(value);
-      } else if (filter.field.type === 'Float' as string || filter.field.type === 'Decimal' as string) {
+      } else if (field.type === 'Float' as string || field.type === 'Decimal' as string) {
         value = parseFloat(value);
-      } else if (filter.field.type === 'Boolean' as string) {
+      } else if (field.type === 'Boolean' as string) {
         value = value === 'true' || value === true; // Handle string or boolean
       }
 
@@ -224,9 +243,9 @@
         if (typeof value === 'string') {
           arrayValue = value.split(',').map((v) => v.trim());
           // Convert array values to the correct type
-          if (filter.field.type === 'Int' as string) {
+          if (field.type === 'Int' as string) {
             arrayValue = arrayValue.map((v) => parseInt(v));
-          } else if (filter.field.type === 'Float' as string || filter.field.type === 'Decimal' as string) {
+          } else if (field.type === 'Float' as string || field.type === 'Decimal' as string) {
             arrayValue = arrayValue.map((v) => parseFloat(v));
           }
         } else if (Array.isArray(value)) {

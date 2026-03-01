@@ -74,6 +74,49 @@ const where: UserDataWhereInput = {};
 
 - 自定义组件应遵循 Vue 3 Composition API 模式
 - 全局组件在 `src/main.ts` 中注册
+- 项目已经封装好了很多组件，你需要实现什么的时候不应该直接在vue中写，而应该优先使用项目中合适的组件
+
+#### 可用组件列表
+
+当实现新的组件时需要考虑应该作为共享组件还是本地组件，新增和删除组件时更新这个apps/website-frontend/CLAUDE.md 文档中的可用组件列表
+
+**共享组件** (来自 `import { xxx } from '@tsfullstack/shared-frontend/components';`)：
+- Dialog
+- Tooltip
+- Popover
+- Dropdown
+- ContextMenu
+- Drawer
+- ScrollArea
+- Select
+
+**本地基础组件** (`@/components/base`)：
+- Button
+- Input
+- Textarea
+- Password
+- MultiSelect
+- Checkbox
+- ToggleSwitch
+- DatePicker
+- DataTable
+- Paginator
+- Card
+- Badge
+- Tag
+- Message
+- Confirm
+- FileUpload
+- Chart
+- ProgressSpinner
+- ProgressBar
+- Carousel
+- Slider
+- Divider
+- Column
+- InputGroup / InputGroupAddon
+- InputNumber
+- SelectButton
 
 #### **重要提示：始终使用 Reactive Props Destructure 形式定义组件 props**
 
@@ -97,8 +140,7 @@ watchEffect(() => {
 
 ## 重要说明
 
-- 项目使用 monorepo 结构，后端位于 `../backend/`
-- API 类型从后端包导入以实现完全的类型安全
+- API 类型从后端包（backend）导入以实现完全的类型安全
 - 路由使用自定义的基于树的系统，而不是标准的 Vue Router 配置
 
 

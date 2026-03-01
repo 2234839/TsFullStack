@@ -47,3 +47,14 @@ export type {
   UiDrawerProps,
   DrawerSide,
 } from './Drawer/types';
+
+export { ScrollArea } from './ScrollArea';
+
+export { Select } from './Select';
+export type {
+  SelectOption,
+  SelectSide,
+  SelectAlign,
+  UiSelectEmits,
+  UiSelectProps,
+} from './Select';

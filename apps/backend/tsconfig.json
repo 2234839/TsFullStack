@@ -23,7 +23,7 @@
     "noUnusedParameters": false, // 检查未使用的函数参数
     "noFallthroughCasesInSwitch": true, // 防止 switch 语句的 case 穿透
     "noImplicitReturns": true, // 确保函数有显式返回
-    "noUncheckedIndexedAccess": true, // 索引访问时检查 undefined
+    "noUncheckedIndexedAccess": true // 索引访问时检查 undefined
   },
   "include": [
     "src/**/*",
