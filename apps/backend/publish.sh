@@ -54,7 +54,7 @@ timer_start
 # 1. 准备阶段
 show_progress "准备远程环境..."
 ssh $SSH_OPTS "$SSH_TARGET" "
-    mkdir -p $REMOTE_PATH/{dist/frontend,prisma/migrations} &&
+    mkdir -p $REMOTE_PATH/{dist/frontend,migrations} &&
     echo '环境准备完成'
 " || { show_error "环境准备失败"; exit 1; }
 show_success "远程环境准备完成"
@@ -76,17 +76,16 @@ timer_start
         ../website-frontend/dist/ "$SSH_TARGET:$REMOTE_PATH/dist/frontend/" &
     FRONTEND_PID=$!
 
-    # 数据库迁移和 Prisma 文件 以及 Prisma 引擎二进制，不使用 --delete  删除服务器上的迁移文件
+    # 数据库迁移和配置文件
     rsync -avz --compress-level=9 -e "ssh $SSH_OPTS" \
-        ./prisma/{migrations,schema.prisma} \
-        ./node_modules/prisma/libquery_engine-debian-openssl-3.0.x.so.node \
+        ./schema.zmodel \
+        ./migrations \
         ./config.schema.json \
         ./config.example.json \
         ./CONFIG.md \
         "$SSH_TARGET:$REMOTE_PATH/" &
-    DB_PID=$!
 
-    wait $BACKEND_PID $FRONTEND_PID $DB_PID
+    wait $BACKEND_PID $FRONTEND_PID $DB_PID 
 } || { show_error "文件同步失败"; exit 1; }
 
 show_success "文件同步完成"
@@ -104,12 +103,22 @@ ssh $SSH_OPTS "$SSH_TARGET" "
     pm2 stop TsFullStack || true
 
     # 等待进程完全停止
-    sleep 2
+    sleep 3
 
-    
-    # 数据库迁移
+    # 清理可能的 WAL/SHM 锁文件
+    echo '清理数据库锁文件...'
+    find $REMOTE_PATH -name 'dev.db-wal' -delete 2>/dev/null || true
+    find $REMOTE_PATH -name 'dev.db-shm' -delete 2>/dev/null || true
+
+    # 数据库迁移（生产环境使用 migrate deploy）
     echo '执行数据库迁移...'
-    pnpm prisma migrate deploy || exit 1
+    # 确保服务器上安装了 ZenStack CLI（用于解析 schema.zmodel）
+    # 如果没有安装的话就需要安装一下
+    # pnpm add -D \
+    #     '@zenstackhq/cli@^3.4.1' \
+    #     '@zenstackhq/schema@^3.4.1' \
+    #     '@zenstackhq/plugin-policy@^3.4.1' || exit 1
+    pnpm zen migrate deploy || exit 1
 
     # 重启应用
     echo '重启应用服务...'

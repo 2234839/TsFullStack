@@ -16,3 +16,6 @@ node_modules
 !/prisma/migrations
 /prisma/migrations/development
 ~schema.prisma
+
+# 默认的数据库文件路径（如果不在 .gitignore 中，则可能会误提交数据库文件）
+/database

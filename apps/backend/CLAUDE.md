@@ -42,8 +42,7 @@ pnpm tsc:b            # 类型检查,修改代码后可自行按需运行此命�
 - **类型安全**: 严格模式，禁用 `any`，优先使用 Effect
 - **代码质量**: 函数式编程，充分利用类型推导
 - **构建要求**: API/schema 修改 api 下的代码，或者 projects 下的代码后必须执行 `pnpm build:lib`
-
-## 配置管理: apps/backend/CONFIG.md
+- **数据安全** 除非我明确要求，否则不能执行任何可能删除数据库数据的命令，对于数据库迁移文件如果和数据库内的迁移记录不一致可以选择创建一个新的基线来应用修改
 
 <claude-mem-context>
 # Recent Activity

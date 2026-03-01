@@ -46,7 +46,7 @@ export const DbServiceLive = Effect.gen(function* () {
 
   /** 数据库路径从配置文件读取 */
   const databasePath = appConfig.databasePath;
-
+  console.log('[databasePath]',databasePath);
   const dbClient = new ZenStackClient(schema, {
     dialect: new SqliteDialect({
       database: new Database(databasePath),

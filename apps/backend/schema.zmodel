@@ -27,8 +27,20 @@ type BaseId {
     id Int @id @default(autoincrement())
 }
 
-/// 通用基础类型，包含时间和ID
-type Base with BaseTime, BaseId {
+/// 全局权限控制 - 纯抽象层，仅包含权限策略
+/// 继承此类型会自动获得：管理员拥有完全访问权限
+type BaseGlobalAuth {
+    @@allow('all', auth().role?[name == 'admin'])
+}
+
+/// 通用基础类型，包含时间和ID，继承全局权限
+type BaseTimeId with BaseTime, BaseId {
+    @@allow('all', auth().role?[name == 'admin'])
+}
+
+/// 通用基础类型（向后兼容）
+type Base with BaseTimeId {
+    @@allow('all', auth().role?[name == 'admin'])
 }
 
 
@@ -41,6 +53,7 @@ model Role with Base {
 
 /// User model
 model User with BaseTime {
+    @@allow('all', auth().role?[name == 'admin'])
     id           String         @id @default(cuid())
     // 注意：v3 中移除了 future()，id 是主键数据库层已禁止修改
     email        String         @unique @length(6, 32)
