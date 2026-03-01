@@ -25,9 +25,8 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
-  useForwardPropsEmits,
 } from 'reka-ui';
-import type { DialogContentProps, DialogContentEmits, DialogRootProps } from 'reka-ui';
+import type { DialogRootProps } from 'reka-ui';
 import type { UiDialogEmits, UiDialogProps } from './types';
 
 /** 定义 props */
