@@ -1,0 +1,1 @@
+- 创建管理端的页面后在 /pages/admin/components/MenuSideBar.vue 添加对应的导航

@@ -3,7 +3,7 @@
 TsFullStack 是一个 TypeScript 全栈框架，支持前端直接操作数据库，无需编写后端 API 代码。
 
 ### 核心技术栈
-- **后端**: TypeScript + Prisma + ZenStack + Effect + Fastify
+- **后端**: TypeScript + ZenStack(类似Prisma) + Effect + Fastify
 - **前端**: TypeScript + Vue 3 + Tailwind CSS + reka-ui（自定义组件库）+ @vueuse/core (多多使用use来简化vue中的逻辑)
 - **浏览器扩展**: WXT + Vue 3 + Tailwind CSS + PrimeVue
 
@@ -13,8 +13,8 @@ TsFullStack 是一个 TypeScript 全栈框架，支持前端直接操作数据�
 
 ```bash
 # 后端开发 (apps/backend/)
-pnpm zenstack generate    # 生成 Prisma 客户端
-pnpm prisma migrate dev   # 运行数据库迁移
+pnpm zenstack generate    # 生成orm后端代码
+pnpm zenstack migrate dev # 运行数据库迁移
 pnpm build:lib            # 构建后端api接口包供前端掉用
 pnpm dev                  # 启动开发服务器
 
@@ -35,7 +35,7 @@ pnpm build                # 构建扩展
 ### 重要说明
 
 **数据库管理**
-- 修改模型定义使用 `schema.zmodel` 而不是 `prisma/schema.prisma`（基于前者自动生成）
+- 修改模型: `schema.zmodel`
 - 修改 schema 后必须运行 `pnpm zenstack generate`
 
 **类型安全**
