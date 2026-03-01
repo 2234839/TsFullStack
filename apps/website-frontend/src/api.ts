@@ -13,34 +13,11 @@ import {
 import superjson from 'superjson';
 import { routeMap, routerUtil } from './router';
 import { authInfo } from './storage';
+import { toastBus } from './utils/toastBus';
 const baseServer = import.meta.env.VITE_API_BASE_URL || '';
 
-/** Toast 消息接口 */
-interface ToastMessage {
-  variant?: 'success' | 'error' | 'info' | 'warn';
-  summary: string;
-  detail?: string;
-  life?: number;
-}
-
-/** Toast 接口 */
-interface ToastInstance {
-  add(message: ToastMessage): void;
-}
-
-/** 默认的 toast 实现，使用 alert */
-let apiTempToast: ToastInstance = {
-  add(message: ToastMessage) {
-    alert(message.detail || message.summary);
-  },
-};
-/** 替换临时 toast 方案为正规方案 */
-export function setApiTempToast(toast: ToastInstance) {
-  apiTempToast = toast;
-}
-
 /** 方便组件调用时进行一些定制操作 */
-export function useAPI(toast?: ToastInstance) {
+export function useAPI() {
   const { API } = createRPC<__API__>('apiConsumer', {
     remoteCall: genPostRemoteCall(`${baseServer}/api/`),
   });
@@ -99,14 +76,15 @@ export function useAPI(toast?: ToastInstance) {
           const op = res.error.op as MsgErrorOpValues | undefined;
           if (op === 'op_toLogin') {
             routerUtil.push(routeMap.login, {});
-            (toast ?? apiTempToast).add({
+            // 发布到 toast 总线，不依赖传入的 toast 参数
+            toastBus.publish({
               variant: 'error',
               summary: 'Error',
               detail: res.error.message,
               life: 3000,
             });
           } else if (op === 'op_msgError') {
-            (toast ?? apiTempToast).add({
+            toastBus.publish({
               variant: 'error',
               summary: 'Error',
               detail: res.error.message,

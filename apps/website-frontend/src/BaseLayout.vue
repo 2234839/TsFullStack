@@ -37,8 +37,10 @@ import { allRoutes, findRouteNode } from '@/router';
 import { useTitle } from '@vueuse/core';
 import Toast from '@/components/system/Toast.vue';
 import Confirm from '@/components/base/Confirm.vue';
-import { computed } from 'vue';
+import { computed, onMounted, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
+import { useToast } from '@/composables/useToast';
+import { toastBus } from '@/utils/toastBus';
 
 
 //#region 设置页面标题
@@ -48,5 +50,21 @@ const title = computed(() => {
   return routeNode?.meta?.title ? `${routeNode.meta.title} - TSFullStack` : 'TSFullStack';
 });
 useTitle(title);
+//#endregion
+
+//#region Toast 订阅
+const toast = useToast();
+onMounted(() => {
+  // 订阅 toastBus，将所有消息显示到 Toast 组件
+  // 这会自动消费队列中已存在的消息
+  const unsubscribe = toastBus.subscribe((message) => {
+    toast.add(message);
+  });
+
+  // 组件卸载时取消订阅
+  onUnmounted(() => {
+    unsubscribe();
+  });
+});
 //#endregion
 </script>

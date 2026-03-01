@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "vite --mode dev",
-    "dev:local": "vite",
+    "dev:cloud": "vite",
     "tsc": "NODE_OPTIONS='--max-old-space-size=8192' vue-tsc -b",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview"
