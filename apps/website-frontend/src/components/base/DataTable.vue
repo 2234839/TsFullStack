@@ -6,6 +6,7 @@
  */
 import { computed, ref } from 'vue';
 import ProgressSpinner from './ProgressSpinner.vue';
+import ScrollArea from './ScrollArea.vue';
 
 export interface ColumnDef<T = any> {
   /** 字段名 */
@@ -168,7 +169,7 @@ function getSortIcon(column: ColumnDef<T>) {
 </script>
 
 <template>
-  <div class="overflow-x-auto">
+  <ScrollArea class="w-full" orientation="horizontal">
     <table class="w-full border-collapse">
       <thead class="bg-gray-50 dark:bg-gray-800">
         <tr>
@@ -263,5 +264,5 @@ function getSortIcon(column: ColumnDef<T>) {
         </tr>
       </tbody>
     </table>
-  </div>
+  </ScrollArea>
 </template>
