@@ -336,10 +336,11 @@
       console.error('[deleteRows] 删除失败:', error);
     }
   }
-  function deleteConfirm(_event: MouseEvent) {
+  function deleteConfirm(event: MouseEvent) {
     confirm.require({
       message: '确定删除吗？',
       icon: 'pi pi-exclamation-triangle',
+      event,
       acceptProps: {
         label: 'Delete！',
         variant: 'danger',

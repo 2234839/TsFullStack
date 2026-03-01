@@ -93,7 +93,7 @@
                   <Button icon="pi pi-link" variant="icon" @click.stop="handleGotoDetail(item as any)" />
                   <Button icon="pi pi-pencil" variant="icon" @click.stop="handleEdit(item as any)"
                     :aria-label="t('编辑')" />
-                  <Button icon="pi pi-trash" variant="icon" @click.stop="handleDelete(item as any)"
+                  <Button icon="pi pi-trash" variant="icon" @click.stop="handleDelete(item as any, $event)"
                     :aria-label="t('删除')" />
                 </div>
               </div>
@@ -294,10 +294,11 @@
     });
   };
   // 删除处理
-  const handleDelete = (item: ShareItemJSON) => {
+  const handleDelete = (item: ShareItemJSON, event: MouseEvent) => {
     confirm.require({
       message: '确定要删除这个分享吗？',
       icon: 'pi pi-exclamation-triangle',
+      event,
       rejectProps: {
         label: '取消',
         variant: 'secondary',

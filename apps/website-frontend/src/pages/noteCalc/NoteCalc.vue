@@ -696,10 +696,11 @@
   };
 
   // 确认删除笔记
-  const confirmDeleteNote = (note: Note, _event: MouseEvent) => {
+  const confirmDeleteNote = (note: Note, event: MouseEvent) => {
     confirm.require({
       message: `确定要删除笔记"${getNoteTitle(note)}"吗？`,
       icon: 'pi pi-exclamation-triangle',
+      event,
       acceptClass: 'p-button-danger',
       accept: () => {
         deleteNote(note);
@@ -795,7 +796,7 @@
   };
 
   // 处理新建文档
-  const handleNewDocument = (_event: MouseEvent) => {
+  const handleNewDocument = (event: MouseEvent) => {
     const confirmNewDocument = () => {
       content.value = '';
       currentNote.value = null;
@@ -812,6 +813,7 @@
     confirm.require({
       message: t('是否确定新建文档？当前内容将被清空。'),
       icon: 'pi pi-exclamation-triangle',
+      event,
       rejectProps: {
         label: 'Cancel',
         variant: 'secondary',

@@ -255,21 +255,30 @@
           h(Button, {
             icon: 'pi pi-pencil',
             size: 'small',
-            onClick: () => editModel(row),
+            onClick: (event: any) => {
+              event?.preventDefault();
+              editModel(row);
+            },
             title: t('编辑'),
           }),
           h(Button, {
             icon: 'pi pi-play',
             size: 'small',
             variant: row.enabled ? 'danger' : 'primary',
-            onClick: () => toggleModelStatus(row),
+            onClick: (event: any) => {
+              event?.preventDefault();
+              toggleModelStatus(row, event);
+            },
             title: row.enabled ? t('禁用') : t('启用'),
           }),
           h(Button, {
             icon: 'pi pi-trash',
             size: 'small',
             variant: 'danger',
-            onClick: () => deleteModel(row),
+            onClick: (event: any) => {
+              event?.preventDefault();
+              deleteModel(row, event);
+            },
             title: t('删除'),
           }),
         ]),
@@ -310,12 +319,13 @@
   };
 
   // 切换模型状态
-  const toggleModelStatus = (model: AiModelType) => {
+  const toggleModelStatus = (model: AiModelType, event: MouseEvent) => {
     if (!model) return;
 
     confirm.require({
       message: t('确定要{0}这个模型吗？', model.enabled ? t('禁用') : t('启用')),
       icon: 'pi pi-exclamation-triangle',
+      event,
       rejectProps: {
         label: t('取消'),
         variant: 'secondary',
@@ -356,12 +366,13 @@
   };
 
   // 删除模型
-  const deleteModel = (model: AiModelType) => {
+  const deleteModel = (model: AiModelType, event: MouseEvent) => {
     if (!model) return;
 
     confirm.require({
       message: t('确定要删除这个模型吗？此操作不可恢复。'),
       icon: 'pi pi-exclamation-triangle',
+      event,
       rejectProps: {
         label: t('取消'),
         variant: 'secondary',
