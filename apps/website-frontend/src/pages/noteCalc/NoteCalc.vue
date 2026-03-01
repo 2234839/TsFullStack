@@ -12,13 +12,13 @@
         </h1>
       </div>
       <div class="flex items-center gap-2">
-        <Button icon="pi pi-file" :label="ti18n('新建')" class="p-button-outlined" @click="handleNewDocument($event)"
+        <Button icon="pi pi-file" :label="ti18n('新建')" variant="text-button" @click="handleNewDocument($event)"
           :title="ti18n('新建文档')" />
-        <Button icon="pi pi-save" :label="ti18n('保存')" class="p-button-outlined" @click="saveCurrentNote"
+        <Button icon="pi pi-save" :label="ti18n('保存')" variant="text-button" @click="saveCurrentNote"
           :disabled="!authInfo_isLogin || isSaving" :loading="isSaving" :title="ti18n('保存到云端,需要登录后才能使用')" />
-        <Button icon="pi pi-share-alt" :label="ti18n('分享')" class="p-button-outlined" @click="handleShare()"
+        <Button icon="pi pi-share-alt" :label="ti18n('分享')" variant="text-button" @click="handleShare()"
           :title="ti18n('分享当前文档')" />
-        <Button icon="pi pi-cog" class="p-button-outlined p-button-rounded" @click="showSettings = !showSettings"
+        <Button icon="pi pi-cog" variant="icon" rounded @click="showSettings = !showSettings"
           :title="ti18n('设置')" />
         <CommonSettingBtns />
       </div>
@@ -41,12 +41,12 @@
         </template>
         <div class="p-4 flex flex-col h-full">
           <InputGroup class="mb-4">
-            <InputGroupAddon>
+            <InputGroupAddon :clickable="false">
               <i class="pi pi-search" />
             </InputGroupAddon>
             <Input v-model="searchQuery" :placeholder="ti18n('搜索笔记...')" class="w-full" />
-            <InputGroupAddon v-if="searchQuery">
-              <i class="pi pi-times" @click="clearSearch()" />
+            <InputGroupAddon v-if="searchQuery" clickable @click="clearSearch()">
+              <i class="pi pi-times" />
             </InputGroupAddon>
           </InputGroup>
           <div v-if="!authInfo_isLogin" class="flex-1 flex items-center justify-center">
@@ -85,9 +85,9 @@
                       {{ getNoteTitle(note) }}
                     </div>
                     <div class="flex gap-1">
-                      <Button icon="pi pi-pencil" class="p-button-text p-button-rounded p-button-sm"
+                      <Button icon="pi pi-pencil" variant="icon" rounded size="sm"
                         @click="showRenameDialog(note)" :title="ti18n('重命名')" />
-                      <Button icon="pi pi-trash" class="p-button-text p-button-rounded p-button-danger p-button-sm"
+                      <Button icon="pi pi-trash" variant="icon" rounded size="sm"
                         @click.stop="confirmDeleteNote(note, $event)" :title="ti18n('删除')" />
                     </div>
                   </div>
@@ -101,7 +101,7 @@
 
             <!-- 分页加载更多 -->
             <div v-if="hasMoreNotes" class="mt-4 text-center">
-              <Button :label="ti18n('加载更多')" icon="pi pi-chevron-down" class="p-button-text p-button-sm"
+              <Button :label="ti18n('加载更多')" icon="pi pi-chevron-down" variant="text-button" size="sm"
                 :loading="isLoadingMore" @click="loadMoreNotes" />
             </div>
           </div>
@@ -111,7 +111,7 @@
       <!-- 双栏编辑区 -->
       <div class="flex-1 flex flex-col overflow-hidden">
         <div class="p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center">
-          <Button icon="pi pi-bars" class="p-button-text p-button-rounded mr-2"
+          <Button icon="pi pi-bars" variant="icon" rounded class="mr-2"
             @click="sidebarVisible = !sidebarVisible" :title="ti18n('显示/隐藏侧边栏')" />
 
           <div class="flex-1 flex items-center">

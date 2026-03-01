@@ -23,24 +23,24 @@ const props = withDefaults(defineProps<UiDrawerProps>(), {
   closeOnClickOutside: true,
 });
 
-/** 定义 model - 用于 v-model 双向绑定 */
-const modelValue = defineModel<boolean>({ default: false });
+/** 定义 model - 用于 v-model:open 双向绑定 */
+const openModel = defineModel<boolean>('open', { default: false });
 
 /** 定义 emits */
 const emit = defineEmits<UiDrawerEmits>();
 
 /** 内部状态 */
-const openState = ref(modelValue.value || false);
+const openState = ref(openModel.value || false);
 
-/** 同步外部 modelValue 到内部状态 */
-watch(modelValue, (value) => {
+/** 同步外部 openModel 到内部状态 */
+watch(openModel, (value) => {
   openState.value = value;
 });
 
 /** 处理打开状态变化 */
 const handleUpdateOpen = (value: boolean) => {
   openState.value = value;
-  modelValue.value = value;
+  openModel.value = value;
   if (!value) {
     emit('close');
   }
@@ -54,6 +54,48 @@ const open = () => handleUpdateOpen(true);
 
 /** 暴露方法供外部调用 */
 defineExpose({ open, close });
+
+/** 动画类 */
+const animationClasses = computed(() => {
+  if (props.side === 'left') {
+    return {
+      enterActive: 'transition-transform ease-out duration-300',
+      enterFrom: '-translate-x-full',
+      enterTo: 'translate-x-0',
+      leaveActive: 'transition-transform ease-in duration-200',
+      leaveFrom: 'translate-x-0',
+      leaveTo: '-translate-x-full',
+    };
+  } else if (props.side === 'right') {
+    return {
+      enterActive: 'transition-transform ease-out duration-300',
+      enterFrom: 'translate-x-full',
+      enterTo: 'translate-x-0',
+      leaveActive: 'transition-transform ease-in duration-200',
+      leaveFrom: 'translate-x-0',
+      leaveTo: 'translate-x-full',
+    };
+  } else if (props.side === 'top') {
+    return {
+      enterActive: 'transition-transform ease-out duration-300',
+      enterFrom: '-translate-y-full',
+      enterTo: 'translate-y-0',
+      leaveActive: 'transition-transform ease-in duration-200',
+      leaveFrom: 'translate-y-0',
+      leaveTo: '-translate-y-full',
+    };
+  } else {
+    // bottom
+    return {
+      enterActive: 'transition-transform ease-out duration-300',
+      enterFrom: 'translate-y-full',
+      enterTo: 'translate-y-0',
+      leaveActive: 'transition-transform ease-in duration-200',
+      leaveFrom: 'translate-y-0',
+      leaveTo: 'translate-y-full',
+    };
+  }
+});
 
 /** 抽屉样式 */
 const drawerStyle = computed(() => {
@@ -109,12 +151,12 @@ const drawerClasses = computed(() => {
 
       <!-- 抽屉内容 -->
       <Transition
-        enter-active-class="transition-transform ease-out duration-300"
-        enter-from-class="translate-x-full"
-        enter-to-class="translate-x-0"
-        leave-active-class="transition-transform ease-in duration-200"
-        leave-from-class="translate-x-0"
-        leave-to-class="translate-x-full">
+        :enter-active-class="animationClasses.enterActive"
+        :enter-from-class="animationClasses.enterFrom"
+        :enter-to-class="animationClasses.enterTo"
+        :leave-active-class="animationClasses.leaveActive"
+        :leave-from-class="animationClasses.leaveFrom"
+        :leave-to-class="animationClasses.leaveTo">
         <div
           v-if="openState"
           :class="drawerClasses"

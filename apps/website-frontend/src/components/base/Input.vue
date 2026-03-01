@@ -3,7 +3,7 @@
  * 输入框组件
  * 使用 Tailwind CSS 样式
  */
-import { computed } from 'vue';
+import { computed, inject } from 'vue';
 
 interface Props {
   /** 模型值 */
@@ -33,20 +33,25 @@ const emit = defineEmits<{
   'update:modelValue': [value: ModelValue];
 }>();
 
+/** 检查是否在 InputGroup 中 */
+const inInputGroup = inject('inInputGroup', false);
 
 /** 输入框样式类 */
 const inputClasses = computed(() => {
-  const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200';
+  const base = 'w-full px-3 py-2 border focus:outline-none transition-all duration-200';
+
+  // 在 InputGroup 中时，不需要圆角（由父容器控制）
+  const roundedClass = inInputGroup ? 'rounded-none' : 'rounded-lg';
 
   const stateClasses = props.invalid
-    ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
-    : 'border-gray-300 dark:border-gray-600 focus:ring-primary-500 dark:focus:ring-primary-400';
+    ? 'border-danger-500 focus:border-danger-500 dark:border-danger-400'
+    : 'border-gray-300 dark:border-gray-600 focus:border-primary-500 dark:focus:border-primary-400';
 
   const bgClass = 'bg-white dark:bg-gray-800';
   const textClass = 'text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500';
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
-  return `${base} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
+  return `${base} ${roundedClass} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });
 
 /** 处理输入事件 */
