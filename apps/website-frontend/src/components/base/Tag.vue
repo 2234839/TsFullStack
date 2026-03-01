@@ -12,9 +12,16 @@ interface Props {
   variant?: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast';
   /** 是否圆角 */
   rounded?: boolean;
-  /** 图标 */
+  /** 图标类名 */
   icon?: string;
 }
+
+defineSlots<{
+  /** 默认内容插槽 */
+  default?: (props: {}) => any;
+  /** 图标插槽 */
+  icon?: (props: {}) => any;
+}>();
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'secondary',
@@ -41,7 +48,9 @@ const tagClasses = computed(() => {
 
 <template>
   <span :class="tagClasses">
-    <i v-if="icon" :class="icon" class="text-xs"></i>
+    <slot name="icon">
+      <i v-if="icon" :class="icon" class="text-xs"></i>
+    </slot>
     <slot>{{ value }}</slot>
   </span>
 </template>
