@@ -202,15 +202,16 @@
   async function saveChanges() {
     if (!selectModelName.value) return;
 
-    /** 查找一个可以用于更新指定记录的唯一主键字段  */
-    const idField = findIdField(modelMeta.state.value!, selectModelName.value);
-    if (!idField) return console.error('No ID field found in the model');
+    try {
+      /** 查找一个可以用于更新指定记录的唯一主键字段  */
+      const idField = findIdField(modelMeta.state.value!, selectModelName.value);
+      if (!idField) return console.error('No ID field found in the model');
 
-    for (let index = 0; index < editData.value.length; index++) {
-      const rawRow = tableData.state.value.list[index];
-      const editRow = { ...editData.value[index] };
-      const editFields = Object.keys(editRow);
-      if (editFields.length === 0) continue;
+      for (let index = 0; index < editData.value.length; index++) {
+        const rawRow = tableData.state.value.list[index];
+        const editRow = { ...editData.value[index] };
+        const editFields = Object.keys(editRow);
+        if (editFields.length === 0) continue;
 
       /** 修改关联字段不能直接修改字段值，需要使用 connect 关联字段的 ID  */
       editFields.forEach((editFieldName) => {
@@ -339,25 +340,44 @@
             // 更新每个要关联的记录，将它们的 user 关联指向当前记录
             for (const item of relationData.add) {
               try {
+                // 获取反向关系的外键字段名（如 UserData.user -> userId）
+                const backLinkField = (Object.values(modelMeta.state.value!.models).find(
+                  (model: any) => model.name === field.type
+                )?.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName];
+                const foreignKeyField = (backLinkField as any)?.relation?.fields?.[0];
+
+                if (!foreignKeyField) {
+                  console.warn('[saveChanges] No foreign key field found for backLink:', backLinkFieldName);
+                  continue;
+                }
+
+                // 直接更新外键字段，而不是使用 connect 操作
+                // 这样可以避免 UNIQUE 约束冲突问题
                 await relatedAPI.update({
                   where: {
                     [relatedIdField.name]: item.value,
                   },
                   data: {
-                    [backLinkFieldName]: {
-                      connect: {
-                        [idField.name]: currentRecordId,
-                      },
-                    },
+                    [foreignKeyField]: currentRecordId,
                   },
                 });
                 console.log('[saveChanges] Transferred ownership:', {
                   relatedModel: field.type,
                   recordId: item.value,
+                  foreignKeyField,
                   newOwner: currentRecordId,
                 });
-              } catch (error) {
+              } catch (error: any) {
                 console.error('[saveChanges] Failed to transfer ownership:', error);
+
+                // 在 UI 上显示错误提示
+                toast.add({
+                  variant: 'danger',
+                  summary: '关联失败',
+                  detail: `无法将 ${field.type} 记录转移到当前用户：该记录可能与目标用户的现有记录冲突（唯一约束）`,
+                  life: 5000,
+                });
+
                 // 如果转移失败（可能因为唯一约束），从 editRow 中移除这个 connect
                 if (editRow[editFieldName]?.connect) {
                   const connectData = editRow[editFieldName].connect || [];
@@ -391,6 +411,17 @@
       console.log('[updateRes]', updateRes);
     }
     reloadTableData();
+    } catch (error: any) {
+      console.error('[saveChanges] Failed to save changes:', error);
+
+      // 在 UI 上显示错误提示
+      toast.add({
+        variant: 'danger',
+        summary: '保存失败',
+        detail: error?.message || '保存更改时发生错误，请查看控制台了解详情',
+        life: 5000,
+      });
+    }
   }
   function discardChanges() {
     editRows.value.forEach((row) => {
