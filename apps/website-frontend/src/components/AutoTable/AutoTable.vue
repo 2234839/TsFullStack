@@ -40,11 +40,11 @@
   <!-- 分页 -->
   <div class="flex justify-center gap-1 items-center mt-4 text-sm">
     <Paginator
-      v-model:rows="pageSize"
-      :totalRecords="tableData.state.value.count"
-      v-model:first="firstRecord"
-      @page="onPageChange"
-      :rowsPerPageOptions="[10, 20, 30]" />
+      :page="currentPage - 1"
+      :rows="tableData.state.value.count"
+      :rowsPerPage="pageSize"
+      @update:page="(page) => onPageChange({ page, first: page * pageSize })"
+    />
     {{ t('总计') }}：{{ tableData.state.value.count }} {{ t('行') }}
   </div>
   <AutoForm
@@ -126,10 +126,8 @@
   //#region 表格分页
   const currentPage = ref(1);
   const pageSize = ref(10);
-  const firstRecord = ref(0);
   const onPageChange = (event: { page: number; first: number }) => {
     currentPage.value = event.page + 1;
-    firstRecord.value = event.first;
     if (selectModelMeta.value) {
       tableData.execute(0, {
         modelKey: selectModelMeta.value.modelKey,
@@ -141,7 +139,6 @@
   watch(selectModelName, () => {
     // 切换模型时重置
     currentPage.value = 1;
-    firstRecord.value = 0;
   });
   //#endregion 表格分页
 
