@@ -1,16 +1,16 @@
 <template>
   <div class="min-h-screen">
     <!-- 顶部区域 -->
-    <div
-      class="bg-linear-to-r from-blue-500 to-cyan-500 dark:from-blue-700 dark:to-cyan-700 text-white py-12 px-4 sm:px-6 lg:px-8">
+    <div class="bg-gray-50 dark:bg-gray-900 pt-12 px-4 sm:px-6 lg:px-8  border-gray-200 dark:border-gray-800">
       <div class="max-w-7xl mx-auto">
-        <h1 class="text-4xl font-bold text-center mb-4 flex items-center gap-1">
+        <h1
+          class="text-4xl font-bold text-center mb-4 flex items-center justify-center gap-2 text-gray-900 dark:text-gray-100">
           <HeartStackSpace_ts class="text-6xl" type="紫动态" />
           {{ t('TSFullStack 在线工具集合') }}
         </h1>
       </div>
       <div class="flex justify-end">
-        <CommonSettingBtns class="bg-white dark:bg-gray-800 rounded-lg px-3" />
+        <CommonSettingBtns class="bg-white dark:bg-gray-800 rounded-lg px-3 shadow-sm" />
       </div>
     </div>
 
@@ -24,8 +24,7 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-8">
         <CardItem :title="t('NoteCalc在线计算')" :description="t('强大的在线计算工具，支持笔记和复杂计算')"
-          :longDescription="t('支持公式、注释、多行计算、单位换算等功能，适用于技术人员与学生。')"
-          imageUrl="/index-image/notecalc.webp"
+          :longDescription="t('支持公式、注释、多行计算、单位换算等功能，适用于技术人员与学生。')" imageUrl="/index-image/notecalc.webp"
           :routePath="routerUtil.to(routeMap.noteCalc, {})" />
 
         <!-- 暂时隐藏，因为实现的还不够好 -->
@@ -37,18 +36,15 @@
           :routePath="routerUtil.to(routeMap.VrImg, {})" /> -->
 
         <CardItem :title="t('AI英语学习')" :description="t('在阅读中渐进式学习英语')"
-          :longDescription="t('提供阅读辅助、单词解释、语境联想等功能，提升英语阅读能力。')"
-          imageUrl="/index-image/ai english.webp"
+          :longDescription="t('提供阅读辅助、单词解释、语境联想等功能，提升英语阅读能力。')" imageUrl="/index-image/ai english.webp"
           :routePath="routerUtil.to(routeMap.AiEnglish, undefined)" />
 
         <CardItem :title="t('管理系统')" :description="t('访问完整的管理后台，管理您的内容和设置')"
-          :longDescription="t('适用于企业或个人项目，提供完整的用户、权限、数据管理等模块。')"
-          imageUrl="/index-image/管理系统.webp"
+          :longDescription="t('适用于企业或个人项目，提供完整的用户、权限、数据管理等模块。')" imageUrl="/index-image/管理系统.webp"
           :routePath="routerUtil.to(routeMap.admin, {})" />
 
         <CardItem :title="t('用户中心')" :description="t('登录您的账户，访问个性化内容和设置')"
-          :longDescription="t('支持个人资料管理、任务记录查看、自定义偏好设置等功能。')"
-          imageUrl="/index-image/用户中心.webp"
+          :longDescription="t('支持个人资料管理、任务记录查看、自定义偏好设置等功能。')" imageUrl="/index-image/用户中心.webp"
           :routePath="routerUtil.to(routeMap.login, {}, { r: route.fullPath })" />
       </div>
     </div>
