@@ -29,9 +29,9 @@
 }
 </style>
 <template>
-  <File2Url :fileId="file.id" v-slot="{ url }">
+  <File2Url v-if="file?.id !== undefined" :fileId="file.id" v-slot="{ url }">
     <!-- 图片预览 -->
-    <img v-if="file.mimetype.startsWith('image/')" :src="url" class="h-full" :alt="file.filename" />
+    <img v-if="file.mimetype.startsWith('image/')" :src="url" class="h-full w-full object-cover" :alt="file.filename" />
 
     <!-- 视频预览 -->
     <video v-else-if="file.mimetype.startsWith('video/')" :src="url" controls class="video-container h-full"

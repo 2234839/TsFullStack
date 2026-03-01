@@ -2,12 +2,12 @@
  * Dialog 组件类型定义
  * 基于 reka-ui 的 Dialog 组件封装
  */
-import type { DialogRootEmits, DialogRootProps } from 'reka-ui';
+import type { DialogContentEmits, DialogContentProps, DialogRootEmits, DialogRootProps } from 'reka-ui';
 
 /**
  * Dialog 组件 Props
  */
-export interface UiDialogProps extends Omit<DialogRootProps, 'open'> {
+export interface UiDialogProps extends Omit<DialogRootProps, 'open'>, Omit<DialogContentProps, 'asChild' | 'as'> {
   /** Dialog 标题 */
   title?: string;
   /** Dialog 描述 */
@@ -21,7 +21,7 @@ export interface UiDialogProps extends Omit<DialogRootProps, 'open'> {
 /**
  * Dialog 组件 Emits
  */
-export interface UiDialogEmits extends Omit<DialogRootEmits, 'update:open'> {}
+export interface UiDialogEmits extends Omit<DialogRootEmits, 'update:open'>, DialogContentEmits {}
 
 /**
  * Dialog 组件实例

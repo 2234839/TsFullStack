@@ -294,7 +294,12 @@
       const uploadPromises = selectedFiles.value.map(async (file) => {
         const { id } = await API.fileApi.upload(file);
         const result = await API.fileApi.updateFileStatus(id, $Enums.FileStatusEnum.public);
-        return result;
+        // 将 Date 对象转换为 ISO 字符串以便存储到 JSON 字段
+        return {
+          ...result,
+          created: result.created.toISOString(),
+          updated: result.updated.toISOString(),
+        };
       });
 
       const deletePromises = Array.from(deletedFileIds.value).map(
@@ -321,7 +326,7 @@
 
       if (formType.value === 'create') {
         // 创建用户数据
-        await API.db.userData.create({
+        const result = await API.db.userData.create({
           data: {
             appId: userDataAppid.shareInfo,
             userId: authInfo.value.userId,
@@ -332,6 +337,10 @@
             }  as any
           },
         });
+
+        // 创建成功后切换到编辑模式
+        formType.value = 'update';
+        editingId.value = result.id;
       } else if (formType.value === 'update' && editingId.value) {
         // 更新用户数据
         await API.db.userData.update({

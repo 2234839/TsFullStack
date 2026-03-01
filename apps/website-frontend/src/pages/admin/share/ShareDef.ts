@@ -6,8 +6,8 @@ export type ShareJSON = {
 export type ShareFileJSON = {
   path: string;
   id: number;
-  created: Date;
-  updated: Date;
+  created: string; // ISO 格式的日期字符串
+  updated: string; // ISO 格式的日期字符串
   authorId: string;
   filename: string;
   mimetype: string;
@@ -15,8 +15,8 @@ export type ShareFileJSON = {
 };
 export type ShareItemJSON = {
   id: number;
-  created: Date;
-  updated: Date;
+  created: string; // ISO 格式的日期字符串
+  updated: string; // ISO 格式的日期字符串
   key: string;
   data: ShareJSON;
   description: string | null;

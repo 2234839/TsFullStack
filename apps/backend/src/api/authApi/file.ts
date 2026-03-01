@@ -148,6 +148,7 @@ export const fileApi = {
   delete(id: FileModel['id']) {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const fileRow = yield* Effect.promise(() =>
         auth.db.file.findUnique({
@@ -169,8 +170,14 @@ export const fileApi = {
         publicOnly: false,
       });
 
+      /** 删除物理文件，如果文件不存在则忽略（ENOENT 视为成功，保证幂等性） */
       yield* Effect.promise(() =>
         unlink(validatedPath).catch((e) => {
+          if (e.code === 'ENOENT') {
+            // 文件不存在，视为删除成功
+            reqCtx.log('[File] 物理文件不存在，跳过删除:' + validatedPath);
+            return;
+          }
           throw MsgError.msg('删除文件失败' + e);
         }),
       );
@@ -197,7 +204,10 @@ function checkOwnership(boolean: boolean) {
 }
 
 export class FileWarpItem {
-  constructor(public path: string, public model: FileModel) {}
+  constructor(
+    public path: string,
+    public model: FileModel,
+  ) {}
   public getFileSteam() {
     const readStream = createReadStream(this.path);
     return readStream;

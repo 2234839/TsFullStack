@@ -25,8 +25,9 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
+  useForwardPropsEmits,
 } from 'reka-ui';
-import type { DialogRootProps } from 'reka-ui';
+import type { DialogContentProps, DialogContentEmits, DialogRootProps } from 'reka-ui';
 import type { UiDialogEmits, UiDialogProps } from './types';
 
 /** 定义 props */
@@ -42,6 +43,31 @@ const openModel = defineModel<boolean>('open', {
 
 /** 定义 emits */
 const emits = defineEmits<UiDialogEmits>();
+
+/** 处理 ESC 键按下事件 */
+const handleEscapeKeyDown = (event: KeyboardEvent) => {
+  // 触发外部的事件监听器
+  emits('escapeKeyDown', event);
+
+  // 如果事件没有被阻止，则关闭对话框
+  if (!event.defaultPrevented) {
+    close();
+  }
+};
+
+/** 处理点击外部事件 */
+const handleInteractOutside = (event: CustomEvent) => {
+  emits('interactOutside', event);
+
+  if (!event.defaultPrevented) {
+    close();
+  }
+};
+
+/** 处理点击外部事件 */
+const handlePointerDownOutside = (event: CustomEvent) => {
+  emits('pointerDownOutside', event);
+};
 
 /** 插槽类型定义 */
 defineSlots<{
@@ -62,6 +88,19 @@ const dialogRootProps = computed<DialogRootProps>(() => ({
   defaultOpen: props.defaultOpen,
   modal: props.modal,
 }));
+
+/** 计算传递给 DialogContent 的 props */
+const dialogContentProps = computed(() => {
+  const {
+    title,
+    description,
+    defaultOpen,
+    modal,
+    ...contentProps
+  } = props;
+
+  return contentProps;
+});
 
 /** 关闭 Dialog */
 const close = () => {
@@ -92,6 +131,10 @@ defineExpose({
         class="fixed inset-0 bg-black/50 z-[50] transition-opacity duration-200"
         :class="{ 'opacity-0': !isOpen, 'opacity-100': isOpen }" />
       <DialogContent
+        v-bind="dialogContentProps"
+        @escape-key-down="handleEscapeKeyDown"
+        @interact-outside="handleInteractOutside"
+        @pointer-down-outside="handlePointerDownOutside"
         class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-[min(90vw,600px)] max-h-[min(85vh,600px)] w-full p-6 z-[51] overflow-auto transition-all duration-200"
         :class="{ 'opacity-0 scale-95': !isOpen, 'opacity-100 scale-100': isOpen }">
         <!-- 关闭按钮 -->

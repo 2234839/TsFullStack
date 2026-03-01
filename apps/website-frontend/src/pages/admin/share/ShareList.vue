@@ -81,19 +81,21 @@
 
             <!-- 标题和文件信息 -->
             <div class="p-4">
-              <h3 class="text-lg h-8 font-semibold text-gray-900 dark:text-white truncate mb-2">
+              <h3 class="text-lg h-8 font-semibold text-gray-900 dark:text-white truncate">
                 {{ (item.data as unknown as ShareJSON).title }}
               </h3>
               <div class="flex items-center">
                 <div class="flex-1"></div>
-                <Button icon="pi pi-qrcode" class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
-                  @click.stop="handleShowQRCode(item as any)" :aria-label="t('显示二维码')" />
-                <Button icon="pi pi-link" class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
-                  @click.stop="handleGotoDetail(item as any)" />
-                <Button icon="pi pi-pencil" class="p-button-rounded p-button-secondary p-button-text p-2 mr-1"
-                  @click.stop="handleEdit(item as any)" :aria-label="t('编辑')" />
-                <Button icon="pi pi-trash" class="p-button-rounded p-button-danger p-button-text p-2"
-                  @click.stop="handleDelete(item as any)" :aria-label="t('删除')" />
+                <div class="flex gap-2">
+
+                  <Button icon="pi pi-qrcode" variant="icon" @click.stop="handleShowQRCode(item as any)"
+                    :aria-label="t('显示二维码')" />
+                  <Button icon="pi pi-link" variant="icon" @click.stop="handleGotoDetail(item as any)" />
+                  <Button icon="pi pi-pencil" variant="icon" @click.stop="handleEdit(item as any)"
+                    :aria-label="t('编辑')" />
+                  <Button icon="pi pi-trash" variant="icon" @click.stop="handleDelete(item as any)"
+                    :aria-label="t('删除')" />
+                </div>
               </div>
 
               <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
