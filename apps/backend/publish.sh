@@ -19,7 +19,8 @@ SSH_TARGET="$SSH_USER@$SSH_HOST"
 REMOTE_PATH="$DEPLOY_PATH"
 
 # SSH 配置
-SSH_OPTS="-o ControlMaster=auto -o ControlPath=/tmp/ssh-deploy-%r@%h:%p -o ControlPersist=600"
+# 禁用连接复用以避免挂起问题
+SSH_OPTS="-o ControlMaster=no -o ConnectTimeout=30"
 
 # 显示进度函数
 show_progress() {
@@ -103,12 +104,7 @@ ssh $SSH_OPTS "$SSH_TARGET" "
     pm2 stop TsFullStack || true
 
     # 等待进程完全停止
-    sleep 3
-
-    # 清理可能的 WAL/SHM 锁文件
-    echo '清理数据库锁文件...'
-    find $REMOTE_PATH -name 'dev.db-wal' -delete 2>/dev/null || true
-    find $REMOTE_PATH -name 'dev.db-shm' -delete 2>/dev/null || true
+    sleep 10
 
     # 数据库迁移（生产环境使用 migrate deploy）
     echo '执行数据库迁移...'
@@ -118,7 +114,7 @@ ssh $SSH_OPTS "$SSH_TARGET" "
     #     '@zenstackhq/cli@^3.4.1' \
     #     '@zenstackhq/schema@^3.4.1' \
     #     '@zenstackhq/plugin-policy@^3.4.1' || exit 1
-    pnpm zen migrate deploy || exit 1
+    pnpm zenstack migrate deploy || exit 1
 
     # 重启应用
     echo '重启应用服务...'
