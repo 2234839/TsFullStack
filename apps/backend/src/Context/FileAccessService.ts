@@ -27,6 +27,16 @@ export interface FileAccessResult {
 
 /**
  * 文件访问服务 - 提供统一的文件访问逻辑
+ *
+ * 安全设计参考：https://nodejsdesignpatterns.com/blog/nodejs-path-traversal-security/
+ *
+ * 这个服务作为文件访问的统一入口，实现了：
+ * 1. 文件存在性和状态验证
+ * 2. 用户权限验证（所有权、公开状态）
+ * 3. 安全的路径解析和边界检查（委托给 FilePathService）
+ * 4. 防止路径遍历攻击
+ *
+ * 所有文件访问操作都应该通过这个服务，而不是直接操作文件路径。
  */
 export class FileAccessService {
 
@@ -35,6 +45,14 @@ export class FileAccessService {
    * @param fileRow 文件记录
    * @param options 访问选项
    * @returns 文件访问结果
+   *
+   * 安全检查流程：
+   * 1. 验证文件记录存在性
+   * 2. 根据 publicOnly 检查文件状态
+   * 3. 根据 checkOwnership 验证用户所有权
+   * 4. 使用 FilePathService 生成并验证安全路径
+   *
+   * 参考：https://nodejsdesignpatterns.com/blog/nodejs-path-traversal-security/
    */
   static validateFileAccess(
     fileRow: FileModel,
@@ -89,6 +107,8 @@ export class FileAccessService {
    * @param fileRow 文件记录
    * @param options 访问选项
    * @returns 文件访问结果
+   *
+   * 这是一个 Effect 包装器，用于在 Effect 上下文中提供 AppConfigService
    */
   static validateFileAccessEffect(
     fileRow: FileModel,
@@ -106,6 +126,8 @@ export class FileAccessService {
    * @param options 访问选项
    * @param uploadDir 上传目录（可选）
    * @returns FileWarpItem
+   *
+   * 返回的 FileWarpItem 包含经过安全验证的文件路径，可以安全地用于文件流传输
    */
   static createFileWarpItem(
     fileRow: FileModel,
@@ -122,6 +144,8 @@ export class FileAccessService {
    * @param fileRow 文件记录
    * @param options 访问选项
    * @returns FileWarpItem
+   *
+   * 这是一个 Effect 包装器，用于在 Effect 上下文中提供 AppConfigService
    */
   static createFileWarpItemEffect(
     fileRow: FileModel,
