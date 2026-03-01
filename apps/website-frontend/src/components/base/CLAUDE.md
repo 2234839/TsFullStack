@@ -7,35 +7,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #13036 | 9:00 PM | 🔄 | UserTokenManagement.vue user ID input to use RemoteSelect component | ~180 |
-| #12415 | 12:05 PM | 🔄 | DataTable reverted from ScrollArea to native scrolling with custom CSS | ~429 |
-| #12414 | 12:03 PM | 🔴 | DataTable scoped styles added to ensure horizontal scrolling | ~346 |
-| #12413 | " | 🔴 | DataTable horizontal scrollbar visibility fixed by changing ScrollArea type | ~346 |
-| #12412 | 12:02 PM | 🔴 | DataTable scrollbar visibility fixed by adjusting table width constraints | ~330 |
-| #12411 | " | 🟣 | DataTable ScrollArea configured to show scrollbars on scroll | ~362 |
-| #12410 | " | ✅ | DataTable ScrollArea changed to type="scroll" for better UX | ~289 |
-| #12408 | 12:00 PM | 🟣 | DataTable now uses custom ScrollArea component for enhanced scrolling | ~144 |
-| #12407 | " | 🔄 | DataTable component now uses ScrollArea for horizontal scrolling | ~339 |
-| #12406 | 11:58 AM | 🟣 | Paginator component now supports optional rows-per-page selector | ~463 |
-| #12204 | 11:03 AM | ✅ | Committed Icon Slot Feature to Tag Component | ~180 |
-| #12203 | " | 🟣 | Committed Tag Icon Slot Implementation to Git | ~172 |
-| #12202 | " | ✅ | Verified Tag.vue Changes via Git Diff | ~172 |
-| #12201 | 11:02 AM | 🔄 | Refactored Slot Type Definition to Use defineSlots | ~170 |
-| #12200 | " | 🟣 | Implemented Icon Slot in Tag Component | ~194 |
-| #12199 | " | 🟣 | Added Slots Interface to Tag Component | ~150 |
-| #12198 | " | 🔵 | Tag Component Uses Icon Prop Instead of Icon Slot | ~198 |
-| #12197 | " | 🔵 | Located Tag Component Files in Project | ~169 |
-| #12108 | 10:38 AM | 🟣 | Confirm dialog enhanced with event-based positioning using Reka UI Popover | ~637 |
-| #12107 | " | 🔴 | Dark mode dialog contrast fixed with gray-700 background and border | ~222 |
-| #12105 | 10:37 AM | 🔵 | Dark mode dialog contrast issue identified | ~220 |
-| #12104 | 10:32 AM | 🟣 | Confirm dialog positioning feature implementation completed | ~333 |
-| #12103 | " | ⚖️ | Decision made to implement custom positioning instead of using Reka UI Popover | ~440 |
-| #12102 | " | 🟣 | Confirm dialog event-based positioning feature implementation completed | ~508 |
-| #12100 | " | 🟣 | Confirm dialog implementation completed with event-based positioning and visual arrow | ~494 |
-| #12099 | " | 🟣 | Confirm dialog enhanced with event-based positioning and visual arrow indicator | ~646 |
-| #12098 | 10:31 AM | 🟣 | Confirm dialog now supports event-based positioning | ~570 |
-| #12035 | 10:14 AM | 🔴 | Button icon variant fixed to prevent double padding | ~203 |
-| #12034 | " | ✅ | Button component now supports icon variant with proper sizing | ~211 |
-| #12033 | " | 🟣 | Added new 'icon' variant to Button component | ~248 |
-| #12032 | 10:13 AM | 🟣 | Added 'icon' variant to Button component Props | ~198 |
+| #13457 | 10:03 PM | 🟣 | Added new text-button variant to Button component | ~317 |
+| #13451 | 10:01 PM | 🟣 | Enhanced Button icon variant to support text labels | ~269 |
+| #13418 | 9:56 PM | ✅ | 更新项目文档和添加组件文档 | ~120 |
 </claude-mem-context>
