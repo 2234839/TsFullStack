@@ -1,8 +1,7 @@
 <template>
   <Dialog
     v-model:open="visible"
-    :title="t('新增记录')"
-    @close="resetForm">
+    :title="t('新增记录')">
     <div class="p-fluid min-w-72 max-w-[50vw]">
       <div v-for="field in formFields" :key="field.name" class="field col-12 md:col-6 mb-4">
         <label :for="'field-' + field.name" class="block text-sm font-medium mb-1">

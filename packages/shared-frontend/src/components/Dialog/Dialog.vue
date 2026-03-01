@@ -5,11 +5,11 @@
  *
  * @example
  * ```vue
- * <Dialog v-model:open="isOpen" title="对话框标题" :modal="true">
+ * <Dialog v-model:open="isOpen" title="对话框标题">
  *   <div>对话框内容</div>
  *   <template #footer>
  *     <div class="flex justify-end gap-2">
- *       <button @click="close">取消</button>
+ *       <button @click="isOpen = false">取消</button>
  *       <button @click="confirm">确定</button>
  *     </div>
  *   </template>
@@ -25,8 +25,8 @@ import {
   DialogContent,
   DialogTitle,
   DialogDescription,
+  DialogClose,
 } from 'reka-ui';
-import type { DialogRootProps } from 'reka-ui';
 import type { UiDialogEmits, UiDialogProps } from './types';
 
 /** 定义 props */
@@ -43,31 +43,6 @@ const openModel = defineModel<boolean>('open', {
 /** 定义 emits */
 const emits = defineEmits<UiDialogEmits>();
 
-/** 处理 ESC 键按下事件 */
-const handleEscapeKeyDown = (event: KeyboardEvent) => {
-  // 触发外部的事件监听器
-  emits('escapeKeyDown', event);
-
-  // 如果事件没有被阻止，则关闭对话框
-  if (!event.defaultPrevented) {
-    close();
-  }
-};
-
-/** 处理点击外部事件 */
-const handleInteractOutside = (event: CustomEvent) => {
-  emits('interactOutside', event);
-
-  if (!event.defaultPrevented) {
-    close();
-  }
-};
-
-/** 处理点击外部事件 */
-const handlePointerDownOutside = (event: CustomEvent) => {
-  emits('pointerDownOutside', event);
-};
-
 /** 插槽类型定义 */
 defineSlots<{
   /** 触发按钮内容 */
@@ -81,34 +56,14 @@ defineSlots<{
 /** 计算当前打开状态 */
 const isOpen = computed(() => openModel.value);
 
-/** 计算传递给 DialogRoot 的 props */
-const dialogRootProps = computed<DialogRootProps>(() => ({
-  open: openModel.value,
-  defaultOpen: props.defaultOpen,
-  modal: props.modal,
-}));
-
-/** 计算传递给 DialogContent 的 props */
-const dialogContentProps = computed(() => {
-  const {
-    title,
-    description,
-    defaultOpen,
-    modal,
-    ...contentProps
-  } = props;
-
-  return contentProps;
-});
+/** 打开 Dialog */
+const open = () => {
+  openModel.value = true;
+};
 
 /** 关闭 Dialog */
 const close = () => {
   openModel.value = false;
-};
-
-/** 打开 Dialog */
-const open = () => {
-  openModel.value = true;
 };
 
 /** 暴露方法供外部调用 */
@@ -119,29 +74,21 @@ defineExpose({
 </script>
 
 <template>
-  <DialogRoot v-bind="dialogRootProps">
+  <DialogRoot v-model:open="openModel">
     <!-- 触发器插槽 -->
     <DialogTrigger v-if="$slots.trigger" as-child>
       <slot name="trigger" :open="isOpen" />
     </DialogTrigger>
 
     <DialogPortal>
-      <DialogOverlay
-        class="fixed inset-0 bg-black/50 z-[50] transition-opacity duration-200"
-        :class="{ 'opacity-0': !isOpen, 'opacity-100': isOpen }" />
+      <DialogOverlay class="fixed inset-0 bg-black/50 z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
       <DialogContent
-        v-bind="dialogContentProps"
-        @escape-key-down="handleEscapeKeyDown"
-        @interact-outside="handleInteractOutside"
-        @pointer-down-outside="handlePointerDownOutside"
-        class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-[min(90vw,600px)] max-h-[min(85vh,600px)] w-full p-6 z-[51] overflow-auto transition-all duration-200"
-        :class="{ 'opacity-0 scale-95': !isOpen, 'opacity-100 scale-100': isOpen }">
+        class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white dark:bg-gray-800 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg max-h-[85vh]"
+      >
         <!-- 关闭按钮 -->
-        <button
-          type="button"
-          @click="close"
-          class="absolute top-4 right-4 inline-flex items-center justify-center w-8 h-8 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          aria-label="关闭对话框">
+        <DialogClose
+          class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-gray-100 data-[state=open]:text-gray-500 dark:ring-offset-gray-950 dark:focus:ring-gray-300 dark:data-[state=open]:bg-gray-800 dark:data-[state=open]:text-gray-400"
+        >
           <svg
             width="15"
             height="15"
@@ -154,17 +101,18 @@ defineExpose({
               fill-rule="evenodd"
               clip-rule="evenodd" />
           </svg>
-        </button>
+          <span class="sr-only">关闭</span>
+        </DialogClose>
 
         <!-- 标题 -->
-        <DialogTitle v-if="title" class="text-lg font-semibold text-gray-900 dark:text-gray-100 pr-8 mb-2">
+        <DialogTitle v-if="title" class="text-lg font-semibold leading-none tracking-tight text-gray-950 dark:text-gray-50">
           {{ title }}
         </DialogTitle>
 
         <!-- 描述 -->
         <DialogDescription
           v-if="description"
-          class="text-sm text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">
+          class="text-sm text-gray-500 dark:text-gray-400">
           {{ description }}
         </DialogDescription>
         <!-- 当没有描述时，渲染一个隐藏的 DialogDescription 以满足无障碍要求 -->
@@ -172,20 +120,16 @@ defineExpose({
           {{ title || '对话框' }}
         </DialogDescription>
 
-        <!-- 主要内容 -->
-        <div class="mb-4">
+        <!-- 主要内容区域 -->
+        <div class="overflow-y-auto max-h-[calc(85vh-8rem)]">
           <slot />
         </div>
 
         <!-- 底部操作区 -->
-        <div v-if="$slots.footer" class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div v-if="$slots.footer" class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
           <slot name="footer" />
         </div>
       </DialogContent>
     </DialogPortal>
   </DialogRoot>
 </template>
-
-<style>
-/* 不再需要自定义样式，全部使用 Tailwind CSS */
-</style>

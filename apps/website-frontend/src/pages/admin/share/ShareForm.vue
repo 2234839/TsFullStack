@@ -2,7 +2,7 @@
 /* 仅保留一些动画效果，其他样式使用 Tailwind CSS */
 </style>
 <template>
-  <Dialog :open="visible" @update:open="$emit('update:visible', $event)" :title="dialogTitle" :modal="true">
+  <Dialog v-model:open="localVisible" :title="dialogTitle">
     <div class="flex flex-col gap-4">
       <input v-model="formData.title" type="text"
         class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white transition-all"
@@ -115,6 +115,12 @@
     (e: 'update:visible', value: boolean): void;
     (e: 'success'): void;
   }>();
+
+  /** 本地的 visible 状态，支持双向绑定 */
+  const localVisible = computed<boolean>({
+    get: () => props.visible,
+    set: (value: boolean) => emit('update:visible', value),
+  });
 
   /** 表单数据 */
   const formData = ref({
