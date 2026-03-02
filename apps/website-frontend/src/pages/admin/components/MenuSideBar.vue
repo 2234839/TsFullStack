@@ -63,22 +63,20 @@
         <div v-if="isCollapsed" class="collapsed-menu">
           <ul class="flex flex-col items-center space-y-1">
             <li v-for="item in collapsedMenuItems" :key="item.key" class="w-full relative">
-              <Tooltip :content="item.label" side="right">
-                <Button :icon="item.icon" :class="[
-                    'p-button-rounded p-button-text w-full justify-center',
-                    isActiveRoute(item)
-                      ? 'p-button-outlined text-primary-600 dark:text-cyan-400'
-                      : 'text-gray-600 hover:text-gray-900 dark:text-slate-300 dark:hover:text-white',
-                    hasSubmenuItems(item) ? 'has-submenu' : '',
-                  ]" @click="handleCollapsedMenuClick($event, item)" />
-              </Tooltip>
-              <Badge v-if="item.badge" :value="item.badge" :variant="getBadgeVariant(item)"
-                class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"></Badge>
-
-              <Popover :ref="(el) => setPopoverRef(item.key, el)" :showCloseIcon="false" class="p-popover-submenu">
+              <!-- 如果有子菜单，使用 Dropdown -->
+              <Dropdown v-if="hasSubmenuItems(item)" v-model="dropdownOpenStates[item.key]" side="right" align="start" :sideOffset="4">
+                <template #trigger>
+                  <Button variant="icon" :icon="item.icon" :class="[
+                      'w-full justify-center',
+                      isActiveRoute(item)
+                        ? 'text-primary-600 dark:text-cyan-400'
+                        : '',
+                      'has-submenu',
+                    ]" :title="item.label" />
+                </template>
                 <div class="py-1">
                   <div v-for="subItem in getSubmenuItems(item)" :key="subItem.key" @click="navigateTo(subItem)"
-                    class="p-popover-item flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/50"
+                    class="flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded"
                     :class="[
                       isActiveRoute(subItem)
                         ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
@@ -93,7 +91,21 @@
                     <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
                   </div>
                 </div>
-              </Popover>
+              </Dropdown>
+
+              <!-- 如果没有子菜单，直接使用 Tooltip + Button -->
+              <template v-else>
+                <Tooltip :content="item.label" side="right">
+                  <Button variant="icon" :icon="item.icon" :class="[
+                      'w-full justify-center',
+                      isActiveRoute(item)
+                        ? 'text-primary-600 dark:text-cyan-400'
+                        : '',
+                    ]" @click="navigateTo(item)" />
+                </Tooltip>
+                <Badge v-if="item.badge" :value="item.badge" :variant="getBadgeVariant(item)"
+                  class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"></Badge>
+              </template>
             </li>
           </ul>
         </div>
@@ -179,7 +191,7 @@
   import Badge from '@/components/base/Badge.vue';
   import Button from '@/components/base/Button.vue';
   import Input from '@/components/base/Input.vue';
-  import { Popover, Tooltip } from '@tsfullstack/shared-frontend/components';
+  import { Dropdown, Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, reactive, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
   import avatarImageSrc from '/崮生.png?url';
@@ -206,15 +218,8 @@
   const isCollapsed = ref(false);
   const searchQuery = ref('');
 
-  // 存储Popover引用的Map
-  const popovers = ref<Map<string, any>>(new Map());
-
-  // 设置Popover引用
-  const setPopoverRef = (key: string, el: unknown) => {
-    if (el) {
-      popovers.value.set(key, el);
-    }
-  };
+  // 存储 Dropdown 打开状态的响应式对象
+  const dropdownOpenStates = reactive<Record<string, boolean>>({});
 
   // 跳转到首页
   const navigateToHome = (): void => {
@@ -261,40 +266,56 @@
           to: routerUtil.to(routeMap.admin.child.ShareList, {}),
         },
         {
-          key: 'aiImageGeneration',
-          label: t('AI图片生成'),
-          icon: routeMap.admin.child.aiImageGeneration.meta.icon,
-          to: routerUtil.to(routeMap.admin.child.aiImageGeneration, {}),
-        },
-        {
           key: 'resourceGallery',
           label: t('资源库'),
           icon: routeMap.admin.child.resourceGallery.meta.icon,
           to: routerUtil.to(routeMap.admin.child.resourceGallery, {}),
         },
         {
-          key: 'tokenPackageManagement',
-          label: t('代币套餐管理'),
-          icon: routeMap.admin.child.tokenPackageManagement.meta.icon,
-          to: routerUtil.to(routeMap.admin.child.tokenPackageManagement, {}),
+          key: 'aiManagement',
+          label: t('AI工作台'),
+          icon: 'pi pi-android',
+          expanded: false,
+          items: [
+            {
+              key: 'aiImageGeneration',
+              label: t('AI图片生成'),
+              icon: routeMap.admin.child.aiImageGeneration.meta.icon,
+              to: routerUtil.to(routeMap.admin.child.aiImageGeneration, {}),
+            },
+            {
+              key: 'aiModelManager',
+              label: t('AI模型管理'),
+              icon: 'pi pi-microchip-ai',
+              to: '/admin/aiModelManager',
+            },
+          ],
         },
         {
-          key: 'userTokenManagement',
-          label: t('用户代币管理'),
-          icon: routeMap.admin.child.userTokenManagement.meta.icon,
-          to: routerUtil.to(routeMap.admin.child.userTokenManagement, {}),
-        },
-        {
-          key: 'userSubscriptionManagement',
-          label: t('用户订阅管理'),
-          icon: routeMap.admin.child.userSubscriptionManagement.meta.icon,
-          to: routerUtil.to(routeMap.admin.child.userSubscriptionManagement, {}),
-        },
-        {
-          key: 'aiModelManager',
-          label: t('AI模型管理'),
-          icon: 'pi pi-microchip-ai',
-          to: '/admin/aiModelManager',
+          key: 'tokenManagement',
+          label: t('代币管理'),
+          icon: 'pi pi-bitcoin',
+          expanded: false,
+          items: [
+            {
+              key: 'tokenPackageManagement',
+              label: t('代币套餐管理'),
+              icon: routeMap.admin.child.tokenPackageManagement.meta.icon,
+              to: routerUtil.to(routeMap.admin.child.tokenPackageManagement, {}),
+            },
+            {
+              key: 'userTokenManagement',
+              label: t('用户代币管理'),
+              icon: routeMap.admin.child.userTokenManagement.meta.icon,
+              to: routerUtil.to(routeMap.admin.child.userTokenManagement, {}),
+            },
+            {
+              key: 'userSubscriptionManagement',
+              label: t('用户订阅管理'),
+              icon: routeMap.admin.child.userSubscriptionManagement.meta.icon,
+              to: routerUtil.to(routeMap.admin.child.userSubscriptionManagement, {}),
+            },
+          ],
         },
       ],
     },
@@ -414,20 +435,6 @@
     }
   };
 
-  // 处理折叠菜单点击
-  const handleCollapsedMenuClick = (event: Event, item: MenuItem): void => {
-    if (hasSubmenuItems(item)) {
-      // 如果有子菜单，显示Popover
-      const panel = popovers.value.get(item.key);
-      if (panel) {
-        panel.toggle(event);
-      }
-    } else {
-      // 如果没有子菜单，直接导航
-      navigateTo(item);
-    }
-  };
-
   // 检查是否有子菜单项
   const hasSubmenuItems = (item: MenuItem): boolean => {
     return !!(item.items && item.items.length);
@@ -443,13 +450,6 @@
       return;
     }
     router.push(item.to);
-
-    // 关闭所有打开的Popover
-    popovers.value.forEach((panel) => {
-      if (panel.visible) {
-        panel.hide();
-      }
-    });
   };
 
   // 检查是否是当前活动路由

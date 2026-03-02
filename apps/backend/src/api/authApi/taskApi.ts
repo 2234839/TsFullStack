@@ -132,13 +132,24 @@ export const generateAIImage = (request: {
 
       reqCtx.log(`[TaskAPI] 成功创建 ${resourceResults.length} 个资源记录`);
 
-      // 8. 先完成任务（标记为COMPLETED，但不扣费）
+      // 8. 更新所有相关资源的状态为 completed
+      yield* Effect.all(
+        resourceResults.map((resourceResult) =>
+          ResourceService.updateResource(resourceResult.id, {
+            status: 'completed',
+          }),
+        ),
+      );
+
+      reqCtx.log(`[TaskAPI] 成功更新 ${resourceResults.length} 个资源状态为 completed`);
+
+      // 9. 先完成任务（标记为COMPLETED，但不扣费）
       yield* TaskService.completeTask(task.id, {
         imagesCount: generateResult.images.length,
         externalTaskId: generateResult.taskId,
       });
 
-      // 9. 最后消耗代币（任务完成后才扣费）
+      // 10. 最后消耗代币（任务完成后才扣费）
       const consumeResult = yield* TokenService.consumeTokens(auth.user.id, tokenCost, task.id);
       reqCtx.log(
         `[TaskAPI] 消耗代币成功: ${consumeResult.details.map((d: any) => `${d.amount} ${d.type}`).join(', ')}`,
