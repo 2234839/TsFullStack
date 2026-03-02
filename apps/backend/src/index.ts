@@ -1,16 +1,16 @@
 import { Effect } from 'effect';
 import fs from 'fs/promises';
+import { ConfigLoader } from './config/loader';
 import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
+import { AIProxyService, AIProxyServiceLive } from './Context/AIProxyService';
 import { AppConfigService } from './Context/AppConfig';
 import { DbClientEffect } from './Context/DbService';
-import { AIProxyService, AIProxyServiceLive } from './Context/AIProxyService';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
 import { PrismaQueue } from './util/dbQueue';
 import { QueueScheduler } from './util/QueueScheduler';
-import { ConfigLoader } from './config/loader';
 const main = Effect.gen(function* () {
-  const config = yield* ConfigLoader.load();
+  const config = yield* AppConfigService;
 
   // 确保上传文件夹的路径存在
   const dirExists = yield* Effect.promise(() => fs.stat(config.uploadDir).catch(() => null));
@@ -21,11 +21,141 @@ const main = Effect.gen(function* () {
     throw new Error(`Upload directory ${config.uploadDir} is not a directory`);
   }
 
-  yield* seedDB.pipe(
-    Effect.provideService(AppConfigService, config),
-    Effect.provideService(AIProxyService, AIProxyServiceLive),
-    Effect.provideService(AIConfigContext, DefaultAIConfig),
-  );
+  yield* seedDB
+
+  // 启动代币发放队列
+  const dbClient = yield* DbClientEffect;
+
+  // 定义队列任务类型
+  type QueueTasks = {
+    grantSubscriptionTokens: {
+      payload: { subscriptionId: number; userId: string };
+      result: { success: boolean; skipped?: boolean; reason?: string; userId?: string; packageName?: string; amount?: number; nextGrantDate?: Date };
+    };
+  };
+
+  const tokenQueue = new PrismaQueue<QueueTasks>({ dbClient });
+
+  // 注册代币发放任务处理器
+  tokenQueue.register('grantSubscriptionTokens', async (payload) => {
+    // 创建 Effect 程序并提供必要的上下文
+    const program = Effect.gen(function* () {
+      const db = yield* DbClientEffect;
+
+      // 直接使用数据库客户端执行代币发放逻辑
+      const subscription = yield* Effect.promise(() =>
+        db.userTokenSubscription.findFirst({
+          where: {
+            id: payload.subscriptionId,
+            userId: payload.userId,
+            active: true,
+          },
+          include: {
+            package: true,
+          },
+        }),
+      );
+
+      if (!subscription) {
+        console.log(`[TokenGrant] 订阅 ${payload.subscriptionId} 不存在或已取消，跳过发放`);
+        return { success: false, skipped: true, reason: '订阅不存在或已取消' };
+      }
+
+      // 检查订阅是否已过期
+      if (subscription.endDate && new Date() > subscription.endDate) {
+        console.log(`[TokenGrant] 订阅 ${payload.subscriptionId} 已过期，跳过发放`);
+
+        // 停用订阅
+        yield* Effect.promise(() =>
+          db.userTokenSubscription.update({
+            where: { id: subscription.id },
+            data: { active: false },
+          }),
+        );
+
+        return { success: false, skipped: true, reason: '订阅已过期' };
+      }
+
+      // 检查套餐是否启用
+      if (!subscription.package.active) {
+        console.log(`[TokenGrant] 套餐 ${subscription.package.id} 已停用，跳过发放`);
+        return { success: false, skipped: true, reason: '套餐已停用' };
+      }
+
+      // 计算发放周期和过期时间
+      const grantIntervalDays = subscription.package.type === 'MONTHLY' ? 30 : 365;
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + grantIntervalDays * 24 * 60 * 60 * 1000);
+
+      // 发放代币
+      yield* Effect.promise(() =>
+        db.token.create({
+          data: {
+            userId: subscription.userId,
+            type: subscription.package.type as 'MONTHLY' | 'YEARLY' | 'PERMANENT',
+            amount: subscription.package.amount,
+            used: 0,
+            expiresAt,
+            source: 'subscription',
+            sourceId: String(subscription.id),
+            description: `套餐自动发放：${subscription.package.name}`,
+          },
+        }),
+      );
+
+      // 计算下次发放时间
+      const nextGrantDate = new Date(now.getTime() + grantIntervalDays * 24 * 60 * 60 * 1000);
+
+      // 更新订阅记录
+      yield* Effect.promise(() =>
+        db.userTokenSubscription.update({
+          where: { id: subscription.id },
+          data: {
+            nextGrantDate,
+            grantsCount: { increment: 1 },
+          },
+        }),
+      );
+
+      // 创建下一次的定时发放任务
+      yield* Effect.promise(() =>
+        db.queue.create({
+          data: {
+            name: 'grantSubscriptionTokens',
+            payload: {
+              subscriptionId: subscription.id,
+              userId: subscription.userId,
+            },
+            status: 'PENDING',
+            priority: 5,
+            runAt: nextGrantDate,
+            maxAttempts: 3,
+          },
+        }),
+      );
+
+      console.log(
+        `[TokenGrant] 用户 ${subscription.userId} 的订阅 ${subscription.package.name} 自动发放 ${subscription.package.amount} 代币，下次发放时间: ${nextGrantDate.toISOString()}`
+      );
+
+      return {
+        success: true,
+        userId: subscription.userId,
+        packageName: subscription.package.name,
+        amount: subscription.package.amount,
+        nextGrantDate,
+      };
+    });
+
+    // 提供 AppConfigService 上下文并运行
+    return Effect.runPromise(
+      Effect.provideService(program, AppConfigService, config),
+    );
+  });
+
+  // 启动队列
+  tokenQueue.start();
+  console.log('[TokenGrant] 代币发放队列已启动');
 
   // 监控内存使用情况
   let lastUsage = { rssMB: 0, heapTotalMB: 0 };
@@ -148,7 +278,17 @@ const main = Effect.gen(function* () {
   );
 });
 
-Effect.runPromise(main);
+// 创建完整的启动程序并提供所有服务
+const program = Effect.gen(function* () {
+  const config = yield* ConfigLoader.load();
+  yield* main.pipe(
+    Effect.provideService(AppConfigService, config),
+    Effect.provideService(AIProxyService, AIProxyServiceLive),
+    Effect.provideService(AIConfigContext, DefaultAIConfig),
+  );
+});
+
+Effect.runPromise(program);
 
 /** 队列与定时任务调度 */
 const queue_scheduler = Effect.gen(function* () {

@@ -285,6 +285,12 @@
           to: routerUtil.to(routeMap.admin.child.userTokenManagement, {}),
         },
         {
+          key: 'userSubscriptionManagement',
+          label: t('用户订阅管理'),
+          icon: routeMap.admin.child.userSubscriptionManagement.meta.icon,
+          to: routerUtil.to(routeMap.admin.child.userSubscriptionManagement, {}),
+        },
+        {
           key: 'aiModelManager',
           label: t('AI模型管理'),
           icon: 'pi pi-microchip-ai',

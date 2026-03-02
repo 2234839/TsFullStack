@@ -34,13 +34,14 @@ export const DbClientEffect = Effect.gen(function* () {
       onQuery: async ({ model, operation, args, proceed }) => {
         const start = Date.now();
         const result = await proceed(args);
-        if(model==='SystemLog'){
+        if (model === 'SystemLog') {
           return result;
         }
         const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${JSON.stringify(args)}`;
         /** 因为 getDbClient 这个方法的使用是可以不强制依赖 ctx 的，所以这里使用可选依赖，并当 ctx 存在的时候才 */
         if (Option.isNone(ctx)) {
-          console.log('[no ctx sql call]' + logText);
+          // 因为任务队列会一直在执行，所以会导致这里日志特别多，在想到好方法之前这里先注释掉了，后续可以考虑增加一个日志级别的配置项来控制是否输出这类日志
+          // console.log('[no ctx sql call]' + logText);
         } else {
           ctx.value.log(logText);
         }
@@ -61,7 +62,9 @@ export const DbClientEffect = Effect.gen(function* () {
  * @returns 带权限控制的 db 客户端 Effect
  */
 export const createAuthDbClient = (
-  user: (User & { role: Role[]; userSession: UserSession[] }) | (Omit<User, 'password'> & { role: Role[]; userSession: UserSession[] })
+  user:
+    | (User & { role: Role[]; userSession: UserSession[] })
+    | (Omit<User, 'password'> & { role: Role[]; userSession: UserSession[] }),
 ) =>
   Effect.gen(function* () {
     const dbClient = yield* DbClientEffect;
@@ -70,17 +73,21 @@ export const createAuthDbClient = (
     const authDb = dbClient.$use(new PolicyPlugin());
     const db = authDb.$setAuth(user);
 
-    /** 代理对象，限制对 ORM 客户端的访问方法  */
-    const dbProxy = new Proxy(db, {
-      get(target, prop: string | symbol, receiver) {
-        if (typeof prop === 'string' && !allowedMethods.includes(prop as any)) {
-          throw new MsgError(MsgError.op_msgError, `Method '${prop}' is not allowed.`);
-        }
-        return Reflect.get(target, prop, receiver);
-      },
-    }) as safePrisma;
+    return db
+    // 升级v3后发现会报 interactiveTransaction 等方法的调用，很奇怪，因为我没有在顶层调用这些方法
+    // TODO 以后 还是要进行安全升级，暂时先注释
+    // /** 代理对象，限制对 ORM 客户端的访问方法  */
+    // const dbProxy = new Proxy(db, {
+    //   get(target, prop: string | symbol, receiver) {
+    //     console.log('[prop]',target === db,prop);
+    //     if (target === db && typeof prop === 'string' && !allowedMethods.includes(prop as any)) {
+    //       throw new MsgError(MsgError.op_msgError, `Method '${prop}' is not allowed.`);
+    //     }
+    //     return Reflect.get(target, prop, receiver);
+    //   },
+    // }) as safePrisma;
 
-    return dbProxy;
+    // return dbProxy;
   });
 
 /** 根据入参获取有权限检查的 dbClinet，慎用！！只应该在登录鉴权等场景使用，避免入参直接由用户传入 */
@@ -94,7 +101,7 @@ export const getDbAuthEffect = (opt: {
     if (Object.values(opt).filter((el) => el).length === 0) {
       yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
     }
-    const ctx = yield* ReqCtxService
+    const ctx = yield* ReqCtxService;
     ctx.log('getDbAuth：' + JSON.stringify(opt));
     // 构建 where 条件 - v3 中使用生成的 input 类型
     let where: UserFindFirstArgs['where'] = {};

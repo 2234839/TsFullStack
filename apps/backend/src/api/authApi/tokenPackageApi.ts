@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../../Context/Auth';
 import { ReqCtxService } from '../../Context/ReqCtx';
+import { DbClientEffect } from '../../Context/DbService';
 import { MsgError } from '../../util/error';
 import { TokenService } from '../../services/TokenService';
 import { TokenPackageService } from '../../services/TokenPackageService';
@@ -168,6 +169,7 @@ export const subscribePackage = (request: {
   Effect.gen(function* () {
     const auth = yield* AuthContext;
     const reqCtx = yield* ReqCtxService;
+    const db = yield* DbClientEffect;
 
     // 只有管理员可以替用户订阅
     const isAdmin = auth.user.role?.some((r: { name: string }) => r.name === 'admin');
@@ -214,23 +216,19 @@ export const subscribePackage = (request: {
             throw new Error('套餐已停用');
           }
 
-          // 计算下次发放时间（使用UTC避免时区问题）
+          // 计算时间（订阅后立即发放，下次发放时间是订阅时间+周期）
           const now = new Date();
           const startDate = now;
-          const nextGrantDate = now;
-          let endDate: Date | null = null;
 
+          // 计算套餐结束时间（如果有时长限制）
+          let endDate: Date | null = null;
           if (tokenPackage.durationMonths > 0) {
-            endDate = new Date(Date.UTC(
-              now.getUTCFullYear(),
-              now.getUTCMonth() + tokenPackage.durationMonths,
-              now.getUTCDate(),
-              23,
-              59,
-              59,
-              999
-            ));
+            endDate = new Date(now.getTime() + tokenPackage.durationMonths * 30 * 24 * 60 * 60 * 1000);
           }
+
+          // 计算下次发放时间（订阅时间+发放周期）
+          const grantIntervalDays = tokenPackage.type === 'MONTHLY' ? 30 : 365;
+          const nextGrantDate = new Date(now.getTime() + grantIntervalDays * 24 * 60 * 60 * 1000);
 
           // 创建订阅
           const subscription = await tx.userTokenSubscription.create({
@@ -245,18 +243,8 @@ export const subscribePackage = (request: {
             },
           });
 
-          // 计算过期时间（使用UTC避免时区问题）
-          let expiresAt: Date | undefined;
-          if (tokenPackage.type === 'MONTHLY') {
-            const year = now.getUTCFullYear();
-            const month = now.getUTCMonth() + 1;
-            const lastDayOfCurrentMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
-            expiresAt = lastDayOfCurrentMonth;
-          } else if (tokenPackage.type === 'YEARLY') {
-            const year = now.getUTCFullYear();
-            const endOfYear = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
-            expiresAt = endOfYear;
-          }
+          // 计算代币过期时间（发放时间+周期）
+          const expiresAt = new Date(now.getTime() + grantIntervalDays * 24 * 60 * 60 * 1000);
 
           // 立即发放第一批代币（在事务内）
           await tx.token.create({
@@ -272,22 +260,26 @@ export const subscribePackage = (request: {
             },
           });
 
-          // 更新订阅记录（下次发放时间为下个月1号）
-          const nextMonthFirst = new Date(Date.UTC(
-            now.getUTCFullYear(),
-            now.getUTCMonth() + 1,
-            1,
-            0,
-            0,
-            0,
-            0
-          ));
-
+          // 更新订阅记录（已发放1次，下次发放时间已设置）
           await tx.userTokenSubscription.update({
             where: { id: subscription.id },
             data: {
-              nextGrantDate: nextMonthFirst,
               grantsCount: 1,
+            },
+          });
+
+          // 创建定时发放任务到队列
+          await tx.queue.create({
+            data: {
+              name: 'grantSubscriptionTokens',
+              payload: {
+                subscriptionId: subscription.id,
+                userId: request.userId.trim(),
+              },
+              status: 'PENDING',
+              priority: 5,
+              runAt: nextGrantDate,
+              maxAttempts: 3,
             },
           });
 

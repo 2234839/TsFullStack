@@ -107,6 +107,14 @@ export const routeMap = reactive({
           icon: 'pi pi-users',
         },
       },
+      userSubscriptionManagement: {
+        path: 'userSubscriptionManagement',
+        component: () => import('@/pages/admin/UserSubscriptionManagement.vue'),
+        meta: {
+          title: t('用户订阅管理'),
+          icon: 'pi pi-bookmark',
+        },
+      },
       resourceGallery: {
         path: 'resourceGallery',
         component: () => import('@/pages/admin/ResourceGallery.vue'),
