@@ -1,10 +1,6 @@
-# CLAUDE.md
-
-此文件为 Claude Code 在此代码库中工作时提供指导。
-
 ## 项目概述
 
-**@tsfullstack/backend** - TypeScript 全栈后端，基于 Fastify + Prisma + ZenStack + Effect 构建。
+**@tsfullstack/backend** - TypeScript 全栈后端，基于 ZenStack + Effect 构建。
 
 ## 核心架构
 
@@ -12,18 +8,16 @@
 - **API 层** (`src/api/`) - 模块化业务逻辑
 - **Context 层** (`src/Context/`) - Effect Context 依赖注入
 - **RPC 系统** (`src/rpc/`) - 类型安全的远程调用
-- **数据库层** (`src/db/`) - ZenStack 增强的 Prisma
 - **OAuth** (`src/OAuth/`) - GitHub 认证
 - **动态项目** (`src/projects/`) - 可动态加载的后端模块
 
 ## 开发命令
 
 ```bash
-# 开发和构建
-pnpm dev              # 开发模式
-pnpm build:lib        # 构建前端库
-pnpm build            # 构建后端
-pnpm tsc:b            # 类型检查,修改代码后可自行按需运行此命令检查修改是否正确
+pnpm dev       # 开发模式
+pnpm build:lib # 构建前端库
+pnpm build     # 构建后端
+pnpm tsc:b     # 类型检查,修改代码后可自行按需运行此命令检查修改是否正确
 ```
 
 ## 开发规范

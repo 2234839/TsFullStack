@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
+import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
 import { TaskStatus } from '../../.zenstack/models';
 
@@ -20,10 +21,11 @@ export const TaskService = {
   }): Effect.Effect<
     { id: number; tokenCost: number },
     Error,
-    AuthContext
+    AuthContext | ReqCtxService
   > =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 创建任务
       const task = yield* Effect.tryPromise({
@@ -41,7 +43,7 @@ export const TaskService = {
             },
           }),
         catch: (error) => {
-          console.error('[TaskService] 创建任务失败:', error);
+          reqCtx.log('[TaskService] 创建任务失败:', String(error));
           throw MsgError.msg('创建任务失败');
         },
       });
@@ -59,10 +61,11 @@ export const TaskService = {
   startTask: (taskId: number): Effect.Effect<
     void,
     Error,
-    AuthContext
+    AuthContext | ReqCtxService
   > =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 先查询当前状态
       const task = yield* Effect.tryPromise({
@@ -72,7 +75,7 @@ export const TaskService = {
             select: { status: true },
           }),
         catch: (error) => {
-          console.error(`[TaskService] 查询任务失败：taskId=${taskId}`, error);
+          reqCtx.log(`[TaskService] 查询任务失败：taskId=${taskId}`, String(error));
           throw MsgError.msg('查询任务失败');
         },
       });
@@ -96,7 +99,7 @@ export const TaskService = {
             },
           }),
         catch: (error) => {
-          console.error(`[TaskService] 更新任务状态失败：taskId=${taskId}, targetStatus=${TaskStatus.PROCESSING}`, error);
+          reqCtx.log(`[TaskService] 更新任务状态失败：taskId=${taskId}, targetStatus=${TaskStatus.PROCESSING}`, String(error));
           throw MsgError.msg('更新任务状态失败');
         },
       });
@@ -109,10 +112,11 @@ export const TaskService = {
   completeTask: (taskId: number, outputResult: any): Effect.Effect<
     void,
     Error,
-    AuthContext
+    AuthContext | ReqCtxService
   > =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 先查询当前状态
       const task = yield* Effect.tryPromise({
@@ -122,7 +126,7 @@ export const TaskService = {
             select: { status: true },
           }),
         catch: (error) => {
-          console.error(`[TaskService] 查询任务失败：taskId=${taskId}`, error);
+          reqCtx.log(`[TaskService] 查询任务失败：taskId=${taskId}`, String(error));
           throw MsgError.msg('查询任务失败');
         },
       });
@@ -147,7 +151,7 @@ export const TaskService = {
             },
           }),
         catch: (error) => {
-          console.error('[TaskService] 完成任务失败:', error);
+          reqCtx.log('[TaskService] 完成任务失败:', String(error));
           throw MsgError.msg('完成任务失败');
         },
       });
@@ -160,6 +164,7 @@ export const TaskService = {
   failTask: (taskId: number, error: string) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 先查询当前状态
       const task = yield* Effect.tryPromise({
@@ -169,7 +174,7 @@ export const TaskService = {
             select: { status: true },
           }),
         catch: (err) => {
-          console.error('[TaskService] 查询任务失败:', err);
+          reqCtx.log('[TaskService] 查询任务失败:', String(err));
           throw MsgError.msg('查询任务失败');
         },
       });
@@ -194,7 +199,7 @@ export const TaskService = {
             },
           }),
         catch: (err) => {
-          console.error('[TaskService] 失败任务失败:', err);
+          reqCtx.log('[TaskService] 失败任务失败:', String(err));
           throw MsgError.msg('更新任务状态失败');
         },
       });
@@ -206,6 +211,7 @@ export const TaskService = {
   getTask: (taskId: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const task = yield* Effect.tryPromise({
         try: () =>
@@ -217,7 +223,7 @@ export const TaskService = {
             },
           }),
         catch: (error) => {
-          console.error(`[TaskService] 查询任务失败：taskId=${taskId}`, error);
+          reqCtx.log(`[TaskService] 查询任务失败：taskId=${taskId}`, String(error));
           throw MsgError.msg('查询任务失败');
         },
       });
@@ -244,6 +250,7 @@ export const TaskService = {
   } = {}) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const where: any = {
         userId,
@@ -270,8 +277,8 @@ export const TaskService = {
               take: options.take || 20,
               orderBy: { created: 'desc' },
             }),
-          catch: () => {
-            console.error('[TaskService] 查询任务列表失败');
+          catch: (error) => {
+            reqCtx.log('[TaskService] 查询任务列表失败', String(error));
             return [];
           },
         }),

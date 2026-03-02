@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
+import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
 
 /**
@@ -19,10 +20,11 @@ export const ResourceService = {
   }): Effect.Effect<
     { id: number },
     Error,
-    AuthContext
+    AuthContext | ReqCtxService
   > =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const resource = yield* Effect.tryPromise({
         try: () =>
@@ -39,7 +41,7 @@ export const ResourceService = {
             },
           }),
         catch: (error) => {
-          console.error('[ResourceService] 创建资源失败:', error);
+          reqCtx.log('[ResourceService] 创建资源失败:', String(error));
           throw MsgError.msg('创建资源失败');
         },
       });
@@ -57,6 +59,7 @@ export const ResourceService = {
   }) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 验证权限
       const resource = yield* Effect.tryPromise({
@@ -83,7 +86,7 @@ export const ResourceService = {
             data: data as any,
           }),
         catch: (error) => {
-          console.error('[ResourceService] 更新资源失败:', error);
+          reqCtx.log('[ResourceService] 更新资源失败:', String(error));
           throw MsgError.msg('更新资源失败');
         },
       });
@@ -95,6 +98,7 @@ export const ResourceService = {
   getResource: (resourceId: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const resource = yield* Effect.tryPromise({
         try: () =>
@@ -106,7 +110,7 @@ export const ResourceService = {
             },
           }),
         catch: (error) => {
-          console.error('[ResourceService] 查询资源失败:', error);
+          reqCtx.log('[ResourceService] 查询资源失败:', String(error));
           throw MsgError.msg('查询资源失败');
         },
       });
@@ -133,6 +137,7 @@ export const ResourceService = {
   } = {}) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const where: any = {
         userId,
@@ -159,8 +164,8 @@ export const ResourceService = {
               take: options.take || 20,
               orderBy: { created: 'desc' },
             }),
-          catch: () => {
-            console.error('[ResourceService] 查询资源列表失败');
+          catch: (error) => {
+            reqCtx.log('[ResourceService] 查询资源列表失败', String(error));
             return [];
           },
         }),
@@ -179,6 +184,7 @@ export const ResourceService = {
   attachFile: (resourceId: number, fileId: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       yield* Effect.tryPromise({
         try: () =>
@@ -187,7 +193,7 @@ export const ResourceService = {
             data: { fileId },
           }),
         catch: (error) => {
-          console.error('[ResourceService] 关联文件失败:', error);
+          reqCtx.log('[ResourceService] 关联文件失败:', String(error));
           throw MsgError.msg('关联文件失败');
         },
       });

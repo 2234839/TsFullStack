@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
+import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
 
 /**
@@ -17,6 +18,7 @@ export const TokenCleanupService = {
   cleanupExpiredTokens: () =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const now = new Date();
 
@@ -42,7 +44,7 @@ export const TokenCleanupService = {
               take: BATCH_SIZE,
             }),
           catch: (error) => {
-            console.error('[TokenCleanupService] 查询过期代币失败:', error);
+            reqCtx.log('[TokenCleanupService] 查询过期代币失败:', String(error));
             return [];
           },
         });
@@ -66,7 +68,7 @@ export const TokenCleanupService = {
                 },
               }),
             catch: (error) => {
-              console.error('[TokenCleanupService] 清理失败:', error);
+              reqCtx.log('[TokenCleanupService] 清理失败:', String(error));
               // 清理失败不影响主流程
             },
           });

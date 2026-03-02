@@ -33,6 +33,7 @@ export const TokenService = {
   findActiveTokens: (userId: string, tokenType?: TokenType) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       return yield* Effect.tryPromise({
         try: () =>
@@ -48,8 +49,8 @@ export const TokenService = {
             },
           }),
         catch: (error) => {
-          console.error('[TokenService] 查询代币失败:', error);
-          console.error('[TokenService] 错误详情:', JSON.stringify(error, null, 2));
+          reqCtx.log('[TokenService] 查询代币失败:', String(error));
+          reqCtx.log('[TokenService] 错误详情:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
           throw MsgError.msg('查询代币失败');
         },
       });
@@ -90,7 +91,7 @@ export const TokenService = {
   checkTokens: (userId: string, amount: number): Effect.Effect<
     boolean,
     Error,
-    AuthContext
+    AuthContext | ReqCtxService
   > =>
     Effect.gen(function* () {
       const available = yield* TokenService.getAvailableTokens(userId);
@@ -128,7 +129,7 @@ export const TokenService = {
             select: { type: true },
           }),
         catch: (error) => {
-          console.error('[TokenService] 查询任务失败:', error);
+          reqCtx.log('[TokenService] 查询任务失败:', String(error));
           throw MsgError.msg('查询任务失败');
         },
       });
@@ -250,7 +251,7 @@ export const TokenService = {
                 data: { used: token.used + toConsume },
               }),
             catch: (error) => {
-              console.error('[TokenService] 更新代币失败:', error);
+              reqCtx.log('[TokenService] 更新代币失败:', String(error));
               throw MsgError.msg('更新代币失败');
             },
           });
@@ -280,7 +281,7 @@ export const TokenService = {
             data: newTransactions,
           }),
         catch: (error) => {
-          console.error('[TokenService] 创建消耗记录失败:', error);
+          reqCtx.log('[TokenService] 创建消耗记录失败:', String(error));
           // 消耗记录创建失败不影响主流程
         },
       });
@@ -318,6 +319,7 @@ export const TokenService = {
   }) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const { userId, type, amount, source, sourceId, description, restrictedType } = params;
 
@@ -349,7 +351,7 @@ export const TokenService = {
             },
           }),
         catch: (error) => {
-          console.error('[TokenService] 查询现有代币失败:', error);
+          reqCtx.log('[TokenService] 查询现有代币失败:', String(error));
           throw MsgError.msg('查询代币失败');
         },
       });
@@ -375,7 +377,7 @@ export const TokenService = {
               },
             }),
           catch: (error) => {
-            console.error('[TokenService] 更新代币失败:', error);
+            reqCtx.log('[TokenService] 更新代币失败:', String(error));
             throw MsgError.msg('更新代币失败');
           },
         });
@@ -397,8 +399,8 @@ export const TokenService = {
               },
             }),
           catch: (error) => {
-            console.error('[TokenService] 创建代币失败:', error);
-            console.error('[TokenService] 代币数据:', JSON.stringify({
+            reqCtx.log('[TokenService] 创建代币失败:', String(error));
+            reqCtx.log('[TokenService] 代币数据:', JSON.stringify({
               userId,
               type,
               amount,
@@ -420,6 +422,7 @@ export const TokenService = {
   }) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const [tokens, total] = yield* Effect.all([
         Effect.tryPromise({
@@ -431,7 +434,7 @@ export const TokenService = {
               take: options?.take || 20,
             }),
           catch: (error) => {
-            console.error('[TokenService] 查询代币列表失败:', error);
+            reqCtx.log('[TokenService] 查询代币列表失败:', String(error));
             throw MsgError.msg('查询代币列表失败');
           },
         }),
@@ -441,7 +444,7 @@ export const TokenService = {
               where: { userId },
             }),
           catch: (error) => {
-            console.error('[TokenService] 查询代币总数失败:', error);
+            reqCtx.log('[TokenService] 查询代币总数失败:', String(error));
             return 0;
           },
         }),
@@ -461,6 +464,7 @@ export const TokenService = {
   }) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       const [transactions, total] = yield* Effect.all([
         Effect.tryPromise({
@@ -485,7 +489,7 @@ export const TokenService = {
               },
             }),
           catch: (error) => {
-            console.error('[TokenService] 查询代币历史失败:', error);
+            reqCtx.log('[TokenService] 查询代币历史失败:', String(error));
             throw MsgError.msg('查询代币历史失败');
           },
         }),
@@ -499,7 +503,7 @@ export const TokenService = {
               },
             }),
           catch: (error) => {
-            console.error('[TokenService] 查询代币历史总数失败:', error);
+            reqCtx.log('[TokenService] 查询代币历史总数失败:', String(error));
             return 0;
           },
         }),

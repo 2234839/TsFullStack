@@ -57,12 +57,12 @@ export const fileApi = {
             resolve(1);
           });
           writeStream.on('error', (error) => {
-            console.log('Write stream error:', error);
+            reqCtx.log('Write stream error:', String(error));
             reject(error);
           });
           // 也要监听读取流的错误
           reqFile.file.on('error', (error) => {
-            console.log('Read stream error:', error);
+            reqCtx.log('Read stream error:', String(error));
             reject(error);
           });
         });

@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
+import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
 import { TokenType } from '../../.zenstack/models';
 
@@ -21,6 +22,7 @@ export const TokenPackageService = {
   }) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 验证参数
       if (!request.name || request.name.trim().length === 0) {
@@ -51,7 +53,7 @@ export const TokenPackageService = {
             },
           }),
         catch: (error) => {
-          console.error('[TokenPackageService] 创建套餐失败:', error);
+          reqCtx.log('[TokenPackageService] 创建套餐失败:', String(error));
           throw MsgError.msg('创建套餐失败');
         },
       });
@@ -71,6 +73,7 @@ export const TokenPackageService = {
   }) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 检查套餐是否存在
       const existing = yield* Effect.tryPromise({
@@ -103,7 +106,7 @@ export const TokenPackageService = {
             },
           }),
         catch: (error) => {
-          console.error('[TokenPackageService] 更新套餐失败:', error);
+          reqCtx.log('[TokenPackageService] 更新套餐失败:', String(error));
           throw MsgError.msg('更新套餐失败');
         },
       });
@@ -115,6 +118,7 @@ export const TokenPackageService = {
   deletePackage: (packageId: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 检查是否有用户订阅
       const subscriptionsCount = yield* Effect.tryPromise({
@@ -141,7 +145,7 @@ export const TokenPackageService = {
             where: { id: packageId },
           }),
         catch: (error) => {
-          console.error('[TokenPackageService] 删除套餐失败:', error);
+          reqCtx.log('[TokenPackageService] 删除套餐失败:', String(error));
           throw MsgError.msg('删除套餐失败');
         },
       });
@@ -178,6 +182,7 @@ export const TokenPackageService = {
   subscribePackage: (userId: string, packageId: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 检查是否已有活跃订阅（防止重复订阅）
       const existingSubscription = yield* Effect.tryPromise({
@@ -248,7 +253,7 @@ export const TokenPackageService = {
             },
           }),
         catch: (error) => {
-          console.error('[TokenPackageService] 创建订阅失败:', error);
+          reqCtx.log('[TokenPackageService] 创建订阅失败:', String(error));
           throw MsgError.msg('创建订阅失败');
         },
       });
@@ -262,6 +267,7 @@ export const TokenPackageService = {
   updateSubscriptionNextGrant: (subscriptionId: number, nextGrantDate: Date, grantsCount: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       yield* Effect.tryPromise({
         try: () =>
@@ -273,7 +279,7 @@ export const TokenPackageService = {
             },
           }),
         catch: (error) => {
-          console.error('[TokenPackageService] 更新订阅失败:', error);
+          reqCtx.log('[TokenPackageService] 更新订阅失败:', String(error));
           throw MsgError.msg('更新订阅失败');
         },
       });
@@ -285,6 +291,7 @@ export const TokenPackageService = {
   cancelSubscription: (subscriptionId: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       yield* Effect.tryPromise({
         try: () =>
@@ -295,7 +302,7 @@ export const TokenPackageService = {
             },
           }),
         catch: (error) => {
-          console.error('[TokenPackageService] 取消订阅失败:', error);
+          reqCtx.log('[TokenPackageService] 取消订阅失败:', String(error));
           throw MsgError.msg('取消订阅失败');
         },
       });

@@ -120,6 +120,12 @@ setInterval(() => {
  * - 每次请求重新创建 db 客户端，确保有正确的 ReqCtxService
  * - 使用 LRU 缓存，自动淘汰不活跃用户，控制内存使用
  * - 这样既获得了缓存带来的性能提升，又保证了上下文的正确性
+ *
+ * 为什么不使用 WeakMap：
+ * - WeakMap 的键必须是对象，而我们的缓存键是字符串（userId + email + sessionToken + sessionID）
+ * - 如果创建对象包装键，这个对象本身需要被强引用（否则立即被 GC 回收）
+ * - 既然需要强引用键对象，WeakMap 的自动垃圾回收优势就无法发挥
+ * - 对于字符串键的缓存场景，纯 Map + LRU 是最优解
  */
 export function getAuthFromCache(opt: {
   userId?: string;

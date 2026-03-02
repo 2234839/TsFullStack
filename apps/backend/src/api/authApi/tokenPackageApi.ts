@@ -137,7 +137,7 @@ export const grantTokens = (request: {
     }
 
     // 发放代币
-    console.log('[TokenPackageAPI] 准备发放代币:', JSON.stringify({
+    reqCtx.log('[TokenPackageAPI] 准备发放代币:', JSON.stringify({
       userId: request.userId.trim(),
       type: request.type,
       amount: request.amount,
@@ -294,7 +294,7 @@ export const subscribePackage = (request: {
           return { subscription, tokenPackage };
         }),
       catch: (error) => {
-        console.error('[TokenPackageAPI] 订阅套餐失败:', error);
+        reqCtx.log('[TokenPackageAPI] 订阅套餐失败:', String(error));
         throw MsgError.msg(
           error instanceof Error ? error.message : '订阅套餐失败'
         );
