@@ -273,18 +273,46 @@ model Queue with Base {
 
 // ===== 下面是业务模型，与系统基础无关，可自行选择需要的模块删改 =====
 
-/// Post model
+/// 帖子可见性枚举
+enum PostVisibility {
+    DRAFT       /** 草稿 - 仅作者可见 */
+    PRIVATE     /** 私密 - 仅作者可见 */
+    MEMBERS     /** 登录用户可见 */
+    PUBLIC      /** 公开 - 游客也可见 */
+}
+
+/// Post model - 树洞帖子
 model Post  with Base {
-    title     String  @length(1, 256)
+    title     String?  @length(0, 256)
     content   String
-    published Boolean @default(false)
+    /** 可见性 */
+    visibility PostVisibility @default(DRAFT)
     author    User    @relation(fields: [authorId], references: [id])
     authorId  String
 
-    // allow read for all signin users
-    @@allow('read',auth() != null && published)
-    // full access by author
-    @@allow('all', author == auth())
+    /** 父帖子ID（null=主题帖，非null=回复帖） */
+    parentId  Int?
+    /** 父帖子关系（多对一） */
+    parentPost  Post?  @relation("PostReplies", fields: [parentId], references: [id])
+    /** 回复列表（一对多） */
+    replies  Post[]  @relation("PostReplies")
+
+    /** 索引优化：查询某帖子的回复 */
+    @@index([parentId, created])
+    /** 索引优化：查询公开的帖子 */
+    @@index([visibility, created])
+
+    /** 草稿和私密 - 仅作者可读写 */
+    @@allow('read', auth() != null && author == auth() && visibility in [DRAFT, PRIVATE])
+    @@allow('create,update,delete', auth() != null && author == auth() && visibility in [DRAFT, PRIVATE])
+
+    /** 登录用户可见 - 所有登录用户可读，作者可写 */
+    @@allow('read', auth() != null && visibility == MEMBERS)
+    @@allow('create,update,delete', auth() != null && author == auth() && visibility == MEMBERS)
+
+    /** 公开 - 所有人可读，作者可写 */
+    @@allow('read', visibility == PUBLIC)
+    @@allow('create,update,delete', auth() != null && author == auth() && visibility == PUBLIC)
 }
 
 /// AI 英语学习数据模型

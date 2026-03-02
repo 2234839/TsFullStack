@@ -141,6 +141,14 @@ export const routeMap = reactive({
       icon: 'pi pi-share',
     },
   },
+  treehole: {
+    path: '/treehole',
+    component: () => import('@/pages/treehole/Treehole.vue'),
+    meta: {
+      title: '树洞',
+      icon: 'pi pi-comments',
+    },
+  },
   noteCalc: {
     path: '/noteCalc',
     component: () => import('@/pages/noteCalc/NoteCalc.vue'),
