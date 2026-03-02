@@ -1,11 +1,11 @@
-import { Context, Effect } from 'effect';
 import { ZenStackClient, type ClientContract } from '@zenstackhq/orm';
 import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import Database from 'better-sqlite3';
-import { schema, type SchemaType } from '../../.zenstack/schema';
-import type { User, UserSession, Role, Token, Task, Resource, TokenTransaction } from '../../.zenstack/models';
+import { Context, Effect } from 'effect';
 import type { UserFindFirstArgs } from '../../.zenstack/input';
+import type { Role, User, UserSession } from '../../.zenstack/models';
+import { schema, type SchemaType } from '../../.zenstack/schema';
 import { modelsName } from '../db/model-meta';
 import { MsgError } from '../util/error';
 import { AppConfigService } from './AppConfig';
@@ -46,7 +46,7 @@ export const DbServiceLive = Effect.gen(function* () {
 
   /** 数据库路径从配置文件读取 */
   const databasePath = appConfig.databasePath;
-  console.log('[databasePath]',databasePath);
+  console.log('[databasePath]', databasePath);
   const dbClient = new ZenStackClient(schema, {
     dialect: new SqliteDialect({
       database: new Database(databasePath),
@@ -64,7 +64,9 @@ export const DbServiceLive = Effect.gen(function* () {
     }) =>
       Effect.gen(function* () {
         if (Object.values(opt).filter((el) => el).length === 0) {
-          yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
+          yield* Effect.fail(
+            new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'),
+          );
         }
 
         // 构建 where 条件 - v3 中使用生成的 input 类型
@@ -106,12 +108,12 @@ export const DbServiceLive = Effect.gen(function* () {
         );
 
         if (!user) {
-          yield* Effect.fail(new MsgError(MsgError.op_logout, '用户登录状态失效'));
+          throw new MsgError(MsgError.op_logout, '用户登录状态失效');
         }
 
         // v3 中使用 PolicyPlugin 来增强客户端
         const authDb = dbClient.$use(new PolicyPlugin());
-        const db = authDb.$setAuth(user!);
+        const db = authDb.$setAuth(user);
 
         /** 代理对象，限制对 ORM 客户端的访问方法  */
         const dbProxy = new Proxy(db, {
@@ -125,15 +127,7 @@ export const DbServiceLive = Effect.gen(function* () {
 
         return {
           db: dbProxy,
-          user: {
-            id: user!.id,
-            email: user!.email,
-            created: user!.created,
-            updated: user!.updated,
-            avatar: user!.avatar,
-            role: user!.role || [],
-            userSession: user!.userSession || [],
-          },
+          user,
         };
       }),
   });

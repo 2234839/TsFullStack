@@ -2,28 +2,34 @@ import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { ORMError, ORMErrorReason } from '@zenstackhq/orm';
-import { LogLevel } from '../../.zenstack/models';
 import { Cause, Effect, Exit, Layer, Queue } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import os from 'os';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import superjson, { type SuperJSONResult } from 'superjson';
-import { apis, type APIRaw } from '../api';
-import { FileWarpItem } from '../api/authApi/file';
-
-// ESM 模块中获取 __dirname 的替代方案
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-import { appApis } from '../api/appApi';
-import { createRPC } from '../rpc';
+import { fileURLToPath } from 'url';
+import { LogLevel } from '../../.zenstack/models';
 import { AuthContext } from '../Context/Auth';
 import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
 import { systemLog } from '../Context/SystemLog';
-import { MsgError } from '../util/error';
-import { getAuthFromCache } from './authCache';
-import { FetchWithProxy } from '../util/github-proxy';
 import { GithubAuthLive } from '../OAuth/github';
+import { apis, type APIRaw } from '../api';
+import { appApis } from '../api/appApi';
+import { FileWarpItem } from '../api/authApi/file';
 import { verifySignByToken } from '../lib/SessionAuthSign';
+import { createRPC } from '../rpc';
+import { MsgError } from '../util/error';
+import { FetchWithProxy } from '../util/github-proxy';
+import {
+  createDetailedErrorMessage,
+  isRecordNotFoundError,
+  isZenStackPermissionError,
+  isZenStackValidationError,
+} from '../util/zenstack-error';
+import { getAuthFromCache } from './authCache';
+
+// ESM 模块中获取 __dirname 的替代方案
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
@@ -33,13 +39,26 @@ function handleCause(cause: any) {
     if (MsgError.isMsgError(error)) {
       err = { message: error.message, op: error.op };
     } else if (error instanceof ORMError) {
-      if (error.reason === ORMErrorReason.REJECTED_BY_POLICY) {
+      /**
+       * https://zenstack.dev/docs/orm/access-control/query#setting-auth-user
+       * Mutation operations that affect a single, unique row, like update and delete, will throw an ORMError with reason set to NOT_FOUND if the target row doesn't meet the "update" or "delete" policies respectively. See Errors for more details.
+       * Why set reason as NOT_FOUND instead of REJECTED_BY_POLICY? Because the rationale is rows that don't satisfy the policies "don't exist".
+       */
+      if (error.reason === ORMErrorReason.NOT_FOUND) {
+        err = { message: '无权访问/修改或记录不存在' };
+      } else if (
+        /** 检查是否为 Prisma/ZenStack 的 P2004 或 P2025 错误 */
+        isZenStackPermissionError(error)
+      ) {
         err = { message: '权限不足' };
+      } else if (isRecordNotFoundError(error)) {
+        err = { message: '记录不存在或已被删除' };
+      } else if (isZenStackValidationError(error)) {
+        err = { message: '数据验证失败，请检查输入' };
       } else {
-        err = { message: "操作执行失败: "+( error.reason || '数据模型调用错误') };
+        // 其他错误，使用第一行错误消息
+        err = { message: error.message.split('\n')[0] };
       }
-    } else if (error instanceof Error) {
-      err = { message: error.message.split('\n')[0] };
     } else {
       err = { message: String(error) };
     }
@@ -212,15 +231,27 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
     const exit = yield* Effect.exit(runnable);
     if (Exit.isFailure(exit)) {
       const cause = exit.cause;
+
+      // 记录详细的错误信息
       if (Cause.isDieType(cause)) {
+        const defect = cause.defect as Error;
         reqCtx.log(
           '[error Cause]',
           /** 裁剪掉 Effect 内部的调用堆栈 */
-          `${(cause.defect as Error)?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
+          `${defect?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
         );
+
+        // 额外记录 ZenStack/Prisma 错误的详细信息
+        if (defect) {
+          const detailedMsg = createDetailedErrorMessage(defect, method);
+          if (detailedMsg.includes('ZenStack') || detailedMsg.includes('P2025')) {
+            reqCtx.log('[error details]', detailedMsg);
+          }
+        }
       } else {
         reqCtx.log('[error noCause]', `${cause}`);
       }
+
       reply.send(superjson.serialize({ error: handleCause(cause) }));
     }
 
