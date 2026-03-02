@@ -421,6 +421,9 @@ model TokenPackage with Base {
     /** 排序顺序 */
     sortOrder Int @default(0)
 
+    /** 专用类型（JSON数组，空数组或null表示通用代币；非空数组表示只能用于指定类型的任务，例如：["AI_IMAGE_GENERATION", "AI_TEXT_GENERATION"]） */
+    restrictedType Json @default('[]')
+
     /** 用户订阅记录 */
     userSubscriptions UserTokenSubscription[]
 
@@ -477,6 +480,9 @@ model Token with Base {
 
     /** 过期时间 */
     expiresAt DateTime?
+
+    /** 专用类型（JSON数组，空数组或null表示通用代币；非空数组表示只能用于指定类型的任务） */
+    restrictedType Json @default('[]')
 
     /** 关联用户 */
     user User @relation(fields: [userId], references: [id])

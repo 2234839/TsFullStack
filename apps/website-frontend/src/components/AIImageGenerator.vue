@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
+import { useTokenStoreSingleton } from '@/stores/token';
 import { Dialog } from '@tsfullstack/shared-frontend/components';
 
 const emit = defineEmits<{
@@ -10,6 +11,7 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const { API } = useAPI();
+const tokenStore = useTokenStoreSingleton();
 
 /** 提示词 */
 const prompt = ref('');
@@ -54,9 +56,14 @@ const sizeOptions = [
   { label: '512x512', value: '512x512' },
 ];
 
+/** 预计消耗代币 */
+const estimatedCost = computed(() => count.value * 10);
+
 /** 是否可以生成 */
 const canGenerate = computed(() => {
-  return prompt.value.trim().length > 0 && !isGenerating.value;
+  return prompt.value.trim().length > 0 &&
+         !isGenerating.value &&
+         tokenStore.balance.value.total >= estimatedCost.value;
 });
 
 /** 加载可用的服务商列表 */
@@ -77,9 +84,10 @@ async function loadAvailableProviders() {
   }
 }
 
-/** 组件挂载时加载服务商列表 */
+/** 组件挂载时加载服务商列表和代币余额 */
 onMounted(() => {
   loadAvailableProviders();
+  tokenStore.refreshBalance(true);
 });
 
 /** 使用模板 */
@@ -89,12 +97,24 @@ function useTemplate(template: typeof promptTemplates[0]) {
 
 /** 开始生成 */
 async function startGeneration() {
-  if (!canGenerate.value) return;
+  if (!canGenerate.value) {
+    if (tokenStore.balance.value.total < estimatedCost.value) {
+      toast.add({
+        summary: '代币不足',
+        detail: `需要 ${estimatedCost.value} 枚代币，当前余额 ${tokenStore.balance.value.total} 枚`,
+        variant: 'error',
+      });
+    }
+    return;
+  }
 
   isGenerating.value = true;
   generatedImages.value = [];
   currentTaskId.value = null;
   showResultDialog.value = false;
+
+  // 乐观扣减余额
+  tokenStore.optimisticallyDeduct(estimatedCost.value);
 
   try {
     const result = await API.taskApi.generateAIImage({
@@ -110,13 +130,29 @@ async function startGeneration() {
 
     toast.add({
       summary: '生成成功',
-      detail: `成功生成 ${result.imagesCount} 张图片`,
+      detail: `成功生成 ${result.imagesCount} 张图片，消耗 ${estimatedCost.value} 枚代币`,
       variant: 'success',
     });
 
     emit('complete', result.taskId);
+
+    // 刷新真实余额（等待刷新完成）
+    try {
+      await tokenStore.refreshBalance(true);
+    } catch (refreshError) {
+      console.error('[AIImageGenerator] 刷新余额失败:', refreshError);
+      // 刷新失败不影响用户体验，下次操作时会重新尝试
+    }
   } catch (error) {
     console.error('[AIImageGenerator] 生成失败:', error);
+
+    // 失败时立即恢复余额（等待恢复完成）
+    try {
+      await tokenStore.resetBalance();
+    } catch (resetError) {
+      console.error('[AIImageGenerator] 恢复余额失败:', resetError);
+      // 即使恢复失败也继续处理错误
+    }
 
     /** 不应展示给用户的错误关键词 */
     const hiddenKeywords = ['未配置', 'API Key', '配置错误'];
@@ -273,7 +309,21 @@ async function selectImage(_imageUrl: string) {
     </div>
 
     <!-- 生成按钮 -->
-    <div class="flex justify-end">
+    <div class="flex justify-between items-center">
+      <!-- 代币余额显示 -->
+      <div class="text-sm text-gray-600 dark:text-gray-400">
+        <span class="font-medium">代币余额:</span>
+        <span :class="{
+          'text-red-600 dark:text-red-400': tokenStore.isLowBalance.value,
+          'text-green-600 dark:text-green-400': !tokenStore.isLowBalance.value
+        }">
+          {{ tokenStore.balance.value.total }} 枚
+        </span>
+        <span v-if="estimatedCost > 0" class="ml-2 text-gray-500">
+          (预计消耗 {{ estimatedCost }} 枚)
+        </span>
+      </div>
+
       <button
         type="button"
         class="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg transition-colors disabled:cursor-not-allowed"

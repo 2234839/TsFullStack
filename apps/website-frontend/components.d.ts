@@ -68,6 +68,7 @@ declare module 'vue' {
     ThemeToggle: typeof import('./src/components/system/ThemeToggle.vue')['default']
     Toast: typeof import('./src/components/system/Toast.vue')['default']
     ToggleSwitch: typeof import('./src/components/base/ToggleSwitch.vue')['default']
+    TokenHistory: typeof import('./src/components/TokenHistory.vue')['default']
     UserSettingBtn: typeof import('./src/components/system/UserSettingBtn.vue')['default']
     WordRenderer: typeof import('./src/components/WordRenderer.vue')['default']
   }
@@ -131,6 +132,7 @@ declare global {
   const ThemeToggle: typeof import('./src/components/system/ThemeToggle.vue')['default']
   const Toast: typeof import('./src/components/system/Toast.vue')['default']
   const ToggleSwitch: typeof import('./src/components/base/ToggleSwitch.vue')['default']
+  const TokenHistory: typeof import('./src/components/TokenHistory.vue')['default']
   const UserSettingBtn: typeof import('./src/components/system/UserSettingBtn.vue')['default']
   const WordRenderer: typeof import('./src/components/WordRenderer.vue')['default']
 }

@@ -4,7 +4,8 @@ import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
 import RemoteSelect from '@/components/base/RemoteSelect.vue';
-import type { SelectOption } from '@tsfullstack/shared-frontend/components';
+import MultiSelect from '@/components/base/MultiSelect.vue';
+import { TokenOptions } from '@tsfullstack/backend';
 
 const toast = useToast();
 const { API } = useAPI();
@@ -15,29 +16,37 @@ interface SelectItem {
   label: string;
 }
 
-/** 用户订阅 */
-interface Subscription {
+/** 用户代币记录 */
+interface UserToken {
   id: number;
   userId: string;
   user: {
     id: string;
     email: string;
   };
-  package: {
-    id: number;
-    name: string;
-    amount: number;
-    type: string;
-  };
-  startDate: string;
-  endDate: string | null;
-  nextGrantDate: string;
-  active: boolean;
-  grantsCount: number;
+  type: string;
+  amount: number;
+  used: number;
+  expiresAt: string | null;
+  restrictedType: string[] | null;
+  description: string | null;
+  created: string;
 }
 
-/** 订阅列表 */
-const subscriptions = ref<Subscription[]>([]);
+/** 代币列表 */
+const tokens = ref<UserToken[]>([]);
+
+/** 代币总数 */
+const tokensTotal = ref(0);
+
+/** 代币当前页 */
+const tokensPage = ref(1);
+
+/** 代币每页数量 */
+const tokensPageSize = ref(10);
+
+/** 计算总页数 */
+const tokensTotalPages = computed(() => Math.ceil(tokensTotal.value / tokensPageSize.value));
 
 /** 加载中 */
 const isLoading = ref(false);
@@ -45,73 +54,56 @@ const isLoading = ref(false);
 /** 显示发放代币对话框 */
 const showGrantDialog = ref(false);
 
-/** 显示订阅套餐对话框 */
-const showSubscribeDialog = ref(false);
-
-/** 套餐列表 */
-const packages = ref<Array<{ id: number; name: string; amount: number; type: string }>>([]);
-
 /** 发放代币表单 */
 const grantForm = ref({
   selectedUsers: [] as SelectItem[],
   amount: 100,
   type: 'PERMANENT' as 'MONTHLY' | 'YEARLY' | 'PERMANENT',
   description: '',
-});
-
-/** 订阅表单 */
-const subscribeForm = ref({
-  selectedUsers: [] as SelectItem[],
-  packageId: '' as string,
+  restrictedType: [] as string[],
 });
 
 /** 提交中 */
 const isSubmitting = ref(false);
 
-/** 代币类型选项 */
-const tokenTypeOptions: SelectOption[] = [
-  { value: 'MONTHLY', label: '月度代币' },
-  { value: 'YEARLY', label: '年度代币' },
-  { value: 'PERMANENT', label: '永久代币' },
-];
+/** 代币类型选项（从后端导入） */
+const tokenTypeOptions = TokenOptions.TokenTypeOptions;
 
-/** 套餐选项 */
-const packageOptions = computed<SelectOption[]>(() => {
-  return [
-    { value: '0', label: '请选择套餐' },
-    ...packages.value.map((pkg) => ({
-      value: String(pkg.id),
-      label: `${pkg.name} - ${pkg.amount} ${getTypeLabel(pkg.type)}`,
-    })),
-  ];
-});
+/** 任务类型选项（从后端导入，用于专用代币） */
+const taskTypeOptions = TokenOptions.TaskTypeOptions;
 
-/** 过滤后的订阅列表 */
-const activeSubscriptions = computed(() => {
-  return subscriptions.value.filter((s) => s.active);
-});
-
-/** 加载数据 */
+/** 加载代币数据 */
 async function loadData() {
   isLoading.value = true;
   try {
-    // 加载订阅列表
-    const subs = await API.tokenPackageApi.listUserSubscriptions();
-    subscriptions.value = subs as unknown as Subscription[];
+    const [result, total] = await Promise.all([
+      API.db.token.findMany({
+        orderBy: { created: 'desc' },
+        skip: (tokensPage.value - 1) * tokensPageSize.value,
+        take: tokensPageSize.value,
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+            },
+          },
+        },
+      }),
+      API.db.token.count(),
+    ]);
+
+    tokens.value = result as unknown as UserToken[];
+    tokensTotal.value = total as number;
   } catch (error) {
     console.error('[UserTokenManagement] 加载失败:', error);
+    toast.add({
+      summary: '加载失败',
+      detail: '加载代币列表失败',
+      variant: 'error',
+    });
   } finally {
     isLoading.value = false;
-  }
-}
-
-/** 加载套餐列表 */
-async function loadPackages() {
-  try {
-    const result = await API.tokenPackageApi.listTokenPackages({ active: true });
-    packages.value = result as unknown as Array<{ id: number; name: string; amount: number; type: string }>;
-  } catch (error) {
-    console.error('[UserTokenManagement] 加载套餐失败:', error);
   }
 }
 
@@ -161,17 +153,15 @@ function openGrantDialog() {
     amount: 100,
     type: 'PERMANENT',
     description: '',
+    restrictedType: [],
   };
   showGrantDialog.value = true;
 }
 
-/** 打开订阅套餐对话框 */
-function openSubscribeDialog() {
-  subscribeForm.value = {
-    selectedUsers: [],
-    packageId: 0,
-  };
-  showSubscribeDialog.value = true;
+/** 翻页 */
+function goToPage(page: number) {
+  tokensPage.value = page;
+  loadData();
 }
 
 /** 发放代币 */
@@ -179,35 +169,65 @@ async function grantTokens() {
   if (isSubmitting.value || grantForm.value.selectedUsers.length === 0) return;
 
   isSubmitting.value = true;
-  let successCount = 0;
-  let failCount = 0;
+  const results: Array<{ user: string; success: boolean; error?: string }> = [];
 
   try {
-    // 批量发放代币
-    for (const user of grantForm.value.selectedUsers) {
+    // 并行发放（提高性能）
+    const promises = grantForm.value.selectedUsers.map(async (user) => {
       try {
         await API.tokenPackageApi.grantTokens({
           userId: user.value,
           amount: grantForm.value.amount,
           type: grantForm.value.type,
           description: grantForm.value.description || undefined,
+          ...(grantForm.value.restrictedType.length > 0 && { restrictedType: grantForm.value.restrictedType }),
         });
-        successCount++;
+        return { user: user.label, success: true };
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '未知错误';
         console.error(`[UserTokenManagement] 给用户 ${user.label} 发放失败:`, error);
-        failCount++;
+        return { user: user.label, success: false, error: errorMessage };
       }
-    }
+    });
+
+    const settled = await Promise.allSettled(promises);
+    settled.forEach((result, index) => {
+      if (result.status === 'fulfilled') {
+        results.push(result.value);
+      } else {
+        const user = grantForm.value.selectedUsers[index];
+        results.push({
+          user: user?.label || '未知用户',
+          success: false,
+          error: '请求失败',
+        });
+      }
+    });
+
+    const successCount = results.filter((r) => r.success).length;
+    const failCount = results.length - successCount;
 
     if (successCount > 0) {
       toast.add({
         summary: '发放完成',
         detail: `成功给 ${successCount} 个用户发放代币${failCount > 0 ? `，${failCount} 个失败` : ''}`,
-        variant: successCount === grantForm.value.selectedUsers.length ? 'success' : 'warning',
+        variant: successCount === results.length ? 'success' : 'warning',
       });
+
+      // 显示详细结果
+      if (failCount > 0) {
+        const failedUsers = results.filter((r) => !r.success).map((r) => r.user);
+        console.warn('[UserTokenManagement] 失败用户:', failedUsers);
+      }
 
       showGrantDialog.value = false;
       await loadData();
+    } else {
+      toast.add({
+        summary: '发放失败',
+        detail: '所有用户发放失败，请检查网络连接和权限',
+        variant: 'error',
+      });
     }
   } catch (error) {
     console.error('[UserTokenManagement] 发放失败:', error);
@@ -222,92 +242,33 @@ async function grantTokens() {
   }
 }
 
-/** 订阅套餐 */
-async function subscribePackage() {
-  if (isSubmitting.value || subscribeForm.value.selectedUsers.length === 0 || !subscribeForm.value.packageId || subscribeForm.value.packageId === '0') return;
-
-  isSubmitting.value = true;
-  let successCount = 0;
-  let failCount = 0;
-
-  try {
-    // 批量订阅套餐
-    for (const user of subscribeForm.value.selectedUsers) {
-      try {
-        await API.tokenPackageApi.subscribePackage({
-          userId: user.value,
-          packageId: Number(subscribeForm.value.packageId),
-        });
-        successCount++;
-      } catch (error) {
-        console.error(`[UserTokenManagement] 用户 ${user.label} 订阅失败:`, error);
-        failCount++;
-      }
-    }
-
-    if (successCount > 0) {
-      toast.add({
-        summary: '订阅完成',
-        detail: `成功给 ${successCount} 个用户订阅套餐${failCount > 0 ? `，${failCount} 个失败` : ''}`,
-        variant: successCount === subscribeForm.value.selectedUsers.length ? 'success' : 'warning',
-      });
-
-      showSubscribeDialog.value = false;
-      await loadData();
-    }
-  } catch (error) {
-    console.error('[UserTokenManagement] 订阅失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '订阅套餐失败';
-    toast.add({
-      summary: '订阅失败',
-      detail: errorMessage,
-      variant: 'error',
-    });
-  } finally {
-    isSubmitting.value = false;
-  }
-}
-
-/** 取消订阅 */
-async function cancelSubscription(subscriptionId: number) {
-  try {
-    await API.tokenPackageApi.cancelSubscription(subscriptionId);
-
-    toast.add({
-      summary: '取消成功',
-      detail: '订阅已取消',
-      variant: 'success',
-    });
-
-    await loadData();
-  } catch (error) {
-    console.error('[UserTokenManagement] 取消订阅失败:', error);
-    toast.add({
-      summary: '取消失败',
-      detail: '取消订阅失败',
-      variant: 'error',
-    });
-  }
-}
-
 /** 格式化日期 */
-function formatDate(date: string | Date): string {
+function formatDate(date: string | Date | null): string {
+  if (!date) return '永不过期';
   return new Date(date).toLocaleString('zh-CN');
 }
 
 /** 获取类型标签 */
 function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    MONTHLY: '月度代币',
-    YEARLY: '年度代币',
-    PERMANENT: '永久代币',
-  };
-  return labels[type] || type;
+  return TokenOptions.TokenTypeLabels[type as keyof typeof TokenOptions.TokenTypeLabels] || type;
+}
+
+/** 获取任务类型标签（支持数组） */
+function getTaskTypeLabel(type: string | string[]): string {
+  if (Array.isArray(type)) {
+    if (type.length === 0) return '通用代币';
+    return type.map(t => TokenOptions.TaskTypeLabels[t as keyof typeof TokenOptions.TaskTypeLabels] || t).join('、');
+  }
+  return TokenOptions.TaskTypeLabels[type as keyof typeof TokenOptions.TaskTypeLabels] || type;
+}
+
+/** 计算可用数量 */
+function getAvailableAmount(token: UserToken): number {
+  return token.amount - token.used;
 }
 
 onMounted(() => {
   loadData();
-  loadPackages();
 });
 </script>
 
@@ -319,12 +280,12 @@ onMounted(() => {
         用户代币管理
       </h1>
       <p class="mt-2 text-gray-600 dark:text-gray-400">
-        给用户发放代币或订阅套餐
+        给用户发放代币
       </p>
     </div>
 
     <!-- 操作按钮 -->
-    <div class="mb-6 flex gap-4">
+    <div class="mb-6">
       <button
         type="button"
         class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
@@ -332,20 +293,13 @@ onMounted(() => {
       >
         发放代币
       </button>
-      <button
-        type="button"
-        class="px-4 py-2 bg-secondary-600 hover:bg-secondary-700 text-white rounded-lg transition-colors"
-        @click="openSubscribeDialog"
-      >
-        订阅套餐
-      </button>
     </div>
 
-    <!-- 订阅列表 -->
+    <!-- 代币列表 -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
         <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-          用户订阅列表
+          用户代币列表
         </h2>
       </div>
 
@@ -356,50 +310,71 @@ onMounted(() => {
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="activeSubscriptions.length === 0" class="text-center py-12">
+      <div v-else-if="tokens.length === 0" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">暂无订阅</p>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">暂无代币记录</p>
       </div>
 
-      <!-- 订阅列表 -->
+      <!-- 代币列表 -->
       <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
         <div
-          v-for="sub in activeSubscriptions"
-          :key="sub.id"
+          v-for="token in tokens"
+          :key="token.id"
           class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
-          <div class="flex items-center justify-between">
+          <div class="flex items-start justify-between">
             <div class="flex-1">
-              <div class="flex items-center gap-4">
-                <div>
-                  <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-                    {{ sub.user.email }}
-                  </h3>
-                  <p class="text-sm text-gray-600 dark:text-gray-400">
-                    {{ sub.package.name }} ({{ sub.package.amount }} {{ getTypeLabel(sub.package.type) }})
-                  </p>
-                </div>
+              <div class="flex items-center gap-3">
+                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  {{ token.user.email }}
+                </h3>
                 <span
-                  class="px-2 py-1 text-xs rounded bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200"
+                  class="px-2 py-1 text-xs rounded bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
                 >
-                  活跃
+                  {{ getTypeLabel(token.type) }}
+                </span>
+                <span
+                  v-if="token.restrictedType"
+                  class="px-2 py-1 text-xs rounded bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200"
+                >
+                  专用: {{ getTaskTypeLabel(token.restrictedType) }}
                 </span>
               </div>
               <div class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                <p>开始时间: {{ formatDate(sub.startDate) }}</p>
-                <p v-if="sub.endDate">结束时间: {{ formatDate(sub.endDate) }}</p>
-                <p>下次发放: {{ formatDate(sub.nextGrantDate) }}</p>
-                <p>已发放次数: {{ sub.grantsCount }}</p>
+                <p>总量: {{ token.amount }} | 已用: {{ token.used }} | 可用: {{ getAvailableAmount(token) }}</p>
+                <p>过期时间: {{ formatDate(token.expiresAt) }}</p>
+                <p v-if="token.description">备注: {{ token.description }}</p>
+                <p>创建时间: {{ formatDate(token.created) }}</p>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分页 -->
+      <div v-if="tokensTotalPages > 1" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <div class="flex items-center justify-between">
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            共 {{ tokensTotal }} 条记录，第 {{ tokensPage }} / {{ tokensTotalPages }} 页
+          </p>
+          <div class="flex gap-2">
             <button
               type="button"
-              class="px-3 py-2 text-sm bg-danger-100 dark:bg-danger-900 text-danger-700 dark:text-danger-300 rounded-lg hover:bg-danger-200 dark:hover:bg-danger-800 transition-colors"
-              @click="cancelSubscription(sub.id)"
+              class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="tokensPage === 1"
+              @click="goToPage(tokensPage - 1)"
             >
-              取消订阅
+              上一页
+            </button>
+            <button
+              type="button"
+              class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="tokensPage === tokensTotalPages"
+              @click="goToPage(tokensPage + 1)"
+            >
+              下一页
             </button>
           </div>
         </div>
@@ -429,6 +404,21 @@ onMounted(() => {
             :options="tokenTypeOptions"
             placeholder="请选择代币类型"
           />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            专用类型
+          </label>
+          <MultiSelect
+            v-model="grantForm.restrictedType"
+            :options="taskTypeOptions"
+            placeholder="请选择专用类型（可选）"
+            selected-items-label="{0} 个类型已选择"
+          />
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            如果选择专用类型，代币只能用于指定类型的任务；不选择则可用于所有任务
+          </p>
         </div>
 
         <div>
@@ -472,53 +462,6 @@ onMounted(() => {
             @click="grantTokens"
           >
             {{ isSubmitting ? '发放中...' : '发放' }}
-          </button>
-        </div>
-      </template>
-    </Dialog>
-
-    <!-- 订阅套餐对话框 -->
-    <Dialog v-model:open="showSubscribeDialog" title="订阅套餐">
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            选择用户 *
-          </label>
-          <RemoteSelect
-            v-model="subscribeForm.selectedUsers"
-            :query-method="searchUsers"
-            :show-tag="false"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            选择套餐 *
-          </label>
-          <Select
-            v-model="subscribeForm.packageId"
-            :options="packageOptions"
-            placeholder="请选择套餐"
-          />
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            @click="showSubscribeDialog = false"
-          >
-            取消
-          </button>
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="isSubmitting || subscribeForm.selectedUsers.length === 0 || subscribeForm.packageId === '' || subscribeForm.packageId === '0'"
-            @click="subscribePackage"
-          >
-            {{ isSubmitting ? '订阅中...' : '订阅' }}
           </button>
         </div>
       </template>

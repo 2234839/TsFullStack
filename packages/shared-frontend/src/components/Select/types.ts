@@ -27,7 +27,7 @@ export interface SelectOption {
  */
 export interface UiSelectProps extends Omit<SelectRootProps, 'modelValue'> {
   /** 选项列表 */
-  options: SelectOption[];
+  options: readonly SelectOption[] | SelectOption[];
   /** 占位文本 */
   placeholder?: string;
   /** 显示位置 */

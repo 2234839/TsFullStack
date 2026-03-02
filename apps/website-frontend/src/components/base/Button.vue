@@ -58,10 +58,10 @@ const buttonClasses = computed(() => {
   };
 
   const sizeClasses: Record<string, string> = {
-    sm: props.variant === 'ghost' ? 'text-sm' : props.variant === 'text-button' ? textButtonSizeClasses.sm : props.variant === 'icon' ? iconSizeClasses.sm : 'px-3 py-1.5 text-sm',
-    small: props.variant === 'ghost' ? 'text-sm' : props.variant === 'text-button' ? textButtonSizeClasses.small : props.variant === 'icon' ? iconSizeClasses.small : 'px-3 py-1.5 text-sm',
-    md: props.variant === 'ghost' ? 'text-base' : props.variant === 'text-button' ? textButtonSizeClasses.md : props.variant === 'icon' ? iconSizeClasses.md : 'px-4 py-2 text-base',
-    lg: props.variant === 'ghost' ? 'text-lg' : props.variant === 'text-button' ? textButtonSizeClasses.lg : props.variant === 'icon' ? iconSizeClasses.lg : 'px-6 py-3 text-lg',
+    sm: props.variant === 'ghost' ? 'text-sm' : props.variant === 'text-button' ? (textButtonSizeClasses[props.size] || 'text-sm') : props.variant === 'icon' ? (iconSizeClasses[props.size] || 'text-sm') : 'px-3 py-1.5 text-sm',
+    small: props.variant === 'ghost' ? 'text-sm' : props.variant === 'text-button' ? (textButtonSizeClasses[props.size] || 'text-sm') : props.variant === 'icon' ? (iconSizeClasses[props.size] || 'text-sm') : 'px-3 py-1.5 text-sm',
+    md: props.variant === 'ghost' ? 'text-base' : props.variant === 'text-button' ? (textButtonSizeClasses[props.size] || 'text-base') : props.variant === 'icon' ? (iconSizeClasses[props.size] || 'text-base') : 'px-4 py-2 text-base',
+    lg: props.variant === 'ghost' ? 'text-lg' : props.variant === 'text-button' ? (textButtonSizeClasses[props.size] || 'text-lg') : props.variant === 'icon' ? (iconSizeClasses[props.size] || 'text-lg') : 'px-6 py-3 text-lg',
   };
 
   const variantClasses: Record<string, string> = {

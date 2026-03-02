@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
-import type { SelectOption } from '@tsfullstack/shared-frontend/components';
+import { TokenOptions } from '@tsfullstack/backend';
 
 const toast = useToast();
 const { API } = useAPI();
@@ -25,6 +25,18 @@ interface TokenPackage {
 
 /** 套餐列表 */
 const packages = ref<TokenPackage[]>([]);
+
+/** 套餐总数 */
+const packagesTotal = ref(0);
+
+/** 当前页 */
+const packagesPage = ref(1);
+
+/** 每页数量 */
+const packagesPageSize = ref(9);
+
+/** 计算总页数 */
+const packagesTotalPages = computed(() => Math.ceil(packagesTotal.value / packagesPageSize.value));
 
 /** 加载中 */
 const isLoading = ref(false);
@@ -53,24 +65,24 @@ const formData = ref({
 /** 提交中 */
 const isSubmitting = ref(false);
 
-/** 代币类型选项 */
-const tokenTypeOptions: SelectOption[] = [
-  { value: 'MONTHLY', label: '月度代币' },
-  { value: 'YEARLY', label: '年度代币' },
-  { value: 'PERMANENT', label: '永久代币' },
-];
-
-/** 过滤后的套餐列表 */
-const filteredPackages = computed(() => {
-  return packages.value.sort((a, b) => a.sortOrder - b.sortOrder);
-});
+/** 代币类型选项（从后端导入） */
+const tokenTypeOptions = TokenOptions.TokenTypeOptions;
 
 /** 加载套餐列表 */
 async function loadPackages() {
   isLoading.value = true;
   try {
-    const result = await API.tokenPackageApi.listTokenPackages();
+    const [result, total] = await Promise.all([
+      API.db.tokenPackage.findMany({
+        orderBy: { sortOrder: 'asc' },
+        skip: (packagesPage.value - 1) * packagesPageSize.value,
+        take: packagesPageSize.value,
+      }),
+      API.db.tokenPackage.count(),
+    ]);
+
     packages.value = result as unknown as TokenPackage[];
+    packagesTotal.value = total as number;
   } catch (error) {
     console.error('[TokenPackageManagement] 加载失败:', error);
     toast.add({
@@ -81,6 +93,12 @@ async function loadPackages() {
   } finally {
     isLoading.value = false;
   }
+}
+
+/** 翻页 */
+function goToPage(page: number) {
+  packagesPage.value = page;
+  loadPackages();
 }
 
 /** 打开创建对话框 */
@@ -241,12 +259,7 @@ async function deletePackage(pkg: TokenPackage) {
 
 /** 获取类型标签 */
 function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    MONTHLY: '月度代币',
-    YEARLY: '年度代币',
-    PERMANENT: '永久代币',
-  };
-  return labels[type] || type;
+  return TokenOptions.TokenTypeLabels[type as keyof typeof TokenOptions.TokenTypeLabels] || type;
 }
 
 /** 格式化价格 */
@@ -290,7 +303,7 @@ onMounted(() => {
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="filteredPackages.length === 0" class="text-center py-12">
+      <div v-else-if="packages.length === 0" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
@@ -301,7 +314,7 @@ onMounted(() => {
       <div v-else class="p-6">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div
-            v-for="pkg in filteredPackages"
+            v-for="pkg in packages"
             :key="pkg.id"
             class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow"
             :class="{ 'opacity-50': !pkg.active }"
@@ -372,6 +385,33 @@ onMounted(() => {
                 @click="deletePackage(pkg)"
               >
                 删除
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 分页 -->
+        <div v-if="packagesTotalPages > 1" class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+              共 {{ packagesTotal }} 条记录，第 {{ packagesPage }} / {{ packagesTotalPages }} 页
+            </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="packagesPage === 1"
+                @click="goToPage(packagesPage - 1)"
+              >
+                上一页
+              </button>
+              <button
+                type="button"
+                class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="packagesPage === packagesTotalPages"
+                @click="goToPage(packagesPage + 1)"
+              >
+                下一页
               </button>
             </div>
           </div>

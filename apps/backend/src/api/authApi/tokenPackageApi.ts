@@ -100,6 +100,7 @@ export const grantTokens = (request: {
   amount: number;
   type: TokenType;
   description?: string;
+  restrictedType?: string[] | null;
 }) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
@@ -111,23 +112,50 @@ export const grantTokens = (request: {
       throw MsgError.msg('无权操作');
     }
 
+    // 严格的参数验证
+    if (!request.userId || request.userId.trim().length === 0) {
+      throw MsgError.msg('用户ID不能为空');
+    }
+
     if (request.amount <= 0) {
       throw MsgError.msg('代币数量必须大于0');
     }
 
+    if (request.amount > 1000000) {
+      throw MsgError.msg('单次发放代币数量不能超过100万');
+    }
+
+    // 验证代币类型
+    const validTokenTypes = ['MONTHLY', 'YEARLY', 'PERMANENT'];
+    if (!validTokenTypes.includes(request.type)) {
+      throw MsgError.msg('无效的代币类型');
+    }
+
+    // 验证描述长度
+    if (request.description && request.description.length > 500) {
+      throw MsgError.msg('描述不能超过500字符');
+    }
+
     // 发放代币
-    const token = yield* TokenService.grantTokens({
-      userId: request.userId,
+    console.log('[TokenPackageAPI] 准备发放代币:', JSON.stringify({
+      userId: request.userId.trim(),
       type: request.type,
       amount: request.amount,
-      description: request.description || '管理员手动发放',
+      description: request.description?.trim() || '管理员手动发放',
+      restrictedType: request.restrictedType,
+    }, null, 2));
+
+    yield* TokenService.grantTokens({
+      userId: request.userId.trim(),
+      type: request.type,
+      amount: request.amount,
+      description: request.description?.trim() || '管理员手动发放',
+      restrictedType: request.restrictedType,
     });
 
     reqCtx.log(
       `[TokenPackageAPI] 管理员 ${auth.user.id} 给用户 ${request.userId} 发放 ${request.amount} ${request.type} 代币`,
     );
-
-    return token;
   });
 
 /**
@@ -147,34 +175,137 @@ export const subscribePackage = (request: {
       throw MsgError.msg('无权操作');
     }
 
-    // 创建订阅
-    const { subscription, tokenPackage } = yield* TokenPackageService.subscribePackage(
-      request.userId,
-      request.packageId,
-    );
+    // 参数验证
+    if (!request.userId || request.userId.trim().length === 0) {
+      throw MsgError.msg('用户ID不能为空');
+    }
 
-    // 立即发放第一批代币
-    yield* TokenService.grantTokens({
-      userId: request.userId,
-      type: tokenPackage.type,
-      amount: tokenPackage.amount,
-      source: 'subscription',
-      sourceId: String(subscription.id),
-      description: `订阅套餐：${tokenPackage.name}`,
+    if (request.packageId <= 0) {
+      throw MsgError.msg('套餐ID必须大于0');
+    }
+
+    // 使用事务确保订阅和代币发放的原子性
+    const result = yield* Effect.tryPromise({
+      try: () =>
+        auth.db.$transaction(async (tx) => {
+          // 检查是否已有活跃订阅（防止重复订阅）
+          const existingSubscription = await tx.userTokenSubscription.findFirst({
+            where: {
+              userId: request.userId.trim(),
+              packageId: request.packageId,
+              active: true,
+            },
+          });
+
+          if (existingSubscription) {
+            throw new Error('用户已订阅此套餐，请勿重复订阅');
+          }
+
+          // 获取套餐信息（加锁）
+          const tokenPackage = await tx.tokenPackage.findUnique({
+            where: { id: request.packageId },
+          });
+
+          if (!tokenPackage) {
+            throw new Error('套餐不存在');
+          }
+
+          if (!tokenPackage.active) {
+            throw new Error('套餐已停用');
+          }
+
+          // 计算下次发放时间（使用UTC避免时区问题）
+          const now = new Date();
+          const startDate = now;
+          const nextGrantDate = now;
+          let endDate: Date | null = null;
+
+          if (tokenPackage.durationMonths > 0) {
+            endDate = new Date(Date.UTC(
+              now.getUTCFullYear(),
+              now.getUTCMonth() + tokenPackage.durationMonths,
+              now.getUTCDate(),
+              23,
+              59,
+              59,
+              999
+            ));
+          }
+
+          // 创建订阅
+          const subscription = await tx.userTokenSubscription.create({
+            data: {
+              userId: request.userId.trim(),
+              packageId: request.packageId,
+              startDate,
+              endDate,
+              nextGrantDate,
+              active: true,
+              grantsCount: 0,
+            },
+          });
+
+          // 计算过期时间（使用UTC避免时区问题）
+          let expiresAt: Date | undefined;
+          if (tokenPackage.type === 'MONTHLY') {
+            const year = now.getUTCFullYear();
+            const month = now.getUTCMonth() + 1;
+            const lastDayOfCurrentMonth = new Date(Date.UTC(year, month, 0, 23, 59, 59, 999));
+            expiresAt = lastDayOfCurrentMonth;
+          } else if (tokenPackage.type === 'YEARLY') {
+            const year = now.getUTCFullYear();
+            const endOfYear = new Date(Date.UTC(year, 11, 31, 23, 59, 59, 999));
+            expiresAt = endOfYear;
+          }
+
+          // 立即发放第一批代币（在事务内）
+          await tx.token.create({
+            data: {
+              userId: request.userId.trim(),
+              type: tokenPackage.type as any,
+              amount: tokenPackage.amount,
+              used: 0,
+              expiresAt,
+              source: 'subscription',
+              sourceId: String(subscription.id),
+              description: `订阅套餐：${tokenPackage.name}`,
+            },
+          });
+
+          // 更新订阅记录（下次发放时间为下个月1号）
+          const nextMonthFirst = new Date(Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth() + 1,
+            1,
+            0,
+            0,
+            0,
+            0
+          ));
+
+          await tx.userTokenSubscription.update({
+            where: { id: subscription.id },
+            data: {
+              nextGrantDate: nextMonthFirst,
+              grantsCount: 1,
+            },
+          });
+
+          return { subscription, tokenPackage };
+        }),
+      catch: (error) => {
+        console.error('[TokenPackageAPI] 订阅套餐失败:', error);
+        throw MsgError.msg(
+          error instanceof Error ? error.message : '订阅套餐失败'
+        );
+      },
     });
 
-    // 更新订阅记录
-    yield* TokenPackageService.updateSubscriptionNextGrant(
-      subscription.id,
-      getNextMonthFirst(),
-      1,
-    );
-
     reqCtx.log(
-      `[TokenPackageAPI] 用户 ${request.userId} 订阅套餐 ${tokenPackage.name}，立即发放 ${tokenPackage.amount} 代币`,
+      `[TokenPackageAPI] 用户 ${request.userId} 订阅套餐 ${result.tokenPackage.name}，立即发放 ${result.tokenPackage.amount} 代币`,
     );
 
-    return subscription;
+    return result.subscription;
   });
 
 /**
@@ -205,15 +336,6 @@ export const listUserSubscriptions = (options?: {
   skip?: number;
   take?: number;
 }) => TokenPackageService.listSubscriptions(options);
-
-/**
- * 计算下个月1号
- */
-function getNextMonthFirst(): Date {
-  const now = new Date();
-  const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return next;
-}
 
 /**
  * 套餐管理 API

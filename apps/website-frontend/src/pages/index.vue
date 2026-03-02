@@ -44,7 +44,6 @@
 </template>
 
 <script setup lang="tsx">
-  import HeartStackSpace_ts from '@/components/icons/HeartStackSpace_ts.vue';
   import SponsorshipCard from '@/components/SponsorshipCard.vue';
   import { routeMap, routerUtil } from '@/router';
   import Button from '@/components/base/Button.vue';

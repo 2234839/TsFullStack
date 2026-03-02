@@ -15,7 +15,7 @@ interface Props {
   /** 模型值 */
   modelValue?: any[] | any;
   /** 选项列表 */
-  options?: Option[];
+  options?: readonly Option[] | Option[];
   /** 占位符 */
   placeholder?: string;
   /** 是否禁用 */
@@ -129,7 +129,18 @@ const dropdownClasses = computed(() => {
         {{ displayLabel }}
       </span>
       <span class="ml-2 text-gray-400">
-        <i :class="['pi', isOpen ? 'pi-chevron-up' : 'pi-chevron-down']"></i>
+        <svg
+          class="w-4 h-4 transition-transform duration-200"
+          :class="{ 'rotate-180': isOpen }"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M19 9l-7 7-7-7" />
+        </svg>
       </span>
     </div>
 
@@ -156,7 +167,9 @@ const dropdownClasses = computed(() => {
                  :class="isSelected(option)
                    ? 'bg-primary-500 border-primary-500'
                    : 'border-gray-300 dark:border-gray-600'">
-              <i v-if="isSelected(option)" class="pi pi-check text-white text-xs"></i>
+              <svg v-if="isSelected(option)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+              </svg>
             </div>
             <!-- 标签 -->
             <span class="text-sm text-gray-700 dark:text-gray-200">{{ option.label }}</span>

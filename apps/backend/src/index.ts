@@ -75,6 +75,79 @@ const main = Effect.gen(function* () {
 
   setInterval(logMemoryUsage, 5_000);
 
+  // 定期清理过期代币（每小时一次）
+  // 注意：这个定时任务将在DbService初始化后启动
+  let dbClientForCleanup: any = null;
+
+  // 保存dbClient引用以便后续使用
+  Effect.runPromise(
+    Effect.gen(function* () {
+      const service = yield* DbService;
+      dbClientForCleanup = service.dbClient;
+    }).pipe(
+      Effect.provideService(DbService, dbService)
+    )
+  );
+
+  // 启动定时清理任务
+  setTimeout(() => {
+    setInterval(async () => {
+      if (!dbClientForCleanup) {
+        return; // dbClient还未初始化
+      }
+
+      try {
+        const now = new Date();
+        const BATCH_SIZE = 1000;
+        let totalDeleted = 0;
+        let hasMore = true;
+
+        while (hasMore) {
+          const tokensToCleanup = await dbClientForCleanup.token.findMany({
+            where: {
+              active: true,
+              expiresAt: { lt: now },
+            },
+            select: {
+              id: true,
+              amount: true,
+              used: true,
+            },
+            take: BATCH_SIZE,
+          });
+
+          if (tokensToCleanup.length === 0) {
+            hasMore = false;
+            break;
+          }
+
+          const tokenIdsToDelete = tokensToCleanup
+            .filter((t: { id: number; amount: number; used: number }) => t.used >= t.amount)
+            .map((t: { id: number; amount: number; used: number }) => t.id);
+
+          if (tokenIdsToDelete.length > 0) {
+            await dbClientForCleanup.token.deleteMany({
+              where: {
+                id: { in: tokenIdsToDelete },
+              },
+            });
+            totalDeleted += tokenIdsToDelete.length;
+          }
+
+          if (tokensToCleanup.length < BATCH_SIZE) {
+            hasMore = false;
+          }
+        }
+
+        if (totalDeleted > 0) {
+          console.log(`[TokenCleanup] 清理完成：删除了 ${totalDeleted} 条过期代币记录`);
+        }
+      } catch (error) {
+        console.error('[TokenCleanup] 清理任务失败:', error);
+      }
+    }, 3600_000); // 每小时执行一次
+  }, 5000); // 延迟5秒启动，确保dbClient已初始化
+
   // yield* queue_scheduler;
   yield* startServer.pipe(
     Effect.provideService(AppConfigService, config),

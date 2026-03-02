@@ -27,7 +27,7 @@ import { verifySignByToken } from '../lib/SessionAuthSign';
 const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
-function handleCause(cause:any) {
+function handleCause(cause: any) {
   let err;
   function setErr(error: unknown): string {
     if (MsgError.isMsgError(error)) {
@@ -36,10 +36,10 @@ function handleCause(cause:any) {
       if (error.reason === ORMErrorReason.REJECTED_BY_POLICY) {
         err = { message: '权限不足' };
       } else {
-        err = { message: error.reason || '数据模型调用错误' };
+        err = { message: "操作执行失败: "+( error.reason || '数据模型调用错误') };
       }
     } else if (error instanceof Error) {
-      err = { message: error.message };
+      err = { message: error.message.split('\n')[0] };
     } else {
       err = { message: String(error) };
     }
@@ -130,6 +130,8 @@ type apiCtx = {
   onEnd: () => void;
   enqueueTime: number;
 };
+/** rpc 实例，提到外部可避免每次重新创建 */
+const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
 
 /** 注意，这里必须要等待发送数据完毕，否则 onEnd 之后数据将无法发送 */
 function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
@@ -145,19 +147,14 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
   const program = Effect.gen(function* () {
     const waitTime = Date.now() - enqueueTime;
     if (waitTime > MAX_WAIT_MS) {
-      throw MsgError.msg('请求队列处理积压超时');
+      throw MsgError.msg('服务器繁忙，请稍后再试');
     }
 
     let result: any;
     if (pathPrefix === '/app-api/') {
       const params = yield* Effect.promise(() => parseParams(req));
-      const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
       result = yield* Effect.gen(function* () {
-        const res_effect = yield* Effect.promise(() =>
-          appApisRpc.RC(method, params).catch((e) => {
-            throw MsgError.msg('API调用失败: ' + e?.message);
-          }),
-        );
+        const res_effect = yield* Effect.promise(() => appApisRpc.RC(method, params));
         const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
         return res;
       });
@@ -169,12 +166,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
           const apisRpc = createRPC('apiProvider', {
             genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
           });
-          const res_effect = yield* Effect.promise(() =>
-            apisRpc.RC(method, params).catch((e) => {
-              throw MsgError.msg('API调用失败: ' + e?.stack);
-            }),
-          );
-
+          const res_effect = yield* Effect.promise(() => apisRpc.RC(method, params));
           const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
           return res;
         })

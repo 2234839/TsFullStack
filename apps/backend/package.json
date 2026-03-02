@@ -9,7 +9,7 @@
     "build:publish": "pnpm build:lib && pnpm --filter website-frontend build && pnpm build && pnpm publish:server",
     "publish:server": "bash ./publish.sh",
     "tsc:b": "tsc -b",
-    "dev": "CHOKIDAR_USEPOLLING=true tsup --watch --onSuccess \"node --enable-source-maps ./dist/index.js\"",
+    "dev": "CHOKIDAR_USEPOLLING=true tsup --watch",
     "start": "node --enable-source-maps ./dist/index.js",
     "start:w": "node --enable-source-maps --watch ./dist/index.js",
     "build:lib": "tsup --config tsup-lib.config.ts",

@@ -1,7 +1,6 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
 import { MsgError } from '../util/error';
-import { TokenService } from './TokenService';
 import { TaskStatus } from '../../.zenstack/models';
 
 /**
@@ -55,6 +54,7 @@ export const TaskService = {
 
   /**
    * 开始任务
+   * 只能从 PENDING 状态转换为 PROCESSING
    */
   startTask: (taskId: number): Effect.Effect<
     void,
@@ -63,6 +63,28 @@ export const TaskService = {
   > =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+
+      // 先查询当前状态
+      const task = yield* Effect.tryPromise({
+        try: () =>
+          auth.db.task.findUnique({
+            where: { id: taskId },
+            select: { status: true },
+          }),
+        catch: (error) => {
+          console.error(`[TaskService] 查询任务失败：taskId=${taskId}`, error);
+          throw MsgError.msg('查询任务失败');
+        },
+      });
+
+      if (!task) {
+        throw MsgError.msg('任务不存在');
+      }
+
+      // 验证状态转换：只有 PENDING 可以开始
+      if (task.status !== TaskStatus.PENDING) {
+        throw MsgError.msg(`任务状态错误：无法从 ${task.status} 转换为 PROCESSING`);
+      }
 
       yield* Effect.tryPromise({
         try: () =>
@@ -74,7 +96,7 @@ export const TaskService = {
             },
           }),
         catch: (error) => {
-          console.error('[TaskService] 更新任务状态失败:', error);
+          console.error(`[TaskService] 更新任务状态失败：taskId=${taskId}, targetStatus=${TaskStatus.PROCESSING}`, error);
           throw MsgError.msg('更新任务状态失败');
         },
       });
@@ -82,6 +104,7 @@ export const TaskService = {
 
   /**
    * 完成任务
+   * 只能从 PROCESSING 状态转换为 COMPLETED
    */
   completeTask: (taskId: number, outputResult: any): Effect.Effect<
     void,
@@ -90,6 +113,28 @@ export const TaskService = {
   > =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+
+      // 先查询当前状态
+      const task = yield* Effect.tryPromise({
+        try: () =>
+          auth.db.task.findUnique({
+            where: { id: taskId },
+            select: { status: true },
+          }),
+        catch: (error) => {
+          console.error(`[TaskService] 查询任务失败：taskId=${taskId}`, error);
+          throw MsgError.msg('查询任务失败');
+        },
+      });
+
+      if (!task) {
+        throw MsgError.msg('任务不存在');
+      }
+
+      // 验证状态转换：只有 PROCESSING 可以完成
+      if (task.status !== TaskStatus.PROCESSING) {
+        throw MsgError.msg(`任务状态错误：无法从 ${task.status} 转换为 COMPLETED`);
+      }
 
       yield* Effect.tryPromise({
         try: () =>
@@ -110,10 +155,33 @@ export const TaskService = {
 
   /**
    * 失败任务
+   * 只能从 PROCESSING 状态转换为 FAILED
    */
   failTask: (taskId: number, error: string) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+
+      // 先查询当前状态
+      const task = yield* Effect.tryPromise({
+        try: () =>
+          auth.db.task.findUnique({
+            where: { id: taskId },
+            select: { status: true },
+          }),
+        catch: (err) => {
+          console.error('[TaskService] 查询任务失败:', err);
+          throw MsgError.msg('查询任务失败');
+        },
+      });
+
+      if (!task) {
+        throw MsgError.msg('任务不存在');
+      }
+
+      // 验证状态转换：只有 PROCESSING 可以失败
+      if (task.status !== TaskStatus.PROCESSING) {
+        throw MsgError.msg(`任务状态错误：无法从 ${task.status} 转换为 FAILED`);
+      }
 
       yield* Effect.tryPromise({
         try: () =>
@@ -149,7 +217,7 @@ export const TaskService = {
             },
           }),
         catch: (error) => {
-          console.error('[TaskService] 查询任务失败:', error);
+          console.error(`[TaskService] 查询任务失败：taskId=${taskId}`, error);
           throw MsgError.msg('查询任务失败');
         },
       });

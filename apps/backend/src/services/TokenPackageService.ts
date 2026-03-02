@@ -179,6 +179,23 @@ export const TokenPackageService = {
     Effect.gen(function* () {
       const auth = yield* AuthContext;
 
+      // 检查是否已有活跃订阅（防止重复订阅）
+      const existingSubscription = yield* Effect.tryPromise({
+        try: () =>
+          auth.db.userTokenSubscription.findFirst({
+            where: {
+              userId,
+              packageId,
+              active: true,
+            },
+          }),
+        catch: () => null,
+      });
+
+      if (existingSubscription) {
+        throw MsgError.msg('用户已订阅此套餐，请勿重复订阅');
+      }
+
       // 获取套餐信息
       const tokenPackage = yield* Effect.tryPromise({
         try: () =>
@@ -198,15 +215,22 @@ export const TokenPackageService = {
         throw MsgError.msg('套餐已停用');
       }
 
-      // 计算下次发放时间
+      // 计算下次发放时间（使用UTC避免时区问题）
       const now = new Date();
       const startDate = now;
       const nextGrantDate = now;
       let endDate: Date | null = null;
 
       if (tokenPackage.durationMonths > 0) {
-        endDate = new Date(now);
-        endDate.setMonth(endDate.getMonth() + tokenPackage.durationMonths);
+        endDate = new Date(Date.UTC(
+          now.getUTCFullYear(),
+          now.getUTCMonth() + tokenPackage.durationMonths,
+          now.getUTCDate(),
+          23,
+          59,
+          59,
+          999
+        ));
       }
 
       // 创建订阅
