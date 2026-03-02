@@ -16,7 +16,7 @@ interface AiImageOptions {
   /** 图片尺寸 */
   size: string;
   /** 服务商 */
-  provider: 'qwen' | 'dalle' | 'stability';
+  provider: 'qwen' | 'dalle' | 'stability' | 'glm';
 }
 
 /**
@@ -78,6 +78,7 @@ export class TokenPricingCalculator {
       'qwen': 1,
       'dalle': 2,
       'stability': 1.5,
+      'glm': 1.2,
     };
 
     // 获取倍数（未配置则默认为1）

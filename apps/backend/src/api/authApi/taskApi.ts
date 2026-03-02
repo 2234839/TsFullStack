@@ -16,7 +16,7 @@ import { tokenConsumeRateLimiter } from '../../middleware/rateLimit';
  */
 export const generateAIImage = (request: {
   prompt: string;
-  provider?: 'qwen' | 'dalle' | 'stability';
+  provider?: 'qwen' | 'dalle' | 'stability' | 'glm';
   count?: number;
   size?: string;
 }) =>
@@ -43,10 +43,10 @@ export const generateAIImage = (request: {
     }
 
     // 验证服务商
-    const validProviders = ['qwen', 'dalle', 'stability'];
+    const validProviders = ['qwen', 'dalle', 'stability', 'glm'];
     const provider = request.provider || 'qwen';
     if (!validProviders.includes(provider)) {
-      throw MsgError.msg('不支持的服务商');
+      throw MsgError.msg('不支持的服务商' + provider);
     }
 
     // 验证数量
@@ -77,9 +77,9 @@ export const generateAIImage = (request: {
 
     reqCtx.log(
       `[代币计算] ${pricingResult.breakdown} = ${tokenCost}代币\n` +
-      `  公式: ${pricingResult.details.formula}\n` +
-      `  基础价格: ${pricingResult.details.basePrice}代币/张\n` +
-      `  倍数: ${JSON.stringify(pricingResult.details.multipliers)}`
+        `  公式: ${pricingResult.details.formula}\n` +
+        `  基础价格: ${pricingResult.details.basePrice}代币/张\n` +
+        `  倍数: ${JSON.stringify(pricingResult.details.multipliers)}`,
     );
 
     // 3. 创建任务

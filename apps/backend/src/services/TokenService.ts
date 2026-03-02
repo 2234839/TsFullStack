@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
+import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
 import { TokenType } from '../../.zenstack/models';
 
@@ -113,10 +114,11 @@ export const TokenService = {
   consumeTokens: (userId: string, amount: number, taskId: number): Effect.Effect<
     TokenConsumptionResult,
     Error | void,
-    AuthContext
+    AuthContext | ReqCtxService
   > =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
+      const reqCtx = yield* ReqCtxService;
 
       // 0. 查询任务信息，获取任务类型
       const task = yield* Effect.tryPromise({
@@ -142,16 +144,27 @@ export const TokenService = {
 
       // 辅助函数：检查代币是否可用于指定任务类型
       const canUseForTask = (token: typeof allTokens[0], taskType: string): boolean => {
-        // restrictedType 是 Json 类型，需要安全地解析
-        const restricted = token.restrictedType as unknown;
+        // restrictedType 是 Json 类型（存储为 JSON 字符串），需要安全地解析
+        let restricted: unknown;
+
+        try {
+          // 尝试解析 JSON 字符串
+          restricted = token.restrictedType ? JSON.parse(token.restrictedType as string) : null;
+        } catch {
+          // 解析失败，当作 null 处理
+          restricted = null;
+        }
+
+        // null 或空数组 = 通用代币，可用于所有任务
         if (!restricted || (typeof restricted === 'object' && Array.isArray(restricted) && restricted.length === 0)) {
-          // null 或空数组 = 通用代币，可用于所有任务
           return true;
         }
+
+        // 非空数组，检查是否包含当前任务类型
         if (Array.isArray(restricted)) {
-          // 非空数组，检查是否包含当前任务类型
           return restricted.includes(taskType);
         }
+
         // 其他情况（字符串）向后兼容
         return restricted === taskType;
       };
@@ -160,11 +173,24 @@ export const TokenService = {
       const restrictedTokens = allTokens.filter((t) => canUseForTask(t, taskType) && !canUseForTask(t, ''));
       const generalTokens = allTokens.filter((t) => canUseForTask(t, ''));
 
+      // 🔍 调试日志：输出代币详情
+      reqCtx.log(`[TokenService] 🔍 调试信息：`);
+      reqCtx.log(`[TokenService] 任务类型: ${taskType}`);
+      reqCtx.log(`[TokenService] 所有代币数量: ${allTokens.length}`);
+      allTokens.forEach(t => {
+        reqCtx.log(`[TokenService] 代币: id=${t.id}, type=${t.type}, amount=${t.amount}, used=${t.used}, available=${t.amount - t.used}, restrictedType=${t.restrictedType}, canUseForTask=${canUseForTask(t, taskType)}, isGeneral=${canUseForTask(t, '')}`);
+      });
+      reqCtx.log(`[TokenService] 专用代币数量: ${restrictedTokens.length}`);
+      reqCtx.log(`[TokenService] 通用代币数量: ${generalTokens.length}`);
+
       // 计算总可用代币
       let totalAvailable = 0;
       for (const token of [...restrictedTokens, ...generalTokens]) {
         totalAvailable += token.amount - token.used;
       }
+
+      reqCtx.log(`[TokenService] 总可用代币: ${totalAvailable}`);
+      reqCtx.log(`[TokenService] 需要代币: ${amount}`);
 
       if (totalAvailable < amount) {
         throw MsgError.msg(
