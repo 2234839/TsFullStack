@@ -8,7 +8,7 @@
 
   const { AppAPIGetUrl, APIGetUrl } = useAPI();
   const props = defineProps<{
-    fileId: number;
+    fileId: number | string;
   }>();
 
   const fileUrl = ref('');
@@ -16,10 +16,11 @@
   watch(
     () => props.fileId,
     async () => {
+      const fileId = typeof props.fileId === 'string' ? Number(props.fileId) : props.fileId;
       if (authInfo_isLogin.value) {
-        fileUrl.value = await APIGetUrl.fileApi.file(props.fileId);
+        fileUrl.value = await APIGetUrl.fileApi.file(fileId);
       } else {
-        fileUrl.value = await AppAPIGetUrl.fileApi.file(props.fileId);
+        fileUrl.value = await AppAPIGetUrl.fileApi.file(fileId);
       }
     },
     { immediate: true },

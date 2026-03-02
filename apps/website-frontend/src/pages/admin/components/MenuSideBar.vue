@@ -34,16 +34,22 @@
       <div class="user-profile px-4 py-5 flex items-center border-b border-gray-200 dark:border-slate-700/50">
         <div class="relative">
           <a href="https://shenzilong.cn" target="_blank">
-            <Avatar :image="avatarImageSrc" class="mr-3 shadow-lg border-2 border-primary-400 dark:border-cyan-400"
-              size="large" shape="circle" />
+            <File2Url v-if="avatarUrl" :fileId="avatarUrl" v-slot="{ url }">
+              <div class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-cyan-400 mr-3">
+                <img :src="url" alt="用户头像" class="w-full h-full object-cover" />
+              </div>
+            </File2Url>
+            <div v-else class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-cyan-400 mr-3">
+              <img :src="avatarImageSrc" alt="默认头像" class="w-full h-full object-cover" />
+            </div>
           </a>
           <span
             class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
         </div>
         <div class="user-info transition-all duration-300 overflow-hidden whitespace-nowrap"
           :class="[isCollapsed ? 'opacity-0 w-0' : 'opacity-100 flex-1']">
-          <h2 class="font-medium text-gray-800 dark:text-white">Alex Johnson</h2>
-          <p class="text-sm text-gray-500 dark:text-slate-400">系统管理员</p>
+          <h2 class="font-medium text-gray-800 dark:text-white">{{ displayName }}</h2>
+          <p class="text-sm text-gray-500 dark:text-slate-400">{{ userProfile?.email || '未登录' }}</p>
         </div>
         <Badge v-if="!isCollapsed" value="3" variant="info" class="ml-auto"></Badge>
       </div>
@@ -187,15 +193,19 @@
   import ThemeSwitch from '@/components/system/ThemeToggle.vue';
   import { useComputedI18n } from '@/i18n';
   import { routeMap, router, routerUtil } from '@/router';
-  import Avatar from '@/components/base/Avatar.vue';
   import Badge from '@/components/base/Badge.vue';
   import Button from '@/components/base/Button.vue';
   import Input from '@/components/base/Input.vue';
+  import File2Url from '@/pages/admin/components/File2Url.vue';
   import { Dropdown, Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, reactive, ref } from 'vue';
   import type { RouteLocationRaw } from 'vue-router';
   import avatarImageSrc from '/崮生.png?url';
   import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
+  import { useUserProfile } from '@/composables/useUserProfile';
+
+  /** 获取用户信息 */
+  const { displayName, avatarUrl, userProfile } = useUserProfile();
 
   // 定义类型
   interface MenuItem {
@@ -355,6 +365,12 @@
     {
       category: t('系统设置'),
       items: [
+        {
+          key: 'userSettings',
+          label: t('个人设置'),
+          icon: routeMap.admin.child.userSettings.meta.icon,
+          to: routerUtil.to(routeMap.admin.child.userSettings, {}),
+        },
         {
           key: 'settings',
           label: t('系统设置'),

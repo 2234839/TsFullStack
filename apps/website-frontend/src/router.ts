@@ -123,6 +123,14 @@ export const routeMap = reactive({
           icon: 'pi pi-images',
         },
       },
+      userSettings: {
+        path: 'userSettings',
+        component: () => import('@/pages/admin/UserSettings.vue'),
+        meta: {
+          title: t('个人设置'),
+          icon: 'pi pi-user-cog',
+        },
+      },
     },
   },
   ShareDetail: {
