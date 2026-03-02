@@ -29,28 +29,13 @@
       <DataTable :data="userStats" :columns="userStatsColumns" rowKey="userEmail" striped bordered />
 
       <!-- Pagination controls -->
-      <div class="flex justify-between items-center mt-4">
-        <div class="text-sm text-gray-600 dark:text-gray-400">
-          {{ t('显示') }} {{ (userPagination.page - 1) * userPagination.pageSize + 1 }} -
-          {{ Math.min(userPagination.page * userPagination.pageSize, userPagination.total) }}
-          {{ t('共') }} {{ userPagination.total }} {{ t('条记录') }}
-        </div>
-        <div class="flex space-x-2">
-          <Button
-            :disabled="userPagination.page === 1"
-            @click="changeUserPage(userPagination.page - 1)"
-            class="p-2"
-          >
-            {{ t('上一页') }}
-          </Button>
-          <Button
-            :disabled="userPagination.page === userPagination.totalPages"
-            @click="changeUserPage(userPagination.page + 1)"
-            class="p-2"
-          >
-            {{ t('下一页') }}
-          </Button>
-        </div>
+      <div v-if="userPagination.total > 0" class="mt-4">
+        <Paginator
+          :rows="userPagination.total"
+          :rows-per-page="userPagination.pageSize"
+          :page="userPagination.page"
+          @update:page="changeUserPage"
+        />
       </div>
     </div>
 
@@ -65,7 +50,8 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { Chart, DataTable, Button } from '@/components/base'
+import { Chart, DataTable } from '@/components/base'
+import Paginator from '@/components/base/Paginator.vue'
 import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
 
@@ -164,10 +150,9 @@ const userActivityData = ref({
 })
 
 const userPagination = ref({
-  page: 1,
+  page: 0,
   pageSize: 10,
-  total: 0,
-  totalPages: 0
+  total: 0
 })
 
 const chartOptions = computed(() => ({
@@ -304,10 +289,9 @@ const updateUserStatsDisplay = async () => {
 
   // Update pagination info
   userPagination.value.total = allUserStats.length
-  userPagination.value.totalPages = Math.ceil(allUserStats.length / userPagination.value.pageSize)
 
   // Get current page data
-  const startIndex = (userPagination.value.page - 1) * userPagination.value.pageSize
+  const startIndex = userPagination.value.page * userPagination.value.pageSize
   const endIndex = startIndex + userPagination.value.pageSize
   const paginatedUserStats = allUserStats.slice(startIndex, endIndex)
 
@@ -514,10 +498,9 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
 
   // Update pagination info
   userPagination.value.total = allUserStats.length
-  userPagination.value.totalPages = Math.ceil(allUserStats.length / userPagination.value.pageSize)
 
   // Get current page data
-  const startIndex = (userPagination.value.page - 1) * userPagination.value.pageSize
+  const startIndex = userPagination.value.page * userPagination.value.pageSize
   const endIndex = startIndex + userPagination.value.pageSize
   const paginatedUserStats = allUserStats.slice(startIndex, endIndex)
 

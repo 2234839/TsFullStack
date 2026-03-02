@@ -50,7 +50,7 @@ const iconClasses = {
 </script>
 
 <template>
-  <div class="fixed top-4 right-4 z-50 w-full max-w-md space-y-2">
+  <div class="fixed top-4 right-4 z-9999 w-full max-w-md space-y-2">
     <div
       v-for="message in messages"
       :key="message.id"

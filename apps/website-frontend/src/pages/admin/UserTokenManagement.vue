@@ -5,6 +5,7 @@ import { useAPI } from '@/api';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
 import RemoteSelect from '@/components/base/RemoteSelect.vue';
 import MultiSelect from '@/components/base/MultiSelect.vue';
+import Paginator from '@/components/base/Paginator.vue';
 import { TokenOptions } from '@tsfullstack/backend';
 
 const toast = useToast();
@@ -39,14 +40,11 @@ const tokens = ref<UserToken[]>([]);
 /** 代币总数 */
 const tokensTotal = ref(0);
 
-/** 代币当前页 */
-const tokensPage = ref(1);
+/** 代币当前页（从0开始，用于 Paginator 组件） */
+const tokensPage = ref(0);
 
 /** 代币每页数量 */
 const tokensPageSize = ref(10);
-
-/** 计算总页数 */
-const tokensTotalPages = computed(() => Math.ceil(tokensTotal.value / tokensPageSize.value));
 
 /** 加载中 */
 const isLoading = ref(false);
@@ -79,7 +77,7 @@ async function loadData() {
     const [result, total] = await Promise.all([
       API.db.token.findMany({
         orderBy: { created: 'desc' },
-        skip: (tokensPage.value - 1) * tokensPageSize.value,
+        skip: tokensPage.value * tokensPageSize.value,
         take: tokensPageSize.value,
         include: {
           user: {
@@ -161,6 +159,13 @@ function openGrantDialog() {
 /** 翻页 */
 function goToPage(page: number) {
   tokensPage.value = page;
+  loadData();
+}
+
+/** 每页条数变化 */
+function updatePageSize(size: number) {
+  tokensPageSize.value = size;
+  tokensPage.value = 0;
   loadData();
 }
 
@@ -354,30 +359,15 @@ onMounted(() => {
       </div>
 
       <!-- 分页 -->
-      <div v-if="tokensTotalPages > 1" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-        <div class="flex items-center justify-between">
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            共 {{ tokensTotal }} 条记录，第 {{ tokensPage }} / {{ tokensTotalPages }} 页
-          </p>
-          <div class="flex gap-2">
-            <button
-              type="button"
-              class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="tokensPage === 1"
-              @click="goToPage(tokensPage - 1)"
-            >
-              上一页
-            </button>
-            <button
-              type="button"
-              class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="tokensPage === tokensTotalPages"
-              @click="goToPage(tokensPage + 1)"
-            >
-              下一页
-            </button>
-          </div>
-        </div>
+      <div v-if="tokensTotal > 0" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+        <Paginator
+          :rows="tokensTotal"
+          :rows-per-page="tokensPageSize"
+          :page="tokensPage"
+          :show-rows-per-page-options="true"
+          @update:page="goToPage"
+          @update:rows-per-page="updatePageSize"
+        />
       </div>
     </div>
 

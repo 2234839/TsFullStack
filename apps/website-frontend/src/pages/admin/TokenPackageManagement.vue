@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
+import Paginator from '@/components/base/Paginator.vue';
 import { TokenOptions } from '@tsfullstack/backend';
 
 const toast = useToast();
@@ -29,14 +30,11 @@ const packages = ref<TokenPackage[]>([]);
 /** 套餐总数 */
 const packagesTotal = ref(0);
 
-/** 当前页 */
-const packagesPage = ref(1);
+/** 当前页（从0开始，用于 Paginator 组件） */
+const packagesPage = ref(0);
 
 /** 每页数量 */
 const packagesPageSize = ref(9);
-
-/** 计算总页数 */
-const packagesTotalPages = computed(() => Math.ceil(packagesTotal.value / packagesPageSize.value));
 
 /** 加载中 */
 const isLoading = ref(false);
@@ -75,7 +73,7 @@ async function loadPackages() {
     const [result, total] = await Promise.all([
       API.db.tokenPackage.findMany({
         orderBy: { sortOrder: 'asc' },
-        skip: (packagesPage.value - 1) * packagesPageSize.value,
+        skip: packagesPage.value * packagesPageSize.value,
         take: packagesPageSize.value,
       }),
       API.db.tokenPackage.count(),
@@ -98,6 +96,13 @@ async function loadPackages() {
 /** 翻页 */
 function goToPage(page: number) {
   packagesPage.value = page;
+  loadPackages();
+}
+
+/** 每页条数变化 */
+function updatePageSize(size: number) {
+  packagesPageSize.value = size;
+  packagesPage.value = 0;
   loadPackages();
 }
 
@@ -391,30 +396,15 @@ onMounted(() => {
         </div>
 
         <!-- 分页 -->
-        <div v-if="packagesTotalPages > 1" class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <div class="flex items-center justify-between">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
-              共 {{ packagesTotal }} 条记录，第 {{ packagesPage }} / {{ packagesTotalPages }} 页
-            </p>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="packagesPage === 1"
-                @click="goToPage(packagesPage - 1)"
-              >
-                上一页
-              </button>
-              <button
-                type="button"
-                class="px-3 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="packagesPage === packagesTotalPages"
-                @click="goToPage(packagesPage + 1)"
-              >
-                下一页
-              </button>
-            </div>
-          </div>
+        <div v-if="packagesTotal > 0" class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+          <Paginator
+            :rows="packagesTotal"
+            :rows-per-page="packagesPageSize"
+            :page="packagesPage"
+            :show-rows-per-page-options="true"
+            @update:page="goToPage"
+            @update:rows-per-page="updatePageSize"
+          />
         </div>
       </div>
     </div>
