@@ -1,5 +1,5 @@
 -- CreateTable
-CREATE TABLE "Role" (
+CREATE TABLE IF NOT EXISTS "Role" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -7,7 +7,7 @@ CREATE TABLE "Role" (
 );
 
 -- CreateTable
-CREATE TABLE "User" (
+CREATE TABLE IF NOT EXISTS "User" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -17,7 +17,7 @@ CREATE TABLE "User" (
 );
 
 -- CreateTable
-CREATE TABLE "UserSession" (
+CREATE TABLE IF NOT EXISTS "UserSession" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -28,7 +28,7 @@ CREATE TABLE "UserSession" (
 );
 
 -- CreateTable
-CREATE TABLE "OAuthAccount" (
+CREATE TABLE IF NOT EXISTS "OAuthAccount" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -40,7 +40,7 @@ CREATE TABLE "OAuthAccount" (
 );
 
 -- CreateTable
-CREATE TABLE "File" (
+CREATE TABLE IF NOT EXISTS "File" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +56,7 @@ CREATE TABLE "File" (
 );
 
 -- CreateTable
-CREATE TABLE "SystemLog" (
+CREATE TABLE IF NOT EXISTS "SystemLog" (
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
     "level" TEXT NOT NULL,
     "message" TEXT,
@@ -66,7 +66,7 @@ CREATE TABLE "SystemLog" (
 );
 
 -- CreateTable
-CREATE TABLE "UserData" (
+CREATE TABLE IF NOT EXISTS "UserData" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -81,7 +81,7 @@ CREATE TABLE "UserData" (
 );
 
 -- CreateTable
-CREATE TABLE "Queue" (
+CREATE TABLE IF NOT EXISTS "Queue" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -100,7 +100,7 @@ CREATE TABLE "Queue" (
 );
 
 -- CreateTable
-CREATE TABLE "Post" (
+CREATE TABLE IF NOT EXISTS "Post" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +112,7 @@ CREATE TABLE "Post" (
 );
 
 -- CreateTable
-CREATE TABLE "Word" (
+CREATE TABLE IF NOT EXISTS "Word" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -132,7 +132,7 @@ CREATE TABLE "Word" (
 );
 
 -- CreateTable
-CREATE TABLE "AiModel" (
+CREATE TABLE IF NOT EXISTS "AiModel" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -151,7 +151,7 @@ CREATE TABLE "AiModel" (
 );
 
 -- CreateTable
-CREATE TABLE "AiCallLog" (
+CREATE TABLE IF NOT EXISTS "AiCallLog" (
     "created" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated" DATETIME NOT NULL,
     "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -166,7 +166,7 @@ CREATE TABLE "AiCallLog" (
 );
 
 -- CreateTable
-CREATE TABLE "_RoleToUser" (
+CREATE TABLE IF NOT EXISTS "_RoleToUser" (
     "A" INTEGER NOT NULL,
     "B" TEXT NOT NULL,
     CONSTRAINT "_RoleToUser_A_fkey" FOREIGN KEY ("A") REFERENCES "Role" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
@@ -174,44 +174,44 @@ CREATE TABLE "_RoleToUser" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Role_name_key" ON "Role"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "Role_name_key" ON "Role"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "User_email_key" ON "User"("email");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserData_userId_key_appId_key" ON "UserData"("userId", "key", "appId");
+CREATE UNIQUE INDEX IF NOT EXISTS "UserData_userId_key_appId_key" ON "UserData"("userId", "key", "appId");
 
 -- CreateIndex
-CREATE INDEX "Queue_status_runAt_priority_idx" ON "Queue"("status", "runAt", "priority");
+CREATE INDEX IF NOT EXISTS "Queue_status_runAt_priority_idx" ON "Queue"("status", "runAt", "priority");
 
 -- CreateIndex
-CREATE INDEX "Queue_name_status_idx" ON "Queue"("name", "status");
+CREATE INDEX IF NOT EXISTS "Queue_name_status_idx" ON "Queue"("name", "status");
 
 -- CreateIndex
-CREATE INDEX "Queue_workerId_status_idx" ON "Queue"("workerId", "status");
+CREATE INDEX IF NOT EXISTS "Queue_workerId_status_idx" ON "Queue"("workerId", "status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Word_key_authorId_key" ON "Word"("key", "authorId");
+CREATE UNIQUE INDEX IF NOT EXISTS "Word_key_authorId_key" ON "Word"("key", "authorId");
 
 -- CreateIndex
-CREATE INDEX "AiCallLog_clientIp_timestamp_idx" ON "AiCallLog"("clientIp", "timestamp");
+CREATE INDEX IF NOT EXISTS "AiCallLog_clientIp_timestamp_idx" ON "AiCallLog"("clientIp", "timestamp");
 
 -- CreateIndex
-CREATE INDEX "AiCallLog_userId_timestamp_idx" ON "AiCallLog"("userId", "timestamp");
+CREATE INDEX IF NOT EXISTS "AiCallLog_userId_timestamp_idx" ON "AiCallLog"("userId", "timestamp");
 
 -- CreateIndex
-CREATE INDEX "AiCallLog_aiModelId_timestamp_idx" ON "AiCallLog"("aiModelId", "timestamp");
+CREATE INDEX IF NOT EXISTS "AiCallLog_aiModelId_timestamp_idx" ON "AiCallLog"("aiModelId", "timestamp");
 
 -- CreateIndex
-CREATE INDEX "AiCallLog_modelName_timestamp_idx" ON "AiCallLog"("modelName", "timestamp");
+CREATE INDEX IF NOT EXISTS "AiCallLog_modelName_timestamp_idx" ON "AiCallLog"("modelName", "timestamp");
 
 -- CreateIndex
-CREATE INDEX "AiCallLog_userId_modelName_idx" ON "AiCallLog"("userId", "modelName");
+CREATE INDEX IF NOT EXISTS "AiCallLog_userId_modelName_idx" ON "AiCallLog"("userId", "modelName");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "_RoleToUser_AB_unique" ON "_RoleToUser"("A", "B");
+CREATE UNIQUE INDEX IF NOT EXISTS "_RoleToUser_AB_unique" ON "_RoleToUser"("A", "B");
 
 -- CreateIndex
-CREATE INDEX "_RoleToUser_B_index" ON "_RoleToUser"("B");
+CREATE INDEX IF NOT EXISTS "_RoleToUser_B_index" ON "_RoleToUser"("B");
 

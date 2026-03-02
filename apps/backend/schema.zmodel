@@ -47,6 +47,9 @@ model Role with Base {
     users User[]
 
     @@allow("read",auth() != null)
+
+    /** 索引优化 - 优化按名称查询角色 */
+    @@index([name])
 }
 
 /// User model
@@ -88,6 +91,9 @@ model User with NotIdBase {
 
     /** 套餐订阅记录 */
     tokenSubscriptions UserTokenSubscription[]
+
+    /** 索引优化 */
+    @@index([created])
 }
 
 /// 资源类型枚举
@@ -152,6 +158,10 @@ model UserSession with Base {
     @@allow('read,create', auth() == user)
     // 禁止过期session 被用户读取，但管理员除外
     @@deny('all',(expiresAt < now()) &&  (auth().role?[name == 'admin']==false))
+
+    /** 索引优化 - 优化会话查询和过期清理 */
+    @@index([userId, expiresAt])
+    @@index([token])
 }
 
 enum OauthProvider {

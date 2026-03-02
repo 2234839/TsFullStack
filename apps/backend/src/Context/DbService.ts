@@ -37,7 +37,7 @@ export const DbClientEffect = Effect.gen(function* () {
         if(model==='SystemLog'){
           return result;
         }
-        const logText = `sql ${Date.now() - start}ms > ${model} ${operation} `;
+        const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${JSON.stringify(args)}`;
         /** 因为 getDbClient 这个方法的使用是可以不强制依赖 ctx 的，所以这里使用可选依赖，并当 ctx 存在的时候才 */
         if (Option.isNone(ctx)) {
           console.log('[no ctx sql call]' + logText);

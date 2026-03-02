@@ -113,12 +113,6 @@ ssh $SSH_OPTS "$SSH_TARGET" "
     echo '生成 Prisma schema...'
     pnpm zenstack generate || exit 1
 
-    # 确保服务器上安装了 ZenStack CLI（用于解析 schema.zmodel）
-    # 如果没有安装的话就需要安装一下
-    # pnpm add -D \
-    #     '@zenstackhq/cli@^3.4.1' \
-    #     '@zenstackhq/schema@^3.4.1' \
-    #     '@zenstackhq/plugin-policy@^3.4.1' || exit 1
     pnpm zenstack migrate deploy || exit 1
 
     # 重启应用

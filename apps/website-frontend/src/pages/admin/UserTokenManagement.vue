@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
-import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
-import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
-import RemoteSelect from '@/components/base/RemoteSelect.vue';
 import MultiSelect from '@/components/base/MultiSelect.vue';
 import Paginator from '@/components/base/Paginator.vue';
+import RemoteSelect from '@/components/base/RemoteSelect.vue';
+import { useToast } from '@/composables/useToast';
 import { TokenOptions } from '@tsfullstack/backend';
+import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
+import { onMounted, ref } from 'vue';
 
 const toast = useToast();
 const { API } = useAPI();
@@ -291,11 +291,9 @@ onMounted(() => {
 
     <!-- 操作按钮 -->
     <div class="mb-6">
-      <button
-        type="button"
+      <button type="button"
         class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-        @click="openGrantDialog"
-      >
+        @click="openGrantDialog">
         发放代币
       </button>
     </div>
@@ -317,18 +315,16 @@ onMounted(() => {
       <!-- 空状态 -->
       <div v-else-if="tokens.length === 0" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
         <p class="mt-2 text-gray-600 dark:text-gray-400">暂无代币记录</p>
       </div>
 
       <!-- 代币列表 -->
       <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
-        <div
-          v-for="token in tokens"
-          :key="token.id"
-          class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-        >
+        <div v-for="token in tokens" :key="token.id"
+          class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center gap-3">
@@ -336,14 +332,11 @@ onMounted(() => {
                   {{ token.user.email }}
                 </h3>
                 <span
-                  class="px-2 py-1 text-xs rounded bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200"
-                >
+                  class="px-2 py-1 text-xs rounded bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
                   {{ getTypeLabel(token.type) }}
                 </span>
-                <span
-                  v-if="token.restrictedType"
-                  class="px-2 py-1 text-xs rounded bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200"
-                >
+                <span v-if="token.restrictedType"
+                  class="px-2 py-1 text-xs rounded bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200">
                   专用: {{ getTaskTypeLabel(token.restrictedType) }}
                 </span>
               </div>
@@ -360,14 +353,8 @@ onMounted(() => {
 
       <!-- 分页 -->
       <div v-if="tokensTotal > 0" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
-        <Paginator
-          :rows="tokensTotal"
-          :rows-per-page="tokensPageSize"
-          :page="tokensPage"
-          :show-rows-per-page-options="true"
-          @update:page="goToPage"
-          @update:rows-per-page="updatePageSize"
-        />
+        <Paginator :rows="tokensTotal" :rows-per-page="tokensPageSize" :page="tokensPage"
+          :show-rows-per-page-options="true" @update:page="goToPage" @update:rows-per-page="updatePageSize" />
       </div>
     </div>
 
@@ -378,34 +365,22 @@ onMounted(() => {
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             选择用户 *
           </label>
-          <RemoteSelect
-            v-model="grantForm.selectedUsers"
-            :query-method="searchUsers"
-            :show-tag="true"
-          />
+          <RemoteSelect v-model="grantForm.selectedUsers" :query-method="searchUsers" :show-tag="true" />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             代币类型 *
           </label>
-          <Select
-            v-model="grantForm.type"
-            :options="tokenTypeOptions"
-            placeholder="请选择代币类型"
-          />
+          <Select v-model="grantForm.type" :options="tokenTypeOptions" placeholder="请选择代币类型" />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             专用类型
           </label>
-          <MultiSelect
-            v-model="grantForm.restrictedType"
-            :options="taskTypeOptions"
-            placeholder="请选择专用类型（可选）"
-            selected-items-label="{0} 个类型已选择"
-          />
+          <MultiSelect v-model="grantForm.restrictedType" :options="taskTypeOptions" placeholder="请选择专用类型（可选）"
+            selected-items-label="{0} 个类型已选择" />
           <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
             如果选择专用类型，代币只能用于指定类型的任务；不选择则可用于所有任务
           </p>
@@ -415,42 +390,30 @@ onMounted(() => {
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             数量 *
           </label>
-          <input
-            v-model.number="grantForm.amount"
-            type="number"
-            min="1"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-          />
+          <input v-model.number="grantForm.amount" type="number" min="1"
+            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             备注
           </label>
-          <textarea
-            v-model="grantForm.description"
-            rows="2"
+          <textarea v-model="grantForm.description" rows="2"
             class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-            placeholder="发放原因（可选）"
-          />
+            placeholder="发放原因（可选）" />
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button
-            type="button"
+          <button type="button"
             class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            @click="showGrantDialog = false"
-          >
+            @click="showGrantDialog = false">
             取消
           </button>
-          <button
-            type="button"
+          <button type="button"
             class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="isSubmitting || grantForm.selectedUsers.length === 0"
-            @click="grantTokens"
-          >
+            :disabled="isSubmitting || grantForm.selectedUsers.length === 0" @click="grantTokens">
             {{ isSubmitting ? '发放中...' : '发放' }}
           </button>
         </div>

@@ -93,7 +93,7 @@ class LRUCache<K, V> {
  * 用户缓存配置
  */
 const CACHE_MAX_SIZE = 500; // 最多缓存 500 个用户
-const CACHE_TTL = 60 * 1000; // 1分钟过期时间
+const CACHE_TTL = 60 * 1000 * 10; // 10分钟过期时间
 
 /** 用户 LRU 缓存 */
 const userCache = new LRUCache<string, CacheEntry>(CACHE_MAX_SIZE);
