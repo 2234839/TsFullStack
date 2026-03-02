@@ -32,9 +32,9 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "tsx": "^4.20.6",
-    "turbo": "^2.0.0"
+    "@types/node": "^25.3.3",
+    "tsx": "^4.21.0",
+    "turbo": "^2.8.12"
   },
   "pnpm": {
     "overrides": {

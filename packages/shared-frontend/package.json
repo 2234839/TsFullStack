@@ -38,14 +38,13 @@
     "typecheck": "tsc --noEmit",
     "dev": "vite build --watch"
   },
-  "dependencies": {},
   "peerDependencies": {
+    "reka-ui": "^2.8.0",
     "vue": "catalog:",
-    "vue-router": "catalog:",
-    "reka-ui": "^2.8.0"
+    "vue-router": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "catalog:",
+    "@types/node": "^25.3.3",
     "@vitejs/plugin-vue": "catalog:",
     "reka-ui": "catalog:",
     "typescript": "catalog:",
