@@ -1,13 +1,13 @@
 import { compareSync, hashSync } from 'bcryptjs';
 import { Effect } from 'effect';
-import { DbService } from '../Context/DbService';
+import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService } from '../Context/AppConfig';
 
 /** 对数据库进行一些初始化设置 */
 export const seedDB: Effect.Effect<
   void,
   Error,
-  DbService | AppConfigService
+  AppConfigService
 > = Effect.gen(function* () {
   // 若是使用sqlite但不开启 WAL 模式记得调整连接数为 1
   // 类似 export DATABASE_URL="file:/home/admin/app/TsFullStack/prisma/dev.db?connection_limit=1&socket_timeout=10"
@@ -18,7 +18,7 @@ export const seedDB: Effect.Effect<
 /** 配置 SQLite 数据库为 WAL 模式 */
 const seedWAL = () =>
   Effect.gen(function* () {
-    const { dbClient } = yield* DbService;
+    const dbClient = yield* DbClientEffect;
 
     const result = yield* Effect.promise(() => dbClient.$queryRaw`PRAGMA journal_mode = WAL`);
     console.log('SQLite 数据库已配置为 WAL 模式:', result);
@@ -27,7 +27,7 @@ const seedWAL = () =>
 /** 创建管理员账户及其角色 */
 const seedAdmin = () =>
   Effect.gen(function* () {
-    const { dbClient } = yield* DbService;
+    const dbClient = yield* DbClientEffect;
 
     const { systemAdminUser } = yield* AppConfigService;
     let admin = yield* Effect.promise(() =>

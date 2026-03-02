@@ -11,4 +11,5 @@ export type ReqCtx = {
   logs: JsonValue[];
   log(...args: JsonValue[]): void;
   req: FastifyRequest;
+  reqId: number;
 };

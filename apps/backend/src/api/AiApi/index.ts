@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { AIProxyService } from '../../Context/AIProxyService';
 import { authUserIsAdmin } from '../../Context/Auth';
 import { reqClientIpEffect } from '../../Context/ClientIPService';
-import { DbService } from '../../Context/DbService';
+import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import {
   AIModel,
@@ -74,7 +74,7 @@ export const aiApi = {
         throw new Error('需要管理员权限');
       }
 
-      const { dbClient } = yield* DbService;
+      const dbClient = yield* DbClientEffect;
       const models = yield* Effect.tryPromise({
         try: () =>
           dbClient.aiModel.findMany({
@@ -96,7 +96,7 @@ export const aiApi = {
         throw new Error('需要管理员权限');
       }
 
-      const { dbClient } = yield* DbService;
+      const dbClient = yield* DbClientEffect;
       const model = yield* Effect.tryPromise({
         try: () =>
           dbClient.aiModel.create({
@@ -131,7 +131,7 @@ export const aiApi = {
         throw new Error('需要管理员权限');
       }
 
-      const { dbClient } = yield* DbService;
+      const dbClient = yield* DbClientEffect;
       const model = yield* Effect.tryPromise({
         try: () =>
           dbClient.aiModel.update({
@@ -167,7 +167,7 @@ export const aiApi = {
         throw new Error('需要管理员权限');
       }
 
-      const { dbClient } = yield* DbService;
+      const dbClient = yield* DbClientEffect;
       yield* Effect.tryPromise({
         try: () =>
           dbClient.aiModel.delete({

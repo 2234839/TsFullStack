@@ -1,6 +1,6 @@
 import { File as FileModel } from '../../../.zenstack/models';
 import { Effect } from 'effect';
-import { DbService } from '../../Context/DbService';
+import { DbClientEffect } from '../../Context/DbService';
 import { FileAccessService } from '../../Context/FileAccessService';
 
 export const fileApi = {
@@ -10,7 +10,7 @@ export const fileApi = {
    */
   file(id: FileModel['id']) {
     return Effect.gen(function* () {
-      const { dbClient } = yield* DbService;
+      const dbClient = yield* DbClientEffect;
       const fileRow = yield* Effect.promise(() =>
         dbClient.file.findUnique({
           where: {

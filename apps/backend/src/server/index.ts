@@ -151,16 +151,17 @@ type apiCtx = {
 };
 /** rpc 实例，提到外部可避免每次重新创建 */
 const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
-
+let reqId = 0
 /** 注意，这里必须要等待发送数据完毕，否则 onEnd 之后数据将无法发送 */
 function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
   const startTime = Date.now();
   const reqCtx: ReqCtx = {
     logs: [],
     log(...args) {
-      this.logs.push(args);
+      reqCtx.logs.push(args);
     },
     req,
+    reqId: ++reqId,
   };
   const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
   const program = Effect.gen(function* () {
@@ -179,21 +180,17 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
       });
     } else if (pathPrefix === '/api/') {
       // 处理需要鉴权的 API
-      try {
-        const { params, db, user } = yield* parseParamsAndAuth(req);
-        result = yield* Effect.gen(function* () {
-          const apisRpc = createRPC('apiProvider', {
-            genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
-          });
-          const res_effect = yield* Effect.promise(() => apisRpc.RC(method, params));
-          const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
-          return res;
-        })
-          // 提供 apis 模块所需要的依赖
-          .pipe(Effect.provideService(AuthContext, { db, user }));
-      } catch (error) {
-        result = error;
-      }
+      const { params, db, user } = yield* parseParamsAndAuth(req);
+      result = yield* Effect.gen(function* () {
+        const apisRpc = createRPC('apiProvider', {
+          genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
+        });
+        const res_effect = yield* Effect.promise(() => apisRpc.RC(method, params));
+        const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
+        return res;
+      })
+        // 提供 apis 模块所需要的依赖
+        .pipe(Effect.provideService(AuthContext, { db, user }));
     }
     if (result instanceof FileWarpItem) {
       // 设置文件名
@@ -258,7 +255,7 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
     onEnd();
     const endTime = Date.now();
     return yield* systemLog(
-      { level: LogLevel.INFO, message: `call:[${endTime - startTime}ms] ${method}` },
+      { level: LogLevel.INFO, message: `${endTime - startTime}ms ${method}` },
       reqCtx,
     );
   });

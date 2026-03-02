@@ -1,6 +1,7 @@
 import { Context, Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
-import { DbService } from './DbService';
+import { DbClientEffect } from './DbService';
+import { AppConfigService } from './AppConfig';
 import { AIModel as AIModelConfig, OpenAIRequest, OpenAIResponse } from '../types/ai';
 
 /** 频率限制检查结果 */
@@ -17,9 +18,9 @@ export class AIProxyServiceUtils {
     clientIp: string,
     userId: string | null,
     aiModelId: number,
-  ): Effect.Effect<RateLimitCheck, Error, DbService> =>
+  ): Effect.Effect<RateLimitCheck, Error, AppConfigService> =>
     Effect.gen(function* () {
-      const prismaService = yield* DbService;
+      const dbClient = yield* DbClientEffect;
 
       const now = new Date();
       const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
@@ -29,7 +30,7 @@ export class AIProxyServiceUtils {
       // 获取模型配置
       const aiModel = yield* Effect.tryPromise({
         try: () =>
-          prismaService.dbClient.aiModel.findUnique({
+          dbClient.aiModel.findUnique({
             where: { id: aiModelId },
           }),
         catch: () => new Error('AI模型不存在'),
@@ -45,7 +46,7 @@ export class AIProxyServiceUtils {
         // 未登录用户：检查IP限制 - 使用Prisma查询优化性能
         const [globalRpmCount, globalRphCount, globalRpdCount] = yield* Effect.all([
           Effect.promise(() =>
-            prismaService.dbClient.aiCallLog.count({
+            dbClient.aiCallLog.count({
               where: {
                 clientIp,
                 timestamp: { gte: oneMinuteAgo },
@@ -53,7 +54,7 @@ export class AIProxyServiceUtils {
             }),
           ).pipe(Effect.catchAll(() => Effect.succeed(0))),
           Effect.promise(() =>
-            prismaService.dbClient.aiCallLog.count({
+            dbClient.aiCallLog.count({
               where: {
                 clientIp,
                 timestamp: { gte: oneHourAgo },
@@ -61,7 +62,7 @@ export class AIProxyServiceUtils {
             }),
           ).pipe(Effect.catchAll(() => Effect.succeed(0))),
           Effect.promise(() =>
-            prismaService.dbClient.aiCallLog.count({
+            dbClient.aiCallLog.count({
               where: {
                 clientIp,
                 timestamp: { gte: oneDayAgo },
@@ -88,7 +89,7 @@ export class AIProxyServiceUtils {
         // 已登录用户：检查用户特定限制 - 使用Prisma查询优化性能
         const [userRpmCount, userRphCount, userRpdCount] = yield* Effect.all([
           Effect.promise(() =>
-            prismaService.dbClient.aiCallLog.count({
+            dbClient.aiCallLog.count({
               where: {
                 userId,
                 aiModelId,
@@ -97,7 +98,7 @@ export class AIProxyServiceUtils {
             }),
           ).pipe(Effect.catchAll(() => Effect.succeed(0))),
           Effect.promise(() =>
-            prismaService.dbClient.aiCallLog.count({
+            dbClient.aiCallLog.count({
               where: {
                 userId,
                 aiModelId,
@@ -106,7 +107,7 @@ export class AIProxyServiceUtils {
             }),
           ).pipe(Effect.catchAll(() => Effect.succeed(0))),
           Effect.promise(() =>
-            prismaService.dbClient.aiCallLog.count({
+            dbClient.aiCallLog.count({
               where: {
                 userId,
                 aiModelId,
@@ -139,13 +140,13 @@ export class AIProxyServiceUtils {
     inputTokens?: number,
     outputTokens?: number,
     success: boolean = true,
-  ): Effect.Effect<void, Error, DbService> =>
+  ): Effect.Effect<void, Error, AppConfigService> =>
     Effect.gen(function* () {
-      const prismaService = yield* DbService;
+      const dbClient = yield* DbClientEffect;
 
       yield* Effect.tryPromise({
         try: () =>
-          prismaService.dbClient.aiCallLog.create({
+          dbClient.aiCallLog.create({
             data: {
               clientIp,
               userId,
@@ -162,13 +163,13 @@ export class AIProxyServiceUtils {
     });
 
   /** 获取可用的AI模型列表 */
-  static getAvailableModels = (): Effect.Effect<AIModelConfig[], Error, DbService> =>
+  static getAvailableModels = (): Effect.Effect<AIModelConfig[], Error, AppConfigService> =>
     Effect.gen(function* () {
-      const prismaService = yield* DbService;
+      const dbClient = yield* DbClientEffect;
 
       const models = yield* Effect.tryPromise({
         try: () =>
-          prismaService.dbClient.aiModel.findMany({
+          dbClient.aiModel.findMany({
             where: { enabled: true },
             orderBy: { weight: 'desc' },
           }),
@@ -269,7 +270,7 @@ export class AIProxyServiceUtils {
   static proxyOpenAIRequest = (
     request: OpenAIRequest,
     clientIp: string,
-  ): Effect.Effect<OpenAIResponse, Error, DbService | AuthContext> =>
+  ): Effect.Effect<OpenAIResponse, Error, AppConfigService | AuthContext> =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
       const currentUserId = auth.user?.id || null;
@@ -343,14 +344,14 @@ export class AIProxyServiceUtils {
     });
 
   /** 清理过期的API调用记录 */
-  static cleanupExpiredApiCalls = (): Effect.Effect<void, Error, DbService> =>
+  static cleanupExpiredApiCalls = (): Effect.Effect<void, Error, AppConfigService> =>
     Effect.gen(function* () {
-      const prismaService = yield* DbService;
+      const dbClient = yield* DbClientEffect;
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
       yield* Effect.tryPromise({
         try: () =>
-          prismaService.dbClient.aiCallLog.deleteMany({
+          dbClient.aiCallLog.deleteMany({
             where: {
               timestamp: { lt: thirtyDaysAgo },
             },
@@ -363,15 +364,15 @@ export class AIProxyServiceUtils {
   static cleanupExpiredApiLogs = (): Effect.Effect<
     { success: boolean; deletedCount: number; message: string },
     Error,
-    DbService
+    AppConfigService
   > =>
     Effect.gen(function* () {
-      const prismaService = yield* DbService;
+      const dbClient = yield* DbClientEffect;
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
       const result = yield* Effect.tryPromise({
         try: () =>
-          prismaService.dbClient.aiCallLog.deleteMany({
+          dbClient.aiCallLog.deleteMany({
             where: {
               timestamp: { lt: thirtyDaysAgo },
             },
@@ -397,7 +398,7 @@ export class AIProxyService extends Context.Tag('AIProxyService')<
       clientIp: string,
       userId: string | null,
       aiModelId: number,
-    ) => Effect.Effect<RateLimitCheck, Error, DbService>;
+    ) => Effect.Effect<RateLimitCheck, Error, AppConfigService>;
 
     /** 记录API调用 */
     recordApiCall: (
@@ -408,10 +409,10 @@ export class AIProxyService extends Context.Tag('AIProxyService')<
       inputTokens?: number,
       outputTokens?: number,
       success?: boolean,
-    ) => Effect.Effect<void, Error, DbService>;
+    ) => Effect.Effect<void, Error, AppConfigService>;
 
     /** 获取可用的AI模型列表 */
-    getAvailableModels: () => Effect.Effect<AIModelConfig[], Error, DbService>;
+    getAvailableModels: () => Effect.Effect<AIModelConfig[], Error, AppConfigService>;
 
     /** 选择AI模型（负载均衡） */
     selectModel: (models: AIModelConfig[]) => Effect.Effect<AIModelConfig | null, never, never>;
@@ -426,16 +427,16 @@ export class AIProxyService extends Context.Tag('AIProxyService')<
     proxyOpenAIRequest: (
       request: OpenAIRequest,
       clientIp: string,
-    ) => Effect.Effect<OpenAIResponse, Error, DbService | AuthContext>;
+    ) => Effect.Effect<OpenAIResponse, Error, AppConfigService | AuthContext>;
 
     /** 清理过期的API调用记录 */
-    cleanupExpiredApiCalls: () => Effect.Effect<void, Error, DbService>;
+    cleanupExpiredApiCalls: () => Effect.Effect<void, Error, AppConfigService>;
 
     /** 清理过期的API调用记录（带日志记录） */
     cleanupExpiredApiLogs: () => Effect.Effect<
       { success: boolean; deletedCount: number; message: string },
       Error,
-      DbService
+      AppConfigService
     >;
   }
 >() {}

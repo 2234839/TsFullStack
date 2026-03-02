@@ -2,7 +2,7 @@ import { OauthProvider } from '../../../.zenstack/models';
 import { Effect } from 'effect';
 import { v7 as uuidv7 } from 'uuid';
 import { hashSync } from 'bcryptjs';
-import { DbService } from '../../Context/DbService';
+import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { GithubAuthService } from '../../OAuth/github';
 import { genUserSession } from './_genUserSession';
@@ -17,7 +17,7 @@ export const githubApi = {
   },
   authenticate(code: string) {
     return Effect.gen(function* () {
-      const { dbClient } = yield* DbService;
+      const dbClient = yield* DbClientEffect;
       const auth = yield* githubAuth;
       const { user: githubUser } = yield* auth.authenticate(code);
 

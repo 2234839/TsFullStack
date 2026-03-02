@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import fs from 'fs/promises';
 import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
 import { AppConfigService } from './Context/AppConfig';
-import { DbService, DbServiceLive } from './Context/DbService';
+import { DbClientEffect } from './Context/DbService';
 import { AIProxyService, AIProxyServiceLive } from './Context/AIProxyService';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
@@ -21,14 +21,8 @@ const main = Effect.gen(function* () {
     throw new Error(`Upload directory ${config.uploadDir} is not a directory`);
   }
 
-  // 创建 DbService 实例
-  const dbService = yield* DbServiceLive.pipe(
-    Effect.provideService(AppConfigService, config),
-  );
-
   yield* seedDB.pipe(
     Effect.provideService(AppConfigService, config),
-    Effect.provideService(DbService, dbService),
     Effect.provideService(AIProxyService, AIProxyServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
@@ -76,16 +70,14 @@ const main = Effect.gen(function* () {
   setInterval(logMemoryUsage, 5_000);
 
   // 定期清理过期代币（每小时一次）
-  // 注意：这个定时任务将在DbService初始化后启动
   let dbClientForCleanup: any = null;
 
   // 保存dbClient引用以便后续使用
   Effect.runPromise(
     Effect.gen(function* () {
-      const service = yield* DbService;
-      dbClientForCleanup = service.dbClient;
+      dbClientForCleanup = yield* DbClientEffect;
     }).pipe(
-      Effect.provideService(DbService, dbService)
+      Effect.provideService(AppConfigService, config)
     )
   );
 
@@ -151,7 +143,6 @@ const main = Effect.gen(function* () {
   // yield* queue_scheduler;
   yield* startServer.pipe(
     Effect.provideService(AppConfigService, config),
-    Effect.provideService(DbService, dbService),
     Effect.provideService(AIProxyService, AIProxyServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
   );
@@ -167,7 +158,7 @@ const queue_scheduler = Effect.gen(function* () {
       result: { sent: boolean };
     };
   };
-  const { dbClient } = yield* DbService;
+  const dbClient = yield* DbClientEffect;
   const queue = new PrismaQueue<MyTasks>({ dbClient });
   // 注册任务
   queue.register('sendEmail', async (payload) => {

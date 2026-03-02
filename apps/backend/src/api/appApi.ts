@@ -1,12 +1,11 @@
 import { compareSync, hashSync } from 'bcryptjs';
 import { Effect } from 'effect';
-import { DbService } from '../Context/DbService';
+import { DbClientEffect } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
-import type { User } from '../../.zenstack/models';
 import { genUserSession } from './appApi/_genUserSession';
-import { githubApi } from './appApi/github';
 import { fileApi } from './appApi/file';
+import { githubApi } from './appApi/github';
 import { shareApi } from './appApi/share';
 
 async function randomDelay(baseDelay = 500) {
@@ -18,7 +17,7 @@ export const appApis = {
     async register(email: string, password: string) {
       await randomDelay();
       return Effect.gen(function* () {
-        const { dbClient } = yield* DbService;
+        const dbClient = yield* DbClientEffect;
         // throw MsgError.msg('暂时关闭了直接注册帐号，请使用其他方式登录！ ');
 
         const user = yield* Effect.promise(() =>
@@ -49,7 +48,7 @@ export const appApis = {
     async loginByEmailPwd(email: string, password: string) {
       await randomDelay();
       return Effect.gen(function* () {
-        const { dbClient } = yield* DbService;
+        const dbClient = yield* DbClientEffect;
         const user = yield* Effect.promise(() =>
           dbClient.user.findUnique({
             where: {
