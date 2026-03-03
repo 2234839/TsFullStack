@@ -32,13 +32,13 @@
     </div>
 
     <ProgressBar v-if="loading" mode="indeterminate" />
-    <div v-if="previewData" class="preview-container p-4 border border-gray-200 rounded">
+    <div v-if="previewData" class="preview-container p-4 border border-primary-200 rounded">
       <img :src="previewData" alt="预览" />
       <button @click="generateSVG" class="mt-2 p-2 bg-primary-500 text-white rounded">
         生成SVG描边
       </button>
     </div>
-    <div v-if="svgPreview" class="mt-4 p-4 border border-gray-200 rounded">
+    <div v-if="svgPreview" class="mt-4 p-4 border border-primary-200 rounded">
       <div v-html="svgPreview"></div>
     </div>
     <canvas ref="canvas" style="display: none"></canvas>

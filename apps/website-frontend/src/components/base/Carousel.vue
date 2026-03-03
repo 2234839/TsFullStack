@@ -78,24 +78,24 @@ if (props.autoplayInterval > 0) {
       <button
         v-if="canGoPrev"
         @click="prev"
-        class="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 rounded-full p-2 shadow-lg transition-colors"
+        class="absolute left-2 top-1/2 -transecondary-y-1/2 bg-primary-50/80 dark:bg-primary-950/80 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-full p-2 shadow-lg transition-colors"
         aria-label="上一张"
       >
-        <i class="pi pi-chevron-left text-gray-700 dark:text-gray-300"></i>
+        <i class="pi pi-chevron-left text-primary-800 dark:text-primary-200"></i>
       </button>
 
       <button
         v-if="canGoNext"
         @click="next"
-        class="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-800 rounded-full p-2 shadow-lg transition-colors"
+        class="absolute right-2 top-1/2 -transecondary-y-1/2 bg-primary-50/80 dark:bg-primary-950/80 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-full p-2 shadow-lg transition-colors"
         aria-label="下一张"
       >
-        <i class="pi pi-chevron-right text-gray-700 dark:text-gray-300"></i>
+        <i class="pi pi-chevron-right text-primary-800 dark:text-primary-200"></i>
       </button>
     </template>
 
     <!-- 指示器 -->
-    <div v-if="totalSlides > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
+    <div v-if="totalSlides > 1" class="absolute bottom-2 left-1/2 -transecondary-x-1/2 flex gap-2">
       <button
         v-for="(_, index) in totalSlides"
         :key="index"
@@ -103,8 +103,8 @@ if (props.autoplayInterval > 0) {
         class="w-2 h-2 rounded-full transition-colors"
         :class="
           index === currentIndex
-            ? 'bg-white dark:bg-gray-200'
-            : 'bg-white/50 dark:bg-gray-200/50'
+            ? 'bg-primary-50 dark:bg-primary-200'
+            : 'bg-primary-50/50 dark:bg-primary-200/50'
         "
         :aria-label="`第 ${index + 1} 张`"
       ></button>

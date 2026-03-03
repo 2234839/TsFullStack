@@ -4,7 +4,7 @@
     <Card>
       <template #title>
         <div class="flex items-center gap-2">
-          <i class="pi pi-bolt text-blue-500"></i>
+          <i class="pi pi-bolt text-info-500"></i>
           <span>动态测试模块</span>
         </div>
       </template>

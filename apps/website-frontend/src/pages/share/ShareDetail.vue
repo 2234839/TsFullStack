@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+  <div class="min-h-screen bg-linear-to-br from-primary-50 to-primary-100 dark:from-primary-950 dark:to-primary-900">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <!-- Loading -->
       <div v-if="isLoading" class="flex justify-center items-center min-h-[400px]">
@@ -12,10 +12,10 @@
           class="inline-flex items-center justify-center w-16 h-16 bg-danger-100 dark:bg-danger-900/20 rounded-full mb-4">
           <i class="pi pi-exclamation-triangle text-2xl text-danger-600 dark:text-danger-400"></i>
         </div>
-        <h2 class="text-2xl font-semibold text-gray-900 dark:text-white mb-2">
+        <h2 class="text-2xl font-semibold text-primary-900 dark:text-primary-100 mb-2">
           {{ t('加载失败，请重试') }}
         </h2>
-        <p class="text-gray-600 dark:text-gray-300 max-w-md mx-auto">
+        <p class="text-primary-600 dark:text-primary-400 max-w-md mx-auto">
           {{ t('无法加载分享内容，请检查网络连接') }}
         </p>
       </div>
@@ -24,11 +24,11 @@
       <div v-else-if="state" class="space-y-8">
         <!-- Header Section -->
         <div class="text-center space-y-4">
-          <h1 class="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
-            <i class="pi pi-share-alt text-xl text-primary-600 dark:text-primary-400"></i>
+          <h1 class="text-3xl md:text-4xl font-bold text-primary-900 dark:text-primary-100">
+            <i class="pi pi-share-alt text-xl text-info-600 dark:text-info-400"></i>
             {{ state.data.title }}
           </h1>
-          <p v-if="state.description" class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          <p v-if="state.description" class="text-lg text-primary-600 dark:text-primary-400 max-w-2xl mx-auto">
             {{ state.description }}
           </p>
         </div>
@@ -36,17 +36,17 @@
         <!-- Files Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <div v-for="file in state.data.files" :key="file.id"
-            class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 min-w-0">
+            class="group bg-white dark:bg-primary-800 rounded-xl border border-primary-200 dark:border-primary-700 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-transecondary-y-1 min-w-0">
             <!-- File Preview -->
             <div
-              class="h-48 flex items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-700 dark:to-gray-800">
+              class="h-48 flex items-center justify-center bg-linear-to-br from-primary-50 to-primary-100 dark:from-primary-700 dark:to-primary-800">
               <ShareFilePreview :file="file" />
             </div>
 
             <!-- File Info -->
             <div class="p-6 space-y-4">
               <div>
-                <div class="font-semibold text-gray-900 dark:text-white truncate" :title="file.filename">
+                <div class="font-semibold text-primary-900 dark:text-primary-100 truncate" :title="file.filename">
                   {{ file.filename }}
                 </div>
 
@@ -55,7 +55,7 @@
                     :class="getFileTypeClass(file.mimetype)">
                     {{ getFileTypeLabel(file.mimetype) }}
                   </span>
-                  <span class="text-xs text-gray-500 dark:text-gray-400">
+                  <span class="text-xs text-primary-500 dark:text-primary-400">
                     {{ formatFileSize(file.size) }}
                   </span>
                 </div>
@@ -65,14 +65,14 @@
               <div class="space-y-2">
                 <!-- Open in New Tab Button for All Files -->
                 <button @click="openInNewTab(file)"
-                  class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
+                  class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-secondary-600 hover:bg-secondary-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
                   <i class="pi pi-external-link"></i>
                   <span>{{ t('新标签页打开') }}</span>
                 </button>
 
                 <!-- Download Button -->
                 <button @click="downloadFile(file)"
-                  class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
+                  class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-info-600 hover:bg-info-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
                   <i class="pi pi-download"></i>
                   <span>{{ t('点击下载文件') }}</span>
                 </button>
@@ -106,16 +106,16 @@
 
   const getFileTypeClass = (mimetype: string) => {
     if (mimetype.startsWith('image/'))
-      return 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200';
+      return 'bg-info-100 text-info-800 dark:bg-info-900 dark:text-info-200';
     if (mimetype.startsWith('video/'))
-      return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200';
+      return 'bg-secondary-100 text-secondary-800 dark:bg-secondary-900 dark:text-secondary-200';
     if (mimetype.startsWith('audio/'))
-      return 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200';
+      return 'bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200';
     if (mimetype.includes('pdf') || mimetype.includes('document'))
       return 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200';
     if (mimetype.includes('zip') || mimetype.includes('archive'))
       return 'bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200';
-    return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+    return 'bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-primary-200';
   };
 
   async function downloadFile(file: ShareFileJSON) {

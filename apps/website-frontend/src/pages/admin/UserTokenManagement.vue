@@ -465,23 +465,23 @@ onMounted(() => {
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+      <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
         用户代币管理
       </h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">
+      <p class="mt-2 text-primary-600 dark:text-primary-400">
         查看和管理用户代币及消耗记录
       </p>
     </div>
 
     <!-- 标签页导航 -->
-    <div class="mb-6 border-b border-gray-200 dark:border-gray-700">
+    <div class="mb-6 border-b border-primary-200 dark:border-primary-700">
       <nav class="flex gap-6 -mb-px">
         <button
           :class="[
             'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
             activeTab === 'tokens'
               ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+              : 'border-transparent text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
           ]"
           @click="activeTab = 'tokens'"
         >
@@ -492,7 +492,7 @@ onMounted(() => {
             'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
             activeTab === 'transactions'
               ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+              : 'border-transparent text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
           ]"
           @click="activeTab = 'transactions'"
         >
@@ -511,19 +511,19 @@ onMounted(() => {
     </div>
 
     <!-- ========== 代币列表 ========== -->
-    <div v-show="activeTab === 'tokens'" class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div v-show="activeTab === 'tokens'" class="bg-white dark:bg-primary-800 rounded-lg shadow">
       <!-- 搜索栏 -->
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
         <div class="flex items-center gap-4">
           <div class="flex-1 relative">
             <input
               v-model="tokensSearchKeyword"
               type="text"
               placeholder="搜索用户邮箱或备注..."
-              class="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-4 py-2 pl-10 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
               @keyup.enter="searchTokens"
             />
-            <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="absolute left-3 top-2.5 h-5 w-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -537,7 +537,7 @@ onMounted(() => {
           <button
             v-if="tokensSearchKeyword"
             type="button"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
             @click="clearTokensSearch"
           >
             清空
@@ -546,8 +546,8 @@ onMounted(() => {
       </div>
 
       <!-- 列表头部 -->
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-        <div class="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900">
+        <div class="grid grid-cols-12 gap-4 text-sm font-medium text-primary-700 dark:text-primary-300">
           <div class="col-span-3">用户</div>
           <div class="col-span-2">类型</div>
           <div class="col-span-2">数量</div>
@@ -560,26 +560,26 @@ onMounted(() => {
       <!-- 加载中 -->
       <div v-if="isLoading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">加载中...</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
       </div>
 
       <!-- 空状态 -->
       <div v-else-if="tokens.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">暂无代币记录</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无代币记录</p>
       </div>
 
       <!-- 代币列表 -->
-      <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div v-else class="divide-y divide-primary-200 dark:divide-primary-700">
         <div v-for="token in tokens" :key="token.id"
-          class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          class="px-6 py-4 hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors">
           <div class="grid grid-cols-12 gap-4 items-center">
             <!-- 用户 -->
             <div class="col-span-3">
-              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <div class="text-sm font-medium text-primary-900 dark:text-primary-100">
                 {{ token.user.email }}
               </div>
             </div>
@@ -592,24 +592,24 @@ onMounted(() => {
 
             <!-- 数量 -->
             <div class="col-span-2">
-              <div class="text-sm text-gray-900 dark:text-gray-100">
+              <div class="text-sm text-primary-900 dark:text-primary-100">
                 总量: {{ token.amount }}
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
+              <div class="text-xs text-primary-500 dark:text-primary-400">
                 已用: {{ token.used }} | 可用: {{ getAvailableAmount(token) }}
               </div>
             </div>
 
             <!-- 过期时间 -->
             <div class="col-span-2">
-              <div class="text-sm text-gray-600 dark:text-gray-400">
+              <div class="text-sm text-primary-600 dark:text-primary-400">
                 {{ formatDate(token.expiresAt) }}
               </div>
             </div>
 
             <!-- 备注 -->
             <div class="col-span-2">
-              <div class="text-sm text-gray-600 dark:text-gray-400 truncate" :title="token.description || ''">
+              <div class="text-sm text-primary-600 dark:text-primary-400 truncate" :title="token.description || ''">
                 {{ token.description || '-' }}
               </div>
               <div v-if="parseRestrictedType(token.restrictedType).length > 0"
@@ -621,7 +621,7 @@ onMounted(() => {
 
             <!-- 创建时间 -->
             <div class="col-span-1">
-              <div class="text-xs text-gray-500 dark:text-gray-400">
+              <div class="text-xs text-primary-500 dark:text-primary-400">
                 {{ formatDate(token.created) }}
               </div>
             </div>
@@ -630,7 +630,7 @@ onMounted(() => {
       </div>
 
       <!-- 分页 -->
-      <div v-if="tokensTotal > 0" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+      <div v-if="tokensTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
         <Paginator
           :rows="tokensTotal"
           :rows-per-page="tokensPageSize"
@@ -643,19 +643,19 @@ onMounted(() => {
     </div>
 
     <!-- ========== 代币消耗记录 ========== -->
-    <div v-show="activeTab === 'transactions'" class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div v-show="activeTab === 'transactions'" class="bg-white dark:bg-primary-800 rounded-lg shadow">
       <!-- 搜索栏 -->
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
         <div class="flex items-center gap-4">
           <div class="flex-1 relative">
             <input
               v-model="transactionsSearchKeyword"
               type="text"
               placeholder="搜索用户邮箱或任务标题..."
-              class="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-4 py-2 pl-10 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
               @keyup.enter="searchTransactions"
             />
-            <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="absolute left-3 top-2.5 h-5 w-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
           </div>
@@ -669,7 +669,7 @@ onMounted(() => {
           <button
             v-if="transactionsSearchKeyword"
             type="button"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
             @click="clearTransactionsSearch"
           >
             清空
@@ -678,8 +678,8 @@ onMounted(() => {
       </div>
 
       <!-- 列表头部 -->
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
-        <div class="grid grid-cols-12 gap-4 text-sm font-medium text-gray-700 dark:text-gray-300">
+      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900">
+        <div class="grid grid-cols-12 gap-4 text-sm font-medium text-primary-700 dark:text-primary-300">
           <div class="col-span-3">用户</div>
           <div class="col-span-2">任务</div>
           <div class="col-span-2">代币类型</div>
@@ -692,36 +692,36 @@ onMounted(() => {
       <!-- 加载中 -->
       <div v-if="isLoading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">加载中...</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
       </div>
 
       <!-- 空状态 -->
       <div v-else-if="transactions.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
         </svg>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">暂无消耗记录</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无消耗记录</p>
       </div>
 
       <!-- 消耗记录列表 -->
-      <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div v-else class="divide-y divide-primary-200 dark:divide-primary-700">
         <div v-for="txn in transactions" :key="txn.id"
-          class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+          class="px-6 py-4 hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors">
           <div class="grid grid-cols-12 gap-4 items-center">
             <!-- 用户 -->
             <div class="col-span-3">
-              <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+              <div class="text-sm font-medium text-primary-900 dark:text-primary-100">
                 {{ txn.user.email }}
               </div>
             </div>
 
             <!-- 任务 -->
             <div class="col-span-2">
-              <div class="text-sm text-gray-900 dark:text-gray-100">
+              <div class="text-sm text-primary-900 dark:text-primary-100">
                 {{ txn.task.title }}
               </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
+              <div class="text-xs text-primary-500 dark:text-primary-400">
                 {{ getTaskTypeLabel(txn.task.type) }}
               </div>
             </div>
@@ -740,7 +740,7 @@ onMounted(() => {
 
             <!-- 余额快照 -->
             <div class="col-span-2">
-              <div class="text-xs text-gray-500 dark:text-gray-400" v-if="txn.balanceSnapshot">
+              <div class="text-xs text-primary-500 dark:text-primary-400" v-if="txn.balanceSnapshot">
                 <div v-for="(balance, type) in txn.balanceSnapshot" :key="type" class="truncate">
                   {{ getTypeLabel(type) }}: {{ balance }}
                 </div>
@@ -749,21 +749,21 @@ onMounted(() => {
 
             <!-- 时间 -->
             <div class="col-span-1">
-              <div class="text-xs text-gray-500 dark:text-gray-400">
+              <div class="text-xs text-primary-500 dark:text-primary-400">
                 {{ formatDate(txn.created) }}
               </div>
             </div>
           </div>
 
           <!-- 备注 -->
-          <div v-if="txn.note" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+          <div v-if="txn.note" class="mt-2 text-xs text-primary-500 dark:text-primary-400">
             备注: {{ txn.note }}
           </div>
         </div>
       </div>
 
       <!-- 分页 -->
-      <div v-if="transactionsTotal > 0" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+      <div v-if="transactionsTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
         <Paginator
           :rows="transactionsTotal"
           :rows-per-page="transactionsPageSize"
@@ -779,44 +779,44 @@ onMounted(() => {
     <Dialog v-model:open="showGrantDialog" title="发放代币">
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             选择用户 *
           </label>
           <RemoteSelect v-model="grantForm.selectedUsers" :query-method="searchUsers" :show-tag="true" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             代币类型 *
           </label>
           <Select v-model="grantForm.type" :options="tokenTypeOptions" placeholder="请选择代币类型" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             专用类型
           </label>
           <MultiSelect v-model="grantForm.restrictedType" :options="taskTypeOptions" placeholder="请选择专用类型（可选）"
             selected-items-label="{0} 个类型已选择" />
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1 text-xs text-primary-500 dark:text-primary-400">
             如果选择专用类型，代币只能用于指定类型的任务；不选择则可用于所有任务
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             数量 *
           </label>
           <input v-model.number="grantForm.amount" type="number" min="1"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100" />
+            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             备注
           </label>
           <textarea v-model="grantForm.description" rows="2"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             placeholder="发放原因（可选）" />
         </div>
       </div>
@@ -824,7 +824,7 @@ onMounted(() => {
       <template #footer>
         <div class="flex justify-end gap-2">
           <button type="button"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
             @click="showGrantDialog = false">
             取消
           </button>

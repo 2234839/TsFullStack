@@ -41,11 +41,11 @@ const inputClasses = computed(() => {
   const base = 'w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200';
 
   const stateClasses = props.invalid
-    ? 'border-danger-500 focus:ring-red-500 dark:border-danger-400'
-    : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-blue-400';
+    ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
+    : 'border-primary-300 dark:border-primary-700 focus:ring-secondary-500 dark:focus:ring-secondary-400';
 
-  const bgClass = 'bg-white dark:bg-gray-800';
-  const textClass = 'text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500';
+  const bgClass = 'bg-primary-50 dark:bg-primary-950';
+  const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
@@ -71,7 +71,7 @@ function handleInput(event: Event) {
       type="button"
       @click="toggleVisibility"
       :disabled="disabled"
-      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+      class="absolute right-2 top-1/2 -transecondary-y-1/2 p-1 text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
       <i :class="visible ? 'pi pi-eye-slash' : 'pi pi-eye'" class="text-lg"></i>
     </button>
   </div>

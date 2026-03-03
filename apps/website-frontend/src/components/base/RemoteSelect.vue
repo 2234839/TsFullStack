@@ -31,7 +31,7 @@
               </template> </Tag
           ></template>
         </div>
-        <i class="pi pi-chevron-down ml-auto text-gray-500 dark:text-gray-400"></i>
+        <i class="pi pi-chevron-down ml-auto text-primary-600 dark:text-primary-400"></i>
       </div>
     </template>
     <div class="remote-select-dropdown">
@@ -60,26 +60,26 @@
             :key="item.value"
             class="p-3 cursor-pointer flex items-center transition-colors"
             :class="{
-              'hover:bg-primary-50 dark:hover:bg-primary-950': !isItemDisabled(item),
-              'opacity-50 cursor-not-allowed bg-gray-50 dark:bg-gray-800': isItemDisabled(item)
+              'hover:bg-primary-100 dark:hover:bg-primary-900': !isItemDisabled(item),
+              'opacity-50 cursor-not-allowed bg-primary-50 dark:bg-primary-950': isItemDisabled(item)
             }"
             @click.capture.stop.prevent="handleSelect(item)">
             <Checkbox
               :model-value="modelValue.some((el) => itemEquals(el, item))"
               :binary="true"
               :disabled="isItemDisabled(item)" />
-            <span class="ml-2" :class="{ 'text-gray-500 dark:text-gray-400': isItemDisabled(item) }">
+            <span class="ml-2" :class="{ 'text-primary-600 dark:text-primary-400': isItemDisabled(item) }">
               {{ item.label }}
             </span>
-            <span v-if="isItemDisabled(item)" class="ml-auto text-xs text-gray-400 dark:text-gray-500">
+            <span v-if="isItemDisabled(item)" class="ml-auto text-xs text-primary-500 dark:text-primary-400">
               {{ t('必需') }}
             </span>
           </div>
-          <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-gray-500 dark:text-gray-400">
+          <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-primary-600 dark:text-primary-400">
             {{ t('无数据') }}
           </div>
       </ScrollArea>
-      <div class="p-3 border-t border-gray-200 dark:border-gray-600">
+      <div class="p-3 border-t border-primary-200 dark:border-primary-700">
         <Paginator
           :rows="pagination.total"
           :rowsPerPage="pagination.take"

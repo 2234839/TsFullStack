@@ -1,12 +1,12 @@
 <template>
-  <div class="flex-1 p-4 sm:p-6 overflow-auto dark:bg-gray-900">
+  <div class="flex-1 p-4 sm:p-6 overflow-auto dark:bg-primary-900">
     <div class="w-full grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-      <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+      <div class="w-full bg-white dark:bg-primary-800 rounded-lg shadow-sm">
         <div class="p-3 sm:p-4">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="font-medium text-gray-500 dark:text-gray-400">编辑区</h2>
+            <h2 class="font-medium text-primary-500 dark:text-primary-400">编辑区</h2>
             <div
-              class="text-gray-400 cursor-pointer"
+              class="text-primary-400 cursor-pointer"
               @click="config.isAutoCalculate = !config.isAutoCalculate">
               <span
                 v-if="config.isAutoCalculate"
@@ -14,7 +14,7 @@
                 <i class="pi pi-plus mr-1"></i>
                 自动计算已开启
               </span>
-              <span v-else class="inline-flex items-center text-gray-500 dark:text-gray-400">
+              <span v-else class="inline-flex items-center text-primary-500 dark:text-primary-400">
                 <i class="pi pi-minus mr-1"></i>
                 点击开启自动计算
               </span>
@@ -23,20 +23,20 @@
           <textarea
             ref="textareaRef"
             v-model="content"
-            class="w-full h-[calc(100vh-9rem)] p-3 sm:p-4 font-mono border border-gray-300 dark:border-gray-600 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+            class="w-full h-[calc(100vh-9rem)] p-3 sm:p-4 font-mono border border-primary-300 dark:border-primary-600 rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-secondary-500 bg-white dark:bg-primary-700 text-primary-900 dark:text-primary-100"
             spellcheck="false"
             @keydown.tab.prevent="handleTab"
             placeholder="在此输入计算表达式..."></textarea>
         </div>
       </div>
 
-      <div class="w-full bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+      <div class="w-full bg-white dark:bg-primary-800 rounded-lg shadow-sm">
         <div class="p-3 sm:p-4">
           <div class="flex items-center justify-between mb-2">
-            <h2 class="font-medium text-gray-500 dark:text-gray-400">结果区</h2>
+            <h2 class="font-medium text-primary-500 dark:text-primary-400">结果区</h2>
             <div class="flex items-center gap-2">
               <div v-if="calculator.isCalculating.value" class="text-primary-500">计算中...</div>
-              <div v-else-if="lastCalculationTime > 0" class="text-gray-400 dark:text-gray-500">
+              <div v-else-if="lastCalculationTime > 0" class="text-primary-400 dark:text-primary-500">
                 上次计算: {{ lastCalculationTime_v }}
               </div>
               <Button
@@ -49,10 +49,10 @@
             </div>
           </div>
           <div
-            class="w-full h-[calc(100vh-9rem)] p-3 sm:p-4 font-mono border border-gray-300 dark:border-gray-600 rounded-md overflow-auto bg-gray-50 dark:bg-gray-700">
+            class="w-full h-[calc(100vh-9rem)] p-3 sm:p-4 font-mono border border-primary-300 dark:border-primary-600 rounded-md overflow-auto bg-primary-50 dark:bg-primary-700">
             <div
               v-if="calculatedResults.length === 0"
-              class="flex items-center justify-center h-full text-gray-400 dark:text-gray-500">
+              class="flex items-center justify-center h-full text-primary-400 dark:text-primary-500">
               <div class="text-center">
                 <i class="pi pi-info-circle text-2xl mb-2"></i>
                 <p>暂无计算结果</p>
@@ -63,13 +63,13 @@
               <div v-for="(result, index) in calculatedResults" :key="index">
                 <div
                   v-if="result.type === 'title'"
-                  class="text-xl font-bold mt-4 mb-2 text-gray-900 dark:text-gray-100">
+                  class="text-xl font-bold mt-4 mb-2 text-primary-900 dark:text-primary-100">
                   {{ result.content }}
                 </div>
 
                 <div
                   v-else-if="result.type === 'subtitle'"
-                  class="text-lg font-semibold mt-3 mb-2 text-gray-900 dark:text-gray-100">
+                  class="text-lg font-semibold mt-3 mb-2 text-primary-900 dark:text-primary-100">
                   {{ result.content }}
                 </div>
 
@@ -77,13 +77,13 @@
 
                 <div
                   v-else-if="result.type === 'comment'"
-                  class="my-1 text-gray-500 dark:text-gray-400">
+                  class="my-1 text-primary-500 dark:text-primary-400">
                   {{ result.content }}
                 </div>
 
                 <div
                   v-else-if="result.type === 'error'"
-                  class="my-1 text-gray-900 dark:text-gray-100">
+                  class="my-1 text-primary-900 dark:text-primary-100">
                   <div class="flex items-center flex-wrap">
                     <span class="expression">
                       <span
@@ -91,7 +91,7 @@
                         :key="i"
                         :class="{
                           'text-primary-600 dark:text-primary-400 font-medium': part.isNumber,
-                          'text-gray-950 dark:text-gray-100': !part.isNumber,
+                          'text-primary-950 dark:text-primary-100': !part.isNumber,
                         }">
                         {{ part.text }}
                       </span>
@@ -108,7 +108,7 @@
                     (result.type === 'assignment' && result.isSimpleAssignment) ||
                     result.type === 'equation'
                   "
-                  class="my-1 text-gray-900 dark:text-gray-100">
+                  class="my-1 text-primary-900 dark:text-primary-100">
                   <div class="flex items-center flex-wrap">
                     <span class="expression">
                       <span
@@ -116,7 +116,7 @@
                         :key="i"
                         :class="{
                           'text-primary-600 dark:text-primary-400 font-medium': part.isNumber,
-                          'text-gray-950 dark:text-gray-100': !part.isNumber,
+                          'text-primary-950 dark:text-primary-100': !part.isNumber,
                         }">
                         {{ part.text }}
                       </span>
@@ -124,13 +124,13 @@
                     <span class="inline-flex items-center ml-2 gap-2">
                       <span
                         v-if="result.isLargeNumber"
-                        class="bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">
+                        class="bg-warning-100 dark:bg-warning-900/30 text-warning-800 dark:text-warning-400 px-1.5 py-0.5 rounded font-medium">
                         {{ result.formattedNumber }}
                       </span>
                     </span>
                     <span
                       v-if="result.type === 'equation' && result.isCorrect === false"
-                      class="bg-rose-200 px-1.5 py-0.5 rounded">
+                      class="bg-danger-200 px-1.5 py-0.5 rounded">
                       不等式，等式左侧结果为 {{ result.result }}
                     </span>
                   </div>
@@ -142,7 +142,7 @@
                     result.type === 'expression' ||
                     result.type === 'unitConversion'
                   "
-                  class="my-1 text-gray-900 dark:text-gray-100">
+                  class="my-1 text-primary-900 dark:text-primary-100">
                   <div class="flex items-center flex-wrap">
                     <span class="expression">
                       <span
@@ -150,7 +150,7 @@
                         :key="i"
                         :class="{
                           'text-primary-600 dark:text-primary-400 font-medium': part.isNumber,
-                          'text-gray-950 dark:text-gray-100': !part.isNumber,
+                          'text-primary-950 dark:text-primary-100': !part.isNumber,
                         }">
                         {{ part.text }}
                       </span>
@@ -162,7 +162,7 @@
                   </div>
                 </div>
 
-                <div v-else class="my-1 text-gray-900 dark:text-gray-100">
+                <div v-else class="my-1 text-primary-900 dark:text-primary-100">
                   {{ result.content }}
                 </div>
               </div>

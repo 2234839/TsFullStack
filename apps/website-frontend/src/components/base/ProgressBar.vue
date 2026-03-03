@@ -28,17 +28,17 @@ const percentage = computed(() => {
 
 <template>
   <div class="w-full">
-    <div class="relative w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+    <div class="relative w-full h-2 bg-primary-200 dark:bg-primary-800 rounded-full overflow-hidden">
       <template v-if="mode === 'determinate'">
         <div
-          class="h-full bg-primary-500 dark:bg-primary-400 transition-all duration-300 ease-out"
+          class="h-full bg-primary-700 dark:bg-primary-300 transition-all duration-300 ease-out"
           :style="{ width: `${percentage}%` }" />
       </template>
       <template v-else>
-        <div class="absolute top-0 left-0 h-full bg-primary-500 dark:bg-primary-400 animate-progress-indeterminate" />
+        <div class="absolute top-0 left-0 h-full bg-primary-700 dark:bg-primary-300 animate-progress-indeterminate" />
       </template>
     </div>
-    <div v-if="showValue && mode === 'determinate'" class="mt-1 text-center text-sm text-gray-600 dark:text-gray-400">
+    <div v-if="showValue && mode === 'determinate'" class="mt-1 text-center text-sm text-primary-600 dark:text-primary-400">
       {{ percentage }}%
     </div>
   </div>

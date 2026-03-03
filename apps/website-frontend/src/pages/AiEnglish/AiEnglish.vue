@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen bg-linear-to-br from-blue-50 to-indigo-100 dark:from-gray-800 dark:to-gray-900 p-4">
+    class="min-h-screen bg-linear-to-br from-primary-50 to-secondary-50 dark:from-primary-900 dark:to-secondary-900 p-4">
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- 标题 -->
       <div class="text-center space-y-2">
@@ -72,8 +72,8 @@
                   </div>
 
                   <!-- 智能分段选项说明 -->
-                  <div class="flex items-center gap-2 text-xs text-gray-500">
-                    <i class="pi pi-sparkles text-purple-500"></i>
+                  <div class="flex items-center gap-2 text-xs text-primary-500 dark:text-primary-400">
+                    <i class="pi pi-sparkles text-secondary-500"></i>
                     <span>AI智能分段会根据内容逻辑和阅读体验进行优化，确保每个段落信息量适中</span>
                   </div>
                 </div>
@@ -88,7 +88,7 @@
               <div class="space-y-2">
                 <div class="flex items-center gap-2">
                   <i class="pi pi-book" style="font-size: 1.25rem" />
-                  <span class="text-sm text-indigo-600" title="段落进度">
+                  <span class="text-sm text-secondary-600 dark:text-secondary-400" title="段落进度">
                     {{ completedParagraphs }}/{{ syncData.paragraphs.length }} 已完成
                   </span>
                   <Tooltip content="智能分段信息" side="top">
@@ -105,13 +105,13 @@
 
                 <!-- 智能分段信息条 -->
                 <div v-if="showSegmentationInfo && smartSegmentation"
-                     class="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg text-xs">
-                  <div class="flex items-center gap-1 text-purple-700 dark:text-purple-300">
+                     class="p-2 bg-secondary-50 dark:bg-secondary-900/20 rounded-lg text-xs">
+                  <div class="flex items-center gap-1 text-secondary-700 dark:text-secondary-300">
                     <i class="pi pi-sparkles"></i>
                     <span class="font-medium">AI智能分段</span>
                     <span class="ml-auto">{{ smartSegmentation.estimatedTotalTime }}分钟预计</span>
                   </div>
-                  <div class="text-purple-600 dark:text-purple-400 mt-1">
+                  <div class="text-secondary-600 dark:text-secondary-400 mt-1">
                     {{ smartSegmentation.segmentationStrategy }}
                   </div>
                 </div>
@@ -137,7 +137,7 @@
                         :class="[
                           'flex-1',
                           { 'bg-success-100 border-success-300': paragraph.isCompleted },
-                          { 'bg-purple-100 border-purple-300': paragraph.complexity && paragraph.complexity > 7 },
+                          { 'bg-secondary-100 border-secondary-300': paragraph.complexity && paragraph.complexity > 7 },
                         ]"
                         @click="goToParagraph(index)"
                         :label="String(index + 1)"
@@ -188,7 +188,7 @@
           <Card>
             <template #title>
               <div class="flex items-center gap-2">
-                <i class="pi pi-sparkles text-purple-600" style="font-size: 1.25rem" />
+                <i class="pi pi-sparkles text-secondary-600" style="font-size: 1.25rem" />
                 AI智能翻译
                 <div
                   class="ml-auto flex items-center space-x-0.5"
@@ -234,21 +234,21 @@
                 <div v-if="showTranslation">
                   <div v-if="translationType === 'word' && selectedWord">
                     <!-- 单词翻译内容 -->
-                    <div class="text-2xl font-bold text-primary-600 dark:text-primary-400">
+                    <div class="text-2xl font-bold text-primary-700 dark:text-primary-300">
                       {{ selectedWord.word }}
                     </div>
 
                     <div
                       v-if="selectedWord.pronunciation"
-                      class="text-lg text-gray-600 dark:text-gray-300">
-                      <span class="text-sm text-gray-500 dark:text-gray-400">音标: </span>
+                      class="text-lg text-primary-700 dark:text-primary-300">
+                      <span class="text-sm text-primary-500 dark:text-primary-400">音标: </span>
                       {{ selectedWord.pronunciation }}
                     </div>
 
                     <div class="space-y-3">
                       <div class="flex items-center gap-2">
                         <i class="pi pi-brain" style="font-size: 1rem" />
-                        <span class="text-sm text-gray-500 dark:text-gray-400">熟练度</span>
+                        <span class="text-sm text-primary-500 dark:text-primary-400">熟练度</span>
                         <Tag
                           :value="`${selectedWord.memoryLevel}/10`"
                           :style="{
@@ -258,7 +258,7 @@
                           }" />
                         <span
                           v-if="selectedWord.difficulty"
-                          class="text-sm text-gray-500 dark:text-gray-400"
+                          class="text-sm text-primary-500 dark:text-primary-400"
                           >难度</span
                         >
                         <Tag
@@ -283,11 +283,11 @@
                       :overlayText="selectedWord.memoryLevel > 4 ? '悬停查看翻译' : '点击查看翻译'"
                       :toggleOnClick="true"
                       :autoClear="selectedWord.memoryLevel <= 4"
-                      overlayClass="bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-[1px]"
-                      overlayTextClass="text-gray-600 dark:text-gray-400 text-xs"
+                      overlayClass="bg-primary-100/80 dark:bg-primary-800/80 backdrop-blur-[1px]"
+                      overlayTextClass="text-primary-600 dark:text-primary-400 text-xs"
                       @click="handleTranslationClick">
                       <div class="space-y-2">
-                        <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
+                        <div v-if="isTranslating" class="flex items-center gap-2 text-primary-500">
                           <i class="pi pi-refresh animate-spin" />
                           AI翻译中...
                         </div>
@@ -297,14 +297,14 @@
                       </div>
 
                       <div v-if="selectedWord.grammar" class="space-y-2">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">语法信息</div>
-                        <div class="text-sm bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                        <div class="text-sm text-primary-500 dark:text-primary-400">语法信息</div>
+                        <div class="text-sm bg-primary-50 dark:bg-primary-700 p-2 rounded">
                           {{ selectedWord.grammar }}
                         </div>
                       </div>
 
                       <div v-if="selectedWord.examples?.length" class="space-y-2">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">AI例句</div>
+                        <div class="text-sm text-primary-500 dark:text-primary-400">AI例句</div>
                         <div class="space-y-1">
                           <div
                             v-for="(example, index) in selectedWord.examples"
@@ -317,7 +317,7 @@
 
                       <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <div class="text-gray-500">查看次数</div>
+                          <div class="text-primary-500 dark:text-primary-400">查看次数</div>
                           <div class="font-medium">{{ selectedWord.clickCount }} 次</div>
                         </div>
                       </div>
@@ -328,7 +328,7 @@
                     <!-- 段落翻译内容 -->
                     <div class="space-y-3">
                       <div class="space-y-2">
-                        <div v-if="isTranslating" class="flex items-center gap-2 text-gray-500">
+                        <div v-if="isTranslating" class="flex items-center gap-2 text-primary-500">
                           <i
                             class="pi pi-refresh"
                             style="font-size: 1rem; animation: spin 1s linear infinite" />
@@ -345,7 +345,7 @@
                       </div>
 
                       <div class="space-y-2" v-if="!isTranslating && paragraphTranslation">
-                        <div class="text-sm text-gray-500">完整中文翻译</div>
+                        <div class="text-sm text-primary-500 dark:text-primary-400">完整中文翻译</div>
                         <GlassBlur
                           :key="paragraphTranslation?.originalText"
                           :overlay-text="'鼠标悬停或点击查看翻译'"
@@ -360,8 +360,8 @@
                     </div>
                   </div>
                 </div>
-                <div v-else class="text-center py-8 text-gray-500">
-                  <i class="pi pi-sparkles w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <div v-else class="text-center py-8 text-primary-500">
+                  <i class="pi pi-sparkles w-12 h-12 mx-auto mb-4 text-primary-300" />
                   <p class="text-lg font-medium mb-2">点击单词或拖拽选择段落</p>
                   <p class="text-sm mb-4">获取AI智能翻译和详细分析</p>
                   <AiEnglishTips
@@ -378,14 +378,14 @@
         <!-- 右侧：翻译和统计 -->
         <div class="space-y-4 top-4 h-fit">
           <!-- 智能分段信息 -->
-          <Card v-if="smartSegmentation" class="border-purple-200 bg-purple-50">
+          <Card v-if="smartSegmentation" class="border-secondary-200 bg-secondary-50">
             <template #title>
               <div
                 class="flex items-center gap-2 cursor-pointer"
                 @click="showSegmentationInfo = !showSegmentationInfo">
                 <i class="pi pi-sparkles" style="font-size: 1.25rem; color: #9333ea" />
                 智能分段信息
-                <span class="ml-auto text-sm text-purple-600">{{
+                <span class="ml-auto text-sm text-secondary-600">{{
                   showSegmentationInfo ? '收起' : '展开'
                 }}</span>
               </div>
@@ -393,18 +393,18 @@
             <template v-if="showSegmentationInfo" #content>
               <div class="space-y-4">
                 <div class="text-sm">
-                  <div class="font-medium text-purple-700 mb-2">分段策略</div>
-                  <div class="text-purple-600">{{ smartSegmentation.segmentationStrategy }}</div>
+                  <div class="font-medium text-secondary-700 mb-2">分段策略</div>
+                  <div class="text-secondary-600">{{ smartSegmentation.segmentationStrategy }}</div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 text-sm">
                   <div class="flex items-center gap-2">
-                    <i class="pi pi-bookmark text-purple-600" />
+                    <i class="pi pi-bookmark text-secondary-600" />
                     <span>总段落数:</span>
                     <Tag :value="smartSegmentation.totalSegments.toString()" variant="info" />
                   </div>
                   <div class="flex items-center gap-2">
-                    <i class="pi pi-clock text-purple-600" />
+                    <i class="pi pi-clock text-secondary-600" />
                     <span>预计时间:</span>
                     <Tag :value="`${smartSegmentation.estimatedTotalTime}分钟`" />
                   </div>
@@ -412,25 +412,25 @@
 
                 <!-- 当前段落详细信息 -->
                 <div v-if="currentParagraph" class="border-t pt-3">
-                  <div class="font-medium text-purple-700 mb-2">当前段落</div>
+                  <div class="font-medium text-secondary-700 mb-2">当前段落</div>
                   <div class="space-y-2 text-sm">
                     <div v-if="currentParagraph.complexity" class="flex items-center gap-2">
-                      <span class="text-gray-600">复杂度:</span>
+                      <span class="text-primary-600 dark:text-primary-400">复杂度:</span>
                       <Tag
                         :value="`${currentParagraph.complexity}/10`"
                         :class="getDifficultyColor(currentParagraph.complexity)" />
                     </div>
                     <div v-if="currentParagraph.estimatedReadingTime" class="flex items-center gap-2">
-                      <span class="text-gray-600">预计阅读:</span>
+                      <span class="text-primary-600 dark:text-primary-400">预计阅读:</span>
                       <Tag :value="`${Math.ceil(currentParagraph.estimatedReadingTime / 60)}分钟`" variant="info" />
                     </div>
                     <div v-if="currentParagraph.reason" class="flex items-start gap-2">
-                      <span class="text-gray-600">分段理由:</span>
-                      <span class="text-purple-600 flex-1">{{ currentParagraph.reason }}</span>
+                      <span class="text-primary-600 dark:text-primary-400">分段理由:</span>
+                      <span class="text-secondary-600 dark:text-secondary-400 flex-1">{{ currentParagraph.reason }}</span>
                     </div>
                     <div v-if="currentParagraph.keyVocabulary && currentParagraph.keyVocabulary.length > 0"
                          class="flex items-start gap-2">
-                      <span class="text-gray-600">关键词:</span>
+                      <span class="text-primary-600 dark:text-primary-400">关键词:</span>
                       <div class="flex flex-wrap gap-1">
                         <Tag
                           v-for="word in currentParagraph.keyVocabulary"
@@ -448,14 +448,14 @@
           </Card>
 
           <!-- AI分析结果 -->
-          <Card v-if="aiAnalysis" class="border-purple-200 bg-purple-50">
+          <Card v-if="aiAnalysis" class="border-secondary-200 bg-secondary-50">
             <template #title>
               <div
                 class="flex items-center gap-2 cursor-pointer"
                 @click="showAiAnalysis = !showAiAnalysis">
                 <i class="pi pi-star-fill" style="font-size: 1.25rem; color: #9333ea" />
                 AI智能分析
-                <span class="ml-auto text-sm text-purple-600">{{
+                <span class="ml-auto text-sm text-secondary-600">{{
                   showAiAnalysis ? '收起' : '展开'
                 }}</span>
               </div>
@@ -464,7 +464,7 @@
               <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                   <div class="flex items-center gap-2">
-                    <i class="pi pi-bullseye text-purple-600" style="font-size: 1rem" />
+                    <i class="pi pi-bullseye text-secondary-600" style="font-size: 1rem" />
                     <span class="text-sm">文章难度:</span>
                     <Tag
                       :class="getDifficultyColor(aiAnalysis.articleDifficulty)"
@@ -478,7 +478,7 @@
                 </div>
 
                 <div v-if="aiAnalysis.keyWords.length > 0">
-                  <div class="text-sm text-gray-600 dark:text-gray-300 mb-2">关键词汇 ⭐:</div>
+                  <div class="text-sm text-primary-600 dark:text-primary-300 mb-2">关键词汇 ⭐:</div>
                   <div class="flex flex-wrap gap-1">
                     <Tag
                       v-for="(word, index) in aiAnalysis.keyWords"
@@ -492,7 +492,7 @@
 
                 <div v-if="aiAnalysis.learningTips.length > 0">
                   <div
-                    class="text-sm text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1">
+                    class="text-sm text-primary-600 dark:text-primary-300 mb-2 flex items-center gap-1">
                     <i class="pi pi-lightbulb" style="font-size: 1rem" />
                     学习建议:
                   </div>
@@ -501,7 +501,7 @@
                       v-for="(tip, index) in aiAnalysis.learningTips"
                       :key="index"
                       class="flex items-start gap-2">
-                      <span class="text-purple-600">•</span>
+                      <span class="text-secondary-600">•</span>
                       <span>{{ tip }}</span>
                     </li>
                   </ul>
@@ -520,11 +520,11 @@
             <template #content>
               <div class="space-y-4">
                 <div
-                  class="text-center p-4 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 rounded-lg">
+                  class="text-center p-4 bg-linear-to-r from-info-50 to-secondary-50 dark:from-primary-700 dark:to-secondary-700 rounded-lg">
                   <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">
                     {{ stats.averageLevel }}
                   </div>
-                  <div class="text-sm text-gray-500 dark:text-gray-400">平均熟练度</div>
+                  <div class="text-sm text-primary-500 dark:text-primary-400">平均熟练度</div>
                 </div>
 
                 <div class="space-y-3">
@@ -582,7 +582,7 @@
                     <div class="text-2xl font-bold text-success-600">
                       {{ Math.round(((stats.mastered + stats.familiar) / stats.total) * 100) }}%
                     </div>
-                    <div class="text-sm text-gray-500">掌握率</div>
+                    <div class="text-sm text-primary-500 dark:text-primary-400">掌握率</div>
                   </div>
                 </div>
               </div>

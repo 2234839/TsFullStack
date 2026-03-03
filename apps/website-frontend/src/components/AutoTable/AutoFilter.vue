@@ -1,8 +1,8 @@
 <template>
   <div
-    class="filter-container p-3 border-b border-gray-200 bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+    class="filter-container p-3 border-b border-secondary-200 bg-secondary-50 dark:bg-secondary-800 dark:border-secondary-700">
     <div class="flex items-center justify-between mb-2">
-      <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('筛选条件') }}</h3>
+      <h3 class="text-sm font-medium text-primary-700 dark:text-primary-300">{{ t('筛选条件') }}</h3>
       <div class="flex space-x-2">
         <Button
           v-if="filters.length > 0"
@@ -26,7 +26,7 @@
       <div
         v-for="(filter, index) in filters"
         :key="filter.id"
-        class="filter-row flex items-center space-x-2 p-2 rounded-lg bg-white dark:bg-gray-900 shadow-sm">
+        class="filter-row flex items-center space-x-2 p-2 rounded-lg bg-white dark:bg-primary-950 shadow-sm">
         <Select
           v-model="filter.field"
           :options="availableFieldsOptions"
@@ -75,7 +75,7 @@
 
     <div
       v-if="filters.length === 0"
-      class="py-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+      class="py-4 text-center text-secondary-600 dark:text-secondary-400 text-sm">
       {{ t('点击“添加筛选条件”按钮开始筛选数据') }}
     </div>
   </div>

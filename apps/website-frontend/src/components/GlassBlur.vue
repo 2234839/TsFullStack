@@ -57,7 +57,7 @@
     autoClear = true,
     containerClass = '',
     overlayClass = 'bg-white/60 backdrop-blur-[1px]',
-    overlayTextClass = 'text-gray-700/80'
+    overlayTextClass = 'text-primary-700/80'
   } = defineProps<Props>();
 
   const isBlurred = ref(initialBlurred);

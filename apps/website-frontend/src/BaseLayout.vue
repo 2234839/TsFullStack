@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-700 dark:text-gray-300">
+  <div class="min-h-screen bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300">
     <RouterView v-slot="{ Component }">
       <template v-if="Component">
         <Transition mode="out-in">
@@ -12,7 +12,7 @@
                 <div class="flex items-center justify-center min-h-screen">
                   <div class="text-center">
                     <ProgressSpinner />
-                    <p class="mt-4 text-gray-600 dark:text-gray-400">正在加载...</p>
+                    <p class="mt-4 text-primary-600 dark:text-primary-400">正在加载...</p>
                   </div>
                 </div>
               </template>

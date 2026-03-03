@@ -76,13 +76,13 @@ const contentStyle = {
 
     <ContextMenuPortal>
       <ContextMenuContent
-        class="bg-white dark:bg-gray-700 rounded-md p-1 shadow-lg min-w-[200px] max-w-[calc(100vw-20px)] z-[10001] animate-in fade-in zoom-in-95 duration-200"
+        class="bg-primary-50 dark:bg-primary-950 rounded-md p-1 shadow-lg min-w-[200px] max-w-[calc(100vw-20px)] z-[10001] animate-in fade-in zoom-in-95 duration-200"
         :style="contentStyle">
         <ContextMenuItem
           v-for="(item, index) in model"
           :key="index"
           :disabled="item.disabled"
-          class="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="flex items-center gap-2 px-3 py-2 text-sm text-primary-900 dark:text-primary-100 hover:bg-primary-100 dark:hover:bg-primary-800 cursor-pointer rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           @click="handleItemClick(item)">
           <i v-if="item.icon" :class="item.icon" class="text-base" />
           <span>{{ item.label }}</span>

@@ -12,7 +12,7 @@
               {{ field.type }}{{ isArrayField(field) ? '[ ]' : '' }}
             </span>
           </Tooltip>
-          <span v-for="attr of field.attributes" class="text-xs text-gray-500 ml-1">{{
+          <span v-for="attr of field.attributes" class="text-xs text-secondary-500 ml-1">{{
             attr.name
           }}</span>
         </label>

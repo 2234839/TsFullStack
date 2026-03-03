@@ -124,11 +124,11 @@ function getTypeLabel(type: string): string {
  */
 function getTypeColor(type: string): string {
   const colors: Record<string, string> = {
-    MONTHLY: 'text-blue-600 dark:text-blue-400',
-    YEARLY: 'text-green-600 dark:text-green-400',
-    PERMANENT: 'text-purple-600 dark:text-purple-400',
+    MONTHLY: 'text-info-600 dark:text-info-400',
+    YEARLY: 'text-success-600 dark:text-success-400',
+    PERMANENT: 'text-primary-600 dark:text-primary-400',
   };
-  return colors[type] || 'text-gray-600 dark:text-gray-400';
+  return colors[type] || 'text-secondary-600 dark:text-secondary-400';
 }
 </script>
 
@@ -136,12 +136,12 @@ function getTypeColor(type: string): string {
   <div class="space-y-4">
     <!-- 标题栏 -->
     <div class="flex justify-between items-center">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <h3 class="text-lg font-semibold text-primary-900 dark:text-primary-100">
         代币使用历史
       </h3>
       <button
         type="button"
-        class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+        class="px-3 py-1.5 text-sm bg-secondary-100 dark:bg-secondary-700 text-secondary-700 dark:text-secondary-300 rounded-lg hover:bg-secondary-200 dark:hover:bg-secondary-600 transition-colors"
         :disabled="isLoading"
         @click="refresh"
       >
@@ -155,13 +155,13 @@ function getTypeColor(type: string): string {
       <div
         v-for="record in history"
         :key="record.id"
-        class="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+        class="p-4 bg-white dark:bg-primary-800 rounded-lg border border-primary-200 dark:border-primary-700"
       >
         <div class="flex justify-between items-start">
           <!-- 左侧：任务信息 -->
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
-              <span class="font-medium text-gray-900 dark:text-gray-100">
+              <span class="font-medium text-primary-900 dark:text-primary-100">
                 {{ record.task?.title || '未知任务' }}
               </span>
               <span
@@ -171,20 +171,20 @@ function getTypeColor(type: string): string {
                 {{ getTypeLabel(record.tokenType) }}
               </span>
             </div>
-            <div v-if="record.note" class="text-sm text-gray-600 dark:text-gray-400">
+            <div v-if="record.note" class="text-sm text-secondary-600 dark:text-secondary-400">
               {{ record.note }}
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            <div class="text-xs text-secondary-500 dark:text-secondary-500 mt-1">
               {{ new Date(record.created).toLocaleString('zh-CN') }}
             </div>
           </div>
 
           <!-- 右侧：消耗数量 -->
           <div class="text-right">
-            <div class="text-lg font-semibold text-red-600 dark:text-red-400">
+            <div class="text-lg font-semibold text-danger-600 dark:text-danger-400">
               -{{ record.amount }}
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-500">
+            <div class="text-xs text-secondary-500 dark:text-secondary-500">
               代币
             </div>
           </div>
@@ -195,10 +195,10 @@ function getTypeColor(type: string): string {
     <!-- 空状态 -->
     <div
       v-else-if="!isLoading"
-      class="text-center py-12 text-gray-500 dark:text-gray-400"
+      class="text-center py-12 text-secondary-500 dark:text-secondary-400"
     >
       <svg
-        class="mx-auto h-12 w-12 text-gray-400"
+        class="mx-auto h-12 w-12 text-secondary-400"
         fill="none"
         viewBox="0 0 24 24"
         stroke="currentColor"
@@ -217,7 +217,7 @@ function getTypeColor(type: string): string {
     <div v-if="hasMore" class="text-center">
       <button
         type="button"
-        class="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+        class="px-4 py-2 text-sm bg-secondary-100 dark:bg-secondary-700 text-secondary-700 dark:text-secondary-300 rounded-lg hover:bg-secondary-200 dark:hover:bg-secondary-600 transition-colors"
         :disabled="isLoading"
         @click="loadMore"
       >

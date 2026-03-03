@@ -42,10 +42,10 @@ const emit = defineEmits<{
 const inputClasses = computed(() => {
   const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200';
 
-  const stateClasses = 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-blue-400';
+  const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-info-600 dark:focus:ring-info-500';
 
-  const bgClass = 'bg-white dark:bg-gray-800';
-  const textClass = 'text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500';
+  const bgClass = 'bg-primary-50 dark:bg-primary-900';
+  const textClass = 'text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400';
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
@@ -97,13 +97,13 @@ function increment() {
       <button
         @click="increment"
         :disabled="disabled"
-        class="w-6 h-6 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        class="w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-50 dark:bg-primary-900 hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed">
         <i class="pi pi-chevron-up text-xs"></i>
       </button>
       <button
         @click="decrement"
         :disabled="disabled"
-        class="w-6 h-6 flex items-center justify-center border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed">
+        class="w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-50 dark:bg-primary-900 hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed">
         <i class="pi pi-chevron-down text-xs"></i>
       </button>
     </div>

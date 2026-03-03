@@ -34,12 +34,12 @@
   const themeButtonClass = computed(() => {
     switch (currentMode.value) {
       case 'dark':
-        return 'bg-gray-800 text-warning-400 hover:bg-gray-700';
+        return 'bg-primary-900 text-warning-400 hover:bg-primary-800';
       case 'random':
-        return 'bg-linear-to-br from-pink-500 to-orange-400 text-white hover:from-pink-600 hover:to-orange-500';
+        return 'bg-linear-to-br from-secondary-500 to-warning-400 text-white hover:from-secondary-600 hover:to-warning-500';
       case 'light':
       default:
-        return 'bg-white text-gray-800 hover:bg-gray-100';
+        return 'bg-white text-primary-900 hover:bg-primary-50';
     }
   });
 

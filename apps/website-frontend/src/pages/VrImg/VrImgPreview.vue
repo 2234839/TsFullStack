@@ -74,7 +74,7 @@
             <span>可前往位置</span>
           </div>
           <div class="flex items-center mb-1">
-            <div class="w-3 h-3 rounded-full bg-gray-500 mr-1"></div>
+            <div class="w-3 h-3 rounded-full bg-primary-500 mr-1"></div>
             <span>其他场景</span>
           </div>
           <div class="flex items-center">
@@ -113,7 +113,7 @@
 
     <!-- 点击反馈 -->
     <div
-      class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white/30 text-white py-2 px-5 rounded-full z-30 pointer-events-none transition-opacity duration-300"
+      class="absolute top-1/2 left-1/2 transform -transecondary-x-1/2 -transecondary-y-1/2 bg-white/30 text-white py-2 px-5 rounded-full z-30 pointer-events-none transition-opacity duration-300"
       :style="{ opacity: feedbackOpacity }"
       ref="hotspotFeedback">
       {{ feedbackMessage }}
@@ -132,7 +132,7 @@
 
     <!-- 保存/重置提示 -->
     <div
-      class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-black/70 text-white py-2 px-4 rounded-lg z-50 transition-opacity duration-300"
+      class="fixed top-5 left-1/2 transform -transecondary-x-1/2 bg-black/70 text-white py-2 px-4 rounded-lg z-50 transition-opacity duration-300"
       :style="{ opacity: notificationOpacity }">
       {{ notificationMessage }}
     </div>
@@ -208,10 +208,10 @@
 
   // 热点颜色映射
   const hotspotColors: Record<string, string> = {
-    palace: '#4A90E2', // 蓝色
-    garden: '#50E3C2', // 绿色
-    library: '#F5A623', // 橙色
-    office: '#FF5733', // 红色
+    palace: 'rgb(99, 102, 241)', // secondary-600
+    garden: 'rgb(16, 185, 129)', // success-500
+    library: 'rgb(245, 158, 11)', // warning-500
+    office: 'rgb(239, 68, 68)', // danger-500
   };
 
   // 状态
@@ -892,13 +892,13 @@
 
       // 设置节点样式
       if (scene.id === currentScene.value) {
-        ctx.fillStyle = '#FF5733'; // 当前场景
+        ctx.fillStyle = 'rgb(239, 68, 68)'; // 当前场景 - danger-500
       } else {
         // 检查当前场景是否可以直接前往该场景
         const canGo =
           currentSceneData.value?.connections &&
           currentSceneData.value.connections.includes(scene.id);
-        ctx.fillStyle = canGo ? '#4A90E2' : '#999'; // 可前往/其他场景
+        ctx.fillStyle = canGo ? 'rgb(99, 102, 241)' : 'rgb(107, 114, 128)'; // 可前往 - secondary-600 / 其他 - primary-500
       }
 
       // 绘制节点
@@ -947,7 +947,7 @@
     ctx.lineTo(-arrowSize / 2, -nodeRadius);
     ctx.lineTo(arrowSize / 2, -nodeRadius);
     ctx.closePath();
-    ctx.fillStyle = '#FF5733';
+    ctx.fillStyle = 'rgb(239, 68, 68)';
     ctx.fill();
 
     // 绘制箭头边框
@@ -965,7 +965,7 @@
     ctx.beginPath();
     ctx.moveTo(currentSceneData.value.position.x, currentSceneData.value.position.y);
     ctx.lineTo(endX, endY);
-    ctx.strokeStyle = 'rgba(255, 87, 51, 0.7)';
+    ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
@@ -1180,7 +1180,7 @@
     height: 0;
     border-left: 6px solid transparent;
     border-right: 6px solid transparent;
-    border-bottom: 12px solid #ff5733;
+    border-bottom: 12px solid rgb(239, 68, 68);
   }
 
   .transition-overlay {

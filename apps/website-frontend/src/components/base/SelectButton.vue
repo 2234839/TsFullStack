@@ -106,14 +106,14 @@ function isSelected(option: any): boolean {
 const buttonClasses = (selected: boolean) => {
   return selected
     ? 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500 flex-shrink-0'
-    : 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 flex-shrink-0';
+    : 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-primary-700 border-primary-200 hover:bg-primary-50 dark:bg-primary-900 dark:text-primary-300 dark:border-primary-700 dark:hover:bg-primary-700 flex-shrink-0';
 };
 
 const containerClasses = computed(() => {
   const base = 'inline-flex rounded-md overflow-hidden border';
   return props.disabled
-    ? `${base} border-gray-200 dark:border-gray-700 opacity-50`
-    : `${base} border-gray-300 dark:border-gray-600`;
+    ? `${base} border-primary-100 dark:border-primary-800 opacity-50`
+    : `${base} border-primary-200 dark:border-primary-700`;
 });
 
 const wrapperClasses = computed(() => {
@@ -145,8 +145,8 @@ watch(
         class="absolute left-0 top-0 bottom-0 z-10 flex items-center cursor-pointer pointer-events-auto"
         @click="scrollToLeft">
         <div
-          class="h-full w-8 bg-linear-to-r from-white via-white/80 to-transparent dark:from-gray-800 dark:via-gray-800/80 flex items-center justify-start pl-1">
-          <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          class="h-full w-8 bg-linear-to-r from-white via-white/80 to-transparent dark:from-primary-900 dark:via-primary-900/80 flex items-center justify-start pl-1">
+          <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </div>
@@ -168,8 +168,8 @@ watch(
         class="absolute right-0 top-0 bottom-0 z-10 flex items-center cursor-pointer pointer-events-auto"
         @click="scrollToRight">
         <div
-          class="h-full w-8 bg-linear-to-l from-white via-white/80 to-transparent dark:from-gray-800 dark:via-gray-800/80 flex items-center justify-end pr-1">
-          <svg class="w-4 h-4 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          class="h-full w-8 bg-linear-to-l from-white via-white/80 to-transparent dark:from-primary-900 dark:via-primary-900/80 flex items-center justify-end pr-1">
+          <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </div>

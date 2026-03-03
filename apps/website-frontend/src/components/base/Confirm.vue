@@ -53,22 +53,22 @@ function handleOpenChange(open: boolean) {
       leave-to-class="opacity-0">
       <div
         v-if="confirmState.show && !confirmState.targetElement"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        class="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/50">
         <div
-          class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+          class="bg-primary-50 dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
           @click.stop>
           <!-- 标题 -->
-          <div v-if="confirmState.header" class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div v-if="confirmState.header" class="text-lg font-semibold text-primary-950 dark:text-primary-50 mb-4">
             {{ confirmState.header }}
           </div>
 
           <!-- 图标和消息 -->
           <div class="flex items-start gap-4 mb-6">
             <div v-if="confirmState.icon" class="shrink-0">
-              <i :class="confirmState.icon" class="text-2xl text-warning-500" />
+              <i :class="confirmState.icon" class="text-2xl text-warning-600" />
             </div>
             <div class="flex-1">
-              <p class="text-gray-700 dark:text-gray-300">
+              <p class="text-primary-800 dark:text-primary-200">
                 {{ confirmState.message }}
               </p>
             </div>
@@ -114,23 +114,23 @@ function handleOpenChange(open: boolean) {
           :side-offset="8"
           :align="'center'"
           :avoid-collisions="true"
-          class="z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+          class="z-50 bg-primary-50 dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
           @click.stop>
           <!-- 箭头 -->
-          <PopoverArrow class="fill-white dark:fill-gray-700 border border-gray-200 dark:border-gray-600 border-b-0" />
+          <PopoverArrow class="fill-primary-50 dark:fill-primary-900 border border-primary-200 dark:border-primary-700 border-b-0" />
 
           <!-- 标题 -->
-          <div v-if="confirmState.header" class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+          <div v-if="confirmState.header" class="text-lg font-semibold text-primary-950 dark:text-primary-50 mb-4">
             {{ confirmState.header }}
           </div>
 
           <!-- 图标和消息 -->
           <div class="flex items-start gap-4 mb-6">
             <div v-if="confirmState.icon" class="shrink-0">
-              <i :class="confirmState.icon" class="text-2xl text-warning-500" />
+              <i :class="confirmState.icon" class="text-2xl text-warning-600" />
             </div>
             <div class="flex-1">
-              <p class="text-gray-700 dark:text-gray-300">
+              <p class="text-primary-800 dark:text-primary-200">
                 {{ confirmState.message }}
               </p>
             </div>

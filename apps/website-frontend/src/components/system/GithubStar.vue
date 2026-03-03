@@ -6,7 +6,7 @@
         v-show="githubStarShow !== 'hide'"
         href="https://github.com/2234839/TsFullStack"
         target="_blank"
-        class="github-button large-button flex items-center gap-2 px-4 py-3 bg-linear-to-r from-gray-800 to-gray-900 hover:from-gray-700 hover:to-gray-800 text-white rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+        class="github-button large-button flex items-center gap-2 px-4 py-3 bg-linear-to-r from-primary-800 to-primary-900 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:-transecondary-y-1"
         :class="{
           'button-show': githubStarShow !== 'hide',
           'button-hide': githubStarShow === 'hide',
@@ -16,7 +16,7 @@
         <span class="font-medium button-text"> {{ t('支持一下 | Star 这个项目') }} </span>
         <button
           @click.prevent.stop="toggleGithubStar()"
-          class="hidden group-hover:block absolute -top-2 -right-2 bg-white text-gray-800 rounded-full p-1 leading-none shadow-md hover:bg-gray-100 transition-colors">
+          class="hidden group-hover:block absolute -top-2 -right-2 bg-white text-primary-900 rounded-full p-1 leading-none shadow-md hover:bg-primary-50 transition-colors">
           <i class="pi pi-times text-sm" />
         </button>
       </a>
@@ -25,7 +25,7 @@
       <button
         v-show="githubStarShow === 'hide'"
         @click="toggleGithubStar()"
-        class="small-button -rotate-12 fixed -bottom-3 -right-3 flex items-center justify-center w-12 h-12 bg-gray-900 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+        class="small-button -rotate-12 fixed -bottom-3 -right-3 flex items-center justify-center w-12 h-12 bg-primary-950 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-transecondary-y-1"
         :class="{
           'button-show': githubStarShow === 'hide',
           'button-hide': githubStarShow !== 'hide',

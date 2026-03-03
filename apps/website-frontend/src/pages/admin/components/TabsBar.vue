@@ -1,6 +1,6 @@
 <template>
   <div
-    class="tabs-bar bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 h-10 px-4 relative overflow-x-auto overflow-y-hidden">
+    class="tabs-bar bg-primary-50 dark:bg-primary-800 border-b border-primary-200 dark:border-primary-700 h-10 px-4 relative overflow-x-auto overflow-y-hidden">
     <div class="tabs-wrapper flex items-center h-full">
       <div
         v-for="tab of tabsStore.tabs"
@@ -9,7 +9,7 @@
           'tab-item flex items-center h-8 px-2.5 mr-1 rounded cursor-pointer select-none whitespace-nowrap',
           tab.value.fullPath === tabsStore.activeTab
             ? 'bg-primary-50 dark:bg-primary-900 border border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-300'
-            : 'bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600',
+            : 'bg-white dark:bg-primary-700 border border-primary-200 dark:border-primary-600 hover:bg-primary-100 dark:hover:bg-primary-600',
         ]"
         @click="handleTabClick(tab.value)"
         @contextmenu.prevent="handleContextMenu($event, tab.value)">
@@ -21,7 +21,7 @@
         </span>
         <span
           v-if="!tab.value.fixed"
-          class="tab-close ml-1.5 flex items-center justify-center w-4 h-4 rounded-full opacity-60 hover:opacity-100 hover:bg-gray-200 dark:hover:bg-gray-500"
+          class="tab-close ml-1.5 flex items-center justify-center w-4 h-4 rounded-full opacity-60 hover:opacity-100 hover:bg-primary-200 dark:hover:bg-primary-500"
           @click.stop="handleCloseTab(tab.value.fullPath)">
           <i class="pi pi-times text-xs"></i>
         </span>

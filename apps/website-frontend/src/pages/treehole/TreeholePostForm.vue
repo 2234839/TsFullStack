@@ -1,10 +1,10 @@
 <template>
-  <div class="treehole-post-form bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
+  <div class="treehole-post-form bg-primary-50 dark:bg-primary-900 rounded-lg p-4">
     <div class="space-y-4">
       <!-- 标题输入 - 回复时默认折叠 -->
       <div v-if="isReply">
         <button @click="showTitle = !showTitle"
-          class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+          class="flex items-center gap-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-100 transition-colors">
           <i :class="showTitle ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
           <span>{{ showTitle ? '收起标题' : '添加标题（可选）' }}</span>
         </button>
@@ -15,7 +15,7 @@
 
       <!-- 发主题帖时标题必填 -->
       <div v-else>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
           标题
         </label>
         <Input v-model="formData.title" placeholder="请输入标题（1-256个字符）" :maxlength="256" class="w-full" />
@@ -23,7 +23,7 @@
 
       <!-- 内容输入 -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
           内容
         </label>
         <Textarea v-model="formData.content" :placeholder="isReply ? '说点什么吧...' : '说点什么吧...'" :rows="4" class="w-full" />
@@ -31,7 +31,7 @@
 
       <!-- 可见性选择 -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
           可见性
         </label>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -42,7 +42,7 @@
             <span class="ml-1">{{ option.label }}</span>
           </button>
         </div>
-        <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-2 text-xs text-primary-500 dark:text-primary-400">
           {{ getVisibilityDescription() }}
         </p>
       </div>
@@ -105,8 +105,8 @@ const visibilityOptions = [
     value: $Enums.PostVisibility.DRAFT,
     label: '草稿',
     icon: 'pi pi-file',
-    activeClass: 'border-gray-400 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-    inactiveClass: 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800',
+    activeClass: 'border-primary-400 bg-primary-100 text-primary-700 dark:bg-primary-700 dark:text-primary-300',
+    inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
     description: '仅您可见，可随时编辑或发布',
   },
   {
@@ -114,7 +114,7 @@ const visibilityOptions = [
     label: '私密',
     icon: 'pi pi-eye-slash',
     activeClass: 'border-warning-500 bg-warning-50 text-warning-700 dark:bg-warning-900 dark:text-warning-300',
-    inactiveClass: 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800',
+    inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
     description: '仅您可见，永久保密',
   },
   {
@@ -122,7 +122,7 @@ const visibilityOptions = [
     label: '登录用户',
     icon: 'pi pi-user',
     activeClass: 'border-info-500 bg-info-50 text-info-700 dark:bg-info-900 dark:text-info-300',
-    inactiveClass: 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800',
+    inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
     description: '所有登录用户可见',
   },
   {
@@ -130,7 +130,7 @@ const visibilityOptions = [
     label: '公开',
     icon: 'pi pi-globe',
     activeClass: 'border-success-500 bg-success-50 text-success-700 dark:bg-success-900 dark:text-success-300',
-    inactiveClass: 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800',
+    inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
     description: '所有人可见，包括游客',
   },
 ];

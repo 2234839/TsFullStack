@@ -83,11 +83,11 @@ defineExpose({
     <DialogPortal>
       <DialogOverlay class="fixed inset-0 bg-black/50 z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
       <DialogContent
-        class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-white dark:bg-gray-800 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg max-h-[85vh]"
+        class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-primary-50 dark:bg-primary-950 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg max-h-[85vh]"
       >
         <!-- 关闭按钮 -->
         <DialogClose
-          class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-white transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-gray-950 focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-gray-100 data-[state=open]:text-gray-500 dark:ring-offset-gray-950 dark:focus:ring-gray-300 dark:data-[state=open]:bg-gray-800 dark:data-[state=open]:text-gray-400"
+          class="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-primary-50 transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-primary-900 focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-primary-100 data-[state=open]:text-primary-700 dark:ring-offset-primary-950 dark:focus:ring-primary-200 dark:data-[state=open]:bg-primary-900 dark:data-[state=open]:text-primary-300"
         >
           <svg
             width="15"
@@ -105,14 +105,14 @@ defineExpose({
         </DialogClose>
 
         <!-- 标题 -->
-        <DialogTitle v-if="title" class="text-lg font-semibold leading-none tracking-tight text-gray-950 dark:text-gray-50">
+        <DialogTitle v-if="title" class="text-lg font-semibold leading-none tracking-tight text-primary-900 dark:text-primary-50">
           {{ title }}
         </DialogTitle>
 
         <!-- 描述 -->
         <DialogDescription
           v-if="description"
-          class="text-sm text-gray-500 dark:text-gray-400">
+          class="text-sm text-primary-700 dark:text-primary-400">
           {{ description }}
         </DialogDescription>
         <!-- 当没有描述时，渲染一个隐藏的 DialogDescription 以满足无障碍要求 -->

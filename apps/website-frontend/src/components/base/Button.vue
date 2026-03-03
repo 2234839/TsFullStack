@@ -65,13 +65,13 @@ const buttonClasses = computed(() => {
   };
 
   const variantClasses: Record<string, string> = {
-    primary: 'bg-primary-600 hover:bg-primary-700 text-white focus:ring-primary-500 dark:bg-primary-500 dark:hover:bg-primary-600',
-    secondary: 'bg-secondary-600 hover:bg-secondary-700 text-white focus:ring-secondary-500 dark:bg-secondary-500 dark:hover:bg-secondary-600',
-    text: 'text-gray-700 hover:bg-gray-100 focus:ring-gray-500 dark:text-gray-300 dark:hover:bg-gray-800',
+    primary: 'bg-primary-900 hover:bg-primary-950 text-white focus:ring-primary-700 dark:bg-primary-50 dark:hover:bg-primary-100 dark:text-primary-950 dark:focus:ring-primary-300',
+    secondary: 'bg-secondary-700 hover:bg-secondary-800 text-white focus:ring-secondary-500 dark:bg-secondary-600 dark:hover:bg-secondary-700',
+    text: 'text-primary-700 hover:bg-primary-50 focus:ring-primary-500 dark:text-primary-300 dark:hover:bg-primary-800',
     danger: 'bg-danger-600 hover:bg-danger-700 text-white focus:ring-danger-500 dark:bg-danger-500 dark:hover:bg-danger-600',
-    ghost: 'text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200',
-    icon: 'text-gray-600 hover:bg-gray-100 active:bg-gray-200 focus:ring-gray-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:active:bg-gray-600',
-    'text-button': 'text-gray-600 hover:bg-gray-100 active:bg-gray-200 focus:ring-gray-500 dark:text-gray-400 dark:hover:bg-gray-700 dark:active:bg-gray-600',
+    ghost: 'text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-200',
+    icon: 'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
+    'text-button': 'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
   };
 
   // 当只有图标时，调整为正方形

@@ -2,7 +2,7 @@
   <div class="user-settings-page p-6 max-w-4xl mx-auto">
     <!-- 页面标题 -->
     <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+      <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 flex items-center gap-2">
         <i class="pi pi-user text-primary-600" />
         {{ t('个人设置') }}
       </h1>

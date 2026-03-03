@@ -1,14 +1,14 @@
 <template>
   <div
     class="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-500"
-    :class="theme_isDark ? 'dark bg-gray-900' : 'bg-gray-50'">
+    :class="theme_isDark ? 'dark bg-primary-950' : 'bg-primary-50'">
     <!-- 炫酷背景 -->
     <div
       class="absolute inset-0 transition-all duration-500"
       :class="
         theme_isDark
-          ? 'bg-linear-to-br from-gray-900 via-blue-900 to-teal-900'
-          : 'bg-linear-to-br from-blue-100 via-cyan-200 to-teal-100'
+          ? 'bg-linear-to-br from-primary-950 via-secondary-900 to-info-900'
+          : 'bg-linear-to-br from-info-100 via-info-200 to-info-100'
       ">
       <!-- 动态背景元素 -->
       <div class="stars-container" v-if="theme_isDark">
@@ -18,13 +18,13 @@
       <!-- 光效元素 -->
       <div
         class="glow-effect glow-1"
-        :class="theme_isDark ? 'bg-teal-500/30' : 'bg-teal-300/40'"></div>
+        :class="theme_isDark ? 'bg-success-500/30' : 'bg-success-300/40'"></div>
       <div
         class="glow-effect glow-2"
-        :class="theme_isDark ? 'bg-primary-500/30' : 'bg-primary-300/40'"></div>
+        :class="theme_isDark ? 'bg-info-500/30' : 'bg-info-300/40'"></div>
       <div
         class="glow-effect glow-3"
-        :class="theme_isDark ? 'bg-cyan-500/20' : 'bg-cyan-300/30'"></div>
+        :class="theme_isDark ? 'bg-info-500/20' : 'bg-info-300/30'"></div>
 
       <!-- 动态光线 -->
       <div
@@ -47,16 +47,16 @@
       class="w-full max-w-md p-8 space-y-6 rounded-2xl shadow-2xl border transition-all duration-300 relative z-10"
       :class="
         theme_isDark
-          ? 'bg-gray-800/40 backdrop-blur-xl border-gray-700/30 hover:shadow-teal-500/20'
-          : 'bg-white/90 backdrop-blur-sm border-gray-200 hover:shadow-teal-500/10'
+          ? 'bg-primary-800/40 backdrop-blur-xl border-primary-700/30 hover:shadow-success-500/20'
+          : 'bg-white/90 backdrop-blur-sm border-primary-200 hover:shadow-success-500/10'
       ">
       <!-- 卡片内部光晕 -->
       <div
         class="absolute pointer-events-none -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"
         :class="
           theme_isDark
-            ? 'bg-linear-to-r from-teal-500 to-blue-600'
-            : 'bg-linear-to-r from-cyan-400 to-teal-500'
+            ? 'bg-linear-to-r from-success-500 to-info-600'
+            : 'bg-linear-to-r from-info-400 to-success-500'
         "></div>
       <div class="relative z-10">
         <!-- 顶部Logo和标题 -->
@@ -66,8 +66,8 @@
               class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow"
               :class="
                 theme_isDark
-                  ? 'bg-linear-to-r from-teal-500 to-blue-600 shadow-teal-500/30'
-                  : 'bg-linear-to-r from-cyan-500 to-teal-600 shadow-teal-500/20'
+                  ? 'bg-linear-to-r from-success-500 to-info-600 shadow-success-500/30'
+                  : 'bg-linear-to-r from-info-500 to-success-600 shadow-success-500/20'
               ">
               <i class="pi pi-shield text-white text-3xl"></i>
             </div>
@@ -76,12 +76,12 @@
             class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient"
             :class="
               theme_isDark
-                ? 'bg-linear-to-r from-teal-400 via-cyan-400 to-blue-400'
-                : 'bg-linear-to-r from-teal-600 via-cyan-600 to-blue-600'
+                ? 'bg-linear-to-r from-success-400 via-info-400 to-info-400'
+                : 'bg-linear-to-r from-success-600 via-info-600 to-info-600'
             ">
             {{ isLogin ? '系统登录' : '用户注册' }}
           </h2>
-          <p class="mt-2 text-sm" :class="theme_isDark ? 'text-gray-300' : 'text-gray-600'">
+          <p class="mt-2 text-sm" :class="theme_isDark ? 'text-primary-300' : 'text-primary-600'">
             {{ isLogin ? '欢迎回来，请输入您的账号和密码' : '创建一个新账号，开始您的旅程' }}
           </p>
         </div>
@@ -93,10 +93,10 @@
               <label
                 for="username"
                 class="block text-sm font-medium mb-1"
-                :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+                :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
                 <i
                   class="pi pi-user mr-2"
-                  :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />{{
+                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />{{
                   isLogin ? '用户名' : '邮箱'
                 }}
               </label>
@@ -114,10 +114,10 @@
               <label
                 for="password"
                 class="block text-sm font-medium mb-1"
-                :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+                :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
                 <i
                   class="pi pi-lock mr-2"
-                  :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />密码
+                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />密码
               </label>
               <Password
                 id="password"
@@ -132,10 +132,10 @@
               <label
                 for="confirmPassword"
                 class="block text-sm font-medium mb-1"
-                :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+                :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
                 <i
                   class="pi pi-lock mr-2"
-                  :class="theme_isDark ? 'text-gray-300' : 'text-gray-500'" />确认密码
+                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />确认密码
               </label>
               <Password
                 id="confirmPassword"
@@ -160,7 +160,7 @@
               <label
                 for="remember"
                 class="ml-2 block text-sm"
-                :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+                :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
                 记住我
               </label>
             </div>
@@ -171,8 +171,8 @@
                 class="font-medium transition-colors"
                 :class="
                   theme_isDark
-                    ? 'text-teal-400 hover:text-teal-300'
-                    : 'text-teal-600 hover:text-teal-500'
+                    ? 'text-info-400 hover:text-info-300'
+                    : 'text-info-600 hover:text-info-500'
                 ">
                 忘记密码?
               </a>
@@ -185,15 +185,15 @@
             <label
               for="terms"
               class="ml-2 block text-sm"
-              :class="theme_isDark ? 'text-gray-200' : 'text-gray-700'">
+              :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
               我已阅读并同意
               <a
                 href="#"
                 class="font-medium transition-colors"
                 :class="
                   theme_isDark
-                    ? 'text-teal-400 hover:text-teal-300'
-                    : 'text-teal-600 hover:text-teal-500'
+                    ? 'text-info-400 hover:text-info-300'
+                    : 'text-info-600 hover:text-info-500'
                 ">
                 用户协议
               </a>
@@ -203,8 +203,8 @@
                 class="font-medium transition-colors"
                 :class="
                   theme_isDark
-                    ? 'text-teal-400 hover:text-teal-300'
-                    : 'text-teal-600 hover:text-teal-500'
+                    ? 'text-info-400 hover:text-info-300'
+                    : 'text-info-600 hover:text-info-500'
                 ">
                 隐私政策
               </a>
@@ -244,7 +244,7 @@
         <div
           class="pt-4 text-center text-xs border-t"
           :class="
-            theme_isDark ? 'text-gray-400 border-gray-700/30' : 'text-gray-500 border-gray-200'
+            theme_isDark ? 'text-primary-400 border-primary-700/30' : 'text-primary-500 border-primary-200'
           ">
           <p>
             {{ isLogin ? '还没有账号?' : '已有账号?' }}
@@ -252,7 +252,7 @@
               href="#"
               @click.prevent="toggleMode"
               class="hover:underline"
-              :class="theme_isDark ? 'text-teal-400' : 'text-teal-600'">
+              :class="theme_isDark ? 'text-info-400' : 'text-info-600'">
               {{ isLogin ? '立即注册' : '立即登录' }}
             </a>
           </p>
@@ -451,13 +451,13 @@
 
   @keyframes pulse-slow {
     0% {
-      box-shadow: 0 0 0 0 rgba(20, 184, 166, 0.7);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
     }
     70% {
-      box-shadow: 0 0 0 15px rgba(20, 184, 166, 0);
+      box-shadow: 0 0 0 15px rgba(34, 197, 94, 0);
     }
     100% {
-      box-shadow: 0 0 0 0 rgba(20, 184, 166, 0);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
     }
   }
 
@@ -619,11 +619,11 @@
   }
 
   .cursor-light-dark {
-    background: radial-gradient(circle, rgba(20, 184, 166, 0.2) 0%, rgba(20, 184, 166, 0) 70%);
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0) 70%);
   }
 
   .cursor-light-light {
-    background: radial-gradient(circle, rgba(20, 184, 166, 0.15) 0%, rgba(20, 184, 166, 0) 70%);
+    background: radial-gradient(circle, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0) 70%);
     mix-blend-mode: multiply;
   }
 </style>

@@ -67,21 +67,21 @@ const isArchiveType = (mimetype: string) => archiveTypes.includes(mimetype);
 export const getFilePreviewClass = (file: ShareFileJSON) => {
   if (!file) return '';
   if (isImageType(file.mimetype)) {
-    return 'bg-white dark:bg-gray-600';
+    return 'bg-white dark:bg-primary-600';
   }
   if (isVideoType(file.mimetype)) {
-    return 'bg-purple-100 dark:bg-purple-900';
+    return 'bg-secondary-100 dark:bg-secondary-900';
   }
   if (isAudioType(file.mimetype)) {
-    return 'bg-pink-100 dark:bg-pink-900';
+    return 'bg-warning-100 dark:bg-warning-900';
   }
   if (isDocumentType(file.mimetype)) {
-    return 'bg-blue-100 dark:bg-blue-900';
+    return 'bg-info-100 dark:bg-info-900';
   }
   if (isArchiveType(file.mimetype)) {
-    return 'bg-yellow-100 dark:bg-yellow-900';
+    return 'bg-warning-100 dark:bg-warning-900';
   }
-  return 'bg-gray-200 dark:bg-gray-600';
+  return 'bg-primary-200 dark:bg-primary-600';
 };
 
 // 获取文件类型图标

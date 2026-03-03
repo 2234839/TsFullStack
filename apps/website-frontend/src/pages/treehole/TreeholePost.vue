@@ -1,6 +1,6 @@
 <template>
-  <div class="treehole-post" :class="{ 'pl-4 sm:pl-8 border-l-2 border-gray-200 dark:border-gray-700': depth > 0 }">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-4 mb-4">
+  <div class="treehole-post" :class="{ 'pl-4 sm:pl-8 border-l-2 border-primary-200 dark:border-primary-700': depth > 0 }">
+    <div class="bg-white dark:bg-primary-900 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-4 mb-4">
       <!-- 帖子头部：作者信息和时间 -->
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-3">
@@ -8,10 +8,10 @@
             {{ getAuthorInitial(post.author) }}
           </div>
           <div>
-            <div class="font-semibold text-gray-900 dark:text-white">
+            <div class="font-semibold text-primary-900 dark:text-primary-50">
               {{ post.author.nickname || post.author.email.split('@')[0] }}
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
+            <div class="text-xs text-primary-500 dark:text-primary-400">
               {{ formatDate(post.updated) }}
             </div>
           </div>
@@ -45,17 +45,17 @@
             />
             <div
               v-if="showMenu"
-              class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10"
+              class="absolute right-0 mt-2 w-48 bg-white dark:bg-primary-900 rounded-lg shadow-lg border border-primary-200 dark:border-primary-700 z-10"
             >
               <button
-                class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                class="w-full px-4 py-2 text-left text-sm hover:bg-primary-100 dark:hover:bg-primary-700 flex items-center gap-2"
                 @click="handleEdit"
               >
                 <i class="pi pi-pencil"></i>
                 编辑
               </button>
               <button
-                class="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-danger-600 flex items-center gap-2"
+                class="w-full px-4 py-2 text-left text-sm hover:bg-primary-100 dark:hover:bg-primary-700 text-danger-600 flex items-center gap-2"
                 @click="handleDelete"
               >
                 <i class="pi pi-trash"></i>
@@ -69,18 +69,18 @@
       <!-- 帖子标题和内容(可折叠) -->
       <template v-if="!isPostCollapsed">
         <!-- 帖子标题 -->
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+        <h3 class="text-xl font-bold text-primary-900 dark:text-primary-50 mb-2">
           {{ post.title }}
         </h3>
 
         <!-- 帖子内容 -->
-        <div class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap mb-4">
+        <div class="text-primary-700 dark:text-primary-300 whitespace-pre-wrap mb-4">
           {{ post.content }}
         </div>
       </template>
 
       <!-- 折叠状态下的摘要 -->
-      <div v-else class="text-gray-600 dark:text-gray-400 text-sm">
+      <div v-else class="text-primary-600 dark:text-primary-400 text-sm">
         {{ post.title || '无标题' }} - {{ post.content.substring(0, 50) }}{{ post.content.length > 50 ? '...' : '' }}
       </div>
 
@@ -104,14 +104,14 @@
             @click="toggleExpand"
           />
         </div>
-        <div class="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
+        <div class="flex items-center gap-1 text-sm text-primary-500 dark:text-primary-400">
           <i class="pi pi-comments"></i>
           <span>{{ post._count?.replies ?? 0 }} 条回复</span>
         </div>
       </div>
 
       <!-- 回复编辑器 -->
-      <div v-if="isReplying" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+      <div v-if="isReplying" class="mt-4 pt-4 border-t border-primary-200 dark:border-primary-700">
         <TreeholePostForm
           :parent-id="post.id"
           @submit="handleReplySubmit"
@@ -278,7 +278,7 @@ function formatDate(dateStr: string | Date): string {
  */
 function getVisibilityClass(visibility: string): string {
   const classes = {
-    DRAFT: 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+    DRAFT: 'bg-primary-200 text-primary-700 dark:bg-primary-700 dark:text-primary-300',
     PRIVATE: 'bg-warning-100 text-warning-700 dark:bg-warning-900 dark:text-warning-300',
     MEMBERS: 'bg-info-100 text-info-700 dark:bg-info-900 dark:text-info-300',
     PUBLIC: 'bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300',

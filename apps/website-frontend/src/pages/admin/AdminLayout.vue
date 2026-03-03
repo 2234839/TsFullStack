@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-full overflow-hidden bg-gray-50 dark:bg-gray-900">
+  <div class="flex h-screen w-full overflow-hidden bg-primary-50 dark:bg-primary-950">
     <!-- 侧边栏 -->
     <MenuSideBar class="h-screen shrink-0" />
 
@@ -63,11 +63,11 @@
   }
 
   .overflow-auto::-webkit-scrollbar-thumb {
-    background-color: rgba(100, 116, 139, 0.3);
+    background-color: rgba(71, 85, 105, 0.3);
     border-radius: 3px;
   }
 
   .overflow-auto::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(100, 116, 139, 0.5);
+    background-color: rgba(71, 85, 105, 0.5);
   }
 </style>

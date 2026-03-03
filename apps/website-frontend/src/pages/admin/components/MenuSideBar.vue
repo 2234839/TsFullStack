@@ -3,64 +3,64 @@
     :class="[isCollapsed ? 'w-20' : '']">
     <!-- 主侧边栏 -->
     <div
-      class="h-full flex flex-col relative overflow-hidden transition-colors duration-300 bg-linear-to-b from-white via-gray-50 to-gray-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border-r border-gray-200 dark:border-slate-700/50">
+      class="h-full flex flex-col relative overflow-hidden transition-colors duration-300 bg-linear-to-b from-primary-50 via-primary-100 to-primary-200 dark:from-secondary-900 dark:via-secondary-800 dark:to-secondary-900 border-r border-primary-200 dark:border-secondary-700/50">
       <!-- 顶部Logo区域 -->
-      <div class="logo-area border-b border-gray-200 dark:border-slate-700/50"
+      <div class="logo-area border-b border-primary-200 dark:border-secondary-700/50"
         :class="[
           isCollapsed
-            ? 'p-3 flex justify-center cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors'
+            ? 'p-3 flex justify-center cursor-pointer hover:bg-primary-50 dark:hover:bg-secondary-800/50 transition-colors'
             : 'p-5 flex items-center justify-between'
         ]"
         @click="isCollapsed ? toggleCollapse() : null">
         <div class="flex items-center space-x-3">
           <div @click.stop="navigateToHome"
-            class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-linear-to-br from-blue-500 to-cyan-400 dark:from-cyan-400 dark:to-blue-600 shadow-blue-200 dark:shadow-blue-500/20">
+            class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-linear-to-br from-info-500 to-info-400 dark:from-info-400 dark:to-info-600 shadow-info-200 dark:shadow-info-500/20">
             <i class="pi pi-bolt text-white text-xl"></i>
           </div>
           <h1
-            class="font-bold text-xl tracking-wide transition-all duration-300 overflow-hidden whitespace-nowrap text-gray-800 dark:text-white"
+            class="font-bold text-xl tracking-wide transition-all duration-300 overflow-hidden whitespace-nowrap text-primary-800 dark:text-primary-50"
             :class="[isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto']">
-            Ts<span class="text-primary-500 dark:text-cyan-400">FullStack</span>
+            Ts<span class="text-primary-600 dark:text-info-400">FullStack</span>
           </h1>
         </div>
         <button v-if="!isCollapsed" @click.stop="toggleCollapse"
-          class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-gray-600 dark:text-gray-400"
+          class="p-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-700 transition-colors text-primary-600 dark:text-primary-400"
           aria-label="Toggle menu">
           <i class="pi pi-bars"></i>
         </button>
       </div>
 
       <!-- 用户信息区域 -->
-      <div class="user-profile px-4 py-5 flex items-center border-b border-gray-200 dark:border-slate-700/50">
+      <div class="user-profile px-4 py-5 flex items-center border-b border-primary-200 dark:border-secondary-700/50">
         <div class="relative">
           <a href="https://shenzilong.cn" target="_blank">
             <File2Url v-if="avatarUrl" :fileId="avatarUrl" v-slot="{ url }">
-              <div class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-cyan-400 mr-3">
+              <div class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-info-400 mr-3">
                 <img :src="url" alt="用户头像" class="w-full h-full object-cover" />
               </div>
             </File2Url>
-            <div v-else class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-cyan-400 mr-3">
+            <div v-else class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-info-400 mr-3">
               <img :src="avatarImageSrc" alt="默认头像" class="w-full h-full object-cover" />
             </div>
           </a>
           <span
-            class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
+            class="absolute bottom-0 right-0 w-3.5 h-3.5 bg-success-500 border-2 border-white dark:border-secondary-900 rounded-full"></span>
         </div>
         <div class="user-info transition-all duration-300 overflow-hidden whitespace-nowrap"
           :class="[isCollapsed ? 'opacity-0 w-0' : 'opacity-100 flex-1']">
-          <h2 class="font-medium text-gray-800 dark:text-white">{{ displayName }}</h2>
-          <p class="text-sm text-gray-500 dark:text-slate-400">{{ userProfile?.email || '未登录' }}</p>
+          <h2 class="font-medium text-primary-800 dark:text-primary-50">{{ displayName }}</h2>
+          <p class="text-sm text-primary-500 dark:text-secondary-400">{{ userProfile?.email || '未登录' }}</p>
         </div>
         <Badge v-if="!isCollapsed" value="3" variant="info" class="ml-auto"></Badge>
       </div>
 
       <!-- 搜索框 -->
       <div
-        class="search-box px-4 py-3 transition-all duration-300 overflow-hidden border-b border-gray-200 dark:border-slate-700/50"
+        class="search-box px-4 py-3 transition-all duration-300 overflow-hidden border-b border-primary-200 dark:border-secondary-700/50"
         :class="[isCollapsed ? 'opacity-0 h-0 py-0' : 'opacity-100']">
         <span class="p-input-icon-left w-full">
           <Input v-model="searchQuery" placeholder="搜索..."
-            class="w-full p-input-sm rounded-lg bg-gray-100 dark:bg-slate-700/50 border-gray-300 dark:border-slate-600 text-gray-800 dark:text-white" />
+            class="w-full p-input-sm rounded-lg bg-primary-100 dark:bg-secondary-700/50 border-primary-300 dark:border-secondary-600 text-primary-800 dark:text-primary-50" />
         </span>
       </div>
 
@@ -75,23 +75,23 @@
                   <Button variant="icon" :icon="item.icon" :class="[
                       'w-full justify-center',
                       isActiveRoute(item)
-                        ? 'text-primary-600 dark:text-cyan-400'
+                        ? 'text-primary-600 dark:text-info-400'
                         : '',
                       'has-submenu',
                     ]" :title="item.label" />
                 </template>
                 <div class="py-1">
                   <div v-for="subItem in getSubmenuItems(item)" :key="subItem.key" @click="navigateTo(subItem)"
-                    class="flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded"
+                    class="flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-primary-100 dark:hover:bg-secondary-700/50 rounded"
                     :class="[
                       isActiveRoute(subItem)
-                        ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
-                        : 'text-gray-600 dark:text-slate-400',
+                        ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-info-500/10 dark:to-info-500/5 text-primary-700 dark:text-primary-50'
+                        : 'text-primary-600 dark:text-secondary-400',
                     ]">
                     <i :class="[
                         subItem.icon,
                         'mr-3 text-sm',
-                        isActiveRoute(subItem) ? 'text-primary-600 dark:text-cyan-400' : '',
+                        isActiveRoute(subItem) ? 'text-primary-600 dark:text-info-400' : '',
                       ]"></i>
                     <span class="flex-1 text-sm whitespace-nowrap">{{ subItem.label }}</span>
                     <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
@@ -105,12 +105,12 @@
                   <Button variant="icon" :icon="item.icon" :class="[
                       'w-full justify-center',
                       isActiveRoute(item)
-                        ? 'text-primary-600 dark:text-cyan-400'
+                        ? 'text-primary-600 dark:text-info-400'
                         : '',
                     ]" @click="navigateTo(item)" />
                 </Tooltip>
                 <Badge v-if="item.badge" :value="item.badge" :variant="getBadgeVariant(item)"
-                  class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"></Badge>
+                  class="absolute top-0 right-0 transform transecondary-x-1 -transecondary-y-1 scale-75"></Badge>
               </template>
             </li>
           </ul>
@@ -118,7 +118,7 @@
         <div v-else class="expanded-menu">
           <div v-for="(category, index) in filteredMenuItems" :key="category.category" class="menu-category mb-4">
             <div
-              class="menu-category-header flex items-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-slate-400"
+              class="menu-category-header flex items-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-primary-500 dark:text-secondary-400"
               v-if="index > 0">
               {{ category.category }}
             </div>
@@ -127,13 +127,13 @@
                 class="menu-item-header flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 mb-1"
                 :class="[
                   isActiveRoute(menuItem)
-                    ? 'bg-primary-50 dark:bg-linear-to-r dark:from-cyan-500/60 dark:to-blue-500/30 text-primary-700 dark:text-white'
-                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-slate-300 dark:hover:bg-slate-700/50 dark:hover:text-white',
+                    ? 'bg-primary-50 dark:bg-linear-to-r dark:from-info-500/60 dark:to-info-500/30 text-primary-700 dark:text-primary-50'
+                    : 'text-primary-700 hover:bg-primary-100 hover:text-primary-900 dark:text-secondary-300 dark:hover:bg-secondary-700/50 dark:hover:text-primary-50',
                 ]">
                 <i :class="[
                     menuItem.icon,
                     'mr-3 text-lg',
-                    isActiveRoute(menuItem) ? 'text-primary-600 dark:text-cyan-400' : '',
+                    isActiveRoute(menuItem) ? 'text-primary-600 dark:text-info-400' : '',
                   ]"></i>
                 <span class="flex-1">{{ menuItem.label }}</span>
                 <Badge v-if="menuItem.badge" :value="menuItem.badge" :variant="getBadgeVariant(menuItem)" class="mr-2">
@@ -152,13 +152,13 @@
                   class="submenu-item flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-1"
                   :class="[
                     isActiveRoute(subItem)
-                      ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-cyan-500/10 dark:to-blue-500/5 text-primary-700 dark:text-white'
-                      : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800 dark:text-slate-400 dark:hover:bg-slate-700/30 dark:hover:text-white',
+                      ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-info-500/10 dark:to-info-500/5 text-primary-700 dark:text-primary-50'
+                      : 'text-primary-600 hover:bg-primary-100 hover:text-primary-800 dark:text-secondary-400 dark:hover:bg-secondary-700/30 dark:hover:text-primary-50',
                   ]">
                   <i :class="[
                       subItem.icon,
                       'mr-3 text-sm',
-                      isActiveRoute(subItem) ? 'text-primary-600 dark:text-cyan-400' : '',
+                      isActiveRoute(subItem) ? 'text-primary-600 dark:text-info-400' : '',
                     ]"></i>
                   <span class="flex-1 text-sm">{{ subItem.label }}</span>
                   <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
@@ -170,7 +170,7 @@
       </div>
 
       <!-- 底部操作区 -->
-      <div class="footer border-t border-gray-200 dark:border-slate-700/50 p-4">
+      <div class="footer border-t border-primary-200 dark:border-secondary-700/50 p-4">
         <div class="flex items-center justify-around" :class="{ 'flex-col space-y-4': isCollapsed }">
           <ThemeSwitch />
           <I18nSwitch />
@@ -498,12 +498,12 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(100, 116, 139, 0.3);
+  background-color: rgba(71, 85, 105, 0.3);
   border-radius: 20px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(100, 116, 139, 0.5);
+  background-color: rgba(71, 85, 105, 0.5);
 }
 
 /* 有子菜单的菜单项样式 */
@@ -581,8 +581,8 @@
 .grid-overlay {
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(to right, rgba(100, 116, 139, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(100, 116, 139, 0.05) 1px, transparent 1px);
+  background-image: linear-gradient(to right, rgba(71, 85, 105, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(71, 85, 105, 0.05) 1px, transparent 1px);
   background-size: 20px 20px;
   opacity: 0.3;
 }

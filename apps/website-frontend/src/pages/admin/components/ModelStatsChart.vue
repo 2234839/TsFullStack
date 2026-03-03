@@ -1,29 +1,29 @@
 <!-- ABOUTME: Model statistics chart component showing AI model usage trends and distribution -->
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+    <div class="bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+      <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('请求趋势') }}
       </h3>
       <Chart type="line" :data="lineChartData" :options="chartOptions" />
     </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+    <div class="bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+      <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('用户活跃度') }}
       </h3>
       <Chart type="bar" :data="userActivityData" :options="barOptions" />
     </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+    <div class="bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+      <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('模型分布') }}
       </h3>
       <Chart type="doughnut" :data="doughnutChartData" :options="doughnutOptions" />
     </div>
 
-    <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+    <div class="bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+      <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('用户排行') }}
       </h3>
       <DataTable :data="userStats" :columns="userStatsColumns" rowKey="userEmail" striped bordered />
@@ -39,8 +39,8 @@
       </div>
     </div>
 
-    <div class="lg:col-span-2 bg-white dark:bg-gray-800 p-4 rounded-lg shadow">
-      <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+    <div class="lg:col-span-2 bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+      <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('详细统计') }}
       </h3>
       <DataTable :data="detailedStats" :columns="detailedStatsColumns" rowKey="modelName" striped bordered />
@@ -89,8 +89,8 @@ const lineChartData = ref({
     {
       label: '请求数量',
       data: [] as number[],
-      borderColor: 'rgb(59, 130, 246)',
-      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      borderColor: 'rgb(99, 102, 241)',
+      backgroundColor: 'rgba(99, 102, 241, 0.1)',
       tension: 0.4
     }
   ]
@@ -102,11 +102,11 @@ const doughnutChartData = ref({
     {
       data: [] as number[],
       backgroundColor: [
-        'rgba(59, 130, 246, 0.8)',
+        'rgba(99, 102, 241, 0.8)',
         'rgba(16, 185, 129, 0.8)',
         'rgba(245, 158, 11, 0.8)',
         'rgba(239, 68, 68, 0.8)',
-        'rgba(139, 92, 246, 0.8)',
+        'rgba(107, 114, 128, 0.8)',
         'rgba(236, 72, 153, 0.8)'
       ]
     }
@@ -441,8 +441,8 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
       {
         label: '请求数量',
         data: Array.from({ length: 24 }, (_, i) => hourlyData.get(i) || 0),
-        borderColor: 'rgb(59, 130, 246)',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        borderColor: 'rgb(99, 102, 241)',
+        backgroundColor: 'rgba(99, 102, 241, 0.1)',
         tension: 0.4
       }
     ]
@@ -472,11 +472,11 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
       {
         data: modelCounts,
         backgroundColor: [
-          'rgba(59, 130, 246, 0.8)',
+          'rgba(99, 102, 241, 0.8)',
           'rgba(16, 185, 129, 0.8)',
           'rgba(245, 158, 11, 0.8)',
           'rgba(239, 68, 68, 0.8)',
-          'rgba(139, 92, 246, 0.8)',
+          'rgba(107, 114, 128, 0.8)',
           'rgba(236, 72, 153, 0.8)'
         ]
       }

@@ -1,8 +1,8 @@
 <template>
-  <div class="min-h-screen">
+  <div class="min-h-screen bg-primary-50 dark:bg-primary-950">
     <!-- 顶部区域 -->
     <div class="flex justify-end pt-5 pr-3">
-      <CommonSettingBtns class="bg-white dark:bg-gray-800 rounded-lg px-3 shadow-sm" />
+      <CommonSettingBtns class="bg-white dark:bg-primary-900 rounded-lg px-3 shadow-sm" />
     </div>
 
     <!-- 工具功能区 -->
@@ -101,26 +101,26 @@ import {
               class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
             />
 
-            {/* 渐变遮罩 - 从透明到黑色 */}
-            <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            {/* 渐变遮罩 - 从透明到深色 */}
+            <div class="absolute inset-0 bg-gradient-to-t from-primary-950/90 via-primary-950/40 to-transparent" />
 
             {/* 内容区域 */}
             <div class="absolute inset-0 p-6 flex flex-col justify-end">
               {/* 标题 */}
-              <h3 class="text-2xl font-bold text-white mb-2 drop-shadow-lg">
+              <h3 class="text-2xl font-bold text-primary-50 mb-2 drop-shadow-lg">
                 {props.title}
               </h3>
 
               {/* 长描述 - 悬停时显示 */}
               {props.longDescription && (
-                <p class="text-gray-200 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md line-clamp-2">
+                <p class="text-primary-200 text-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 drop-shadow-md line-clamp-2">
                   {props.longDescription}
                 </p>
               )}
             </div>
 
             {/* 悬停时的微妙边框高亮 */}
-            <div class="absolute inset-0 border-2 border-white/0 group-hover:border-white/30 rounded-xl transition-colors duration-300 pointer-events-none" />
+            <div class="absolute inset-0 border-2 border-primary-50/0 group-hover:border-primary-50/30 rounded-xl transition-colors duration-300 pointer-events-none" />
           </div>
         </RouterLink>
       );

@@ -30,7 +30,7 @@ const sizeClasses = computed(() => {
 <template>
   <div :class="['inline-block', sizeClasses]">
     <svg
-      class="animate-spin text-primary-500 dark:text-primary-400"
+      class="animate-spin text-primary-700 dark:text-primary-300"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24">

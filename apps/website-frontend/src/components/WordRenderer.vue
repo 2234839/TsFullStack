@@ -9,7 +9,7 @@
     {{ word }}
     <span
       v-if="memoryLevel > 0"
-      class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[9px] opacity-40 group-hover:opacity-80 pointer-events-none"
+      class="absolute -bottom-3 left-1/2 transform -transecondary-x-1/2 text-[9px] opacity-40 group-hover:opacity-80 pointer-events-none"
       :style="{ color }"></span>
     <span
       v-if="isKeyWord"
@@ -61,7 +61,7 @@ const className = computed(() => {
   let base = 'cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0'
 
   if (props.isHighlighted) {
-    base += ' bg-white font-bold text-gray-800 border-2 border-gray-200 word-highlight'
+    base += ' bg-white dark:bg-primary-900 font-bold text-primary-800 dark:text-primary-200 border-2 border-primary-200 dark:border-primary-700 word-highlight'
   } else if (props.isSelected) {
     base += ' bg-primary-100 font-medium word-selected'
   } else if (props.isClicked) {
@@ -110,7 +110,7 @@ const handleMouseDown = (e: MouseEvent | TouchEvent) => {
   left: -2px;
   right: -2px;
   bottom: -2px;
-  background: rgba(245, 158, 11, 0.3);
+  background: rgba(217, 119, 6, 0.3);
   border-radius: 4px;
   z-index: -1;
 }
@@ -122,7 +122,7 @@ const handleMouseDown = (e: MouseEvent | TouchEvent) => {
   left: -1px;
   right: -1px;
   bottom: -1px;
-  background: rgba(59, 130, 246, 0.2);
+  background: rgba(37, 99, 235, 0.2);
   border-radius: 3px;
   z-index: -1;
 }

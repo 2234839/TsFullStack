@@ -81,14 +81,14 @@ const contentStyle = {
       <DropdownMenuContent
         :collision-padding="16"
         :avoid-collisions="true"
-        class="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md p-1.5 shadow-lg min-w-[200px] max-w-[calc(100vw-32px)] z-[10001] animate-in fade-in zoom-in-95 duration-200"
+        class="bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 rounded-md p-1.5 shadow-lg min-w-[200px] max-w-[calc(100vw-32px)] z-[10001] animate-in fade-in zoom-in-95 duration-200"
         :side="side"
         :align="align"
         :side-offset="sideOffset"
         :style="contentStyle">
         <div
           v-if="showCloseIcon"
-          class="absolute top-2 right-2 w-5 h-5 flex items-center justify-center cursor-pointer text-base text-gray-400 dark:text-gray-400 rounded-full hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-700 dark:hover:text-gray-200 transition-all z-10"
+          class="absolute top-2 right-2 w-5 h-5 flex items-center justify-center cursor-pointer text-base text-primary-400 dark:text-primary-400 rounded-full hover:bg-primary-100 dark:hover:bg-primary-800 hover:text-primary-700 dark:hover:text-primary-200 transition-all z-10"
           @click="close">
           ×
         </div>

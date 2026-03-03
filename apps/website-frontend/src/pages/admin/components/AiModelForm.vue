@@ -6,7 +6,7 @@
 
     <div class="space-y-4">
       <div class="field">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
           {{ t('模型名称') }} <span class="text-danger-500">*</span>
         </label>
         <Input
@@ -18,7 +18,7 @@
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
           {{ t('模型标识') }} <span class="text-danger-500">*</span>
         </label>
         <Input
@@ -30,7 +30,7 @@
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
           {{ t('API基础URL') }} <span class="text-danger-500">*</span>
         </label>
         <Input
@@ -42,7 +42,7 @@
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
           {{ t('API密钥') }} <span class="text-danger-500">*</span>
         </label>
         <Password
@@ -57,7 +57,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             {{ t('最大Token数') }}
           </label>
           <InputNumber
@@ -70,7 +70,7 @@
         </div>
 
         <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             {{ t('温度参数') }}
           </label>
           <InputNumber
@@ -86,7 +86,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             {{ t('权重') }}
           </label>
           <InputNumber
@@ -99,7 +99,7 @@
         </div>
 
         <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             {{ t('每分钟限制') }}
           </label>
           <InputNumber
@@ -113,7 +113,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             {{ t('每小时限制') }}
           </label>
           <InputNumber
@@ -125,7 +125,7 @@
         </div>
 
         <div class="field">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             {{ t('每日限制') }}
           </label>
           <InputNumber
@@ -138,7 +138,7 @@
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
           {{ t('描述信息') }}
         </label>
         <Textarea
@@ -154,7 +154,7 @@
             v-model="form.enabled"
             inputId="enabled"
             :binary="true" />
-          <label for="enabled" class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label for="enabled" class="ml-2 text-sm font-medium text-primary-700 dark:text-primary-300">
             {{ t('启用模型') }}
           </label>
         </div>
@@ -382,10 +382,10 @@ watch(() => props.model, (newVal) => {
 }
 
 .p-invalid {
-  border-color: #ef4444 !important;
+  border-color: rgb(239, 68, 68) !important;
 }
 
 .text-danger-500 {
-  color: #ef4444;
+  color: rgb(239, 68, 68);
 }
 </style>

@@ -48,7 +48,7 @@
         <div class="font-medium text-sm mb-2">
           {{ file.filename }}
         </div>
-        <div class="text-xs text-gray-600 dark:text-gray-400 mb-4 ">
+        <div class="text-xs text-primary-600 dark:text-primary-400 mb-4 ">
           {{ formatFileSize(file.size) }}
         </div>
         <a :href="url" :download="file.filename" class="download-link">

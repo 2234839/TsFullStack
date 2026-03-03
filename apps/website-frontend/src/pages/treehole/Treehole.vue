@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+  <div class="min-h-screen bg-primary-50 dark:bg-primary-950 py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- 页面标题 -->
       <div class="mb-8 flex items-center justify-between">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50">
           🌳 树洞
         </h1>
         <Button
@@ -15,7 +15,7 @@
       </div>
 
       <!-- 过滤器 -->
-      <div class="mb-6 flex flex-wrap gap-2 items-center justify-between bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4">
+      <div class="mb-6 flex flex-wrap gap-2 items-center justify-between bg-white dark:bg-primary-900 rounded-lg shadow-sm p-4">
         <div class="flex gap-2">
           <button
             v-for="filter in visibilityFilters"
@@ -71,9 +71,9 @@
 
       <!-- 空状态 -->
       <div v-else-if="posts.length === 0" class="text-center">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
-          <i class="pi pi-comments text-4xl text-gray-400 mb-4"></i>
-          <p class="text-gray-600 dark:text-gray-400 mb-4">
+        <div class="bg-white dark:bg-primary-900 rounded-lg shadow p-8">
+          <i class="pi pi-comments text-4xl text-primary-400 mb-4"></i>
+          <p class="text-primary-600 dark:text-primary-400 mb-4">
             {{ getEmptyMessage() }}
           </p>
           <Button
@@ -164,21 +164,21 @@ const visibilityFilters = [
     label: '公开',
     icon: 'pi pi-globe',
     activeClass: 'bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300',
-    inactiveClass: 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
+    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
   },
   {
     value: 'MEMBERS' as const,
     label: '登录可见',
     icon: 'pi pi-users',
     activeClass: 'bg-info-100 text-info-700 dark:bg-info-900 dark:text-info-300',
-    inactiveClass: 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
+    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
   },
   {
     value: 'MY' as const,
     label: '我的',
     icon: 'pi pi-user',
     activeClass: 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300',
-    inactiveClass: 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700',
+    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
   },
 ];
 

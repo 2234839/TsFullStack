@@ -34,10 +34,10 @@ function viewResourceGallery() {
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+      <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
         AI 图片生成
       </h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">
+      <p class="mt-2 text-primary-600 dark:text-primary-400">
         使用 AI 生成创意图片，支持多种服务商和自定义参数
       </p>
     </div>
@@ -68,7 +68,7 @@ function viewResourceGallery() {
     </div>
 
     <!-- AI 图片生成器 -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="bg-white dark:bg-primary-800 rounded-lg shadow p-6">
       <AIImageGenerator @complete="handleGenerationComplete" />
     </div>
 

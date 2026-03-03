@@ -73,14 +73,14 @@ const selectedOption = computed(() => {
     :disabled="disabled"
     @update:model-value="handleUpdateValue">
     <SelectTrigger
-      class="inline-flex items-center justify-between px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 min-w-[200px] cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      class="inline-flex items-center justify-between px-3 py-2 border border-primary-300 dark:border-primary-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 min-w-[200px] cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900 transition-colors"
       :data-placeholder="!selectedOption">
       <SelectValue
         class="text-sm"
         :placeholder="placeholder">
         {{ selectedOption?.label || placeholder }}
       </SelectValue>
-      <span class="ml-2 text-gray-400">
+      <span class="ml-2 text-primary-400">
         <svg
           class="w-4 h-4 transition-transform duration-200"
           :class="{ 'rotate-180': $attrs['data-state'] === 'open' }"
@@ -100,13 +100,13 @@ const selectedOption = computed(() => {
       <SelectContent
         :collision-padding="16"
         :avoid-collisions="true"
-        class="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md shadow-lg min-w-[var(--reka-select-trigger-width)] max-w-[calc(100vw-32px)] z-[10001] animate-in fade-in zoom-in-95 duration-200"
+        class="bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 rounded-md shadow-lg min-w-[var(--reka-select-trigger-width)] max-w-[calc(100vw-32px)] z-[10001] animate-in fade-in zoom-in-95 duration-200"
         :side="side"
         :align="align"
         :side-offset="sideOffset"
         :style="contentStyle">
         <SelectScrollUpButton
-          class="flex items-center justify-center h-6 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+          class="flex items-center justify-center h-6 bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
           <svg
             class="w-4 h-4"
             fill="none"
@@ -149,7 +149,7 @@ const selectedOption = computed(() => {
         </SelectViewport>
 
         <SelectScrollDownButton
-          class="flex items-center justify-center h-6 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
+          class="flex items-center justify-center h-6 bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
           <svg
             class="w-4 h-4"
             fill="none"

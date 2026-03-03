@@ -13,6 +13,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #13509 | 10:13 PM | 🔄 | Updated InputGroupAddons to use clickable prop | ~230 |
 | #13496 | 10:11 PM | 🔵 | Examined search input group in NoteCalc | ~216 |
 | #13484 | 10:08 PM | 🔵 | Examined note deletion confirmation in NoteCalc | ~222 |
 | #13483 | " | 🔄 | Migrated "Load More" button to custom Button component | ~214 |

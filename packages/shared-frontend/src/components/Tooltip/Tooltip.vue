@@ -87,12 +87,12 @@ const contentStyle = computed<CSSProperties>(() => ({
 <style>
 /**
  * Tooltip 内容区域样式
- * 使用深色背景和白色文字
+ * 使用语义化 Noir 配色系统
  * 添加平滑的动画效果
  */
 .ui-tooltip-content {
-  background-color: rgb(31, 41, 55);
-  color: white;
+  background-color: rgb(87, 83, 78);
+  color: rgb(250, 250, 250);
   padding: 8px 12px;
   border-radius: 4px;
   font-size: 14px;
@@ -128,7 +128,7 @@ const contentStyle = computed<CSSProperties>(() => ({
  * 匹配内容区域的背景色
  */
 .ui-tooltip-arrow {
-  fill: rgb(31, 41, 55);
+  fill: rgb(87, 83, 78);
 }
 
 /**

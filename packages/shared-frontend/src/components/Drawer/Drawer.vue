@@ -116,13 +116,13 @@ const drawerStyle = computed(() => {
 
 /** 抽屉容器样式类 */
 const drawerClasses = computed(() => {
-  const base = 'fixed bg-white dark:bg-gray-800 shadow-xl';
+  const base = 'fixed bg-primary-50 dark:bg-primary-950 shadow-xl';
 
   const sideClasses = {
-    left: 'left-0 top-0 h-full border-r border-gray-200 dark:border-gray-700',
-    right: 'right-0 top-0 h-full border-l border-gray-200 dark:border-gray-700',
-    top: 'top-0 left-0 w-full border-b border-gray-200 dark:border-gray-700',
-    bottom: 'bottom-0 left-0 w-full border-t border-gray-200 dark:border-gray-700',
+    left: 'left-0 top-0 h-full border-r border-primary-200 dark:border-primary-800',
+    right: 'right-0 top-0 h-full border-l border-primary-200 dark:border-primary-800',
+    top: 'top-0 left-0 w-full border-b border-primary-200 dark:border-primary-800',
+    bottom: 'bottom-0 left-0 w-full border-t border-primary-200 dark:border-primary-800',
   };
 
   return `${base} ${sideClasses[props.side]}`;
@@ -164,15 +164,15 @@ const drawerClasses = computed(() => {
           <!-- 头部 -->
           <div
             v-if="title || showClose"
-            class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-            <h3 v-if="title" class="text-lg font-semibold text-gray-900 dark:text-white">
+            class="flex items-center justify-between p-4 border-b border-primary-200 dark:border-primary-800">
+            <h3 v-if="title" class="text-lg font-semibold text-primary-900 dark:text-primary-50">
               {{ title }}
             </h3>
             <button
               v-if="showClose"
               @click="close"
-              class="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <i class="pi pi-times text-gray-500"></i>
+              class="p-1 rounded-md hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
+              <i class="pi pi-times text-primary-700"></i>
             </button>
           </div>
 

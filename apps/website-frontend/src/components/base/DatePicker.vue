@@ -87,11 +87,11 @@ function handleBlur() {
 
 /** 输入框样式类 */
 const inputClasses = computed(() => {
-  const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 bg-white dark:bg-gray-800';
+  const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 bg-primary-50 dark:bg-primary-950';
 
-  const stateClasses = 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-blue-400';
+  const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-secondary-500 dark:focus:ring-secondary-400';
 
-  const textClass = 'text-gray-900 dark:text-gray-100';
+  const textClass = 'text-primary-900 dark:text-primary-100';
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${stateClasses} ${textClass} ${disabledClass}`;

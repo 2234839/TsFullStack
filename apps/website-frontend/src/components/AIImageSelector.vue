@@ -147,7 +147,7 @@ onMounted(() => {
   >
     <template #header>
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+        <h3 class="text-lg font-semibold text-primary-900 dark:text-primary-100">
           选择 AI 图片
         </h3>
       </div>
@@ -157,7 +157,7 @@ onMounted(() => {
         <input
           v-model="searchQuery"
           type="text"
-          class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+          class="flex-1 px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-700 text-primary-900 dark:text-primary-100"
           placeholder="搜索图片..."
           @keyup.enter="searchImages"
         />
@@ -175,21 +175,21 @@ onMounted(() => {
     <div class="max-h-[60vh] overflow-auto">
       <div v-if="isLoading && resources.length === 0" class="text-center py-8">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">加载中...</p>
+        <p class="mt-2 text-secondary-600 dark:text-secondary-400">加载中...</p>
       </div>
 
       <div v-else-if="resources.length === 0" class="text-center py-8">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="mx-auto h-12 w-12 text-secondary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">暂无图片</p>
+        <p class="mt-2 text-secondary-600 dark:text-secondary-400">暂无图片</p>
       </div>
 
       <div v-else class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         <div
           v-for="resource in resources"
           :key="resource.id"
-          class="relative group cursor-pointer border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden hover:ring-2 hover:ring-primary-500 transition-all"
+          class="relative group cursor-pointer border border-primary-200 dark:border-primary-700 rounded-lg overflow-hidden hover:ring-2 hover:ring-primary-500 transition-all"
           @click="selectImage(resource)"
         >
           <img
@@ -204,7 +204,7 @@ onMounted(() => {
             </div>
           </div>
           <div v-if="!resource.fileId" class="absolute top-2 right-2">
-            <span class="px-2 py-1 bg-yellow-500 text-white text-xs rounded">
+            <span class="px-2 py-1 bg-warning-500 text-white text-xs rounded">
               未下载
             </span>
           </div>
@@ -215,7 +215,7 @@ onMounted(() => {
       <div v-if="!hasLoadedAll && resources.length > 0" class="text-center mt-6">
         <button
           type="button"
-          class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+          class="px-4 py-2 bg-secondary-100 dark:bg-secondary-700 text-secondary-700 dark:text-secondary-300 rounded-lg hover:bg-secondary-200 dark:hover:bg-secondary-600 transition-colors disabled:opacity-50"
           :disabled="isLoading"
           @click="loadResources()"
         >
@@ -227,8 +227,8 @@ onMounted(() => {
 
     <!-- 底部信息 -->
     <template #footer>
-      <div class="bg-gray-50 dark:bg-gray-900">
-        <p class="text-sm text-gray-600 dark:text-gray-400">
+      <div class="bg-secondary-50 dark:bg-secondary-900">
+        <p class="text-sm text-secondary-600 dark:text-secondary-400">
           共 {{ total }} 张图片
         </p>
       </div>

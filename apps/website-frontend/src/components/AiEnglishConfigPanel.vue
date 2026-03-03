@@ -6,7 +6,7 @@
     </div>
 
     <!-- 说明信息 -->
-    <div class="text-sm text-gray-600 dark:text-gray-400 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg">
+    <div class="text-sm text-secondary-600 dark:text-secondary-400 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg">
       <p class="mb-2"><strong>混合模式说明：</strong></p>
       <ul class="space-y-1 text-xs">
         <li>• 优先使用您配置的AI服务</li>

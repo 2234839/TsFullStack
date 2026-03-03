@@ -1,6 +1,6 @@
 <style scoped></style>
 <template>
-  <div class="bg-gray-100 dark:bg-gray-700">
+  <div class="bg-primary-100 dark:bg-primary-700">
     <Carousel :value="data.data.files" :numVisible="1" :numScroll="1" :circular="true">
       <template #item="{ data: fileData }: { data: ShareFileJSON }">
         <div class="h-48 w-full">

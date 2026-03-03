@@ -215,13 +215,13 @@ async function selectImage(_imageUrl: string) {
   <div class="space-y-4">
     <!-- 提示词输入 -->
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
         提示词
       </label>
       <textarea
         v-model="prompt"
         rows="4"
-        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+        class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
         placeholder="描述你想要生成的图片..."
         :disabled="isGenerating"
       />
@@ -229,7 +229,7 @@ async function selectImage(_imageUrl: string) {
 
     <!-- 快捷模板 -->
     <div>
-      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+      <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
         快捷模板
       </label>
       <div class="flex flex-wrap gap-2">
@@ -237,7 +237,7 @@ async function selectImage(_imageUrl: string) {
           v-for="template in promptTemplates"
           :key="template.label"
           type="button"
-          class="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          class="px-3 py-1.5 text-sm bg-secondary-100 dark:bg-secondary-700 text-secondary-700 dark:text-secondary-300 rounded-lg hover:bg-secondary-200 dark:hover:bg-secondary-600 transition-colors"
           :disabled="isGenerating"
           @click="useTemplate(template)"
         >
@@ -250,12 +250,12 @@ async function selectImage(_imageUrl: string) {
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <!-- 服务提供商 -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
           服务商
         </label>
         <select
           v-model="provider"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
           :disabled="isGenerating || availableProviders.length === 0"
         >
           <option
@@ -268,7 +268,7 @@ async function selectImage(_imageUrl: string) {
         </select>
         <p
           v-if="availableProviders.length === 0"
-          class="mt-1 text-sm text-gray-500 dark:text-gray-400"
+          class="mt-1 text-sm text-primary-500 dark:text-primary-400"
         >
           暂无可用的 AI 服务
         </p>
@@ -276,12 +276,12 @@ async function selectImage(_imageUrl: string) {
 
       <!-- 生成数量 -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
           数量
         </label>
         <select
           v-model="count"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
           :disabled="isGenerating"
         >
           <option :value="1">1 张</option>
@@ -293,12 +293,12 @@ async function selectImage(_imageUrl: string) {
 
       <!-- 图片尺寸 -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
           尺寸
         </label>
         <select
           v-model="size"
-          class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
           :disabled="isGenerating"
         >
           <option v-for="option in sizeOptions" :key="option.value" :value="option.value">
@@ -311,22 +311,22 @@ async function selectImage(_imageUrl: string) {
     <!-- 生成按钮 -->
     <div class="flex justify-between items-center">
       <!-- 代币余额显示 -->
-      <div class="text-sm text-gray-600 dark:text-gray-400">
+      <div class="text-sm text-secondary-600 dark:text-secondary-400">
         <span class="font-medium">代币余额:</span>
         <span :class="{
-          'text-red-600 dark:text-red-400': tokenStore.isLowBalance.value,
-          'text-green-600 dark:text-green-400': !tokenStore.isLowBalance.value
+          'text-danger-600 dark:text-danger-400': tokenStore.isLowBalance.value,
+          'text-success-600 dark:text-success-400': !tokenStore.isLowBalance.value
         }">
           {{ tokenStore.balance.value.total }} 枚
         </span>
-        <span v-if="estimatedCost > 0" class="ml-2 text-gray-500">
+        <span v-if="estimatedCost > 0" class="ml-2 text-secondary-500">
           (预计消耗 {{ estimatedCost }} 枚)
         </span>
       </div>
 
       <button
         type="button"
-        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 dark:disabled:bg-gray-600 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-secondary-400 dark:disabled:bg-secondary-600 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
         :disabled="!canGenerate"
         @click="startGeneration"
       >
@@ -350,12 +350,12 @@ async function selectImage(_imageUrl: string) {
           <img
             :src="imageUrl"
             :alt="`Generated image ${index + 1}`"
-            class="w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700"
+            class="w-full h-auto rounded-lg border border-primary-200 dark:border-primary-700"
           />
           <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
             <button
               type="button"
-              class="px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors"
+              class="px-4 py-2 bg-white text-primary-900 rounded-lg hover:bg-secondary-100 transition-colors"
               @click="selectImage(imageUrl)"
             >
               选择此图片

@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
+  <div class="min-h-screen bg-primary-50 dark:bg-primary-900 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">{{ t('分享管理') }}</h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">
+        <h1 class="text-3xl font-bold text-primary-900 dark:text-white">{{ t('分享管理') }}</h1>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">
           {{ t('浏览和管理您的分享') }}
         </p>
       </div>
@@ -24,23 +24,23 @@
         :closable="true" class="p-fluid">
         <div class="text-center">
           <div class="mb-4">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+            <h3 class="text-lg font-semibold text-primary-900 dark:text-white mb-2">
               {{ (selectedQRItem?.data as unknown as ShareJSON)?.title }}
             </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-primary-600 dark:text-primary-400">
               {{ t('扫描二维码访问分享') }}
             </p>
           </div>
 
           <div class="flex justify-center mb-4">
             <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" :alt="t('分享二维码')"
-              class="border border-gray-300 dark:border-gray-600 rounded-lg" width="200" height="200" />
-            <div v-else class="w-52 h-52 flex items-center justify-center text-gray-500">
+              class="border border-primary-300 dark:border-primary-600 rounded-lg" width="200" height="200" />
+            <div v-else class="w-52 h-52 flex items-center justify-center text-primary-500">
               {{ t('生成二维码中...') }}
             </div>
           </div>
 
-          <div class="text-xs text-gray-500 dark:text-gray-400 break-all">
+          <div class="text-xs text-primary-500 dark:text-primary-400 break-all">
             {{ currentShareUrl }}
           </div>
 
@@ -64,9 +64,9 @@
 
       <!-- 空状态 -->
       <div v-else-if="shareList.state.value.total === 0" class="text-center">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-8">
-          <i class="pi pi-images text-4xl text-gray-400 mb-4" />
-          <p class="text-gray-600 dark:text-gray-400">
+        <div class="bg-white dark:bg-primary-800 rounded-lg shadow p-8">
+          <i class="pi pi-images text-4xl text-primary-400 mb-4" />
+          <p class="text-primary-600 dark:text-primary-400">
             {{ t('暂无分享') }}
           </p>
         </div>
@@ -76,12 +76,12 @@
       <div v-else>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
           <div v-for="item in shareList.state.value.data" :key="item.id"
-            class="group relative bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
+            class="group relative bg-white dark:bg-primary-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
             <ShareCard :data="(item as any)" />
 
             <!-- 标题和文件信息 -->
             <div class="p-4">
-              <h3 class="text-lg h-8 font-semibold text-gray-900 dark:text-white truncate">
+              <h3 class="text-lg h-8 font-semibold text-primary-900 dark:text-white truncate">
                 {{ (item.data as unknown as ShareJSON).title }}
               </h3>
               <div class="flex items-center">
@@ -98,7 +98,7 @@
                 </div>
               </div>
 
-              <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+              <div class="flex items-center justify-between text-sm text-primary-500 dark:text-primary-400">
                 <span>{{ (item.data as unknown as ShareJSON).files.length }} {{ t('个文件') }}</span>
                 <span>{{
                   formatFileSize(getTotalFileSize(item.data as unknown as ShareJSON))

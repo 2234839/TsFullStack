@@ -45,10 +45,10 @@ const inputClasses = computed(() => {
 
   const stateClasses = props.invalid
     ? 'border-danger-500 focus:border-danger-500 dark:border-danger-400'
-    : 'border-gray-300 dark:border-gray-600 focus:border-primary-500 dark:focus:border-primary-400';
+    : 'border-primary-200 dark:border-primary-700 focus:border-primary-500 dark:focus:border-primary-400';
 
-  const bgClass = 'bg-white dark:bg-gray-800';
-  const textClass = 'text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500';
+  const bgClass = 'bg-primary-50 dark:bg-primary-900';
+  const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${roundedClass} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;

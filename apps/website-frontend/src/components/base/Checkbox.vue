@@ -31,7 +31,7 @@ const boxClasses = computed(() => {
 
   const checkedClasses = props.modelValue
     ? 'bg-primary-600 dark:bg-primary-500 border-primary-600 dark:border-primary-500'
-    : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500';
+    : 'bg-white dark:bg-primary-900 border-primary-200 dark:border-primary-700 hover:border-primary-300 dark:hover:border-primary-600';
 
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 

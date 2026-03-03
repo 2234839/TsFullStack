@@ -5,14 +5,14 @@
     align-items: center;
     justify-content: center;
     height: 100vh;
-    background: linear-gradient(135deg, #1e1e2f, #2a2a3a);
+    background: linear-gradient(135deg, #18181b, #27272a);
     color: #ffffff;
     font-family: 'Arial', sans-serif;
   }
   .github-auth-content {
     text-align: center;
     padding: 2rem;
-    background: rgba(30, 30, 47, 0.8);
+    background: rgba(24, 24, 27, 0.8);
     border-radius: 12px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     max-width: 500px;
@@ -21,7 +21,7 @@
   .github-auth-title {
     font-size: 1.5rem;
     margin-bottom: 1rem;
-    color: #58a6ff;
+    color: #3b82f6;
   }
   .github-auth-message {
     font-size: 1rem;
@@ -32,9 +32,9 @@
     display: inline-block;
     width: 50px;
     height: 50px;
-    border: 5px solid rgba(88, 166, 255, 0.3);
+    border: 5px solid rgba(59, 130, 246, 0.3);
     border-radius: 50%;
-    border-top-color: #58a6ff;
+    border-top-color: #3b82f6;
     animation: spin 1s ease-in-out infinite;
   }
   @keyframes spin {

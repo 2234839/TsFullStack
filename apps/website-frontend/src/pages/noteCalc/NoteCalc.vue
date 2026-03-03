@@ -1,13 +1,13 @@
 <template>
-  <div class="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="flex flex-col min-h-screen bg-primary-50 dark:bg-primary-900">
     <!-- 头部导航栏 -->
     <header
-      class="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+      class="flex items-center justify-between p-4 bg-white dark:bg-primary-800 border-b border-primary-200 dark:border-primary-700 shadow-sm">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 text-purple-600 dark:text-purple-400">
+        <div class="w-8 h-8 text-secondary-600 dark:text-secondary-400">
           <i class="pi pi-calculator text-2xl!"></i>
         </div>
-        <h1 class="text-xl font-bold text-purple-700 dark:text-purple-400">
+        <h1 class="text-xl font-bold text-secondary-700 dark:text-secondary-400">
           {{ ti18n('计算笔记本') }}
         </h1>
       </div>
@@ -30,7 +30,7 @@
       <Drawer v-model:open="sidebarVisible" side="left" width="320px">
         <template #header>
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-purple-700 dark:text-purple-400">
+            <h2 class="text-lg font-bold text-secondary-700 dark:text-secondary-400">
               {{ ti18n('我的笔记') }}
             </h2>
             <div class="flex gap-2">
@@ -51,8 +51,8 @@
           </InputGroup>
           <div v-if="!authInfo_isLogin" class="flex-1 flex items-center justify-center">
             <div class="text-center p-4">
-              <i class="pi pi-lock text-4xl mb-2 text-gray-400"></i>
-              <p class="text-gray-500">{{ ti18n('请登录后查看您的笔记') }}</p>
+              <i class="pi pi-lock text-4xl mb-2 text-primary-400"></i>
+              <p class="text-primary-500">{{ ti18n('请登录后查看您的笔记') }}</p>
               <Button @click="
                   routerUtil.push(routeMap.login, {}, { r: route.fullPath }),
                     (sidebarVisible = false)
@@ -67,8 +67,8 @@
 
           <div v-else-if="!notesState.state.value.length" class="flex-1 flex items-center justify-center">
             <div class="text-center p-4">
-              <i class="pi pi-file-o text-4xl mb-2 text-gray-400"></i>
-              <p class="text-gray-500">
+              <i class="pi pi-file-o text-4xl mb-2 text-primary-400"></i>
+              <p class="text-primary-500">
                 {{ searchQuery ? ti18n('未找到匹配的笔记') : ti18n('暂无笔记') }}
               </p>
             </div>
@@ -78,8 +78,8 @@
             <TransitionGroup name="list" tag="ul" class="p-0 m-0 list-none">
               <li v-for="note in notesState.state.value" :key="note.id" class="mb-2">
                 <div
-                  class="p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition-colors"
-                  :class="{ 'bg-purple-50 dark:bg-purple-900/30': currentNoteId === note.id }" @click="loadNote(note)">
+                  class="p-3 rounded-lg border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-800 cursor-pointer transition-colors"
+                  :class="{ 'bg-secondary-50 dark:bg-secondary-900/30': currentNoteId === note.id }" @click="loadNote(note)">
                   <div class="flex items-center justify-between">
                     <div class="truncate font-medium">
                       {{ getNoteTitle(note) }}
@@ -91,7 +91,7 @@
                         @click.stop="confirmDeleteNote(note, $event)" :title="ti18n('删除')" />
                     </div>
                   </div>
-                  <div class="text-xs text-gray-500 mt-1 flex justify-between">
+                  <div class="text-xs text-primary-500 mt-1 flex justify-between">
                     <span>{{ formatDate(note.updated) }}</span>
                     <span>{{ getContentPreview(note) }}</span>
                   </div>
@@ -110,7 +110,7 @@
 
       <!-- 双栏编辑区 -->
       <div class="flex-1 flex flex-col overflow-hidden">
-        <div class="p-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center">
+        <div class="p-2 bg-white dark:bg-primary-800 border-b border-primary-200 dark:border-primary-700 flex items-center">
           <Button icon="pi pi-bars" variant="icon" rounded class="mr-2"
             @click="sidebarVisible = !sidebarVisible" :title="ti18n('显示/隐藏侧边栏')" />
 
@@ -118,14 +118,14 @@
             <span v-if="currentNote" class="font-medium truncate">
               {{ getNoteTitle(currentNote  as any) }}
             </span>
-            <span v-else class="text-gray-500">{{ ti18n('未保存的笔记') }}</span>
+            <span v-else class="text-primary-500">{{ ti18n('未保存的笔记') }}</span>
 
-            <span v-if="unsavedChanges" class="ml-2 text-xs text-orange-500">
+            <span v-if="unsavedChanges" class="ml-2 text-xs text-warning-500">
               <i class="pi pi-exclamation-circle mr-1"></i>{{ ti18n('未保存') }}
             </span>
           </div>
 
-          <div v-if="config.autoSaveEnabled" class="text-xs text-gray-500 flex items-center">
+          <div v-if="config.autoSaveEnabled" class="text-xs text-primary-500 flex items-center">
             <i class="pi pi-clock mr-1"></i>
             <span v-if="lastSaved">{{ ti18n('上次保存') }}: {{ lastSaved_v }}</span>
             <span v-else>{{ ti18n('自动保存已启用') }}</span>
@@ -155,21 +155,21 @@
           <div class="flex items-center">
             <InputNumber v-model="config.autoSaveInterval" :min="5" :max="60" :disabled="!config.autoSaveEnabled"
               show-buttons />
-            <span class="ml-2 text-gray-500">{{ ti18n('秒') }}</span>
+            <span class="ml-2 text-primary-500">{{ ti18n('秒') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('结果显示精度') }}</label>
           <div class="flex items-center">
             <InputNumber v-model="config.showPrecision" :min="1" :max="100" show-buttons />
-            <span class="ml-2 text-gray-500">{{ ti18n('位') }}</span>
+            <span class="ml-2 text-primary-500">{{ ti18n('位') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('计算精度') }}</label>
           <div class="flex items-center">
             <InputNumber v-model="config.precision" :min="1" :max="100" show-buttons />
-            <span class="ml-2 text-gray-500">{{ ti18n('位') }}</span>
+            <span class="ml-2 text-primary-500">{{ ti18n('位') }}</span>
           </div>
         </div>
       </div>

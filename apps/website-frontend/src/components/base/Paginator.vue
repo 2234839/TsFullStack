@@ -113,8 +113,8 @@ function nextPage() {
 const buttonClasses = (active: boolean, disabled: boolean) => {
   const base = 'min-w-8 px-2 py-1 text-sm border rounded transition-colors duration-200';
   const activeClass = active
-    ? 'bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500'
-    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700';
+    ? 'bg-primary-800 text-primary-50 border-primary-800 dark:bg-primary-200 dark:border-primary-200'
+    : 'bg-primary-50 text-primary-900 border-primary-300 hover:bg-primary-100 dark:bg-primary-900 dark:text-primary-100 dark:border-primary-700 dark:hover:bg-primary-800';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${activeClass} ${disabledClass}`;
@@ -135,7 +135,7 @@ function handleRowsPerPageChange(event: Event) {
 <template>
   <div class="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg">
     <!-- 信息显示和每页条数选择器 -->
-    <div class="flex items-center gap-4 text-sm text-gray-700 dark:text-gray-300">
+    <div class="flex items-center gap-4 text-sm text-primary-800 dark:text-primary-200">
       <div>
         显示 {{ firstRecord }}-{{ lastRecord }} 条，共 {{ rows }} 条
       </div>
@@ -146,7 +146,7 @@ function handleRowsPerPageChange(event: Event) {
           :disabled="disabled"
           :value="rowsPerPage"
           @change="handleRowsPerPageChange"
-          class="px-2 py-1 text-sm border border-gray-300 rounded bg-white text-gray-700 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          class="px-2 py-1 text-sm border border-primary-300 rounded bg-primary-50 text-primary-900 hover:bg-primary-100 dark:bg-primary-900 dark:text-primary-100 dark:border-primary-700 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
         >
           <option v-for="option in rowsPerPageOptions" :key="option" :value="option">
             {{ option }} 条/页

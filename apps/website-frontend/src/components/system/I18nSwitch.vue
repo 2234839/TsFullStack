@@ -4,17 +4,17 @@
     <Dropdown v-model="menuOpen">
       <template #trigger>
         <button
-          class="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 cursor-pointer">
+          class="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 hover:bg-primary-100 dark:hover:bg-primary-800 text-primary-700 dark:text-primary-300 cursor-pointer">
           <i class="pi pi-language"></i>
         </button>
       </template>
       <div class="py-1">
         <button @click="switchI18n('zh-CN')"
-          class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          class="w-full text-left px-4 py-2 text-sm text-primary-800 dark:text-primary-200 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
           中文
         </button>
         <button @click="switchI18n('en')"
-          class="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          class="w-full text-left px-4 py-2 text-sm text-primary-800 dark:text-primary-200 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
           English
         </button>
       </div>

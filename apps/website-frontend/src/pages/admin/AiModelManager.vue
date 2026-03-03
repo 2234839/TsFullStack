@@ -3,8 +3,8 @@
     <!-- 页面标题和操作按钮 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-800 dark:text-white">{{ t('AI模型管理') }}</h1>
-        <p class="text-gray-600 dark:text-gray-400">{{ t('管理和配置AI模型') }}</p>
+        <h1 class="text-2xl font-bold text-primary-800 dark:text-white">{{ t('AI模型管理') }}</h1>
+        <p class="text-primary-600 dark:text-primary-400">{{ t('管理和配置AI模型') }}</p>
       </div>
       <div class="flex gap-2">
         <Button
@@ -24,10 +24,10 @@
     <!-- 统计卡片 -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
       <div
-        class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
+        class="bg-white dark:bg-secondary-800 rounded-lg shadow p-4 border border-primary-200 dark:border-secondary-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('总模型数') }}</p>
+            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('总模型数') }}</p>
             <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ totalModels }}</p>
           </div>
           <div
@@ -38,10 +38,10 @@
       </div>
 
       <div
-        class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
+        class="bg-white dark:bg-secondary-800 rounded-lg shadow p-4 border border-primary-200 dark:border-secondary-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('启用模型') }}</p>
+            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('启用模型') }}</p>
             <p class="text-2xl font-bold text-success-600 dark:text-success-400">{{ enabledModels }}</p>
           </div>
           <div
@@ -52,10 +52,10 @@
       </div>
 
       <div
-        class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
+        class="bg-white dark:bg-secondary-800 rounded-lg shadow p-4 border border-primary-200 dark:border-secondary-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('禁用模型') }}</p>
+            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('禁用模型') }}</p>
             <p class="text-2xl font-bold text-danger-600 dark:text-danger-400">{{ disabledModels }}</p>
           </div>
           <div
@@ -66,15 +66,15 @@
       </div>
 
       <div
-        class="bg-white dark:bg-slate-800 rounded-lg shadow p-4 border border-gray-200 dark:border-slate-700">
+        class="bg-white dark:bg-secondary-800 rounded-lg shadow p-4 border border-primary-200 dark:border-secondary-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('总权重') }}</p>
-            <p class="text-2xl font-bold text-purple-600 dark:text-purple-400">{{ totalWeight }}</p>
+            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('总权重') }}</p>
+            <p class="text-2xl font-bold text-secondary-600 dark:text-secondary-400">{{ totalWeight }}</p>
           </div>
           <div
-            class="w-12 h-12 bg-purple-100 dark:bg-purple-900/20 rounded-lg flex items-center justify-center">
-            <i class="pi pi-balance-scale text-purple-600 dark:text-purple-400 text-xl"></i>
+            class="w-12 h-12 bg-secondary-100 dark:bg-secondary-900/20 rounded-lg flex items-center justify-center">
+            <i class="pi pi-balance-scale text-secondary-600 dark:text-secondary-400 text-xl"></i>
           </div>
         </div>
       </div>
@@ -82,7 +82,7 @@
 
     <!-- AI模型表格 -->
     <div
-      class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700">
+      class="bg-white dark:bg-secondary-800 rounded-lg shadow border border-primary-200 dark:border-secondary-700">
       <DataTable
         :data="filteredModels"
         :loading="isLoading"
@@ -95,9 +95,9 @@
 
     <!-- 模型统计图表 -->
     <div
-      class="bg-white dark:bg-slate-800 rounded-lg shadow border border-gray-200 dark:border-slate-700 p-6">
+      class="bg-white dark:bg-secondary-800 rounded-lg shadow border border-primary-200 dark:border-secondary-700 p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-semibold text-gray-800 dark:text-white">{{ t('模型使用统计') }}</h2>
+        <h2 class="text-xl font-semibold text-primary-800 dark:text-white">{{ t('模型使用统计') }}</h2>
         <Button
           :label="t('刷新统计')"
           icon="pi pi-refresh"
@@ -236,14 +236,14 @@
       title: t('模型标识'),
       width: '150px',
       render: (row: any) =>
-        h('code', { class: 'text-sm bg-gray-100 dark:bg-slate-700 px-2 py-1 rounded' }, row.model),
+        h('code', { class: 'text-sm bg-primary-100 dark:bg-secondary-700 px-2 py-1 rounded' }, row.model),
     },
     {
       key: 'baseUrl',
       title: t('API地址'),
       width: '200px',
       render: (row: any) =>
-        h('div', { class: 'text-sm text-gray-600 dark:text-gray-400 truncate', title: row.baseUrl }, row.baseUrl),
+        h('div', { class: 'text-sm text-primary-600 dark:text-primary-400 truncate', title: row.baseUrl }, row.baseUrl),
     },
     {
       key: 'enabled',

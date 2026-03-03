@@ -86,7 +86,7 @@ function startDrag(event: MouseEvent) {
 
 /** 滑块轨道样式类 */
 const trackClasses = computed(() => {
-  const base = 'relative h-2 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer';
+  const base = 'relative h-2 bg-primary-200 dark:bg-primary-800 rounded-full cursor-pointer';
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${disabledClass}`;
@@ -99,7 +99,7 @@ const fillStyle = computed(() => ({
 
 /** 滑块拇指样式类 */
 const thumbClasses = computed(() => {
-  const base = 'absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-2 border-primary-500 rounded-full shadow-md transition-transform duration-150';
+  const base = 'absolute top-1/2 -transecondary-y-1/2 w-4 h-4 bg-primary-50 dark:bg-primary-950 border-2 border-primary-700 dark:border-primary-300 rounded-full shadow-md transition-transform duration-150';
   const hoverClass = !props.disabled ? 'hover:scale-110 active:scale-95' : '';
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
@@ -113,7 +113,7 @@ const thumbClasses = computed(() => {
     :class="trackClasses"
     @click="handleClick">
     <div
-      class="absolute h-full bg-primary-500 dark:bg-primary-400 rounded-full"
+      class="absolute h-full bg-primary-700 dark:bg-primary-300 rounded-full"
       :style="fillStyle">
       <div
         :class="thumbClasses"

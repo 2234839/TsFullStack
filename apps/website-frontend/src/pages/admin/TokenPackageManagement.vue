@@ -283,10 +283,10 @@ onMounted(() => {
     <!-- 页面头部 -->
     <div class="mb-8 flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+        <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
           代币套餐管理
         </h1>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">
+        <p class="mt-2 text-primary-600 dark:text-primary-400">
           管理用户的代币套餐和订阅
         </p>
       </div>
@@ -300,19 +300,19 @@ onMounted(() => {
     </div>
 
     <!-- 套餐列表 -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
       <!-- 加载中 -->
       <div v-if="isLoading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">加载中...</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
       </div>
 
       <!-- 空状态 -->
       <div v-else-if="packages.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">暂无套餐</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无套餐</p>
       </div>
 
       <!-- 套餐卡片 -->
@@ -321,17 +321,17 @@ onMounted(() => {
           <div
             v-for="pkg in packages"
             :key="pkg.id"
-            class="border border-gray-200 dark:border-gray-700 rounded-lg p-6 hover:shadow-lg transition-shadow"
+            class="border border-primary-200 dark:border-primary-700 rounded-lg p-6 hover:shadow-lg transition-shadow"
             :class="{ 'opacity-50': !pkg.active }"
           >
             <!-- 套餐头部 -->
             <div class="flex justify-between items-start mb-4">
-              <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              <h3 class="text-xl font-semibold text-primary-900 dark:text-primary-100">
                 {{ pkg.name }}
               </h3>
               <span
                 class="px-2 py-1 text-xs rounded"
-                :class="pkg.active ? 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'"
+                :class="pkg.active ? 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200' : 'bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-primary-300'"
               >
                 {{ pkg.active ? '已启用' : '已停用' }}
               </span>
@@ -340,31 +340,31 @@ onMounted(() => {
             <!-- 套餐信息 -->
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">类型:</span>
-                <span class="font-medium text-gray-900 dark:text-gray-100">
+                <span class="text-primary-600 dark:text-primary-400">类型:</span>
+                <span class="font-medium text-primary-900 dark:text-primary-100">
                   {{ getTypeLabel(pkg.type) }}
                 </span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">代币数量:</span>
-                <span class="font-medium text-gray-900 dark:text-gray-100">{{ pkg.amount }} 枚</span>
+                <span class="text-primary-600 dark:text-primary-400">代币数量:</span>
+                <span class="font-medium text-primary-900 dark:text-primary-100">{{ pkg.amount }} 枚</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">价格:</span>
-                <span class="font-medium text-gray-900 dark:text-gray-100">
+                <span class="text-primary-600 dark:text-primary-400">价格:</span>
+                <span class="font-medium text-primary-900 dark:text-primary-100">
                   {{ formatPrice(pkg.price) }}
                 </span>
               </div>
               <div class="flex justify-between">
-                <span class="text-gray-600 dark:text-gray-400">时长:</span>
-                <span class="font-medium text-gray-900 dark:text-gray-100">
+                <span class="text-primary-600 dark:text-primary-400">时长:</span>
+                <span class="font-medium text-primary-900 dark:text-primary-100">
                   {{ pkg.durationMonths > 0 ? `${pkg.durationMonths} 个月` : '永久' }}
                 </span>
               </div>
             </div>
 
             <!-- 描述 -->
-            <p v-if="pkg.description" class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+            <p v-if="pkg.description" class="mt-4 text-sm text-primary-600 dark:text-primary-400">
               {{ pkg.description }}
             </p>
 
@@ -372,7 +372,7 @@ onMounted(() => {
             <div class="mt-6 flex gap-2">
               <button
                 type="button"
-                class="flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                class="flex-1 px-3 py-2 text-sm bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
                 @click="openEditDialog(pkg)"
               >
                 编辑
@@ -396,7 +396,7 @@ onMounted(() => {
         </div>
 
         <!-- 分页 -->
-        <div v-if="packagesTotal > 0" class="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <div v-if="packagesTotal > 0" class="mt-6 pt-4 border-t border-primary-200 dark:border-primary-700">
           <Paginator
             :rows="packagesTotal"
             :rows-per-page="packagesPageSize"
@@ -416,32 +416,32 @@ onMounted(() => {
     >
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             套餐名称 *
           </label>
           <input
             v-model="formData.name"
             type="text"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             placeholder="例如：基础套餐"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             套餐描述
           </label>
           <textarea
             v-model="formData.description"
             rows="3"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             placeholder="描述套餐的特点和适用人群"
           />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               代币类型 *
             </label>
             <Select
@@ -452,55 +452,55 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               代币数量 *
             </label>
             <input
               v-model.number="formData.amount"
               type="number"
               min="1"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             />
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               价格（分）
             </label>
             <input
               v-model.number="formData.price"
               type="number"
               min="0"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
               placeholder="0 表示免费"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               时长（月）
             </label>
             <input
               v-model.number="formData.durationMonths"
               type="number"
               min="0"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
               placeholder="0 表示永久"
             />
           </div>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             排序顺序
           </label>
           <input
             v-model.number="formData.sortOrder"
             type="number"
             min="0"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
           />
         </div>
       </div>
@@ -509,7 +509,7 @@ onMounted(() => {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
             @click="showCreateDialog = false"
           >
             取消
@@ -533,30 +533,30 @@ onMounted(() => {
     >
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             套餐名称 *
           </label>
           <input
             v-model="formData.name"
             type="text"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
           />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             套餐描述
           </label>
           <textarea
             v-model="formData.description"
             rows="3"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
           />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               代币类型 *
             </label>
             <Select
@@ -567,54 +567,54 @@ onMounted(() => {
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               代币数量 *
             </label>
             <input
               v-model.number="formData.amount"
               type="number"
               min="1"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             />
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               价格（分）
             </label>
             <input
               v-model.number="formData.price"
               type="number"
               min="0"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             />
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               时长（月）
             </label>
             <input
               v-model.number="formData.durationMonths"
               type="number"
               min="0"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             />
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               排序顺序
             </label>
             <input
               v-model.number="formData.sortOrder"
               type="number"
               min="0"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             />
           </div>
 
@@ -625,7 +625,7 @@ onMounted(() => {
                 type="checkbox"
                 class="mr-2"
               />
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">启用套餐</span>
+              <span class="text-sm font-medium text-primary-700 dark:text-primary-300">启用套餐</span>
             </label>
           </div>
         </div>
@@ -635,7 +635,7 @@ onMounted(() => {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
             @click="showEditDialog = false"
           >
             取消

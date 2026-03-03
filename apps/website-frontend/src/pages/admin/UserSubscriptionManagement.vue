@@ -337,10 +337,10 @@ onMounted(() => {
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+      <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
         用户订阅管理
       </h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">
+      <p class="mt-2 text-primary-600 dark:text-primary-400">
         管理用户的套餐订阅，自动发放代币
       </p>
     </div>
@@ -357,9 +357,9 @@ onMounted(() => {
     </div>
 
     <!-- 订阅列表 -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+    <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
+        <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-100">
           用户订阅列表
         </h2>
       </div>
@@ -367,29 +367,29 @@ onMounted(() => {
       <!-- 加载中 -->
       <div v-if="isLoading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">加载中...</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
       </div>
 
       <!-- 空状态 -->
       <div v-else-if="subscriptions.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
         </svg>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">暂无订阅记录</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无订阅记录</p>
       </div>
 
       <!-- 订阅列表 -->
-      <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div v-else class="divide-y divide-primary-200 dark:divide-primary-700">
         <div
           v-for="sub in subscriptions"
           :key="sub.id"
-          class="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          class="px-6 py-4 hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
               <div class="flex items-center gap-3 mb-2">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+                <h3 class="text-lg font-medium text-primary-900 dark:text-primary-100">
                   {{ sub.user.email }}
                 </h3>
                 <span
@@ -407,7 +407,7 @@ onMounted(() => {
                 </span>
               </div>
 
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600 dark:text-gray-400">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-primary-600 dark:text-primary-400">
                 <div>
                   <span class="font-medium">套餐：</span>
                   <span>{{ sub.package.name }}（{{ sub.package.amount }} 代币）</span>
@@ -442,7 +442,7 @@ onMounted(() => {
               >
                 取消订阅
               </Button>
-              <div v-else class="text-sm text-gray-500 dark:text-gray-400">
+              <div v-else class="text-sm text-primary-500 dark:text-primary-400">
                 已取消
               </div>
             </div>
@@ -451,7 +451,7 @@ onMounted(() => {
       </div>
 
       <!-- 分页 -->
-      <div v-if="subscriptionsTotal > 0" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+      <div v-if="subscriptionsTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
         <Paginator
           :rows="subscriptionsTotal"
           :rows-per-page="subscriptionsPageSize"
@@ -467,7 +467,7 @@ onMounted(() => {
     <Dialog v-model:open="showSubscribeDialog" title="添加订阅">
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             选择用户 *
           </label>
           <RemoteSelect
@@ -479,7 +479,7 @@ onMounted(() => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             选择套餐 *
           </label>
           <RemoteSelect
@@ -507,7 +507,7 @@ onMounted(() => {
         <div class="flex justify-end gap-2">
           <button
             type="button"
-            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
             @click="showSubscribeDialog = false"
           >
             取消

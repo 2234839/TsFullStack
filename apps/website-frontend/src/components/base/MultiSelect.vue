@@ -101,11 +101,11 @@ const containerClasses = computed(() => {
 
 /** 触发按钮样式类 */
 const triggerClasses = computed(() => {
-  const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 bg-white dark:bg-gray-800 min-h-[42px] flex items-center justify-between cursor-pointer';
+  const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer';
 
   const stateClasses = props.invalid
-    ? 'border-danger-500 focus:ring-red-500 dark:border-danger-400'
-    : 'border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-blue-400';
+    ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
+    : 'border-primary-200 dark:border-primary-700 focus:ring-primary-500 dark:focus:ring-primary-400';
 
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
@@ -114,7 +114,7 @@ const triggerClasses = computed(() => {
 
 /** 下拉面板样式 */
 const dropdownClasses = computed(() => {
-  const base = 'absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto';
+  const base = 'absolute z-50 w-full mt-1 bg-white dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-lg max-h-60 overflow-y-auto';
   return base;
 });
 </script>
@@ -125,10 +125,10 @@ const dropdownClasses = computed(() => {
     <div
       :class="triggerClasses"
       @click="toggleDropdown">
-      <span class="flex-1 truncate text-gray-900 dark:text-gray-100">
+      <span class="flex-1 truncate text-primary-900 dark:text-primary-100">
         {{ displayLabel }}
       </span>
-      <span class="ml-2 text-gray-400">
+      <span class="ml-2 text-primary-400">
         <svg
           class="w-4 h-4 transition-transform duration-200"
           :class="{ 'rotate-180': isOpen }"
@@ -158,7 +158,7 @@ const dropdownClasses = computed(() => {
         <div
           v-for="(option, index) in options"
           :key="index"
-          class="flex items-center px-3 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          class="flex items-center px-3 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-700 transition-colors"
           :class="{ 'opacity-50 cursor-not-allowed': option.disabled }"
           @click="handleOptionClick(option)">
           <div class="flex items-center flex-1">
@@ -166,18 +166,18 @@ const dropdownClasses = computed(() => {
             <div class="w-4 h-4 border rounded mr-3 flex items-center justify-center shrink-0"
                  :class="isSelected(option)
                    ? 'bg-primary-500 border-primary-500'
-                   : 'border-gray-300 dark:border-gray-600'">
+                   : 'border-primary-200 dark:border-primary-700'">
               <svg v-if="isSelected(option)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <!-- 标签 -->
-            <span class="text-sm text-gray-700 dark:text-gray-200">{{ option.label }}</span>
+            <span class="text-sm text-primary-700 dark:text-primary-200">{{ option.label }}</span>
           </div>
         </div>
         <div
           v-if="options.length === 0"
-          class="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 text-center">
+          class="px-3 py-2 text-sm text-primary-500 dark:text-primary-400 text-center">
           没有可用选项
         </div>
       </div>

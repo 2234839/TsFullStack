@@ -170,7 +170,7 @@ function getSortIcon(column: ColumnDef<T>) {
 <template>
   <div class="data-table-container">
     <table class="border-collapse w-full">
-      <thead class="bg-gray-50 dark:bg-gray-800">
+      <thead class="bg-primary-50 dark:bg-primary-900">
         <tr>
           <!-- 选择列 -->
           <th v-if="selectable" :class="[sizeConfig[size].header, 'w-12 text-center']">
@@ -179,7 +179,7 @@ function getSortIcon(column: ColumnDef<T>) {
               :checked="isAllSelected"
               :indeterminate="isSomeSelected"
               @change="handleSelectAll"
-              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="h-4 w-4 rounded border-primary-300 text-primary-700 focus:ring-primary-600"
             />
           </th>
           <!-- 数据列 -->
@@ -188,24 +188,24 @@ function getSortIcon(column: ColumnDef<T>) {
             :key="column.key"
             :class="[
               sizeConfig[size].header,
-              'text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider',
-              { 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700': column.sortable }
+              'text-left text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-wider',
+              { 'cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800': column.sortable }
             ]"
             :style="{ width: typeof column.width === 'number' ? `${column.width}px` : column.width }"
             @click="column.sortable ? handleSort(column) : null">
             <div class="flex items-center gap-2">
               {{ column.title }}
-              <span v-if="column.sortable" class="text-gray-400">
+              <span v-if="column.sortable" class="text-primary-500">
                 {{ getSortIcon(column) }}
               </span>
             </div>
           </th>
         </tr>
       </thead>
-      <tbody class="bg-white dark:bg-gray-900">
+      <tbody class="bg-primary-50 dark:bg-primary-950">
         <!-- 加载状态 -->
         <tr v-if="loading">
-          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-600 dark:text-primary-400">
             <div class="flex justify-center">
               <ProgressSpinner />
             </div>
@@ -213,7 +213,7 @@ function getSortIcon(column: ColumnDef<T>) {
         </tr>
         <!-- 空数据 -->
         <tr v-else-if="sortedData.length === 0">
-          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-gray-500 dark:text-gray-400">
+          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-600 dark:text-primary-400">
             {{ emptyText }}
           </td>
         </tr>
@@ -223,10 +223,10 @@ function getSortIcon(column: ColumnDef<T>) {
           v-for="(row, rowIndex) in sortedData"
           :key="row[rowKey] || rowIndex"
           :class="[
-            'border-b border-gray-200 dark:border-gray-700 transition-colors',
+            'border-b border-primary-200 dark:border-primary-700 transition-colors',
             {
-              'bg-gray-50 dark:bg-gray-800/50': striped && rowIndex % 2 === 0,
-              'hover:bg-gray-100 dark:hover:bg-gray-800': selectable,
+              'bg-primary-100 dark:bg-primary-900/50': striped && rowIndex % 2 === 0,
+              'hover:bg-primary-200 dark:hover:bg-primary-800': selectable,
               'border': bordered,
             }
           ]">
@@ -236,7 +236,7 @@ function getSortIcon(column: ColumnDef<T>) {
               type="checkbox"
               :checked="isSelected(row)"
               @change="() => handleRowSelect(row)"
-              class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              class="h-4 w-4 rounded border-primary-300 text-primary-700 focus:ring-primary-600"
             />
           </td>
           <!-- 数据单元格 -->
@@ -280,40 +280,40 @@ function getSortIcon(column: ColumnDef<T>) {
 }
 
 .data-table-container::-webkit-scrollbar-track {
-  background: rgb(243 244 246);
+  background: rgb(250 250 250);
   border-radius: 5px;
 }
 
 .data-table-container::-webkit-scrollbar-thumb {
-  background: rgb(203 213 225);
+  background: rgb(200 200 200);
   border-radius: 5px;
   transition: background-color 150ms ease-out;
 }
 
 .data-table-container::-webkit-scrollbar-thumb:hover {
-  background: rgb(148 163 184);
+  background: rgb(163 163 163);
 }
 
 /** 暗色模式支持 */
 .dark .data-table-container::-webkit-scrollbar-track {
-  background: rgb(31 41 55);
+  background: rgb(30 30 30);
 }
 
 .dark .data-table-container::-webkit-scrollbar-thumb {
-  background: rgb(71 85 105);
+  background: rgb(80 80 80);
 }
 
 .dark .data-table-container::-webkit-scrollbar-thumb:hover {
-  background: rgb(100 116 139);
+  background: rgb(113 113 113);
 }
 
 /** Firefox 滚动条样式 */
 .data-table-container {
   scrollbar-width: thin;
-  scrollbar-color: rgb(203 213 225) rgb(243 244 246);
+  scrollbar-color: rgb(200 200 200) rgb(250 250 250);
 }
 
 .dark .data-table-container {
-  scrollbar-color: rgb(71 85 105) rgb(31 41 55);
+  scrollbar-color: rgb(80 80 80) rgb(30 30 30);
 }
 </style>

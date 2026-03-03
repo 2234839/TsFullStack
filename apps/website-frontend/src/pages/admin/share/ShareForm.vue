@@ -5,12 +5,12 @@
   <Dialog v-model:open="localVisible" :title="dialogTitle">
     <div class="flex flex-col gap-4">
       <input v-model="formData.title" type="text"
-        class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white transition-all"
+        class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-info-500 dark:bg-primary-800 dark:text-white transition-all"
         :placeholder="t('请输入标题')" />
 
       <!-- 文件上传区域 -->
       <div
-        class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-gray-50 dark:bg-gray-800 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+        class="border-2 border-dashed border-primary-300 dark:border-primary-600 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-primary-50 dark:bg-primary-800 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
         @click="triggerFileInput" @dragover.prevent="handleDragOver" @dragleave.prevent="handleDragLeave"
         @drop.prevent="handleDrop">
         <input ref="fileInputRef" type="file" multiple @change="onFileSelect" class="hidden"
@@ -18,22 +18,22 @@
         <div class="text-primary-500 mb-4 flex justify-center">
           <i class="pi pi-cloud-upload text-5xl"></i>
         </div>
-        <div class="text-sm text-gray-600 dark:text-gray-400 mb-1">{{ t('点击或拖拽文件到此处上传') }}</div>
-        <div class="text-xs text-gray-500 dark:text-gray-500">{{ t('支持多个文件同时上传') }}</div>
+        <div class="text-sm text-primary-600 dark:text-primary-400 mb-1">{{ t('点击或拖拽文件到此处上传') }}</div>
+        <div class="text-xs text-primary-500 dark:text-primary-500">{{ t('支持多个文件同时上传') }}</div>
       </div>
 
       <!-- 已选择的文件列表 -->
       <div v-if="selectedFiles.length > 0">
-        <div class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{ t('已选择的文件') }}</div>
+        <div class="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-3">{{ t('已选择的文件') }}</div>
         <div v-for="(file, index) in selectedFiles" :key="index"
-          class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg mb-2 last:mb-0 hover:bg-gray-100 dark:hover:bg-gray-750 hover:border-gray-300 dark:hover:border-gray-600 transition-all">
-          <div class="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300 min-w-0 flex-1">
-            <i class="pi pi-file text-xl shrink-0 text-gray-500"></i>
+          class="flex items-center justify-between p-3 bg-primary-50 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 rounded-lg mb-2 last:mb-0 hover:bg-primary-100 dark:hover:bg-primary-750 hover:border-primary-300 dark:hover:border-primary-600 transition-all">
+          <div class="flex items-center gap-3 text-sm text-primary-700 dark:text-primary-300 min-w-0 flex-1">
+            <i class="pi pi-file text-xl shrink-0 text-primary-500"></i>
             <span class="truncate flex-1">{{ file.name }}</span>
-            <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0 ml-2">{{ formatFileSize(file.size) }}</span>
+            <span class="text-xs text-primary-500 dark:text-primary-400 shrink-0 ml-2">{{ formatFileSize(file.size) }}</span>
           </div>
           <button
-            class="p-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-danger-100 dark:hover:bg-danger-900/20 hover:text-danger-600 dark:hover:text-danger-400 transition-all"
+            class="p-2 rounded-md text-primary-500 dark:text-primary-400 hover:bg-danger-100 dark:hover:bg-danger-900/20 hover:text-danger-600 dark:hover:text-danger-400 transition-all"
             @click="removeSelectedFile(index)" :aria-label="t('移除文件')">
             <i class="pi pi-times"></i>
           </button>
@@ -42,27 +42,27 @@
 
       <!-- 已上传的文件列表 -->
       <div v-if="uploadedFiles.length > 0">
-        <div class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{{ t('已上传的文件') }}</div>
+        <div class="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-3">{{ t('已上传的文件') }}</div>
         <div v-for="file in uploadedFiles" :key="file.id"
           class="flex items-center justify-between p-3 rounded-lg mb-2 last:mb-0 transition-all"
           :class="isFileMarkedForDeletion(file.id)
-            ? 'bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 opacity-60'
-            : 'bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600'">
+            ? 'bg-primary-100 dark:bg-primary-900 border border-primary-300 dark:border-primary-600 opacity-60'
+            : 'bg-primary-50 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-700 hover:border-primary-300 dark:hover:border-primary-600'">
           <div class="flex items-center gap-3 text-sm min-w-0 flex-1" :class="isFileMarkedForDeletion(file.id)
-              ? 'text-gray-500 dark:text-gray-500 line-through'
-              : 'text-gray-700 dark:text-gray-300'">
+              ? 'text-primary-500 dark:text-primary-500 line-through'
+              : 'text-primary-700 dark:text-primary-300'">
             <i class="pi pi-file text-xl shrink-0" :class="isFileMarkedForDeletion(file.id)
-                ? 'text-gray-400 dark:text-gray-600'
-                : 'text-gray-500 dark:text-gray-400'"></i>
+                ? 'text-primary-400 dark:text-primary-600'
+                : 'text-primary-500 dark:text-primary-400'"></i>
             <span class="truncate flex-1">{{ file.filename }}</span>
             <span class="text-xs shrink-0 ml-2" :class="isFileMarkedForDeletion(file.id)
-                ? 'text-gray-400 dark:text-gray-600'
-                : 'text-gray-500 dark:text-gray-400'">{{ formatFileSize(file.size || 0) }}</span>
+                ? 'text-primary-400 dark:text-primary-600'
+                : 'text-primary-500 dark:text-primary-400'">{{ formatFileSize(file.size || 0) }}</span>
           </div>
           <button type="button" class="px-3 py-2 rounded-md text-sm font-medium transition-all"
             :class="isFileMarkedForDeletion(file.id)
               ? 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
-              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200'"
+              : 'text-primary-500 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-700 hover:text-primary-700 dark:hover:text-primary-200'"
             @click="isFileMarkedForDeletion(file.id) ? undoRemoveFile(file.id) : removeUploadedFile(file.id)"
             :aria-label="isFileMarkedForDeletion(file.id) ? t('撤销删除') : t('移除文件')">
             {{ isFileMarkedForDeletion(file.id) ? t('撤销') : '' }}
@@ -75,7 +75,7 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <button type="button"
-          class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          class="px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-700 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
           @click="close">
           {{ t('取消') }}
         </button>

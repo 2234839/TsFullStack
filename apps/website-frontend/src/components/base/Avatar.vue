@@ -36,7 +36,7 @@ const avatarClasses = computed(() => {
 
   const disabledClass = props.disabled ? 'opacity-50' : '';
 
-  return `${sizeClasses[props.size]} ${shapeClass} ${disabledClass} overflow-hidden bg-gray-200 dark:bg-gray-700`;
+  return `${sizeClasses[props.size]} ${shapeClass} ${disabledClass} overflow-hidden bg-primary-200 dark:bg-primary-800`;
 });
 
 /** 图片样式 */
@@ -52,7 +52,7 @@ const imageClasses = 'w-full h-full object-cover';
       :class="imageClasses" />
     <span
       v-else-if="label"
-      class="flex items-center justify-center w-full h-full text-sm font-medium text-gray-600 dark:text-gray-400">
+      class="flex items-center justify-center w-full h-full text-sm font-medium text-primary-600 dark:text-primary-400">
       {{ label.charAt(0).toUpperCase() }}
     </span>
     <slot />

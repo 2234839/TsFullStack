@@ -396,7 +396,7 @@ onMounted(() => {
 <template>
   <div class="upload-list-container p-4">
     <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ t('文件管理') }}</h1>
+      <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-100">{{ t('文件管理') }}</h1>
       <Button :label="t('上传文件')" icon="pi pi-upload" variant="primary" @click="showUploadDialog" />
     </div>
 

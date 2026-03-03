@@ -161,13 +161,13 @@ function getStatusBadgeClass(status: string): string {
   const baseClass = 'px-2 py-1 text-xs rounded ';
   switch (status) {
     case 'completed':
-      return baseClass + 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
+      return baseClass + 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200';
     case 'pending':
-      return baseClass + 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200';
+      return baseClass + 'bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200';
     case 'failed':
-      return baseClass + 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+      return baseClass + 'bg-danger-100 text-danger-800 dark:bg-danger-900 dark:text-danger-200';
     default:
-      return baseClass + 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+      return baseClass + 'bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-primary-300';
   }
 }
 
@@ -181,10 +181,10 @@ onMounted(() => {
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">
+      <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
         资源库
       </h1>
-      <p class="mt-2 text-gray-600 dark:text-gray-400">
+      <p class="mt-2 text-primary-600 dark:text-primary-400">
         管理你的 AI 生成资源
       </p>
     </div>
@@ -192,7 +192,7 @@ onMounted(() => {
     <!-- 筛选器 -->
     <div class="mb-6 flex flex-wrap gap-4">
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
           状态
         </label>
         <Select
@@ -203,7 +203,7 @@ onMounted(() => {
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
           类型
         </label>
         <Select
@@ -215,9 +215,9 @@ onMounted(() => {
     </div>
 
     <!-- 资源列表 -->
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow">
+    <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
       <!-- 表格头部 -->
-      <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-gray-200 dark:border-gray-700 font-medium text-sm text-gray-700 dark:text-gray-300">
+      <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-primary-200 dark:border-primary-700 font-medium text-sm text-primary-700 dark:text-primary-300">
         <div class="col-span-1">预览</div>
         <div class="col-span-3">标题</div>
         <div class="col-span-2">类型</div>
@@ -229,15 +229,15 @@ onMounted(() => {
       <!-- 加载中 -->
       <div v-if="isLoading && filteredResources.length === 0" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">加载中...</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
       </div>
 
       <!-- 空状态 -->
       <div v-else-if="filteredResources.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">暂无资源</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无资源</p>
       </div>
 
       <!-- 资源列表 -->
@@ -245,25 +245,25 @@ onMounted(() => {
         <div
           v-for="resource in filteredResources"
           :key="resource.id"
-          class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-primary-200 dark:border-primary-700 hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors"
         >
           <!-- 预览 -->
           <div class="col-span-1">
-            <div v-if="resource.type === 'IMAGE'" class="w-12 h-12 rounded bg-gray-100 dark:bg-gray-600 overflow-hidden">
+            <div v-if="resource.type === 'IMAGE'" class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 overflow-hidden">
               <img
                 v-if="resource.file || hasExternalUrl(resource)"
                 :src="getImageUrl(resource)"
                 :alt="resource.title"
                 class="w-full h-full object-cover"
               />
-              <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
+              <div v-else class="w-full h-full flex items-center justify-center text-primary-400">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
             </div>
-            <div v-else class="w-12 h-12 rounded bg-gray-100 dark:bg-gray-600 flex items-center justify-center">
-              <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div v-else class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 flex items-center justify-center">
+              <svg class="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
             </div>
@@ -271,14 +271,14 @@ onMounted(() => {
 
           <!-- 标题 -->
           <div class="col-span-3 flex items-center">
-            <span class="text-gray-900 dark:text-gray-100 truncate">
+            <span class="text-primary-900 dark:text-primary-100 truncate">
               {{ resource.title }}
             </span>
           </div>
 
           <!-- 类型 -->
           <div class="col-span-2 flex items-center">
-            <span class="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+            <span class="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded">
               {{ resource.type }}
             </span>
           </div>
@@ -291,7 +291,7 @@ onMounted(() => {
           </div>
 
           <!-- 创建时间 -->
-          <div class="col-span-2 flex items-center text-sm text-gray-600 dark:text-gray-400">
+          <div class="col-span-2 flex items-center text-sm text-primary-600 dark:text-primary-400">
             {{ formatDate(resource.created) }}
           </div>
 
@@ -309,10 +309,10 @@ onMounted(() => {
       </div>
 
       <!-- 加载更多 -->
-      <div v-if="!hasLoadedAll && filteredResources.length > 0" class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+      <div v-if="!hasLoadedAll && filteredResources.length > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
         <button
           type="button"
-          class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+          class="w-full px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors disabled:opacity-50"
           :disabled="isLoading"
           @click="loadResources()"
         >
@@ -333,41 +333,41 @@ onMounted(() => {
         <img
           :src="getImageUrl(selectedResource)"
           :alt="selectedResource.title"
-          class="w-3/4 mx-auto rounded-lg border border-gray-200 dark:border-gray-700"
+          class="w-3/4 mx-auto rounded-lg border border-primary-200 dark:border-primary-700"
         />
       </div>
 
       <!-- 信息 -->
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             标题
           </label>
-          <p class="text-gray-900 dark:text-gray-100">
+          <p class="text-primary-900 dark:text-primary-100">
             {{ selectedResource.title }}
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             描述
           </label>
-          <p class="text-gray-600 dark:text-gray-400">
+          <p class="text-primary-600 dark:text-primary-400">
             {{ selectedResource.description || '无' }}
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             类型
           </label>
-          <p class="text-gray-900 dark:text-gray-100">
+          <p class="text-primary-900 dark:text-primary-100">
             {{ selectedResource.type }}
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             状态
           </label>
           <span :class="getStatusBadgeClass(selectedResource.status)">
@@ -376,19 +376,19 @@ onMounted(() => {
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             创建时间
           </label>
-          <p class="text-gray-600 dark:text-gray-400">
+          <p class="text-primary-600 dark:text-primary-400">
             {{ formatDate(selectedResource.created) }}
           </p>
         </div>
 
         <div v-if="selectedResource.metadata">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             元数据
           </label>
-          <pre class="bg-gray-100 dark:bg-gray-900 p-3 rounded text-xs overflow-auto max-h-40">{{ JSON.stringify(selectedResource.metadata, null, 2) }}</pre>
+          <pre class="bg-primary-100 dark:bg-primary-900 p-3 rounded text-xs overflow-auto max-h-40">{{ JSON.stringify(selectedResource.metadata, null, 2) }}</pre>
         </div>
       </div>
     </Dialog>

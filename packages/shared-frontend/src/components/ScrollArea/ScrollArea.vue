@@ -164,35 +164,35 @@ const containerStyle = computed<CSSProperties>(() => {
 
 /** 滚动条滑块 - 亮色模式 */
 .scroll-area-thumb {
-  background-color: rgb(148 163 184 / 0.9);
+  background-color: rgb(161 161 170 / 0.6);
   border-radius: 4px;
   transition: background-color 150ms ease-out;
 }
 
 /** 滚动条滑块悬停 - 亮色模式 */
 .scroll-area-thumb:hover {
-  background-color: rgb(100 116 139 / 1);
+  background-color: rgb(120 113 108 / 0.8);
 }
 
 /** 滚动条滑块 - 暗色模式 */
 @media (prefers-color-scheme: dark) {
   .scroll-area-thumb {
-    background-color: rgb(71 85 105 / 0.8);
+    background-color: rgb(113 113 122 / 0.5);
   }
 
   .scroll-area-thumb:hover {
-    background-color: rgb(100 116 139 / 0.9);
+    background-color: rgb(161 161 170 / 0.7);
   }
 }
 
 /** Tailwind dark mode 支持 */
 @layer base {
   .dark .scroll-area-thumb {
-    background-color: rgb(71 85 105 / 0.8);
+    background-color: rgb(113 113 122 / 0.5);
   }
 
   .dark .scroll-area-thumb:hover {
-    background-color: rgb(100 116 139 / 0.9);
+    background-color: rgb(161 161 170 / 0.7);
   }
 }
 

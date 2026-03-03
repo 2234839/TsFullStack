@@ -25,12 +25,12 @@ withDefaults(defineProps<Props>(), {
       'justify-center': align === 'center',
       'justify-end': align === 'right',
     }">
-    <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
-    <span v-if="$slots.default" class="shrink-0 mx-4 text-gray-500 dark:text-gray-400">
+    <div class="flex-grow border-t border-primary-300 dark:border-primary-700"></div>
+    <span v-if="$slots.default" class="shrink-0 mx-4 text-primary-500 dark:text-primary-400">
       <slot />
     </span>
-    <div class="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+    <div class="flex-grow border-t border-primary-300 dark:border-primary-700"></div>
   </div>
 
-  <div v-else class="h-full border-l border-gray-300 dark:border-gray-600"></div>
+  <div v-else class="h-full border-l border-primary-300 dark:border-primary-700"></div>
 </template>

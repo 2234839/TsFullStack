@@ -117,11 +117,11 @@ defineExpose({
 <style>
 /**
  * Popover 内容区域样式
- * 使用深色背景和白色文字
+ * 使用语义化 Noir 配色系统
  * 添加平滑的动画效果
  */
 .ui-popover-content {
-  background-color: rgb(255, 255, 255);
+  background-color: rgb(250, 250, 250);
   border-radius: 8px;
   padding: 12px;
   box-shadow: 0 10px 38px rgba(0, 0, 0, 0.35);
@@ -166,14 +166,14 @@ defineExpose({
   justify-content: center;
   cursor: pointer;
   font-size: 16px;
-  color: rgb(156, 163, 175);
+  color: rgb(120, 113, 108);
   border-radius: 9999px;
   transition: all 0.2s;
 }
 
 .ui-popover-close-icon:hover {
-  background-color: rgb(243, 244, 246);
-  color: rgb(55, 65, 81);
+  background-color: rgb(234, 234, 234);
+  color: rgb(87, 83, 78);
 }
 
 /**
@@ -181,7 +181,7 @@ defineExpose({
  * 匹配内容区域的背景色
  */
 .ui-popover-arrow {
-  fill: rgb(255, 255, 255);
+  fill: rgb(250, 250, 250);
 }
 
 /**
@@ -241,22 +241,22 @@ defineExpose({
 }
 
 /**
- * 支持深色模式
+ * 支持暗色模式
  */
 .dark .ui-popover-content {
-  background-color: rgb(31, 41, 55);
+  background-color: rgb(9, 9, 11);
 }
 
 .dark .ui-popover-arrow {
-  fill: rgb(31, 41, 55);
+  fill: rgb(9, 9, 11);
 }
 
 .dark .ui-popover-close-icon {
-  color: rgb(156, 163, 175);
+  color: rgb(161, 161, 170);
 }
 
 .dark .ui-popover-close-icon:hover {
-  background-color: rgb(55, 65, 81);
-  color: rgb(229, 231, 235);
+  background-color: rgb(39, 39, 42);
+  color: rgb(228, 228, 231);
 }
 </style>
