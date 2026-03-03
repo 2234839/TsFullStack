@@ -25,8 +25,7 @@
                 <Tooltip :content="t('AI配置')" side="left">
                   <Button
                     icon="pi pi-cog"
-                    variant="secondary"
-                    text
+                    variant="icon"
                     rounded
                     @click="showConfigPanel = true" />
                 </Tooltip>
