@@ -2,10 +2,16 @@
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- 页面标题 -->
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+      <div class="mb-8 flex items-center justify-between">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
           🌳 树洞
         </h1>
+        <Button
+          label="首页"
+          icon="pi pi-home"
+          variant="secondary"
+          @click="router.push('/')"
+        />
       </div>
 
       <!-- 过滤器 -->
@@ -107,11 +113,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAPI } from '@/api';
 import { Button, Input, Message, ProgressSpinner } from '@/components/base';
 import TreeholePost from './TreeholePost.vue';
 import TreeholePostForm from './TreeholePostForm.vue';
 import { useDebounceFn } from '@vueuse/core';
+
+const router = useRouter();
 
 interface Author {
   id: string;

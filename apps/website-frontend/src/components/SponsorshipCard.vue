@@ -2,11 +2,11 @@
   <div
     ref="containerRef"
     class="sponsor-card w-full h-full min-h-0 relative overflow-hidden transition-all duration-500 ease-out hover:shadow-lg hover:shadow-gray-200/50 dark:hover:shadow-gray-800/30 cursor-pointer group"
-    :class="[isCompact ? 'rounded-lg' : 'rounded-xl']">
+    :class="[isCompact ? 'rounded-lg' : isStandard ? 'rounded-xl' : 'rounded-none']">
     <!-- 紧凑模式 - 小正方形 -->
     <div
       v-if="isCompact"
-      class="compact-layout relative w-full h-full min-h-[80px] flex flex-col items-center justify-center bg-linear-to-br from-gray-50 via-gray-100 to-gray-200 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600 border border-gray-200 dark:border-gray-600">
+      class="compact-layout relative w-full h-full min-h-[80px] flex flex-col items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
       <!-- 柔和的背景装饰 -->
       <div class="absolute inset-0 opacity-30">
         <div
@@ -32,7 +32,7 @@
     <!-- 标准模式 - 中等尺寸 -->
     <div
       v-else-if="isStandard"
-      class="standard-layout relative w-full h-full min-h-[280px] overflow-hidden bg-linear-to-br from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600">
+      class="standard-layout relative w-full h-full min-h-[280px] overflow-hidden bg-white dark:bg-gray-800">
       <!-- 柔和的装饰元素 -->
       <div class="absolute inset-0 opacity-20">
         <div class="absolute top-4 right-4 w-8 h-8 border border-gray-300/50 rounded-full"></div>
@@ -52,19 +52,6 @@
             class="standard-subtitle text-sm text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
             {{ t('您的每一份支持都是创作路上最温暖的陪伴') }}
           </p>
-        </div>
-
-        <!-- 统计信息 -->
-        <div class="progress-section flex items-center justify-center mb-4">
-          <div
-            class="progress-display bg-white/80 backdrop-blur-sm rounded-xl p-3 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700/80">
-            <div class="text-xl font-semibold mb-1 text-gray-800 dark:text-gray-200">
-              ¥{{ totalAmount }}
-            </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400">
-              {{ sponsorCount }} {{ t('位朋友支持') }}
-            </div>
-          </div>
         </div>
 
         <!-- 主要操作按钮 -->
@@ -110,7 +97,7 @@
     <!-- 展开模式 - 长条形 -->
     <div
       v-else
-      class="expanded-layout relative w-full h-full min-h-[160px] overflow-hidden bg-linear-to-r from-slate-50 via-gray-50 to-blue-50 dark:from-gray-800 dark:via-gray-700 dark:to-gray-600">
+      class="expanded-layout relative w-full h-full min-h-[160px] overflow-hidden bg-white dark:bg-gray-800">
       <!-- 柔和的装饰 -->
       <div
         class="absolute top-4 left-4 w-12 h-12 border border-gray-200/50 rounded-full opacity-30"></div>
@@ -162,20 +149,9 @@
           </div>
         </div>
 
-        <div class="expanded-right flex items-center space-x-4">
-          <!-- 统计显示 -->
-          <div
-            class="stats-card bg-white/80 backdrop-blur-sm rounded-lg p-3 text-center border border-gray-200 dark:border-gray-600 dark:bg-gray-700/80">
-            <div class="stat-value text-lg font-semibold text-gray-800 dark:text-gray-200">
-              ¥{{ totalAmount }}
-            </div>
-            <div class="stat-label text-xs text-gray-500 dark:text-gray-400">
-              {{ t('总支持') }}
-            </div>
-          </div>
-
+        <div class="expanded-right flex items-center">
           <!-- 操作按钮 -->
-          <div class="expanded-actions flex space-x-2">
+          <div class="expanded-actions flex space-x-2 mr-3">
             <button
               @click="showQRCode = true"
               class="expanded-btn font-medium px-4 py-2.5 rounded-lg bg-gray-800 text-white hover:bg-gray-700 transition-all duration-300 flex items-center text-sm shadow-sm dark:bg-gray-600 dark:hover:bg-gray-500">
