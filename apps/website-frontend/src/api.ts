@@ -67,7 +67,34 @@ export function useAPI() {
             }
           : { 'x-token-id': authInfo.value?.token ?? '' },
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          /** 检查 HTTP 状态码，处理服务器错误（502、503、504 等） */
+          if (!res.ok) {
+            /** 常见 HTTP 错误状态码的友好提示 */
+            const errorMessages: Record<number, string> = {
+              400: '请求参数错误',
+              401: '未授权，请重新登录',
+              403: '没有权限访问',
+              404: '请求的资源不存在',
+              500: '服务器内部错误',
+              502: '网关错误，服务暂时不可用',
+              503: '服务暂时不可用',
+              504: '请求超时，服务器响应时间过长',
+            };
+            const errorMessage = errorMessages[res.status] || `请求失败 (${res.status})`;
+            /** 显示错误提示 */
+            toastBus.publish({
+              variant: 'error',
+              summary: '网络错误',
+              detail: errorMessage,
+              life: 5000,
+              op: MsgError.op_msgError,
+            });
+            /** 抛出错误，让调用方能够捕获 */
+            throw new MsgError(MsgError.op_msgError, errorMessage);
+          }
+          return res.json();
+        })
         .then((r) => {
           const res = superjson.deserialize(r) as any;
           if (!res.error) {
