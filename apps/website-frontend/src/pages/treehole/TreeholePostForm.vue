@@ -62,7 +62,7 @@ import { ref, computed } from 'vue';
 import { useAPI } from '@/api';
 import { Button, Input, Textarea } from '@/components/base';
 import { useToast } from '@/composables/useToast';
-import type { PostVisibility } from '@tsfullstack/backend';
+import type { ContentVisibility } from '@tsfullstack/backend';
 import { $Enums } from '@tsfullstack/backend';
 import { authInfo } from '@/storage';
 
@@ -96,13 +96,13 @@ const isReply = computed(() => props.parentId !== null);
 const formData = ref({
   title: '',
   content: '',
-  visibility: $Enums.PostVisibility.PUBLIC as PostVisibility,
+  visibility: $Enums.ContentVisibility.PUBLIC as ContentVisibility,
 });
 
 /** 可见性选项 */
 const visibilityOptions = [
   {
-    value: $Enums.PostVisibility.DRAFT,
+    value: $Enums.ContentVisibility.DRAFT,
     label: '草稿',
     icon: 'pi pi-file',
     activeClass: 'border-primary-400 bg-primary-100 text-primary-700 dark:bg-primary-700 dark:text-primary-300',
@@ -110,7 +110,7 @@ const visibilityOptions = [
     description: '仅您可见，可随时编辑或发布',
   },
   {
-    value: $Enums.PostVisibility.PRIVATE,
+    value: $Enums.ContentVisibility.PRIVATE,
     label: '私密',
     icon: 'pi pi-eye-slash',
     activeClass: 'border-warning-500 bg-warning-50 text-warning-700 dark:bg-warning-900 dark:text-warning-300',
@@ -118,7 +118,7 @@ const visibilityOptions = [
     description: '仅您可见，永久保密',
   },
   {
-    value: $Enums.PostVisibility.MEMBERS,
+    value: $Enums.ContentVisibility.MEMBERS,
     label: '登录用户',
     icon: 'pi pi-user',
     activeClass: 'border-info-500 bg-info-50 text-info-700 dark:bg-info-900 dark:text-info-300',
@@ -126,7 +126,7 @@ const visibilityOptions = [
     description: '所有登录用户可见',
   },
   {
-    value: $Enums.PostVisibility.PUBLIC,
+    value: $Enums.ContentVisibility.PUBLIC,
     label: '公开',
     icon: 'pi pi-globe',
     activeClass: 'border-success-500 bg-success-50 text-success-700 dark:bg-success-900 dark:text-success-300',
@@ -192,7 +192,7 @@ async function handleSubmit() {
     formData.value = {
       title: '',
       content: '',
-      visibility: $Enums.PostVisibility.PUBLIC,
+      visibility: $Enums.ContentVisibility.PUBLIC,
     };
     // 回复时收起标题字段
     if (isReply.value) {

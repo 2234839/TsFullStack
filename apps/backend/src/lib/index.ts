@@ -6,7 +6,7 @@
 // ZenStack v3 生成的完整模型类型（仅在必要时使用）
 // 这些类型非常复杂，会导致 TypeScript 编译内存溢出
 
-export type { OauthProvider, StorageType, FileStatusEnum, LogLevel, TokenType, TaskType, TaskStatus, AiModelType, PostVisibility } from '../../.zenstack/models';
+export type { OauthProvider, StorageType, FileStatusEnum, LogLevel, TokenType, TaskType, TaskStatus, AiModelType, ContentVisibility, ContentType } from '../../.zenstack/models';
 
 // ZenStack schema 类型定义 - 用于前端类型推断
 export { schema } from '../../.zenstack/schema';
@@ -47,7 +47,8 @@ import {
   TaskType,
   TaskStatus,
   AiModelType,
-  PostVisibility,
+  ContentVisibility,
+  ContentType,
 } from '../../.zenstack/models';
 
 export const $Enums = {
@@ -59,7 +60,8 @@ export const $Enums = {
   TaskType,
   TaskStatus,
   AiModelType,
-  PostVisibility,
+  ContentVisibility,
+  ContentType,
 } as const;
 
 /** 代币系统相关的类型标签和选项配置 */
