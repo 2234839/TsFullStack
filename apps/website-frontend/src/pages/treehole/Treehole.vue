@@ -119,32 +119,13 @@ import { Button, Input, Message, ProgressSpinner } from '@/components/base';
 import TreeholePost from './TreeholePost.vue';
 import TreeholePostForm from './TreeholePostForm.vue';
 import { useDebounceFn } from '@vueuse/core';
+import type { TreeholePost as TreeholePostType } from '@tsfullstack/backend';
 
 const router = useRouter();
 
-interface Author {
-  id: string;
-  email: string;
-  nickname: string | null;
-}
+const { AppAPI } = useAPI();
 
-interface Post {
-  id: number;
-  title: string;
-  content: string;
-  visibility: 'DRAFT' | 'PRIVATE' | 'MEMBERS' | 'PUBLIC';
-  created: Date;
-  updated: Date;
-  author: Author;
-  parentId: number | null;
-  _count?: {
-    replies: number;
-  };
-}
-
-const { API } = useAPI();
-
-const posts = ref<Post[]>([]);
+const posts = ref<TreeholePostType[]>([]);
 const isLoading = ref(false);
 const isLoadingMore = ref(false);
 const error = ref('');
@@ -209,71 +190,39 @@ async function loadPosts(reset = true) {
       posts.value = [];
     }
 
-    // 构建查询条件
-    const where: any = {
-      parentId: null, // 只获取主题帖
+    // 构建查询参数
+    const query: any = {
+      skip: skip.value,
+      take,
+      onlyRoot: true, // 只获取主题帖
     };
 
-    // 根据过滤器设置条件
+    // 根据过滤器设置可见性
     if (currentFilter.value === 'PUBLIC') {
-      where.visibility = 'PUBLIC';
+      query.visibility = 'PUBLIC';
     } else if (currentFilter.value === 'MEMBERS') {
-      where.visibility = { in: ['MEMBERS', 'PUBLIC'] };
+      query.visibility = ['MEMBERS', 'PUBLIC'];
     } else if (currentFilter.value === 'MY') {
       // TODO: 从用户状态获取当前用户ID
-      // where.authorId = currentUser.value?.id;
+      // 暂时不过滤"我的"帖子
     }
 
     // 如果有搜索关键词
     if (searchKeyword.value.trim()) {
-      where.OR = [
-        { title: { contains: searchKeyword.value.trim() } },
-        { content: { contains: searchKeyword.value.trim() } },
-      ];
+      query.keyword = searchKeyword.value.trim();
     }
 
-    const [data, total] = await Promise.all([
-      API.db.post.findMany({
-        where,
-        orderBy: [{ created: 'desc' }],
-        skip: skip.value,
-        take,
-        include: {
-          author: {
-            select: {
-              id: true,
-              email: true,
-              nickname: true,
-            },
-          },
-        },
-      }),
-      API.db.post.count({ where }),
-    ]);
-
-    // 手动统计每条帖子的直属子回复数
-    const postsWithDirectReplyCount = await Promise.all(
-      (data as unknown as Post[]).map(async (post) => {
-        const directReplyCount = await API.db.post.count({
-          where: { parentId: post.id },
-        });
-        return {
-          ...post,
-          _count: {
-            replies: directReplyCount,
-          },
-        };
-      })
-    );
+    // 调用后端树洞 API
+    const result = await AppAPI.treeholeApi.queryPosts(query);
 
     if (reset) {
-      posts.value = postsWithDirectReplyCount;
+      posts.value = result.posts;
     } else {
-      posts.value.push(...postsWithDirectReplyCount);
+      posts.value.push(...result.posts);
     }
 
     // 判断是否还有更多数据
-    hasMore.value = skip.value + data.length < total;
+    hasMore.value = result.hasMore;
   } catch (err: any) {
     console.error('加载帖子失败:', err);
     error.value = '加载失败：' + (err.message || '未知错误');

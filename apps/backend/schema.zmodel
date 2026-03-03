@@ -61,38 +61,27 @@ model User with NotIdBase {
     password     String
     contents     Content[]
     role         Role[]
-
-    userSession  UserSession[]
-    /// 允许用户读取和更新自己的信息
-    @@allow('read', auth() == this)
-    /// 禁止未登录用户进行任何操作
-    @@deny('all', auth() == null)
-
     file         File[]
-    avatar       String?
+    userSession  UserSession[]
+
+    avatar       String?      
     nickname     String?
 
+    /// 允许用户读取和更新自己的完整信息
+    @@allow('read,update', auth() == this)
     userData     UserData[]
-
     oAuthAccount OAuthAccount[]
-
     word         Word[]
-
     /** 代币记录 */
     tokens Token[]
-
     /** 任务记录 */
     tasks Task[]
-
     /** 代币消耗记录 */
     tokenTransactions TokenTransaction[]
-
     /** 资源记录 */
     resources Resource[]
-
     /** 套餐订阅记录 */
     tokenSubscriptions UserTokenSubscription[]
-
     /** 索引优化 */
     @@index([created])
 }

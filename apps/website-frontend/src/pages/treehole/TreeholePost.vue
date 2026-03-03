@@ -3,13 +3,26 @@
     <div class="bg-white dark:bg-primary-900 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-4 mb-4">
       <!-- 帖子头部：作者信息和时间 -->
       <div class="flex items-center justify-between mb-3">
-        <div class="flex items-center gap-3">
+        <div v-if="post.author" class="flex items-center gap-3">
           <div class="w-10 h-10 rounded-full bg-linear-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-bold">
             {{ getAuthorInitial(post.author) }}
           </div>
           <div>
             <div class="font-semibold text-primary-900 dark:text-primary-50">
-              {{ post.author.nickname || post.author.email.split('@')[0] }}
+              {{ post.author.nickname || '匿名用户' }}
+            </div>
+            <div class="text-xs text-primary-500 dark:text-primary-400">
+              {{ formatDate(post.updated) }}
+            </div>
+          </div>
+        </div>
+        <div v-else class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-white font-bold">
+            ?
+          </div>
+          <div>
+            <div class="font-semibold text-primary-900 dark:text-primary-50">
+              未知用户
             </div>
             <div class="text-xs text-primary-500 dark:text-primary-400">
               {{ formatDate(post.updated) }}
@@ -141,29 +154,10 @@ import { Button } from '@/components/base';
 import TreeholePostForm from './TreeholePostForm.vue';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
-
-interface Author {
-  id: string;
-  email: string;
-  nickname: string | null;
-}
-
-interface Post {
-  id: number;
-  title: string;
-  content: string;
-  visibility: 'DRAFT' | 'PRIVATE' | 'MEMBERS' | 'PUBLIC';
-  created: Date;
-  updated: Date;
-  author: Author;
-  parentId: number | null;
-  _count?: {
-    replies: number;
-  };
-}
+import type { TreeholePost } from '@tsfullstack/backend';
 
 interface Props {
-  post: Post;
+  post: TreeholePost;
   /** 当前嵌套深度 */
   depth?: number;
 }
@@ -177,7 +171,7 @@ const emit = defineEmits<{
   deleted: [];
 }>();
 
-const { API } = useAPI();
+const { API, AppAPI } = useAPI();
 const toast = useToast();
 const confirm = useConfirm();
 
@@ -185,7 +179,7 @@ const showMenu = ref(false);
 const isReplying = ref(false);
 const isExpanded = ref(false);
 const isPostCollapsed = ref(false); /** 主贴内容是否折叠 */
-const replies = ref<Post[]>([]);
+const replies = ref<TreeholePost[]>([]);
 const repliesLoaded = ref(false);
 
 /** 当前用户是否是帖子作者 */
@@ -217,11 +211,11 @@ const expandButtonText = computed(() => {
 /**
  * 获取作者首字母
  */
-function getAuthorInitial(author: Author): string {
+function getAuthorInitial(author: { nickname: string | null }): string {
   if (author.nickname) {
     return author.nickname.charAt(0).toUpperCase();
   }
-  return author.email.charAt(0).toUpperCase();
+  return '?';
 }
 
 /**
@@ -327,36 +321,13 @@ function toggleExpand() {
  */
 async function loadReplies() {
   try {
-    const result = await API.db.post.findMany({
-      where: { parentId: props.post.id },
-      orderBy: [{ created: 'asc' }],
-      include: {
-        author: {
-          select: {
-            id: true,
-            email: true,
-            nickname: true,
-          },
-        },
-      },
+    const result = await AppAPI.treeholeApi.queryPosts({
+      skip: 0,
+      take: 100, // 回复数量通常不会太多
+      parentId: props.post.id,
     });
 
-    // 为每个回复统计其直属子回复数
-    const repliesWithCount = await Promise.all(
-      result.map(async (reply: any) => {
-        const directReplyCount = await API.db.post.count({
-          where: { parentId: reply.id },
-        });
-        return {
-          ...reply,
-          _count: {
-            replies: directReplyCount,
-          },
-        };
-      })
-    );
-
-    replies.value = repliesWithCount as unknown as Post[];
+    replies.value = result.posts;
     repliesLoaded.value = true;
     isExpanded.value = true;
   } catch (error) {

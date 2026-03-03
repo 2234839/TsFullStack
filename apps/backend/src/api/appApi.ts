@@ -7,6 +7,7 @@ import { genUserSession } from './appApi/_genUserSession';
 import { fileApi } from './appApi/file';
 import { githubApi } from './appApi/github';
 import { shareApi } from './appApi/share';
+import { treeholeApi } from './appApi/treehole';
 
 async function randomDelay(baseDelay = 500) {
   await new Promise((r) => setTimeout(r, baseDelay + 2_000 * Math.random()));
@@ -72,6 +73,7 @@ export const appApis = {
   githubApi,
   fileApi,
   shareApi,
+  treeholeApi,
   /** 用于避免 Effect.isEffect 的判断之后得到 Effect<unknown, unknown, unknown> 导致类型系统失效*/
   __effect__() {
     return Effect.succeed('test');

@@ -20,6 +20,14 @@ export { createRPC, proxyCall } from '../rpc';
 export type { API } from '../api';
 export type { AppAPI } from '../api/appApi';
 
+// Treehole API types - required for treehole feature
+export type {
+  TreeholeAuthor,
+  TreeholePost,
+  TreeholePostsQuery,
+  TreeholePostsResult,
+} from '../api/appApi/treehole';
+
 // Session authentication - required for API calls
 export * as SessionAuthSign from './SessionAuthSign';
 
