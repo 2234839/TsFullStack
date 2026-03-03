@@ -12,7 +12,7 @@
               {{ post.author.nickname || post.author.email.split('@')[0] }}
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-400">
-              {{ formatDate(post.created) }}
+              {{ formatDate(post.updated) }}
             </div>
           </div>
         </div>
