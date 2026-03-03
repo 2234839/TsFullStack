@@ -168,110 +168,142 @@ function getSortIcon(column: ColumnDef<T>) {
 </script>
 
 <template>
-  <div class="data-table-container">
-    <table class="border-collapse w-full">
-      <thead class="bg-primary-50 dark:bg-primary-900">
-        <tr>
-          <!-- 选择列 -->
-          <th v-if="selectable" :class="[sizeConfig[size].header, 'w-12 text-center']">
-            <input
-              type="checkbox"
-              :checked="isAllSelected"
-              :indeterminate="isSomeSelected"
-              @change="handleSelectAll"
-              class="h-4 w-4 rounded border-primary-300 text-primary-700 focus:ring-primary-600"
-            />
-          </th>
-          <!-- 数据列 -->
-          <th
-            v-for="column in columns"
-            :key="column.key"
+  <div class="data-table-wrapper">
+    <!-- 加载遮罩层 -->
+    <div v-if="loading" class="data-table-loading-overlay">
+      <ProgressSpinner />
+    </div>
+
+    <!-- 数据表格 -->
+    <div class="data-table-container" :class="{ 'opacity-50': loading }">
+      <table class="border-collapse w-full">
+        <thead class="bg-primary-50 dark:bg-primary-900">
+          <tr>
+            <!-- 选择列 -->
+            <th v-if="selectable" :class="[sizeConfig[size].header, 'w-12 text-center']">
+              <input
+                type="checkbox"
+                :checked="isAllSelected"
+                :indeterminate="isSomeSelected"
+                @change="handleSelectAll"
+                class="h-4 w-4 rounded border-primary-300 text-primary-700 focus:ring-primary-600"
+              />
+            </th>
+            <!-- 数据列 -->
+            <th
+              v-for="column in columns"
+              :key="column.key"
+              :class="[
+                sizeConfig[size].header,
+                'text-left text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-wider',
+                { 'cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800': column.sortable }
+              ]"
+              :style="{ width: typeof column.width === 'number' ? `${column.width}px` : column.width }"
+              @click="column.sortable ? handleSort(column) : null">
+              <div class="flex items-center gap-2">
+                {{ column.title }}
+                <span v-if="column.sortable" class="text-primary-500">
+                  {{ getSortIcon(column) }}
+                </span>
+              </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody class="bg-primary-50 dark:bg-primary-950">
+          <!-- 空数据 -->
+          <tr v-if="sortedData.length === 0">
+            <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-600 dark:text-primary-400">
+              {{ emptyText }}
+            </td>
+          </tr>
+          <!-- 数据行 -->
+          <tr
+            v-else
+            v-for="(row, rowIndex) in sortedData"
+            :key="row[rowKey] || rowIndex"
             :class="[
-              sizeConfig[size].header,
-              'text-left text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-wider',
-              { 'cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800': column.sortable }
-            ]"
-            :style="{ width: typeof column.width === 'number' ? `${column.width}px` : column.width }"
-            @click="column.sortable ? handleSort(column) : null">
-            <div class="flex items-center gap-2">
-              {{ column.title }}
-              <span v-if="column.sortable" class="text-primary-500">
-                {{ getSortIcon(column) }}
-              </span>
-            </div>
-          </th>
-        </tr>
-      </thead>
-      <tbody class="bg-primary-50 dark:bg-primary-950">
-        <!-- 加载状态 -->
-        <tr v-if="loading">
-          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-600 dark:text-primary-400">
-            <div class="flex justify-center">
-              <ProgressSpinner />
-            </div>
-          </td>
-        </tr>
-        <!-- 空数据 -->
-        <tr v-else-if="sortedData.length === 0">
-          <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-600 dark:text-primary-400">
-            {{ emptyText }}
-          </td>
-        </tr>
-        <!-- 数据行 -->
-        <tr
-          v-else
-          v-for="(row, rowIndex) in sortedData"
-          :key="row[rowKey] || rowIndex"
-          :class="[
-            'border-b border-primary-200 dark:border-primary-700 transition-colors',
-            {
-              'bg-primary-100 dark:bg-primary-900/50': striped && rowIndex % 2 === 0,
-              'hover:bg-primary-200 dark:hover:bg-primary-800': selectable,
-              'border': bordered,
-            }
-          ]">
-          <!-- 选择列 -->
-          <td v-if="selectable" :class="[sizeConfig[size].cell, 'text-center']">
-            <input
-              type="checkbox"
-              :checked="isSelected(row)"
-              @change="() => handleRowSelect(row)"
-              class="h-4 w-4 rounded border-primary-300 text-primary-700 focus:ring-primary-600"
-            />
-          </td>
-          <!-- 数据单元格 -->
-          <td
-            v-for="column in columns"
-            :key="column.key"
-            :class="[
-              sizeConfig[size].cell,
-              sizeConfig[size].text,
+              'border-b border-primary-200 dark:border-primary-700 transition-colors',
               {
-                'text-center': column.align === 'center',
-                'text-right': column.align === 'right',
-                'text-left': !column.align || column.align === 'left',
+                'bg-primary-100 dark:bg-primary-900/50': striped && rowIndex % 2 === 0,
+                'hover:bg-primary-200 dark:hover:bg-primary-800': selectable,
+                'border': bordered,
               }
             ]">
-            <!-- 自定义渲染 -->
-            <component
-              v-if="column.render"
-              :is="column.render(row, rowIndex)"
-            />
-            <!-- 默认显示 -->
-            <span v-else>{{ row[column.key] }}</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            <!-- 选择列 -->
+            <td v-if="selectable" :class="[sizeConfig[size].cell, 'text-center']">
+              <input
+                type="checkbox"
+                :checked="isSelected(row)"
+                @change="() => handleRowSelect(row)"
+                class="h-4 w-4 rounded border-primary-300 text-primary-700 focus:ring-primary-600"
+              />
+            </td>
+            <!-- 数据单元格 -->
+            <td
+              v-for="column in columns"
+              :key="column.key"
+              :class="[
+                sizeConfig[size].cell,
+                sizeConfig[size].text,
+                {
+                  'text-center': column.align === 'center',
+                  'text-right': column.align === 'right',
+                  'text-left': !column.align || column.align === 'left',
+                }
+              ]">
+              <!-- 自定义渲染 -->
+              <component
+                v-if="column.render"
+                :is="column.render(row, rowIndex)"
+              />
+              <!-- 默认显示 -->
+              <span v-else>{{ row[column.key] }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <style scoped>
+/** DataTable 外层包装器 */
+.data-table-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/** 加载遮罩层 */
+.data-table-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(2px);
+  z-index: 10;
+  border-radius: 0.5rem;
+}
+
+.dark .data-table-loading-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
 /** DataTable 容器 - 支持横向滚动 */
 .data-table-container {
   width: 100%;
   overflow-x: auto;
   position: relative;
+  transition: opacity 150ms ease-out;
+}
+
+.data-table-container.opacity-50 {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 /** 美化滚动条 */

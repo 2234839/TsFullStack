@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed, h } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
 import { Dialog } from '@tsfullstack/shared-frontend/components';
 import Paginator from '@/components/base/Paginator.vue';
 import RemoteSelect from '@/components/base/RemoteSelect.vue';
 import Button from '@/components/base/Button.vue';
+import DataTable from '@/components/base/DataTable.vue';
+import Tag from '@/components/base/Tag.vue';
+import type { ColumnDef } from '@/components/base/DataTable.vue';
 import { TokenOptions } from '@tsfullstack/backend';
 
 const toast = useToast();
@@ -328,6 +331,91 @@ function getStatusBadge(subscription: UserSubscription) {
   return { text: '进行中', variant: 'success' };
 }
 
+/** ========== DataTable 列定义 ========== */
+/** 订阅列表列定义 */
+const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
+  {
+    key: 'user',
+    title: '用户',
+    width: '20%',
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
+  },
+  {
+    key: 'status',
+    title: '状态',
+    width: '10%',
+    render: (row) => {
+      const badge = getStatusBadge(row);
+      return h(Tag, { value: badge.text, variant: badge.variant as any });
+    },
+  },
+  {
+    key: 'package',
+    title: '套餐',
+    width: '15%',
+    render: (row) => h('div', { class: 'text-sm' }, [
+      h('div', { class: 'font-medium text-primary-900 dark:text-primary-100' }, row.package.name),
+      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${row.package.amount} 代币`),
+    ]),
+  },
+  {
+    key: 'type',
+    title: '类型',
+    width: '10%',
+    render: (row) => h(Tag, { value: getTypeLabel(row.package.type), variant: 'info' }),
+  },
+  {
+    key: 'startDate',
+    title: '订阅时间',
+    width: '10%',
+    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.startDate)),
+  },
+  {
+    key: 'endDate',
+    title: '到期时间',
+    width: '10%',
+    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.endDate)),
+  },
+  {
+    key: 'nextGrantDate',
+    title: '下次发放',
+    width: '12%',
+    render: (row) => {
+      const days = getDaysUntilGrant(row.nextGrantDate);
+      return h('div', { class: 'text-sm' }, [
+        h('div', {
+          class: days <= 7
+            ? 'text-warning-600 dark:text-warning-400'
+            : 'text-primary-600 dark:text-primary-400'
+        }, formatDate(row.nextGrantDate)),
+        h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${days}天后`),
+      ]);
+    },
+  },
+  {
+    key: 'grantsCount',
+    title: '已发放',
+    width: '8%',
+    render: (row) => h('div', { class: 'text-sm text-primary-900 dark:text-primary-100' }, `${row.grantsCount} 次`),
+  },
+  {
+    key: 'actions',
+    title: '操作',
+    width: '5%',
+    render: (row) => {
+      if (!row.active) {
+        return h('div', { class: 'text-sm text-primary-500 dark:text-primary-400' }, '已取消');
+      }
+      return h(Button, {
+        label: '取消订阅',
+        variant: 'danger',
+        size: 'small',
+        onClick: () => cancelSubscription(row),
+      });
+    },
+  },
+]);
+
 onMounted(() => {
   loadSubscriptions();
 });
@@ -364,91 +452,16 @@ onMounted(() => {
         </h2>
       </div>
 
-      <!-- 加载中 -->
-      <div v-if="isLoading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
-      </div>
-
-      <!-- 空状态 -->
-      <div v-else-if="subscriptions.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-        </svg>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无订阅记录</p>
-      </div>
-
-      <!-- 订阅列表 -->
-      <div v-else class="divide-y divide-primary-200 dark:divide-primary-700">
-        <div
-          v-for="sub in subscriptions"
-          :key="sub.id"
-          class="px-6 py-4 hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors"
-        >
-          <div class="flex items-start justify-between">
-            <div class="flex-1">
-              <div class="flex items-center gap-3 mb-2">
-                <h3 class="text-lg font-medium text-primary-900 dark:text-primary-100">
-                  {{ sub.user.email }}
-                </h3>
-                <span
-                  class="px-2 py-1 text-xs rounded"
-                  :class="{
-                    'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200': getStatusBadge(sub).variant === 'success',
-                    'bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200': getStatusBadge(sub).variant === 'warning',
-                    'bg-danger-100 text-danger-800 dark:bg-danger-900 dark:text-danger-200': getStatusBadge(sub).variant === 'danger',
-                  }"
-                >
-                  {{ getStatusBadge(sub).text }}
-                </span>
-                <span class="px-2 py-1 text-xs rounded bg-primary-100 text-primary-800 dark:bg-primary-900 dark:text-primary-200">
-                  {{ getTypeLabel(sub.package.type) }}
-                </span>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-primary-600 dark:text-primary-400">
-                <div>
-                  <span class="font-medium">套餐：</span>
-                  <span>{{ sub.package.name }}（{{ sub.package.amount }} 代币）</span>
-                </div>
-                <div>
-                  <span class="font-medium">订阅时间：</span>
-                  <span>{{ formatDate(sub.startDate) }}</span>
-                </div>
-                <div>
-                  <span class="font-medium">到期时间：</span>
-                  <span>{{ formatDate(sub.endDate) }}</span>
-                </div>
-                <div>
-                  <span class="font-medium">下次发放：</span>
-                  <span :class="{ 'text-warning-600 dark:text-warning-400': getDaysUntilGrant(sub.nextGrantDate) <= 7 }">
-                    {{ formatDate(sub.nextGrantDate) }}（{{ getDaysUntilGrant(sub.nextGrantDate) }}天后）
-                  </span>
-                </div>
-                <div>
-                  <span class="font-medium">已发放次数：</span>
-                  <span>{{ sub.grantsCount }} 次</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="ml-4">
-              <Button
-                v-if="sub.active"
-                type="button"
-                class="px-3 py-2 text-sm bg-danger-100 hover:bg-danger-200 dark:bg-danger-900 dark:hover:bg-danger-800 text-danger-700 dark:text-danger-300 rounded-lg transition-colors"
-                @click="cancelSubscription(sub)"
-              >
-                取消订阅
-              </Button>
-              <div v-else class="text-sm text-primary-500 dark:text-primary-400">
-                已取消
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- 数据表格 -->
+      <DataTable
+        :data="subscriptions"
+        :columns="subscriptionColumns"
+        :loading="isLoading"
+        rowKey="id"
+        emptyText="暂无订阅记录"
+        striped
+        size="middle"
+      />
 
       <!-- 分页 -->
       <div v-if="subscriptionsTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">

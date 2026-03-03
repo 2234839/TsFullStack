@@ -4,10 +4,12 @@ import MultiSelect from '@/components/base/MultiSelect.vue';
 import Paginator from '@/components/base/Paginator.vue';
 import RemoteSelect from '@/components/base/RemoteSelect.vue';
 import Tag from '@/components/base/Tag.vue';
+import DataTable from '@/components/base/DataTable.vue';
+import type { ColumnDef } from '@/components/base/DataTable.vue';
 import { useToast } from '@/composables/useToast';
 import { TokenOptions } from '@tsfullstack/backend';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
-import { onMounted, ref, watch } from 'vue';
+import { onMounted, ref, watch, h, computed } from 'vue';
 
 const toast = useToast();
 const { API } = useAPI();
@@ -456,6 +458,118 @@ function getAvailableAmount(token: UserToken): number {
   return token.amount - token.used;
 }
 
+/** ========== DataTable 列定义 ========== */
+/** 代币列表列定义 */
+const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
+  {
+    key: 'user',
+    title: '用户',
+    width: '25%',
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
+  },
+  {
+    key: 'type',
+    title: '类型',
+    width: '15%',
+    render: (row) => h('div', { class: 'flex flex-wrap gap-1' }, [
+      h(Tag, { value: getTypeLabel(row.type), variant: 'info' }),
+      ...(parseRestrictedType(row.restrictedType).length > 0
+        ? [h(Tag, { value: '专用', variant: 'warn' })]
+        : []
+      ),
+    ]),
+  },
+  {
+    key: 'amount',
+    title: '数量',
+    width: '15%',
+    render: (row) => h('div', { class: 'text-sm' }, [
+      h('div', { class: 'text-primary-900 dark:text-primary-100' }, `总量: ${row.amount}`),
+      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `已用: ${row.used} | 可用: ${getAvailableAmount(row)}`),
+    ]),
+  },
+  {
+    key: 'expiresAt',
+    title: '过期时间',
+    width: '15%',
+    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.expiresAt)),
+  },
+  {
+    key: 'description',
+    title: '备注',
+    width: '20%',
+    render: (row) => h('div', { class: 'text-sm' }, [
+      h('div', {
+        class: 'text-primary-600 dark:text-primary-400 truncate',
+        title: row.description || ''
+      }, row.description || '-'),
+      ...(parseRestrictedType(row.restrictedType).length > 0
+        ? [h('div', {
+            class: 'text-xs text-warning-600 dark:text-warning-400 truncate',
+            title: getRestrictedTypeLabel(parseRestrictedType(row.restrictedType))
+          }, getRestrictedTypeLabel(parseRestrictedType(row.restrictedType)))]
+        : []
+      ),
+    ]),
+  },
+  {
+    key: 'created',
+    title: '创建时间',
+    width: '10%',
+    render: (row) => h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, formatDate(row.created)),
+  },
+]);
+
+/** 代币消耗记录列定义 */
+const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
+  {
+    key: 'user',
+    title: '用户',
+    width: '25%',
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
+  },
+  {
+    key: 'task',
+    title: '任务',
+    width: '17%',
+    render: (row) => h('div', { class: 'text-sm' }, [
+      h('div', { class: 'text-primary-900 dark:text-primary-100' }, row.task.title),
+      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, getTaskTypeLabel(row.task.type)),
+    ]),
+  },
+  {
+    key: 'tokenType',
+    title: '代币类型',
+    width: '17%',
+    render: (row) => h(Tag, { value: getTypeLabel(row.tokenType), variant: 'danger' }),
+  },
+  {
+    key: 'amount',
+    title: '消耗数量',
+    width: '10%',
+    render: (row) => h('div', { class: 'text-sm font-medium text-danger-600 dark:text-danger-400' }, `-${row.amount}`),
+  },
+  {
+    key: 'balanceSnapshot',
+    title: '余额快照',
+    width: '17%',
+    render: (row) => {
+      if (!row.balanceSnapshot) return null;
+      return h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' },
+        Object.entries(row.balanceSnapshot).map(([type, balance]) =>
+          h('div', { key: type, class: 'truncate' }, `${getTypeLabel(type)}: ${balance}`)
+        )
+      );
+    },
+  },
+  {
+    key: 'created',
+    title: '时间',
+    width: '14%',
+    render: (row) => h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, formatDate(row.created)),
+  },
+]);
+
 onMounted(() => {
   loadData();
 });
@@ -545,89 +659,16 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 列表头部 -->
-      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900">
-        <div class="grid grid-cols-12 gap-4 text-sm font-medium text-primary-700 dark:text-primary-300">
-          <div class="col-span-3">用户</div>
-          <div class="col-span-2">类型</div>
-          <div class="col-span-2">数量</div>
-          <div class="col-span-2">过期时间</div>
-          <div class="col-span-2">备注</div>
-          <div class="col-span-1">创建时间</div>
-        </div>
-      </div>
-
-      <!-- 加载中 -->
-      <div v-if="isLoading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
-      </div>
-
-      <!-- 空状态 -->
-      <div v-else-if="tokens.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-        </svg>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无代币记录</p>
-      </div>
-
-      <!-- 代币列表 -->
-      <div v-else class="divide-y divide-primary-200 dark:divide-primary-700">
-        <div v-for="token in tokens" :key="token.id"
-          class="px-6 py-4 hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors">
-          <div class="grid grid-cols-12 gap-4 items-center">
-            <!-- 用户 -->
-            <div class="col-span-3">
-              <div class="text-sm font-medium text-primary-900 dark:text-primary-100">
-                {{ token.user.email }}
-              </div>
-            </div>
-
-            <!-- 类型 -->
-            <div class="col-span-2 flex flex-wrap gap-1">
-              <Tag :value="getTypeLabel(token.type)" variant="info" />
-              <Tag v-if="parseRestrictedType(token.restrictedType).length > 0" value="专用" variant="warn" />
-            </div>
-
-            <!-- 数量 -->
-            <div class="col-span-2">
-              <div class="text-sm text-primary-900 dark:text-primary-100">
-                总量: {{ token.amount }}
-              </div>
-              <div class="text-xs text-primary-500 dark:text-primary-400">
-                已用: {{ token.used }} | 可用: {{ getAvailableAmount(token) }}
-              </div>
-            </div>
-
-            <!-- 过期时间 -->
-            <div class="col-span-2">
-              <div class="text-sm text-primary-600 dark:text-primary-400">
-                {{ formatDate(token.expiresAt) }}
-              </div>
-            </div>
-
-            <!-- 备注 -->
-            <div class="col-span-2">
-              <div class="text-sm text-primary-600 dark:text-primary-400 truncate" :title="token.description || ''">
-                {{ token.description || '-' }}
-              </div>
-              <div v-if="parseRestrictedType(token.restrictedType).length > 0"
-                class="text-xs text-warning-600 dark:text-warning-400 truncate"
-                :title="getRestrictedTypeLabel(parseRestrictedType(token.restrictedType))">
-                {{ getRestrictedTypeLabel(parseRestrictedType(token.restrictedType)) }}
-              </div>
-            </div>
-
-            <!-- 创建时间 -->
-            <div class="col-span-1">
-              <div class="text-xs text-primary-500 dark:text-primary-400">
-                {{ formatDate(token.created) }}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- 数据表格 -->
+      <DataTable
+        :data="tokens"
+        :columns="tokenColumns"
+        :loading="isLoading"
+        rowKey="id"
+        emptyText="暂无代币记录"
+        striped
+        size="middle"
+      />
 
       <!-- 分页 -->
       <div v-if="tokensTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
@@ -677,90 +718,16 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 列表头部 -->
-      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700 bg-primary-50 dark:bg-primary-900">
-        <div class="grid grid-cols-12 gap-4 text-sm font-medium text-primary-700 dark:text-primary-300">
-          <div class="col-span-3">用户</div>
-          <div class="col-span-2">任务</div>
-          <div class="col-span-2">代币类型</div>
-          <div class="col-span-2">消耗数量</div>
-          <div class="col-span-2">余额快照</div>
-          <div class="col-span-1">时间</div>
-        </div>
-      </div>
-
-      <!-- 加载中 -->
-      <div v-if="isLoading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
-      </div>
-
-      <!-- 空状态 -->
-      <div v-else-if="transactions.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无消耗记录</p>
-      </div>
-
-      <!-- 消耗记录列表 -->
-      <div v-else class="divide-y divide-primary-200 dark:divide-primary-700">
-        <div v-for="txn in transactions" :key="txn.id"
-          class="px-6 py-4 hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors">
-          <div class="grid grid-cols-12 gap-4 items-center">
-            <!-- 用户 -->
-            <div class="col-span-3">
-              <div class="text-sm font-medium text-primary-900 dark:text-primary-100">
-                {{ txn.user.email }}
-              </div>
-            </div>
-
-            <!-- 任务 -->
-            <div class="col-span-2">
-              <div class="text-sm text-primary-900 dark:text-primary-100">
-                {{ txn.task.title }}
-              </div>
-              <div class="text-xs text-primary-500 dark:text-primary-400">
-                {{ getTaskTypeLabel(txn.task.type) }}
-              </div>
-            </div>
-
-            <!-- 代币类型 -->
-            <div class="col-span-2">
-              <Tag :value="getTypeLabel(txn.tokenType)" variant="danger" />
-            </div>
-
-            <!-- 消耗数量 -->
-            <div class="col-span-2">
-              <div class="text-sm font-medium text-danger-600 dark:text-danger-400">
-                -{{ txn.amount }}
-              </div>
-            </div>
-
-            <!-- 余额快照 -->
-            <div class="col-span-2">
-              <div class="text-xs text-primary-500 dark:text-primary-400" v-if="txn.balanceSnapshot">
-                <div v-for="(balance, type) in txn.balanceSnapshot" :key="type" class="truncate">
-                  {{ getTypeLabel(type) }}: {{ balance }}
-                </div>
-              </div>
-            </div>
-
-            <!-- 时间 -->
-            <div class="col-span-1">
-              <div class="text-xs text-primary-500 dark:text-primary-400">
-                {{ formatDate(txn.created) }}
-              </div>
-            </div>
-          </div>
-
-          <!-- 备注 -->
-          <div v-if="txn.note" class="mt-2 text-xs text-primary-500 dark:text-primary-400">
-            备注: {{ txn.note }}
-          </div>
-        </div>
-      </div>
+      <!-- 数据表格 -->
+      <DataTable
+        :data="transactions"
+        :columns="transactionColumns"
+        :loading="isLoading"
+        rowKey="id"
+        emptyText="暂无消耗记录"
+        striped
+        size="middle"
+      />
 
       <!-- 分页 -->
       <div v-if="transactionsTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
