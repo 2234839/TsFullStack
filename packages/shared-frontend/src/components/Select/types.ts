@@ -10,6 +10,9 @@ export type SelectSide = 'top' | 'right' | 'bottom' | 'left';
 /** Select 对齐方式 */
 export type SelectAlign = 'start' | 'center' | 'end';
 
+/** Select 尺寸 */
+export type SelectSize = 'sm' | 'md' | 'lg';
+
 /**
  * Select 选项数据类型
  */
@@ -40,6 +43,8 @@ export interface UiSelectProps extends Omit<SelectRootProps, 'modelValue'> {
   disabled?: boolean;
   /** 选项值（支持 null 作为未选择状态） */
   modelValue?: string | null;
+  /** 组件尺寸 */
+  size?: SelectSize;
 }
 
 /**

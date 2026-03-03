@@ -12,6 +12,7 @@
  *     { value: 'banana', label: '香蕉' },
  *   ]"
  *   placeholder="请选择水果"
+ *   size="md"
  * />
  * ```
  */
@@ -38,6 +39,7 @@ const props = withDefaults(defineProps<UiSelectProps>(), {
   align: () => 'start' as const,
   sideOffset: 8,
   disabled: false,
+  size: 'md',
 });
 
 /** 定义 model - 用于 v-model 双向绑定 */
@@ -65,6 +67,56 @@ const contentStyle = {
 const selectedOption = computed(() => {
   return props.options.find((option) => option.value === modelValue.value);
 });
+
+/** Trigger 尺寸样式类 */
+const triggerSizeClasses = computed(() => {
+  const sizeClasses = {
+    sm: 'px-2 py-1 text-sm min-w-[120px]',
+    md: 'px-3 py-2 text-sm min-w-[200px]',
+    lg: 'px-4 py-2.5 text-base min-w-[240px]',
+  };
+  return sizeClasses[props.size];
+});
+
+/** 图标尺寸类 */
+const iconSizeClasses = computed(() => {
+  const sizeClasses = {
+    sm: 'w-3.5 h-3.5',
+    md: 'w-4 h-4',
+    lg: 'w-5 h-5',
+  };
+  return sizeClasses[props.size];
+});
+
+/** 选项尺寸样式类 */
+const itemSizeClasses = computed(() => {
+  const sizeClasses = {
+    sm: 'px-2 py-1 text-sm',
+    md: 'px-3 py-2 text-sm',
+    lg: 'px-4 py-2.5 text-base',
+  };
+  return sizeClasses[props.size];
+});
+
+/** 指示器尺寸类 */
+const indicatorSizeClasses = computed(() => {
+  const sizeClasses = {
+    sm: 'w-3.5 h-3.5 left-1.5',
+    md: 'w-4 h-4 left-2',
+    lg: 'w-5 h-5 left-2.5',
+  };
+  return sizeClasses[props.size];
+});
+
+/** 选项文本左边距 */
+const itemTextPlClass = computed(() => {
+  const sizeClasses = {
+    sm: 'pl-5',
+    md: 'pl-6',
+    lg: 'pl-7',
+  };
+  return sizeClasses[props.size];
+});
 </script>
 
 <template>
@@ -73,27 +125,26 @@ const selectedOption = computed(() => {
     :disabled="disabled"
     @update:model-value="handleUpdateValue">
     <SelectTrigger
-      class="inline-flex items-center justify-between px-3 py-2 border border-primary-300 dark:border-primary-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 min-w-[200px] cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900 transition-colors"
+      class="inline-flex items-center justify-between border border-primary-300 dark:border-primary-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900 transition-colors"
+      :class="triggerSizeClasses"
       :data-placeholder="!selectedOption">
       <SelectValue
-        class="text-sm"
+        class="flex-1"
         :placeholder="placeholder">
         {{ selectedOption?.label || placeholder }}
       </SelectValue>
-      <span class="ml-2 text-primary-400">
-        <svg
-          class="w-4 h-4 transition-transform duration-200"
-          :class="{ 'rotate-180': $attrs['data-state'] === 'open' }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M19 9l-7 7-7-7" />
-        </svg>
-      </span>
+      <svg
+        class="ml-2 text-primary-400 transition-transform duration-200 shrink-0"
+        :class="[iconSizeClasses, { 'rotate-180': $attrs['data-state'] === 'open' }]"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24">
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M19 9l-7 7-7-7" />
+      </svg>
     </SelectTrigger>
 
     <SelectPortal>
@@ -106,9 +157,10 @@ const selectedOption = computed(() => {
         :side-offset="sideOffset"
         :style="contentStyle">
         <SelectScrollUpButton
-          class="flex items-center justify-center h-6 bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
+          class="flex items-center justify-center bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+          :class="props.size === 'sm' ? 'h-5' : props.size === 'lg' ? 'h-7' : 'h-6'">
           <svg
-            class="w-4 h-4"
+            :class="iconSizeClasses"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24">
@@ -120,17 +172,19 @@ const selectedOption = computed(() => {
           </svg>
         </SelectScrollUpButton>
 
-        <SelectViewport class="p-1">
+        <SelectViewport :class="props.size === 'sm' ? 'p-0.5' : props.size === 'lg' ? 'p-1.5' : 'p-1'">
           <SelectItem
             v-for="option in options"
             :key="option.value"
             :value="option.value"
             :disabled="option.disabled"
-            class="relative flex items-center px-3 py-2 text-sm rounded-md cursor-pointer select-none data-[highlighted]:bg-primary-50 dark:data-[highlighted]:bg-primary-950 data-[highlighted]:text-primary-900 dark:data-[highlighted]:text-primary-100 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed transition-colors">
+            class="relative flex items-center rounded-md cursor-pointer select-none data-[highlighted]:bg-primary-200 dark:data-[highlighted]:bg-primary-800 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed transition-colors"
+            :class="itemSizeClasses">
             <SelectItemIndicator
-              class="absolute left-2 w-4 h-4 flex items-center justify-center text-primary-600 dark:text-primary-400">
+              class="absolute flex items-center justify-center text-primary-600 dark:text-primary-400"
+              :class="indicatorSizeClasses">
               <svg
-                class="w-4 h-4"
+                :class="iconSizeClasses"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24">
@@ -142,16 +196,17 @@ const selectedOption = computed(() => {
               </svg>
             </SelectItemIndicator>
 
-            <SelectItemText class="pl-6">
+            <SelectItemText :class="itemTextPlClass">
               {{ option.label }}
             </SelectItemText>
           </SelectItem>
         </SelectViewport>
 
         <SelectScrollDownButton
-          class="flex items-center justify-center h-6 bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
+          class="flex items-center justify-center bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+          :class="props.size === 'sm' ? 'h-5' : props.size === 'lg' ? 'h-7' : 'h-6'">
           <svg
-            class="w-4 h-4"
+            :class="iconSizeClasses"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24">

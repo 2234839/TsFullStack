@@ -4,6 +4,7 @@
  * 使用 Tailwind CSS 样式
  */
 import { computed } from 'vue';
+import { Select } from '@tsfullstack/shared-frontend/components';
 
 interface Props {
   /** 总条数 */
@@ -113,7 +114,7 @@ function nextPage() {
 const buttonClasses = (active: boolean, disabled: boolean) => {
   const base = 'min-w-8 px-2 py-1 text-sm border rounded transition-colors duration-200';
   const activeClass = active
-    ? 'bg-primary-800 text-primary-50 border-primary-800 dark:bg-primary-200 dark:border-primary-200'
+    ? 'bg-primary-800 text-primary-50 border-primary-800 dark:bg-primary-700 dark:text-primary-50 dark:border-primary-700'
     : 'bg-primary-50 text-primary-900 border-primary-300 hover:bg-primary-100 dark:bg-primary-900 dark:text-primary-100 dark:border-primary-700 dark:hover:bg-primary-800';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
@@ -123,13 +124,21 @@ const buttonClasses = (active: boolean, disabled: boolean) => {
 /**
  * 处理每页条数变化
  */
-function handleRowsPerPageChange(event: Event) {
-  const target = event.target as HTMLSelectElement;
-  const newValue = parseInt(target.value, 10);
+function handleRowsPerPageChange(value: unknown) {
+  if (typeof value !== 'string') return;
+  const newValue = parseInt(value, 10);
   emit('update:rowsPerPage', newValue);
   /** 切换每页条数后重置到第一页 */
   emit('update:page', 0);
 }
+
+/** 每页条数选项列表 */
+const rowsPerPageSelectOptions = computed(() =>
+  props.rowsPerPageOptions.map((value) => ({
+    value: String(value),
+    label: `${value} 条/页`,
+  }))
+);
 </script>
 
 <template>
@@ -141,18 +150,15 @@ function handleRowsPerPageChange(event: Event) {
       </div>
 
       <!-- 每页条数选择器 -->
-      <div v-if="showRowsPerPageOptions" class="flex items-center gap-2">
-        <select
-          :disabled="disabled"
-          :value="rowsPerPage"
-          @change="handleRowsPerPageChange"
-          class="px-2 py-1 text-sm border border-primary-300 rounded bg-primary-50 text-primary-900 hover:bg-primary-100 dark:bg-primary-900 dark:text-primary-100 dark:border-primary-700 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
-        >
-          <option v-for="option in rowsPerPageOptions" :key="option" :value="option">
-            {{ option }} 条/页
-          </option>
-        </select>
-      </div>
+      <Select
+        v-if="showRowsPerPageOptions"
+        :model-value="String(rowsPerPage)"
+        :options="rowsPerPageSelectOptions"
+        :disabled="disabled"
+        placeholder="选择每页条数"
+        size="sm"
+        @update:model-value="handleRowsPerPageChange"
+      />
     </div>
 
     <!-- 分页按钮 -->
