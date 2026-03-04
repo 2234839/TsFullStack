@@ -143,6 +143,48 @@ watchEffect(() => {
 - API 类型从后端包（backend）导入以实现完全的类型安全
 - 路由使用自定义的基于树的系统，而不是标准的 Vue Router 配置
 
+## 调试前端代码（工作流程）
+
+**每次修改代码后** 都要主动查看网页运行日志来验证实现是否正确。
+你仔细思考下开发的目标该怎么调试，然后你自己去运行调试，自己把日志输出出来，你自己查看log，反复如此，尽量不要找我
+### 网页运行日志系统说明
+- 前端自动收集所有 console 输出
+- 每秒增量追加到 `.dev-logs/latest-errors.log`
+- 开发服务器启动时自动清空日志
+- 日志显示完整的错误信息和堆栈跟踪
+
+**重要**：
+- ✅ 修改代码后，查看日志确认没有错误
+- ❌ 主动的查看日志，多看看日志对开发优秀的程序非常有帮助
+
+### 远程执行 JS（主动测试页面）
+不要等用户去调试，而应该主动调试主动查看日志！
+**可以直接写入文件来在页面上执行 JavaScript 代码：**
+
+```bash
+# 1. 写入要执行的 JS 代码到文件（注意路径是 apps/website-frontend/.dev-logs/）
+echo 'document.querySelector(".cm-editor") !== null' > apps/website-frontend/.dev-logs/pending-js.txt
+
+# 2. 等待 1-2 秒让页面执行
+
+# 3. 查看日志中的执行结果
+sleep 8 && tail -150 .dev-logs/latest-errors.log | grep xx
+```
+
+**重要**：文件路径是 `apps/website-frontend/.dev-logs/pending-js.txt`，不是根目录的 `.dev-logs/`
+
+**使用场景**：
+- 验证页面元素是否正确渲染
+- 检查组件状态
+- 执行测试代码
+- 获取页面运行时信息
+
+**示例**：
+```bash
+# 检查页面标题
+echo 'document.title' > apps/website-frontend/.dev-logs/pending-js.txt
+```
+
 
 <claude-mem-context>
 # Recent Activity

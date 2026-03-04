@@ -6,6 +6,7 @@ import vueDevTools from 'vite-plugin-vue-devtools';
 import vueJsx from '@vitejs/plugin-vue-jsx';
 import Components from 'unplugin-vue-components/vite';
 import { vitePluginAutoRoutes } from './src/plugins/vite-plugin-auto-routes';
+import { autoSaveLogsPlugin } from './vite-plugin-auto-save-logs';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -16,6 +17,7 @@ export default defineConfig({
     vueJsx(),
     tailwindcss(),
     vueDevTools(),
+    autoSaveLogsPlugin(),
   ],
   resolve: {
     alias: {

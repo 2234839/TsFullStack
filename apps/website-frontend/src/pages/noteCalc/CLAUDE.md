@@ -13,7 +13,7 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #13509 | 10:13 PM | 🔄 | Updated InputGroupAddons to use clickable prop | ~230 |
+| #13509 | 10:11 PM | 🔄 | Updated InputGroupAddons to use clickable prop | ~230 |
 | #13496 | 10:11 PM | 🔵 | Examined search input group in NoteCalc | ~216 |
 | #13484 | 10:08 PM | 🔵 | Examined note deletion confirmation in NoteCalc | ~222 |
 | #13483 | " | 🔄 | Migrated "Load More" button to custom Button component | ~214 |
@@ -23,3 +23,201 @@
 | #13440 | 10:01 PM | 🔵 | Reviewed NoteCalc.vue Button usage patterns | ~242 |
 | #12014 | 10:09 AM | 🔵 | UserData creation found in ShareForm and NoteCalc components | ~189 |
 </claude-mem-context>
+
+---
+
+# NoteCalc 对齐功能测试方法
+
+## 测试系统
+
+使用 **Remote JS 执行系统** 进行浏览器端测试：
+
+1. **执行 JS 文件位置**：`apps/website-frontend/.dev-logs/pending-js.txt`
+2. **日志输出位置**：`apps/website-frontend/.dev-logs/latest-errors.log`
+3. **查看日志命令**：
+   ```bash
+   # 倒序查看最新日志（重要：日志是追加的，必须倒序看）
+   tail -100 apps/website-frontend/.dev-logs/latest-errors.log
+
+   # 搜索特定内容
+   tail -500 apps/website-frontend/.dev-logs/latest-errors.log | grep "关键词"
+   ```
+
+## 测试对齐效果的 JS 代码模板
+
+### 基础对齐检查
+
+```javascript
+// 检查特定组的对齐效果
+const editor = document.querySelector('.cm-content');
+const lines = Array.from(editor.querySelectorAll('.cm-line'));
+const resultLines = lines.filter(line => line.querySelector('.result-widget'));
+
+console.log('[对齐检查] 组1 (短表达式):');
+const group1 = resultLines.slice(0, 4); // 根据实际情况调整
+const positions = group1.map((line, i) => {
+  const widget = line.querySelector('.result-widget');
+  const rect = widget.getBoundingClientRect();
+  const editorRect = editor.getBoundingClientRect();
+  const relativePos = rect.left - editorRect.left;
+  const text = line.textContent.trim().substring(0, 20);
+  const margin = widget.style.marginLeft;
+  console.log(`  ${i+1}. ${text}: margin=${margin}, 位置=${relativePos.toFixed(1)}px`);
+  return relativePos;
+});
+
+const maxPos = Math.max(...positions);
+const minPos = Math.min(...positions);
+const diff = maxPos - minPos;
+console.log(`\n[对齐检查] 位置差: ${diff.toFixed(1)}px - ${diff < 5 ? '✓ 成功对齐' : '✗ 失败'}`);
+```
+
+### 完整对齐检查
+
+```javascript
+// 检查所有组的对齐情况
+const editor = document.querySelector('.cm-content');
+const lines = Array.from(editor.querySelectorAll('.cm-line'));
+const resultLines = lines.filter(line => line.querySelector('.result-widget'));
+
+console.log('[完整对齐检查] 总共', resultLines.length, '个结果行');
+
+// 定义每个组的行数
+const groupsInfo = [
+  { name: '组1', count: 4, desc: '(2+2, 5*10, 100/4, 2^3)' },
+  { name: '组2', count: 2, desc: '(长表达式)' },
+  { name: '组3', count: 2, desc: '(价格, 数量)' },
+  // 根据实际情况添加更多组
+];
+
+let startIndex = 0;
+groupsInfo.forEach((groupInfo, groupIndex) => {
+  const groupLines = resultLines.slice(startIndex, startIndex + groupInfo.count);
+  if (groupLines.length === 0) {
+    startIndex += groupInfo.count;
+    return;
+  }
+
+  const positions = groupLines.map((line) => {
+    const widget = line.querySelector('.result-widget');
+    const rect = widget.getBoundingClientRect();
+    const editorRect = editor.getBoundingClientRect();
+    return rect.left - editorRect.left;
+  });
+
+  const maxPos = Math.max(...positions);
+  const minPos = Math.min(...positions);
+  const diff = maxPos - minPos;
+  const status = diff < 5 ? '✓ 成功' : '✗ 失败';
+
+  console.log(`[完整对齐检查] ${groupInfo.name} ${groupInfo.desc}:`);
+  groupLines.forEach((line, i) => {
+    const text = line.textContent.trim().substring(0, 25);
+    console.log(`  ${i+1}. ${text}: ${positions[i].toFixed(1)}px`);
+  });
+  console.log(`  位置差: ${diff.toFixed(1)}px - ${status}\n`);
+
+  startIndex += groupInfo.count;
+});
+```
+
+### 文本宽度测量测试
+
+```javascript
+// 测试文本宽度测量是否准确
+function measureWidth(text) {
+  const editor = document.querySelector('.cm-editor');
+  const cmStyle = window.getComputedStyle(editor);
+  const span = document.createElement('span');
+  span.style.visibility = 'hidden';
+  span.style.position = 'absolute';
+  span.style.whiteSpace = 'pre';
+  span.style.fontFamily = cmStyle.fontFamily;
+  span.style.fontSize = cmStyle.fontSize;
+  span.textContent = text;
+  editor.appendChild(span);
+  const width = span.getBoundingClientRect().width;
+  editor.removeChild(span);
+  return width;
+}
+
+const testTexts = ['价格 = 99.5', '数量 = 5', '总价 = 价格 * 数量'];
+console.log('[宽度测试] 测量结果:');
+testTexts.forEach(text => {
+  const width = measureWidth(text);
+  console.log(`  "${text}": ${width.toFixed(1)}px`);
+});
+```
+
+### 相邻行位置差检查
+
+```javascript
+// 检查相邻行是否对齐
+const editor = document.querySelector('.cm-content');
+const lines = Array.from(editor.querySelectorAll('.cm-line'));
+const resultLines = lines.filter(line => line.querySelector('.result-widget'));
+
+console.log('[相邻行对齐检查]');
+for (let i = 0; i < resultLines.length - 1; i++) {
+  const widget1 = resultLines[i].querySelector('.result-widget');
+  const widget2 = resultLines[i + 1].querySelector('.result-widget');
+
+  const rect1 = widget1.getBoundingClientRect();
+  const rect2 = widget2.getBoundingClientRect();
+  const editorRect = editor.getBoundingClientRect();
+
+  const pos1 = rect1.left - editorRect.left;
+  const pos2 = rect2.left - editorRect.left;
+
+  const diff = Math.abs(pos2 - pos1);
+  const aligned = diff < 5;
+
+  const text1 = resultLines[i].textContent.trim().substring(0, 20);
+  const text2 = resultLines[i + 1].textContent.trim().substring(0, 20);
+
+  console.log(`行${i+1} vs 行${i+2}: 差=${diff.toFixed(1)}px ${aligned ? '✓' : '✗'}`);
+  console.log(`  ${text1} vs ${text2}`);
+}
+```
+
+## 刷新页面重新测试
+
+```javascript
+location.reload();
+```
+
+## 对齐成功标准
+
+- **位置差 < 5px**：认为对齐成功
+- **位置差 = 0.0px**：完美对齐
+- **位置差 > 5px**：对齐失败
+
+## 常见测试场景
+
+1. **短表达式组**：`2 + 2`, `5 * 10`, `100 / 4`, `2^3`
+2. **长表达式组**：`0.1 + 0.1111233`, `1.23 + 2.211111`
+3. **变量赋值组**：`价格 = 99.5`, `数量 = 5`
+4. **数学函数组**：`sin(PI/4)`, `log(10)`, `sqrt(16)`
+
+## 调试技巧
+
+1. **查看算法分组**：在代码中添加 `console.log('[对齐算法] 分组结果:')` 输出
+2. **查看宽度计算**：添加 `console.log('[calculateContentLength]', { ... })` 输出每行的宽度
+3. **查看 margin 计算**：添加 `console.log('[对齐算法] 行X: 宽度=..., margin=...')` 输出
+4. **倒序查看日志**：使用 `tail` 命令从后往前看，因为日志是追加的
+
+## 示例测试流程
+
+1. 修改代码
+2. 写入测试 JS 到 `pending-js.txt`
+3. 等待 3-5 秒让浏览器执行
+4. 使用 `tail` 命令查看日志结果
+5. 根据结果调整代码
+6. 重复步骤 1-5
+
+## 重要提示
+
+- ⚠️ **必须倒序查看日志**：`tail -100` 而不是 `head -100`
+- ⚠️ **等待足够时间**：页面刷新后等待 5-8 秒
+- ⚠️ **检查浏览器控制台**：有些错误只在浏览器控制台显示
+- ⚠️ **使用索引定位**：根据实际行数调整 `slice()` 参数

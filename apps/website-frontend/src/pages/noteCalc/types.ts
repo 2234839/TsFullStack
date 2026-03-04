@@ -35,3 +35,45 @@ export interface CalculatorConfig {
   precision: number;
   showPrecision: number;
 }
+
+/** 行类型 */
+export type LineType =
+  | 'empty'
+  | 'comment'
+  | 'title'
+  | 'subtitle'
+  | 'assignment'
+  | 'expression'
+  | 'unitConversion'
+  | 'equation'
+  | 'normal';
+
+/** 语法高亮部分 */
+export interface HighlightedPart {
+  text: string;
+  type: 'text' | 'number' | 'variable' | 'operator' | 'function';
+}
+
+/** 解析后的行 */
+export interface ParsedLine {
+  type: LineType;
+  content: string;
+  varName?: string;
+  expression?: string;
+  targetUnit?: string;
+}
+
+/** 光标位置 */
+export interface CursorPosition {
+  lineIndex: number;
+  offset: number;
+}
+
+/** 行渲染属性 */
+export interface LineRenderProps {
+  line: string;
+  result: CalculationResult;
+  lineIndex: number;
+  isFocused: boolean;
+  showResult: boolean;
+}

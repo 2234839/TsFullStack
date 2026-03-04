@@ -676,7 +676,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
         results.push(result);
         lineResults[i] = result;
       }
-      console.log('[results]', results);
+      // console.log('[results]', results);
       return results;
     });
   }

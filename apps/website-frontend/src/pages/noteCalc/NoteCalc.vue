@@ -133,7 +133,7 @@
         </div>
 
         <div class="flex-1 overflow-hidden">
-          <NoteCalcCore v-model="content" v-model:config="config" />
+          <CodeMirrorEditor v-model="content" :config="config" />
         </div>
       </div>
     </div>
@@ -200,7 +200,7 @@
   import { API } from '@/api';
   import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
   import { t } from '@/i18n';
-  import NoteCalcCore from '@/pages/noteCalc/NoteCalcCore.vue';
+  import CodeMirrorEditor from '@/pages/noteCalc/CodeMirrorEditor.vue';
   import { routeMap, router, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin } from '@/storage';
   import { userDataAppid } from '@/storage/userDataAppid';
