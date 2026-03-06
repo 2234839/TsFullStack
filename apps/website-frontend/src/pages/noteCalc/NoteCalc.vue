@@ -3,7 +3,7 @@
     <!-- 头部导航栏 -->
     <header
       class="flex items-center justify-between p-4 bg-white dark:bg-primary-800 border-b border-primary-200 dark:border-primary-700 shadow-sm">
-      <div class="flex items-center gap-2">
+      <div class="hidden md:flex items-center gap-2">
         <div class="w-8 h-8 text-secondary-600 dark:text-secondary-400">
           <i class="pi pi-calculator text-2xl!"></i>
         </div>

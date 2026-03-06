@@ -35,12 +35,13 @@
 <script setup lang="ts">
   import { onMounted, ref, watch, computed, shallowRef } from 'vue';
   import { EditorView, lineNumbers, drawSelection, dropCursor, keymap, Decoration, WidgetType } from '@codemirror/view';
-  import { EditorState } from '@codemirror/state';
+  import { EditorState, Compartment } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
   import { useThrottleFn } from '@vueuse/core';
   import { useCalculator } from './useCalculator';
   import type { CalculationResult, CalculatorConfig } from './types';
   import ProgressSpinner from '@/components/base/ProgressSpinner.vue';
+  import { theme_isDark } from '@/storage';
 
   interface Props {
     /** 模型值 */
@@ -61,6 +62,9 @@
   const view = shallowRef<EditorView>();
   const lastCalculationTime = ref<Date | null>(null);
   const previousContent = ref('');
+
+  /** 主题 compartment */
+  const themeCompartment = new Compartment();
 
   /** 计算器实例 */
   const calculator = useCalculator({
@@ -522,6 +526,99 @@
   );
 
   /**
+   * 创建自定义基础主题
+   */
+  const customBaseTheme = EditorView.baseTheme({
+    '& .syntax-h1-hash': {
+      color: 'var(--cm-h1-hash-color)',
+      fontWeight: '700',
+    },
+    '& .syntax-h1-text': {
+      color: 'var(--cm-h1-text-color)',
+      fontWeight: '700',
+      fontSize: '1.25em',
+    },
+    '& .syntax-h2-hash': {
+      color: 'var(--cm-h2-hash-color)',
+      fontWeight: '600',
+    },
+    '& .syntax-h2-text': {
+      color: 'var(--cm-h2-text-color)',
+      fontWeight: '600',
+      fontSize: '1.1em',
+    },
+    '& .syntax-number': {
+      color: 'var(--cm-number-color)',
+      fontWeight: '500',
+    },
+    '& .syntax-variable': {
+      color: 'var(--cm-variable-color)',
+      fontWeight: '500',
+    },
+    '& .syntax-function': {
+      color: 'var(--cm-function-color)',
+      fontWeight: '500',
+    },
+    '&light': {
+      '--cm-h1-hash-color': '#3b82f6',
+      '--cm-h1-text-color': '#1e40af',
+      '--cm-h2-hash-color': '#6366f1',
+      '--cm-h2-text-color': '#4338ca',
+      '--cm-number-color': '#059669',
+      '--cm-variable-color': '#d97706',
+      '--cm-function-color': '#7c3aed',
+    },
+    '&dark': {
+      '--cm-h1-hash-color': '#60a5fa',
+      '--cm-h1-text-color': '#dbeafe',
+      '--cm-h2-hash-color': '#818cf8',
+      '--cm-h2-text-color': '#e0e7ff',
+      '--cm-number-color': '#34d399',
+      '--cm-variable-color': '#fbbf24',
+      '--cm-function-color': '#a78bfa',
+    },
+  });
+
+  /**
+   * 创建主题扩展
+   */
+  function createThemeExtension() {
+    const isDark = theme_isDark.value;
+    return EditorView.theme(
+      {
+        '&': {
+          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+          color: isDark ? '#e5e7eb' : '#1f2937',
+        },
+        '& .cm-gutter': {
+          backgroundColor: isDark ? '#1f2937' : '#f9fafb',
+          borderRight: '1px solid ' + (isDark ? '#374151' : '#e5e7eb'),
+        },
+        '& .cm-lineNumbers': {
+          color: isDark ? '#6b7280' : '#9ca3af',
+        },
+        '& .cm-content': {
+          caretColor: isDark ? '#e5e7eb' : '#1f2937',
+        },
+        '&.cm-focused .cm-content': {
+          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+        },
+      },
+      { dark: isDark }
+    );
+  }
+
+  /**
+   * 更新主题
+   */
+  function updateTheme() {
+    if (!view.value) return;
+    view.value.dispatch({
+      effects: themeCompartment.reconfigure(createThemeExtension()),
+    });
+  }
+
+  /**
    * 初始化编辑器
    */
   function initEditor() {
@@ -536,10 +633,10 @@
         drawSelection(),
         dropCursor(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
-        // 暗色主题支持 - 暂时禁用
-        // compartment.of(
-        //   document.documentElement.classList.contains('dark') ? oneDark : [],
-        // ),
+        // 自定义基础主题（语法高亮）
+        customBaseTheme,
+        // 主题 compartment（颜色、背景等）
+        themeCompartment.of(createThemeExtension()),
         // 监听文档变化
         EditorView.updateListener.of((update) => {
           if (update.docChanged) {
@@ -619,29 +716,14 @@
     { deep: true },
   );
 
-  /** 监听暗色模式变化 - 暂时禁用 */
-  // const updateTheme = () => {
-  //   if (!view.value) return;
-  //   // TODO: 重新启用暗色主题支持
-  // };
+  /** 监听暗色模式变化 */
+  watch(theme_isDark, () => {
+    updateTheme();
+  });
 
   // 初始化编辑器
   onMounted(() => {
     initEditor();
-
-    // 暂时禁用暗色模式监听
-    // const observer = new MutationObserver(() => {
-    //   updateTheme();
-    // });
-
-    // observer.observe(document.documentElement, {
-    //   attributes: true,
-    //   attributeFilter: ['class'],
-    // });
-
-    // onBeforeUnmount(() => {
-    //   observer.disconnect();
-    // });
   });
 </script>
 
@@ -856,63 +938,5 @@
     :deep(.cm-content) {
       padding: 12px;
     }
-  }
-
-  /* 语法高亮样式 */
-  :deep(.syntax-h1-hash) {
-    color: #3b82f6;
-    font-weight: 700;
-  }
-
-  :deep(.syntax-h1-text) {
-    color: #1e40af;
-    font-weight: 700;
-    font-size: 1.25em;
-  }
-
-  .dark :deep(.syntax-h1-text) {
-    color: #93c5fd;
-  }
-
-  :deep(.syntax-h2-hash) {
-    color: #6366f1;
-    font-weight: 600;
-  }
-
-  :deep(.syntax-h2-text) {
-    color: #4338ca;
-    font-weight: 600;
-    font-size: 1.1em;
-  }
-
-  .dark :deep(.syntax-h2-text) {
-    color: #a5b4fc;
-  }
-
-  :deep(.syntax-number) {
-    color: #059669;
-    font-weight: 500;
-  }
-
-  .dark :deep(.syntax-number) {
-    color: #34d399;
-  }
-
-  :deep(.syntax-variable) {
-    color: #d97706;
-    font-weight: 500;
-  }
-
-  .dark :deep(.syntax-variable) {
-    color: #fbbf24;
-  }
-
-  :deep(.syntax-function) {
-    color: #7c3aed;
-    font-weight: 500;
-  }
-
-  .dark :deep(.syntax-function) {
-    color: #a78bfa;
   }
 </style>
