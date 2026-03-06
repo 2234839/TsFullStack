@@ -99,7 +99,7 @@ const fillStyle = computed(() => ({
 
 /** 滑块拇指样式类 */
 const thumbClasses = computed(() => {
-  const base = 'absolute top-1/2 -transecondary-y-1/2 w-4 h-4 bg-primary-50 dark:bg-primary-950 border-2 border-primary-700 dark:border-primary-300 rounded-full shadow-md transition-transform duration-150';
+  const base = 'absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary-50 dark:bg-primary-950 border-2 border-primary-700 dark:border-primary-300 rounded-full shadow-md transition-transform duration-150';
   const hoverClass = !props.disabled ? 'hover:scale-110 active:scale-95' : '';
   const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
 
@@ -114,11 +114,10 @@ const thumbClasses = computed(() => {
     @click="handleClick">
     <div
       class="absolute h-full bg-primary-700 dark:bg-primary-300 rounded-full"
-      :style="fillStyle">
-      <div
-        :class="thumbClasses"
-        :style="{ left: `calc(${percentage}% - 8px)` }"
-        @mousedown="startDrag" />
-    </div>
+      :style="fillStyle" />
+    <div
+      :class="thumbClasses"
+      :style="{ left: `calc(${percentage}% - 8px)` }"
+      @mousedown="startDrag" />
   </div>
 </template>

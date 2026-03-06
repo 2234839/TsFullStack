@@ -21,6 +21,7 @@
     "src/**/*.vue",
     "src/**/*.d.ts",
     "projects/**/*.ts",
-    "projects/**/*.vue"
+    "projects/**/*.vue",
+    "components.d.ts"
   ]
 }

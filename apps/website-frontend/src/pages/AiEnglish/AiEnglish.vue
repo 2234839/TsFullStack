@@ -2,13 +2,24 @@
   <div
     class="min-h-screen bg-linear-to-br from-primary-50 to-secondary-50 dark:from-primary-900 dark:to-secondary-900 p-4">
     <div class="max-w-7xl mx-auto space-y-6">
-      <!-- 标题 -->
-      <div class="text-center space-y-2">
-        <h1 class="text-4xl font-bold flex items-center justify-center gap-3">
-          <i class="pi pi-book text-primary-600 text-3xl" />
-          在阅读中渐进式学习英语
-        </h1>
-        <p>AI驱动 • 智能分析 • 分段学习 • 划选段落翻译</p>
+      <!-- 标题区域 -->
+      <div class="flex items-center gap-4">
+        <Tooltip :content="t('返回首页')" side="right">
+          <Button
+            icon="pi pi-arrow-left"
+            variant="secondary"
+            @click="routerUtil.push(routeMap.index, undefined as any)"
+            class="text-base! px-4! py-2!">
+            返回首页
+          </Button>
+        </Tooltip>
+        <div class="flex-1 text-center">
+          <h1 class="text-3xl font-bold flex items-center justify-center gap-3">
+            <i class="pi pi-book text-primary-600 text-2xl" />
+            在阅读中渐进式学习英语
+          </h1>
+          <p class="text-sm mt-1">AI驱动 • 智能分析 • 分段学习 • 划选段落翻译</p>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -635,6 +646,8 @@
   import AiEnglishTips from '@/components/AiEnglishTips.vue';
   import GlassBlur from '@/components/GlassBlur.vue';
   import { useI18n } from '@/composables/useI18n';
+  import { routerUtil } from '@/router';
+  import { routeMap } from '@/router';
 
   const { t } = useI18n();
 
