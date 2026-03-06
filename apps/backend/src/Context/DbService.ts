@@ -13,7 +13,11 @@ import { ReqCtxService } from './ReqCtx';
 
 /** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表,ZenStack 不接受 $transaction 数组形式的调用，客户端又没法使用非数组形式，所以不让用 */
 export const allowedMethods = ['$transaction', ...modelsName] as const;
-type DbClient = ClientContract<SchemaType>;
+type DbClient = ClientContract<SchemaType, {
+    dialect: SqliteDialect;
+}, {}, {}>
+const a = {} as unknown as DbClient;
+a.resource
 export type safePrisma = Pick<DbClient, (typeof allowedMethods)[number]>;
 
 /** 获取无权限检查的 dbClient，慎用！！ 使用时需要明确场景，避免权限系统被跳过 */

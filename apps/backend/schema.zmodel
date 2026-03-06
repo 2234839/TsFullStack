@@ -132,9 +132,6 @@ model Resource with Base {
     @@index([taskId])
     @@index([status, created])
 
-    /** 多态委托 - 支持未来扩展特定资源类型 */
-    @@delegate(type)
-
     /** 权限控制 */
     @@allow('read,create,update,delete', auth() == user)
     @@allow('read', auth() != null && status == "public")
@@ -340,12 +337,14 @@ model Word with Base {
     key           String
     /// 单词原文
     word          String
-    /// 记忆等级
+    /// 记忆等级 (掌握度 0-10)
     memoryLevel   Int      @default(0)
     /// 点击次数
     clickCount    Int      @default(0)
     /// 最后点击时间戳
     lastClickTime DateTime @default(now())
+    /// 眼熟度 (0-100, 基于见面次数和时间衰减)
+    familiarity   Int      @default(0)
     /// 翻译列表（存储为JSON数组）
     translations  Json
     /// AI翻译（可选）

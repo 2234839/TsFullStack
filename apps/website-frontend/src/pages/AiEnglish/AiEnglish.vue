@@ -320,6 +320,17 @@
                           <div class="text-primary-500 dark:text-primary-400">查看次数</div>
                           <div class="font-medium">{{ selectedWord.clickCount }} 次</div>
                         </div>
+                        <div>
+                          <div class="text-primary-500 dark:text-primary-400">眼熟度</div>
+                          <div class="font-medium">
+                            <span :class="getFamiliarityColor(selectedWord.familiarity)">
+                              {{ Math.round(selectedWord.familiarity) }}%
+                            </span>
+                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                              ({{ getFamiliarityLabel(selectedWord.familiarity) }})
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </GlassBlur>
                   </div>
@@ -740,12 +751,14 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         const newMemoryLevel = Math.max(0, wordData.memoryLevel - 1);
         const oldWordData = words.value.find((el) => el.word === selectedWord.value?.word);
         if (oldWordData) {
+          const newClickCount = oldWordData.clickCount + 1;
           updateWordDatas([
             {
               ...oldWordData,
               memoryLevel: newMemoryLevel,
-              clickCount: oldWordData.clickCount + 1,
+              clickCount: newClickCount,
               lastClickTime: new Date(),
+              familiarity: calculateFamiliarity(newClickCount, new Date()),
             },
           ]);
           console.log(`查看模糊翻译内容 ${selectedWord.value.word} 熟练度 -1 (当前: ${newMemoryLevel}/10)`);
@@ -803,10 +816,47 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     }
   };
 
+  /** 计算眼熟度标签 */
+  const getFamiliarityLabel = (familiarity: number): string => {
+    const level = Math.round(familiarity);
+    if (level >= 80) return '非常眼熟';
+    if (level >= 60) return '比较眼熟';
+    if (level >= 40) return '有点印象';
+    if (level >= 20) return '似曾相识';
+    return '完全陌生';
+  };
+
+  /** 计算眼熟度颜色 */
+  const getFamiliarityColor = (familiarity: number): string => {
+    const level = Math.round(familiarity);
+    if (level >= 80) return 'text-success-600 dark:text-success-400';
+    if (level >= 60) return 'text-primary-600 dark:text-primary-400';
+    if (level >= 40) return 'text-warning-600 dark:text-warning-400';
+    if (level >= 20) return 'text-orange-600 dark:text-orange-400';
+    return 'text-gray-600 dark:text-gray-400';
+  };
+
   const getDifficultyColor = (difficulty: number): string => {
     if (difficulty <= 3) return 'text-success-600';
     if (difficulty <= 6) return 'text-warning-600';
     return 'text-danger-600';
+  };
+
+  /** 计算眼熟度 (0-100) */
+  const calculateFamiliarity = (clickCount: number, lastClickTime: Date): number => {
+    const now = new Date();
+    const lastClick = new Date(lastClickTime);
+    const daysSinceLastClick = Math.max(0, (now.getTime() - lastClick.getTime()) / (1000 * 60 * 60 * 24));
+
+    // 基础眼熟度：每次点击增加10分
+    const baseFamiliarity = Math.min(100, clickCount * 10);
+
+    // 时间衰减：30天衰减20分
+    const timeDecay = Math.min(20, (daysSinceLastClick / 30) * 20);
+
+    // 最终眼熟度
+    const familiarity = Math.max(0, Math.min(100, baseFamiliarity - timeDecay));
+    return familiarity;
   };
 
   // 文本处理
@@ -1129,12 +1179,14 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         const aiResult = await translateWithAI(word, currentText.value);
         const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
         if (oldWordData) {
+          const newClickCount = oldWordData.clickCount + 1;
           updateWordDatas([
             {
               ...oldWordData,
               memoryLevel: newMemoryLevel,
-              clickCount: oldWordData.clickCount + 1,
+              clickCount: newClickCount,
               lastClickTime: new Date(),
+              familiarity: calculateFamiliarity(newClickCount, new Date()),
               aiTranslation: aiResult.translation,
               difficulty: aiResult.difficulty,
               examples: aiResult.examples,
@@ -1158,12 +1210,14 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     } else {
       const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
       if (oldWordData) {
+        const newClickCount = oldWordData.clickCount + 1;
         updateWordDatas([
           {
             ...oldWordData,
             memoryLevel: newMemoryLevel,
-            clickCount: oldWordData.clickCount + 1,
+            clickCount: newClickCount,
             lastClickTime: new Date(),
+            familiarity: calculateFamiliarity(newClickCount, new Date()),
           },
         ]);
       }

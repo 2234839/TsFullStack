@@ -9,12 +9,14 @@ import { computed, ref } from 'vue';
 export interface WordData {
   /** 单词原文 */
   word: string;
-  /** 记忆等级 */
+  /** 记忆等级 (掌握度 0-10) */
   memoryLevel: number;
   /** 点击次数 */
   clickCount: number;
   /** 最后点击时间戳 */
   lastClickTime: Date;
+  /** 眼熟度 (0-100, 基于见面次数和时间衰减) */
+  familiarity: number;
   /** 翻译列表 */
   translations: string[];
   /** AI翻译 */
@@ -63,6 +65,7 @@ export function useAiEnglishData() {
             memoryLevel: 0,
             clickCount: 0,
             lastClickTime: new Date(),
+            familiarity: 0,
             translations: [],
           };
         }

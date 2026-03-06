@@ -161,14 +161,14 @@ importers:
         specifier: ^9.0.0
         version: 9.0.0
       '@zenstackhq/orm':
-        specifier: ^3.4.2
-        version: 3.4.2(better-sqlite3@12.6.2)(zod@4.3.6)
+        specifier: ^3.4.4
+        version: 3.4.4(better-sqlite3@12.6.2)(zod@4.3.6)
       '@zenstackhq/plugin-policy':
-        specifier: ^3.4.2
-        version: 3.4.2(better-sqlite3@12.6.2)(kysely@0.28.11)(zod@4.3.6)
+        specifier: ^3.4.4
+        version: 3.4.4(better-sqlite3@12.6.2)(kysely@0.28.11)(zod@4.3.6)
       '@zenstackhq/schema':
-        specifier: ^3.4.2
-        version: 3.4.2
+        specifier: ^3.4.4
+        version: 3.4.4
       bcryptjs:
         specifier: ^3.0.3
         version: 3.0.3
@@ -204,8 +204,8 @@ importers:
         specifier: ^4.0.18
         version: 4.0.18(vitest@4.0.18(@types/node@25.3.3)(esbuild@0.27.3)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.2))
       '@zenstackhq/cli':
-        specifier: ^3.4.2
-        version: 3.4.2(better-sqlite3@12.6.2)(fastify-plugin@5.1.0)(fastify@5.7.4)(magicast@0.3.5)(typescript@5.9.3)
+        specifier: ^3.4.4
+        version: 3.4.4(better-sqlite3@12.6.2)(fastify-plugin@5.1.0)(fastify@5.7.4)(magicast@0.3.5)(typescript@5.9.3)
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(@microsoft/api-extractor@7.52.13(@types/node@25.3.3))(jiti@2.6.1)(postcss@8.5.6)(tsx@4.21.0)(typescript@5.9.3)(yaml@2.8.2)
@@ -2331,8 +2331,8 @@ packages:
   '@wxt-dev/storage@1.1.1':
     resolution: {integrity: sha512-H1vYWeoWz03INV4r+sLYDFil88b3rgMMfgGp/EXy3bLbveJeiMiFs/G0bsBN2Ra87Iqlf2oVYRb/ABQpAugbew==}
 
-  '@zenstackhq/cli@3.4.2':
-    resolution: {integrity: sha512-wH/HS3q+U2Ju1VH/g1w2MKqhdZGHogKkyCTtfq2RVNzBEnskjh1fAqgpBWsYnGgP9bvpLj5+LvMoYgO4GepTFw==}
+  '@zenstackhq/cli@3.4.4':
+    resolution: {integrity: sha512-X4tEaqtdwTQkHCto/D4/q0HbZQ3mF6Iibm7uA5w2AnB1qIIgKRpELbBwJZLMTPOJ1rjjaq4TLcy381Aw6E1hXQ==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -2347,14 +2347,14 @@ packages:
       pg:
         optional: true
 
-  '@zenstackhq/common-helpers@3.4.2':
-    resolution: {integrity: sha512-HTGbWJDS9qdWH4XdKuueA87Cdu+FOsUZXygWDs7c2No1I1XC0lT8Rea6cVjKbiTb6PFlqDx8d7ME/YScEQ07iQ==}
+  '@zenstackhq/common-helpers@3.4.4':
+    resolution: {integrity: sha512-HS/B0uhyhzFoDamM/yQ4e7Zi/P/bYSTEa81YfIZ1b4TQB7vxNjO+CslpV/17XxpuzZl/758FfisJylztd+Jq4w==}
 
-  '@zenstackhq/language@3.4.2':
-    resolution: {integrity: sha512-s3d34nYUtvtwfz3uJ1M2VPN8WnHIHKY6eAAkxrnOV9d06edNVACjIkWDW7+4o6VvaciiKYURv+DuIRBDiamDUA==}
+  '@zenstackhq/language@3.4.4':
+    resolution: {integrity: sha512-KiAAgX46hApcfn8chGKDPflK6E+6AN7gLOERFvTKIIMN5zZ6/idiAS61AjYsbvugsrhk3FtqXnF3bn2YeLTBFA==}
 
-  '@zenstackhq/orm@3.4.2':
-    resolution: {integrity: sha512-bzKHe+wmpVI0poJp996okeWJKVfwlc5Lml5cJ5O2J1QYF5IGT3w/069LJMapVP70cKtqyzYeuB1zsa4WrnwtVg==}
+  '@zenstackhq/orm@3.4.4':
+    resolution: {integrity: sha512-0r0HDj5ZZK5TaXRuFGSmRKMoHhpHBiDu0qWSFY+ZyDtEjjOXnKsWSlReGsyt4kX4IqKsD1jH0cFVeMjONVseWA==}
     peerDependencies:
       better-sqlite3: ^12.5.0
       mysql2: ^3.16.1
@@ -2371,19 +2371,19 @@ packages:
       sql.js:
         optional: true
 
-  '@zenstackhq/plugin-policy@3.4.2':
-    resolution: {integrity: sha512-DiN64TYDfSz3943iM3zVMcQMjAxfkGo1Hob8ljXwStHH9s0RCdMbb0XFeZ3lJ1kJhlYy49SLSUmv4eHKI1Ykeg==}
+  '@zenstackhq/plugin-policy@3.4.4':
+    resolution: {integrity: sha512-0m2rTwq9GKPwNn6e78rjooCn0mWXMf7qaWFtAOiITj0tOaVl8FJX0OgsfFKY+wxBIiPGc1tCrp11fH8ByAzuCw==}
     peerDependencies:
       kysely: ~0.28.8
 
-  '@zenstackhq/schema@3.4.2':
-    resolution: {integrity: sha512-/OGcbO8nBusjr10pSocVE3KUoiZmV9NBrJEnM3mnbX6j2g0xRWSF43A227UukgWo9Oy1BXGeMl0Df/8J3531MA==}
+  '@zenstackhq/schema@3.4.4':
+    resolution: {integrity: sha512-VOnTaakDs5xgm4639kZLersRKyMay7h1vPvRxxmYDRU9faTvGgOgXKLlSrNdzt0pA12AM/4E2XXUBo+zNzaMeg==}
 
-  '@zenstackhq/sdk@3.4.2':
-    resolution: {integrity: sha512-YzEfhPMg8iBLG8VD7EzV9mXQfnoOGN1MLifMxTuJHGAmniMRP9ZeFy834O0YupWi0MhHbCX93uOcD4Xw6R2E5A==}
+  '@zenstackhq/sdk@3.4.4':
+    resolution: {integrity: sha512-sumwifkC1fCUqiUlDWIuscDKdqTXqIWsEXK+TuGTPgkH95WnoBq+tZ+4OIA+cm5z2DnkjdAJN8IdePl1VHdWTQ==}
 
-  '@zenstackhq/server@3.4.2':
-    resolution: {integrity: sha512-+EuRQyt5MkXWGm+3p8LrroLqVUhyM4fjVQ9oZuHJXSd/BRe6CLwNiKBYN6eNyrL1qVf9PWC4994hT7JQH1KYyw==}
+  '@zenstackhq/server@3.4.4':
+    resolution: {integrity: sha512-/rSMaLluK1uwMWYNKZF2NVELZ0f8OZtyYxAGTzkTJmS7amwYJJ7Yj2BVGQxzzcV0W35ofUyWeTMuEjin3yXBTA==}
     peerDependencies:
       '@sveltejs/kit': ^2.0.0
       elysia: ^1.3.0
@@ -2412,8 +2412,8 @@ packages:
       nuxt:
         optional: true
 
-  '@zenstackhq/zod@3.4.2':
-    resolution: {integrity: sha512-q3e9+JNBf7hV6FTXF2avzbpzNqqTJVPkh3aj7UXLGwoW3udjLH8rhFG8PC5pmUdO7kdP49UuAHRtMamqyPsgfQ==}
+  '@zenstackhq/zod@3.4.4':
+    resolution: {integrity: sha512-1ARS5WU3cmVvDq7VRVVawAvFXdZgKQHwf9KUNkVlvabIaVf79on/tNswKaRU6qSnfmbWG9Ea7rUHFVP2Fva7Iw==}
     peerDependencies:
       zod: ^4.0.0
 
@@ -8365,14 +8365,14 @@ snapshots:
       async-mutex: 0.5.0
       dequal: 2.0.3
 
-  '@zenstackhq/cli@3.4.2(better-sqlite3@12.6.2)(fastify-plugin@5.1.0)(fastify@5.7.4)(magicast@0.3.5)(typescript@5.9.3)':
+  '@zenstackhq/cli@3.4.4(better-sqlite3@12.6.2)(fastify-plugin@5.1.0)(fastify@5.7.4)(magicast@0.3.5)(typescript@5.9.3)':
     dependencies:
-      '@zenstackhq/common-helpers': 3.4.2
-      '@zenstackhq/language': 3.4.2
-      '@zenstackhq/orm': 3.4.2(better-sqlite3@12.6.2)(zod@4.3.6)
-      '@zenstackhq/schema': 3.4.2
-      '@zenstackhq/sdk': 3.4.2
-      '@zenstackhq/server': 3.4.2(better-sqlite3@12.6.2)(express@5.2.1)(fastify-plugin@5.1.0)(fastify@5.7.4)(zod@4.3.6)
+      '@zenstackhq/common-helpers': 3.4.4
+      '@zenstackhq/language': 3.4.4
+      '@zenstackhq/orm': 3.4.4(better-sqlite3@12.6.2)(zod@4.3.6)
+      '@zenstackhq/schema': 3.4.4
+      '@zenstackhq/sdk': 3.4.4
+      '@zenstackhq/server': 3.4.4(better-sqlite3@12.6.2)(express@5.2.1)(fastify-plugin@5.1.0)(fastify@5.7.4)(zod@4.3.6)
       chokidar: 5.0.0
       colors: 1.4.0
       commander: 8.3.0
@@ -8405,22 +8405,22 @@ snapshots:
       - supports-color
       - typescript
 
-  '@zenstackhq/common-helpers@3.4.2': {}
+  '@zenstackhq/common-helpers@3.4.4': {}
 
-  '@zenstackhq/language@3.4.2':
+  '@zenstackhq/language@3.4.4':
     dependencies:
-      '@zenstackhq/common-helpers': 3.4.2
+      '@zenstackhq/common-helpers': 3.4.4
       langium: 3.5.0
       pluralize: 8.0.0
       ts-pattern: 5.9.0
       vscode-languageserver: 9.0.1
 
-  '@zenstackhq/orm@3.4.2(better-sqlite3@12.6.2)(zod@4.3.6)':
+  '@zenstackhq/orm@3.4.4(better-sqlite3@12.6.2)(zod@4.3.6)':
     dependencies:
       '@paralleldrive/cuid2': 2.3.1
-      '@zenstackhq/common-helpers': 3.4.2
-      '@zenstackhq/schema': 3.4.2
-      '@zenstackhq/zod': 3.4.2(zod@4.3.6)
+      '@zenstackhq/common-helpers': 3.4.4
+      '@zenstackhq/schema': 3.4.4
+      '@zenstackhq/zod': 3.4.4(zod@4.3.6)
       cuid: 3.0.0
       decimal.js: 10.6.0
       json-stable-stringify: 1.3.0
@@ -8436,10 +8436,10 @@ snapshots:
     optionalDependencies:
       better-sqlite3: 12.6.2
 
-  '@zenstackhq/plugin-policy@3.4.2(better-sqlite3@12.6.2)(kysely@0.28.11)(zod@4.3.6)':
+  '@zenstackhq/plugin-policy@3.4.4(better-sqlite3@12.6.2)(kysely@0.28.11)(zod@4.3.6)':
     dependencies:
-      '@zenstackhq/common-helpers': 3.4.2
-      '@zenstackhq/orm': 3.4.2(better-sqlite3@12.6.2)(zod@4.3.6)
+      '@zenstackhq/common-helpers': 3.4.4
+      '@zenstackhq/orm': 3.4.4(better-sqlite3@12.6.2)(zod@4.3.6)
       kysely: 0.28.11
       ts-pattern: 5.9.0
     transitivePeerDependencies:
@@ -8449,22 +8449,22 @@ snapshots:
       - sql.js
       - zod
 
-  '@zenstackhq/schema@3.4.2':
+  '@zenstackhq/schema@3.4.4':
     dependencies:
       decimal.js: 10.6.0
 
-  '@zenstackhq/sdk@3.4.2':
+  '@zenstackhq/sdk@3.4.4':
     dependencies:
-      '@zenstackhq/common-helpers': 3.4.2
-      '@zenstackhq/language': 3.4.2
+      '@zenstackhq/common-helpers': 3.4.4
+      '@zenstackhq/language': 3.4.4
       langium: 3.5.0
       ts-pattern: 5.9.0
       typescript: 5.9.3
 
-  '@zenstackhq/server@3.4.2(better-sqlite3@12.6.2)(express@5.2.1)(fastify-plugin@5.1.0)(fastify@5.7.4)(zod@4.3.6)':
+  '@zenstackhq/server@3.4.4(better-sqlite3@12.6.2)(express@5.2.1)(fastify-plugin@5.1.0)(fastify@5.7.4)(zod@4.3.6)':
     dependencies:
-      '@zenstackhq/common-helpers': 3.4.2
-      '@zenstackhq/orm': 3.4.2(better-sqlite3@12.6.2)(zod@4.3.6)
+      '@zenstackhq/common-helpers': 3.4.4
+      '@zenstackhq/orm': 3.4.4(better-sqlite3@12.6.2)(zod@4.3.6)
       decimal.js: 10.6.0
       superjson: 2.2.6
       ts-japi: 1.12.1
@@ -8482,9 +8482,9 @@ snapshots:
       - pg
       - sql.js
 
-  '@zenstackhq/zod@3.4.2(zod@4.3.6)':
+  '@zenstackhq/zod@3.4.4(zod@4.3.6)':
     dependencies:
-      '@zenstackhq/schema': 3.4.2
+      '@zenstackhq/schema': 3.4.4
       decimal.js: 10.6.0
       zod: 4.3.6
 
