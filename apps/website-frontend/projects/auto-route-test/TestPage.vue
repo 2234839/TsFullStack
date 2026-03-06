@@ -42,7 +42,7 @@
               <i class="pi pi-home"></i>
               <span>返回首页</span>
             </Button>
-            <Button @click="$router.push('/dynamic-test-module')" variant="outline" class="flex items-center space-x-2">
+            <Button @click="$router.push('/dynamic-test-module')" variant="ghost" class="flex items-center space-x-2">
               <i class="pi pi-bolt"></i>
               <span>动态测试模块</span>
             </Button>

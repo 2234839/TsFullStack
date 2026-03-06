@@ -105,9 +105,8 @@
                   <Tooltip content="智能分段信息" side="top">
                     <Button
                       v-if="smartSegmentation"
-                      variant="info"
+                      variant="text-button"
                       size="small"
-                      text
                       rounded
                       @click="showSegmentationInfo = !showSegmentationInfo"
                       icon="pi pi-sparkles" />
