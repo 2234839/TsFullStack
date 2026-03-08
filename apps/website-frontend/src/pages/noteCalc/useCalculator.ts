@@ -696,14 +696,19 @@ export function useCalculator(initialConfig: CalculatorConfig) {
         
         // 检测表格
         if (isTableRow(line)) {
+          console.log('[表格检测] 检测到表格行:', line);
           const { tableLines, endIndex } = processTable(lines, i);
+          
+          console.log('[表格检测] 表格行数:', tableLines.length);
           
           if (tableLines.length > 0) {
             // 创建表格数据
             const tableData = createTableData(tableLines);
+            console.log('[表格检测] 表格数据:', tableData);
             
             // 计算表格
             const calculatedTable = calculateTable(tableData);
+            console.log('[表格检测] 计算结果:', calculatedTable);
             
             // 添加到结果
             results.push({
