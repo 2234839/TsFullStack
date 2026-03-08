@@ -162,6 +162,49 @@
                   </div>
                 </div>
 
+                <!-- 表格渲染 -->
+                <div
+                  v-else-if="result.type === 'table' && result.tableData"
+                  class="my-2 overflow-x-auto">
+                  <table class="note-calc-table border-collapse border border-primary-300 dark:border-primary-600 w-full">
+                    <tbody>
+                      <tr v-for="(row, rowIndex) in result.tableData.rows" :key="rowIndex">
+                        <th
+                          v-if="rowIndex === 0"
+                          v-for="(cell, colIndex) in row.cells"
+                          :key="colIndex"
+                          class="border border-primary-300 dark:border-primary-600 px-3 py-2 bg-primary-100 dark:bg-primary-700 font-semibold text-left text-primary-900 dark:text-primary-100">
+                          {{ cell.value }}
+                        </th>
+                        <td
+                          v-else
+                          v-for="(cell, colIndex) in row.cells"
+                          :key="colIndex"
+                          :class="{
+                            'border border-primary-300 dark:border-primary-600 px-3 py-2': true,
+                            'bg-blue-50 dark:bg-blue-900/20': cell.isFormula,
+                            'bg-red-50 dark:bg-red-900/20': cell.error,
+                          }">
+                          <div v-if="cell.error" class="text-danger-600 dark:text-danger-400">
+                            {{ cell.error }}
+                          </div>
+                          <div v-else-if="cell.isFormula && cell.calculatedValue !== undefined">
+                            <span class="font-medium text-success-700 dark:text-success-400">
+                              {{ cell.calculatedValue }}
+                            </span>
+                            <span class="text-xs text-primary-400 dark:text-primary-500 ml-1">
+                              ({{ cell.value }})
+                            </span>
+                          </div>
+                          <div v-else class="text-primary-900 dark:text-primary-100">
+                            {{ cell.value }}
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
                 <div v-else class="my-1 text-primary-900 dark:text-primary-100">
                   {{ result.content }}
                 </div>
@@ -292,3 +335,35 @@
     },
   );
 </script>
+
+<style scoped>
+.note-calc-table {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.note-calc-table th,
+.note-calc-table td {
+  min-width: 80px;
+}
+
+.note-calc-table .formula-cell {
+  position: relative;
+}
+
+.note-calc-table .formula-cell:hover .formula {
+  display: block;
+}
+
+.note-calc-table .formula {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  z-index: 10;
+}
+</style>
