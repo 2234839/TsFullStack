@@ -1,4 +1,6 @@
 import { all, create } from 'mathjs';
+import { calculateTable } from './tableCalculator';
+import { isTableRow, createTableData } from './tableRenderer';
 import { computed, reactive, ref } from 'vue';
 import type { CalculationResult, CalculatorConfig, TextDiff } from './types';
 
@@ -649,6 +651,21 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   /**
    * 全量计算
    */
+  /**
+   * 检测并处理表格
+   */
+  function processTable(lines: string[], startIndex: number): { tableLines: string[], endIndex: number } {
+    const tableLines: string[] = [];
+    let i = startIndex;
+    
+    while (i < lines.length && isTableRow(lines[i])) {
+      tableLines.push(lines[i]);
+      i++;
+    }
+    
+    return { tableLines, endIndex: i };
+  }
+  
   async function calculateAll(content: string): Promise<CalculationResult[]> {
     // 将计算任务添加到队列
     return addCalculationTask(async () => {
@@ -668,6 +685,29 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
       // 处理每一行
       for (let i = 0; i < lines.length; i++) {
+      // 检测表格
+      if (isTableRow(lines[i])) {
+        const { tableLines, endIndex } = processTable(lines, i);
+        
+        if (tableLines.length > 0) {
+          // 创建表格数据
+          const tableData = createTableData(tableLines);
+          
+          // 计算表格
+          const calculatedTable = calculateTable(tableData);
+          
+          // 添加到结果
+          results.push({
+            type: 'table',
+            content: tableLines.join('\n'),
+            tableData: calculatedTable,
+          });
+          
+          // 跳过已处理的表格行
+          i = endIndex - 1;
+          continue;
+        }
+      }
         const line = lines[i];
         /** 防止卡死ui */
         if (i % 10 === 0) await delay(1);
