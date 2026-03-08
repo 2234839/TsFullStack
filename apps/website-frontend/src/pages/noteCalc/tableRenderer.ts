@@ -3,7 +3,7 @@
  * 用于在 NoteCalc 中渲染 Markdown 表格
  */
 
-import type { TableData, TableRow, TableCell } from './types';
+import type { TableData, TableRow } from './types';
 
 /**
  * 检测是否是表格行

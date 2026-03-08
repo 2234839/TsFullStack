@@ -10,7 +10,7 @@ import type { TableData } from './types';
  */
 function parseCellRef(ref: string): { col: number; row: number } | null {
   const match = ref.match(/^([A-Z]+)(\d+)$/);
-  if (!match) return null;
+  if (!match || !match[1] || !match[2]) return null;
 
   const colStr = match[1];
   const row = parseInt(match[2]) - 1; // 1-based to 0-based
@@ -33,10 +33,12 @@ function getCellValue(
   col: number
 ): number | string {
   if (row < 0 || row >= tableData.rows.length) return 0;
-  const cells = tableData.rows[row].cells;
-  if (col < 0 || col >= cells.length) return 0;
+  const tableRow = tableData.rows[row];
+  if (!tableRow || col < 0 || col >= tableRow.cells.length) return 0;
 
-  const cell = cells[col];
+  const cell = tableRow.cells[col];
+  if (!cell) return 0;
+
   if (cell.isFormula && cell.calculatedValue !== undefined) {
     // 如果是公式单元格，返回计算后的值
     return typeof cell.calculatedValue === 'number'
@@ -53,9 +55,7 @@ function getCellValue(
  */
 function calculateFormula(
   formula: string,
-  tableData: TableData,
-  currentRow: number,
-  currentCol: number
+  tableData: TableData
 ): number | string {
   try {
     // 移除开头的 =
@@ -105,15 +105,14 @@ export function calculateTable(tableData: TableData): TableData {
   // TODO: 实现依赖图和拓扑排序
   for (let rowIndex = 0; rowIndex < result.rows.length; rowIndex++) {
     const row = result.rows[rowIndex];
+    if (!row) continue;
+
     for (let colIndex = 0; colIndex < row.cells.length; colIndex++) {
       const cell = row.cells[colIndex];
+      if (!cell) continue;
+
       if (cell.isFormula) {
-        cell.calculatedValue = calculateFormula(
-          cell.value,
-          result,
-          rowIndex,
-          colIndex
-        );
+        cell.calculatedValue = calculateFormula(cell.value, result);
       }
     }
   }
