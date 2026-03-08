@@ -1,6 +1,6 @@
 import { all, create } from 'mathjs';
-import { calculateTable } from './tableCalculator';
 import { isTableRow, createTableData } from './tableRenderer';
+import { calculateTable } from './tableCalculator';
 import { computed, reactive, ref } from 'vue';
 import type { CalculationResult, CalculatorConfig, TextDiff } from './types';
 
