@@ -162,8 +162,6 @@
                   </div>
                 </div>
 
-                <div v-else class="my-1 text-primary-900 dark:text-primary-100">
-
                 <!-- 表格渲染 -->
                 <div
                   v-else-if="result.type === 'table' && result.tableData"
@@ -206,6 +204,8 @@
                     </tbody>
                   </table>
                 </div>
+
+                <div v-else class="my-1 text-primary-900 dark:text-primary-100">
                   {{ result.content }}
                 </div>
               </div>
