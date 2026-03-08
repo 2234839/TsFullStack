@@ -10,7 +10,8 @@ export interface CalculationResult {
     | 'assignment'
     | 'expression'
     | 'equation'
-    | 'unitConversion';
+    | 'unitConversion'
+    | 'table';
   content: string;
   result?: string;
   error?: string;
@@ -21,6 +22,27 @@ export interface CalculationResult {
   isLargeNumber?: boolean;
   formattedNumber?: string;
   highlightedContent?: Array<{ text: string; isNumber: boolean }>;
+  /** 表格数据（当 type === 'table' 时） */
+  tableData?: TableData;
+}
+
+/** 表格单元格 */
+export interface TableCell {
+  value: string;
+  isFormula: boolean;
+  calculatedValue?: string | number;
+  error?: string;
+}
+
+/** 表格行 */
+export interface TableRow {
+  cells: TableCell[];
+}
+
+/** 表格数据 */
+export interface TableData {
+  rows: TableRow[];
+  hasFormulas: boolean;
 }
 
 // 定义行变化的类型
@@ -46,7 +68,8 @@ export type LineType =
   | 'expression'
   | 'unitConversion'
   | 'equation'
-  | 'normal';
+  | 'normal'
+  | 'table';
 
 /** 语法高亮部分 */
 export interface HighlightedPart {
