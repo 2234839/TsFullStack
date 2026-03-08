@@ -658,8 +658,11 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     const tableLines: string[] = [];
     let i = startIndex;
     
-    while (i < lines.length && isTableRow(lines[i])) {
-      tableLines.push(lines[i]);
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line || !isTableRow(line)) break;
+      
+      tableLines.push(line);
       i++;
     }
     
@@ -685,13 +688,16 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
       // 处理每一行
       for (let i = 0; i < lines.length; i++) {
-      // 检测表格
-      if (isTableRow(lines[i])) {
-        const { tableLines, endIndex } = processTable(lines, i);
+        const line = lines[i];
+        if (!line) continue;
         
-        if (tableLines.length > 0) {
-          // 创建表格数据
-          const tableData = createTableData(tableLines);
+        // 检测表格
+        if (isTableRow(line)) {
+          const { tableLines, endIndex } = processTable(lines, i);
+          
+          if (tableLines.length > 0) {
+            // 创建表格数据
+            const tableData = createTableData(tableLines);
           
           // 计算表格
           const calculatedTable = calculateTable(tableData);

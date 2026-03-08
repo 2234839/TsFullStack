@@ -74,7 +74,7 @@ export function columnToIndex(column: string): number {
  */
 export function parseCellRef(ref: string): { row: number; col: number } | null {
   const match = ref.match(/^([A-Z]+)(\d+)$/);
-  if (!match) return null;
+  if (!match || !match[1] || !match[2]) return null;
   
   const col = columnToIndex(match[1]);
   const row = parseInt(match[2]) - 1; // 1-based to 0-based
@@ -90,7 +90,7 @@ export function renderTableHTML(tableData: TableData): string {
   
   tableData.rows.forEach((row, rowIndex) => {
     html += '<tr>';
-    row.cells.forEach((cell, colIndex) => {
+    row.cells.forEach((cell) => {
       const tag = rowIndex === 0 ? 'th' : 'td';
       const classes = [];
       
