@@ -691,6 +691,9 @@ export function useCalculator(initialConfig: CalculatorConfig) {
         const line = lines[i];
         if (!line) continue;
         
+        /** 防止卡死ui */
+        if (i % 10 === 0) await delay(1);
+        
         // 检测表格
         if (isTableRow(line)) {
           const { tableLines, endIndex } = processTable(lines, i);
@@ -698,25 +701,22 @@ export function useCalculator(initialConfig: CalculatorConfig) {
           if (tableLines.length > 0) {
             // 创建表格数据
             const tableData = createTableData(tableLines);
-          
-          // 计算表格
-          const calculatedTable = calculateTable(tableData);
-          
-          // 添加到结果
-          results.push({
-            type: 'table',
-            content: tableLines.join('\n'),
-            tableData: calculatedTable,
-          });
-          
-          // 跳过已处理的表格行
-          i = endIndex - 1;
-          continue;
+            
+            // 计算表格
+            const calculatedTable = calculateTable(tableData);
+            
+            // 添加到结果
+            results.push({
+              type: 'table',
+              content: tableLines.join('\n'),
+              tableData: calculatedTable,
+            });
+            
+            // 跳过已处理的表格行
+            i = endIndex - 1;
+            continue;
+          }
         }
-      }
-        const line = lines[i];
-        /** 防止卡死ui */
-        if (i % 10 === 0) await delay(1);
 
         const result = calculateLine(line || '', i);
         results.push(result);
