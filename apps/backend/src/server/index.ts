@@ -207,15 +207,40 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
         .pipe(Effect.provideService(AuthContext, { db, user }));
     }
     if (result instanceof FileWrapItem) {
-      // 设置文件名
-      reply
-        .type(result.model.mimetype || 'application/octet-stream')
-        .header(
-          'Content-Disposition',
-          `inline; filename="${encodeURIComponent(result.model.filename)}"`,
-        )
-        .header('Content-Length', result.model.size);
-      yield* Effect.promise(async () => reply.send(result.getFileStream()));
+      const fileSize = result.model.size;
+      const rangeHeader = req.headers['range'];
+
+      // 支持 HTTP Range requests（视频分段加载、断点续传）
+      if (rangeHeader) {
+        const rangeStr = typeof rangeHeader === 'string' ? rangeHeader : (Array.isArray(rangeHeader) ? rangeHeader[0] : String(rangeHeader));
+        const parts = rangeStr.replace(/bytes=/, '').split('-');
+        const start = parseInt(parts[0]!, 10) || 0;
+        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const chunkSize = end - start + 1;
+
+        reply
+          .code(206)
+          .type(result.model.mimetype || 'application/octet-stream')
+          .header('Content-Range', `bytes ${start}-${end}/${fileSize}`)
+          .header('Content-Length', chunkSize)
+          .header('Accept-Ranges', 'bytes')
+          .header(
+            'Content-Disposition',
+            `inline; filename="${encodeURIComponent(result.model.filename ?? 'file')}"`,
+          );
+        yield* Effect.promise(async () => reply.send(result.getFileStreamRange(start, end)));
+      } else {
+        // 无 Range 请求：返回完整文件，声明支持 Range
+        reply
+          .type(result.model.mimetype || 'application/octet-stream')
+          .header('Accept-Ranges', 'bytes')
+          .header('Content-Length', fileSize)
+          .header(
+            'Content-Disposition',
+            `inline; filename="${encodeURIComponent(result.model.filename ?? 'file')}"`,
+          );
+        yield* Effect.promise(async () => reply.send(result.getFileStream()));
+      }
     } else {
       yield* Effect.promise(async () => reply.send(superjson.serialize({ result })));
     }

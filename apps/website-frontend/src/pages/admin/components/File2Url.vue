@@ -1,5 +1,5 @@
 <template>
-  <slot :url="fileUrl" />
+  <slot :url="fileUrl" :loading="loading" />
 </template>
 <script setup lang="ts">
   import { useAPI } from '@/api';
@@ -11,16 +11,23 @@
     fileId: number | string;
   }>();
 
-  const fileUrl = ref('');
+  const fileUrl = ref('')
+  /** URL 正在加载中 */
+  const loading = ref(false)
 
   watch(
     () => props.fileId,
     async () => {
+      loading.value = true
       const fileId = typeof props.fileId === 'string' ? Number(props.fileId) : props.fileId;
-      if (authInfo_isLogin.value) {
-        fileUrl.value = await APIGetUrl.fileApi.file(fileId);
-      } else {
-        fileUrl.value = await AppAPIGetUrl.fileApi.file(fileId);
+      try {
+        if (authInfo_isLogin.value) {
+          fileUrl.value = await APIGetUrl.fileApi.file(fileId);
+        } else {
+          fileUrl.value = await AppAPIGetUrl.fileApi.file(fileId);
+        }
+      } finally {
+        loading.value = false
       }
     },
     { immediate: true },

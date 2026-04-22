@@ -222,8 +222,15 @@ export class FileWrapItem {
     public path: string,
     public model: FileModel,
   ) {}
+  /** 获取完整文件流 */
   public getFileStream() {
-    const readStream = createReadStream(this.path);
-    return readStream;
+    return createReadStream(this.path);
+  }
+  /**
+   * 获取指定字节范围的文件流（支持 HTTP Range requests）
+   * 用于视频/大文件的分段加载，避免浏览器全量下载
+   */
+  public getFileStreamRange(start: number, end: number) {
+    return createReadStream(this.path, { start, end });
   }
 }

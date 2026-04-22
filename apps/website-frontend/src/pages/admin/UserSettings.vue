@@ -20,9 +20,12 @@
           <h3 class="text-lg font-medium text-secondary-800 dark:text-white mb-4">{{ t('头像设置') }}</h3>
           <div class="flex items-center gap-6">
             <!-- 头像预览 -->
-            <div class="w-16 h-16 rounded-full overflow-hidden shadow-lg border-4 border-secondary-200 dark:border-secondary-700 shrink-0">
-              <File2Url v-if="avatarUrl" :fileId="avatarUrl" v-slot="{ url }">
-                <img :src="url" alt="用户头像" class="w-full h-full object-cover" />
+            <div class="w-16 h-16 rounded-full overflow-hidden shadow-lg border-4 border-secondary-200 dark:border-secondary-700 shrink-0 bg-secondary-100 dark:bg-secondary-800">
+              <File2Url v-if="avatarUrl" :fileId="avatarUrl" v-slot="{ url, loading }">
+                <div v-if="loading" class="w-full h-full flex items-center justify-center">
+                  <i class="pi pi-spinner pi-spin text-secondary-400"></i>
+                </div>
+                <img v-else :src="url" alt="用户头像" class="w-full h-full object-cover" />
               </File2Url>
               <img v-else :src="defaultAvatar" alt="默认头像" class="w-full h-full object-cover" />
             </div>
