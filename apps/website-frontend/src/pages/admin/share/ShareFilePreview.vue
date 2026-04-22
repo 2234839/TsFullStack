@@ -33,18 +33,20 @@
     <!-- 图片预览 -->
     <img v-if="file.mimetype.startsWith('image/')" :src="url" class="h-full w-full object-cover" :alt="file.filename" />
 
-    <!-- 视频预览（preload="metadata" 仅加载元数据，不预下载全部内容） -->
-    <div v-else-if="file.mimetype.startsWith('video/')" class="relative h-full w-full flex items-center justify-center bg-secondary-900 dark:bg-secondary-950">
-      <video :src="url" controls preload="metadata" class="video-container absolute inset-0 w-full h-full"
+    <!-- 视频预览（点击后才开始加载，避免自动下载大文件） -->
+    <div v-else-if="file.mimetype.startsWith('video/')" class="relative h-full w-full flex items-center justify-center bg-secondary-900 dark:bg-secondary-950 cursor-pointer group"
+      @click="loadVideo(url)">
+      <video v-if="videoSrc" :src="videoSrc" controls class="video-container absolute inset-0 w-full h-full"
         :title="file.filename" @loadeddata="videoLoaded = true">
         您的浏览器不支持视频播放。
       </video>
-      <!-- 加载占位：视频元数据加载完成前显示 -->
-      <template v-if="!videoLoaded">
+      <!-- 未加载时显示占位 -->
+      <template v-if="!videoSrc">
         <div class="flex flex-col items-center gap-2 text-secondary-300 z-10">
-          <i class="pi pi-video text-3xl"></i>
+          <i class="pi pi-play-circle text-4xl group-hover:text-white transition-colors"></i>
           <span class="text-xs">{{ file.filename }}</span>
           <span class="text-xs opacity-60">{{ formatFileSize(file.size) }}</span>
+          <span class="text-xs opacity-40 mt-1">{{ t('点击播放') }}</span>
         </div>
       </template>
     </div>
@@ -87,6 +89,13 @@
   const isDark = useDark();
   /** 视频元数据是否已加载（用于隐藏占位） */
   const videoLoaded = ref(false)
+  /** 视频源（点击后才设置，避免自动下载） */
+  const videoSrc = ref('')
+
+  /** 点击占位区域后加载视频 */
+  function loadVideo(src: string) {
+    videoSrc.value = src
+  }
 
   /** 格式化文件大小（从 utils/format 统一导入） */
   import { formatFileSize } from '@/utils/format';
