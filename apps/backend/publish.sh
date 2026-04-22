@@ -125,7 +125,7 @@ ssh $SSH_OPTS "$SSH_TARGET" "
     pm2 delete TsFullStack || true
     cd $REMOTE_PATH/
     DATABASE_URL="file:$REMOTE_PATH/prisma/dev.db" \
-      pm2 start "node --enable-source-maps ./dist/index.mjs" --name "TsFullStack" || exit 1
+      pm2 start ./dist/index.mjs --name "TsFullStack" --node-args="--enable-source-maps" || exit 1
     pm2 save
 
     echo '部署完成'
