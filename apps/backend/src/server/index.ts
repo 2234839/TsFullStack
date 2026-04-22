@@ -215,7 +215,8 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
         const rangeStr = typeof rangeHeader === 'string' ? rangeHeader : (Array.isArray(rangeHeader) ? rangeHeader[0] : String(rangeHeader));
         const parts = rangeStr.replace(/bytes=/, '').split('-');
         const start = parseInt(parts[0]!, 10) || 0;
-        const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+        const rawEnd = parseInt(parts[1] ?? '', 10);
+        const end = Number.isNaN(rawEnd) ? fileSize - 1 : rawEnd;
         const chunkSize = end - start + 1;
 
         reply
@@ -311,7 +312,7 @@ export const startServer = Effect.gen(function* () {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'x-token-id'],
-    exposedHeaders: ['Content-Length'],
+    exposedHeaders: ['Content-Length', 'Content-Range', 'Accept-Ranges'],
     credentials: false,
     maxAge: CORS_MAX_AGE_SECONDS, // 预检请求结果缓存24小时
   });

@@ -158,7 +158,7 @@
       formType.value = 'update';
       editingId.value = props.editingItem.id;
       formData.value.title = (props.editingItem.data as ShareJSON).title;
-      uploadedFiles.value = [...(props.editingItem.data as ShareJSON).files];
+      uploadedFiles.value = [...((props.editingItem.data as ShareJSON)?.files ?? [])];
       selectedFiles.value = [];
     } else {
       resetForm();
@@ -316,7 +316,7 @@
 
       if (formType.value === 'create') {
         // 创建用户数据
-        await API.db.userData.create({
+        const created = await API.db.userData.create({
           data: {
             appId: userDataAppid.shareInfo,
             userId: authInfo.value.userId,
@@ -327,6 +327,9 @@
             }) as unknown as import('@tsfullstack/backend').JsonValue,
           },
         });
+        /** 创建成功后切换为编辑模式，后续提交走更新逻辑 */
+        editingId.value = created.id;
+        formType.value = 'update';
       } else if (editingId.value !== undefined) {
         // 更新现有分享数据
         await API.db.userData.update({

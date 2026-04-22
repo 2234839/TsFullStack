@@ -99,7 +99,7 @@
               </div>
 
               <div class="flex items-center justify-between text-sm text-primary-500 dark:text-primary-400">
-                <span>{{ item.data.files.length }} {{ t('个文件') }}</span>
+                <span>{{ item.data.files?.length ?? 0 }} {{ t('个文件') }}</span>
                 <span>{{
                   formatFileSize(getTotalFileSize(item.data))
                 }}</span>
@@ -176,7 +176,12 @@
         }),
         API.db.userData.count({ where }),
       ]);
-      return { data: rawData as unknown as ShareItemJSON[], total };
+      /** ZenStack JsonValue 字段存储为字符串，需要手动 parse */
+      const parsedData = rawData.map((item) => ({
+        ...item,
+        data: typeof item.data === 'string' ? JSON.parse(item.data) : item.data,
+      }));
+      return { data: parsedData as unknown as ShareItemJSON[], total };
     }
 
     const { state, error, isLoading, execute } = useAsyncState(

@@ -111,6 +111,6 @@ export const getFileTypes = (share: ShareJSON) => {
 
 // 计算总文件大小
 export const getTotalFileSize = (share: ShareJSON) => {
-  return share.files.reduce((total, file) => total + (file.size || 0), 0);
+  return share.files?.reduce((total, file) => total + (file.size || 0), 0) ?? 0;
 };
 
