@@ -2,31 +2,33 @@
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
+import { Button } from '@/components/base';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
 import type { SelectOption } from '@tsfullstack/shared-frontend/components';
+import { getErrorMessage } from '@/utils/error';
+import { getResourceUrl } from '@/utils/resource';
 
 const toast = useToast();
 const { API } = useAPI();
 
-/** 资源项类型（简化版，符合API返回） */
+/** 资源项（与后端 listResources 返回的 select 字段一致，附加前端展示字段） */
 interface ResourceItem {
   id: number;
-  type: 'IMAGE' | 'TEXT' | 'VIDEO' | 'AUDIO' | 'FILE';
+  type: string;
   title: string;
   description?: string | null;
   status: string;
-  created: string | Date;
+  taskId: number;
+  created: Date;
   metadata?: unknown;
-  file?: {
-    id: number;
-  } | null;
+  file: { id: number; filename: string; mimetype: string; size: number } | null;
+  task: { id: number; type: string; title: string };
 }
 
 /** 资源列表 */
 const resources = ref<ResourceItem[]>([]);
 
 /** 任务列表 */
-// const tasks = ref<TaskItem[]>([]);
 
 /** 总数 */
 const total = ref(0);
@@ -74,17 +76,17 @@ const hasLoadedAll = computed(() => resources.value.length >= total.value);
 
 /** 过滤后的资源列表 */
 const filteredResources = computed(() => {
-  let filtered = resources.value;
+  const list = resources.value ?? [];
 
   if (statusFilter.value !== 'all') {
-    filtered = filtered.filter(r => r.status === statusFilter.value);
+    return list.filter(r => r.status === statusFilter.value);
   }
 
   if (typeFilter.value !== 'all') {
-    filtered = filtered.filter(r => r.type === typeFilter.value);
+    return list.filter(r => r.type === typeFilter.value);
   }
 
-  return filtered;
+  return list;
 });
 
 /** 加载资源 */
@@ -104,19 +106,19 @@ async function loadResources(reset = false) {
       take: pageSize,
     });
 
+    const items = Array.isArray(result?.items) ? result.items : [];
     if (reset) {
-      resources.value = result.resources;
+      resources.value = items;
     } else {
-      resources.value.push(...result.resources);
+      resources.value.push(...items);
     }
 
-    total.value = result.total;
+    total.value = result?.total ?? 0;
     currentPage.value++;
-  } catch (error: any) {
-    console.error('[ResourceGallery] 加载资源失败:', error);
+  } catch (error: unknown) {
     toast.add({
       summary: '加载失败',
-      detail: error.message || '加载资源列表时发生错误',
+      detail: getErrorMessage(error, '加载资源列表时发生错误'),
       variant: 'error',
     });
   } finally {
@@ -125,21 +127,14 @@ async function loadResources(reset = false) {
 }
 
 /** 查看详情 */
-function viewDetail(resource: any) {
+function viewDetail(resource: ResourceItem) {
   selectedResource.value = resource;
   showDetailDialog.value = true;
 }
 
 /** 获取图片 URL */
 function getImageUrl(resource: ResourceItem): string {
-  if (resource.file) {
-    return `/api/fileApi/file/${resource.file.id}`;
-  }
-  if (resource.metadata && typeof resource.metadata === 'object' && !Array.isArray(resource.metadata)) {
-    const metadata = resource.metadata as Record<string, unknown>;
-    return (metadata.externalUrl as string) || '';
-  }
-  return '';
+  return getResourceUrl(resource);
 }
 
 /** 检查资源是否有外部 URL */
@@ -151,10 +146,7 @@ function hasExternalUrl(resource: ResourceItem): boolean {
   return typeof metadata.externalUrl === 'string' && metadata.externalUrl.length > 0;
 }
 
-/** 格式化日期 */
-function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleString('zh-CN');
-}
+import { formatDate } from '@/utils/format';
 
 /** 获取状态标签样式 */
 function getStatusBadgeClass(status: string): string {
@@ -297,28 +289,28 @@ onMounted(() => {
 
           <!-- 操作 -->
           <div class="col-span-2 flex items-center">
-            <button
-              type="button"
-              class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 text-sm font-medium"
+            <Button
+              variant="text"
+              size="sm"
               @click="viewDetail(resource)"
             >
               查看详情
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       <!-- 加载更多 -->
       <div v-if="!hasLoadedAll && filteredResources.length > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
-        <button
-          type="button"
-          class="w-full px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors disabled:opacity-50"
+        <Button
+          variant="secondary"
+          class="w-full"
           :disabled="isLoading"
           @click="loadResources()"
         >
           <span v-if="isLoading">加载中...</span>
           <span v-else>加载更多</span>
-        </button>
+        </Button>
       </div>
     </div>
 

@@ -123,6 +123,7 @@
   import { useToast } from '@/composables/useToast';
   import AiModelForm from './components/AiModelForm.vue';
   import ModelStatsChart from './components/ModelStatsChart.vue';
+  import { getErrorMessage } from '@/utils/error';
   import { h } from 'vue';
 
   const { API } = useAPI();
@@ -136,8 +137,11 @@
     name?: string | null;
     model?: string | null;
     provider?: string | null;
+    baseUrl?: string | null;
     enabled?: boolean | null;
     weight?: number | null;
+    maxTokens?: number | null;
+    temperature?: number | null;
     created?: Date | null;
     updated?: Date | null;
   }
@@ -157,27 +161,9 @@
 
   // 计算属性
   const totalModels = computed(() => models.value.length);
-  const enabledModels = computed(() => {
-    let count = 0;
-    for (const model of models.value) {
-      if (model?.enabled) count++;
-    }
-    return count;
-  });
-  const disabledModels = computed(() => {
-    let count = 0;
-    for (const model of models.value) {
-      if (!model?.enabled) count++;
-    }
-    return count;
-  });
-  const totalWeight = computed(() => {
-    let sum = 0;
-    for (const model of models.value) {
-      if (model?.weight) sum += model.weight;
-    }
-    return sum;
-  });
+  const enabledModels = computed(() => models.value.filter(m => m?.enabled).length);
+  const disabledModels = computed(() => models.value.filter(m => !m?.enabled).length);
+  const totalWeight = computed(() => models.value.reduce((sum, m) => sum + (m?.weight || 0), 0));
 
   // 过滤和排序后的模型列表
   const filteredModels = computed(() => {
@@ -235,21 +221,21 @@
       key: 'model',
       title: t('模型标识'),
       width: '150px',
-      render: (row: any) =>
-        h('code', { class: 'text-sm bg-primary-100 dark:bg-secondary-700 px-2 py-1 rounded' }, row.model),
+      render: (row: AiModelVO) =>
+        h('code', { class: 'text-sm bg-primary-100 dark:bg-secondary-700 px-2 py-1 rounded' }, row.model ?? ''),
     },
     {
       key: 'baseUrl',
       title: t('API地址'),
       width: '200px',
-      render: (row: any) =>
-        h('div', { class: 'text-sm text-primary-600 dark:text-primary-400 truncate', title: row.baseUrl }, row.baseUrl),
+      render: (row: AiModelVO) =>
+        h('div', { class: 'text-sm text-primary-600 dark:text-primary-400 truncate', title: row.baseUrl ?? '' }, row.baseUrl ?? ''),
     },
     {
       key: 'enabled',
       title: t('状态'),
       width: '100px',
-      render: (row: any) =>
+      render: (row: AiModelVO) =>
         h(
           Badge,
           { value: row.enabled ? t('启用') : t('禁用'), variant: row.enabled ? 'success' : 'danger', size: 'small' },
@@ -259,31 +245,31 @@
       key: 'weight',
       title: t('权重'),
       width: '80px',
-      render: (row: any) => h('span', { class: 'font-mono' }, row.weight),
+      render: (row: AiModelVO) => h('span', { class: 'font-mono' }, row.weight ?? 0),
     },
     {
       key: 'maxTokens',
       title: t('最大Token'),
       width: '100px',
-      render: (row: any) =>
+      render: (row: AiModelVO) =>
         h('span', { class: 'font-mono' }, (row.maxTokens || 2000).toLocaleString()),
     },
     {
       key: 'temperature',
       title: t('温度'),
       width: '80px',
-      render: (row: any) => h('span', { class: 'font-mono' }, row.temperature || 0.7),
+      render: (row: AiModelVO) => h('span', { class: 'font-mono' }, row.temperature || 0.7),
     },
     {
       key: 'actions',
       title: t('操作'),
       width: '150px',
-      render: (row: any) =>
+      render: (row: AiModelVO) =>
         h('div', { class: 'flex gap-1' }, [
           h(Button, {
             icon: 'pi pi-pencil',
             size: 'small',
-            onClick: (event: any) => {
+            onClick: (event: MouseEvent) => {
               event?.preventDefault();
               editModel(row);
             },
@@ -293,7 +279,7 @@
             icon: 'pi pi-play',
             size: 'small',
             variant: row.enabled ? 'danger' : 'primary',
-            onClick: (event: any) => {
+            onClick: (event: MouseEvent) => {
               event?.preventDefault();
               toggleModelStatus(row, event);
             },
@@ -303,7 +289,7 @@
             icon: 'pi pi-trash',
             size: 'small',
             variant: 'danger',
-            onClick: (event: any) => {
+            onClick: (event: MouseEvent) => {
               event?.preventDefault();
               deleteModel(row, event);
             },
@@ -321,12 +307,11 @@
         orderBy: { id: 'desc' },
       });
       models.value = result;
-    } catch (error) {
-      console.error('加载AI模型失败:', (error as Error).message);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: t('失败'),
-        detail: t('加载失败：') + ((error as Error).message || t('未知错误')),
+        detail: t('加载失败：') + getErrorMessage(error),
         life: 3000,
       });
     } finally {
@@ -377,12 +362,11 @@
             life: 3000,
           });
           await loadModels(); // 重新加载数据
-        } catch (error) {
-          console.error('切换模型状态失败:', (error as Error).message);
+        } catch (error: unknown) {
           toast.add({
             variant: 'error',
             summary: t('失败'),
-            detail: t('操作失败：') + ((error as Error).message || t('未知错误')),
+            detail: t('操作失败：') + getErrorMessage(error),
             life: 3000,
           });
         }
@@ -423,12 +407,11 @@
             life: 3000,
           });
           await loadModels(); // 重新加载数据
-        } catch (error) {
-          console.error('删除模型失败:', (error as Error).message);
+        } catch (error: unknown) {
           toast.add({
             variant: 'error',
             summary: t('失败'),
-            detail: t('删除失败：') + ((error as Error).message || t('未知错误')),
+            detail: t('删除失败：') + getErrorMessage(error),
             life: 3000,
           });
         }
@@ -451,12 +434,11 @@
     isStatsLoading.value = true;
     try {
       await modelStatsChartRef.value.loadRequestStats();
-    } catch (error) {
-      console.error('刷新统计数据失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: t('失败'),
-        detail: t('刷新统计数据失败：') + ((error as Error).message || t('未知错误')),
+        detail: t('刷新统计数据失败：') + getErrorMessage(error),
         life: 3000,
       });
     } finally {

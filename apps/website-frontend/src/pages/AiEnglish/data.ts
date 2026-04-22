@@ -45,14 +45,12 @@ export function useAiEnglishData() {
   async function getWordsData(wordList: string[]): Promise<Record<string, WordData>> {
     const wordsToLoad: string[] = [];
 
-    wordList.forEach((word) => {
+    for (const word of wordList) {
       const lowerWord = word.toLowerCase();
-      if (wordsData.value[lowerWord]) {
-        wordsData.value[lowerWord] = wordsData.value[lowerWord];
-      } else {
+      if (!wordsData.value[lowerWord]) {
         wordsToLoad.push(lowerWord);
       }
-    });
+    }
 
     if (wordsToLoad.length > 0) {
       const loadedBatch = await StorageService.loadWords(wordsToLoad);

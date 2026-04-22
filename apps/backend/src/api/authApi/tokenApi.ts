@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../../Context/Auth';
 import { TokenService } from '../../services/TokenService';
+import { DEFAULT_PAGE_SIZE } from '../../util/constants';
 
 /**
  * 代币 API - 安全地暴露代币相关功能给前端
@@ -38,7 +39,7 @@ export const getUserTokens = (options?: {
     // 从认证上下文获取当前用户ID，确保用户只能查询自己的代币
     return yield* TokenService.getUserTokens(auth.user.id, {
       skip: options?.skip || 0,
-      take: options?.take || 20,
+      take: options?.take || DEFAULT_PAGE_SIZE,
     });
   });
 
@@ -59,7 +60,7 @@ export const getTokenHistory = (options?: {
     // 确保用户只能查询自己的历史记录
     return yield* TokenService.getTokenHistory(auth.user.id, {
       skip: options?.skip || 0,
-      take: options?.take || 20,
+      take: options?.take || DEFAULT_PAGE_SIZE,
       startDate: options?.startDate,
       endDate: options?.endDate,
     });

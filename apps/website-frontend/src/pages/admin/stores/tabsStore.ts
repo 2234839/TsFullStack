@@ -1,4 +1,5 @@
 import { allRoutes, findRouteNode } from '@/router';
+import type { Router } from 'vue-router';
 import {
   computed,
   type ComputedRef,
@@ -64,7 +65,7 @@ export function createTabsStore() {
   };
 
   // 关闭页签
-  const closeTab = (fullPath: string, router: any) => {
+  const closeTab = (fullPath: string, router: Router) => {
     // 不能关闭固定页签
     const targetTab = tabs.value.find((tab) => tab.value.fullPath === fullPath);
     if (targetTab?.value?.fixed) return;
@@ -94,7 +95,7 @@ export function createTabsStore() {
   };
 
   // 关闭所有页签
-  const closeAllTabs = (router: any) => {
+  const closeAllTabs = (router: Router) => {
     // 只保留固定页签
     const fixedTabs = tabs.value.filter((tab) => tab.value.fixed);
     tabs.value = fixedTabs;

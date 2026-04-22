@@ -5,17 +5,22 @@
  */
 import { computed, ref } from 'vue';
 
-interface Option {
+/** 将可能为数组/单值/null/undefined的值规范化为数组 */
+function normalizeToArray<T>(value: T[] | T | null | undefined): T[] {
+  return Array.isArray(value) ? value : value != null ? [value] : [];
+}
+
+interface Option<T = unknown> {
   label: string;
-  value: any;
+  value: T;
   disabled?: boolean;
 }
 
-interface Props {
+interface Props<T = unknown> {
   /** 模型值 */
-  modelValue?: any[] | any;
+  modelValue?: T[] | T;
   /** 选项列表 */
-  options?: readonly Option[] | Option[];
+  options?: readonly Option<T>[] | Option<T>[];
   /** 占位符 */
   placeholder?: string;
   /** 是否禁用 */
@@ -37,7 +42,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  'update:modelValue': [value: any[]];
+  'update:modelValue': [value: unknown[]];
 }>();
 
 /** 下拉框打开状态 */
@@ -54,29 +59,29 @@ function toggleDropdown() {
 function handleOptionClick(option: Option) {
   if (option.disabled) return;
 
-  const currentValue = props.modelValue || [];
+  const rawValue = props.modelValue;
+  const currentValue = normalizeToArray(rawValue);
   const index = currentValue.indexOf(option.value);
 
   if (index === -1) {
-    // 添加选项
     emit('update:modelValue', [...currentValue, option.value]);
   } else {
-    // 移除选项
-    emit('update:modelValue', currentValue.filter((v: any) => v !== option.value));
+    currentValue.splice(index, 1);
+    emit('update:modelValue', currentValue);
   }
 }
 
 /** 检查选项是否被选中 */
 const isSelected = (option: Option) => {
-  const value = props.modelValue || [];
-  const valueArray = Array.isArray(value) ? value : value ? [value] : [];
-  return valueArray.includes(option.value);
+  const rawValue = props.modelValue;
+  const valueArray = Array.isArray(rawValue) ? rawValue : rawValue != null ? [rawValue] : [];
+  return valueArray.some((v) => v === option.value);
 };
 
 /** 获取选中的选项标签 */
 const selectedLabels = computed(() => {
-  const value = props.modelValue || [];
-  const valueArray = Array.isArray(value) ? value : value ? [value] : [];
+  const rawValue = props.modelValue;
+  const valueArray = Array.isArray(rawValue) ? rawValue : rawValue != null ? [rawValue] : [];
   const selected = (props.options || []).filter(opt =>
     valueArray.includes(opt.value)
   );
@@ -93,12 +98,6 @@ const displayLabel = computed(() => {
   return props.selectedItemsLabel.replace('{0}', String(labels.length));
 });
 
-/** 外层容器样式类 */
-const containerClasses = computed(() => {
-  const base = 'relative w-full';
-  return base;
-});
-
 /** 触发按钮样式类 */
 const triggerClasses = computed(() => {
   const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer';
@@ -113,14 +112,10 @@ const triggerClasses = computed(() => {
 });
 
 /** 下拉面板样式 */
-const dropdownClasses = computed(() => {
-  const base = 'absolute z-50 w-full mt-1 bg-white dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-lg max-h-60 overflow-y-auto';
-  return base;
-});
 </script>
 
 <template>
-  <div :class="containerClasses">
+  <div class="relative w-full">
     <!-- 触发按钮 -->
     <div
       :class="triggerClasses"
@@ -154,7 +149,7 @@ const dropdownClasses = computed(() => {
       leave-to-class="opacity-0 scale-95">
       <div
         v-if="isOpen"
-        :class="dropdownClasses">
+        :class="'absolute z-50 w-full mt-1 bg-white dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-lg max-h-60 overflow-y-auto'">
         <div
           v-for="(option, index) in options"
           :key="index"

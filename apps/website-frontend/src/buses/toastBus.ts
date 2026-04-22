@@ -45,7 +45,6 @@ class ToastBus {
           life: newLife,
         });
 
-        console.log('[ToastBus] 延长 op_toLogin 消息时间:', newLife);
         return;
       }
 
@@ -78,7 +77,6 @@ class ToastBus {
    */
   private _addToQueue(message: ToastMessage): void {
     this.messageQueue.push(message);
-    console.log('[ToastBus] 消息已加入队列:', message);
 
     // 立即通知所有监听器
     this._notifyListeners(message);
@@ -100,7 +98,7 @@ class ToastBus {
     this.listeners.forEach((listener) => {
       try {
         listener(message);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('[ToastBus] 监听器执行出错:', error);
       }
     });
@@ -112,7 +110,6 @@ class ToastBus {
   clear(): void {
     this.messageQueue = [];
     this.latestMessages.clear();
-    console.log('[ToastBus] 队列已清空');
   }
 }
 

@@ -12,12 +12,12 @@
               {{ post.author.nickname || '匿名用户' }}
             </div>
             <div class="text-xs text-primary-500 dark:text-primary-400">
-              {{ formatDate(post.updated) }}
+              {{ formatDate(post.updated, { relative: true }) }}
             </div>
           </div>
         </div>
         <div v-else class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-white font-bold">
+          <div class="w-10 h-10 rounded-full bg-neutral-300 dark:bg-neutral-600 flex items-center justify-center text-white font-bold">
             ?
           </div>
           <div>
@@ -25,7 +25,7 @@
               未知用户
             </div>
             <div class="text-xs text-primary-500 dark:text-primary-400">
-              {{ formatDate(post.updated) }}
+              {{ formatDate(post.updated, { relative: true }) }}
             </div>
           </div>
         </div>
@@ -60,20 +60,22 @@
               v-if="showMenu"
               class="absolute right-0 mt-2 w-48 bg-white dark:bg-primary-900 rounded-lg shadow-lg border border-primary-200 dark:border-primary-700 z-10"
             >
-              <button
-                class="w-full px-4 py-2 text-left text-sm hover:bg-primary-100 dark:hover:bg-primary-700 flex items-center gap-2"
+              <Button
+                variant="ghost"
+                class="w-full justify-start"
+                icon="pi pi-pencil"
                 @click="handleEdit"
               >
-                <i class="pi pi-pencil"></i>
                 编辑
-              </button>
-              <button
-                class="w-full px-4 py-2 text-left text-sm hover:bg-primary-100 dark:hover:bg-primary-700 text-danger-600 flex items-center gap-2"
+              </Button>
+              <Button
+                variant="ghost"
+                class="w-full justify-start text-danger-600"
+                icon="pi pi-trash"
                 @click="handleDelete"
               >
-                <i class="pi pi-trash"></i>
                 删除
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -149,12 +151,14 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { authInfo, authInfo_isLogin } from '@/storage';
 import { useAPI } from '@/api';
 import { Button } from '@/components/base';
 import TreeholePostForm from './TreeholePostForm.vue';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
 import type { TreeholePost } from '@tsfullstack/backend';
+import { getErrorMessage } from '@/utils/error';
 
 interface Props {
   post: TreeholePost;
@@ -183,11 +187,9 @@ const replies = ref<TreeholePost[]>([]);
 const repliesLoaded = ref(false);
 
 /** 当前用户是否是帖子作者 */
-const isAuthor = computed(() => {
-  // TODO: 从用户状态中获取当前用户ID
-  // return currentUser.value?.id === props.post.author.id;
-  return false;
-});
+const isAuthor = computed(() =>
+  authInfo_isLogin.value ? authInfo.value.userId === props.post.authorId : false,
+);
 
 /** 是否有回复可以展开 */
 const hasMoreReplies = computed(() => {
@@ -227,45 +229,7 @@ function getAuthorInitial(author: { nickname: string | null }): string {
  *
  * 解决方案：优先使用 created 字段，因为它是正确的 UTC 时间
  */
-function formatDate(dateStr: string | Date): string {
-  let date: Date;
-
-  if (dateStr instanceof Date) {
-    date = dateStr;
-  } else {
-    // 字符串类型,直接解析（ISO 8601 格式会自动处理时区）
-    date = new Date(dateStr);
-  }
-
-  // 如果日期无效,返回提示
-  if (isNaN(date.getTime())) {
-    return '未知时间';
-  }
-
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-
-  // 检查时间是否异常(如果时间差为负数,说明时间有问题)
-  if (diffMs < 0) {
-    return '刚刚';
-  }
-
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return '刚刚';
-  if (diffMins < 60) return `${diffMins}分钟前`;
-  if (diffHours < 24) return `${diffHours}小时前`;
-  if (diffDays < 7) return `${diffDays}天前`;
-
-  // 使用本地时区格式化日期
-  return date.toLocaleDateString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-}
+import { formatDate } from '@/utils/format';
 
 /**
  * 获取可见性样式
@@ -330,8 +294,7 @@ async function loadReplies() {
     replies.value = result.posts;
     repliesLoaded.value = true;
     isExpanded.value = true;
-  } catch (error) {
-    console.error('加载回复失败:', error);
+  } catch (error: unknown) {
     toast.add({
       variant: 'error',
       summary: '错误',
@@ -355,7 +318,7 @@ function handleReplySubmit() {
  */
 function handleEdit() {
   showMenu.value = false;
-  // TODO: 实现编辑功能
+  /** 编辑功能待实现：需要打开编辑对话框预填当前内容，调用更新 API */
   toast.add({
     variant: 'info',
     summary: '提示',
@@ -392,12 +355,11 @@ function handleDelete() {
           life: 3000,
         });
         emit('deleted');
-      } catch (error) {
-        console.error('删除失败:', error);
+      } catch (error: unknown) {
         toast.add({
           variant: 'error',
           summary: '错误',
-          detail: '删除失败：' + ((error as Error).message || '未知错误'),
+          detail: '删除失败：' + getErrorMessage(error),
           life: 3000,
         });
       }

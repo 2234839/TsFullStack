@@ -13,7 +13,7 @@
     add: RemoteSelectItem[];
     remove: RemoteSelectItem[];
     /** 之前就在的（在翻页中陆续添加进去） */
-    inculdes: RemoteSelectItem[];
+    includes: RemoteSelectItem[];
   };
 </script>
 <script setup lang="ts">
@@ -89,7 +89,7 @@
 
   const props = defineProps<{
     field: FieldInfo;
-    row?: { [fieldName: string]: any };
+    row?: Record<string, unknown>;
   }>();
 
   /** item 都是 RelationData 的 item */
@@ -97,18 +97,18 @@
     add: [] as RemoteSelectItem[],
     remove: [] as RemoteSelectItem[],
 
-    inculdes: [] as RemoteSelectItem[],
+    includes: [] as RemoteSelectItem[],
   });
 
-  function mapRemoteSelectItem(el: any): RemoteSelectItem {
+  function mapRemoteSelectItem(el: Record<string, unknown>): RemoteSelectItem {
     return {
-      value: el[refIdField.name],
-      label: el[displayField.name] || el[refIdField.name],
+      value: el[refIdField.name] as string | number,
+      label: String(el[displayField.name] || el[refIdField.name]),
     };
   }
 
   const remoteSelectValue = computed<RemoteSelectItem[]>(() => {
-    const selectList = [...modelValue.add, ...modelValue.inculdes];
+    const selectList = [...modelValue.add, ...modelValue.includes];
     const list = selectList.filter(
       (el) =>
         /** 过滤存在于 remove 列表中的元素 */
@@ -128,7 +128,7 @@
    *
    * ### 一对多关系（User.userData）
    * - `backLinkRequired = true`
-   * - 返回 `modelValue.inculdes` 中所有已关联的项
+   * - 返回 `modelValue.includes` 中所有已关联的项
    * - 这些项在 UI 上会被禁用（灰色显示，无法点击）
    * - 原因：取消会导致 `UserData.userId` 为 NULL，违反数据库约束
    *
@@ -147,7 +147,7 @@
     if (!backLinkRequired) return [];
 
     // 返回已关联且不能取消的项
-    return modelValue.inculdes.filter((item) => {
+    return modelValue.includes.filter((item) => {
       // 排除那些已经在 remove 列表中的（虽然逻辑上不应该存在）
       return !modelValue.remove.some((removeItem) => RemoteSelectUtils.itemEquals(removeItem, item));
     });
@@ -155,7 +155,7 @@
 
   const modelMeta = inject(injectModelMetaKey)!;
   const emit = defineEmits<{
-    (e: 'change', value: any): void;
+    (e: 'change', value: unknown): void;
   }>();
 
   //#region 列相关数据
@@ -164,68 +164,14 @@
     (model) => model.name === relatedModelName,
   )!;
   const relatedModelKey = Object.keys(modelMeta.models).find(
-    (key) => (modelMeta?.models as any)[key]?.name === relatedModelName,
-  ) as ModelMetaNames;
+    (key) => (modelMeta.models[key as ModelMetaNames])?.name === relatedModelName,
+  ) as ModelMetaNames | undefined;
 
   const refIdField = findIdField(modelMeta, relatedModelName)!;
-  const displayField = findDisplayField(modelMeta, relatedModelKey) || refIdField;
+  const displayField = findDisplayField(modelMeta, relatedModelKey!) || refIdField;
 
   // 获取反向字段名称（基于 ZenStack relation.opposite）
   const backLinkFieldName = getBackLinkFieldName(props.field);
-
-  // 获取反向字段信息用于判断关系类型
-  const backLinkField = backLinkFieldName
-    ? (relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName]
-    : undefined;
-  const backLinkFieldData = backLinkField as unknown as Record<string, unknown> | undefined;
-
-  console.log('[RelationSelect] 反向字段:', backLinkFieldName ? {
-    name: backLinkFieldName,
-    type: backLinkField?.type,
-    isArray: backLinkFieldData?.array === true,
-    isOptional: backLinkFieldData?.optional === true,
-    display: `${relatedModelName} -> ${backLinkFieldName} -> ${(backLinkField as any).relation?.from}`,
-  } : '无');
-  console.log('[RelationSelect] 关系类型判断:', {
-    关系类型: (() => {
-      const isArrayCurrent = isArrayField(props.field);
-      const isBackLinkArray = backLinkFieldData?.array === true;
-      const isBackLinkOptional = backLinkFieldData?.optional === true;
-
-      if (!isArrayCurrent && !isBackLinkArray) return '单对单关系 (One-to-One)';
-      if (isArrayCurrent && !isBackLinkArray) {
-        return isBackLinkOptional ? '一对多关系 (可选，One-to-Many Optional)' : '一对多关系 (必选，One-to-Many Required)';
-      }
-      if (!isArrayCurrent && isBackLinkArray) {
-        return isBackLinkOptional ? '多对一关系 (可选，Many-to-One Optional)' : '多对一关系 (必选，Many-to-One Required)';
-      }
-      if (isArrayCurrent && isBackLinkArray) return '多对多关系 (Many-to-Many)';
-      return '未知关系类型';
-    })(),
-    选择模式: (() => {
-      const isArrayCurrent = isArrayField(props.field);
-      const isBackLinkArray = backLinkFieldData?.array === true;
-      const isBackLinkOptional = backLinkFieldData?.optional === true;
-
-      if (!isArrayCurrent) return '单选切换';
-      if (isBackLinkArray) return '多选';
-      if (!isBackLinkArray) {
-        return isBackLinkOptional ? '多选' : '单选切换';
-      }
-      return '未知';
-    })(),
-    能否取消已关联: (() => {
-      const isBackLinkArray = backLinkFieldData?.array === true;
-      const isBackLinkOptional = backLinkFieldData?.optional === true;
-      return isBackLinkArray || isBackLinkOptional ? '可以' : '不能（必需关系）';
-    })(),
-  });
-  console.log('[RelationSelect] 字段配置:', {
-    refIdFieldName: refIdField.name,
-    displayFieldName: displayField.name,
-    displayFieldType: displayField.type,
-    usingIdAsDisplay: displayField.name === refIdField.name,
-  });
 
   const rowModelIdField = backLinkFieldName
     ? findIdField(modelMeta, (relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName]?.type as string || '')
@@ -307,8 +253,8 @@
       // ========== 单对单/多对一关系 ==========
       // 单选模式（无论必选还是可选，都是切换逻辑）
       // 对于当前记录来说，多对一相当于单对单的情况
-      // 将当前所有已选项移到 remove 列表（如果它们在 inculdes 中）
-      for (const includedItem of modelValue.inculdes) {
+      // 将当前所有已选项移到 remove 列表（如果它们在 includes 中）
+      for (const includedItem of modelValue.includes) {
         if (!RemoteSelectUtils.itemEquals(includedItem, item)) {
           RemoteSelectUtils.addItem(modelValue.remove, includedItem);
         }
@@ -374,22 +320,10 @@
       backLinkFieldName || ''
     );
 
-    console.log('[RelationSelect] removeItem:', {
-      item,
-      backLinkFieldName,
-      backLinkRequired,
-      relationType: isArrayField(props.field) ? 'array' : 'single',
-      isBackLinkArray: backLinkFieldName
-        ? ((relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName] as unknown as Record<string, unknown>)?.array === true
-        : false,
-    });
-
     if (backLinkRequired) {
       // 如果反向关系是必需的，检查是否在 includes 列表中（即已关联的记录）
-      const isIncluded = modelValue.inculdes.some((el) => RemoteSelectUtils.itemEquals(el, item));
+      const isIncluded = modelValue.includes.some((el) => RemoteSelectUtils.itemEquals(el, item));
       if (isIncluded) {
-        // 禁止取消已关联的记录，因为这会导致外键约束违反
-        console.warn('[RelationSelect] Cannot disconnect required relation:', item);
         return;
       }
     }
@@ -425,11 +359,11 @@
 
     const modelIdValue = rowModelIdField ? props.row?.[rowModelIdField.name] : undefined;
     // 类型安全的模型访问
-    const relatedDbName = getModelDbName(relatedModelKey);
+    const relatedDbName = getModelDbName(relatedModelKey!);
     const relatedAPI = getModelAPI(API, relatedDbName);
     const [list, count] = await Promise.all([
       relatedAPI.findMany({
-        where,
+        where: where as never,
         select: {
           [refIdField.name]: true,
           [displayField.name]: true,
@@ -439,15 +373,15 @@
               select: {
                 [rowModelIdField.name]: true,
               },
-            },
+            } as never,
           }),
-        },
+        } as never,
         skip,
         take,
-      } as any),
-      relatedAPI.count({ where } as any ),
+      }),
+      relatedAPI.count({ where: where as never }),
     ]);
-    list.forEach((el: any) => {
+    (list as Record<string, unknown>[]).forEach((el) => {
       // 检查反向关系是否匹配当前行
       let relationMatch = false;
 
@@ -457,10 +391,10 @@
 
         if (Array.isArray(backLinkValue)) {
           // 反向关系是数组（如 User.posts）
-          relationMatch = backLinkValue.some((item: any) => item[idFieldName] === modelIdValue);
+          relationMatch = backLinkValue.some((item: Record<string, unknown>) => item[idFieldName] === modelIdValue);
         } else if (backLinkValue && typeof backLinkValue === 'object') {
           // 反向关系是单个对象（如 Post.author）
-          relationMatch = backLinkValue[idFieldName] === modelIdValue;
+          relationMatch = (backLinkValue as Record<string, unknown>)[idFieldName] === modelIdValue;
         }
       }
 
@@ -470,15 +404,15 @@
       const selectItem = mapRemoteSelectItem(el);
       if (modelValue.add.some((item) => RemoteSelectUtils.itemEquals(item, selectItem))) return;
       if (modelValue.remove.some((item) => RemoteSelectUtils.itemEquals(item, selectItem))) return;
-      if (modelValue.inculdes.some((item) => RemoteSelectUtils.itemEquals(item, selectItem)))
+      if (modelValue.includes.some((item) => RemoteSelectUtils.itemEquals(item, selectItem)))
         return;
-      modelValue.inculdes.push(selectItem);
+      modelValue.includes.push(selectItem);
     });
 
     return {
-      list: list.map((record: any) => ({
+      list: (list as Record<string, unknown>[]).map((record) => ({
         label: String(record[displayField.name]),
-        value: record[refIdField.name],
+        value: record[refIdField.name] as string | number,
       })),
       count,
     };

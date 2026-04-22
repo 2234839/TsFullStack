@@ -9,7 +9,7 @@
     {{ word }}
     <span
       v-if="memoryLevel > 0"
-      class="absolute -bottom-3 left-1/2 transform -transecondary-x-1/2 text-[9px] opacity-40 group-hover:opacity-80 pointer-events-none"
+      class="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-[9px] opacity-40 group-hover:opacity-80 pointer-events-none"
       :style="{ color }"></span>
     <span
       v-if="isKeyWord"
@@ -21,6 +21,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { getMemoryColor } from '@/utils/format'
 
 interface Props {
   word: string
@@ -44,18 +45,7 @@ const emit = defineEmits<{
   wordMouseDown: [e: MouseEvent | TouchEvent, index: number]
 }>()
 
-const color = computed(() => {
-  // 使用与原来相同的渐变色逻辑
-  const level = props.memoryLevel || 0
-  const normalizedLevel = Math.max(0, Math.min(10, level));
-  const ratio = normalizedLevel / 10;
-
-  if (ratio < 0.5) {
-    return `rgb(255, ${Math.round(255 * (ratio * 2))}, 0)`;
-  } else {
-    return `rgb(${Math.round(255 * (2 - ratio * 2))}, 255, 0)`;
-  }
-})
+const color = computed(() => getMemoryColor(props.memoryLevel || 0))
 
 const className = computed(() => {
   let base = 'cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0'
@@ -110,7 +100,7 @@ const handleMouseDown = (e: MouseEvent | TouchEvent) => {
   left: -2px;
   right: -2px;
   bottom: -2px;
-  background: rgba(217, 119, 6, 0.3);
+  background: color-mix(in srgb, var(--color-warning-500) 30%, transparent);
   border-radius: 4px;
   z-index: -1;
 }
@@ -122,7 +112,7 @@ const handleMouseDown = (e: MouseEvent | TouchEvent) => {
   left: -1px;
   right: -1px;
   bottom: -1px;
-  background: rgba(37, 99, 235, 0.2);
+  background: color-mix(in srgb, var(--color-primary-500) 20%, transparent);
   border-radius: 3px;
   z-index: -1;
 }

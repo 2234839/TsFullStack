@@ -116,7 +116,7 @@
 
           <div class="flex-1 flex items-center">
             <span v-if="currentNote" class="font-medium truncate">
-              {{ getNoteTitle(currentNote  as any) }}
+              {{ getNoteTitle(currentNote) }}
             </span>
             <span v-else class="text-primary-500">{{ ti18n('未保存的笔记') }}</span>
 
@@ -193,16 +193,16 @@
 
 <script setup lang="ts">
   import { exampleContent } from '@/pages/noteCalc/exampleContent';
-  import { useAsyncState, useDebounceFn, useThrottleFn, useTimestamp } from '@vueuse/core';
+  import { useAsyncState, useDebounceFn, useIntervalFn, useThrottleFn } from '@vueuse/core';
   import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from 'lz-string';
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
   import { API } from '@/api';
   import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
-  import { t } from '@/i18n';
   import CodeMirrorEditor from '@/pages/noteCalc/CodeMirrorEditor.vue';
   import { routeMap, router, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin } from '@/storage';
+  import { formatDate } from '@/utils/format';
   import { userDataAppid } from '@/storage/userDataAppid';
   import { useSharePlus } from '@/utils/hooks/useSharePlus';
   import { Button, Input, InputNumber, InputGroup, InputGroupAddon, ProgressSpinner, ToggleSwitch } from '@/components/base';
@@ -250,6 +250,16 @@
   // WhereInput 类型 - 从 API 推断
   type UserDataWhereInput = NonNullable<Parameters<typeof API.db.userData.findMany>[0]>['where']
   type Note = NonNullable<Awaited<ReturnType<typeof API.db.userData.findMany>>>[number]
+
+  /** 笔记中存储的计算器配置 */
+  interface NoteConfig {
+    isAutoCalculate?: boolean;
+    precision?: number;
+    showPrecision?: number;
+    autoSaveEnabled?: boolean;
+    autoSaveInterval?: number;
+    [key: string]: unknown;
+  }
   // 笔记状态
   const notesState = useAsyncState(
     async () => {
@@ -305,8 +315,7 @@
         });
 
         return res;
-      } catch (error) {
-        console.error('加载笔记列表失败:', error);
+      } catch (error: unknown) {
         toast.add({
           variant: 'error',
           summary: '加载失败',
@@ -320,41 +329,33 @@
     { immediate: false },
   );
 
-  const currentNote = ref<Note | null>(null);
+  /** 简化的笔记类型，避免 Prisma 完整类型导致的 TS2589 深度实例化错误 */
+  interface SimpleNote {
+    id: number;
+    description: string | null;
+    data: unknown;
+    version: number;
+  }
+
+  const currentNote = ref<SimpleNote | null>(null);
   const currentNoteId = computed(() => currentNote.value?.id);
   const unsavedChanges = computed(() => {
-    const contentIsDifferent =
-      currentNote.value && getConfigFromData(currentNote.value as any) !== content.value;
+    const noteConfig = currentNote.value ? getConfigFromData(currentNote.value) : null;
     const configIsDifferent =
       currentNote.value &&
-      JSON.stringify(getConfigFromData(currentNote.value as any)) !== JSON.stringify(config.value);
+      noteConfig !== null &&
+      JSON.stringify(noteConfig) !== JSON.stringify(config.value);
 
-    return contentIsDifferent || configIsDifferent;
+    return configIsDifferent;
   });
   const isSaving = ref(false);
 
   // 自动保存
   const lastSaved = ref<Date | null>(null);
-  const now = useTimestamp();
   const lastSaved_v = computed(() => {
     if (!lastSaved.value) return '';
-
-    const diffInSeconds = Math.floor((now.value - lastSaved.value.getTime()) / 1000);
-
-    if (diffInSeconds < 60) {
-      return `${diffInSeconds}秒前`;
-    } else if (diffInSeconds < 3600) {
-      const minutes = Math.floor(diffInSeconds / 60);
-      return `${minutes}分钟前`;
-    } else if (diffInSeconds < 86400) {
-      const hours = Math.floor(diffInSeconds / 3600);
-      return `${hours}小时前`;
-    } else {
-      // 超过1天，显示完整日期（例如 "2023/10/05"）
-      return lastSaved.value.toLocaleDateString('zh-CN');
-    }
+    return formatDate(lastSaved.value, { relative: true });
   });
-  let autoSaveTimer: number | null = null;
 
   // 重命名对话框
   const showRenameModal = ref(false);
@@ -370,9 +371,9 @@
     loadNotes();
   };
 
-  // 获取笔记标题
-  const getNoteTitle = (note: Note) => {
-    return note.description || '未命名笔记';
+  /** 获取笔记标题 */
+  const getNoteTitle = (note: { description: string | null } | null | undefined) => {
+    return note?.description || '未命名笔记';
   };
 
   // 获取笔记内容预览
@@ -388,38 +389,24 @@
     return firstLine.length > 20 ? firstLine.substring(0, 20) + '...' : firstLine;
   };
 
-  // 格式化日期
-  const formatDate = (date: string | Date) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   // 从笔记数据中获取内容
   const getContentFromData = (note: Note) => {
     try {
       if (!note.data) return '';
       const data = typeof note.data === 'string' ? JSON.parse(note.data) : note.data;
       return (data.content || '') as string;
-    } catch (e) {
-      console.error('解析笔记内容失败:', e);
+    } catch {
       return '';
     }
   };
 
-  // 从笔记数据中获取配置
-  const getConfigFromData = (note: Note): any | null => {
+  /** 从笔记数据中获取配置 */
+  const getConfigFromData = (note: { data: unknown }): NoteConfig | null => {
     try {
       if (!note.data) return null;
       const data = typeof note.data === 'string' ? JSON.parse(note.data) : note.data;
-      return data.config || null;
-    } catch (e) {
-      console.error('解析笔记配置失败:', e);
+      return (data.config as NoteConfig) || null;
+    } catch {
       return null;
     }
   };
@@ -467,8 +454,7 @@
       } else {
         hasMoreNotes.value = false;
       }
-    } catch (error) {
-      console.error('加载更多笔记失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '加载失败',
@@ -517,8 +503,7 @@
         path: route.path,
         query: { id: id.toString() },
       });
-    } catch (error) {
-      console.error('根据ID加载笔记失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '加载失败',
@@ -546,8 +531,7 @@
         doLoadNote(note);
         updateUrlWithNoteId(note.id);
       }
-    } catch (error) {
-      console.error('加载笔记内容失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '加载失败',
@@ -576,7 +560,7 @@
       Object.assign(config.value, noteConfig);
     }
 
-    currentNote.value = note;
+    currentNote.value = note as unknown as SimpleNote;
     lastSaved.value = new Date(note.updated);
   };
 
@@ -621,7 +605,7 @@
           notesState.state.value.unshift(updatedNoteItem);
         }
 
-        currentNote.value = updatedNote;
+        currentNote.value = updatedNote as unknown as SimpleNote;
 
         toast.add({
           variant: 'success',
@@ -644,7 +628,7 @@
 
         // 添加到本地笔记列表
         notesState.state.value.unshift(newNote);
-        currentNote.value = newNote;
+        currentNote.value = newNote as unknown as SimpleNote;
 
         // 更新URL
         updateUrlWithNoteId(newNote.id);
@@ -661,8 +645,7 @@
       }
 
       lastSaved.value = new Date();
-    } catch (error) {
-      console.error('保存笔记失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '保存失败',
@@ -674,24 +657,23 @@
     }
   };
 
-  // 自动保存
-  const setupAutoSave = () => {
-    clearAutoSave();
+  // 自动保存（useIntervalFn 自动在组件卸载时清理）
+  const { pause: pauseAutoSave, resume: resumeAutoSave } = useIntervalFn(
+    () => {
+      if (unsavedChanges.value && currentNote.value) {
+        saveCurrentNote();
+      }
+    },
+    () => (config.value.autoSaveEnabled && authInfo_isLogin.value ? config.value.autoSaveInterval * 1000 : 0),
+    { immediate: false },
+  );
 
+  /** 根据当前配置启用或暂停自动保存 */
+  const syncAutoSave = () => {
     if (config.value.autoSaveEnabled && authInfo_isLogin.value) {
-      autoSaveTimer = window.setInterval(() => {
-        if (unsavedChanges.value && currentNote.value) {
-          saveCurrentNote();
-        }
-      }, config.value.autoSaveInterval * 1000);
-    }
-  };
-
-  // 清除自动保存定时器
-  const clearAutoSave = () => {
-    if (autoSaveTimer !== null) {
-      clearInterval(autoSaveTimer);
-      autoSaveTimer = null;
+      resumeAutoSave();
+    } else {
+      pauseAutoSave();
     }
   };
 
@@ -734,8 +716,7 @@
         detail: '笔记已删除',
         life: 2000,
       });
-    } catch (error) {
-      console.error('删除笔记失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '删除失败',
@@ -784,8 +765,7 @@
         detail: '笔记已重命名',
         life: 2000,
       });
-    } catch (error) {
-      console.error('重命名笔记失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '重命名失败',
@@ -811,7 +791,7 @@
     }
 
     confirm.require({
-      message: t('是否确定新建文档？当前内容将被清空。'),
+      message: ti18n('是否确定新建文档？当前内容将被清空。'),
       icon: 'pi pi-exclamation-triangle',
       event,
       rejectProps: {
@@ -848,8 +828,7 @@
         text: '',
         url: shareUrl,
       });
-    } catch (error) {
-      console.error('分享失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '分享失败',
@@ -880,8 +859,7 @@
 
       if (!decompressedContent) return;
       content.value = decompressedContent;
-    } catch (error) {
-      console.error('从URL加载内容失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '加载失败',
@@ -916,24 +894,22 @@
     { deep: false },
   );
 
-  // 监听搜索查询变化
-  watch(searchQuery, () => {
-    // 使用防抖处理搜索
-    const debouncedSearch = useDebounceFn(() => {
-      if (authInfo_isLogin.value) {
-        currentPage.value = 1;
-        notesState.execute();
-      }
-    }, 500);
+  /** 防抖搜索（在 watch 外部创建，避免每次触发都新建闭包） */
+  const debouncedSearch = useDebounceFn(() => {
+    if (authInfo_isLogin.value) {
+      currentPage.value = 1;
+      notesState.execute();
+    }
+  }, 500);
 
-    debouncedSearch();
-  });
+  // 监听搜索查询变化
+  watch(searchQuery, () => debouncedSearch());
 
   // 监听自动保存设置变化
   watch(
     () => [config.value.autoSaveEnabled, config.value.autoSaveInterval],
     () => {
-      setupAutoSave();
+      syncAutoSave();
     },
   );
 
@@ -943,7 +919,7 @@
     (newValue) => {
       if (newValue) {
         loadNotes();
-        setupAutoSave();
+        syncAutoSave();
 
         // 如果URL中有笔记ID，尝试加载
         if (props.id) {
@@ -953,7 +929,7 @@
           }
         }
       } else {
-        clearAutoSave();
+        pauseAutoSave();
       }
     },
   );
@@ -963,7 +939,7 @@
     // 加载笔记列表
     if (authInfo_isLogin.value) {
       loadNotes();
-      setupAutoSave();
+      syncAutoSave();
     }
 
     // 尝试从URL加载内容
@@ -972,7 +948,7 @@
 
   // 组件卸载前
   onBeforeUnmount(() => {
-    clearAutoSave();
+    pauseAutoSave();
   });
 </script>
 

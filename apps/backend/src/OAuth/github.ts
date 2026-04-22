@@ -11,30 +11,9 @@ const GITHUB_API_URL = 'https://api.github.com';
 import { Context, Effect, Layer } from 'effect';
 import { FetchWithProxy } from '../util/github-proxy';
 import { AppConfigService } from '../Context/AppConfig';
+import { MsgError } from '../util/error';
 
 // ===== 接口定义 =====
-
-/**
- * GitHub OAuth 应用配置
- */
-export interface GitHubAuthConfig {
-  /** GitHub OAuth App 的 Client ID */
-  clientId: string;
-  /** GitHub OAuth App 的 Client Secret (仅在服务器端使用) */
-  clientSecret?: string;
-  /** 授权后的回调 URL */
-  redirectUri: string;
-  /** 请求的权限范围 */
-  scope?: readonly string[];
-}
-
-/**
- * 服务器端 GitHub 认证配置
- */
-export interface ServerGitHubAuthConfig extends GitHubAuthConfig {
-  /** GitHub OAuth App 的 Client Secret (必需) */
-  clientSecret: string;
-}
 
 /**
  * GitHub 用户信息
@@ -70,16 +49,31 @@ export interface GitHubUser {
   updatedAt: string;
 }
 
-/**
- * OAuth 令牌响应
- */
-export interface TokenResponse {
-  /** 访问令牌 */
-  accessToken: string;
-  /** 令牌类型 */
-  tokenType: string;
-  /** 权限范围 */
-  scope: string;
+/** GitHub access_token API 响应结构 */
+interface GitHubTokenApiResponse {
+  access_token: string;
+  token_type?: string;
+  scope?: string;
+  error?: string;
+  error_description?: string;
+}
+
+/** GitHub /user API 响应结构 */
+interface GitHubUserApiResponse {
+  id: number;
+  login: string;
+  name: string | null;
+  email: string | null;
+  avatar_url: string;
+  html_url: string;
+  bio: string | null;
+  company: string | null;
+  location: string | null;
+  public_repos: number;
+  followers: number;
+  following: number;
+  created_at: string;
+  updated_at: string;
 }
 
 // ===== 错误处理 =====
@@ -114,9 +108,6 @@ export class GitHubAuthError extends Error {
   }
 }
 
-// Effect error type
-export type GitHubAuthErrorType = GitHubAuthError | Error;
-
 // ===== 主要类实现 =====
 export class GithubAuthService extends Context.Tag('GithubAuthService')<
   GithubAuthService,
@@ -135,7 +126,7 @@ export class GithubAuthService extends Context.Tag('GithubAuthService')<
 export const GithubAuthLiveEffect = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;
   const config = appConfig.OAuth_github;
-  if (!config) throw new Error('未配置 OAuth_github');
+  if (!config) throw new MsgError(MsgError.op_msgError, '未配置 OAuth_github');
   const { fetchProxy } = yield* FetchWithProxy;
   const getAccessToken = (code: string) => {
     if (!config.clientSecret) {
@@ -169,14 +160,14 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
       });
 
       const data = yield* Effect.tryPromise({
-        try: () => response.json() as Promise<any>,
-        catch: () => new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR),
+        try: () => response.json() as Promise<GitHubTokenApiResponse>,
+        catch: () => { throw new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR); },
       });
 
       if (data.error) {
         yield* Effect.fail(
           new GitHubAuthError(
-            data.error_description || 'Failed to get access token:' + data.error,
+            data.error_description || `Failed to get access token: ${data.error}`,
             GitHubAuthErrorCode.API_ERROR,
             response.status,
           ),
@@ -224,8 +215,8 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
       }
 
       const data = yield* Effect.tryPromise({
-        try: () => response.json() as Promise<any>,
-        catch: () => new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR),
+        try: () => response.json() as Promise<GitHubUserApiResponse>,
+        catch: () => { throw new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR); },
       });
 
       return {
@@ -243,7 +234,7 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
         following: data.following,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
-      };
+      } satisfies GitHubUser;
     }).pipe(
       Effect.catchAll((error) =>
         Effect.fail(

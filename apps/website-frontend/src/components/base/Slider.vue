@@ -4,6 +4,7 @@
  * 使用 Tailwind CSS 样式
  */
 import { computed, ref } from 'vue';
+import { useEventListener } from '@vueuse/core';
 
 interface Props {
   /** 模型值 */
@@ -74,14 +75,10 @@ function startDrag(event: MouseEvent) {
   event.preventDefault();
 
   const handleMouseMove = (e: MouseEvent) => handleDrag(e);
-  const handleMouseUp = () => {
-    isDragging.value = false;
-    document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-  };
+  const handleMouseUp = () => { isDragging.value = false; };
 
-  document.addEventListener('mousemove', handleMouseMove);
-  document.addEventListener('mouseup', handleMouseUp);
+  useEventListener(document, 'mousemove', handleMouseMove);
+  useEventListener(document, 'mouseup', handleMouseUp);
 }
 
 /** 滑块轨道样式类 */

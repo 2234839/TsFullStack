@@ -126,19 +126,19 @@
   }
 
   .tabs-bar::-webkit-scrollbar-thumb {
-    background: #d1d5db;
+    background: var(--color-gray-300);
     border-radius: 4px;
   }
 
   .tabs-bar::-webkit-scrollbar-thumb:hover {
-    background: #9ca3af;
+    background: var(--color-gray-400);
   }
 
   .dark .tabs-bar::-webkit-scrollbar-thumb {
-    background: #4b5563;
+    background: var(--color-gray-600);
   }
 
   .dark .tabs-bar::-webkit-scrollbar-thumb:hover {
-    background: #6b7280;
+    background: var(--color-gray-500);
   }
 </style>

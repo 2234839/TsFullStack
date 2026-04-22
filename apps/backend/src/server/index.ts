@@ -15,7 +15,7 @@ import { systemLog } from '../Context/SystemLog';
 import { GithubAuthLive } from '../OAuth/github';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
-import { FileWarpItem } from '../api/authApi/file';
+import { FileWrapItem } from '../api/authApi/file';
 import { verifySignByToken } from '../lib/SessionAuthSign';
 import { createRPC } from '../rpc';
 import { MsgError } from '../util/error';
@@ -27,13 +27,13 @@ import {
   isZenStackValidationError,
 } from '../util/zenstack-error';
 import { getAuthFromCache } from './authCache';
+import { CORS_MAX_AGE_SECONDS, MAX_UPLOAD_BYTES, SERVER_PORT, SERVER_HOST, MAX_WAIT_MS } from '../util/constants';
 
 // ESM 模块中获取 __dirname 的替代方案
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MAX_WAIT_MS = 360_000;
 
 // 统一错误序列化函数
-function handleCause(cause: any) {
+function handleCause(cause: Cause.Cause<unknown>) {
   let err;
   function setErr(error: unknown): string {
     if (MsgError.isMsgError(error)) {
@@ -62,7 +62,7 @@ function handleCause(cause: any) {
     } else {
       err = { message: String(error) };
     }
-    return String(error);
+    return String(error); // Cause.match 回调要求返回 string，值虽不被使用但类型必须匹配
   }
   let CauseMsg = Cause.match(cause, {
     onEmpty: '(empty)',
@@ -80,10 +80,10 @@ function handleCause(cause: any) {
 }
 
 // 参数解析函数
-async function parseParams(req: FastifyRequest): Promise<any[]> {
+async function parseParams(req: FastifyRequest): Promise<unknown[]> {
   const contentType = req.headers['content-type'];
   if (contentType === 'application/json') {
-    return superjson.deserialize(req.body as SuperJSONResult) as any[];
+    return superjson.deserialize(req.body as SuperJSONResult) as unknown[];
   } else if (contentType?.startsWith('multipart/form-data')) {
     // 在接口中使用 ReqCtx 获取值（为了文件流的优化）
     return [];
@@ -93,7 +93,7 @@ async function parseParams(req: FastifyRequest): Promise<any[]> {
       sign?: string;
       session?: string;
     };
-    return query.args ? (superjson.parse(query.args) as any[]) : [];
+    return query.args ? (superjson.parse(query.args) as unknown[]) : [];
   } else {
     throw MsgError.msg('Unknown content type:' + contentType);
   }
@@ -120,7 +120,8 @@ function parseParamsAndAuth(req: FastifyRequest) {
       opt.sessionID = Number(query.session);
     } else {
       // 使用请求头进行认证
-      opt.sessionToken = req.headers['x-token-id'] as string;
+      const rawToken = req.headers['x-token-id'];
+      opt.sessionToken = Array.isArray(rawToken) ? rawToken[0] : rawToken;
     }
 
     const { db, user } = yield* getAuthFromCache(opt);
@@ -130,14 +131,18 @@ function parseParamsAndAuth(req: FastifyRequest) {
       if (!session) {
         throw new MsgError(MsgError.op_toLogin, '请提供有效的 session');
       }
-      const verify = yield* Effect.promise(() =>
-        verifySignByToken(query.args || '', session.token, query.sign || ''),
-      );
+      const verify = yield* Effect.try({
+        try: () => verifySignByToken(query.args || '', session.token, query.sign || ''),
+        catch: (e) => MsgError.msg('签名验证失败: ' + String(e)),
+      });
       if (!verify) {
         throw new MsgError(MsgError.op_msgError, '签名验证失败');
       }
     }
-    const params = yield* Effect.promise(() => parseParams(req));
+    const params = yield* Effect.tryPromise({
+      try: () => parseParams(req),
+      catch: (e) => MsgError.msg('参数解析失败: ' + String(e)),
+    });
     return { params, db, user };
   });
 }
@@ -153,7 +158,7 @@ type apiCtx = {
 const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
 let reqId = 0
 /** 注意，这里必须要等待发送数据完毕，否则 onEnd 之后数据将无法发送 */
-function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
+function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
   const startTime = Date.now();
   const reqCtx: ReqCtx = {
     logs: [],
@@ -170,11 +175,17 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
       throw MsgError.msg('服务器繁忙，请稍后再试');
     }
 
-    let result: any;
+    let result: unknown;
     if (pathPrefix === '/app-api/') {
-      const params = yield* Effect.promise(() => parseParams(req));
+      const params = yield* Effect.tryPromise({
+        try: () => parseParams(req),
+        catch: (e) => { throw MsgError.msg('参数解析失败: ' + String(e)); },
+      });
       result = yield* Effect.gen(function* () {
-        const res_effect = yield* Effect.promise(() => appApisRpc.RC(method, params));
+        const res_effect = yield* Effect.tryPromise({
+          try: () => appApisRpc.RC(method, params),
+          catch: (e) => { throw MsgError.msg('RPC 调用失败: ' + String(e)); },
+        });
         const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
         return res;
       });
@@ -185,14 +196,17 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
         const apisRpc = createRPC('apiProvider', {
           genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
         });
-        const res_effect = yield* Effect.promise(() => apisRpc.RC(method, params));
+        const res_effect = yield* Effect.tryPromise({
+          try: () => apisRpc.RC(method, params),
+          catch: (e) => { throw MsgError.msg('RPC 调用失败: ' + String(e)); },
+        });
         const res = Effect.isEffect(res_effect) ? yield* res_effect : res_effect;
         return res;
       })
         // 提供 apis 模块所需要的依赖
         .pipe(Effect.provideService(AuthContext, { db, user }));
     }
-    if (result instanceof FileWarpItem) {
+    if (result instanceof FileWrapItem) {
       // 设置文件名
       reply
         .type(result.model.mimetype || 'application/octet-stream')
@@ -201,9 +215,9 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
           `inline; filename="${encodeURIComponent(result.model.filename)}"`,
         )
         .header('Content-Length', result.model.size);
-      yield* Effect.promise(async () => await reply.send(result.getFileSteam()));
+      yield* Effect.promise(async () => reply.send(result.getFileStream()));
     } else {
-      yield* Effect.promise(async () => await reply.send(superjson.serialize({ result })));
+      yield* Effect.promise(async () => reply.send(superjson.serialize({ result })));
     }
   });
   // 合成层，避免其他 service 还在依赖 FetchWithProxy
@@ -231,11 +245,14 @@ function handelReq({ req, reply, pathPrefix, enqueueTime, onEnd }: apiCtx) {
 
       // 记录详细的错误信息
       if (Cause.isDieType(cause)) {
-        const defect = cause.defect as Error;
+        const defect = cause.defect;
+        const defectStack = defect instanceof Error
+          ? defect.stack?.split('at Generator.next (<anonymous>)')?.[0]
+          : String(defect);
         reqCtx.log(
           '[error Cause]',
           /** 裁剪掉 Effect 内部的调用堆栈 */
-          `${defect?.stack?.split('at Generator.next (<anonymous>)')?.[0]}`,
+          defectStack ?? 'unknown',
         );
 
         // 额外记录 ZenStack/Prisma 错误的详细信息
@@ -271,10 +288,10 @@ export const startServer = Effect.gen(function* () {
     allowedHeaders: ['Content-Type', 'x-token-id'],
     exposedHeaders: ['Content-Length'],
     credentials: false,
-    maxAge: 86400, // 预检请求结果缓存24小时
+    maxAge: CORS_MAX_AGE_SECONDS, // 预检请求结果缓存24小时
   });
   fastify.register(fastifyMultipart, {
-    limits: { fileSize: 1000 * 1024 * 1024 }, // 1GB
+    limits: { fileSize: MAX_UPLOAD_BYTES }, // 1GB
   });
   console.log('[static]', path.join(__dirname, 'frontend'));
   fastify.register(fastifyStatic, {
@@ -329,23 +346,22 @@ export const startServer = Effect.gen(function* () {
 
   //#region 启动服务器
   const address = yield* Effect.tryPromise({
-    try: () => fastify.listen({ port: 5209, host: '0.0.0.0' }),
-    catch(error) {
+    try: () => fastify.listen({ port: SERVER_PORT, host: SERVER_HOST }),
+    catch(error: unknown) {
       console.error('Server startup error:', error);
       return undefined;
     },
   });
 
   if (!address) {
-    throw new Error('Server failed to start');
+    throw MsgError.msg('Server failed to start');
   }
   console.log(`Server listening on ${address}`);
   //#endregion
 
   // 创建控制最大并发数的信号量
   const cpuCount = os.cpus().length;
-  const recommendedConcurrency = cpuCount * 10; // 根据cpu核心数设置并发数
-  // const recommendedConcurrency = 1; // 测试用
+  const recommendedConcurrency = cpuCount * 10;
   console.log(`设置的请求并发上限为:${recommendedConcurrency}`);
 
   const semaphore = yield* Effect.makeSemaphore(recommendedConcurrency);
@@ -357,8 +373,8 @@ export const startServer = Effect.gen(function* () {
     // fork 一个 Fiber 去执行请求处理，确保不会阻塞循环
     yield* Effect.forkDaemon(
       semaphore.withPermits(1)(
-        handelReq(ctx).pipe(
-          Effect.catchAll((err) => Effect.logError(`[handelReq error] ${String(err)}`)),
+        handleReq(ctx).pipe(
+          Effect.catchAll((err) => Effect.logError(`[handleReq error] ${String(err)}`)),
           Effect.ensuring(Effect.sync(ctx.onEnd)),
         ),
       ),

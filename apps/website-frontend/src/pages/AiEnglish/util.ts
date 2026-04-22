@@ -21,7 +21,7 @@ export function useTTS(options?: { storageKey?: string; lang?: string; rate?: nu
       utterance.rate = op.rate;
       speechSynthesis.speak(utterance);
     } else {
-      console.error('Speech synthesis is not supported in this browser.');
+      // 浏览器不支持 TTS，静默降级
     }
   }
 

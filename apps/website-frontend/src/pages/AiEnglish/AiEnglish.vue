@@ -8,7 +8,7 @@
           <Button
             icon="pi pi-arrow-left"
             variant="secondary"
-            @click="routerUtil.push(routeMap.index, undefined as any)"
+            @click="routerUtil.push(routeMap.index, undefined as never)"
             class="text-base! px-4! py-2!">
             返回首页
           </Button>
@@ -49,8 +49,7 @@
                     v-model="syncData.article"
                     placeholder="请粘贴你想学习的英文文章..."
                     :rows="5"
-                    class="flex-1"
-                    style="resize: none" />
+                    class="flex-1 resize-none" />
                 </div>
                 <div class="space-y-3">
                   <div class="flex gap-2 flex-wrap">
@@ -98,7 +97,7 @@
               <!-- 显示段落进度和操作按钮 -->
               <div class="space-y-2">
                 <div class="flex items-center gap-2">
-                  <i class="pi pi-book" style="font-size: 1.25rem" />
+                  <i class="pi pi-book text-xl" />
                   <span class="text-sm text-secondary-600 dark:text-secondary-400" title="段落进度">
                     {{ completedParagraphs }}/{{ syncData.paragraphs.length }} 已完成
                   </span>
@@ -171,13 +170,12 @@
                 tips="点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译，下方英文学习完毕后点击右上角的OK按钮" />
               <div
                 id="article-container"
-                class="text-lg leading-relaxed max-h-96 overflow-y-auto"
+                class="text-lg leading-relaxed max-h-96 overflow-y-auto select-none p-4"
                 @mousemove="handleMouseMove"
                 @mouseup="handleMouseUp"
                 @touchmove="handleMouseMove"
                 @touchend="handleMouseUp"
-                @touchstart="(e) => /** 防止长按选中文字以及触摸滚动 */ e.preventDefault()"
-                style="user-select: none; padding: 1rem;">
+                @touchstart="(e) => /** 防止长按选中文字以及触摸滚动 */ e.preventDefault()">
                 <ParagraphRenderer
                   v-if="currentText"
                   :text="currentText"
@@ -198,7 +196,7 @@
           <Card>
             <template #title>
               <div class="flex items-center gap-2">
-                <i class="pi pi-sparkles text-secondary-600" style="font-size: 1.25rem" />
+                <i class="pi pi-sparkles text-secondary-600 text-xl" />
                 AI智能翻译
                 <div
                   class="ml-auto flex items-center space-x-0.5"
@@ -219,7 +217,7 @@
                         ? speakText(selectedWord?.word || '')
                         : speakText(paragraphTranslation?.originalText || '')
                     ">
-                    <i class="pi pi-volume-up" style="font-size: 1rem" />
+                    <i class="pi pi-volume-up text-base" />
                   </Button>
                   <Button
                     text
@@ -233,7 +231,7 @@
                     "
                     class="ml-auto"
                     :title="t('重新使用ai翻译')">
-                    <i class="pi pi-refresh" style="font-size: 1rem" />
+                    <i class="pi pi-refresh text-base" />
                   </Button>
                 </div>
               </div>
@@ -257,13 +255,13 @@
 
                     <div class="space-y-3">
                       <div class="flex items-center gap-2">
-                        <i class="pi pi-brain" style="font-size: 1rem" />
+                        <i class="pi pi-brain text-base" />
                         <span class="text-sm text-primary-500 dark:text-primary-400">熟练度</span>
                         <Tag
                           :value="`${selectedWord.memoryLevel}/10`"
                           :style="{
                             backgroundColor: getMemoryColor(selectedWord.memoryLevel),
-                            color: selectedWord.memoryLevel > 5 ? 'black' : 'white',
+                            color: selectedWord.memoryLevel > 5 ? 'var(--color-gray-900)' : 'var(--color-white)',
                             border: 'none',
                           }" />
                         <span
@@ -336,7 +334,7 @@
                             <span :class="getFamiliarityColor(selectedWord.familiarity)">
                               {{ Math.round(selectedWord.familiarity) }}%
                             </span>
-                            <span class="text-xs text-gray-500 dark:text-gray-400">
+                            <span class="text-xs text-secondary-500 dark:text-secondary-400">
                               ({{ getFamiliarityLabel(selectedWord.familiarity) }})
                             </span>
                           </div>
@@ -351,8 +349,7 @@
                       <div class="space-y-2">
                         <div v-if="isTranslating" class="flex items-center gap-2 text-primary-500">
                           <i
-                            class="pi pi-refresh"
-                            style="font-size: 1rem; animation: spin 1s linear infinite" />
+                            class="pi pi-refresh text-base animate-spin" />
                           AI翻译中...
                         </div>
                         <div v-else class="p-3 bg-primary-50 rounded-lg">
@@ -404,7 +401,7 @@
               <div
                 class="flex items-center gap-2 cursor-pointer"
                 @click="showSegmentationInfo = !showSegmentationInfo">
-                <i class="pi pi-sparkles" style="font-size: 1.25rem; color: #9333ea" />
+                <i class="pi pi-sparkles text-xl text-secondary-600 dark:text-secondary-400" />
                 智能分段信息
                 <span class="ml-auto text-sm text-secondary-600">{{
                   showSegmentationInfo ? '收起' : '展开'
@@ -474,7 +471,7 @@
               <div
                 class="flex items-center gap-2 cursor-pointer"
                 @click="showAiAnalysis = !showAiAnalysis">
-                <i class="pi pi-star-fill" style="font-size: 1.25rem; color: #9333ea" />
+                <i class="pi pi-star-fill text-xl text-secondary-600 dark:text-secondary-400" />
                 AI智能分析
                 <span class="ml-auto text-sm text-secondary-600">{{
                   showAiAnalysis ? '收起' : '展开'
@@ -485,14 +482,14 @@
               <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                   <div class="flex items-center gap-2">
-                    <i class="pi pi-bullseye text-secondary-600" style="font-size: 1rem" />
+                    <i class="pi pi-bullseye text-secondary-600 text-base" />
                     <span class="text-sm">文章难度:</span>
                     <Tag
                       :class="getDifficultyColor(aiAnalysis.articleDifficulty)"
                       :value="`${aiAnalysis.articleDifficulty}/10`" />
                   </div>
                   <div class="flex items-center gap-2">
-                    <i class="pi pi-brain" style="color: #9333ea; font-size: 1rem" />
+                    <i class="pi pi-brain text-secondary-600 dark:text-secondary-400 text-base" />
                     <span class="text-sm">建议学习时间:</span>
                     <Tag :value="`${aiAnalysis.suggestedStudyTime}分钟`" />
                   </div>
@@ -514,7 +511,7 @@
                 <div v-if="aiAnalysis.learningTips.length > 0">
                   <div
                     class="text-sm text-primary-600 dark:text-primary-300 mb-2 flex items-center gap-1">
-                    <i class="pi pi-lightbulb" style="font-size: 1rem" />
+                    <i class="pi pi-lightbulb text-base" />
                     学习建议:
                   </div>
                   <ul class="text-sm space-y-1">
@@ -534,7 +531,7 @@
           <Card v-if="words.length > 0">
             <template #title>
               <div class="flex items-center gap-2">
-                <i class="pi pi-chart-bar" style="font-size: 1.25rem" />
+                <i class="pi pi-chart-bar text-xl" />
                 当前片段学习统计
               </div>
             </template>
@@ -572,7 +569,7 @@
                     <ProgressBar
                       :value="Math.round((stats.familiar / stats.total) * 100)"
                       class="h-2"
-                      style="background-color: rgb(250, 204, 21)" />
+                      color="amber" />
                   </div>
 
                   <div class="space-y-2">
@@ -583,7 +580,7 @@
                     <ProgressBar
                       :value="Math.round((stats.learning / stats.total) * 100)"
                       class="h-2"
-                      style="background-color: rgb(251, 146, 60)" />
+                      color="orange" />
                   </div>
 
                   <div class="space-y-2">
@@ -594,7 +591,7 @@
                     <ProgressBar
                       :value="Math.round((stats.unknown / stats.total) * 100)"
                       class="h-2"
-                      style="background-color: rgb(239, 68, 68)" />
+                      color="red" />
                   </div>
                 </div>
 
@@ -630,14 +627,15 @@
     translateWithAI,
     useCreateMixedTranslation,
     segmentArticleWithAI,
-    type AIAnalysis,
     type SmartSegmentationResult,
   } from '@/pages/AiEnglish/ai';
   import { useAiEnglishData } from '@/pages/AiEnglish/data';
   import { useTTS } from '@/pages/AiEnglish/util';
   import { useApiStorage } from '@/utils/hooks/UseApiStorage';
+  import { getMemoryColor, ONE_DAY_MS } from '@/utils/format';
   import { useToast } from '@/composables/useToast';
-  import { computed, reactive, ref, watch, watchEffect } from 'vue';
+  import { getErrorMessage } from '@/utils/error';
+  import { computed, reactive, ref, watch } from 'vue';
   import { Dialog } from '@tsfullstack/shared-frontend/components';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import AiEnglishConfigPanel from '@/components/AiEnglishConfigPanel.vue';
@@ -647,39 +645,9 @@
   import { useI18n } from '@/composables/useI18n';
   import { routerUtil } from '@/router';
   import { routeMap } from '@/router';
+  import type { StudySession, ParagraphTranslation, SelectionState, ParagraphData, AIAnalysis } from './types';
 
   const { t } = useI18n();
-
-  interface StudySession {
-    clickedWords: Set<string>;
-    startTime: number;
-  }
-
-  interface ParagraphTranslation {
-    originalText: string;
-    translatedText: string;
-    mixedTranslation: string;
-    wordsInSelection: string[];
-  }
-
-  interface SelectionState {
-    isSelecting: boolean;
-    startWordIndex: number;
-    endWordIndex: number;
-    selectedWords: Set<number>;
-  }
-
-  interface ParagraphData {
-    id: number;
-    text: string;
-    words: string[];
-    isCompleted: boolean;
-    completedAt?: number;
-    reason?: string; // AI分段理由
-    complexity?: number; // 复杂度
-    estimatedReadingTime?: number; // 预估阅读时间
-    keyVocabulary?: string[]; // 关键词汇
-  }
 
   // 示例文章
   const sampleArticle = `I like to play with my friends. We run and jump in the park. The sun is bright and the sky is blue.
@@ -752,44 +720,49 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     return (selectedWord.value?.memoryLevel ?? 0) > 4;
   });
 
-  // 处理翻译点击事件，只有查看模糊内容时才减少熟练度
+  /** 更新单词的点击计数和熟练度（O(1) 查找） */
+  const updateWordClickData = (word: string, newMemoryLevel: number) => {
+    const wordData = getWordData(word);
+    if (!wordData) return;
+    const newClickCount = wordData.clickCount + 1;
+    updateWordDatas([
+      {
+        ...wordData,
+        memoryLevel: newMemoryLevel,
+        clickCount: newClickCount,
+        lastClickTime: new Date(),
+        familiarity: calculateFamiliarity(newClickCount, new Date()),
+      },
+    ]);
+  };
+
   const handleTranslationClick = () => {
     if (!selectedWord.value) return;
 
-    // 只有熟练度 > 4 的单词在查看翻译内容时才减少熟练度
     if (selectedWord.value.memoryLevel > 4) {
-      const wordData = getWordData(selectedWord.value.word);
-      if (wordData) {
-        const newMemoryLevel = Math.max(0, wordData.memoryLevel - 1);
-        const oldWordData = words.value.find((el) => el.word === selectedWord.value?.word);
-        if (oldWordData) {
-          const newClickCount = oldWordData.clickCount + 1;
-          updateWordDatas([
-            {
-              ...oldWordData,
-              memoryLevel: newMemoryLevel,
-              clickCount: newClickCount,
-              lastClickTime: new Date(),
-              familiarity: calculateFamiliarity(newClickCount, new Date()),
-            },
-          ]);
-          console.log(`查看模糊翻译内容 ${selectedWord.value.word} 熟练度 -1 (当前: ${newMemoryLevel}/10)`);
-        }
-      }
+      const newMemoryLevel = Math.max(0, selectedWord.value.memoryLevel - 1);
+      updateWordClickData(selectedWord.value.word, newMemoryLevel);
     }
   };
 
-  // 计算属性
+  // 计算属性（单次遍历优化）
   const stats = computed(() => {
+    let mastered = 0;
+    let familiar = 0;
+    let learning = 0;
+    let unknown = 0;
+    let sum = 0;
     const total = words.value.length;
-    const mastered = words.value.filter((w) => w.memoryLevel >= 8).length;
-    const familiar = words.value.filter((w) => w.memoryLevel >= 6 && w.memoryLevel < 8).length;
-    const learning = words.value.filter((w) => w.memoryLevel >= 3 && w.memoryLevel < 6).length;
-    const unknown = words.value.filter((w) => w.memoryLevel < 3).length;
-    const averageLevel =
-      total > 0
-        ? parseFloat((words.value.reduce((sum, w) => sum + w.memoryLevel, 0) / total).toFixed(1))
-        : 0;
+
+    for (const w of words.value) {
+      sum += w.memoryLevel;
+      if (w.memoryLevel >= 8) mastered++;
+      else if (w.memoryLevel >= 6) familiar++;
+      else if (w.memoryLevel >= 3) learning++;
+      else unknown++;
+    }
+
+    const averageLevel = total > 0 ? parseFloat((sum / total).toFixed(1)) : 0;
     const clickedInSession = currentSession.clickedWords.size;
     const notClickedInSession = total - clickedInSession;
 
@@ -816,17 +789,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     () => syncData.value.paragraphs.filter((p) => p.isCompleted).length,
   );
 
-  // 颜色辅助函数
-  const getMemoryColor = (level: number): string => {
-    const normalizedLevel = Math.max(0, Math.min(10, level));
-    const ratio = normalizedLevel / 10;
-
-    if (ratio < 0.5) {
-      return `rgb(255, ${Math.round(255 * (ratio * 2))}, 0)`;
-    } else {
-      return `rgb(${Math.round(255 * (2 - ratio * 2))}, 255, 0)`;
-    }
-  };
 
   /** 计算眼熟度标签 */
   const getFamiliarityLabel = (familiarity: number): string => {
@@ -844,8 +806,8 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     if (level >= 80) return 'text-success-600 dark:text-success-400';
     if (level >= 60) return 'text-primary-600 dark:text-primary-400';
     if (level >= 40) return 'text-warning-600 dark:text-warning-400';
-    if (level >= 20) return 'text-orange-600 dark:text-orange-400';
-    return 'text-gray-600 dark:text-gray-400';
+    if (level >= 20) return 'text-warning-600 dark:text-warning-400';
+    return 'text-secondary-600 dark:text-secondary-400';
   };
 
   const getDifficultyColor = (difficulty: number): string => {
@@ -858,7 +820,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   const calculateFamiliarity = (clickCount: number, lastClickTime: Date): number => {
     const now = new Date();
     const lastClick = new Date(lastClickTime);
-    const daysSinceLastClick = Math.max(0, (now.getTime() - lastClick.getTime()) / (1000 * 60 * 60 * 24));
+    const daysSinceLastClick = Math.max(0, (now.getTime() - lastClick.getTime()) / ONE_DAY_MS);
 
     // 基础眼熟度：每次点击增加10分
     const baseFamiliarity = Math.min(100, clickCount * 10);
@@ -880,13 +842,16 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
       .filter((word) => word.length > 0);
   };
 
-  /** 获取单词数据 */
-  watchEffect(async () => {
-    const text = syncData.value.paragraphs[syncData.value.currentParagraphIndex]?.text;
-    if (!text) return;
-    const tokens = tokenizeText(text);
-    await getWordsData(tokens);
-  });
+  /** 获取单词数据 - 精确监听段落变化，避免 watchEffect 的过度追踪 */
+  watch(
+    () => syncData.value.paragraphs[syncData.value.currentParagraphIndex]?.text,
+    async (text) => {
+      if (!text) return;
+      const tokens = tokenizeText(text);
+      await getWordsData(tokens);
+    },
+    { immediate: true },
+  );
 
   const splitArticleIntoParagraphs = (text: string): ParagraphData[] => {
     // 改进分段逻辑：保持原始换行，同时处理段落分隔
@@ -949,8 +914,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         estimatedReadingTime: paragraph.estimatedReadingTime,
         keyVocabulary: paragraph.keyVocabulary,
       }));
-    } catch (error) {
-      console.error('AI智能分段失败:', error);
+    } catch (error: unknown) {
       toast.add({
         variant: 'warn',
         summary: '智能分段失败',
@@ -982,13 +946,11 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         // 如果使用智能分段，可以在这里添加其他并行任务
       ]);
       aiAnalysis.value = analysisResult;
-    } catch (error) {
-      console.error('AI分析失败:', error);
-      // 显示错误提示给用户
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: 'AI分析失败',
-        detail: error instanceof Error ? error.message : '未知错误',
+        detail: getErrorMessage(error),
         life: 3000,
       });
     } finally {
@@ -1137,7 +1099,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         mixedTranslation,
         wordsInSelection: selectedWordsKey,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: '翻译失败',
@@ -1152,7 +1114,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   };
 
   const handleWordClick = async (word: string, options?: { forceAi: boolean }) => {
-    // 清除状态
     selectionState.isSelecting = false;
     selectionState.selectedWords = new Set();
     highlightedWord.value = '';
@@ -1161,7 +1122,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
     highlightedWord.value = cleanWord;
 
-    // 找到单词在段落中的索引
     const paragraphWords = currentParagraph.value?.words || [];
     const wordIndex = paragraphWords.indexOf(cleanWord);
     if (wordIndex !== -1) {
@@ -1171,7 +1131,6 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     const wordData = getWordData(word);
     if (!wordData) return;
 
-    // 更新会话
     currentSession.clickedWords.add(cleanWord);
 
     selectedWordKey.value = word;
@@ -1179,22 +1138,19 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     translationType.value = 'word';
     paragraphTranslation.value = null;
 
-    // 根据熟练度决定是否立即减少熟练度
-    // 熟练度 <= 4 的单词立即减少熟练度，熟练度 > 4 的单词在查看模糊内容时才减少
     const shouldDecreaseNow = wordData.memoryLevel <= 4;
     const newMemoryLevel = shouldDecreaseNow ? Math.max(0, wordData.memoryLevel - 1) : wordData.memoryLevel;
 
-    // 获取AI翻译（如果缺失）
     if (!wordData.aiTranslation || options?.forceAi) {
       isTranslating.value = true;
       try {
         const aiResult = await translateWithAI(word, currentText.value);
-        const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
-        if (oldWordData) {
-          const newClickCount = oldWordData.clickCount + 1;
+        const updatedData = getWordData(word);
+        if (updatedData) {
+          const newClickCount = updatedData.clickCount + 1;
           updateWordDatas([
             {
-              ...oldWordData,
+              ...updatedData,
               memoryLevel: newMemoryLevel,
               clickCount: newClickCount,
               lastClickTime: new Date(),
@@ -1207,37 +1163,26 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
             },
           ]);
         }
-      } catch (error) {
-        console.error('AI翻译失败:', error);
-        // 显示错误提示给用户
+      } catch (error: unknown) {
         toast.add({
           variant: 'error',
           summary: 'AI翻译失败',
-          detail: error instanceof Error ? error.message : '未知错误',
+          detail: getErrorMessage(error),
           life: 3000,
         });
       } finally {
         isTranslating.value = false;
       }
     } else {
-      const oldWordData = words.value.find((el) => el.word === word.toLowerCase());
-      if (oldWordData) {
-        const newClickCount = oldWordData.clickCount + 1;
-        updateWordDatas([
-          {
-            ...oldWordData,
-            memoryLevel: newMemoryLevel,
-            clickCount: newClickCount,
-            lastClickTime: new Date(),
-            familiarity: calculateFamiliarity(newClickCount, new Date()),
-          },
-        ]);
-      }
+      updateWordClickData(word, newMemoryLevel);
     }
 
-    // 如果立即减少了熟练度，输出日志
     if (shouldDecreaseNow) {
-      console.log(`查看翻译 ${word} 熟练度 -1 (当前: ${newMemoryLevel}/10) - 低熟练度单词立即减少`);
+      // 低熟练度单词查看翻译时适度降低记忆等级（避免一次查看就完全掌握）
+      const wordData = getWordData(word);
+      if (wordData && wordData.memoryLevel > 1) {
+        updateWordDatas([{ ...wordData, memoryLevel: Math.max(0, wordData.memoryLevel - 1) }]);
+      }
     }
 
     speakText(word);
@@ -1249,11 +1194,13 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
     const currentParagraph = syncData.value.paragraphs[syncData.value.currentParagraphIndex];
     if (!currentParagraph) return;
 
+    /** 使用 Set 优化 O(n*m) → O(n+m) 查找 */
+    const paragraphWordSet = new Set(currentParagraph.words);
     let improvedCount = 0;
     /** 当前片段内的单词，如果未被点击（划选），则熟练度 +1  */
     const updatedWords = words.value
       .map((word) => {
-        if (currentParagraph.words.includes(word.word)) {
+        if (paragraphWordSet.has(word.word)) {
           if (!currentSession.clickedWords.has(word.word)) {
             improvedCount++;
             return { ...word, memoryLevel: Math.min(10, word.memoryLevel + 1) };
@@ -1261,7 +1208,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
         }
         return undefined;
       })
-      .filter((word) => word !== undefined);
+      .filter((word): word is NonNullable<typeof word> => word !== undefined);
 
     updateWordDatas(updatedWords);
     // 标记段落完成
@@ -1298,11 +1245,9 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   };
 
   const adjustMemoryLevel = (word: string, newLevel: number) => {
-    const updates = words.value.map((w) => (w.word === word ? { ...w, memoryLevel: newLevel } : w));
-    updateWordDatas(updates);
-
-    if (selectedWord.value?.word === word) {
-      selectedWord.value.memoryLevel = newLevel;
+    const wordData = getWordData(word);
+    if (wordData) {
+      updateWordDatas([{ ...wordData, memoryLevel: newLevel }]);
     }
   };
 
@@ -1329,18 +1274,18 @@ const getWordByIndex = (wordIndex: number): string => {
   @keyframes custom-pulse {
     0%,
     100% {
-      box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-warning-500) 70%, transparent);
     }
     50% {
-      box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+      box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-warning-500) 0%, transparent);
     }
   }
 
   /* 段落排版优化 */
   #article-container {
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    background: linear-gradient(135deg, var(--color-slate-50) 0%, var(--color-slate-100) 100%);
     border-radius: 0.5rem;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: inset 0 1px 3px color-mix(in srgb, var(--color-gray-900) 10%, transparent);
   }
 
   #article-container .leading-relaxed {
@@ -1361,10 +1306,8 @@ const getWordByIndex = (wordIndex: number): string => {
   }
 
   /* 暗色模式适配 */
-  @media (prefers-color-scheme: dark) {
-    #article-container {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    }
+  :root.dark #article-container {
+    background: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
   }
 
   /* 响应式排版 */

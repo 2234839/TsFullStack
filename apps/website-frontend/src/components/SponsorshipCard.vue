@@ -22,11 +22,14 @@
         class="compact-text text-xs font-medium mb-2 z-10 text-center text-primary-700 dark:text-primary-300">
         {{ t('赞助支持') }}
       </div>
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
+        class="compact-btn! w-7! h-7!"
         @click="showQRCode = true"
-        class="compact-btn w-7 h-7 bg-white/80 backdrop-blur-sm border border-primary-300 text-primary-600 rounded-lg hover:bg-white hover:scale-105 transition-all duration-300 flex items-center justify-center z-10 shadow-sm">
+      >
         <i class="pi pi-heart text-xs"></i>
-      </button>
+      </Button>
     </div>
 
     <!-- 标准模式 - 中等尺寸 -->
@@ -56,40 +59,50 @@
 
         <!-- 主要操作按钮 -->
         <div class="standard-actions flex gap-2 mb-3">
-          <button
+          <Button
+            variant="primary"
+            class="action-btn! flex-1!"
             @click="showQRCode = true"
-            class="action-btn flex-1 font-medium py-2.5 px-3 rounded-lg bg-primary-800 text-white hover:bg-primary-700 transition-all duration-300 flex items-center justify-center text-sm shadow-sm dark:bg-primary-600 dark:hover:bg-primary-500">
+          >
             <i class="pi pi-qrcode mr-1.5 text-xs"></i>
             {{ t('扫码支持') }}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            class="action-btn! flex-1!"
             @click="handleDirectPay"
-            class="action-btn flex-1 font-medium py-2.5 px-3 rounded-lg border border-primary-300 text-primary-700 hover:bg-primary-50 transition-all duration-300 flex items-center justify-center text-sm dark:border-primary-500 dark:text-primary-300 dark:hover:bg-primary-700">
+          >
             <i class="pi pi-external-link mr-1.5 text-xs"></i>
             {{ t('其他方式') }}
-          </button>
+          </Button>
         </div>
 
         <!-- 功能按钮组 -->
         <div class="function-buttons flex justify-center gap-3">
-          <button
+          <Button
+            variant="ghost"
+            class="function-btn! flex-col! items-center! p-2!"
             @click="shareContent"
-            class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-primary-200/60 dark:bg-primary-700/60 dark:border-primary-600 dark:hover:bg-primary-600/80">
+          >
             <i class="pi pi-share-alt text-sm text-primary-500 mb-1"></i>
             <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('分享') }}</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            class="function-btn! flex-col! items-center! p-2!"
             @click="followCreator"
-            class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-primary-200/60 dark:bg-primary-700/60 dark:border-primary-600 dark:hover:bg-primary-600/80">
+          >
             <i class="pi pi-heart text-sm text-danger-500 mb-1"></i>
             <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('关注') }}</span>
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            class="function-btn! flex-col! items-center! p-2!"
             @click="provideFeedback"
-            class="function-btn flex flex-col items-center p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-primary-200/60 dark:bg-primary-700/60 dark:border-primary-600 dark:hover:bg-primary-600/80">
+          >
             <i class="pi pi-comment text-sm text-success-500 mb-1"></i>
             <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('反馈') }}</span>
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -152,34 +165,45 @@
         <div class="expanded-right flex items-center">
           <!-- 操作按钮 -->
           <div class="expanded-actions flex space-x-2 mr-3">
-            <button
+            <Button
+              variant="primary"
+              class="expanded-btn!"
               @click="showQRCode = true"
-              class="expanded-btn font-medium px-4 py-2.5 rounded-lg bg-primary-800 text-white hover:bg-primary-700 transition-all duration-300 flex items-center text-sm shadow-sm dark:bg-primary-600 dark:hover:bg-primary-500">
+            >
               <i class="pi pi-qrcode mr-1.5"></i>
               {{ t('支持') }}
-            </button>
+            </Button>
           </div>
 
           <!-- 功能按钮组 -->
           <div class="function-buttons-expanded flex space-x-2">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
+              class="function-btn-small!"
+              :title="t('分享推荐')"
               @click="shareContent"
-              class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-primary-200/60 dark:bg-primary-700/60 dark:border-primary-600 dark:hover:bg-primary-600/80"
-              :title="t('分享推荐')">
+            >
               <i class="pi pi-share-alt text-sm text-primary-500"></i>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="function-btn-small!"
+              :title="t('关注作者')"
               @click="followCreator"
-              class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-primary-200/60 dark:bg-primary-700/60 dark:border-primary-600 dark:hover:bg-primary-600/80"
-              :title="t('关注作者')">
+            >
               <i class="pi pi-heart text-sm text-danger-500"></i>
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              class="function-btn-small!"
+              :title="t('意见反馈')"
               @click="provideFeedback"
-              class="function-btn-small p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-200 border border-primary-200/60 dark:bg-primary-700/60 dark:border-primary-600 dark:hover:bg-primary-600/80"
-              :title="t('意见反馈')">
+            >
               <i class="pi pi-comment text-sm text-success-500"></i>
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -223,12 +247,15 @@
               <p class="text-xs text-primary-600 dark:text-primary-400 mb-2">
                 {{ t('与其他支持者交流，获取最新创作动态') }}
               </p>
-              <button
+              <Button
+                variant="primary"
+                size="sm"
+                class="inline-flex! items-center!"
                 @click="joinQQGroup"
-                class="inline-flex items-center text-xs bg-primary-500 hover:bg-primary-600 text-white px-3 py-1.5 rounded-md transition-colors duration-200">
+              >
                 <i class="pi pi-users mr-1"></i>
                 {{ t('加入QQ群') }} {{ qqGroupNumber }}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -241,6 +268,7 @@
   import { useSharePlus } from '@/utils/hooks/useSharePlus';
   import { useElementSize } from '@vueuse/core';
   import { Dialog } from '@tsfullstack/shared-frontend/components';
+  import { Button } from '@/components/base';
   import { computed, ref, useTemplateRef } from 'vue';
   import { useI18n } from '@/composables/useI18n';
 
@@ -342,9 +370,7 @@
   }
 
   /* 深色模式优化 */
-  @media (prefers-color-scheme: dark) {
-    .qr-display {
-      background: linear-gradient(135deg, #374151 0%, #1f2937 100%);
-    }
+  .dark .qr-display {
+    background: linear-gradient(135deg, var(--color-gray-700) 0%, var(--color-gray-800) 100%);
   }
 </style>

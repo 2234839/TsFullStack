@@ -1,4 +1,5 @@
 /** ABOUTME: Vite plugin for automatic route generation */
+/// <reference types="vite/client" />
 import type { Plugin } from 'vite'
 import { readdirSync, existsSync, writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
@@ -59,7 +60,7 @@ function generateRoutesContent(options: Required<VitePluginAutoRoutesOptions>): 
         }
 
         for (const file of files) {
-          console.log(`🔍 Found route file: ${file}`)
+          if (process.env.NODE_ENV === 'development') console.log(`🔍 Found route file: ${file}`)
           const varName = projectDir.name.replace(/[^a-zA-Z0-9]/g, '')
           projectRouteFiles.push({
             originalPath: file,
@@ -104,7 +105,7 @@ function generateRoutesContent(options: Required<VitePluginAutoRoutesOptions>): 
   content += `  generatedAt: '${new Date().toISOString()}'\n`
   content += `};\n\n`
 
-  console.log(`🔄 Project routes updated: ${projectRouteFiles.length} total`)
+  if (process.env.NODE_ENV === 'development') console.log(`🔄 Project routes updated: ${projectRouteFiles.length} total`)
 
   return content
 }
@@ -135,7 +136,7 @@ export function vitePluginAutoRoutes(options: VitePluginAutoRoutesOptions = {}):
       }
 
       writeFileSync(outputPath, content, 'utf8')
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ Failed to generate routes:', error)
     } finally {
       isGenerating = false
@@ -164,21 +165,21 @@ export function vitePluginAutoRoutes(options: VitePluginAutoRoutesOptions = {}):
         // 文件变化时重新生成
         watcher.on('change', (filePath) => {
           if (filePath.endsWith('.routeMap.ts')) {
-            console.log(`📝 Route file changed: ${filePath}`)
+            if (process.env.NODE_ENV === 'development') console.log(`📝 Route file changed: ${filePath}`)
             generateRoutes()
           }
         })
 
         watcher.on('add', (filePath) => {
           if (filePath.endsWith('.routeMap.ts')) {
-            console.log(`➕ Route file added: ${filePath}`)
+            if (process.env.NODE_ENV === 'development') console.log(`➕ Route file added: ${filePath}`)
             generateRoutes()
           }
         })
 
         watcher.on('unlink', (filePath) => {
           if (filePath.endsWith('.routeMap.ts')) {
-            console.log(`➖ Route file removed: ${filePath}`)
+            if (process.env.NODE_ENV === 'development') console.log(`➖ Route file removed: ${filePath}`)
             generateRoutes()
           }
         })

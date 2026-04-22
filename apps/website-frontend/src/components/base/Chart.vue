@@ -3,8 +3,8 @@
  * 图表组件
  * 基于 Chart.js 的 Vue 3 包装器
  */
-import { onMounted, onUnmounted, ref, watch } from 'vue';
-import type { ChartType, ChartData, ChartOptions } from 'chart.js';
+import { onMounted, onUnmounted, ref, shallowRef, triggerRef, watch } from 'vue';
+import type { ChartType, ChartData, ChartOptions, Chart as ChartInstance } from 'chart.js';
 
 interface Props {
   /** 图表类型 */
@@ -20,10 +20,19 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-let chartInstance: any = null;
+let chartInstance: ChartInstance | null = null;
+/** 使用 shallowRef + triggerRef 实现响应式暴露 */
+const chartRef = shallowRef<ChartInstance | null>(null);
+
+/** 更新 chartRef 并通知 Vue 响应式系统 */
+function updateChartRef(instance: ChartInstance | null) {
+  chartInstance = instance;
+  chartRef.value = instance;
+  triggerRef(chartRef);
+}
 
 // 动态导入 Chart.js 以避免 SSR 问题
-let Chart: any = null;
+let Chart: typeof import('chart.js/auto').default | null = null;
 
 async function loadChart() {
   if (!Chart) {
@@ -41,19 +50,21 @@ async function initChart() {
   }
 
   const ctx = canvasRef.value.getContext('2d');
-  if (!ctx) return;
+  if (!ctx || !Chart) return;
 
   chartInstance = new Chart(ctx, {
     type: props.type,
-    data: props.data,
-    options: props.options,
+    data: props.data ?? { datasets: [] },
+    options: props.options ?? {},
   });
+  // 通过 updateChartRef 使 defineExpose 的 getter 返回最新实例
+  updateChartRef(chartInstance);
 }
 
 function destroyChart() {
   if (chartInstance) {
     chartInstance.destroy();
-    chartInstance = null;
+    updateChartRef(null);
   }
 }
 
@@ -61,9 +72,9 @@ function destroyChart() {
 watch(
   () => [props.data, props.options],
   () => {
-    if (chartInstance) {
+    if (chartInstance && props.data) {
       chartInstance.data = props.data;
-      chartInstance.options = props.options;
+      if (props.options) chartInstance.options = props.options;
       chartInstance.update();
     }
   },
@@ -80,12 +91,13 @@ onUnmounted(() => {
 
 // 暴露图表实例
 defineExpose({
-  chart: chartInstance,
+  /** shallowRef + triggerRef 实现响应式暴露，父组件通过 ref.chart 可获取最新实例 */
+  get chart() { return chartRef.value; },
 });
 </script>
 
 <template>
-  <div class="chart-container" style="position: relative; height: 400px; width: 100%">
+  <div class="chart-container relative h-100 w-full">
     <canvas ref="canvasRef"></canvas>
   </div>
 </template>

@@ -11,20 +11,19 @@
           class="block text-lg font-medium mb-2 text-primary-700 dark:text-primary-300">
           输入英文句子：
         </label>
-        <textarea
+        <Textarea
           id="sentence-input"
           v-model="sentence"
-          class="w-full p-3 border border-primary-300 rounded-md focus:ring-info-500 focus:border-primary-500 dark:bg-primary-700 dark:border-primary-600 dark:text-white"
-          rows="4"
-          placeholder="例如：It is certain that if there are fewer people driving, there will be less air pollution."></textarea>
+          :rows="4"
+          placeholder="例如：It is certain that if there are fewer people driving, there will be less air pollution." />
       </div>
 
-      <button
-        @click="analyzeSentence"
+      <Button
+        :label="isAnalyzing ? '分析中...' : '分析句子'"
         :disabled="isAnalyzing || !sentence.trim()"
-        class="w-full px-6 py-3 bg-primary-600 text-white font-semibold rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-info-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition duration-200">
-        {{ isAnalyzing ? '分析中...' : '分析句子' }}
-      </button>
+        class="w-full"
+        @click="analyzeSentence"
+      />
 
       <div
         v-if="error"
@@ -51,8 +50,9 @@
 
 <script setup lang="tsx">
   import { ref, computed } from 'vue';
-  // 假设 callAiResponseJSON 已经存在并正确导入
-  import { callAiResponseJSON } from '@/pages/AiEnglish/ai'; // 保持用户提供的导入路径
+  import Textarea from '@/components/base/Textarea.vue';
+  import { callAiResponseJSON } from '@/pages/AiEnglish/ai';
+  import { getErrorMessage } from '@/utils/error';
 
   // 辅助函数：合并 Tailwind CSS 类名
   const cn = (...classes: (string | undefined | null | boolean)[]) => {
@@ -308,15 +308,14 @@
     `;
 
     try {
-      const response = await callAiResponseJSON(prompt);
+      const response = await callAiResponseJSON<AnalysisResult>(prompt);
       if (response) {
-        analysisResult.value = response as any;
+        analysisResult.value = response;
       } else {
         error.value = 'AI返回内容为空。';
       }
-    } catch (err: any) {
-      console.error('分析失败:', err);
-      error.value = `分析失败: ${err.message || '未知错误'}`;
+    } catch (err: unknown) {
+      error.value = `分析失败: ${getErrorMessage(err)}`;
     } finally {
       isAnalyzing.value = false;
     }

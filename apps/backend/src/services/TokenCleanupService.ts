@@ -1,125 +1,61 @@
-import { Effect } from 'effect';
-import { AuthContext } from '../Context/Auth';
-import { ReqCtxService } from '../Context/ReqCtx';
-import { MsgError } from '../util/error';
+import type { DbClient } from '../Context/DbService';
+
+/** 每批清理的代币数量 */
+const BATCH_SIZE = 1000;
 
 /**
- * 代币清理服务
- * 定期清理过期且用完的代币记录
+ * 过期代币清理服务
+ * 从 index.ts 中提取，使用纯 async 函数（队列/定时任务运行在非 Effect 上下文）
  */
 export const TokenCleanupService = {
   /**
-   * 清理过期且已用完的代币
-   * 只清理满足以下条件的代币：
-   * 1. 已过期 (expiresAt < now)
-   * 2. 已完全使用 (used >= amount 且 amount > 0)
-   * 3. 仍然激活 (active = true)
+   * 清理已过期的代币记录（分批删除，避免长时间阻塞）
+   * 只清理 used >= amount 的完全消耗代币
    */
-  cleanupExpiredTokens: () =>
-    Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+  cleanupExpiredTokens: async (db: DbClient): Promise<number> => {
+    const now = new Date();
+    let totalDeleted = 0;
+    let hasMore = true;
 
-      const now = new Date();
+    while (hasMore) {
+      const tokensToCleanup = await db.token.findMany({
+        where: {
+          active: true,
+          expiresAt: { lt: now },
+        },
+        select: { id: true, amount: true, used: true },
+        take: BATCH_SIZE,
+      });
 
-      // 分批清理以减少内存消耗（每次最多处理1000条）
-      const BATCH_SIZE = 1000;
-      let totalDeleted = 0;
-      let hasMore = true;
+      if (tokensToCleanup.length === 0) break;
 
-      while (hasMore) {
-        // 每次只查询一批数据
-        const tokensToCleanup = yield* Effect.tryPromise({
-          try: () =>
-            auth.db.token.findMany({
-              where: {
-                active: true,
-                expiresAt: { lt: now }, // 已过期
-              },
-              select: {
-                id: true,
-                amount: true,
-                used: true,
-              },
-              take: BATCH_SIZE,
-            }),
-          catch: (error) => {
-            reqCtx.log('[TokenCleanupService] 查询过期代币失败:', String(error));
-            return [];
-          },
-        });
+      const fullyConsumed = tokensToCleanup.filter((t) => t.used >= t.amount);
+      const partiallyConsumed = tokensToCleanup.filter((t) => t.used > 0 && t.used < t.amount);
+      /** 从未使用的过期代币直接删除（无审计价值） */
+      const neverUsed = tokensToCleanup.filter((t) => t.used === 0);
 
-        if (tokensToCleanup.length === 0) {
-          hasMore = false;
-          break;
-        }
-
-        // 在应用层精确过滤：used >= amount 表示已完全使用
-        const tokenIdsToDelete = tokensToCleanup
-          .filter(t => t.used >= t.amount)
-          .map(t => t.id);
-
-        if (tokenIdsToDelete.length > 0) {
-          yield* Effect.tryPromise({
-            try: () =>
-              auth.db.token.deleteMany({
-                where: {
-                  id: { in: tokenIdsToDelete },
-                },
-              }),
-            catch: (error) => {
-              reqCtx.log('[TokenCleanupService] 清理失败:', String(error));
-              // 清理失败不影响主流程
-            },
-          });
-
-          totalDeleted += tokenIdsToDelete.length;
-        }
-
-        // 如果返回的数量少于BATCH_SIZE，说明没有更多数据了
-        if (tokensToCleanup.length < BATCH_SIZE) {
-          hasMore = false;
-        }
+      if (fullyConsumed.length > 0) {
+        await db.token.deleteMany({ where: { id: { in: fullyConsumed.map(t => t.id) } } });
+        totalDeleted += fullyConsumed.length;
       }
 
-      return { cleaned: true, count: totalDeleted };
-    }),
+      /** 部分消耗的过期代币标记为 inactive（保留审计记录，防止数据膨胀） */
+      if (partiallyConsumed.length > 0) {
+        await db.token.updateMany({
+          where: { id: { in: partiallyConsumed.map(t => t.id) } },
+          data: { active: false },
+        });
+      }
 
-  /**
-   * 获取清理统计信息
-   */
-  getCleanupStats: () =>
-    Effect.gen(function* () {
-      const auth = yield* AuthContext;
+      /** 从未使用的过期代币直接删除（无审计价值） */
+      if (neverUsed.length > 0) {
+        await db.token.deleteMany({ where: { id: { in: neverUsed.map(t => t.id) } } });
+        totalDeleted += neverUsed.length;
+      }
 
-      const [expiredTokens, zeroBalanceTokens, totalTokens] = yield* Effect.all([
-        Effect.tryPromise(() =>
-          auth.db.token.count({
-            where: {
-              active: true,
-              expiresAt: { lt: new Date() },
-            },
-          })
-        ),
-        Effect.tryPromise(() =>
-          auth.db.token.count({
-            where: {
-              active: true,
-              amount: { lte: 0 },
-            },
-          })
-        ),
-        Effect.tryPromise(() =>
-          auth.db.token.count({
-            where: { active: true },
-          })
-        ),
-      ]);
+      if (tokensToCleanup.length < BATCH_SIZE) hasMore = false;
+    }
 
-      return {
-        expired: expiredTokens,
-        zeroBalance: zeroBalanceTokens,
-        total: totalTokens,
-      };
-    }),
+    return totalDeleted;
+  },
 };

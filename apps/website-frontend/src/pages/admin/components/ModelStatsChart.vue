@@ -54,9 +54,62 @@ import { Chart, DataTable } from '@/components/base'
 import Paginator from '@/components/base/Paginator.vue'
 import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
+import { ONE_DAY_MS } from '@/utils/format'
 
 const { API } = useAPI()
 const { t } = useI18n()
+
+/** 图表颜色常量（与 Tailwind 调色板一致） */
+const CHART_COLORS = {
+  /** indigo - 主色调 */
+  primary: 'rgb(99, 102, 241)',
+  primaryBg: 'rgba(99, 102, 241, 0.1)',
+  primaryFill: 'rgba(99, 102, 241, 0.8)',
+  /** emerald - 成功/正确 */
+  success: 'rgb(16, 185, 129)',
+  successFill: 'rgba(16, 185, 129, 0.8)',
+  /** amber - 警告 */
+  warning: 'rgb(245, 158, 11)',
+  warningFill: 'rgba(245, 158, 11, 0.8)',
+  /** red - 错误/危险 */
+  danger: 'rgb(239, 68, 68)',
+  dangerFill: 'rgba(239, 68, 68, 0.8)',
+  /** gray - 中性/默认 */
+  gray: 'rgb(107, 114, 128)',
+  grayFill: 'rgba(107, 114, 128, 0.8)',
+} as const
+
+/** 饼图配色（6色循环） */
+const DOUGHNUT_COLORS = [
+  CHART_COLORS.primaryFill,
+  CHART_COLORS.successFill,
+  CHART_COLORS.warningFill,
+  CHART_COLORS.dangerFill,
+  CHART_COLORS.grayFill,
+  'rgba(236, 72, 153, 0.8)',
+]
+
+/**
+ * 批量获取用户信息（分块查询避免超大查询）
+ */
+async function batchFetchUsers(userIds: string[]): Promise<Map<string, { id: string; email: string }>> {
+  const userMap = new Map<string, { id: string; email: string }>()
+  if (userIds.length === 0) return userMap
+
+  const chunkSize = 100
+  for (let i = 0; i < userIds.length; i += chunkSize) {
+    const chunk = userIds.slice(i, i + chunkSize)
+    const users = await API.db.user.findMany({
+      where: { id: { in: chunk } },
+      select: { id: true, email: true },
+    }) as { id: string; email: string }[]
+
+    for (const user of users) {
+      userMap.set(user.id, user)
+    }
+  }
+  return userMap
+}
 
 interface DetailedStats {
   modelName: string
@@ -89,8 +142,8 @@ const lineChartData = ref({
     {
       label: '请求数量',
       data: [] as number[],
-      borderColor: 'rgb(99, 102, 241)',
-      backgroundColor: 'rgba(99, 102, 241, 0.1)',
+      borderColor: CHART_COLORS.primary,
+      backgroundColor: CHART_COLORS.primaryBg,
       tension: 0.4
     }
   ]
@@ -101,14 +154,7 @@ const doughnutChartData = ref({
   datasets: [
     {
       data: [] as number[],
-      backgroundColor: [
-        'rgba(99, 102, 241, 0.8)',
-        'rgba(16, 185, 129, 0.8)',
-        'rgba(245, 158, 11, 0.8)',
-        'rgba(239, 68, 68, 0.8)',
-        'rgba(107, 114, 128, 0.8)',
-        'rgba(236, 72, 153, 0.8)'
-      ]
+      backgroundColor: DOUGHNUT_COLORS,
     }
   ]
 })
@@ -131,7 +177,7 @@ const detailedStatsColumns = computed(() => [
   {
     key: 'successRate',
     title: t('成功率'),
-    render: (row: any) => `${row.successRate}%`,
+    render: (row: DetailedStats) => `${row.successRate}%`,
   },
   { key: 'avgTokens', title: t('平均令牌数') },
   { key: 'lastUsed', title: t('最后使用时间') },
@@ -142,8 +188,8 @@ const userActivityData = ref({
     {
       label: '活跃用户数',
       data: [] as number[],
-      backgroundColor: 'rgba(16, 185, 129, 0.8)',
-      borderColor: 'rgb(16, 185, 129)',
+      backgroundColor: CHART_COLORS.successFill,
+      borderColor: CHART_COLORS.success,
       borderWidth: 1
     }
   ]
@@ -209,7 +255,7 @@ const changeUserPage = (page: number) => {
 const updateUserStatsDisplay = async () => {
   // Re-process user stats without re-fetching all data
   const now = new Date()
-  const startTime = new Date(now.getTime() - 24 * 24 * 60 * 60 * 1000)
+  const startTime = new Date(now.getTime() - ONE_DAY_MS)
 
   // Query API call logs with model information
   const apiCalls = await API.db.aiCallLog.findMany({
@@ -229,31 +275,7 @@ const updateUserStatsDisplay = async () => {
   })
 
   // Get users for mapping
-  const userIds = Array.from(uniqueUserIds)
-  const userMap = new Map<string, { id: string; email: string }>()
-
-  if (userIds.length > 0) {
-    // Batch fetch users in chunks to avoid large queries
-    const chunkSize = 100
-    for (let i = 0; i < userIds.length; i += chunkSize) {
-      const chunk = userIds.slice(i, i + chunkSize)
-      const users = await API.db.user.findMany({
-        where: {
-          id: {
-            in: chunk
-          }
-        },
-        select: {
-          id: true,
-          email: true
-        }
-      }) as { id: string; email: string }[]
-
-      users.forEach(user => {
-        userMap.set(user.id, user)
-      })
-    }
-  }
+  const userMap = await batchFetchUsers(Array.from(uniqueUserIds))
 
   // Process user data for charts
   const userStatsMap = new Map<string, {
@@ -305,7 +327,9 @@ const updateUserStatsDisplay = async () => {
 
 const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
   const now = new Date()
-  const startTime = new Date(now.getTime() - (timeRange === '24h' ? 24 : timeRange === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000)
+  const TIME_RANGE_DAYS: Record<string, number> = { '24h': 1, '7d': 7, '30d': 30 };
+  const days = TIME_RANGE_DAYS[timeRange] ?? 1;
+  const startTime = new Date(now.getTime() - days * ONE_DAY_MS);
 
   // Query API call logs with model information
   const apiCalls = await API.db.aiCallLog.findMany({
@@ -341,31 +365,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
   })
 
   // Create user mapping - only fetch users that actually made calls
-  const userIds = Array.from(uniqueUserIds)
-  const userMap = new Map<string, { id: string; email: string }>()
-
-  if (userIds.length > 0) {
-    // Batch fetch users in chunks to avoid large queries
-    const chunkSize = 100
-    for (let i = 0; i < userIds.length; i += chunkSize) {
-      const chunk = userIds.slice(i, i + chunkSize)
-      const users = await API.db.user.findMany({
-        where: {
-          id: {
-            in: chunk
-          }
-        },
-        select: {
-          id: true,
-          email: true
-        }
-      }) as { id: string; email: string }[]
-
-      users.forEach(user => {
-        userMap.set(user.id, user)
-      })
-    }
-  }
+  const userMap = await batchFetchUsers(Array.from(uniqueUserIds))
 
   // Process data for charts
   const modelStats = new Map<string, {
@@ -441,8 +441,8 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
       {
         label: '请求数量',
         data: Array.from({ length: 24 }, (_, i) => hourlyData.get(i) || 0),
-        borderColor: 'rgb(99, 102, 241)',
-        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+        borderColor: CHART_COLORS.primary,
+        backgroundColor: CHART_COLORS.primaryBg,
         tension: 0.4
       }
     ]
@@ -455,8 +455,8 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
       {
         label: '活跃用户数',
         data: Array.from({ length: 24 }, (_, i) => hourlyUsers.get(i)?.size || 0),
-        backgroundColor: 'rgba(16, 185, 129, 0.8)',
-        borderColor: 'rgb(16, 185, 129)',
+        backgroundColor: CHART_COLORS.successFill,
+        borderColor: CHART_COLORS.success,
         borderWidth: 1
       }
     ]
@@ -471,14 +471,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     datasets: [
       {
         data: modelCounts,
-        backgroundColor: [
-          'rgba(99, 102, 241, 0.8)',
-          'rgba(16, 185, 129, 0.8)',
-          'rgba(245, 158, 11, 0.8)',
-          'rgba(239, 68, 68, 0.8)',
-          'rgba(107, 114, 128, 0.8)',
-          'rgba(236, 72, 153, 0.8)'
-        ]
+        backgroundColor: DOUGHNUT_COLORS,
       }
     ]
   }

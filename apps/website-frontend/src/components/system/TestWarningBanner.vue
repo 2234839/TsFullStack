@@ -5,14 +5,14 @@
     <span class="font-bold"
       >这是测试账号，仅供测试使用!! 数据会不定时清空，请另外注册帐号使用。
     </span>
-    <button @click="close" class="bg-transparent border border-primary-950 dark:border-primary-50 p-0.5 px-2 cursor-pointer">
+    <Button variant="ghost" @click="close">
       关闭
-    </button>
-    <button
-      @click="gotoLogin({ r: $route.fullPath })"
-      class="bg-transparent border border-primary-950 dark:border-primary-50 p-0.5 px-2 cursor-pointer">
+    </Button>
+    <Button
+      variant="ghost"
+      @click="gotoLogin({ r: $route.fullPath })">
       去登录/注册新帐号
-    </button>
+    </Button>
   </div>
 </template>
 
@@ -20,6 +20,7 @@
   import { gotoLogin } from '@/pages/loginUtil';
   import { authInfo } from '@/storage';
   import { computed, ref } from 'vue';
+  import { Button } from '@/components/base';
   const showTestWarn = computed(() => {
     return !!authInfo.value?.user.role.find((el) => el.name === '测试角色');
   });

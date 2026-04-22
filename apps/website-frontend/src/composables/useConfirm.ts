@@ -3,6 +3,7 @@
  * 替代 PrimeVue 的 useConfirm
  */
 import { ref } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 
 interface ConfirmOptions {
   /** 确认消息 */
@@ -28,13 +29,13 @@ interface ConfirmOptions {
     label?: string;
     variant?: string;
     icon?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   /** 拒绝按钮属性（兼容 PrimeVue） */
   rejectProps?: {
     label?: string;
     variant?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   /** 接受回调 */
   accept?: () => void | Promise<void>;
@@ -61,6 +62,8 @@ const confirmState = ref<ConfirmState>({
  * 确认对话框 composable
  */
 export function useConfirm() {
+  const { t } = useI18n();
+
   /**
    * 显示确认对话框
    */
@@ -77,8 +80,8 @@ export function useConfirm() {
         ...options,
         show: true,
         targetElement,
-        acceptLabel: options.acceptLabel || options.acceptProps?.label || '确认',
-        rejectLabel: options.rejectLabel || options.rejectProps?.label || '取消',
+        acceptLabel: options.acceptLabel || options.acceptProps?.label || t('确认'),
+        rejectLabel: options.rejectLabel || options.rejectProps?.label || t('取消'),
         acceptClass: options.acceptProps?.variant === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : options.acceptClass,
         _accept: async () => {
           confirmState.value.show = false;

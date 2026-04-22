@@ -23,11 +23,11 @@
             Ts<span class="text-primary-600 dark:text-info-400">FullStack</span>
           </h1>
         </div>
-        <button v-if="!isCollapsed" @click.stop="toggleCollapse"
-          class="p-2 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-700 transition-colors text-primary-600 dark:text-primary-400"
+        <Button v-if="!isCollapsed" variant="ghost" @click.stop="toggleCollapse"
+          class="p-2"
           aria-label="Toggle menu">
           <i class="pi pi-bars"></i>
-        </button>
+        </Button>
       </div>
 
       <!-- 用户信息区域 -->
@@ -110,7 +110,7 @@
                     ]" @click="navigateTo(item)" />
                 </Tooltip>
                 <Badge v-if="item.badge" :value="item.badge" :variant="getBadgeVariant(item)"
-                  class="absolute top-0 right-0 transform transecondary-x-1 -transecondary-y-1 scale-75"></Badge>
+                  class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"></Badge>
               </template>
             </li>
           </ul>
@@ -470,8 +470,7 @@
 
   // 检查是否是当前活动路由
   const isActiveRoute = (item: MenuItem): boolean => {
-    // 实际项目中应该使用 router.currentRoute.value.path === item.to
-    return item.to === '/admin/dashboard';
+    return router.currentRoute.value.path === item.to;
   };
 
   // 获取徽章样式
@@ -483,7 +482,7 @@
 <style scoped>
 /* 基础样式 */
 .sidebar-container {
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--color-gray-900) 10%, transparent);
   position: relative;
   z-index: 50;
 }
@@ -498,12 +497,12 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(71, 85, 105, 0.3);
+  background-color: color-mix(in srgb, var(--color-slate-500) 30%, transparent);
   border-radius: 20px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(71, 85, 105, 0.5);
+  background-color: color-mix(in srgb, var(--color-slate-500) 50%, transparent);
 }
 
 /* 有子菜单的菜单项样式 */
@@ -528,15 +527,15 @@
 /* 自定义Popover样式 */
 :deep(.p-popover-submenu) {
   border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(229, 231, 235, 1);
+  box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--color-gray-900) 10%, transparent), 0 4px 6px -2px color-mix(in srgb, var(--color-gray-900) 5%, transparent);
+  border: 1px solid var(--color-gray-200, #e5e7eb);
   padding: 0;
   min-width: 200px;
 }
 
 :deep(.dark .p-popover-submenu) {
-  background-color: rgb(30, 41, 59);
-  border-color: rgba(51, 65, 85, 0.5);
+  background-color: var(--color-slate-800, #1e293b);
+  border-color: var(--color-slate-700, #334155);
 }
 
 /* 装饰元素 */
@@ -558,8 +557,8 @@
   width: 300px;
   height: 300px;
   background: radial-gradient(circle,
-      rgba(59, 130, 246, 0.7) 0%,
-      rgba(37, 99, 235, 0.5) 50%,
+      color-mix(in srgb, var(--color-primary-500) 70%, transparent) 0%,
+      color-mix(in srgb, var(--color-primary-600) 50%, transparent) 50%,
       transparent 70%);
   top: 10%;
   left: -150px;
@@ -570,8 +569,8 @@
   width: 250px;
   height: 250px;
   background: radial-gradient(circle,
-      rgba(37, 99, 235, 0.7) 0%,
-      rgba(59, 130, 246, 0.5) 50%,
+      color-mix(in srgb, var(--color-primary-600) 70%, transparent) 0%,
+      color-mix(in srgb, var(--color-primary-500) 50%, transparent) 50%,
       transparent 70%);
   bottom: 10%;
   right: -100px;
@@ -581,8 +580,8 @@
 .grid-overlay {
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(to right, rgba(71, 85, 105, 0.05) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(71, 85, 105, 0.05) 1px, transparent 1px);
+  background-image: linear-gradient(to right, color-mix(in srgb, var(--color-slate-500) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-slate-500) 5%, transparent) 1px, transparent 1px);
   background-size: 20px 20px;
   opacity: 0.3;
 }
@@ -617,7 +616,7 @@
   top: 0;
   height: 100%;
   width: 0;
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.1), transparent);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary-500) 10%, transparent), transparent);
   transition: width 0.3s ease;
 }
 
@@ -640,11 +639,11 @@
   width: 200%;
   height: 200%;
   background: linear-gradient(to bottom right,
-      rgba(255, 255, 255, 0) 0%,
-      rgba(255, 255, 255, 0) 40%,
-      rgba(255, 255, 255, 0.4) 50%,
-      rgba(255, 255, 255, 0) 60%,
-      rgba(255, 255, 255, 0) 100%);
+      transparent 0%,
+      transparent 40%,
+      color-mix(in srgb, var(--color-white) 40%, transparent) 50%,
+      transparent 60%,
+      transparent 100%);
   transform: rotate(45deg);
   animation: shine 3s infinite;
 }

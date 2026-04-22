@@ -23,8 +23,11 @@ import { MultiSelect } from '@/components/base';
 import { computed, onMounted, ref, watch } from 'vue';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { getErrorMessage } from '@/utils/error';
 
 const { t } = useI18n();
+const toast = useToast();
 
 interface Props {
   modelValue?: string | string[] | null;
@@ -49,7 +52,7 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<Emits>();
 
 const { API } = useAPI();
-const users = ref<any[]>([]);
+const users = ref<Array<{ id: string; email: string }>>([]);
 const userOptions = ref<{ label: string; value: string }[]>([]);
 
 const selectedUsers = computed({
@@ -93,13 +96,13 @@ const loadUsers = async () => {
       label: `${user.email} (${user.id})`,
       value: user.id
     }));
-  } catch (error) {
-    console.error('加载用户列表失败:', (error as Error).message);
+  } catch (error: unknown) {
+    toast.error(t('加载用户列表失败'), getErrorMessage(error));
   }
 };
 
 // 处理选择变化
-const handleChange = (event: any) => {
+const handleChange = (event: { value: unknown }) => {
   const value = event.value;
   if (props.multiple) {
     const newValue = Array.isArray(value) ? value : value ? [value] : [];

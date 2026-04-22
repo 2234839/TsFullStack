@@ -54,16 +54,7 @@ const isAudioType = (mimetype: string) => audioTypes.includes(mimetype);
 const isDocumentType = (mimetype: string) => documentTypes.includes(mimetype);
 const isArchiveType = (mimetype: string) => archiveTypes.includes(mimetype);
 
-// // 获取文件预览
-// const getFilePreview = async (file: ShareFileJSON) => {
-//   if (!file) return '';
-//   if (isImageType(file?.mimetype)) {
-//     return await APIGetUrl.fileApi.file(file.id);
-//   }
-//   return '';
-// };
-
-// 获取文件预览样式类
+/** 获取文件预览样式类 */
 export const getFilePreviewClass = (file: ShareFileJSON) => {
   if (!file) return '';
   if (isImageType(file.mimetype)) {
@@ -123,11 +114,3 @@ export const getTotalFileSize = (share: ShareJSON) => {
   return share.files.reduce((total, file) => total + (file.size || 0), 0);
 };
 
-// 格式化文件大小
-export const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};

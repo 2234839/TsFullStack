@@ -3,6 +3,9 @@ import { ReqCtxService } from '../../Context/ReqCtx';
 import { AIConfigContext } from '../../Context/AIConfig';
 import { MsgError } from '../../util/error';
 
+/** 信息分辨服务最大内容长度 */
+const MAX_CONTENT_LENGTH = 5000;
+
 export interface InfoQualityRequest {
   content: string;
   model?: string;
@@ -43,7 +46,7 @@ async function callOllamaAPI(prompt: string, model: string, ollamaUrl: string): 
   });
 
   if (!response.ok) {
-    throw new Error(`Ollama API request failed: ${response.status} ${response.statusText}`);
+    throw MsgError.msg(`Ollama API request failed: ${response.status} ${response.statusText}`);
   }
 
   const data = (await response.json()) as { response: string; done: boolean };
@@ -62,15 +65,18 @@ export function evaluateInfoQuality(request: InfoQualityRequest) {
       throw MsgError.msg('内容不能为空');
     }
 
-    if (content.length > 5000) {
-      throw MsgError.msg('内容长度不能超过5000字符');
+    if (content.length > MAX_CONTENT_LENGTH) {
+      throw MsgError.msg(`内容长度不能超过${MAX_CONTENT_LENGTH}字符`);
     }
 
     try {
       const prompt = createOptimizedPrompt(content);
-      const result = yield* Effect.promise(() => callOllamaAPI(prompt, model, ollamaUrl));
+      const result = yield* Effect.tryPromise({
+        try: () => callOllamaAPI(prompt, model, ollamaUrl),
+        catch: (e) => MsgError.msg('Ollama API 调用失败: ' + String(e)),
+      });
 
-      ctx.log('Ollama API 返回结果', { result });
+      ctx.log('[信息分辨] Ollama 返回: ' + (result.includes('pass') ? 'pass' : 'block'));
 
       // 提取最终答案，处理模型可能输出的详细解释
       // 查找最后的明确答案
@@ -99,10 +105,8 @@ export function evaluateInfoQuality(request: InfoQualityRequest) {
       } else {
         return { result: 'block' };
       }
-    } catch (error) {
-      ctx.log('Ollama API 调用失败', {
-        error: error instanceof Error ? error.message : String(error),
-      });
+    } catch (error: unknown) {
+      ctx.log('[信息分辨] Ollama API 调用失败: ' + String(error));
       throw MsgError.msg('信息质量评估服务暂时不可用，请稍后重试');
     }
   });

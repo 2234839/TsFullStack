@@ -21,9 +21,9 @@
       <div class="flex items-center">
         <!-- 关系字段非常特殊，这里做了大量不是很好的操作，以后有好办法了再优化吧 -->
         <div class="border-r pr-1">
-          {{ row?._count?.[fieldName] }}
+          {{ (row?._count as Record<string, number | string> | undefined)?.[String(fieldName) as keyof (Record<string, number | string>)] ?? '' }}
         </div>
-        <RelationSelect :field="field" :row="row" @change="changeRelation" />
+        <RelationSelect :field="field" :row="row" @change="(value: unknown) => changeRelation(value as RelationSelectData)" />
       </div>
     </template>
     <template v-else>
@@ -49,8 +49,9 @@
 
   const props = defineProps<{
     field: FieldInfo;
+    /** 动态单元格数据 — AutoTable 动态字段系统无法静态确定具体类型 */
     cellData: any;
-    row?: { [fieldName: string]: any };
+    row?: Record<string, unknown>;
   }>();
 
   const eidtModel = defineModel<any>();
@@ -72,8 +73,8 @@
   const editMode = defineModel<boolean>('editMode', { default: false });
 
   // 模板辅助属性，避免类型推断问题
-  const fieldType = computed(() => props.field.type);
-  const fieldName = computed(() => props.field.name);
+  const fieldType = computed<string>(() => props.field.type);
+  const fieldName = computed<string>(() => props.field.name);
   const isRelationField = computed(() => isDataModelField(props.field));
 
   //#region 关联关系的编辑映射

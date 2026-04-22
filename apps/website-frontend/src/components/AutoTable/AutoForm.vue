@@ -47,7 +47,8 @@
   import { Dialog } from '@tsfullstack/shared-frontend/components';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { useToast } from '@/composables/useToast';
-  import { computed, onMounted, reactive, ref, watch } from 'vue';
+  import { getErrorMessage } from '@/utils/error';
+  import { computed, reactive, ref, watch } from 'vue';
   import { useI18n } from 'vue-i18n';
   import type { FieldInfo, ModelMeta as ModelMetaType, ModelMetaNames } from './type';
   import { findIdField, getModelDbName, isIdField, isArrayField, isOptionalField, isDataModelField, hasDefaultField, isUpdatedAtField, getModelAPI } from './util';
@@ -173,13 +174,11 @@
 
       emit('created', result);
       visible.value = false;
-    } catch (error: any) {
-      console.error('Failed to create record:', error);
-
+    } catch (error: unknown) {
       toast.add({
         variant: 'error',
         summary: t('错误'),
-        detail: error.message || t('创建记录失败'),
+        detail: getErrorMessage(error, t('创建记录失败')),
         life: 5000,
       });
     } finally {
@@ -200,10 +199,6 @@
     resetForm();
     visible.value = true;
   }
-
-  onMounted(() => {
-    // 在组件挂载后不再自动加载关系数据
-  });
 
   // 导出方法供父组件调用
   defineExpose({

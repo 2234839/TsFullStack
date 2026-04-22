@@ -4,10 +4,10 @@
  * 使用 Tailwind CSS 样式
  * 提供排序、分页、行选择等功能
  */
-import { computed, ref } from 'vue';
+import { computed, ref, type VNode } from 'vue';
 import ProgressSpinner from './ProgressSpinner.vue';
 
-export interface ColumnDef<T = any> {
+export interface ColumnDef<T = unknown> {
   /** 字段名 */
   key: string;
   /** 列头 */
@@ -17,7 +17,7 @@ export interface ColumnDef<T = any> {
   /** 列宽 */
   width?: string | number;
   /** 单元格自定义渲染 */
-  render?: (row: T, index: number) => any;
+  render?: (row: T, index: number) => VNode | string;
   /** 列对齐 */
   align?: 'left' | 'center' | 'right';
 }
@@ -40,7 +40,7 @@ interface Props<T> {
   /** 表格大小 */
   size?: 'small' | 'middle' | 'large';
   /** 选中的行 */
-  selectedRowKeys?: any[];
+  selectedRowKeys?: (string | number)[];
   /** 是否支持行选择 */
   selectable?: boolean;
 }
@@ -57,7 +57,7 @@ const props = withDefaults(defineProps<Props<T>>(), {
 });
 
 const emit = defineEmits<{
-  'update:selectedRowKeys': [keys: any[]];
+  'update:selectedRowKeys': [keys: (string | number)[]];
   'rowClick': [row: T, index: number];
 }>();
 
@@ -283,14 +283,14 @@ function getSortIcon(column: ColumnDef<T>) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(255, 255, 255, 0.75);
+  background-color: color-mix(in srgb, var(--color-white) 75%, transparent);
   backdrop-filter: blur(2px);
   z-index: 10;
   border-radius: 0.5rem;
 }
 
 .dark .data-table-loading-overlay {
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: color-mix(in srgb, var(--color-gray-900) 50%, transparent);
 }
 
 /** DataTable 容器 - 支持横向滚动 */
@@ -306,46 +306,38 @@ function getSortIcon(column: ColumnDef<T>) {
   pointer-events: none;
 }
 
-/** 美化滚动条 */
+/** 美化滚动条（使用 CSS 变量支持主题切换） */
+.data-table-container {
+  --scrollbar-track: var(--color-zinc-100, #f4f4f5);
+  --scrollbar-thumb: var(--color-zinc-300, #d4d4d8);
+  --scrollbar-thumb-hover: var(--color-zinc-400, #a1a1aa);
+
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+.dark .data-table-container {
+  --scrollbar-track: var(--color-zinc-900, #18181b);
+  --scrollbar-thumb: var(--color-zinc-700, #3f3f46);
+  --scrollbar-thumb-hover: var(--color-zinc-500, #71717a);
+}
+
 .data-table-container::-webkit-scrollbar {
   height: 10px;
 }
 
 .data-table-container::-webkit-scrollbar-track {
-  background: rgb(250 250 250);
+  background: var(--scrollbar-track);
   border-radius: 5px;
 }
 
 .data-table-container::-webkit-scrollbar-thumb {
-  background: rgb(200 200 200);
+  background: var(--scrollbar-thumb);
   border-radius: 5px;
   transition: background-color 150ms ease-out;
 }
 
 .data-table-container::-webkit-scrollbar-thumb:hover {
-  background: rgb(163 163 163);
-}
-
-/** 暗色模式支持 */
-.dark .data-table-container::-webkit-scrollbar-track {
-  background: rgb(30 30 30);
-}
-
-.dark .data-table-container::-webkit-scrollbar-thumb {
-  background: rgb(80 80 80);
-}
-
-.dark .data-table-container::-webkit-scrollbar-thumb:hover {
-  background: rgb(113 113 113);
-}
-
-/** Firefox 滚动条样式 */
-.data-table-container {
-  scrollbar-width: thin;
-  scrollbar-color: rgb(200 200 200) rgb(250 250 250);
-}
-
-.dark .data-table-container {
-  scrollbar-color: rgb(80 80 80) rgb(30 30 30);
+  background: var(--scrollbar-thumb-hover);
 }
 </style>

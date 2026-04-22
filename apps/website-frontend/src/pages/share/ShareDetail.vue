@@ -36,7 +36,7 @@
         <!-- Files Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <div v-for="file in state.data.files" :key="file.id"
-            class="group bg-white dark:bg-primary-800 rounded-xl border border-primary-200 dark:border-primary-700 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-transecondary-y-1 min-w-0">
+            class="group bg-white dark:bg-primary-800 rounded-xl border border-primary-200 dark:border-primary-700 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 min-w-0">
             <!-- File Preview -->
             <div
               class="h-48 flex items-center justify-center bg-linear-to-br from-primary-50 to-primary-100 dark:from-primary-700 dark:to-primary-800">
@@ -63,19 +63,15 @@
 
               <!-- Action Buttons -->
               <div class="space-y-2">
-                <!-- Open in New Tab Button for All Files -->
-                <button @click="openInNewTab(file)"
-                  class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-secondary-600 hover:bg-secondary-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
+                <Button class="w-full justify-center!" @click="openInNewTab(file)">
                   <i class="pi pi-external-link"></i>
                   <span>{{ t('新标签页打开') }}</span>
-                </button>
+                </Button>
 
-                <!-- Download Button -->
-                <button @click="downloadFile(file)"
-                  class="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-info-600 hover:bg-info-700 text-white rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]">
+                <Button variant="secondary" class="w-full justify-center!" @click="downloadFile(file)">
                   <i class="pi pi-download"></i>
                   <span>{{ t('点击下载文件') }}</span>
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -88,20 +84,23 @@
 <script setup lang="ts">
   import { useAPI } from '@/api';
   import type { ShareFileJSON, ShareItemJSON } from '@/pages/admin/share/ShareDef';
-  import { formatFileSize, getFileTypeLabel } from '@/pages/admin/share/ShareDef';
+  import { getFileTypeLabel } from '@/pages/admin/share/ShareDef';
+  import { formatFileSize } from '@/utils/format';
   import ShareFilePreview from '@/pages/admin/share/ShareFilePreview.vue';
   import { authInfo_isLogin } from '@/storage';
   import { useAsyncState } from '@vueuse/core';
   import { useI18n } from '@/composables/useI18n';
+  import { useToast } from '@/composables/useToast';
+  import { getErrorMessage } from '@/utils/error';
+  import { Button } from '@/components/base';
 
   const { AppAPI, APIGetUrl, AppAPIGetUrl } = useAPI();
   const { t } = useI18n();
-  const props = defineProps({
-    id: String,
-  });
+  const toast = useToast();
+  const { id } = defineProps<{ id: string }>();
 
   const { state, isLoading, error } = useAsyncState(() => {
-    return AppAPI.shareApi.detail(Number(props.id)) as unknown as Promise<ShareItemJSON>;
+    return AppAPI.shareApi.detail(Number(id)) as unknown as Promise<ShareItemJSON>;
   }, undefined);
 
   const getFileTypeClass = (mimetype: string) => {
@@ -134,8 +133,8 @@
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-    } catch (error) {
-      console.error('下载文件失败:', error);
+    } catch (error: unknown) {
+      toast.error(t('下载文件失败'), getErrorMessage(error));
     }
   }
 
@@ -149,8 +148,8 @@
       }
 
       window.open(url, '_blank');
-    } catch (error) {
-      console.error('打开文件失败:', error);
+    } catch (error: unknown) {
+      toast.error(t('打开文件失败'), getErrorMessage(error));
     }
   }
 </script>

@@ -1,13 +1,9 @@
 import { useOpenAIConfig } from '@/storage';
 import { useAPI } from '@/api';
 import { type WordData } from './data';
-
-export interface AIAnalysis {
-  articleDifficulty: number;
-  suggestedStudyTime: number;
-  keyWords: string[];
-  learningTips: string[];
-}
+import type { AIAnalysis } from './types';
+import { getErrorMessage } from '@/utils/error';
+export type { AIAnalysis };
 
 export interface WordAnalysis {
   translation: string;
@@ -22,6 +18,7 @@ export interface WordAnalysis {
   tips?: string;
 }
 const openAIConfig = useOpenAIConfig();
+const { API } = useAPI();
 // 获取动态AI配置
 const getAIConfig = () => ({
   model: openAIConfig.value.model || 'gpt-3.5-turbo',
@@ -48,7 +45,6 @@ export async function fetchAI(
   },
 ) {
   const config = getAIConfig();
-  const { API } = useAPI();
 
   // 构建基础请求
   const baseRequest = {
@@ -65,7 +61,6 @@ export async function fetchAI(
 
   // 如果用户配置了API Key且不是强制使用代理，使用用户配置
   if (config.apiKey && !options?.forceProxy) {
-    console.log('使用用户配置的AI服务');
     const response = await fetch(`${config.apiBase}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -84,17 +79,16 @@ export async function fetchAI(
 
   // 使用后台代理
   const response = await API.aiApi.proxyOpenAI(baseRequest);
-  console.log('后台代理响应:', response);
 
   // RPC 系统已经返回了正确类型的数据
   return response;
 }
 
-// 统一的JSON解析函数
-export async function callAiResponseJSON(prompt: string) {
+/** 统一的 JSON 解析函数 */
+export async function callAiResponseJSON<T = unknown>(prompt: string): Promise<T> {
   const data = await fetchAI(prompt);
   const content = data.choices[0].message.content;
-  return JSON_parse_AIResponse(content);
+  return JSON_parse_AIResponse<T>(content);
 }
 
 // 批量单词分析 - 使用 Function Calling
@@ -540,7 +534,7 @@ export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
   // 尝试直接解析
   try {
     return JSON.parse(resStr.trim());
-  } catch (error) {
+  } catch (error: unknown) {
     // 尝试去除 markdown 代码块
     try {
       if (resStr.includes('```')) {
@@ -550,7 +544,7 @@ export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
           return JSON.parse(jsonStr);
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // 继续下一个方法
     }
 
@@ -570,41 +564,9 @@ export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
         .replace(/:\s*"([^"]*)\n([^"]*?)"/g, ': "$1 $2"'); // 修复换行问题
 
       return JSON.parse(repairedStr);
-    } catch (error) {
+    } catch (error: unknown) {
       // 所有方法都失败，抛出错误
-      throw new Error(`JSON解析失败: ${error instanceof Error ? error.message : '未知错误'}`);
-    }
-  }
-}
-
-// 带有格式验证的 AI 调用函数
-export async function callAiWithStructuredResponse<T = unknown>(
-  prompt: string,
-  schema: Record<string, JsonSchemaField>,
-  additionalInstructions?: string,
-): Promise<{ success: boolean; data?: T; error?: string }> {
-  // 添加格式说明到 prompt
-  const formatPrompt = generateStrictJsonPrompt(schema, additionalInstructions);
-  const fullPrompt = `${prompt}\n\n${formatPrompt}`;
-
-  try {
-    const data = await fetchAI(fullPrompt);
-    const content = data.choices[0].message.content;
-    const parsed = JSON_parse_AIResponse<T>(content);
-    return { success: true, data: parsed };
-  } catch (error) {
-    // 重试一次，这次强调格式
-    try {
-      const retryPrompt = `${prompt}\n\n⚠️ **上一次响应格式不正确，请严格按照以下格式返回：**\n\n${formatPrompt}`;
-      const retryData = await fetchAI(retryPrompt);
-      const retryContent = retryData.choices[0].message.content;
-      const retryParsed = JSON_parse_AIResponse<T>(retryContent);
-      return { success: true, data: retryParsed };
-    } catch (retryError) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'JSON解析失败',
-      };
+      throw new Error(`JSON解析失败: ${getErrorMessage(error)}`);
     }
   }
 }
@@ -631,8 +593,6 @@ export async function callAiWithFunctionCalling<T = unknown>(
     tool_choice: { type: 'function', function: { name: functionName } },
   });
 
-  console.log('Function Calling响应:', response);
-
   // 检查是否有 tool_calls
   if (response.choices && response.choices[0]?.message?.tool_calls?.length > 0) {
     const toolCall = response.choices[0].message.tool_calls[0];
@@ -649,13 +609,12 @@ export async function callAiWithFunctionCalling<T = unknown>(
       if (parsedData && typeof parsedData === 'object') {
         return { success: true, data: parsedData as T };
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // 解析失败，继续下一步
     }
   }
 
-  // 如果 Function Calling 失败，回退到结构化响应
-  console.log('Function Calling失败，回退到结构化响应');
+  // 如果 Function Calling 失败，回退到单次结构化响应（不重试，避免最多 3 次 API 调用）
   const fallbackSchema: Record<string, JsonSchemaField> = {};
   const schemaProps = parametersSchema.properties as Record<string, unknown>;
   const schemaRequired = parametersSchema.required as string[] | undefined;
@@ -669,5 +628,16 @@ export async function callAiWithFunctionCalling<T = unknown>(
     };
   });
 
-  return await callAiWithStructuredResponse<T>(prompt, fallbackSchema);
+  const formatPrompt = generateStrictJsonPrompt(fallbackSchema);
+  try {
+    const data = await fetchAI(`${prompt}\n\n${formatPrompt}`);
+    const content = data.choices[0].message.content;
+    const parsed = JSON_parse_AIResponse<T>(content);
+    return { success: true, data: parsed };
+  } catch (error: unknown) {
+    return {
+      success: false,
+      error: getErrorMessage(error, 'JSON解析失败'),
+    };
+  }
 }

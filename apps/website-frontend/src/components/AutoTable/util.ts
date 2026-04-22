@@ -29,7 +29,8 @@ export function findIdField(modelMeta: ModelMeta, modelName: string): FieldInfo 
 
 /**
  * 查找一个可以用作显示的列
- * TODO 之后应该要支持自定义显示字段，这里暂时先用第一个 string 类型的字段代替
+ * 当前策略：取第一个 string 类型的字段作为显示列
+ * 未来改进：支持用户自定义显示字段（通过 AutoTable props 配置）
  * @param modelMeta 模型元数据
  * @param refModelKey 模型键（PascalCase，如 'Role', 'User'）
  */
@@ -48,7 +49,9 @@ export function findDisplayField(modelMeta: ModelMeta, refModelKey: ModelMetaNam
  * @param modelName 模型名称（PascalCase，如 'Role', 'User'）
  */
 export function getModelKey(modelMeta: ModelMeta, modelName: string): ModelMetaNames | undefined {
-  return Object.keys(modelMeta.models).find((key) => (modelMeta.models as any)[key]?.name === modelName) as ModelMetaNames | undefined;
+  const model = Object.values(modelMeta.models).find((m) => m.name === modelName);
+  if (!model) return undefined;
+  return Object.keys(modelMeta.models).find((key) => (modelMeta.models as Record<string, unknown>)[key] === model) as ModelMetaNames | undefined;
 }
 
 /**

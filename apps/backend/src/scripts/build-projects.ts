@@ -94,7 +94,7 @@ async function main() {
     })
 
     console.log('🎉 Backend projects built successfully!')
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Build failed:', error)
     if (error instanceof Error) {
       console.error('   Error details:', error.message)

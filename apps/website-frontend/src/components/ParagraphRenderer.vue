@@ -45,6 +45,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import LineRenderer from './LineRenderer.vue'
+import type { WordData } from '@/pages/AiEnglish/data'
+import type { StudySession, SelectionState, AIAnalysis } from '@/pages/AiEnglish/types'
 
 interface Props {
   text: string
@@ -53,11 +55,11 @@ interface Props {
   estimatedReadingTime?: number
   showParagraphInfo?: boolean
   onWordMouseDown: (e: MouseEvent | TouchEvent, index: number) => void
-  getWordData: (word: string) => any
-  currentSession: any
-  selectionState: any
+  getWordData: (word: string) => WordData | undefined
+  currentSession: StudySession
+  selectionState: SelectionState
   highlightedWordIndex: number
-  aiAnalysis: any
+  aiAnalysis: AIAnalysis | null
 }
 
 const props = withDefaults(defineProps<Props>(), {

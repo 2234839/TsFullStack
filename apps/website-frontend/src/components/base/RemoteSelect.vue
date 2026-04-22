@@ -10,6 +10,7 @@
           <template v-if="showTag">
             <Tag
               v-for="item of modelValue"
+              :key="item?.value ?? item?.label ?? item"
               class="group transition-all"
               :value="item?.label ?? item?.value"
               variant="info"
@@ -49,7 +50,7 @@
           @update:model-value="toggleSelectAll(!isAllSelected)" />
         <span class="ml-2 font-medium">{{ t('全选') }}</span>
       </div>
-      <ScrollArea style="height: 250px;">
+      <ScrollArea class="h-[250px]">
           <div v-if="loading" class="p-4 text-center">
             <i class="pi pi-spin pi-spinner mr-2"></i>
             {{ t('加载中...') }}
@@ -92,7 +93,7 @@
 </template>
 <script lang="ts">
   export interface RemoteSelectItem {
-    value: any;
+    value: string | number;
     label: string;
   }
 
@@ -121,6 +122,7 @@
   import { Dropdown, ScrollArea } from '@tsfullstack/shared-frontend/components';
   import { Checkbox, Input, Paginator, Tag } from '@/components/base';
   import { computed, ref } from 'vue';
+  import { useDebounceFn } from '@vueuse/core';
   import { useI18n } from '@/composables/useI18n';
 
   /** 获取 t 函数 */
@@ -132,28 +134,23 @@
     total: number;
   }
 
-  const props = defineProps({
-    queryMethod: {
-      type: null as unknown as () => (params: {
-        keyword: string;
-        skip: number;
-        take: number;
-      }) => Promise<{
-        data: RemoteSelectItem[];
-        total: number;
-      }>,
-      required: true,
-    },
-    showTag: {
-      type: Boolean,
-      default: true,
-    },
+  interface RemoteSelectProps {
+    /** 查询方法 */
+    queryMethod: (params: {
+      keyword: string;
+      skip: number;
+      take: number;
+    }) => Promise<{
+      data: RemoteSelectItem[];
+      total: number;
+    }>;
+    /** 是否显示已选标签 */
+    showTag?: boolean;
     /** 禁用的项列表（不能取消选择的项） */
-    disabledItems: {
-      type: Array as () => RemoteSelectItem[],
-      default: () => [],
-    },
-  });
+    disabledItems?: RemoteSelectItem[];
+  }
+
+  const { queryMethod, showTag = true, disabledItems = [] } = defineProps<RemoteSelectProps>();
 
   const emit = defineEmits<{
     add: [value: RemoteSelectItem];
@@ -180,15 +177,10 @@
     return Math.floor(pagination.value.skip / pagination.value.take);
   });
 
-  let searchTimeout: any = null;
-
-  const debounceSearch = () => {
-    if (searchTimeout) clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      pagination.value.skip = 0;
-      fetchData();
-    }, 300);
-  };
+  const debounceSearch = useDebounceFn(() => {
+    pagination.value.skip = 0;
+    fetchData();
+  }, 300);
 
   const handleSearch = async () => {
     pagination.value.skip = 0;
@@ -203,7 +195,7 @@
   const fetchData = async () => {
     loading.value = true;
     try {
-      const res = await props.queryMethod({
+      const res = await queryMethod({
         keyword: searchText.value,
         skip: pagination.value.skip,
         take: pagination.value.take,
@@ -268,7 +260,7 @@
 
   /** 判断某个项是否被禁用（不可取消） */
   const isItemDisabled = (item: RemoteSelectItem) => {
-    return props.disabledItems.some((disabledItem) => itemEquals(disabledItem, item));
+    return disabledItems.some((disabledItem: RemoteSelectItem) => itemEquals(disabledItem, item));
   };
 </script>
 

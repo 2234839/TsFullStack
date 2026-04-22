@@ -3,7 +3,7 @@ import { File as FileModel } from '../../.zenstack/models';
 import { MsgError } from '../util/error';
 import { FilePathService } from './FilePathService';
 import { AppConfigService } from './AppConfig';
-import { FileWarpItem } from '../api/authApi/file';
+import { FileWrapItem } from '../api/authApi/file';
 
 /**
  * 文件访问选项
@@ -67,12 +67,12 @@ export class FileAccessService {
 
     // 验证文件存在性
     if (!fileRow?.path) {
-      throw MsgError.msg('File not found');
+      throw MsgError.msg('文件不存在');
     }
 
     // 检查文件状态
     if (publicOnly===true && fileRow.status !== 'public') {
-      throw MsgError.msg('File not found or access denied');
+      throw MsgError.msg('文件不存在或无权访问');
     }
 
     // 检查所有权
@@ -125,35 +125,35 @@ export class FileAccessService {
    * @param fileRow 文件记录
    * @param options 访问选项
    * @param uploadDir 上传目录（可选）
-   * @returns FileWarpItem
+   * @returns FileWrapItem
    *
-   * 返回的 FileWarpItem 包含经过安全验证的文件路径，可以安全地用于文件流传输
+   * 返回的 FileWrapItem 包含经过安全验证的文件路径，可以安全地用于文件流传输
    */
-  static createFileWarpItem(
+  static createFileWrapItem(
     fileRow: FileModel,
     options: FileAccessOptions = {},
     uploadDir?: string
-  ): FileWarpItem {
+  ): FileWrapItem {
     const { validatedPath } = FileAccessService.validateFileAccess(fileRow, options, uploadDir);
 
-    return new FileWarpItem(validatedPath, fileRow);
+    return new FileWrapItem(validatedPath, fileRow);
   }
 
   /**
    * 在 Effect 环境中创建文件包装项
    * @param fileRow 文件记录
    * @param options 访问选项
-   * @returns FileWarpItem
+   * @returns FileWrapItem
    *
    * 这是一个 Effect 包装器，用于在 Effect 上下文中提供 AppConfigService
    */
-  static createFileWarpItemEffect(
+  static createFileWrapItemEffect(
     fileRow: FileModel,
     options: FileAccessOptions = {}
   ) {
     return Effect.gen(function* () {
       const appConfig = yield* AppConfigService;
-      return FileAccessService.createFileWarpItem(fileRow, options, appConfig.uploadDir);
+      return FileAccessService.createFileWrapItem(fileRow, options, appConfig.uploadDir);
     });
   }
 }

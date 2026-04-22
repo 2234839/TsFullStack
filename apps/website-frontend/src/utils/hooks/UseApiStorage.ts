@@ -10,7 +10,7 @@ import {
   useThrottleFn,
   tryOnUnmounted,
 } from '@vueuse/core';
-import { ref, watchEffect } from 'vue';
+import { ref, watch } from 'vue';
 
 /** 自定义存储适配器,当用户处于登录状态时使用API存储,否则使用本地存储 */
 export function useApiStorage<T>(
@@ -151,8 +151,8 @@ export function useApiStorage<T>(
         isSyncingFromRemote.value = true;
         state.value = parsed;
       }
-    } catch (err) {
-      console.warn(`[useApiStorage] polling error:`, err);
+    } catch (error: unknown) {
+      console.warn(`[useApiStorage] polling error:`, error);
     }
   }
   if (opts?.pollingInterval && authInfo_isLogin.value) {
@@ -161,12 +161,12 @@ export function useApiStorage<T>(
     const visibility = useDocumentVisibility();
 
     /** 当页面不活跃时停止轮询 */
-    watchEffect(() => {
-      if (visibility.value === 'visible' && !isActive.value) {
+    watch([visibility, isActive], ([vis, active]) => {
+      if (vis === 'visible' && !active) {
         resume();
         // 当页面切换到可见时立即同步一次
         syncStorage();
-      } else if (visibility.value === 'hidden') {
+      } else if (vis === 'hidden') {
         pause();
       }
     });

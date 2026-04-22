@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useAPI } from '@/api';
+import { searchUsers } from '@/utils/admin';
 import MultiSelect from '@/components/base/MultiSelect.vue';
 import Paginator from '@/components/base/Paginator.vue';
 import RemoteSelect from '@/components/base/RemoteSelect.vue';
@@ -8,7 +9,10 @@ import DataTable from '@/components/base/DataTable.vue';
 import type { ColumnDef } from '@/components/base/DataTable.vue';
 import { useToast } from '@/composables/useToast';
 import { TokenOptions } from '@tsfullstack/backend';
+import { getTypeLabel } from '@/utils/admin';
+import { getErrorMessage } from '@/utils/error';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
+import { Button, Input, Textarea, InputNumber } from '@/components/base';
 import { onMounted, ref, watch, h, computed } from 'vue';
 
 const toast = useToast();
@@ -124,7 +128,8 @@ const taskTypeOptions = TokenOptions.TaskTypeOptions;
 async function loadTokens() {
   isLoading.value = true;
   try {
-    const where: any = {};
+    type TokenWhereInput = NonNullable<NonNullable<Parameters<typeof API.db.token.findMany>[0]>['where']>;
+    const where: Partial<TokenWhereInput> = {};
     if (tokensSearchKeyword.value) {
       where.OR = [
         { user: { email: { contains: tokensSearchKeyword.value } } },
@@ -152,8 +157,7 @@ async function loadTokens() {
 
     tokens.value = result as unknown as UserToken[];
     tokensTotal.value = total as number;
-  } catch (error) {
-    console.error('[UserTokenManagement] 加载代币列表失败:', error);
+  } catch (error: unknown) {
     toast.add({
       summary: '加载失败',
       detail: '加载代币列表失败',
@@ -168,7 +172,8 @@ async function loadTokens() {
 async function loadTransactions() {
   isLoading.value = true;
   try {
-    const where: any = {};
+    type TokenTransactionWhereInput = NonNullable<NonNullable<Parameters<typeof API.db.tokenTransaction.findMany>[0]>['where']>;
+    const where: Partial<TokenTransactionWhereInput> = {};
     if (transactionsSearchKeyword.value) {
       where.OR = [
         { user: { email: { contains: transactionsSearchKeyword.value } } },
@@ -203,8 +208,7 @@ async function loadTransactions() {
 
     transactions.value = result as unknown as TokenTransaction[];
     transactionsTotal.value = total as number;
-  } catch (error) {
-    console.error('[UserTokenManagement] 加载消耗记录失败:', error);
+  } catch (error: unknown) {
     toast.add({
       summary: '加载失败',
       detail: '加载代币消耗记录失败',
@@ -255,44 +259,6 @@ function clearTransactionsSearch() {
 }
 
 /** ========== 用户搜索（用于发放代币） ========== */
-/** 搜索用户 */
-async function searchUsers(params: {
-  keyword: string;
-  skip: number;
-  take: number;
-}) {
-  try {
-    const users = await API.db.user.findMany({
-      where: {
-        email: {
-          contains: params.keyword,
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-      },
-      skip: params.skip,
-      take: params.take,
-    });
-
-    const count = await API.db.user.count({
-      where: {
-        email: {
-          contains: params.keyword,
-        },
-      },
-    });
-
-    return {
-      data: users.map((u: { id: string; email: string }) => ({ value: u.id, label: u.email })),
-      total: count,
-    };
-  } catch (error) {
-    console.error('[UserTokenManagement] 搜索用户失败:', error);
-    return { data: [], total: 0 };
-  }
-}
 
 /** ========== 发放代币 ========== */
 /** 打开发放代币对话框 */
@@ -326,9 +292,8 @@ async function grantTokens() {
           ...(grantForm.value.restrictedType.length > 0 && { restrictedType: grantForm.value.restrictedType }),
         });
         return { user: user.label, success: true };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : '未知错误';
-        console.error(`[UserTokenManagement] 给用户 ${user.label} 发放失败:`, error);
+      } catch (error: unknown) {
+        const errorMessage = getErrorMessage(error);
         return { user: user.label, success: false, error: errorMessage };
       }
     });
@@ -357,11 +322,7 @@ async function grantTokens() {
         variant: successCount === results.length ? 'success' : 'warning',
       });
 
-      // 显示详细结果
-      if (failCount > 0) {
-        const failedUsers = results.filter((r) => !r.success).map((r) => r.user);
-        console.warn('[UserTokenManagement] 失败用户:', failedUsers);
-      }
+      // 失败信息已通过 toast 通知用户
 
       showGrantDialog.value = false;
       await loadTokens();
@@ -372,9 +333,8 @@ async function grantTokens() {
         variant: 'error',
       });
     }
-  } catch (error) {
-    console.error('[UserTokenManagement] 发放失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '发放代币失败';
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error, '发放代币失败');
     toast.add({
       summary: '发放失败',
       detail: errorMessage,
@@ -428,16 +388,9 @@ function parseRestrictedType(jsonStr: string | null): string[] {
   }
 }
 
-/** 格式化日期 */
-function formatDate(date: string | Date | null): string {
-  if (!date) return '永不过期';
-  return new Date(date).toLocaleString('zh-CN');
-}
+import { formatDate } from '@/utils/format';
 
-/** 获取类型标签 */
-function getTypeLabel(type: string): string {
-  return TokenOptions.TokenTypeLabels[type as keyof typeof TokenOptions.TokenTypeLabels] || type;
-}
+/** 获取类型标签 — 从 utils/admin.ts 统一导入 */
 
 /** 获取任务类型标签 */
 function getTaskTypeLabel(type: string): string {
@@ -492,7 +445,7 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
     key: 'expiresAt',
     title: '过期时间',
     width: '15%',
-    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.expiresAt)),
+    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.expiresAt, { nullLabel: '永不过期' })),
   },
   {
     key: 'description',
@@ -554,7 +507,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     title: '余额快照',
     width: '17%',
     render: (row) => {
-      if (!row.balanceSnapshot) return null;
+      if (!row.balanceSnapshot) return '';
       return h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' },
         Object.entries(row.balanceSnapshot).map(([type, balance]) =>
           h('div', { key: type, class: 'truncate' }, `${getTypeLabel(type)}: ${balance}`)
@@ -590,20 +543,22 @@ onMounted(() => {
     <!-- 标签页导航 -->
     <div class="mb-6 border-b border-primary-200 dark:border-primary-700">
       <nav class="flex gap-6 -mb-px">
-        <button
+        <Button
           :class="[
-            'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
+            'border-b-2',
             activeTab === 'tokens'
               ? 'border-primary-500 text-primary-600 dark:text-primary-400'
               : 'border-transparent text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
           ]"
+          variant="text"
           @click="activeTab = 'tokens'"
         >
           代币列表
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="text"
           :class="[
-            'py-3 px-1 border-b-2 font-medium text-sm transition-colors',
+            'border-b-2',
             activeTab === 'transactions'
               ? 'border-primary-500 text-primary-600 dark:text-primary-400'
               : 'border-transparent text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
@@ -611,17 +566,15 @@ onMounted(() => {
           @click="activeTab = 'transactions'"
         >
           消耗记录
-        </button>
+        </Button>
       </nav>
     </div>
 
     <!-- 操作按钮 -->
     <div class="mb-6" v-if="activeTab === 'tokens'">
-      <button type="button"
-        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-        @click="openGrantDialog">
+      <Button @click="openGrantDialog">
         发放代币
-      </button>
+      </Button>
     </div>
 
     <!-- ========== 代币列表 ========== -->
@@ -629,33 +582,23 @@ onMounted(() => {
       <!-- 搜索栏 -->
       <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
         <div class="flex items-center gap-4">
-          <div class="flex-1 relative">
-            <input
+          <div class="flex-1">
+            <Input
               v-model="tokensSearchKeyword"
-              type="text"
               placeholder="搜索用户邮箱或备注..."
-              class="w-full px-4 py-2 pl-10 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
               @keyup.enter="searchTokens"
             />
-            <svg class="absolute left-3 top-2.5 h-5 w-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
           </div>
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-            @click="searchTokens"
-          >
+          <Button @click="searchTokens">
             搜索
-          </button>
-          <button
+          </Button>
+          <Button
             v-if="tokensSearchKeyword"
-            type="button"
-            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
+            variant="secondary"
             @click="clearTokensSearch"
           >
             清空
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -688,33 +631,23 @@ onMounted(() => {
       <!-- 搜索栏 -->
       <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
         <div class="flex items-center gap-4">
-          <div class="flex-1 relative">
-            <input
+          <div class="flex-1">
+            <Input
               v-model="transactionsSearchKeyword"
-              type="text"
               placeholder="搜索用户邮箱或任务标题..."
-              class="w-full px-4 py-2 pl-10 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
               @keyup.enter="searchTransactions"
             />
-            <svg class="absolute left-3 top-2.5 h-5 w-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
           </div>
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-            @click="searchTransactions"
-          >
+          <Button @click="searchTransactions">
             搜索
-          </button>
-          <button
+          </Button>
+          <Button
             v-if="transactionsSearchKeyword"
-            type="button"
-            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
+            variant="secondary"
             @click="clearTransactionsSearch"
           >
             清空
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -774,32 +707,39 @@ onMounted(() => {
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             数量 *
           </label>
-          <input v-model.number="grantForm.amount" type="number" min="1"
-            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100" />
+          <InputNumber
+            v-model="grantForm.amount"
+            :min="1"
+          />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             备注
           </label>
-          <textarea v-model="grantForm.description" rows="2"
-            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
-            placeholder="发放原因（可选）" />
+          <Textarea
+            v-model="grantForm.description"
+            :rows="2"
+            placeholder="发放原因（可选）"
+          />
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button type="button"
-            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
-            @click="showGrantDialog = false">
+          <Button
+            variant="secondary"
+            @click="showGrantDialog = false"
+          >
             取消
-          </button>
-          <button type="button"
-            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            :disabled="isSubmitting || grantForm.selectedUsers.length === 0" @click="grantTokens">
+          </Button>
+          <Button
+            :disabled="isSubmitting || grantForm.selectedUsers.length === 0"
+            :loading="isSubmitting"
+            @click="grantTokens"
+          >
             {{ isSubmitting ? '发放中...' : '发放' }}
-          </button>
+          </Button>
         </div>
       </template>
     </Dialog>

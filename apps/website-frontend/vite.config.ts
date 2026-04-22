@@ -6,18 +6,18 @@ import vueDevTools from 'vite-plugin-vue-devtools';
 import vueJsx from '@vitejs/plugin-vue-jsx';
 import Components from 'unplugin-vue-components/vite';
 import { vitePluginAutoRoutes } from './src/plugins/vite-plugin-auto-routes';
-import { autoSaveLogsPlugin } from './vite-plugin-auto-save-logs';
+import { pilot } from 'vite-plugin-pilot';
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     Components({ dts: true }),
     vitePluginAutoRoutes(),
+    pilot({ locale: 'zh' }),
     vue(),
     vueJsx(),
     tailwindcss(),
     vueDevTools(),
-    autoSaveLogsPlugin(),
   ],
   resolve: {
     alias: {

@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 import { useAPI } from '@/api';
-import { Dialog } from '@tsfullstack/shared-frontend/components';
+import { searchUsers } from '@/utils/admin';
 import Paginator from '@/components/base/Paginator.vue';
 import RemoteSelect from '@/components/base/RemoteSelect.vue';
 import Button from '@/components/base/Button.vue';
 import DataTable from '@/components/base/DataTable.vue';
 import Tag from '@/components/base/Tag.vue';
 import type { ColumnDef } from '@/components/base/DataTable.vue';
-import { TokenOptions } from '@tsfullstack/backend';
+import { getTypeLabel } from '@/utils/admin';
+import { getErrorMessage } from '@/utils/error';
 
 const toast = useToast();
+const confirm = useConfirm();
 const { API } = useAPI();
 
 /** 用户订阅记录 */
@@ -93,8 +96,7 @@ async function loadSubscriptions() {
 
     subscriptions.value = result as unknown as UserSubscription[];
     subscriptionsTotal.value = total as number;
-  } catch (error) {
-    console.error('[UserSubscriptionManagement] 加载失败:', error);
+  } catch (error: unknown) {
     toast.add({
       summary: '加载失败',
       detail: '加载订阅列表失败',
@@ -102,45 +104,6 @@ async function loadSubscriptions() {
     });
   } finally {
     isLoading.value = false;
-  }
-}
-
-/** 搜索用户 */
-async function searchUsers(params: {
-  keyword: string;
-  skip: number;
-  take: number;
-}) {
-  try {
-    const users = await API.db.user.findMany({
-      where: {
-        email: {
-          contains: params.keyword,
-        },
-      },
-      select: {
-        id: true,
-        email: true,
-      },
-      skip: params.skip,
-      take: params.take,
-    });
-
-    const count = await API.db.user.count({
-      where: {
-        email: {
-          contains: params.keyword,
-        },
-      },
-    });
-
-    return {
-      data: users.map((u: { id: string; email: string }) => ({ value: u.id, label: u.email })),
-      total: count,
-    };
-  } catch (error) {
-    console.error('[UserSubscriptionManagement] 搜索用户失败:', error);
-    return { data: [], total: 0 };
   }
 }
 
@@ -179,8 +142,7 @@ async function searchPackages(params: {
       data: packages.map((p: { id: number; name: string }) => ({ value: p.id, label: p.name })),
       total: count,
     };
-  } catch (error) {
-    console.error('[UserSubscriptionManagement] 搜索套餐失败:', error);
+  } catch (error: unknown) {
     return { data: [], total: 0 };
   }
 }
@@ -230,9 +192,8 @@ async function batchSubscribe() {
                 packageId: pkg.value,
               });
               results.push({ user: user.label, package: pkg.label, success: true });
-            } catch (error) {
-              const errorMessage = error instanceof Error ? error.message : '未知错误';
-              console.error(`[UserSubscriptionManagement] 用户 ${user.label} 订阅 ${pkg.label} 失败:`, error);
+            } catch (error: unknown) {
+              const errorMessage = getErrorMessage(error);
               results.push({ user: user.label, package: pkg.label, success: false, error: errorMessage });
             }
           })()
@@ -261,9 +222,8 @@ async function batchSubscribe() {
         variant: 'error',
       });
     }
-  } catch (error) {
-    console.error('[UserSubscriptionManagement] 批量订阅失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '批量订阅失败';
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error, '批量订阅失败');
     toast.add({
       summary: '订阅失败',
       detail: errorMessage,
@@ -276,9 +236,11 @@ async function batchSubscribe() {
 
 /** 取消订阅 */
 async function cancelSubscription(subscription: UserSubscription) {
-  if (!confirm(`确定要取消用户"${subscription.user.email}"的套餐"${subscription.package.name}"吗？\n\n注意：取消后不会回收已发放的代币，但会停止后续的自动发放。`)) {
-    return;
-  }
+  const accepted = await confirm.require({
+    message: `确定要取消用户"${subscription.user.email}"的套餐"${subscription.package.name}"吗？\n\n注意：取消后不会回收已发放的代币，但会停止后续的自动发放。`,
+    acceptProps: { variant: 'danger' },
+  });
+  if (!accepted) return;
 
   try {
     await API.tokenPackageApi.cancelSubscription(subscription.id);
@@ -290,9 +252,8 @@ async function cancelSubscription(subscription: UserSubscription) {
     });
 
     await loadSubscriptions();
-  } catch (error) {
-    console.error('[UserSubscriptionManagement] 取消订阅失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '取消订阅失败';
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error, '取消订阅失败');
     toast.add({
       summary: '取消失败',
       detail: errorMessage,
@@ -301,34 +262,29 @@ async function cancelSubscription(subscription: UserSubscription) {
   }
 }
 
-/** 格式化日期 */
-function formatDate(date: string | Date | null): string {
-  if (!date) return '永久';
-  return new Date(date).toLocaleString('zh-CN');
-}
+import { formatDate, ONE_DAY_MS } from '@/utils/format';
 
-/** 获取类型标签 */
-function getTypeLabel(type: string): string {
-  return TokenOptions.TokenTypeLabels[type as keyof typeof TokenOptions.TokenTypeLabels] || type;
-}
+/** 获取类型标签 — 从 utils/admin.ts 统一导入 */
 
 /** 计算下次发放剩余天数 */
 function getDaysUntilGrant(nextGrantDate: string): number {
   const now = new Date();
   const next = new Date(nextGrantDate);
   const diff = next.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return Math.ceil(diff / ONE_DAY_MS);
 }
 
 /** 获取状态标签 */
 function getStatusBadge(subscription: UserSubscription) {
+  const variants = ['danger', 'warn', 'success'] as const;
+  type Variant = (typeof variants)[number];
   if (!subscription.active) {
-    return { text: '已取消', variant: 'danger' };
+    return { text: '已取消', variant: 'danger' as Variant };
   }
   if (subscription.endDate && new Date() > new Date(subscription.endDate)) {
-    return { text: '已过期', variant: 'warning' };
+    return { text: '已过期', variant: 'warn' as Variant };
   }
-  return { text: '进行中', variant: 'success' };
+  return { text: '进行中', variant: 'success' as Variant };
 }
 
 /** ========== DataTable 列定义 ========== */
@@ -346,7 +302,7 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     width: '10%',
     render: (row) => {
       const badge = getStatusBadge(row);
-      return h(Tag, { value: badge.text, variant: badge.variant as any });
+      return h(Tag, { value: badge.text, variant: badge.variant });
     },
   },
   {
@@ -374,7 +330,7 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     key: 'endDate',
     title: '到期时间',
     width: '10%',
-    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.endDate)),
+    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.endDate, { nullLabel: '永久' })),
   },
   {
     key: 'nextGrantDate',
@@ -435,13 +391,9 @@ onMounted(() => {
 
     <!-- 操作按钮 -->
     <div class="mb-6">
-      <button
-        type="button"
-        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-        @click="openSubscribeDialog"
-      >
+      <Button @click="openSubscribeDialog">
         添加订阅
-      </button>
+      </Button>
     </div>
 
     <!-- 订阅列表 -->
@@ -518,21 +470,19 @@ onMounted(() => {
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
+          <Button
+            variant="secondary"
             @click="showSubscribeDialog = false"
           >
             取消
-          </button>
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          </Button>
+          <Button
             :disabled="isSubmitting || subscribeForm.selectedUsers.length === 0 || subscribeForm.selectedPackages.length === 0"
+            :loading="isSubmitting"
             @click="batchSubscribe"
           >
             {{ isSubmitting ? '订阅中...' : '订阅' }}
-          </button>
+          </Button>
         </div>
       </template>
     </Dialog>

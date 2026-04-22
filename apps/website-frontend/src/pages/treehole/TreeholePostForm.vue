@@ -3,11 +3,11 @@
     <div class="space-y-4">
       <!-- 标题输入 - 回复时默认折叠 -->
       <div v-if="isReply">
-        <button @click="showTitle = !showTitle"
-          class="flex items-center gap-2 text-sm text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-100 transition-colors">
+        <Button variant="ghost" size="sm" @click="showTitle = !showTitle"
+          class="flex items-center gap-2">
           <i :class="showTitle ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
           <span>{{ showTitle ? '收起标题' : '添加标题（可选）' }}</span>
-        </button>
+        </Button>
         <div v-if="showTitle" class="mt-2">
           <Input v-model="formData.title" placeholder="请输入标题（1-256个字符）" :maxlength="256" class="w-full" />
         </div>
@@ -35,12 +35,14 @@
           可见性
         </label>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <button v-for="option in visibilityOptions" :key="option.value" @click="formData.visibility = option.value"
-            class="px-3 py-2 text-sm rounded-lg border-2 transition-colors"
-            :class="formData.visibility === option.value ? option.activeClass : option.inactiveClass">
+          <Button v-for="option in visibilityOptions" :key="option.value"
+            @click="formData.visibility = option.value"
+            size="sm"
+            :variant="formData.visibility === option.value ? 'primary' : 'secondary'"
+            class="justify-center!">
             <i :class="option.icon"></i>
             <span class="ml-1">{{ option.label }}</span>
-          </button>
+          </Button>
         </div>
         <p class="mt-2 text-xs text-primary-500 dark:text-primary-400">
           {{ getVisibilityDescription() }}
@@ -63,6 +65,7 @@ import { useAPI } from '@/api';
 import { Button, Input, Textarea } from '@/components/base';
 import { useToast } from '@/composables/useToast';
 import type { ContentVisibility } from '@tsfullstack/backend';
+import { getErrorMessage } from '@/utils/error';
 import { $Enums } from '@tsfullstack/backend';
 import { authInfo } from '@/storage';
 
@@ -161,21 +164,13 @@ async function handleSubmit() {
   isSubmitting.value = true;
 
   try {
-    const createData: any = {
+    const createData = {
       content: formData.value.content,
       visibility: formData.value.visibility,
-      authorId: authInfo.value.userId
-    };
-
-    // 只有当标题不为空时才添加 title 字段
-    if (formData.value.title.trim()) {
-      createData.title = formData.value.title;
-    }
-
-    // 如果是回复，添加 parentId
-    if (props.parentId) {
-      createData.parentId = props.parentId;
-    }
+      authorId: authInfo.value.userId,
+      ...(formData.value.title.trim() ? { title: formData.value.title } : {}),
+      ...(props.parentId ? { parentId: props.parentId } : {}),
+    } as Parameters<typeof API.db.post.create>[0]['data'];
 
     await API.db.post.create({
       data: createData,
@@ -200,12 +195,11 @@ async function handleSubmit() {
     }
 
     emit('submit');
-  } catch (error) {
-    console.error('发布失败:', error);
+  } catch (error: unknown) {
     toast.add({
       variant: 'error',
       summary: '错误',
-      detail: '发布失败：' + ((error as Error).message || '未知错误'),
+      detail: '发布失败：' + getErrorMessage(error),
       life: 3000,
     });
   } finally {

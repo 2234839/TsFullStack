@@ -28,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watchEffect } from 'vue';
+  import { ref, watch } from 'vue';
 
   interface Props {
     /** 初始是否模糊状态，默认为 true */
@@ -99,8 +99,8 @@
   };
 
   // 监听 initialBlurred 变化 - Vue 3.5+ 会自动将 initialBlurred 转换为 props.initialBlurred
-  watchEffect(() => {
-    isBlurred.value = initialBlurred;
+  watch(() => initialBlurred, (newVal) => {
+    isBlurred.value = newVal;
     hasInteracted.value = false; // 重置交互状态
   });
 </script>

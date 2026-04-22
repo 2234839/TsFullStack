@@ -45,7 +45,7 @@
         <div class="w-1/3" v-if="filter.field">
           <AutoColumnEdit
             v-if="getFieldByName(filter.field)"
-            :row="filter.value"
+            :row="(filter.value && typeof filter.value === 'object' ? filter.value : {}) as Record<string, unknown>"
             :field="getFieldByName(filter.field)!"
             :cellData="undefined"
             v-model="filter.value" />
@@ -94,18 +94,17 @@
 
   const { t } = useI18n();
 
-  const props = defineProps({
-    modelFields: {
-      type: Object,
-      required: true,
-    },
-  });
+  interface AutoFilterProps {
+    modelFields: Record<string, FieldInfo>;
+  }
+
+  const { modelFields } = defineProps<AutoFilterProps>();
 
   const emit = defineEmits(['filter']);
 
   // 可用字段列表
   const availableFieldsOptions = computed<SelectOption[]>(() => {
-    return Object.values(props.modelFields)
+    return Object.values(modelFields)
       .filter((field: FieldInfo) => {
         // 排除关系字段等不适合筛选的字段
         return (
@@ -122,7 +121,7 @@
   // 获取字段对象（通过字段名）
   const getFieldByName = (fieldName: string | null): FieldInfo | null => {
     if (!fieldName) return null;
-    return Object.values(props.modelFields).find((field: FieldInfo) => field.name === fieldName) || null;
+    return Object.values(modelFields).find((field: FieldInfo) => field.name === fieldName) || null;
   };
 
   // 筛选条件列表
@@ -131,7 +130,7 @@
       id: string;
       field: string | null;
       operator: string | null;
-      value: any;
+      value: Record<string, unknown> | string | number | boolean | null;
     }>
   >([]);
 
@@ -206,7 +205,7 @@
   };
 
   // 更新操作符列表
-  function updateOperators(filter: any) {
+  function updateOperators(filter: { id: string; field: string | null; operator: string | null; value: Record<string, unknown> | string | number | boolean | null }) {
     filter.operator = null;
     filter.value = null;
   }
@@ -229,9 +228,9 @@
 
       // Convert value to the correct type based on the field type
       if (field.type === 'Int' as string) {
-        value = parseInt(value);
+        value = parseInt(String(value));
       } else if (field.type === 'Float' as string || field.type === 'Decimal' as string) {
-        value = parseFloat(value);
+        value = parseFloat(String(value));
       } else if (field.type === 'Boolean' as string) {
         value = value === 'true' || value === true; // Handle string or boolean
       }

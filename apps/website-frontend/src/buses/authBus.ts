@@ -24,14 +24,12 @@ class AuthBus {
     }
 
     this.listeners.get(event)!.add(listener);
-    console.log(`[AuthBus] 已订阅事件: ${event}, 当前监听器数量: ${this.listeners.get(event)!.size}`);
 
     // 返回取消订阅函数
     return () => {
       const listeners = this.listeners.get(event);
       if (listeners) {
         listeners.delete(listener);
-        console.log(`[AuthBus] 取消订阅事件: ${event}, 剩余监听器数量: ${listeners.size}`);
       }
     };
   }
@@ -43,16 +41,13 @@ class AuthBus {
   publish(event: string): void {
     const listeners = this.listeners.get(event);
     if (listeners && listeners.size > 0) {
-      console.log(`[AuthBus] 发布事件: ${event}, 通知 ${listeners.size} 个监听器`);
       listeners.forEach((listener) => {
         try {
           listener();
-        } catch (error) {
+        } catch (error: unknown) {
           console.error(`[AuthBus] 监听器执行出错:`, error);
         }
       });
-    } else {
-      console.log(`[AuthBus] 发布事件: ${event}, 但没有监听器`);
     }
   }
 }

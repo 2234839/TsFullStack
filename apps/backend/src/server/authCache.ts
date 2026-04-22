@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import { getDbAuthEffect, createAuthDbClient } from '../Context/DbService';
 import type { Database } from '../Context/Auth';
 import type { User, Role, UserSession } from '../../.zenstack/models';
+import { MS_PER_MINUTE } from '../util/constants';
 
 /**
  * 缓存条目类型
@@ -93,7 +94,7 @@ class LRUCache<K, V> {
  * 用户缓存配置
  */
 const CACHE_MAX_SIZE = 500; // 最多缓存 500 个用户
-const CACHE_TTL = 60 * 1000 * 10; // 10分钟过期时间
+const CACHE_TTL = 10 * MS_PER_MINUTE; // 10分钟过期时间
 
 /** 用户 LRU 缓存 */
 const userCache = new LRUCache<string, CacheEntry>(CACHE_MAX_SIZE);

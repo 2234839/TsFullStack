@@ -6,33 +6,59 @@ import { Effect, Option } from 'effect';
 import type { UserFindFirstArgs } from '../../.zenstack/input';
 import type { Role, User, UserSession } from '../../.zenstack/models';
 import { schema, type SchemaType } from '../../.zenstack/schema';
-import { modelsName } from '../db/model-meta';
 import { MsgError } from '../util/error';
 import { AppConfigService } from './AppConfig';
 import { ReqCtxService } from './ReqCtx';
 
-/** 只允许这些方法通过代理访问, 默认为 $transaction 和对应的表,ZenStack 不接受 $transaction 数组形式的调用，客户端又没法使用非数组形式，所以不让用 */
-export const allowedMethods = ['$transaction', ...modelsName] as const;
-type DbClient = ClientContract<SchemaType, {
+/** 需要脱敏的敏感字段名 */
+const SENSITIVE_FIELDS = ['apiKey', 'password', 'token', 'clientSecret', 'sessionToken'] as const;
+
+/** 对数据库操作参数进行脱敏，防止日志泄露 apiKey、password、token 等敏感信息 */
+function sanitizeArgsForLog(args: Record<string, unknown> | undefined): string {
+  if (!args) return '{}';
+  /** 递归克隆并脱敏敏感字段，一次遍历完成深拷贝+脱敏 */
+  const cloneAndRedact = (src: unknown): unknown => {
+    if (src == null || typeof src !== 'object') return src;
+    if (Array.isArray(src)) return src.map(cloneAndRedact);
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(src)) {
+      result[key] = SENSITIVE_FIELDS.some((f) => key.toLowerCase().includes(f.toLowerCase()))
+        ? '[REDACTED]'
+        : cloneAndRedact(value);
+    }
+    return result;
+  };
+  return JSON.stringify(cloneAndRedact(args));
+}
+
+/** 完整的数据库客户端类型 */
+export type DbClient = ClientContract<SchemaType, {
     dialect: SqliteDialect;
 }, {}, {}>
-const a = {} as unknown as DbClient;
-a.resource
-export type safePrisma = Pick<DbClient, (typeof allowedMethods)[number]>;
+
+/** 模块级缓存的基础 ZenStackClient（无日志插件），整个应用生命周期只创建一次 */
+let _cachedDbRaw: DbClient | null = null;
+let _cachedDbPath: string | null = null;
 
 /** 获取无权限检查的 dbClient，慎用！！ 使用时需要明确场景，避免权限系统被跳过 */
-export const DbClientEffect = Effect.gen(function* () {
+export const DbClientEffect: Effect.Effect<DbClient, never, AppConfigService> = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;
-  /** 数据库路径从配置文件读取 */
   const databasePath = appConfig.databasePath;
 
-  const dbRaw = new ZenStackClient(schema, {
-    dialect: new SqliteDialect({
-      database: new Database(databasePath),
-    }),
-  });
+  // 惰性初始化：只在首次或数据库路径变化时重建（正常情况下路径不变）
+  if (!_cachedDbRaw || _cachedDbPath !== databasePath) {
+    _cachedDbRaw = new ZenStackClient(schema, {
+      dialect: new SqliteDialect({
+        database: new Database(databasePath),
+      }),
+    });
+    _cachedDbPath = databasePath;
+  }
+
   const ctx = yield* Effect.serviceOption(ReqCtxService);
-  const DbClient = dbRaw.$use(
+  // 每次调用在基础客户端上挂载日志插件（$use 返回新代理对象，不污染原始实例）
+  if (!_cachedDbRaw) throw MsgError.msg('数据库客户端未初始化');
+  return _cachedDbRaw.$use(
     definePlugin({
       id: 'cost-logger',
       onQuery: async ({ model, operation, args, proceed }) => {
@@ -41,11 +67,10 @@ export const DbClientEffect = Effect.gen(function* () {
         if (model === 'SystemLog') {
           return result;
         }
-        const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${JSON.stringify(args)}`;
+        const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
         /** 因为 getDbClient 这个方法的使用是可以不强制依赖 ctx 的，所以这里使用可选依赖，并当 ctx 存在的时候才 */
         if (Option.isNone(ctx)) {
-          // 因为任务队列会一直在执行，所以会导致这里日志特别多，在想到好方法之前这里先注释掉了，后续可以考虑增加一个日志级别的配置项来控制是否输出这类日志
-          // console.log('[no ctx sql call]' + logText);
+          // 任务队列场景无 ctx，跳过日志避免刷屏
         } else {
           ctx.value.log(logText);
         }
@@ -53,7 +78,6 @@ export const DbClientEffect = Effect.gen(function* () {
       },
     }),
   );
-  return DbClient;
 });
 
 /**
@@ -77,21 +101,7 @@ export const createAuthDbClient = (
     const authDb = dbClient.$use(new PolicyPlugin());
     const db = authDb.$setAuth(user);
 
-    return db
-    // 升级v3后发现会报 interactiveTransaction 等方法的调用，很奇怪，因为我没有在顶层调用这些方法
-    // TODO 以后 还是要进行安全升级，暂时先注释
-    // /** 代理对象，限制对 ORM 客户端的访问方法  */
-    // const dbProxy = new Proxy(db, {
-    //   get(target, prop: string | symbol, receiver) {
-    //     console.log('[prop]',target === db,prop);
-    //     if (target === db && typeof prop === 'string' && !allowedMethods.includes(prop as any)) {
-    //       throw new MsgError(MsgError.op_msgError, `Method '${prop}' is not allowed.`);
-    //     }
-    //     return Reflect.get(target, prop, receiver);
-    //   },
-    // }) as safePrisma;
-
-    // return dbProxy;
+    return db;
   });
 
 /** 根据入参获取有权限检查的 dbClinet，慎用！！只应该在登录鉴权等场景使用，避免入参直接由用户传入 */
@@ -106,16 +116,18 @@ export const getDbAuthEffect = (opt: {
       yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
     }
     const ctx = yield* ReqCtxService;
-    ctx.log('getDbAuth：' + JSON.stringify(opt));
+    ctx.log('[DbService] getDbAuth: userId=' + (opt.userId ?? 'null') + ', hasSession=' + !!opt.sessionToken);
+    /** 统一时间基准，避免多次 new Date() 导致边界条件不一致 */
+    const now = new Date();
     // 构建 where 条件 - v3 中使用生成的 input 类型
     let where: UserFindFirstArgs['where'] = {};
     if (opt.sessionToken) {
       where = {
-        userSession: { some: { token: opt.sessionToken, expiresAt: { gt: new Date() } } },
+        userSession: { some: { token: opt.sessionToken, expiresAt: { gt: now } } },
       };
     } else if (opt.sessionID) {
       where = {
-        userSession: { some: { id: opt.sessionID, expiresAt: { gt: new Date() } } },
+        userSession: { some: { id: opt.sessionID, expiresAt: { gt: now } } },
       };
     } else if (opt.userId) {
       where = { id: opt.userId };
@@ -125,8 +137,8 @@ export const getDbAuthEffect = (opt: {
       yield* Effect.fail(MsgError.msg('Invalid options'));
     }
     const dbClient = yield* DbClientEffect;
-    const user = yield* Effect.promise(
-      () =>
+    const user = yield* Effect.tryPromise({
+      try: () =>
         dbClient.user.findFirst({
           where,
           include: {
@@ -136,14 +148,15 @@ export const getDbAuthEffect = (opt: {
               where: {
                 token: opt.sessionToken,
                 id: opt.sessionID,
-                expiresAt: { gt: new Date() },
+                expiresAt: { gt: now },
               },
               /** 兜底处理，当使用 user.userSession[0] 时能够获取最新的 */
               orderBy: { expiresAt: 'desc' },
             },
           },
         }) as Promise<(User & { role: Role[]; userSession: UserSession[] }) | null>,
-    );
+      catch: (e) => MsgError.msg('查询用户失败: ' + String(e)),
+    });
 
     if (!user) {
       throw new MsgError(MsgError.op_logout, '用户登录状态失效');

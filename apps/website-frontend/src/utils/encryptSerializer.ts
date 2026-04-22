@@ -24,7 +24,7 @@ export const encryptSerializer = {
     );
     return decrypted ? JSON.parse(new TextDecoder().decode(decrypted)) : undefined;
   },
-  write: async (value: any) => {
+  write: async (value: unknown) => {
     const encrypted = await crypto.subtle.encrypt(
       { name: 'AES-GCM', iv: new Uint8Array(12) },
       await key,

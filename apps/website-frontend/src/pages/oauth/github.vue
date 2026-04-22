@@ -1,56 +1,11 @@
-<style scoped>
-  .github-auth-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
-    background: linear-gradient(135deg, #18181b, #27272a);
-    color: #ffffff;
-    font-family: 'Arial', sans-serif;
-  }
-  .github-auth-content {
-    text-align: center;
-    padding: 2rem;
-    background: rgba(24, 24, 27, 0.8);
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    max-width: 500px;
-    width: 90%;
-  }
-  .github-auth-title {
-    font-size: 1.5rem;
-    margin-bottom: 1rem;
-    color: #3b82f6;
-  }
-  .github-auth-message {
-    font-size: 1rem;
-    margin-bottom: 1.5rem;
-    opacity: 0.8;
-  }
-  .github-auth-loader {
-    display: inline-block;
-    width: 50px;
-    height: 50px;
-    border: 5px solid rgba(59, 130, 246, 0.3);
-    border-radius: 50%;
-    border-top-color: #3b82f6;
-    animation: spin 1s ease-in-out infinite;
-  }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-</style>
 <template>
-  <div class="github-auth-container">
-    <div class="github-auth-content">
-      <h1 class="github-auth-title">GitHub 授权中...</h1>
-      <p class="github-auth-message">正在验证您的 GitHub 账号，请稍候</p>
-      <div v-if="userInfo.state.value === undefined" class="github-auth-loader"></div>
+  <div class="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-primary-950 to-primary-900 text-white">
+    <div class="text-center p-8 bg-primary-900/80 rounded-xl shadow-2xl max-w-125 w-[90%]">
+      <h1 class="text-2xl mb-4 text-primary-400">{{ t('GitHub 授权中...') }}</h1>
+      <p class="text-base mb-6 text-white/80">{{ t('正在验证您的 GitHub 账号，请稍候') }}</p>
+      <div v-if="userInfo.state.value === undefined" class="w-12 h-12 rounded-full border-4 border-primary-400/30 border-t-primary-400 animate-spin mx-auto"></div>
       <div v-else>
-        <p>授权成功！正在跳转...</p>
+        <p>{{ t('授权成功！正在跳转...') }}</p>
       </div>
     </div>
   </div>
@@ -60,22 +15,20 @@
   import { loginGoto } from '@/pages/loginUtil';
   import { useAsyncState } from '@vueuse/core';
   import { useToast } from '@/composables/useToast';
+  import { useI18n } from '@/composables/useI18n';
 
-  const props = defineProps({
-    code: String,
-    r: String,
-  });
+  const { t } = useI18n();
+  const props = defineProps<{ code?: string; r?: string }>();
   const { AppAPI } = useAPI();
   const toast = useToast();
   const userInfo = useAsyncState(async () => {
     if (!props.code) return undefined;
     const res = await AppAPI.githubApi.authenticate(props.code);
-    console.log('[res]', res);
     loginGoto(res, { r: props.r });
     toast.add({
       variant: 'success',
-      summary: '登录成功',
-      detail: '欢迎回来，正在为您跳转...',
+      summary: t('登录成功'),
+      detail: t('欢迎回来，正在为您跳转...'),
       life: 3000,
     });
     return res;

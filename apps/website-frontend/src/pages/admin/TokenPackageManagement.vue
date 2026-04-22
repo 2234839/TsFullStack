@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 import { useAPI } from '@/api';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
 import Paginator from '@/components/base/Paginator.vue';
+import { Button, Input, Textarea, InputNumber, Checkbox } from '@/components/base';
 import { TokenOptions } from '@tsfullstack/backend';
+import { getTypeLabel } from '@/utils/admin';
+import { getErrorMessage } from '@/utils/error';
 
 const toast = useToast();
+const confirm = useConfirm();
 const { API } = useAPI();
 
 /** 套餐项类型 */
@@ -81,8 +86,7 @@ async function loadPackages() {
 
     packages.value = result as unknown as TokenPackage[];
     packagesTotal.value = total as number;
-  } catch (error) {
-    console.error('[TokenPackageManagement] 加载失败:', error);
+  } catch (error: unknown) {
     toast.add({
       summary: '加载失败',
       detail: '加载套餐列表失败',
@@ -161,9 +165,8 @@ async function createPackage() {
 
     showCreateDialog.value = false;
     await loadPackages();
-  } catch (error) {
-    console.error('[TokenPackageManagement] 创建失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '创建套餐失败';
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error, '创建套餐失败');
     toast.add({
       summary: '创建失败',
       detail: errorMessage,
@@ -198,9 +201,8 @@ async function updatePackage() {
 
     showEditDialog.value = false;
     await loadPackages();
-  } catch (error) {
-    console.error('[TokenPackageManagement] 更新失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '更新套餐失败';
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error, '更新套餐失败');
     toast.add({
       summary: '更新失败',
       detail: errorMessage,
@@ -225,8 +227,7 @@ async function togglePackageActive(pkg: TokenPackage) {
     });
 
     await loadPackages();
-  } catch (error) {
-    console.error('[TokenPackageManagement] 切换状态失败:', error);
+  } catch (error: unknown) {
     toast.add({
       summary: '操作失败',
       detail: '切换套餐状态失败',
@@ -237,9 +238,11 @@ async function togglePackageActive(pkg: TokenPackage) {
 
 /** 删除套餐 */
 async function deletePackage(pkg: TokenPackage) {
-  if (!confirm(`确定要删除套餐"${pkg.name}"吗？`)) {
-    return;
-  }
+  const accepted = await confirm.require({
+    message: `确定要删除套餐"${pkg.name}"吗？`,
+    acceptProps: { variant: 'danger' },
+  });
+  if (!accepted) return;
 
   try {
     await API.tokenPackageApi.deleteTokenPackage(pkg.id);
@@ -251,9 +254,8 @@ async function deletePackage(pkg: TokenPackage) {
     });
 
     await loadPackages();
-  } catch (error) {
-    console.error('[TokenPackageManagement] 删除失败:', error);
-    const errorMessage = error instanceof Error ? error.message : '删除套餐失败';
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error, '删除套餐失败');
     toast.add({
       summary: '删除失败',
       detail: errorMessage,
@@ -262,10 +264,7 @@ async function deletePackage(pkg: TokenPackage) {
   }
 }
 
-/** 获取类型标签 */
-function getTypeLabel(type: string): string {
-  return TokenOptions.TokenTypeLabels[type as keyof typeof TokenOptions.TokenTypeLabels] || type;
-}
+/** 获取类型标签 — 从 utils/admin.ts 统一导入 */
 
 /** 格式化价格 */
 function formatPrice(price: number | null): string {
@@ -290,13 +289,9 @@ onMounted(() => {
           管理用户的代币套餐和订阅
         </p>
       </div>
-      <button
-        type="button"
-        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-        @click="openCreateDialog"
-      >
+      <Button @click="openCreateDialog">
         创建套餐
-      </button>
+      </Button>
     </div>
 
     <!-- 套餐列表 -->
@@ -370,27 +365,28 @@ onMounted(() => {
 
             <!-- 操作按钮 -->
             <div class="mt-6 flex gap-2">
-              <button
-                type="button"
-                class="flex-1 px-3 py-2 text-sm bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
+              <Button
+                variant="secondary"
+                size="sm"
+                class="flex-1"
                 @click="openEditDialog(pkg)"
               >
                 编辑
-              </button>
-              <button
-                type="button"
-                class="px-3 py-2 text-sm bg-info-100 dark:bg-info-900 text-info-700 dark:text-info-300 rounded-lg hover:bg-info-200 dark:hover:bg-info-800 transition-colors"
+              </Button>
+              <Button
+                :variant="pkg.active ? 'secondary' : 'ghost'"
+                size="sm"
                 @click="togglePackageActive(pkg)"
               >
                 {{ pkg.active ? '停用' : '启用' }}
-              </button>
-              <button
-                type="button"
-                class="px-3 py-2 text-sm bg-danger-100 dark:bg-danger-900 text-danger-700 dark:text-danger-300 rounded-lg hover:bg-danger-200 dark:hover:bg-danger-800 transition-colors"
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
                 @click="deletePackage(pkg)"
               >
                 删除
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -419,10 +415,8 @@ onMounted(() => {
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             套餐名称 *
           </label>
-          <input
+          <Input
             v-model="formData.name"
-            type="text"
-            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
             placeholder="例如：基础套餐"
           />
         </div>
@@ -431,10 +425,9 @@ onMounted(() => {
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             套餐描述
           </label>
-          <textarea
+          <Textarea
             v-model="formData.description"
-            rows="3"
-            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            :rows="3"
             placeholder="描述套餐的特点和适用人群"
           />
         </div>
@@ -455,11 +448,9 @@ onMounted(() => {
             <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               代币数量 *
             </label>
-            <input
-              v-model.number="formData.amount"
-              type="number"
-              min="1"
-              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            <InputNumber
+              v-model="formData.amount"
+              :min="1"
             />
           </div>
         </div>
@@ -469,11 +460,9 @@ onMounted(() => {
             <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               价格（分）
             </label>
-            <input
-              v-model.number="formData.price"
-              type="number"
-              min="0"
-              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            <InputNumber
+              v-model="formData.price"
+              :min="0"
               placeholder="0 表示免费"
             />
           </div>
@@ -482,11 +471,9 @@ onMounted(() => {
             <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               时长（月）
             </label>
-            <input
-              v-model.number="formData.durationMonths"
-              type="number"
-              min="0"
-              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            <InputNumber
+              v-model="formData.durationMonths"
+              :min="0"
               placeholder="0 表示永久"
             />
           </div>
@@ -496,32 +483,28 @@ onMounted(() => {
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             排序顺序
           </label>
-          <input
-            v-model.number="formData.sortOrder"
-            type="number"
-            min="0"
-            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+          <InputNumber
+            v-model="formData.sortOrder"
+            :min="0"
           />
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
+          <Button
+            variant="secondary"
             @click="showCreateDialog = false"
           >
             取消
-          </button>
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          </Button>
+          <Button
             :disabled="isSubmitting || !formData.name"
+            :loading="isSubmitting"
             @click="createPackage"
           >
             {{ isSubmitting ? '创建中...' : '创建' }}
-          </button>
+          </Button>
         </div>
       </template>
     </Dialog>
@@ -536,10 +519,8 @@ onMounted(() => {
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             套餐名称 *
           </label>
-          <input
+          <Input
             v-model="formData.name"
-            type="text"
-            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
           />
         </div>
 
@@ -547,10 +528,9 @@ onMounted(() => {
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
             套餐描述
           </label>
-          <textarea
+          <Textarea
             v-model="formData.description"
-            rows="3"
-            class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            :rows="3"
           />
         </div>
 
@@ -570,11 +550,9 @@ onMounted(() => {
             <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               代币数量 *
             </label>
-            <input
-              v-model.number="formData.amount"
-              type="number"
-              min="1"
-              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            <InputNumber
+              v-model="formData.amount"
+              :min="1"
             />
           </div>
         </div>
@@ -584,11 +562,9 @@ onMounted(() => {
             <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               价格（分）
             </label>
-            <input
-              v-model.number="formData.price"
-              type="number"
-              min="0"
-              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            <InputNumber
+              v-model="formData.price"
+              :min="0"
             />
           </div>
 
@@ -596,11 +572,9 @@ onMounted(() => {
             <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               时长（月）
             </label>
-            <input
-              v-model.number="formData.durationMonths"
-              type="number"
-              min="0"
-              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            <InputNumber
+              v-model="formData.durationMonths"
+              :min="0"
             />
           </div>
         </div>
@@ -610,44 +584,33 @@ onMounted(() => {
             <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
               排序顺序
             </label>
-            <input
-              v-model.number="formData.sortOrder"
-              type="number"
-              min="0"
-              class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+            <InputNumber
+              v-model="formData.sortOrder"
+              :min="0"
             />
           </div>
 
           <div class="flex items-center">
-            <label class="flex items-center cursor-pointer">
-              <input
-                v-model="formData.active"
-                type="checkbox"
-                class="mr-2"
-              />
-              <span class="text-sm font-medium text-primary-700 dark:text-primary-300">启用套餐</span>
-            </label>
+            <Checkbox v-model="formData.active" label="启用套餐" />
           </div>
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
+          <Button
+            variant="secondary"
             @click="showEditDialog = false"
           >
             取消
-          </button>
-          <button
-            type="button"
-            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          </Button>
+          <Button
             :disabled="isSubmitting || !formData.name"
+            :loading="isSubmitting"
             @click="updatePackage"
           >
             {{ isSubmitting ? '更新中...' : '更新' }}
-          </button>
+          </Button>
         </div>
       </template>
     </Dialog>

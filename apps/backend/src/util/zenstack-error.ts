@@ -20,40 +20,28 @@ export interface ZenStackErrorMeta {
   zodErrors?: unknown;
 }
 
+/** 检查值是否为非 null 对象（类型守卫） */
+function isObject(error: unknown): error is Record<string, unknown> {
+  return typeof error === 'object' && error !== null && !Array.isArray(error);
+}
+
+/** 检查错误是否为 ZenStack P2004 错误对象 */
+function isP2004Error(error: Record<string, unknown>): boolean {
+  return error.code === 'P2004' && isObject(error.meta);
+}
+
 /**
  * 检查错误是否为 ZenStack 权限策略错误 (P2004)
  */
 export function isZenStackPermissionError(error: unknown): boolean {
-  const prismaError = error as {
-    code?: string;
-    meta?: ZenStackErrorMeta;
-  };
-
-  return prismaError.code === 'P2004' && prismaError.meta?.reason === 'ACCESS_POLICY_VIOLATION';
+  return isObject(error) && isP2004Error(error) && (error.meta as unknown as ZenStackErrorMeta).reason === 'ACCESS_POLICY_VIOLATION';
 }
 
 /**
  * 检查错误是否为 ZenStack 数据验证错误 (P2004)
  */
 export function isZenStackValidationError(error: unknown): boolean {
-  const prismaError = error as {
-    code?: string;
-    meta?: ZenStackErrorMeta;
-  };
-
-  return prismaError.code === 'P2004' && prismaError.meta?.reason === 'DATA_VALIDATION_VIOLATION';
-}
-
-/**
- * 检查错误是否为 ZenStack 结果不可读错误 (P2004)
- */
-export function isZenStackNotReadableError(error: unknown): boolean {
-  const prismaError = error as {
-    code?: string;
-    meta?: ZenStackErrorMeta;
-  };
-
-  return prismaError.code === 'P2004' && prismaError.meta?.reason === 'RESULT_NOT_READABLE';
+  return isObject(error) && isP2004Error(error) && (error.meta as unknown as ZenStackErrorMeta).reason === 'DATA_VALIDATION_VIOLATION';
 }
 
 /**
@@ -66,12 +54,7 @@ export function getZenStackErrorDetails(error: unknown): {
   reason?: ZenStackRejectReason;
   zodErrors?: unknown;
 } {
-  const prismaError = error as {
-    code?: string;
-    meta?: ZenStackErrorMeta;
-  };
-
-  if (prismaError.code !== 'P2004' || !prismaError.meta) {
+  if (!isObject(error) || error.code !== 'P2004' || !isObject(error.meta)) {
     return {
       isPermissionError: false,
       isValidationError: false,
@@ -79,7 +62,7 @@ export function getZenStackErrorDetails(error: unknown): {
     };
   }
 
-  const { reason, zodErrors } = prismaError.meta;
+  const { reason, zodErrors } = error.meta as unknown as ZenStackErrorMeta;
 
   return {
     isPermissionError: reason === 'ACCESS_POLICY_VIOLATION',
@@ -91,33 +74,10 @@ export function getZenStackErrorDetails(error: unknown): {
 }
 
 /**
- * 格式化 ZenStack 错误为可读消息
- */
-export function formatZenStackError(error: unknown): string {
-  const details = getZenStackErrorDetails(error);
-
-  if (details.isPermissionError) {
-    return '操作被拒绝：权限不足';
-  }
-
-  if (details.isValidationError) {
-    return '操作被拒绝：数据验证失败';
-  }
-
-  if (details.isNotReadableError) {
-    return '操作被拒绝：无法读取结果';
-  }
-
-  // 如果不是 ZenStack 错误，返回默认消息
-  return (error as Error)?.message || '未知错误';
-}
-
-/**
  * 检查错误是否为 Prisma "记录不存在" 错误 (P2025)
  */
 export function isRecordNotFoundError(error: unknown): boolean {
-  const prismaError = error as { code?: string };
-  return prismaError.code === 'P2025';
+  return isObject(error) && error.code === 'P2025';
 }
 
 /**
@@ -127,7 +87,6 @@ export function createDetailedErrorMessage(error: unknown, context: string): str
   const details = getZenStackErrorDetails(error);
 
   if (details.reason) {
-    // ZenStack 相关错误
     return `[${context}] ZenStack 错误 - ${details.reason}`;
   }
 
@@ -135,7 +94,6 @@ export function createDetailedErrorMessage(error: unknown, context: string): str
     return `[${context}] 记录不存在 (P2025)`;
   }
 
-  // 其他错误
-  const errorMessage = (error as Error)?.message || '未知错误';
+  const errorMessage = error instanceof Error ? error.message : String(error) || '未知错误';
   return `[${context}] ${errorMessage}`;
 }

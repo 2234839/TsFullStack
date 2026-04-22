@@ -137,7 +137,7 @@ export function findRouteNode(
   for (const route of routes) {
     if (predicate(route)) return route;
     if (route.children) {
-      const found = findRouteNode(route.children as any, predicate);
+      const found = findRouteNode(route.children, predicate);
       if (found) return found;
     }
   }

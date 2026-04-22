@@ -20,8 +20,6 @@ function handleGenerationComplete(taskId: number) {
     variant: 'success',
   });
 
-  // 可选：跳转到资源库查看
-  // router.push('/admin/resourceGallery');
 }
 
 /** 查看资源库 */
@@ -57,13 +55,14 @@ function viewResourceGallery() {
             <p class="mt-1">生成完成后，图片会自动保存到资源库中</p>
           </div>
         </div>
-        <button
-          type="button"
-          class="ml-4 text-sm text-info-600 dark:text-info-400 hover:text-info-800 dark:hover:text-info-200 font-medium"
+        <Button
+          variant="text"
+          class="ml-4 text-info-600 dark:text-info-400"
+          size="sm"
           @click="viewResourceGallery"
         >
           查看资源库 →
-        </button>
+        </Button>
       </div>
     </div>
 

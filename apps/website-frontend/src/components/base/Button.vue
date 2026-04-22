@@ -57,11 +57,23 @@ const buttonClasses = computed(() => {
     lg: 'px-4 py-2 text-lg',
   };
 
+  /** 根据变体和尺寸获取尺寸类名 */
+  const getSizeClass = (size: string): string => {
+    if (props.variant === 'ghost') return size === 'lg' ? 'text-lg' : size === 'md' ? 'text-base' : 'text-sm';
+    if (props.variant === 'text-button') return textButtonSizeClasses[size] || 'text-sm';
+    if (props.variant === 'icon') return iconSizeClasses[size] || 'text-sm';
+    return {
+      small: 'px-3 py-1.5 text-sm',
+      md: 'px-4 py-2 text-base',
+      lg: 'px-6 py-3 text-lg',
+    }[size] || 'px-3 py-1.5 text-sm';
+  };
+
   const sizeClasses: Record<string, string> = {
-    sm: props.variant === 'ghost' ? 'text-sm' : props.variant === 'text-button' ? (textButtonSizeClasses[props.size] || 'text-sm') : props.variant === 'icon' ? (iconSizeClasses[props.size] || 'text-sm') : 'px-3 py-1.5 text-sm',
-    small: props.variant === 'ghost' ? 'text-sm' : props.variant === 'text-button' ? (textButtonSizeClasses[props.size] || 'text-sm') : props.variant === 'icon' ? (iconSizeClasses[props.size] || 'text-sm') : 'px-3 py-1.5 text-sm',
-    md: props.variant === 'ghost' ? 'text-base' : props.variant === 'text-button' ? (textButtonSizeClasses[props.size] || 'text-base') : props.variant === 'icon' ? (iconSizeClasses[props.size] || 'text-base') : 'px-4 py-2 text-base',
-    lg: props.variant === 'ghost' ? 'text-lg' : props.variant === 'text-button' ? (textButtonSizeClasses[props.size] || 'text-lg') : props.variant === 'icon' ? (iconSizeClasses[props.size] || 'text-lg') : 'px-6 py-3 text-lg',
+    sm: getSizeClass('sm'),
+    small: getSizeClass('small'),
+    md: getSizeClass('md'),
+    lg: getSizeClass('lg'),
   };
 
   const variantClasses: Record<string, string> = {

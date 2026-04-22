@@ -10,7 +10,7 @@ function cryptoJsHmacSha256(key: string, data: string): string {
 function hexToBytes(hex: string): Uint8Array {
   const bytes = new Uint8Array(hex.length / 2);
   for (let i = 0; i < hex.length; i += 2) {
-    bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
   }
   return bytes;
 }
@@ -39,18 +39,17 @@ function timingSafeEqual(a: string, b: string): boolean {
   return result === 0;
 }
 
-// 主要导出函数
-export async function signByToken(originStr: string, sessionToken: string): Promise<string> {
+/** 使用 sessionToken 对原始字符串签名 */
+export function signByToken(originStr: string, sessionToken: string): string {
   return cryptoJsHmacSha256(sessionToken, originStr);
 }
 
-export async function verifySignByToken(
+/** 验证签名是否匹配（使用时间安全比较，防止时序攻击） */
+export function verifySignByToken(
   originStr: string,
   sessionToken: string,
   providedSignature: string,
-): Promise<boolean> {
-  const expectedSignature = await signByToken(originStr, sessionToken);
-
-  // 统一使用自定义的安全比较函数
+): boolean {
+  const expectedSignature = signByToken(originStr, sessionToken);
   return timingSafeEqual(expectedSignature, providedSignature);
 }

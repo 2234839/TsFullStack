@@ -1,11 +1,16 @@
 import { Effect } from 'effect';
-import { AuthContext } from '../Context/Auth';
-import { ReqCtxService } from '../Context/ReqCtx';
+import { DbClientEffect } from '../Context/DbService';
+import { dbTry } from '../util/dbEffect';
 import { MsgError } from '../util/error';
 import { TokenType } from '../../.zenstack/models';
+import { DEFAULT_PAGE_SIZE_LARGE } from '../util/constants';
 
 /**
  * 代币套餐服务
+ *
+ * 注意：本服务所有方法仅依赖 DbClientEffect（数据库客户端），
+ * 不依赖 AuthContext（用户身份），因为 userId 均通过参数传入。
+ * 权限控制由调用方（API 层）负责。
  */
 export const TokenPackageService = {
   /**
@@ -21,8 +26,7 @@ export const TokenPackageService = {
     sortOrder?: number;
   }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
       // 验证参数
       if (!request.name || request.name.trim().length === 0) {
@@ -38,25 +42,20 @@ export const TokenPackageService = {
       }
 
       // 创建套餐
-      return yield* Effect.tryPromise({
-        try: () =>
-          auth.db.tokenPackage.create({
-            data: {
-              name: request.name.trim(),
-              description: request.description?.trim() || null,
-              type: request.type,
-              amount: request.amount,
-              price: request.price || null,
-              durationMonths: request.durationMonths || 0,
-              sortOrder: request.sortOrder || 0,
-              active: true,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenPackageService] 创建套餐失败:', String(error));
-          throw MsgError.msg('创建套餐失败');
-        },
-      });
+      return yield* dbTry('[TokenPackageService]', '创建套餐', () =>
+        db.tokenPackage.create({
+          data: {
+            name: request.name.trim(),
+            description: request.description?.trim() || null,
+            type: request.type,
+            amount: request.amount,
+            price: request.price || null,
+            durationMonths: request.durationMonths || 0,
+            sortOrder: request.sortOrder || 0,
+            active: true,
+          },
+        }),
+      );
     }),
 
   /**
@@ -72,44 +71,34 @@ export const TokenPackageService = {
     active?: boolean;
   }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
       // 检查套餐是否存在
-      const existing = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.tokenPackage.findUnique({
-            where: { id: packageId },
-          }),
-        catch: () => {
-          throw MsgError.msg('查询套餐失败');
-        },
-      });
+      const existing = yield* dbTry('[TokenPackageService]', '查询套餐', () =>
+        db.tokenPackage.findUnique({
+          where: { id: packageId },
+        }),
+      );
 
       if (!existing) {
         throw MsgError.msg('套餐不存在');
       }
 
       // 更新套餐
-      return yield* Effect.tryPromise({
-        try: () =>
-          auth.db.tokenPackage.update({
-            where: { id: packageId },
-            data: {
-              ...(request.name !== undefined && { name: request.name.trim() }),
-              ...(request.description !== undefined && { description: request.description.trim() || null }),
-              ...(request.amount !== undefined && { amount: request.amount }),
-              ...(request.price !== undefined && { price: request.price || null }),
-              ...(request.durationMonths !== undefined && { durationMonths: request.durationMonths }),
-              ...(request.sortOrder !== undefined && { sortOrder: request.sortOrder }),
-              ...(request.active !== undefined && { active: request.active }),
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenPackageService] 更新套餐失败:', String(error));
-          throw MsgError.msg('更新套餐失败');
-        },
-      });
+      return yield* dbTry('[TokenPackageService]', '更新套餐', () =>
+        db.tokenPackage.update({
+          where: { id: packageId },
+          data: {
+            ...(request.name !== undefined && { name: request.name.trim() }),
+            ...(request.description !== undefined && { description: request.description.trim() || null }),
+            ...(request.amount !== undefined && { amount: request.amount }),
+            ...(request.price !== undefined && { price: request.price || null }),
+            ...(request.durationMonths !== undefined && { durationMonths: request.durationMonths }),
+            ...(request.sortOrder !== undefined && { sortOrder: request.sortOrder }),
+            ...(request.active !== undefined && { active: request.active }),
+          },
+        }),
+      );
     }),
 
   /**
@@ -117,38 +106,28 @@ export const TokenPackageService = {
    */
   deletePackage: (packageId: number) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
       // 检查是否有用户订阅
-      const subscriptionsCount = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.userTokenSubscription.count({
-            where: {
-              packageId,
-              active: true,
-            },
-          }),
-        catch: () => {
-          throw MsgError.msg('查询订阅记录失败');
-        },
-      });
+      const subscriptionsCount = yield* dbTry('[TokenPackageService]', '查询订阅记录', () =>
+        db.userTokenSubscription.count({
+          where: {
+            packageId,
+            active: true,
+          },
+        }),
+      );
 
       if (subscriptionsCount > 0) {
         throw MsgError.msg(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
       }
 
       // 删除套餐
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.tokenPackage.delete({
-            where: { id: packageId },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenPackageService] 删除套餐失败:', String(error));
-          throw MsgError.msg('删除套餐失败');
-        },
-      });
+      yield* dbTry('[TokenPackageService]', '删除套餐', () =>
+        db.tokenPackage.delete({
+          where: { id: packageId },
+        }),
+      );
     }),
 
   /**
@@ -160,105 +139,16 @@ export const TokenPackageService = {
     take?: number;
   }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
+      const db = yield* DbClientEffect;
 
-      return yield* Effect.tryPromise({
-        try: () =>
-          auth.db.tokenPackage.findMany({
-            where: options?.active !== undefined ? { active: options.active } : undefined,
-            orderBy: { sortOrder: 'asc' },
-            skip: options?.skip || 0,
-            take: options?.take || 100,
-          }),
-        catch: () => {
-          throw MsgError.msg('获取套餐列表失败');
-        },
-      });
-    }),
-
-  /**
-   * 订阅套餐
-   */
-  subscribePackage: (userId: string, packageId: number) =>
-    Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
-
-      // 检查是否已有活跃订阅（防止重复订阅）
-      const existingSubscription = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.userTokenSubscription.findFirst({
-            where: {
-              userId,
-              packageId,
-              active: true,
-            },
-          }),
-        catch: () => null,
-      });
-
-      if (existingSubscription) {
-        throw MsgError.msg('用户已订阅此套餐，请勿重复订阅');
-      }
-
-      // 获取套餐信息
-      const tokenPackage = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.tokenPackage.findUnique({
-            where: { id: packageId },
-          }),
-        catch: () => {
-          throw MsgError.msg('查询套餐失败');
-        },
-      });
-
-      if (!tokenPackage) {
-        throw MsgError.msg('套餐不存在');
-      }
-
-      if (!tokenPackage.active) {
-        throw MsgError.msg('套餐已停用');
-      }
-
-      // 计算下次发放时间（使用UTC避免时区问题）
-      const now = new Date();
-      const startDate = now;
-      const nextGrantDate = now;
-      let endDate: Date | null = null;
-
-      if (tokenPackage.durationMonths > 0) {
-        endDate = new Date(Date.UTC(
-          now.getUTCFullYear(),
-          now.getUTCMonth() + tokenPackage.durationMonths,
-          now.getUTCDate(),
-          23,
-          59,
-          59,
-          999
-        ));
-      }
-
-      // 创建订阅
-      const subscription = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.userTokenSubscription.create({
-            data: {
-              userId,
-              packageId,
-              startDate,
-              endDate,
-              nextGrantDate,
-              active: true,
-              grantsCount: 0,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenPackageService] 创建订阅失败:', String(error));
-          throw MsgError.msg('创建订阅失败');
-        },
-      });
-
-      return { subscription, tokenPackage };
+      return yield* dbTry('[TokenPackageService]', '获取套餐列表', () =>
+        db.tokenPackage.findMany({
+          where: options?.active !== undefined ? { active: options.active } : undefined,
+          orderBy: { sortOrder: 'asc' },
+          skip: options?.skip ?? 0,
+          take: options?.take ?? DEFAULT_PAGE_SIZE_LARGE,
+        }),
+      );
     }),
 
   /**
@@ -266,23 +156,17 @@ export const TokenPackageService = {
    */
   updateSubscriptionNextGrant: (subscriptionId: number, nextGrantDate: Date, grantsCount: number) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.userTokenSubscription.update({
-            where: { id: subscriptionId },
-            data: {
-              nextGrantDate,
-              grantsCount,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenPackageService] 更新订阅失败:', String(error));
-          throw MsgError.msg('更新订阅失败');
-        },
-      });
+      yield* dbTry('[TokenPackageService]', '更新订阅', () =>
+        db.userTokenSubscription.update({
+          where: { id: subscriptionId },
+          data: {
+            nextGrantDate,
+            grantsCount,
+          },
+        }),
+      );
     }),
 
   /**
@@ -290,22 +174,16 @@ export const TokenPackageService = {
    */
   cancelSubscription: (subscriptionId: number) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.userTokenSubscription.update({
-            where: { id: subscriptionId },
-            data: {
-              active: false,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenPackageService] 取消订阅失败:', String(error));
-          throw MsgError.msg('取消订阅失败');
-        },
-      });
+      yield* dbTry('[TokenPackageService]', '取消订阅', () =>
+        db.userTokenSubscription.update({
+          where: { id: subscriptionId },
+          data: {
+            active: false,
+          },
+        }),
+      );
     }),
 
   /**
@@ -318,31 +196,27 @@ export const TokenPackageService = {
     take?: number;
   }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
+      const db = yield* DbClientEffect;
 
-      return yield* Effect.tryPromise({
-        try: () =>
-          auth.db.userTokenSubscription.findMany({
-            where: {
-              ...(options?.userId && { userId: options.userId }),
-              ...(options?.active !== undefined && { active: options.active }),
-            },
-            include: {
-              package: true,
-              user: {
-                select: {
-                  id: true,
-                  email: true,
-                },
+      return yield* dbTry('[TokenPackageService]', '获取订阅列表', () =>
+        db.userTokenSubscription.findMany({
+          where: {
+            ...(options?.userId && { userId: options.userId }),
+            ...(options?.active !== undefined && { active: options.active }),
+          },
+          include: {
+            package: true,
+            user: {
+              select: {
+                id: true,
+                email: true,
               },
             },
-            orderBy: { created: 'desc' },
-            skip: options?.skip || 0,
-            take: options?.take || 100,
-          }),
-        catch: () => {
-          throw MsgError.msg('获取订阅列表失败');
-        },
-      });
+          },
+          orderBy: { created: 'desc' },
+          skip: options?.skip ?? 0,
+          take: options?.take ?? DEFAULT_PAGE_SIZE_LARGE,
+        }),
+      );
     }),
 };

@@ -4,9 +4,7 @@
 <template>
   <Dialog v-model:open="localVisible" :title="dialogTitle">
     <div class="flex flex-col gap-4">
-      <input v-model="formData.title" type="text"
-        class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-info-500 dark:bg-primary-800 dark:text-white transition-all"
-        :placeholder="t('请输入标题')" />
+      <Input v-model="formData.title" :placeholder="t('请输入标题')" />
 
       <!-- 文件上传区域 -->
       <div
@@ -32,11 +30,12 @@
             <span class="truncate flex-1">{{ file.name }}</span>
             <span class="text-xs text-primary-500 dark:text-primary-400 shrink-0 ml-2">{{ formatFileSize(file.size) }}</span>
           </div>
-          <button
-            class="p-2 rounded-md text-primary-500 dark:text-primary-400 hover:bg-danger-100 dark:hover:bg-danger-900/20 hover:text-danger-600 dark:hover:text-danger-400 transition-all"
+          <Button
+            variant="ghost" size="sm"
+            class="text-primary-500 dark:text-primary-400 hover:bg-danger-100 dark:hover:bg-danger-900/20 hover:text-danger-600! dark:hover:text-danger-400!"
             @click="removeSelectedFile(index)" :aria-label="t('移除文件')">
             <i class="pi pi-times"></i>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -59,31 +58,27 @@
                 ? 'text-primary-400 dark:text-primary-600'
                 : 'text-primary-500 dark:text-primary-400'">{{ formatFileSize(file.size || 0) }}</span>
           </div>
-          <button type="button" class="px-3 py-2 rounded-md text-sm font-medium transition-all"
+          <Button type="button" variant="ghost" size="sm"
             :class="isFileMarkedForDeletion(file.id)
-              ? 'text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20'
-              : 'text-primary-500 dark:text-primary-400 hover:bg-primary-200 dark:hover:bg-primary-700 hover:text-primary-700 dark:hover:text-primary-200'"
+              ? 'text-primary-600 dark:text-primary-400'
+              : 'text-primary-500 dark:text-primary-400'"
             @click="isFileMarkedForDeletion(file.id) ? undoRemoveFile(file.id) : removeUploadedFile(file.id)"
             :aria-label="isFileMarkedForDeletion(file.id) ? t('撤销删除') : t('移除文件')">
             {{ isFileMarkedForDeletion(file.id) ? t('撤销') : '' }}
             <i :class="isFileMarkedForDeletion(file.id) ? 'pi pi-refresh' : 'pi pi-times'"></i>
-          </button>
+          </Button>
         </div>
       </div>
     </div>
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <button type="button"
-          class="px-4 py-2 text-sm font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-700 rounded-lg hover:bg-primary-200 dark:hover:bg-primary-600 transition-colors"
-          @click="close">
+        <Button variant="secondary" @click="close">
           {{ t('取消') }}
-        </button>
-        <button type="button"
-          class="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          @click="submit" :disabled="isSubmitting">
+        </Button>
+        <Button :disabled="isSubmitting" :loading="isSubmitting" @click="submit">
           {{ isSubmitting ? t('提交中...') : t('提交') }}
-        </button>
+        </Button>
       </div>
     </template>
   </Dialog>
@@ -91,14 +86,15 @@
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
-  import type { ShareFileJSON, ShareJSON } from '@/pages/admin/share/ShareDef';
-  import type { ShareItemJSON } from '@/pages/admin/share/ShareDef';
+  import type { ShareFileJSON, ShareItemJSON, ShareJSON } from '@/pages/admin/share/ShareDef';
   import { authInfo } from '@/storage';
   import { userDataAppid } from '@/storage/userDataAppid';
   import { $Enums } from '@tsfullstack/backend';
   import { computed, ref, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
   import { Dialog } from '@tsfullstack/shared-frontend/components';
+  import { Button, Input } from '@/components/base';
+  import { formatFileSize } from '@/utils/format';
 
   const { API } = useAPI();
   const { t } = useI18n();
@@ -245,18 +241,6 @@
   }
 
   /**
-   * 格式化文件大小
-   * @param bytes 文件大小（字节）
-   */
-  function formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
-  }
-
-  /**
    * 移除选中的文件
    * @param index 文件索引
    */
@@ -332,30 +316,26 @@
 
       if (formType.value === 'create') {
         // 创建用户数据
-        const result = await API.db.userData.create({
+        await API.db.userData.create({
           data: {
             appId: userDataAppid.shareInfo,
             userId: authInfo.value.userId,
             key: crypto.randomUUID(),
-            data: {
+            data: JSON.stringify({
               title: formData.value.title,
               files: uploadedFiles.value,
-            }  as any
+            }) as unknown as import('@tsfullstack/backend').JsonValue,
           },
         });
-
-        // 创建成功后切换到编辑模式
-        formType.value = 'update';
-        editingId.value = result.id;
-      } else if (formType.value === 'update' && editingId.value) {
-        // 更新用户数据
+      } else if (editingId.value !== undefined) {
+        // 更新现有分享数据
         await API.db.userData.update({
           where: { id: editingId.value },
           data: {
-            data: {
+            data: JSON.stringify({
               title: formData.value.title,
               files: uploadedFiles.value,
-            } as any
+            }) as unknown as import('@tsfullstack/backend').JsonValue,
           },
         });
       }

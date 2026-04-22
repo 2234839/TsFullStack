@@ -1,167 +1,185 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../../Context/Auth';
 import { ReqCtxService } from '../../Context/ReqCtx';
-import { AppConfigService } from '../../Context/AppConfig';
+import { AppConfigService, AppConfig } from '../../Context/AppConfig';
 import { MsgError } from '../../util/error';
+import { saveFileFromBuffer } from './file';
+import { dbTry } from '../../util/dbEffect';
 import { TokenService } from '../../services/TokenService';
 import { TaskService } from '../../services/TaskService';
 import { ResourceService } from '../../services/ResourceService';
 import { aiImageGenerateService } from '../../services/aiImageGenerateService';
 import { TokenPricingCalculator } from '../../services/TokenPricingCalculator';
-import { TaskType, ResourceType } from '../../../.zenstack/models';
+import { TaskType, TaskStatus, ResourceType } from '../../../.zenstack/models';
 import { tokenConsumeRateLimiter } from '../../middleware/rateLimit';
+
+/** 图片生成参数常量 */
+const MAX_PROMPT_LENGTH = 2000;
+const MAX_IMAGE_COUNT = 4;
+const DEFAULT_IMAGE_SIZE = '1024x1024';
+const VALID_IMAGE_SIZES = ['1024x1024', '1024x768', '768x1024', '512x512',
+  '1344x768', '768x1344', '864x1152', '1152x864'] as const;
+const MAX_TOKEN_COST = 1000;
+const PROMPT_TRUNCATE_LENGTH = 50;
+const DEFAULT_COMPRESS_QUALITY = 85;
+
+/** sharp 最小类型（可选依赖，不安装时无 @types/sharp） */
+interface SharpInstance {
+  (input: Buffer | string): SharpPipeline;
+}
+interface SharpPipeline {
+  resize(w: number, h?: number, options?: { fit?: string; withoutEnlargement?: boolean }): SharpPipeline;
+  jpeg(options?: { quality?: number }): SharpPipeline;
+  png(options?: { quality?: number }): SharpPipeline;
+  webp(options?: { quality?: number }): SharpPipeline;
+  toBuffer(): Promise<Buffer>;
+}
+
+/** AI 图片生成支持的服务商列表 */
+const AI_IMAGE_PROVIDERS = ['qwen', 'dalle', 'stability', 'glm'] as const;
+export type AiImageProvider = (typeof AI_IMAGE_PROVIDERS)[number];
+
+/** Provider 显示名称映射 */
+const PROVIDER_LABELS: Record<AiImageProvider, string> = {
+  qwen: '通义千问',
+  dalle: 'DALL-E',
+  stability: 'Stability AI',
+  glm: '智谱 GLM',
+};
+
+/** Provider → API Key 配置字段名映射 */
+const PROVIDER_KEY_MAP: { readonly [K in AiImageProvider]: keyof NonNullable<AppConfig['aiImage']> } = {
+  qwen: 'qwenApiKey',
+  dalle: 'dalleApiKey',
+  stability: 'stabilityApiKey',
+  glm: 'glmApiKey',
+};
+
+/** 图片生成请求参数（已验证） */
+interface ValidatedImageParams {
+  prompt: string;
+  provider: AiImageProvider;
+  count: number;
+  size: string;
+}
+
+/** 验证并规范化图片生成参数 */
+function validateImageParams(request: {
+  prompt?: string;
+  provider?: string;
+  count?: number;
+  size?: string;
+}): ValidatedImageParams {
+  if (!request.prompt?.trim()) {
+    throw MsgError.msg('提示词不能为空');
+  }
+  const prompt = request.prompt.trim();
+  if (prompt.length > MAX_PROMPT_LENGTH) {
+    throw MsgError.msg(`提示词不能超过${MAX_PROMPT_LENGTH}字符`);
+  }
+
+  const rawProvider = request.provider || 'qwen';
+  if (!AI_IMAGE_PROVIDERS.includes(rawProvider as AiImageProvider)) {
+    throw MsgError.msg('不支持的服务商' + rawProvider);
+  }
+  const provider = rawProvider as AiImageProvider;
+
+  const count = Math.floor(Math.max(1, Math.min(MAX_IMAGE_COUNT, request.count || 1)));
+
+  const validSizes: string[] = [...VALID_IMAGE_SIZES];
+  const size = request.size || DEFAULT_IMAGE_SIZE;
+  if (!validSizes.includes(size)) {
+    throw MsgError.msg('不支持的尺寸格式');
+  }
+
+  return { prompt, provider, count, size };
+}
 
 /**
  * 生成 AI 图片
  */
 export const generateAIImage = (request: {
   prompt: string;
-  provider?: 'qwen' | 'dalle' | 'stability' | 'glm';
+  provider?: AiImageProvider;
   count?: number;
   size?: string;
 }) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
-    const reqCtx = yield* ReqCtxService;
+    const ctx = yield* ReqCtxService;
 
-    // 0. 速率限制检查
+    // 1. 速率限制检查
     const rateLimitResult = tokenConsumeRateLimiter.check(auth.user.id);
     if (!rateLimitResult.allowed) {
       throw MsgError.msg('请求过于频繁，请稍后再试');
     }
 
-    reqCtx.log(`[RateLimit] 用户 ${auth.user.id} 剩余配额: ${rateLimitResult.remaining}`);
+    // 2. 参数验证
+    const { prompt, provider, count, size } = validateImageParams(request);
 
-    // 1. 严格的参数验证
-    if (!request.prompt?.trim()) {
-      throw MsgError.msg('提示词不能为空');
-    }
-
-    const prompt = request.prompt.trim();
-    if (prompt.length > 2000) {
-      throw MsgError.msg('提示词不能超过2000字符');
-    }
-
-    // 验证服务商
-    const validProviders = ['qwen', 'dalle', 'stability', 'glm'];
-    const provider = request.provider || 'qwen';
-    if (!validProviders.includes(provider)) {
-      throw MsgError.msg('不支持的服务商' + provider);
-    }
-
-    // 验证数量
-    const count = Math.max(1, Math.min(4, request.count || 1));
-    if (!Number.isInteger(count) || count < 1 || count > 4) {
-      throw MsgError.msg('生成数量必须在1-4之间');
-    }
-
-    // 验证尺寸
-    const validSizes = ['1024x1024', '1024x768', '768x1024', '512x512'];
-    const size = request.size || '1024x1024';
-    if (!validSizes.includes(size)) {
-      throw MsgError.msg('不支持的尺寸格式');
-    }
-
-    // 2. 计算代币消耗（使用代码即配置的计算器）
-    const pricingResult = TokenPricingCalculator.aiImageGeneration({
-      count,
-      size,
-      provider,
-    });
-
+    // 3. 代币消耗计算
+    const pricingResult = TokenPricingCalculator.aiImageGeneration({ count, size, provider });
     const tokenCost = pricingResult.total;
 
-    if (tokenCost <= 0 || tokenCost > 1000) {
+    if (tokenCost <= 0 || tokenCost > MAX_TOKEN_COST) {
       throw MsgError.msg('代币费用计算异常');
     }
 
-    reqCtx.log(
-      `[代币计算] ${pricingResult.breakdown} = ${tokenCost}代币\n` +
-        `  公式: ${pricingResult.details.formula}\n` +
-        `  基础价格: ${pricingResult.details.basePrice}代币/张\n` +
-        `  倍数: ${JSON.stringify(pricingResult.details.multipliers)}`,
-    );
+    ctx.log(`[TaskAPI] 代币消耗: ${tokenCost}`);
 
-    // 3. 创建任务
+    // 4. 创建任务
     const task = yield* TaskService.createTask(auth.user.id, {
       type: TaskType.AI_IMAGE_GENERATION,
-      title: `生成 AI 图片 - ${prompt.substring(0, 50)}`,
+      title: `生成 AI 图片 - ${prompt.substring(0, PROMPT_TRUNCATE_LENGTH)}`,
       description: prompt,
-      inputParams: {
-        prompt: prompt,
-        provider: provider,
-        count: count,
-        size: size,
-      },
+      inputParams: { prompt, provider, count, size },
       tokenCost,
     });
 
-    reqCtx.log(`[TaskAPI] 创建任务 ${task.id}, 消耗 ${tokenCost} 代币`);
+    ctx.log(`[TaskAPI] 创建任务 ${task.id}, 消耗 ${tokenCost} 代币`);
 
     // 5. 开始任务
     yield* TaskService.startTask(task.id);
 
     try {
       // 6. 调用 AI 服务生成图片
-      const generateResult = yield* aiImageGenerateService(prompt, {
-        provider: provider,
-        count: count,
-        size: size,
-      });
+      const generateResult = yield* aiImageGenerateService(prompt, { provider, count, size });
+      ctx.log('[TaskAPI] AI 服务返回 ' + generateResult.images.length + ' 张图片');
 
-      reqCtx.log(`[TaskAPI] AI 服务返回 ${generateResult.images.length} 张图片`);
-
-      // 7. 并行创建资源记录（在扣费前确保资源创建成功）
+      // 7. 批量创建资源记录
       const [width, height] = size.split('x');
-
-      const resourceResults = yield* Effect.all(
-        generateResult.images.map((imageUrl: string) =>
-          ResourceService.createResource(auth.user.id, {
+      const createManyResult = yield* dbTry('[TaskAPI]', '批量创建资源', () =>
+        auth.db.resource.createMany({
+          data: generateResult.images.map((imageUrl: string) => ({
+            userId: auth.user.id,
             type: ResourceType.IMAGE,
-            title: `AI 生成图片 - ${prompt.substring(0, 50)}`,
+            title: `AI 生成图片 - ${prompt.substring(0, PROMPT_TRUNCATE_LENGTH)}`,
             metadata: {
               externalUrl: imageUrl,
               width: parseInt(width || '1024'),
               height: parseInt(height || '1024'),
-              provider: provider,
+              provider,
             },
             taskId: task.id,
-          }),
-        ),
-      );
-
-      reqCtx.log(`[TaskAPI] 成功创建 ${resourceResults.length} 个资源记录`);
-
-      // 8. 更新所有相关资源的状态为 completed
-      yield* Effect.all(
-        resourceResults.map((resourceResult) =>
-          ResourceService.updateResource(resourceResult.id, {
             status: 'completed',
-          }),
-        ),
+          })),
+        }),
       );
 
-      reqCtx.log(`[TaskAPI] 成功更新 ${resourceResults.length} 个资源状态为 completed`);
+      ctx.log('[TaskAPI] 批量创建 ' + createManyResult.count + ' 个资源记录');
 
-      // 9. 先完成任务（标记为COMPLETED，但不扣费）
+      // 8. 完成任务
       yield* TaskService.completeTask(task.id, {
         imagesCount: generateResult.images.length,
         externalTaskId: generateResult.taskId,
       });
 
-      // 10. 最后消耗代币（任务完成后才扣费）
+      // 9. 消耗代币
       const consumeResult = yield* TokenService.consumeTokens(auth.user.id, tokenCost, task.id);
-      reqCtx.log(
-        `[TaskAPI] 消耗代币成功: ${consumeResult.details.map((d: any) => `${d.amount} ${d.type}`).join(', ')}`,
-      );
+      ctx.log('[TaskAPI] 消耗代币成功, total=' + tokenCost);
 
-      return {
-        taskId: task.id,
-        imagesCount: generateResult.images.length,
-        images: generateResult.images,
-      };
-    } catch (error) {
-      // 失败时标记任务失败，不扣除代币
+      return { taskId: task.id, imagesCount: generateResult.images.length, images: generateResult.images };
+    } catch (error: unknown) {
       yield* TaskService.failTask(task.id, String(error));
       throw error;
     }
@@ -182,7 +200,7 @@ export const selectAndDownloadImage = (request: {
 }) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
-    const reqCtx = yield* ReqCtxService;
+    const ctx = yield* ReqCtxService;
 
     // 1. 验证任务权限
     const task = yield* TaskService.getTask(request.taskId);
@@ -190,13 +208,13 @@ export const selectAndDownloadImage = (request: {
       throw MsgError.msg('无权操作此任务');
     }
 
-    reqCtx.log(`[TaskAPI] 用户选择图片: ${request.imageUrl.substring(0, 50)}...`);
+    ctx.log('[TaskAPI] 用户选择图片, taskId=' + request.taskId);
 
     // 2. 下载图片
     const imageResponse = yield* Effect.tryPromise({
       try: () => fetch(request.imageUrl),
       catch: (error) => {
-        reqCtx.log('[TaskAPI] 下载图片失败:', String(error));
+        ctx.log('[TaskAPI] 下载图片失败:', String(error));
         throw MsgError.msg('下载图片失败');
       },
     });
@@ -218,8 +236,9 @@ export const selectAndDownloadImage = (request: {
     const compressOpts = request.compressOptions;
     if (compressOpts?.enabled !== false) {
       try {
-        const sharp = require('sharp');
-        const quality = compressOpts?.quality || 85;
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const sharp = require('sharp') as SharpInstance;
+        const quality = compressOpts?.quality || DEFAULT_COMPRESS_QUALITY;
 
         let pipeline = sharp(finalBuffer);
 
@@ -246,31 +265,35 @@ export const selectAndDownloadImage = (request: {
         }
 
         const compressedBuffer = yield* Effect.tryPromise({
-          try: () => pipeline.toBuffer() as Promise<any>,
+          try: () => pipeline.toBuffer() as Promise<typeof finalBuffer>,
           catch: (error) => {
-            reqCtx.log('[TaskAPI] 压缩图片失败，使用原图:', String(error));
+            ctx.log('[TaskAPI] 压缩图片失败，使用原图:', String(error));
             return finalBuffer; // 压缩失败，使用原图
           },
         });
 
         finalBuffer = compressedBuffer;
-        reqCtx.log(`[TaskAPI] 图片压缩完成: ${format}, 质量 ${quality}`);
-      } catch (error) {
-        reqCtx.log('[TaskAPI] 压缩模块不可用，使用原图:', String(error));
+        ctx.log('[TaskAPI] 图片压缩完成: ' + format + ', 质量 ' + quality);
+      } catch (error: unknown) {
+        ctx.log('[TaskAPI] 压缩模块不可用，使用原图:', String(error));
       }
     }
 
-    // 5. 保存到文件系统（使用现有的文件上传 API）
-    const filename = `ai-image-${request.taskId}-${Date.now()}.${request.compressOptions?.format || 'jpg'}`;
+    // 5. 复用文件上传系统的 saveFileFromBuffer（统一路径生成、目录创建、DB 记录）
+    const ext = (request.compressOptions?.format || 'jpg').replace('jpeg', 'jpg');
+    const filename = `ai-image-${request.taskId}-${Date.now()}.${ext}`;
 
-    // TODO: 这里需要调用文件上传服务
-    // 暂时返回 URL
-    const fileUrl = `/api/fileApi/temp/${filename}`;
+    const fileRecord = yield* saveFileFromBuffer({
+      filename,
+      mimetype: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+      buffer: finalBuffer,
+    });
 
-    reqCtx.log(`[TaskAPI] 图片保存完成: ${fileUrl}`);
+    ctx.log('[TaskAPI] 图片保存完成, size=' + finalBuffer.length + ', fileId=' + fileRecord.id);
 
     return {
-      fileUrl,
+      fileId: fileRecord.id,
+      filename: fileRecord.filename,
       size: finalBuffer.length,
     };
   });
@@ -279,8 +302,8 @@ export const selectAndDownloadImage = (request: {
  * 获取任务列表
  */
 export const listTasks = (options?: {
-  status?: string;
-  type?: string;
+  status?: TaskStatus;
+  type?: TaskType;
   skip?: number;
   take?: number;
 }) =>
@@ -295,7 +318,14 @@ export const listTasks = (options?: {
  */
 export const getTaskDetail = (taskId: number) =>
   Effect.gen(function* () {
-    return yield* TaskService.getTask(taskId);
+    const auth = yield* AuthContext;
+    const task = yield* TaskService.getTask(taskId);
+
+    if (task.userId !== auth.user.id) {
+      throw MsgError.msg('无权查看此任务');
+    }
+
+    return task;
   });
 
 /**
@@ -319,26 +349,13 @@ export const listResources = (options?: {
 export const getAvailableProviders = () =>
   Effect.gen(function* () {
     const appConfig = yield* AppConfigService;
-    const providers: Array<{ value: string; label: string }> = [];
+    const providers: Array<{ value: AiImageProvider; label: string }> = [];
 
-    /** 检查通义千问 */
-    if (appConfig.aiImage?.qwenApiKey) {
-      providers.push({ value: 'qwen', label: '通义千问' });
-    }
-
-    /** 检查 DALL-E */
-    if (appConfig.aiImage?.dalleApiKey) {
-      providers.push({ value: 'dalle', label: 'DALL-E' });
-    }
-
-    /** 检查 Stability AI */
-    if (appConfig.aiImage?.stabilityApiKey) {
-      providers.push({ value: 'stability', label: 'Stability AI' });
-    }
-
-    /** 检查智谱 GLM */
-    if (appConfig.aiImage?.glmApiKey) {
-      providers.push({ value: 'glm', label: '智谱 GLM' });
+    for (const provider of AI_IMAGE_PROVIDERS) {
+      const apiKey = appConfig.aiImage?.[PROVIDER_KEY_MAP[provider]];
+      if (apiKey) {
+        providers.push({ value: provider, label: PROVIDER_LABELS[provider] });
+      }
     }
 
     return providers;

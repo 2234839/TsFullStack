@@ -3,6 +3,21 @@ import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
 import { Dialog } from '@tsfullstack/shared-frontend/components';
+import { Button, Input } from '@/components/base';
+import { getErrorMessage } from '@/utils/error';
+import { getResourceUrl } from '@/utils/resource';
+
+/** 资源项（与后端 listResources 返回的 select 字段一致） */
+interface ResourceItem {
+  id: number;
+  type: string;
+  title: string;
+  status: string;
+  taskId: number;
+  created: Date;
+  file: { id: number; filename: string; mimetype: string; size: number } | null;
+  task: { id: number; type: string; title: string };
+}
 
 const props = defineProps<{
   open?: boolean;
@@ -27,7 +42,7 @@ const toast = useToast();
 const { API } = useAPI();
 
 /** 资源列表 */
-const resources = ref<any[]>([]);
+const resources = ref<ResourceItem[]>([]);
 
 /** 总数 */
 const total = ref(0);
@@ -67,18 +82,18 @@ async function loadResources(reset = false) {
     });
 
     if (reset) {
-      resources.value = result.resources;
+      resources.value = result.items;
     } else {
-      resources.value.push(...result.resources);
+      resources.value.push(...result.items);
     }
 
     total.value = result.total;
     currentPage.value++;
-  } catch (error: any) {
-    console.error('[AIImageSelector] 加载资源失败:', error);
+  } catch (error: unknown) {
+    const message = getErrorMessage(error, '加载图片列表时发生错误');
     toast.add({
       summary: '加载失败',
-      detail: error.message || '加载图片列表时发生错误',
+      detail: message,
       variant: 'error',
     });
   } finally {
@@ -92,7 +107,7 @@ async function searchImages() {
   resources.value = [];
 
   if (searchQuery.value.trim()) {
-    // TODO: 实现搜索功能
+    /** 搜索功能待实现：需要后端 listResources 支持关键词过滤 */
     toast.add({
       summary: '搜索功能',
       detail: '搜索功能正在开发中',
@@ -104,8 +119,8 @@ async function searchImages() {
 }
 
 /** 选择图片 */
-function selectImage(resource: any) {
-  if (!resource.fileId) {
+function selectImage(resource: ResourceItem) {
+  if (!resource.file?.id) {
     toast.add({
       summary: '图片未下载',
       detail: '此图片还未下载到本地',
@@ -114,23 +129,16 @@ function selectImage(resource: any) {
     return;
   }
 
-  emit('select', resource.fileId);
+  emit('select', resource.file?.id);
   emit('close');
 }
 
 /** 获取图片 URL */
-function getImageUrl(resource: any): string {
-  if (resource.file) {
-    return `/api/fileApi/file/${resource.file.id}`;
-  }
-  // 从 metadata 中获取 externalUrl
-  return resource.metadata?.externalUrl || '';
+function getImageUrl(resource: ResourceItem): string {
+  return getResourceUrl(resource);
 }
 
-/** 格式化日期 */
-function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleDateString('zh-CN');
-}
+import { formatDate } from '@/utils/format';
 
 /** 组件挂载时加载数据 */
 onMounted(() => {
@@ -154,20 +162,14 @@ onMounted(() => {
 
       <!-- 搜索框 -->
       <div class="flex gap-2">
-        <input
+        <Input
           v-model="searchQuery"
-          type="text"
-          class="flex-1 px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-700 text-primary-900 dark:text-primary-100"
           placeholder="搜索图片..."
           @keyup.enter="searchImages"
         />
-        <button
-          type="button"
-          class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
-          @click="searchImages"
-        >
+        <Button @click="searchImages">
           搜索
-        </button>
+        </Button>
       </div>
     </template>
 
@@ -197,13 +199,13 @@ onMounted(() => {
             :alt="resource.title"
             class="w-full aspect-square object-cover"
           />
-          <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+          <div class="absolute inset-0 bg-linear-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
             <div class="text-white text-sm">
               <p class="font-medium truncate">{{ resource.title }}</p>
-              <p class="text-xs opacity-75">{{ formatDate(resource.created) }}</p>
+              <p class="text-xs opacity-75">{{ formatDate(resource.created, { dateOnly: true }) }}</p>
             </div>
           </div>
-          <div v-if="!resource.fileId" class="absolute top-2 right-2">
+          <div v-if="!resource.file?.id" class="absolute top-2 right-2">
             <span class="px-2 py-1 bg-warning-500 text-white text-xs rounded">
               未下载
             </span>
@@ -213,15 +215,14 @@ onMounted(() => {
 
       <!-- 加载更多 -->
       <div v-if="!hasLoadedAll && resources.length > 0" class="text-center mt-6">
-        <button
-          type="button"
-          class="px-4 py-2 bg-secondary-100 dark:bg-secondary-700 text-secondary-700 dark:text-secondary-300 rounded-lg hover:bg-secondary-200 dark:hover:bg-secondary-600 transition-colors disabled:opacity-50"
+        <Button
+          variant="secondary"
           :disabled="isLoading"
+          :loading="isLoading"
           @click="loadResources()"
         >
-          <span v-if="isLoading">加载中...</span>
-          <span v-else>加载更多</span>
-        </button>
+          {{ isLoading ? '加载中...' : '加载更多' }}
+        </Button>
       </div>
     </div>
 

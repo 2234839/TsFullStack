@@ -9,11 +9,11 @@ catalog:
   '@vitejs/plugin-vue': ^5.2.1
   primeicons: ^7.0.0
   primevue: ^4.3.9
-  reka-ui: ^2.8.0
+  reka-ui: ^2.9.6
   typescript: ~5.9.3
   vite: ^7.1.7
-  vue: ^3.5.29
-  vue-router: ^5.0.3
+  vue: ^3.5.32
+  vue-router: ^5.0.4
 
 settings:
   autoInstallPeers: true

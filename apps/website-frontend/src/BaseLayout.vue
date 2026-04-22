@@ -37,7 +37,7 @@ import { allRoutes, findRouteNode } from '@/router';
 import { useTitle } from '@vueuse/core';
 import Toast from '@/components/system/Toast.vue';
 import Confirm from '@/components/base/Confirm.vue';
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, onErrorCaptured } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from '@/composables/useToast';
 import { toastBus, authBus } from '@/buses';
@@ -47,7 +47,7 @@ import { MsgError } from '@tsfullstack/backend';
 
 //#region 设置页面标题
 const route = useRoute();
-const routeNode = findRouteNode(allRoutes, (el) => el.name === route.name)!;
+const routeNode = findRouteNode(allRoutes, (el) => el.name === route.name);
 const title = computed(() => {
   return routeNode?.meta?.title ? `${routeNode.meta.title} - TSFullStack` : 'TSFullStack';
 });
@@ -72,6 +72,19 @@ onMounted(() => {
   onUnmounted(() => {
     unsubscribeToast();
     unsubscribeAuth();
+  });
+
+  /** 全局错误边界：捕获子组件中未处理的异步错误，通过 toast 通知用户而非白屏 */
+  onErrorCaptured((_instance, error) => {
+    const errMsg = error instanceof Error ? error.message
+      : (typeof error === 'string' ? error : JSON.stringify(error)?.slice(0, 200) ?? String(error));
+    console.error('[ErrorBoundary]', errMsg, error);
+    toast.add({
+      variant: 'danger',
+      summary: '运行时错误',
+      detail: errMsg.slice(0, 200),
+      life: 5000,
+    });
   });
 });
 //#endregion

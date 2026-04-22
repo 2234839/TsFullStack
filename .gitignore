@@ -65,3 +65,5 @@ tmp/
 
 .turbo
 /任务计划.md
+.claude/scheduled_tasks.lock
+.pilot

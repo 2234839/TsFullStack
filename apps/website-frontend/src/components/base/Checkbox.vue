@@ -13,7 +13,7 @@ interface Props {
   /** 二进制框样式 */
   binary?: boolean;
   /** 复选框值 */
-  value?: any;
+  value?: string | number | boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {

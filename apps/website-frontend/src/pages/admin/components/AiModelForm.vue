@@ -183,6 +183,8 @@
 import { ref, reactive, watch, computed } from 'vue'
 import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
+import { useToast } from '@/composables/useToast'
+import { getErrorMessage } from '@/utils/error'
 import Button from '@/components/base/Button.vue'
 import { Dialog } from '@tsfullstack/shared-frontend/components'
 import Input from '@/components/base/Input.vue'
@@ -191,14 +193,15 @@ import InputNumber from '@/components/base/InputNumber.vue'
 import Textarea from '@/components/base/Textarea.vue'
 import Checkbox from '@/components/base/Checkbox.vue'
 
+/** AiModel 表单数据（与 AiModelVO 对齐，允许 null 表示新建模式） */
 interface Props {
   visible: boolean
-  model?: any
+  model?: Record<string, unknown> | null
 }
 
 interface Emits {
   (e: 'update:visible', value: boolean): void
-  (e: 'submit', model: any): void
+  (e: 'submit', model: Record<string, unknown>): void
 }
 
 const props = defineProps<Props>()
@@ -212,8 +215,19 @@ const localVisible = computed<boolean>({
 
 const { API } = useAPI()
 const { t } = useI18n()
+const toast = useToast()
 const loading = ref(false)
 const isEdit = ref(false)
+
+/** AI 模型表单默认值 */
+const DEFAULT_MODEL_FORM = {
+  maxTokens: 2000,
+  temperature: 0.7,
+  weight: 100,
+  rpmLimit: 60,
+  rphLimit: 1000,
+  rpdLimit: 10000,
+} as const
 
 // 表单数据
 const form = reactive({
@@ -221,12 +235,7 @@ const form = reactive({
   model: '',
   baseUrl: '',
   apiKey: '',
-  maxTokens: 2000,
-  temperature: 0.7,
-  weight: 100,
-  rpmLimit: 60,
-  rphLimit: 1000,
-  rpdLimit: 10000,
+  ...DEFAULT_MODEL_FORM,
   description: '',
   enabled: true
 })
@@ -272,14 +281,8 @@ const resetForm = () => {
     model: '',
     baseUrl: '',
     apiKey: '',
-    maxTokens: 2000,
-    temperature: 0.7,
-    weight: 100,
-    rpmLimit: 60,
-    rphLimit: 1000,
-    rpdLimit: 10000,
+    ...DEFAULT_MODEL_FORM,
     description: '',
-    enabled: true
   })
 
   Object.assign(errors, {
@@ -302,7 +305,7 @@ const onSubmit = async () => {
     if (isEdit.value && props.model) {
       // 编辑模式
       await API.db.aiModel.update({
-        where: { id: props.model.id },
+        where: { id: (props.model?.id as number) },
         data: submitData
       })
     } else {
@@ -315,9 +318,12 @@ const onSubmit = async () => {
     emit('submit', submitData)
     emit('update:visible', false)
     resetForm()
-  } catch (error) {
-    console.error('保存AI模型失败:', error)
-    alert(t('保存失败：') + ((error as Error).message || t('未知错误')))
+  } catch (error: unknown) {
+    toast.add({
+      summary: t('保存失败'),
+      detail: getErrorMessage(error),
+      variant: 'error',
+    })
   } finally {
     loading.value = false
   }
@@ -338,12 +344,13 @@ watch(() => props.visible, (newVal) => {
       model: props.model.model || '',
       baseUrl: props.model.baseUrl || '',
       apiKey: '', // API密钥不显示，需要重新输入
-      maxTokens: props.model.maxTokens || 2000,
-      temperature: props.model.temperature || 0.7,
-      weight: props.model.weight || 100,
-      rpmLimit: props.model.rpmLimit || 60,
-      rphLimit: props.model.rphLimit || 1000,
-      rpdLimit: props.model.rpdLimit || 10000,
+      ...DEFAULT_MODEL_FORM,
+      maxTokens: props.model.maxTokens ?? DEFAULT_MODEL_FORM.maxTokens,
+      temperature: props.model.temperature ?? DEFAULT_MODEL_FORM.temperature,
+      weight: props.model.weight ?? DEFAULT_MODEL_FORM.weight,
+      rpmLimit: props.model.rpmLimit ?? DEFAULT_MODEL_FORM.rpmLimit,
+      rphLimit: props.model.rphLimit ?? DEFAULT_MODEL_FORM.rphLimit,
+      rpdLimit: props.model.rpdLimit ?? DEFAULT_MODEL_FORM.rpdLimit,
       description: props.model.description || '',
       enabled: props.model.enabled ?? true
     })
@@ -382,10 +389,10 @@ watch(() => props.model, (newVal) => {
 }
 
 .p-invalid {
-  border-color: rgb(239, 68, 68) !important;
+  border-color: var(--color-danger-500) !important;
 }
 
 .text-danger-500 {
-  color: rgb(239, 68, 68);
+  color: var(--color-danger-500);
 }
 </style>

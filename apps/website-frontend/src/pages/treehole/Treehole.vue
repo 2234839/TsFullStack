@@ -17,16 +17,16 @@
       <!-- 过滤器 -->
       <div class="mb-6 flex flex-wrap gap-2 items-center justify-between bg-white dark:bg-primary-900 rounded-lg shadow-sm p-4">
         <div class="flex gap-2">
-          <button
+          <Button
             v-for="filter in visibilityFilters"
             :key="filter.value"
+            variant="ghost"
+            :class="[currentFilter === filter.value ? filter.activeClass : filter.inactiveClass]"
             @click="currentFilter = filter.value"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            :class="currentFilter === filter.value ? filter.activeClass : filter.inactiveClass"
           >
             <i :class="filter.icon"></i>
             <span class="ml-1">{{ filter.label }}</span>
-          </button>
+          </Button>
         </div>
 
         <div class="relative">
@@ -114,8 +114,10 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
+import { authInfo_isLogin, authInfo } from '@/storage';
 import { useAPI } from '@/api';
 import { Button, Input, Message, ProgressSpinner } from '@/components/base';
+import { getErrorMessage } from '@/utils/error';
 import TreeholePost from './TreeholePost.vue';
 import TreeholePostForm from './TreeholePostForm.vue';
 import { useDebounceFn } from '@vueuse/core';
@@ -191,11 +193,11 @@ async function loadPosts(reset = true) {
     }
 
     // 构建查询参数
-    const query: any = {
+    const query = {
       skip: skip.value,
       take,
-      onlyRoot: true, // 只获取主题帖
-    };
+      onlyRoot: true,
+    } as Parameters<typeof AppAPI.treeholeApi.queryPosts>[0];
 
     // 根据过滤器设置可见性
     if (currentFilter.value === 'PUBLIC') {
@@ -203,8 +205,9 @@ async function loadPosts(reset = true) {
     } else if (currentFilter.value === 'MEMBERS') {
       query.visibility = ['MEMBERS', 'PUBLIC'];
     } else if (currentFilter.value === 'MY') {
-      // TODO: 从用户状态获取当前用户ID
-      // 暂时不过滤"我的"帖子
+      if (authInfo_isLogin.value) {
+        query.authorId = authInfo.value.userId;
+      }
     }
 
     // 如果有搜索关键词
@@ -223,9 +226,8 @@ async function loadPosts(reset = true) {
 
     // 判断是否还有更多数据
     hasMore.value = result.hasMore;
-  } catch (err: any) {
-    console.error('加载帖子失败:', err);
-    error.value = '加载失败：' + (err.message || '未知错误');
+  } catch (err: unknown) {
+    error.value = '加载失败：' + getErrorMessage(err);
   } finally {
     isLoading.value = false;
   }

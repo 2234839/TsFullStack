@@ -1,15 +1,29 @@
 import { Effect } from 'effect';
 import { AIProxyService } from '../../Context/AIProxyService';
-import { authUserIsAdmin } from '../../Context/Auth';
+import { requireAdmin } from '../../Context/Auth';
 import { reqClientIpEffect } from '../../Context/ClientIPService';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
+import { dbTry } from '../../util/dbEffect';
 import {
   AIModel,
   OpenAIRequest as OpenAIProxyRequest,
   OpenAIResponse as OpenAIProxyResponse,
 } from '../../types/ai';
 import { evaluateInfoQuality } from './信息分辨';
+
+/** 默认 AI 模型 */
+const DEFAULT_AI_MODEL = 'gpt-3.5-turbo';
+
+/** AI 模型默认参数 */
+const DEFAULT_AI_CONFIG = {
+  maxTokens: 2000,
+  temperature: 0.7,
+  weight: 100,
+  rpmLimit: 60,
+  rphLimit: 1000,
+  rpdLimit: 10000,
+} as const;
 
 /** 创建AI模型请求 */
 export interface CreateAIModelRequest {
@@ -57,7 +71,7 @@ export const aiApi = {
       // 确保model字段有值
       const finalRequest = {
         ...request,
-        model: request.model || 'gpt-3.5-turbo', // 默认模型
+        model: request.model || DEFAULT_AI_MODEL,
       };
 
       // 调用AI代理服务
@@ -68,21 +82,14 @@ export const aiApi = {
   /** 获取所有AI模型（管理员） */
   getAIModels: () =>
     Effect.gen(function* () {
-      // 检查管理员权限
-      const isAdmin = yield* authUserIsAdmin();
-      if (!isAdmin) {
-        throw new Error('需要管理员权限');
-      }
+      yield* requireAdmin();
 
       const dbClient = yield* DbClientEffect;
-      const models = yield* Effect.tryPromise({
-        try: () =>
-          dbClient.aiModel.findMany({
-            orderBy: { id: 'asc' },
-          }),
-        catch: (error) =>
-          new Error(`获取AI模型失败: ${error instanceof Error ? error.message : String(error)}`),
-      });
+      const models = yield* dbTry('[AiApi]', '获取AI模型', () =>
+        dbClient.aiModel.findMany({
+          orderBy: { id: 'asc' },
+        }),
+      );
 
       return models as AIModel[];
     }),
@@ -90,34 +97,27 @@ export const aiApi = {
   /** 创建AI模型（管理员） */
   createAIModel: (request: CreateAIModelRequest) =>
     Effect.gen(function* () {
-      // 检查管理员权限
-      const isAdmin = yield* authUserIsAdmin();
-      if (!isAdmin) {
-        throw new Error('需要管理员权限');
-      }
+      yield* requireAdmin();
 
       const dbClient = yield* DbClientEffect;
-      const model = yield* Effect.tryPromise({
-        try: () =>
-          dbClient.aiModel.create({
-            data: {
-              name: request.name,
-              model: request.model,
-              baseUrl: request.baseUrl,
-              apiKey: request.apiKey,
-              maxTokens: request.maxTokens || 2000,
-              temperature: request.temperature || 0.7,
-              enabled: request.enabled !== undefined ? request.enabled : true,
-              weight: request.weight || 100,
-              rpmLimit: request.rpmLimit || 60,
-              rphLimit: request.rphLimit || 1000,
-              rpdLimit: request.rpdLimit || 10000,
-              description: request.description,
-            },
-          }),
-        catch: (error) =>
-          new Error(`创建AI模型失败: ${error instanceof Error ? error.message : String(error)}`),
-      });
+      const model = yield* dbTry('[AiApi]', '创建AI模型', () =>
+        dbClient.aiModel.create({
+          data: {
+            name: request.name,
+            model: request.model,
+            baseUrl: request.baseUrl,
+            apiKey: request.apiKey,
+            maxTokens: request.maxTokens ?? DEFAULT_AI_CONFIG.maxTokens,
+            temperature: request.temperature ?? DEFAULT_AI_CONFIG.temperature,
+            enabled: request.enabled !== undefined ? request.enabled : true,
+            weight: request.weight ?? DEFAULT_AI_CONFIG.weight,
+            rpmLimit: request.rpmLimit ?? DEFAULT_AI_CONFIG.rpmLimit,
+            rphLimit: request.rphLimit ?? DEFAULT_AI_CONFIG.rphLimit,
+            rpdLimit: request.rpdLimit ?? DEFAULT_AI_CONFIG.rpdLimit,
+            description: request.description,
+          },
+        }),
+      );
 
       return model as AIModel;
     }),
@@ -125,35 +125,28 @@ export const aiApi = {
   /** 更新AI模型（管理员） */
   updateAIModel: (request: UpdateAIModelRequest) =>
     Effect.gen(function* () {
-      // 检查管理员权限
-      const isAdmin = yield* authUserIsAdmin();
-      if (!isAdmin) {
-        throw new Error('需要管理员权限');
-      }
+      yield* requireAdmin();
 
       const dbClient = yield* DbClientEffect;
-      const model = yield* Effect.tryPromise({
-        try: () =>
-          dbClient.aiModel.update({
-            where: { id: request.id },
-            data: {
-              ...(request.name !== undefined && { name: request.name }),
-              ...(request.model !== undefined && { model: request.model }),
-              ...(request.baseUrl !== undefined && { baseUrl: request.baseUrl }),
-              ...(request.apiKey !== undefined && { apiKey: request.apiKey }),
-              ...(request.maxTokens !== undefined && { maxTokens: request.maxTokens }),
-              ...(request.temperature !== undefined && { temperature: request.temperature }),
-              ...(request.enabled !== undefined && { enabled: request.enabled }),
-              ...(request.weight !== undefined && { weight: request.weight }),
-              ...(request.rpmLimit !== undefined && { rpmLimit: request.rpmLimit }),
-              ...(request.rphLimit !== undefined && { rphLimit: request.rphLimit }),
-              ...(request.rpdLimit !== undefined && { rpdLimit: request.rpdLimit }),
-              ...(request.description !== undefined && { description: request.description }),
-            },
-          }),
-        catch: (error) =>
-          new Error(`更新AI模型失败: ${error instanceof Error ? error.message : String(error)}`),
-      });
+      const model = yield* dbTry('[AiApi]', '更新AI模型', () =>
+        dbClient.aiModel.update({
+          where: { id: request.id },
+          data: {
+            ...(request.name !== undefined && { name: request.name }),
+            ...(request.model !== undefined && { model: request.model }),
+            ...(request.baseUrl !== undefined && { baseUrl: request.baseUrl }),
+            ...(request.apiKey !== undefined && { apiKey: request.apiKey }),
+            ...(request.maxTokens !== undefined && { maxTokens: request.maxTokens }),
+            ...(request.temperature !== undefined && { temperature: request.temperature }),
+            ...(request.enabled !== undefined && { enabled: request.enabled }),
+            ...(request.weight !== undefined && { weight: request.weight }),
+            ...(request.rpmLimit !== undefined && { rpmLimit: request.rpmLimit }),
+            ...(request.rphLimit !== undefined && { rphLimit: request.rphLimit }),
+            ...(request.rpdLimit !== undefined && { rpdLimit: request.rpdLimit }),
+            ...(request.description !== undefined && { description: request.description }),
+          },
+        }),
+      );
 
       return model as AIModel;
     }),
@@ -161,21 +154,14 @@ export const aiApi = {
   /** 删除AI模型（管理员） */
   deleteAIModel: (id: number) =>
     Effect.gen(function* () {
-      // 检查管理员权限
-      const isAdmin = yield* authUserIsAdmin();
-      if (!isAdmin) {
-        throw new Error('需要管理员权限');
-      }
+      yield* requireAdmin();
 
       const dbClient = yield* DbClientEffect;
-      yield* Effect.tryPromise({
-        try: () =>
-          dbClient.aiModel.delete({
-            where: { id },
-          }),
-        catch: (error) =>
-          new Error(`删除AI模型失败: ${error instanceof Error ? error.message : String(error)}`),
-      });
+      yield* dbTry('[AiApi]', '删除AI模型', () =>
+        dbClient.aiModel.delete({
+          where: { id },
+        }),
+      );
 
       return { success: true };
     }),
@@ -183,15 +169,13 @@ export const aiApi = {
   /** 清理过期的API调用记录 */
   cleanupExpiredApiCalls: () =>
     Effect.gen(function* () {
-      if (!(yield* authUserIsAdmin())) {
-        throw new Error('需要管理员权限');
-      }
+      yield* requireAdmin();
 
       const aiProxyService = yield* AIProxyService;
       const result = yield* aiProxyService.cleanupExpiredApiLogs();
 
       const ctx = yield* ReqCtxService;
-      ctx.log(result.message);
+      ctx.log('[AiApi] ' + result.message);
       return result;
     }),
 };

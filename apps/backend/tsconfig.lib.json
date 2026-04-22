@@ -6,14 +6,16 @@
         "declarationMap": true,
         "outDir": "./dist-lib",
         "composite": true,
-        "skipLibCheck": false,
+        "skipLibCheck": true,
         "baseUrl": ".",
         "paths": {
             "@/*": ["./src/*"]
         }
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        ".zenstack/**/*",
+        "projects/**/*"
     ],
     "exclude": [
         "node_modules",

@@ -13,6 +13,24 @@ export interface AIImageGenerateResult {
   taskId: string;
 }
 
+/** 图片生成 Provider 配置 */
+interface ProviderConfig {
+  /** API Key 在配置中的字段名 */
+  apiKeyField: 'qwenApiKey' | 'dalleApiKey' | 'stabilityApiKey' | 'glmApiKey';
+  /** API Key 未配置时的错误信息 */
+  missingKeyMsg: string;
+  /** 构建请求参数 */
+  buildRequest: (prompt: string, options: { count?: number; size?: string; quality?: string }) => {
+    url: string;
+    headers: Record<string, string>;
+    body: Record<string, unknown>;
+  };
+  /** 解析响应为图片列表和任务 ID */
+  parseResponse: (result: Record<string, unknown>) => { images: string[]; taskId: string };
+  /** 可选的错误详情提取（用于非 ok 响应） */
+  extractErrorDetail?: (response: Response) => Effect.Effect<string, string>;
+}
+
 /**
  * AI 图片生成服务
  */
@@ -31,319 +49,183 @@ export const aiImageGenerateService = (
 > =>
   Effect.gen(function* () {
     const reqCtx = yield* ReqCtxService;
-    reqCtx.log(`[AIImage] 生成图片 - Provider: ${options.provider}, Prompt: ${prompt.substring(0, 50)}...`);
+    reqCtx.log('[AIImage] 生成图片, provider=' + options.provider);
 
-    switch (options.provider) {
-      case 'qwen':
-        return yield* generateWithQwen(prompt, options);
-      case 'dalle':
-        return yield* generateWithDalle(prompt, options);
-      case 'stability':
-        return yield* generateWithStability(prompt, options);
-      case 'glm':
-        return yield* generateWithGlm(prompt, options);
-      default:
-        throw MsgError.msg('不支持的 AI 服务提供商');
+    const config = getProviderConfig(options.provider);
+    if (!config) {
+      throw MsgError.msg('不支持的 AI 服务提供商');
     }
+
+    return yield* callImageProvider(prompt, options, config);
   });
 
 /**
- * 通义千问图片生成
+ * 通用的图片 Provider 调用逻辑
  */
-function generateWithQwen(
+function callImageProvider(
   prompt: string,
-  options: {
-    provider: string;
-    count?: number;
-    size?: string;
-    quality?: string;
-  }
-): Effect.Effect<
-  AIImageGenerateResult,
-  Error | string,
-  ReqCtxService | AppConfigService
-> {
+  options: { count?: number; size?: string; quality?: string },
+  config: ProviderConfig,
+): Effect.Effect<AIImageGenerateResult, Error | string, ReqCtxService | AppConfigService> {
   return Effect.gen(function* () {
     const reqCtx = yield* ReqCtxService;
     const appConfig = yield* AppConfigService;
 
-    const apiKey = appConfig.aiImage?.qwenApiKey;
+    const apiKey = appConfig.aiImage?.[config.apiKeyField];
     if (!apiKey) {
-      throw MsgError.msg('通义千问 API Key 未配置');
+      throw MsgError.msg(config.missingKeyMsg);
     }
+
+    const { url, headers, body } = config.buildRequest(prompt, options);
+
+    // 注入 Authorization header
+    headers['Authorization'] = `Bearer ${apiKey}`;
 
     const response = yield* Effect.tryPromise({
       try: () =>
-        fetch('https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation', {
+        fetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'wanx-v1',
-            input: {
-              prompt: prompt,
-            },
-            parameters: {
-              size: options.size || '1024*1024',
-              n: options.count || 1,
-            },
-          }),
+          headers,
+          body: JSON.stringify(body),
         }),
-      catch: (error) => {
-        reqCtx.log('[AIImage] 调用通义千问 API 失败:', String(error));
+      catch: (_error) => {
+        reqCtx.log('[AIImage] 调用 AI API 失败');
         throw MsgError.msg('调用 AI 服务失败');
       },
     });
 
     if (!response.ok) {
+      if (config.extractErrorDetail) {
+        const detail = yield* config.extractErrorDetail(response);
+        throw MsgError.msg(`AI 服务返回错误: ${response.statusText} - ${detail}`);
+      }
       throw MsgError.msg(`AI 服务返回错误: ${response.statusText}`);
     }
 
     const result = yield* Effect.tryPromise({
-      try: () => response.json(),
+      try: () => response.json() as Promise<Record<string, unknown>>,
       catch: () => {
         throw MsgError.msg('解析 AI 响应失败');
       },
     });
 
-    if (result.code !== 'Success') {
-      throw MsgError.msg(`AI 生成失败: ${result.message}`);
-    }
-
-    const images: string[] = result.output?.results?.map((r: { url: string }) => r.url) || [];
-
-    return {
-      images,
-      taskId: result.request_id,
-    };
+    return config.parseResponse(result);
   });
 }
 
-/**
- * DALL-E 图片生成
- */
-function generateWithDalle(
-  prompt: string,
-  options: {
-    provider: string;
-    count?: number;
-    size?: string;
-    quality?: string;
-  }
-): Effect.Effect<
-  AIImageGenerateResult,
-  Error | string,
-  ReqCtxService | AppConfigService
-> {
-  return Effect.gen(function* () {
-    const reqCtx = yield* ReqCtxService;
-    const appConfig = yield* AppConfigService;
+/** GLM 尺寸映射表 — 仅保留需要转换的尺寸，其余走 fallback */
+const GLM_SIZE_MAP: Partial<Record<string, string>> = {
+  '1024x768': '768x1344',
+  '1344x768': '768x1344',
+  '768x1024': '1024x1344',
+  '1152x864': '864x1152',
+  '864x1152': '864x1152',
+};
 
-    const apiKey = appConfig.aiImage?.dalleApiKey;
-    if (!apiKey) {
-      throw MsgError.msg('DALL-E API Key 未配置');
-    }
-
-    // DALL-E 只支持单张生成
-    const response = yield* Effect.tryPromise({
-      try: () =>
-        fetch('https://api.openai.com/v1/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'dall-e-3',
-            prompt: prompt,
-            n: 1,
-            size: options.size || '1024x1024',
-          }),
-        }),
-      catch: (error) => {
-        reqCtx.log('[AIImage] 调用 DALL-E API 失败:', String(error));
-        throw MsgError.msg('调用 AI 服务失败');
+/** Provider 配置表（模块级常量，避免每次调用重建） */
+const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
+  qwen: {
+    apiKeyField: 'qwenApiKey',
+    missingKeyMsg: '通义千问 API Key 未配置',
+    buildRequest: (_prompt, options) => ({
+      url: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        model: 'wanx-v1',
+        input: { prompt: _prompt },
+        parameters: {
+          size: options.size || '1024*1024',
+          n: options.count || 1,
+        },
       },
-    });
-
-    if (!response.ok) {
-      throw MsgError.msg(`AI 服务返回错误: ${response.statusText}`);
-    }
-
-    const result = yield* Effect.tryPromise({
-      try: () => response.json(),
-      catch: () => {
-        throw MsgError.msg('解析 AI 响应失败');
+    }),
+    parseResponse: (result) => {
+      const output = result.output as Record<string, unknown> | undefined;
+      const results = output?.results as Array<{ url: string }> | undefined;
+      return {
+        images: (results || []).map(r => r.url),
+        taskId: String(result.request_id || ''),
+      };
+    },
+  },
+  dalle: {
+    apiKeyField: 'dalleApiKey',
+    missingKeyMsg: 'DALL-E API Key 未配置',
+    buildRequest: (_prompt, options) => ({
+      url: 'https://api.openai.com/v1/images/generations',
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        model: 'dall-e-3',
+        prompt: _prompt,
+        n: 1,
+        size: options.size || '1024x1024',
       },
-    });
-
-    const images: string[] = result.data?.map((item: { url: string }) => item.url) || [];
-
-    return {
-      images,
-      taskId: result.created,
-    };
-  });
-}
-
-/**
- * Stability AI 图片生成
- */
-function generateWithStability(
-  prompt: string,
-  options: {
-    provider: string;
-    count?: number;
-    size?: string;
-    quality?: string;
-  }
-): Effect.Effect<
-  AIImageGenerateResult,
-  Error | string,
-  ReqCtxService | AppConfigService
-> {
-  return Effect.gen(function* () {
-    const reqCtx = yield* ReqCtxService;
-    const appConfig = yield* AppConfigService;
-
-    const apiKey = appConfig.aiImage?.stabilityApiKey;
-    if (!apiKey) {
-      throw MsgError.msg('Stability AI API Key 未配置');
-    }
-
-    // 解析尺寸
-    const [width, height] = (options.size || '1024x1024').split('x').map(Number);
-
-    const response = yield* Effect.tryPromise({
-      try: () =>
-        fetch('https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            text_prompts: [
-              {
-                text: prompt,
-              },
-            ],
-            cfg_scale: 7,
-            height: height || 1024,
-            width: width || 1024,
-            steps: 30,
-            samples: options.count || 1,
-          }),
-        }),
-      catch: (error) => {
-        reqCtx.log('[AIImage] 调用 Stability API 失败:', String(error));
-        throw MsgError.msg('调用 AI 服务失败');
+    }),
+    parseResponse: (result) => ({
+      images: ((result.data as Array<{ url: string }>) || []).map(item => item.url),
+      taskId: String(result.created || ''),
+    }),
+  },
+  stability: {
+    apiKeyField: 'stabilityApiKey',
+    missingKeyMsg: 'Stability AI API Key 未配置',
+    buildRequest: (_prompt, options) => {
+      const [width, height] = (options.size || '1024x1024').split('x').map(Number);
+      return {
+        url: 'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: {
+          text_prompts: [{ text: _prompt }],
+          cfg_scale: 7,
+          height: height || 1024,
+          width: width || 1024,
+          steps: 30,
+          samples: options.count || 1,
+        },
+      };
+    },
+    parseResponse: (result) => ({
+      images: ((result.artifacts as Array<{ base64: string }>) || []).map(
+        item => `data:image/png;base64,${item.base64}`,
+      ),
+      taskId: String(result.request_id || ''),
+    }),
+  },
+  glm: {
+    apiKeyField: 'glmApiKey',
+    missingKeyMsg: '智谱 GLM API Key 未配置',
+    buildRequest: (_prompt, options) => ({
+      url: 'https://open.bigmodel.cn/api/paas/v4/images/generations',
+      headers: { 'Content-Type': 'application/json' },
+      body: {
+        model: 'cogview-3-plus',
+        prompt: _prompt,
+        size: GLM_SIZE_MAP[options.size || '1024x1024'] || '1024x1024',
+        n: options.count || 1,
       },
-    });
-
-    if (!response.ok) {
-      throw MsgError.msg(`AI 服务返回错误: ${response.statusText}`);
-    }
-
-    const result = yield* Effect.tryPromise({
-      try: () => response.json(),
-      catch: () => {
-        throw MsgError.msg('解析 AI 响应失败');
-      },
-    });
-
-    const images: string[] = result.artifacts?.map((item: { base64: string }) => `data:image/png;base64,${item.base64}`) || [];
-
-    return {
-      images,
-      taskId: result.request_id,
-    };
-  });
-}
-
-/**
- * 智谱 GLM 图片生成 (CogView)
- */
-function generateWithGlm(
-  prompt: string,
-  options: {
-    provider: string;
-    count?: number;
-    size?: string;
-    quality?: string;
-  }
-): Effect.Effect<
-  AIImageGenerateResult,
-  Error | string,
-  ReqCtxService | AppConfigService
-> {
-  return Effect.gen(function* () {
-    const reqCtx = yield* ReqCtxService;
-    const appConfig = yield* AppConfigService;
-
-    const apiKey = appConfig.aiImage?.glmApiKey;
-    if (!apiKey) {
-      throw MsgError.msg('智谱 GLM API Key 未配置');
-    }
-
-    // 解析尺寸，智谱支持: 1024x1024, 768x1344, 864x1152, 1344x768, 1152x864
-    const sizeMap: Record<string, string> = {
-      '1024x1024': '1024x1024',
-      '768x1344': '768x1344',
-      '864x1152': '864x1152',
-      '1344x768': '1344x768',
-      '1152x864': '1152x864',
-    };
-    const size = sizeMap[options.size || '1024x1024'] || '1024x1024';
-
-    const response = yield* Effect.tryPromise({
-      try: () =>
-        fetch('https://open.bigmodel.cn/api/paas/v4/images/generations', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: 'cogview-3-plus', // 使用智谱最新的文生图模型
-            prompt: prompt,
-            size: size,
-            n: options.count || 1,
-          }),
-        }),
-      catch: (error) => {
-        reqCtx.log('[AIImage] 调用智谱 GLM API 失败:', String(error));
-        throw MsgError.msg('调用 AI 服务失败');
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = yield* Effect.tryPromise({
+    }),
+    parseResponse: (result) => {
+      const error = result.error as Record<string, unknown> | undefined;
+      if (error) {
+        const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
+        throw MsgError.msg(`智谱 GLM 生成失败: ${msg}`);
+      }
+      return {
+        images: ((result.data as Array<{ url: string }>) || []).map(item => item.url),
+        taskId: String(result.id || Date.now()),
+      };
+    },
+    extractErrorDetail: (response) =>
+      Effect.tryPromise({
         try: () => response.text(),
         catch: () => 'Unknown error',
-      });
-      throw MsgError.msg(`AI 服务返回错误: ${response.statusText} - ${errorText}`);
-    }
+      }),
+  },
+};
 
-    const result = yield* Effect.tryPromise({
-      try: () => response.json(),
-      catch: () => {
-        throw MsgError.msg('解析 AI 响应失败');
-      },
-    });
-
-    if (result.error) {
-      throw MsgError.msg(`智谱 GLM 生成失败: ${result.error.message || result.error}`);
-    }
-
-    const images: string[] = result.data?.map((item: { url: string }) => item.url) || [];
-
-    return {
-      images,
-      taskId: result.id || Date.now().toString(),
-    };
-  });
+/**
+ * 获取 Provider 配置
+ */
+function getProviderConfig(provider: string): ProviderConfig | null {
+  return PROVIDER_CONFIGS[provider] || null;
 }

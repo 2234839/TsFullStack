@@ -280,6 +280,7 @@
   import Input from '@/components/base/Input.vue';
   import Password from '@/components/base/Password.vue';
   import { useToast } from '@/composables/useToast';
+  import { getErrorMessage } from '@/utils/error';
   import { computed, onMounted, ref } from 'vue';
 
   const props = defineProps<{
@@ -295,8 +296,8 @@
   const agreeTerms = ref(false); // 用户协议勾选
 
   const form = ref({
-    username: 'admin@example.com',
-    password: 'adminpassword123',
+    username: '',
+    password: '',
     confirmPassword: '',
   });
 
@@ -403,20 +404,15 @@
         // 注册成功后切换到登录页
         isLogin.value = true;
       }
-    } catch (error) {
-      console.log('[error]', error);
+    } catch (error: unknown) {
+      toast.error('登录失败', getErrorMessage(error));
     } finally {
       loading.value = false;
     }
   };
 
-  const stars = ref<any[]>([]);
-
   onMounted(() => {
     useEventListener(document, 'mousemove', handleMouseMove);
-    for (let n = 0; n < 20; n++) {
-      stars.value.push(getRandomStarStyle());
-    }
     if (localUserPwd.value.rememberMe) {
       form.value.username = localUserPwd.value.username;
       form.value.password = localUserPwd.value.password;

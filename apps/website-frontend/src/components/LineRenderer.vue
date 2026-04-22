@@ -1,16 +1,16 @@
 <template>
   <div class="text-lg leading-relaxed flex flex-wrap gap-1 items-center">
     <!-- 渲染一行中的所有单词 -->
-    <template v-for="(token, tokenIndex) in tokens" :key="tokenIndex">
+    <template v-for="(info, tokenIndex) in tokenRenderInfos" :key="tokenIndex">
       <WordRenderer
-        v-if="renderToken(token, tokenIndex).isWord"
-        :word="renderToken(token, tokenIndex).word!"
-        :index="wordIndexMap[tokenIndex]!"
-        :isKeyWord="renderToken(token, tokenIndex).isKeyWord"
-        :memoryLevel="renderToken(token, tokenIndex).memoryLevel"
-        :isClicked="renderToken(token, tokenIndex).isClicked"
-        :isSelected="renderToken(token, tokenIndex).isSelected"
-        :isHighlighted="renderToken(token, tokenIndex).isHighlighted"
+        v-if="info.isWord"
+        :word="info.word!"
+        :index="wordIndexMap[tokenIndex] ?? 0"
+        :isKeyWord="info.isKeyWord"
+        :memoryLevel="info.memoryLevel"
+        :isClicked="info.isClicked"
+        :isSelected="info.isSelected"
+        :isHighlighted="info.isHighlighted"
         @wordMouseDown="handleWordMouseDown"
       />
       <span
@@ -18,7 +18,7 @@
         class="select-none"
         :style="{ lineHeight: '1.6' }"
       >
-        {{ token }}
+        {{ tokens[tokenIndex] }}
       </span>
     </template>
   </div>
@@ -27,16 +27,29 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import WordRenderer from './WordRenderer.vue'
+import type { WordData } from '@/pages/AiEnglish/data'
+import type { StudySession, SelectionState, AIAnalysis } from '@/pages/AiEnglish/types'
 
 interface Props {
   line: string
   lineStartWordIndex: number
   currentParagraphKeyWords: string[]
-  getWordData: (word: string) => any
-  currentSession: any
-  selectionState: any
+  getWordData: (word: string) => WordData | undefined
+  currentSession: StudySession
+  selectionState: SelectionState
   highlightedWordIndex: number
-  aiAnalysis: any
+  aiAnalysis: AIAnalysis | null
+}
+
+/** 单词渲染信息 */
+interface TokenRenderInfo {
+  isWord: boolean
+  word?: string
+  isKeyWord?: boolean
+  memoryLevel?: number
+  isClicked?: boolean
+  isSelected?: boolean
+  isHighlighted?: boolean
 }
 
 const props = defineProps<Props>()
@@ -63,8 +76,13 @@ const wordIndexMap = computed(() => {
   return map
 })
 
+/** 预计算所有 token 的渲染信息，避免模板中重复调用 */
+const tokenRenderInfos = computed<TokenRenderInfo[]>(() =>
+  tokens.value.map((token, tokenIndex) => renderToken(token, tokenIndex))
+)
+
 // 渲染每个token的信息
-const renderToken = (token: string, tokenIndex: number) => {
+const renderToken = (token: string, tokenIndex: number): TokenRenderInfo => {
   const cleanWord = token.toLowerCase().replace(/[^\w]/g, '')
   const wordData = props.getWordData?.(cleanWord)
 
@@ -72,10 +90,10 @@ const renderToken = (token: string, tokenIndex: number) => {
     return { isWord: false }
   }
 
-  const isKeyWord = props.aiAnalysis?.value?.keyWords?.includes(cleanWord) ||
+  const isKeyWord = props.aiAnalysis?.keyWords?.includes(cleanWord) ||
                    props.currentParagraphKeyWords.includes(cleanWord)
-  const isClicked = props.currentSession?.clickedWords?.has(cleanWord) || false
-  const isSelected = props.selectionState?.selectedWords?.has(wordIndexMap.value[tokenIndex]) || false
+  const isClicked = props.currentSession.clickedWords.has(cleanWord)
+  const isSelected = props.selectionState.selectedWords.has(wordIndexMap.value[tokenIndex])
   const isHighlighted = props.highlightedWordIndex === wordIndexMap.value[tokenIndex]
 
   return {

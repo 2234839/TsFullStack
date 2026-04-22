@@ -2,6 +2,7 @@ import {
   createRouter,
   createWebHistory,
   type RouteLocationRaw,
+  type RouteRecordRaw,
   type Router,
 } from 'vue-router';
 import { t as i18n_t } from './i18n';
@@ -157,14 +158,6 @@ export const routeMap = reactive({
       icon: 'pi pi-calculator',
     },
   },
-  VrImg: {
-    path: '/VrImg',
-    component: () => import('@/pages/VrImg/VrImg.vue'),
-    meta: {
-      title: t('VR图片'),
-      icon: 'pi pi-image',
-    },
-  },
   oauth: {
     path: '/oauth',
     redirect: defaultRoute,
@@ -237,14 +230,6 @@ export const routeMap = reactive({
       hideTab: true,
     },
   },
-  debug: {
-    path: '/debug',
-    component: () => import('@/pages/debug.vue'),
-    meta: {
-      title: '调试页面',
-      hideTab: true,
-    },
-  },
   notFound: {
     path: '/:pathMatch(.*)*',
     component: () => import('@/pages/NotFound.vue'),
@@ -260,7 +245,7 @@ export const allRoutes: RouteNode[] = transformRoutes(routeMap);
 export { findRouteNode } from '@tsfullstack/shared-frontend/utils';
 export const router = createRouter({
   history: createWebHistory(),
-  routes: allRoutes as any,
+  routes: allRoutes as RouteRecordRaw[],
 });
 
 export type RouteObjProps<T extends { component?: ((...args: any) => any) | null | undefined }> =

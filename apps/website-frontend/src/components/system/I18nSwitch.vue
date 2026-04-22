@@ -3,20 +3,20 @@
   <Tooltip :content="t('切换语言')">
     <Dropdown v-model="menuOpen">
       <template #trigger>
-        <button
-          class="w-9 h-9 flex items-center justify-center rounded-full transition-all duration-300 hover:bg-primary-100 dark:hover:bg-primary-800 text-primary-700 dark:text-primary-300 cursor-pointer">
+        <Button variant="ghost"
+          class="w-9 h-9 flex items-center justify-center rounded-full p-0!">
           <i class="pi pi-language"></i>
-        </button>
+        </Button>
       </template>
       <div class="py-1">
-        <button @click="switchI18n('zh-CN')"
-          class="w-full text-left px-4 py-2 text-sm text-primary-800 dark:text-primary-200 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
+        <Button variant="ghost" @click="switchI18n('zh-CN')"
+          class="w-full justify-start">
           中文
-        </button>
-        <button @click="switchI18n('en')"
-          class="w-full text-left px-4 py-2 text-sm text-primary-800 dark:text-primary-200 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
+        </Button>
+        <Button variant="ghost" @click="switchI18n('en')"
+          class="w-full justify-start">
           English
-        </button>
+        </Button>
       </div>
     </Dropdown>
   </Tooltip>
@@ -25,7 +25,8 @@
   import { loadLocaleMessages } from '@/i18n';
   import { i18nStore } from '@/storage';
   import { ref } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  import { useI18n } from '@/composables/useI18n';
+  import { Button } from '@/components/base';
   import { Dropdown, Tooltip } from '@tsfullstack/shared-frontend/components';
 
   const { t } = useI18n();

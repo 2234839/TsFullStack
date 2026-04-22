@@ -8,7 +8,7 @@ import {
   useStorage,
   useStorageAsync,
 } from '@vueuse/core';
-import { computed, watchEffect } from 'vue';
+import { computed, watch } from 'vue';
 export const appId = 'tfs_';
 /** 用户认证信息存储  */
 export const authInfo = useStorageAsync<loginByEmailPwd_res>(
@@ -59,8 +59,8 @@ export const theme_isDark = computed<boolean>({
     return theme.value === 'dark';
   },
 });
-watchEffect(() => {
-  if (theme_isDark.value) {
+watch(theme_isDark, (isDark) => {
+  if (isDark) {
     document.documentElement.classList.add(theme_darkModeClass);
   } else {
     document.documentElement.classList.remove(theme_darkModeClass);

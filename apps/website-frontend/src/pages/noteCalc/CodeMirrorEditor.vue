@@ -35,11 +35,14 @@
 <script setup lang="ts">
   import { onMounted, ref, watch, computed, shallowRef } from 'vue';
   import { EditorView, lineNumbers, drawSelection, dropCursor, keymap, Decoration, WidgetType } from '@codemirror/view';
-  import { EditorState, Compartment } from '@codemirror/state';
+  import { EditorState, Compartment, Range } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
   import { useThrottleFn } from '@vueuse/core';
   import { useCalculator } from './useCalculator';
   import type { CalculationResult, CalculatorConfig } from './types';
+
+  /** 语法高亮装饰器，与 Range<Decoration> 格式一致 */
+  type HighlightRange = Range<Decoration>;
   import ProgressSpinner from '@/components/base/ProgressSpinner.vue';
   import { theme_isDark } from '@/storage';
 
@@ -121,9 +124,9 @@
 
         // 如果是大数字，只显示格式化的数字；否则显示原始数字
         if (this.result.isLargeNumber && this.result.formattedNumber) {
-          span.innerHTML = `= ${this.result.formattedNumber}`;
+          span.textContent = `= ${this.result.formattedNumber}`;
         } else {
-          span.innerHTML = `= ${this.result.result}`;
+          span.textContent = `= ${this.result.result}`;
         }
       }
 
@@ -149,15 +152,10 @@
     const highlightDecos = createSyntaxHighlightDecorations(view.state.doc.toString());
     // 将两个装饰数组合并并排序
     const allDecos = [...resultDecos, ...highlightDecos];
-    // 按 from 位置排序，确保符合 CodeMirror 的要求
+    // 按位置排序，确保符合 CodeMirror 的要求
     allDecos.sort((a, b) => {
-      const fromA = a.from ?? 0;
-      const fromB = b.from ?? 0;
-      if (fromA !== fromB) return fromA - fromB;
-      // 如果 from 相同，按 to 排序
-      const toA = a.to ?? 0;
-      const toB = b.to ?? 0;
-      return toA - toB;
+      if (a.from !== b.from) return a.from - b.from;
+      return a.to - b.to;
     });
     return Decoration.set(allDecos);
   });
@@ -166,7 +164,7 @@
    * 创建语法高亮装饰器
    */
   function createSyntaxHighlightDecorations(content: string) {
-    const decorations: any[] = [];
+    const decorations: Range<Decoration>[] = [];
     const lines = content.split('\n');
 
     let pos = 0;
@@ -179,7 +177,7 @@
       }
 
       // 收集当前行的所有装饰器，稍后排序
-      const lineDecorations: any[] = [];
+      const lineDecorations: HighlightRange[] = [];
 
       // 检查是否为标题（# 或 ## 开头）
       const titleMatch = line.match(/^(#{1,2})\s+(.*)/);
@@ -188,18 +186,14 @@
         const titleText = titleMatch[2];
 
         // 高亮 # 符号
-        lineDecorations.push({
-          from: pos,
-          to: pos + hashLength,
-          decoration: Decoration.mark({ class: hashLength === 1 ? 'syntax-h1-hash' : 'syntax-h2-hash' })
-        });
+        lineDecorations.push(
+          Decoration.mark({ class: hashLength === 1 ? 'syntax-h1-hash' : 'syntax-h2-hash' }).range(pos, pos + hashLength),
+        );
 
         // 高亮标题文本
-        lineDecorations.push({
-          from: pos + hashLength + 1,
-          to: pos + hashLength + 1 + titleText.length,
-          decoration: Decoration.mark({ class: hashLength === 1 ? 'syntax-h1-text' : 'syntax-h2-text' })
-        });
+        lineDecorations.push(
+          Decoration.mark({ class: hashLength === 1 ? 'syntax-h1-text' : 'syntax-h2-text' }).range(pos + hashLength + 1, pos + hashLength + 1 + titleText.length),
+        );
       } else if (!line.trim().startsWith('//')) {
         // 非注释行，高亮数字和变量
 
@@ -209,11 +203,9 @@
         while ((match = numberRegex.exec(line)) !== null) {
           const startPos = pos + match.index;
           const endPos = startPos + match[0].length;
-          lineDecorations.push({
-            from: startPos,
-            to: endPos,
-            decoration: Decoration.mark({ class: 'syntax-number' })
-          });
+          lineDecorations.push(
+            Decoration.mark({ class: 'syntax-number' }).range(startPos, endPos),
+          );
         }
 
         // 高亮变量（中文、英文字母、下划线）
@@ -226,11 +218,9 @@
           if (!numberRegex.test(varName) && !['sin', 'cos', 'tan', 'log', 'sqrt', 'PI', 'to'].includes(varName)) {
             const startPos = pos + match.index;
             const endPos = startPos + varName.length;
-            lineDecorations.push({
-              from: startPos,
-              to: endPos,
-              decoration: Decoration.mark({ class: 'syntax-variable' })
-            });
+            lineDecorations.push(
+              Decoration.mark({ class: 'syntax-variable' }).range(startPos, endPos),
+            );
           }
           numberRegex.lastIndex = 0;
         }
@@ -242,26 +232,22 @@
           while ((match = funcRegex.exec(line)) !== null) {
             const startPos = pos + match.index;
             const endPos = startPos + func.length;
-            lineDecorations.push({
-              from: startPos,
-              to: endPos,
-              decoration: Decoration.mark({ class: 'syntax-function' })
-            });
+            lineDecorations.push(
+              Decoration.mark({ class: 'syntax-function' }).range(startPos, endPos),
+            );
           }
         }
       }
 
       // 按位置排序当前行的装饰器
       lineDecorations.sort((a, b) => {
-        if (a.from !== b.from) {
-          return a.from - b.from;
-        }
+        if (a.from !== b.from) return a.from - b.from;
         return a.to - b.to;
       });
 
       // 添加到总装饰器列表
       for (const item of lineDecorations) {
-        decorations.push(item.decoration.range(item.from, item.to));
+        decorations.push(item);
       }
 
       pos += line.length + 1; // +1 for newline
@@ -274,7 +260,7 @@
    * 创建结果装饰器
    */
   function createResultDecorations(content: string, results: CalculationResult[]) {
-    const widgets: any[] = [];
+    const widgets: Range<Decoration>[] = [];
     let pos = 0;
     const lines = content.split('\n');
 
@@ -337,8 +323,7 @@
       let lastLineWidth = 0; // 上一行的宽度
       let pos = 0; // 当前行的起始位置
 
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      for (const [i, line] of lines.entries()) {
         const lineStartPos = pos; // 保存当前行的起始位置
         pos += (line?.length ?? 0) + 1; // 更新到下一行的起始位置
 
@@ -394,16 +379,6 @@
         groups.push(currentGroup);
       }
 
-      // 调试：输出分组信息
-      console.log('[对齐算法] 分组结果:');
-      groups.forEach((group, index) => {
-        const groupLines = group.map(i => {
-          const line = lines[i];
-          return line ? `${i}:${line.trim().substring(0, 20)}` : `${i}:(空)`;
-        });
-        console.log(`  组${index + 1} [${group.length}行]:`, groupLines.join(', '));
-      });
-
       // 第二步：为每组计算对齐边距
       const margins: number[] = new Array(lines.length).fill(BASE_MARGIN);
 
@@ -429,9 +404,6 @@
           maxContentLength = Math.max(maxContentLength, contentLength);
         }
 
-        console.log(`[对齐算法] 组详情: 最大宽度=${maxContentLength.toFixed(1)}px`);
-        console.table(groupWidths);
-
         // 所有结果对齐到最长行的最右侧
         const alignPosition = maxContentLength;
 
@@ -444,7 +416,6 @@
           // marginLeft = 最长行宽度 - 当前行宽度
           const margin = alignPosition - contentLength + BASE_MARGIN;
           margins[lineIndex] = Math.max(margin, BASE_MARGIN);
-          console.log(`[对齐算法]   行${lineIndex}: 宽度=${contentLength.toFixed(1)}px, margin=${margin.toFixed(1)}px`);
         }
       }
 
@@ -454,11 +425,10 @@
     // 计算所有行的对齐边距，并收集调试信息
     const alignMargins = calculateAlignMargins(lines);
 
-    for (let i = 0; i < Math.min(results.length, lines.length); i++) {
+    for (const [i, line] of lines.entries()) {
+      if (i >= results.length) break;
       const result = results[i];
       if (!result) continue;
-
-      const line = lines[i];
       if (line === undefined) continue;
 
       // 移动到行尾
@@ -490,8 +460,6 @@
    * 计算内容并更新装饰器
    */
   async function calculateContent() {
-    const startTime = performance.now();
-
     if (!view.value) return;
 
     const content = view.value.state.doc.toString();
@@ -509,9 +477,6 @@
 
     lastCalculationTime.value = new Date();
     previousContent.value = content;
-
-    const endTime = performance.now();
-    console.log(`计算耗时: ${endTime - startTime}ms`);
   }
 
   /** 防抖计算 */
@@ -524,6 +489,54 @@
     30,
     true,
   );
+
+  /**
+   * CodeMirror 语法高亮颜色（light/dark 双主题）
+   */
+  const CM_SYNTAX_COLORS = {
+    light: {
+      '--cm-h1-hash-color': '#3b82f6',
+      '--cm-h1-text-color': '#1e40af',
+      '--cm-h2-hash-color': '#6366f1',
+      '--cm-h2-text-color': '#4338ca',
+      '--cm-number-color': '#059669',
+      '--cm-variable-color': '#d97706',
+      '--cm-function-color': '#7c3aed',
+    },
+    dark: {
+      '--cm-h1-hash-color': '#60a5fa',
+      '--cm-h1-text-color': '#dbeafe',
+      '--cm-h2-hash-color': '#818cf8',
+      '--cm-h2-text-color': '#e0e7ff',
+      '--cm-number-color': '#34d399',
+      '--cm-variable-color': '#fbbf24',
+      '--cm-function-color': '#a78bfa',
+    },
+  } as const;
+
+  /**
+   * CodeMirror 编辑器 UI 主题颜色（light/dark 双主题）
+   */
+  const CM_EDITOR_COLORS = {
+    light: {
+      bg: '#ffffff',
+      text: '#1f2937',
+      gutterBg: '#f9fafb',
+      gutterBorder: '#e5e7eb',
+      lineNumber: '#9ca3af',
+      caret: '#1f2937',
+      focusedBg: '#ffffff',
+    },
+    dark: {
+      bg: '#1f2937',
+      text: '#e5e7eb',
+      gutterBg: '#1f2937',
+      gutterBorder: '#374151',
+      lineNumber: '#6b7280',
+      caret: '#e5e7eb',
+      focusedBg: '#1f2937',
+    },
+  } as const;
 
   /**
    * 创建自定义基础主题
@@ -560,48 +573,37 @@
       fontWeight: '500',
     },
     '&light': {
-      '--cm-h1-hash-color': '#3b82f6',
-      '--cm-h1-text-color': '#1e40af',
-      '--cm-h2-hash-color': '#6366f1',
-      '--cm-h2-text-color': '#4338ca',
-      '--cm-number-color': '#059669',
-      '--cm-variable-color': '#d97706',
-      '--cm-function-color': '#7c3aed',
+      ...CM_SYNTAX_COLORS.light,
     },
     '&dark': {
-      '--cm-h1-hash-color': '#60a5fa',
-      '--cm-h1-text-color': '#dbeafe',
-      '--cm-h2-hash-color': '#818cf8',
-      '--cm-h2-text-color': '#e0e7ff',
-      '--cm-number-color': '#34d399',
-      '--cm-variable-color': '#fbbf24',
-      '--cm-function-color': '#a78bfa',
+      ...CM_SYNTAX_COLORS.dark,
     },
   });
 
   /**
-   * 创建主题扩展
+   * 创建主题扩展（使用集中管理的颜色常量）
    */
   function createThemeExtension() {
     const isDark = theme_isDark.value;
+    const colors = isDark ? CM_EDITOR_COLORS.dark : CM_EDITOR_COLORS.light;
     return EditorView.theme(
       {
         '&': {
-          backgroundColor: isDark ? '#1f2937' : '#ffffff',
-          color: isDark ? '#e5e7eb' : '#1f2937',
+          backgroundColor: colors.bg,
+          color: colors.text,
         },
         '& .cm-gutter': {
-          backgroundColor: isDark ? '#1f2937' : '#f9fafb',
-          borderRight: '1px solid ' + (isDark ? '#374151' : '#e5e7eb'),
+          backgroundColor: colors.gutterBg,
+          borderRight: `1px solid ${colors.gutterBorder}`,
         },
         '& .cm-lineNumbers': {
-          color: isDark ? '#6b7280' : '#9ca3af',
+          color: colors.lineNumber,
         },
         '& .cm-content': {
-          caretColor: isDark ? '#e5e7eb' : '#1f2937',
+          caretColor: colors.caret,
         },
         '&.cm-focused .cm-content': {
-          backgroundColor: isDark ? '#1f2937' : '#ffffff',
+          backgroundColor: colors.focusedBg,
         },
       },
       { dark: isDark }
@@ -734,13 +736,13 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background-color: #ffffff;
+    background-color: var(--color-white, #fff);
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   }
 
   .dark .codemirror-editor {
-    background-color: #1f2937;
+    background-color: var(--color-gray-800, #1f2937);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
   }
 
@@ -749,13 +751,13 @@
     align-items: center;
     justify-content: space-between;
     padding: 12px 16px;
-    border-bottom: 1px solid #e5e7eb;
-    background-color: #f9fafb;
+    border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+    background-color: var(--color-gray-50, #f9fafb);
   }
 
   .dark .editor-toolbar {
-    border-bottom-color: #374151;
-    background-color: #111827;
+    border-bottom-color: var(--color-gray-700, #374151);
+    background-color: var(--color-gray-900, #111827);
   }
 
   .toolbar-left,
@@ -770,41 +772,41 @@
     align-items: center;
     gap: 6px;
     padding: 6px 12px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--color-gray-200, #e5e7eb);
     border-radius: 6px;
-    background-color: #ffffff;
-    color: #374151;
+    background-color: var(--color-white, #fff);
+    color: var(--color-gray-700, #374151);
     font-size: 13px;
     cursor: pointer;
     transition: all 0.2s;
   }
 
   .dark .toolbar-button {
-    border-color: #4b5563;
-    background-color: #1f2937;
-    color: #e5e7eb;
+    border-color: var(--color-gray-600, #4b5563);
+    background-color: var(--color-gray-800, #1f2937);
+    color: var(--color-gray-200, #e5e7eb);
   }
 
   .toolbar-button:hover {
-    background-color: #f3f4f6;
-    border-color: #d1d5db;
+    background-color: var(--color-gray-100, #f3f4f6);
+    border-color: var(--color-gray-300, #d1d5db);
   }
 
   .dark .toolbar-button:hover {
-    background-color: #374151;
-    border-color: #6b7280;
+    background-color: var(--color-gray-700, #374151);
+    border-color: var(--color-gray-500, #6b7280);
   }
 
   .toolbar-button.active {
-    background-color: #dbeafe;
-    border-color: #3b82f6;
-    color: #1e40af;
+    background-color: var(--color-blue-100, #dbeafe);
+    border-color: var(--color-blue-500, #3b82f6);
+    color: var(--color-blue-800, #1e40af);
   }
 
   .dark .toolbar-button.active {
-    background-color: #1e3a8a;
-    border-color: #3b82f6;
-    color: #93c5fd;
+    background-color: var(--color-blue-900, #1e3a8a);
+    border-color: var(--color-blue-500, #3b82f6);
+    color: var(--color-blue-300, #93c5fd);
   }
 
   .calculation-status,
@@ -813,7 +815,7 @@
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: #6b7280;
+    color: var(--color-gray-500, #6b7280);
   }
 
   /* 缩小加载动画，避免高度跳变 */
@@ -824,7 +826,7 @@
 
   .dark .calculation-status,
   .dark .calculation-time {
-    color: #9ca3af;
+    color: var(--color-gray-400, #9ca3af);
   }
 
   .editor-container {
@@ -853,7 +855,7 @@
     padding: 0;
   }
 
-  /* 结果 Widget 样式 */
+  /* 结果 Widget 样式（使用 CSS 变量统一状态颜色） */
   :deep(.cm-widget) {
     display: inline-flex;
     align-items: center;
@@ -870,49 +872,49 @@
   }
 
   :deep(.result-widget--success) {
-    background-color: #dcfce7;
-    color: #166534;
-    border-left: 2px solid #22c55e;
+    background-color: var(--color-green-100, #dcfce7);
+    color: var(--color-green-800, #166534);
+    border-left: 2px solid var(--color-green-500, #22c55e);
   }
 
   .dark :deep(.result-widget--success) {
-    background-color: #14532d;
-    color: #86efac;
-    border-left-color: #22c55e;
+    background-color: var(--color-green-900, #14532d);
+    color: var(--color-green-200, #86efac);
+    border-left-color: var(--color-green-500, #22c55e);
   }
 
   :deep(.result-widget--error) {
-    background-color: #fee2e2;
-    color: #991b1b;
-    border-left: 2px solid #ef4444;
+    background-color: var(--color-red-100, #fee2e2);
+    color: var(--color-red-800, #991b1b);
+    border-left: 2px solid var(--color-red-500, #ef4444);
   }
 
   .dark :deep(.result-widget--error) {
-    background-color: #7f1d1d;
-    color: #fca5a5;
-    border-left-color: #ef4444;
+    background-color: var(--color-red-900, #7f1d1d);
+    color: var(--color-red-200, #fca5a5);
+    border-left-color: var(--color-red-500, #ef4444);
   }
 
   :deep(.result-widget--warning) {
-    background-color: #fef3c7;
-    color: #92400e;
-    border-left: 2px solid #f59e0b;
+    background-color: var(--color-amber-100, #fef3c7);
+    color: var(--color-amber-800, #92400e);
+    border-left: 2px solid var(--color-amber-500, #f59e0b);
   }
 
   .dark :deep(.result-widget--warning) {
-    background-color: #78350f;
-    color: #fcd34d;
-    border-left-color: #f59e0b;
+    background-color: var(--color-amber-900, #78350f);
+    color: var(--color-amber-200, #fcd34d);
+    border-left-color: var(--color-amber-500, #f59e0b);
   }
 
   :deep(.result-widget--normal) {
-    background-color: #f3f4f6;
-    color: #374151;
+    background-color: var(--color-gray-100, #f3f4f6);
+    color: var(--color-gray-700, #374151);
   }
 
   .dark :deep(.result-widget--normal) {
-    background-color: #374151;
-    color: #e5e7eb;
+    background-color: var(--color-gray-800, #374151);
+    color: var(--color-gray-200, #e5e7eb);
   }
 
   :deep(.formatted-number) {

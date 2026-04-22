@@ -1,8 +1,9 @@
 import { Effect } from 'effect';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
-import { MsgError } from '../../util/error';
+import { dbTryOrDefault, dbPaginatedFindMany } from '../../util/dbEffect';
 import type { ContentVisibility } from '../../../.zenstack/models';
+import type { PostWhereInput } from '../../../.zenstack/input';
 
 /**
  * 树洞帖子列表查询参数
@@ -20,6 +21,8 @@ export interface TreeholePostsQuery {
   onlyRoot?: boolean;
   /** 父帖子 ID（用于获取某个帖子的回复） */
   parentId?: number | null;
+  /** 按作者ID过滤（"我的帖子"场景） */
+  authorId?: string;
 }
 
 /**
@@ -75,10 +78,10 @@ export const treeholeApi = {
       const dbClient = yield* DbClientEffect;
       const ctx = yield* ReqCtxService;
 
-      ctx.log('treehole.queryPosts', JSON.stringify(params));
+      ctx.log('[Treehole] queryPosts, skip=' + params.skip + ', take=' + params.take + ', hasKeyword=' + !!params.keyword);
 
       // 构建查询条件
-      const where: any = {};
+      const where: PostWhereInput = {};
 
       // 可见性过滤
       if (params.visibility) {
@@ -99,59 +102,54 @@ export const treeholeApi = {
         where.parentId = params.parentId;
       }
 
+      // 作者过滤（"我的帖子"）
+      if (params.authorId) {
+        where.authorId = params.authorId;
+      }
+
       // 搜索关键词
-      if (params.keyword?.trim()) {
+      const keyword = params.keyword?.trim();
+      if (keyword) {
         where.OR = [
-          { title: { contains: params.keyword.trim() } },
-          { content: { contains: params.keyword.trim() } },
+          { title: { contains: keyword } },
+          { content: { contains: keyword } },
         ];
       }
 
-      // 先查询帖子列表和总数
-      const [posts, total] = yield* Effect.all(
-        [
-          Effect.promise(() =>
-            dbClient.post.findMany({
-              where,
-              orderBy: [{ created: 'desc' }],
-              skip: params.skip,
-              take: params.take,
-              // 只选择必要的字段，不返回敏感信息
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                visibility: true,
-                created: true,
-                updated: true,
-                authorId: true,
-                parentId: true,
-                author: {
-                  select: {
-                    id: true,
-                    nickname: true,
-                  },
-                },
-              },
-            }),
-          ),
-          Effect.promise(() => dbClient.post.count({ where })),
-        ],
-        { concurrency: 2 },
+      // 使用分页查询辅助函数并行执行 findMany + count
+      const { items: posts, total } = yield* dbPaginatedFindMany('[Treehole]',
+        () => dbClient.post.findMany({
+          where,
+          orderBy: [{ created: 'desc' }],
+          skip: params.skip,
+          take: params.take,
+          select: {
+            id: true,
+            title: true,
+            content: true,
+            visibility: true,
+            created: true,
+            updated: true,
+            authorId: true,
+            parentId: true,
+            author: {
+              select: { id: true, nickname: true },
+            },
+          },
+        }),
+        () => dbClient.post.count({ where }),
+        [],
       );
 
       // 提取当前帖子列表的 ID，一次性查询这些帖子的回复数统计
       const postIds = posts.map((post) => post.id);
-      const replyCounts = yield* Effect.promise(() =>
+      const replyCounts = yield* dbTryOrDefault('[Treehole]', '查询回复统计', () =>
         dbClient.post.groupBy({
           by: ['parentId'],
-          where: {
-            parentId: { in: postIds }, // 只统计当前列表中帖子的回复数
-          },
-          _count: {
-            parentId: true,
-          },
+          where: { parentId: { in: postIds } },
+          _count: { parentId: true },
         }),
+        [],
       );
 
       // 将回复数统计映射为 Map，方便查找
@@ -187,43 +185,34 @@ export const treeholeApi = {
       const dbClient = yield* DbClientEffect;
       const ctx = yield* ReqCtxService;
 
-      ctx.log('treehole.getPostTree', postId);
+      ctx.log('[Treehole] getPostTree', postId);
 
       // 并行执行查询：帖子和回复数统计
-      const [post, replyCounts] = yield* Effect.all(
-        [
-          Effect.promise(() =>
-            dbClient.post.findUnique({
-              where: { id: postId },
-              select: {
-                id: true,
-                title: true,
-                content: true,
-                visibility: true,
-                created: true,
-                updated: true,
-                authorId: true,
-                parentId: true,
-                author: {
-                  select: {
-                    id: true,
-                    nickname: true,
-                  },
-                },
+      const [post, replyCount] = yield* Effect.all([
+        dbTryOrDefault('[Treehole]', '查询帖子详情', () =>
+          dbClient.post.findUnique({
+            where: { id: postId },
+            select: {
+              id: true,
+              title: true,
+              content: true,
+              visibility: true,
+              created: true,
+              updated: true,
+              authorId: true,
+              parentId: true,
+              author: {
+                select: { id: true, nickname: true },
               },
-            }),
-          ),
-          // 查询该帖子的回复数
-          Effect.promise(() =>
-            dbClient.post.count({
-              where: {
-                parentId: postId,
-              },
-            }),
-          ),
-        ],
-        { concurrency: 2 },
-      );
+            },
+          }),
+          null,
+        ),
+        dbTryOrDefault('[Treehole]', '查询帖子回复数', () =>
+          dbClient.post.count({
+            where: { parentId: postId },
+          }), 0),
+      ] as const);
 
       if (!post) {
         return null;
@@ -233,7 +222,7 @@ export const treeholeApi = {
       return {
         ...post,
         _count: {
-          replies: replyCounts,
+          replies: replyCount,
         },
       } as TreeholePost;
     });

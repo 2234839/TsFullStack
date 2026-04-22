@@ -3,7 +3,26 @@ import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useAPI } from '@/api';
 import { useTokenStoreSingleton } from '@/stores/token';
-import { Dialog } from '@tsfullstack/shared-frontend/components';
+import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
+import { Button, Textarea } from '@/components/base';
+import { getErrorMessage } from '@/utils/error';
+
+/** 不应展示给用户的错误关键词 */
+const ERROR_HIDE_KEYWORDS = ['未配置', 'API Key', '配置错误'] as const;
+
+/**
+ * 安全地显示错误 toast，过滤掉包含敏感关键词的错误消息
+ */
+function showSafeError(
+  toast: ReturnType<typeof useToast>,
+  summary: string,
+  fallbackMessage: string,
+  error: unknown,
+) {
+  const message = getErrorMessage(error, fallbackMessage);
+  if (ERROR_HIDE_KEYWORDS.some((kw) => message.includes(kw))) return;
+  toast.add({ summary, detail: message, variant: 'error' });
+}
 
 const emit = defineEmits<{
   complete: [taskId: number];
@@ -56,8 +75,34 @@ const sizeOptions = [
   { label: '512x512', value: '512x512' },
 ];
 
-/** 预计消耗代币 */
-const estimatedCost = computed(() => count.value * 10);
+/** 尺寸倍数映射（与后端 TokenPricingCalculator.SIZE_MULTIPLIER 保持一致） */
+const SIZE_MULTIPLIER: Record<string, number> = {
+  '512x512': 0.5,
+  '1024x768': 0.75,
+  '768x1024': 0.75,
+  '1024x1024': 1,
+  '1344x768': 1.25,
+  '768x1344': 1.25,
+  '864x1152': 1.5,
+  '1152x864': 1.5,
+  '2048x2048': 2,
+};
+
+/** 服务商倍数映射（与后端 TokenPricingCalculator.PROVIDER_MULTIPLIER 保持一致） */
+const PROVIDER_MULTIPLIER: Record<string, number> = {
+  qwen: 1,
+  dalle: 2,
+  stability: 1.5,
+  glm: 1.2,
+};
+
+/** 预计消耗代币（与后端公式保持一致：basePrice × count × sizeMult × providerMult） */
+const estimatedCost = computed(() => {
+  const basePrice = 10;
+  const sizeMult = SIZE_MULTIPLIER[size.value] || 1;
+  const providerMult = PROVIDER_MULTIPLIER[provider.value] || 1;
+  return Math.ceil(basePrice * count.value * sizeMult * providerMult);
+});
 
 /** 是否可以生成 */
 const canGenerate = computed(() => {
@@ -79,8 +124,8 @@ async function loadAvailableProviders() {
         provider.value = providers[0].value as 'qwen' | 'dalle' | 'stability';
       }
     }
-  } catch (error) {
-    console.error('[AIImageGenerator] 加载服务商列表失败:', error);
+  } catch (error: unknown) {
+    toast.error('加载服务商列表失败', getErrorMessage(error));
   }
 }
 
@@ -139,74 +184,36 @@ async function startGeneration() {
     // 刷新真实余额（等待刷新完成）
     try {
       await tokenStore.refreshBalance(true);
-    } catch (refreshError) {
-      console.error('[AIImageGenerator] 刷新余额失败:', refreshError);
+    } catch {
       // 刷新失败不影响用户体验，下次操作时会重新尝试
     }
-  } catch (error) {
-    console.error('[AIImageGenerator] 生成失败:', error);
+  } catch (error: unknown) {
 
-    // 失败时立即恢复余额（等待恢复完成）
-    try {
-      await tokenStore.resetBalance();
-    } catch (resetError) {
-      console.error('[AIImageGenerator] 恢复余额失败:', resetError);
-      // 即使恢复失败也继续处理错误
-    }
+    try { await tokenStore.resetBalance(); } catch { /* 恢复失败继续处理 */ }
 
-    /** 不应展示给用户的错误关键词 */
-    const hiddenKeywords = ['未配置', 'API Key', '配置错误'];
-
-    const errorMessage = error instanceof Error ? error.message : '生成图片时发生错误';
-
-    /** 检查错误消息是否包含不应展示的关键词 */
-    const shouldHideError = hiddenKeywords.some(keyword =>
-      errorMessage.includes(keyword)
-    );
-
-    if (!shouldHideError) {
-      toast.add({
-        summary: '生成失败',
-        detail: errorMessage,
-        variant: 'error',
-      });
-    }
+    showSafeError(toast, '生成失败', '生成图片时发生错误', error);
   } finally {
     isGenerating.value = false;
   }
 }
 
-/** 选择图片 */
-async function selectImage(_imageUrl: string) {
+/** 选择并下载图片到文件系统 */
+async function selectImage(imageUrl: string) {
   if (!currentTaskId.value) return;
 
   try {
-    // TODO: 调用 selectAndDownloadImage API
-    toast.add({
-      summary: '功能开发中',
-      detail: '图片下载功能正在开发中',
-      variant: 'info',
+    const result = await API.taskApi.selectAndDownloadImage({
+      taskId: currentTaskId.value,
+      imageUrl,
     });
-  } catch (error) {
-    console.error('[AIImageGenerator] 下载失败:', error);
-
-    /** 不应展示给用户的错误关键词 */
-    const hiddenKeywords = ['未配置', 'API Key', '配置错误'];
-
-    const errorMessage = error instanceof Error ? error.message : '下载图片时发生错误';
-
-    /** 检查错误消息是否包含不应展示的关键词 */
-    const shouldHideError = hiddenKeywords.some(keyword =>
-      errorMessage.includes(keyword)
-    );
-
-    if (!shouldHideError) {
-      toast.add({
-        summary: '下载失败',
-        detail: errorMessage,
-        variant: 'error',
-      });
-    }
+    toast.add({
+      summary: '下载成功',
+      detail: `已保存为 ${result.filename} (${(result.size / 1024).toFixed(1)} KB)`,
+      variant: 'success',
+      life: 3000,
+    });
+  } catch (error: unknown) {
+    showSafeError(toast, '下载失败', '下载图片时发生错误', error);
   }
 }
 </script>
@@ -218,10 +225,9 @@ async function selectImage(_imageUrl: string) {
       <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
         提示词
       </label>
-      <textarea
+      <Textarea
         v-model="prompt"
-        rows="4"
-        class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+        :rows="4"
         placeholder="描述你想要生成的图片..."
         :disabled="isGenerating"
       />
@@ -233,16 +239,16 @@ async function selectImage(_imageUrl: string) {
         快捷模板
       </label>
       <div class="flex flex-wrap gap-2">
-        <button
+        <Button
           v-for="template in promptTemplates"
           :key="template.label"
-          type="button"
-          class="px-3 py-1.5 text-sm bg-secondary-100 dark:bg-secondary-700 text-secondary-700 dark:text-secondary-300 rounded-lg hover:bg-secondary-200 dark:hover:bg-secondary-600 transition-colors"
+          variant="secondary"
+          size="sm"
           :disabled="isGenerating"
           @click="useTemplate(template)"
         >
           {{ template.label }}
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -253,19 +259,12 @@ async function selectImage(_imageUrl: string) {
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
           服务商
         </label>
-        <select
+        <Select
           v-model="provider"
-          class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+          :options="availableProviders"
           :disabled="isGenerating || availableProviders.length === 0"
-        >
-          <option
-            v-for="providerOption in availableProviders"
-            :key="providerOption.value"
-            :value="providerOption.value"
-          >
-            {{ providerOption.label }}
-          </option>
-        </select>
+          class="w-full"
+        />
         <p
           v-if="availableProviders.length === 0"
           class="mt-1 text-sm text-primary-500 dark:text-primary-400"
@@ -296,15 +295,12 @@ async function selectImage(_imageUrl: string) {
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
           尺寸
         </label>
-        <select
+        <Select
           v-model="size"
-          class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+          :options="sizeOptions"
           :disabled="isGenerating"
-        >
-          <option v-for="option in sizeOptions" :key="option.value" :value="option.value">
-            {{ option.label }}
-          </option>
-        </select>
+          class="w-full"
+        />
       </div>
     </div>
 
@@ -324,15 +320,13 @@ async function selectImage(_imageUrl: string) {
         </span>
       </div>
 
-      <button
-        type="button"
-        class="px-4 py-2 bg-primary-600 hover:bg-primary-700 disabled:bg-secondary-400 dark:disabled:bg-secondary-600 text-white rounded-lg transition-colors disabled:cursor-not-allowed"
+      <Button
         :disabled="!canGenerate"
+        :loading="isGenerating"
         @click="startGeneration"
       >
-        <span v-if="isGenerating">生成中...</span>
-        <span v-else>生成图片</span>
-      </button>
+        {{ isGenerating ? '生成中...' : '生成图片' }}
+      </Button>
     </div>
 
     <!-- 结果对话框 -->
@@ -353,13 +347,12 @@ async function selectImage(_imageUrl: string) {
             class="w-full h-auto rounded-lg border border-primary-200 dark:border-primary-700"
           />
           <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <button
-              type="button"
-              class="px-4 py-2 bg-white text-primary-900 rounded-lg hover:bg-secondary-100 transition-colors"
+            <Button
+              size="sm"
               @click="selectImage(imageUrl)"
             >
               选择此图片
-            </button>
+            </Button>
           </div>
         </div>
       </div>

@@ -1,16 +1,18 @@
 import { Effect } from 'effect';
 import { getDbAuthEffect } from '../../Context/DbService';
+import { dbTry } from '../../util/dbEffect';
 import type { User } from '../../../.zenstack/models';
+import { SESSION_EXPIRY_MS } from '../../util/constants';
 
 /** 注意，使用此接口时请确保用户传入的 id 是他自身的，也就是不应该让用户直接调用此接口 */
 export function genUserSession(userId: User['id']) {
   return Effect.gen(function* () {
     const { db } = yield* getDbAuthEffect({ userId });
-    const userSession = yield* Effect.promise(() =>
+    const userSession = yield* dbTry('[UserSession]', '创建用户会话', () =>
       db.userSession.create({
         data: {
           userId: userId,
-          expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7), // 7天后过期
+          expiresAt: new Date(Date.now() + SESSION_EXPIRY_MS), // 7天后过期
         },
       }),
     );

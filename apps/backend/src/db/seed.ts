@@ -2,6 +2,8 @@ import { compareSync, hashSync } from 'bcryptjs';
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService } from '../Context/AppConfig';
+import { MsgError } from '../util/error';
+import type { Role } from '../../.zenstack/models';
 
 /** 对数据库进行一些初始化设置 */
 export const seedDB: Effect.Effect<
@@ -9,8 +11,6 @@ export const seedDB: Effect.Effect<
   Error,
   AppConfigService
 > = Effect.gen(function* () {
-  // 若是使用sqlite但不开启 WAL 模式记得调整连接数为 1
-  // 类似 export DATABASE_URL="file:/home/admin/app/TsFullStack/prisma/dev.db?connection_limit=1&socket_timeout=10"
   yield* seedWAL();
   yield* seedAdmin();
 });
@@ -20,7 +20,10 @@ const seedWAL = () =>
   Effect.gen(function* () {
     const dbClient = yield* DbClientEffect;
 
-    const result = yield* Effect.promise(() => dbClient.$queryRaw`PRAGMA journal_mode = WAL`);
+    const result = yield* Effect.tryPromise({
+      try: () => dbClient.$queryRaw`PRAGMA journal_mode = WAL`,
+      catch: (e) => MsgError.msg('配置 WAL 模式失败: ' + String(e)),
+    });
     console.log('SQLite 数据库已配置为 WAL 模式:', result);
   });
 
@@ -28,22 +31,23 @@ const seedWAL = () =>
 const seedAdmin = () =>
   Effect.gen(function* () {
     const dbClient = yield* DbClientEffect;
-
     const { systemAdminUser } = yield* AppConfigService;
-    let admin = yield* Effect.promise(() =>
-      dbClient.user.findUnique({
-        where: {
-          email: systemAdminUser.email,
-        },
-        include: {
-          role: true,
-        },
+
+    /** 查询管理员 */
+    const findAdmin = () => Effect.tryPromise({
+      try: () => dbClient.user.findUnique({
+        where: { email: systemAdminUser.email },
+        include: { role: true },
       }),
-    );
+      catch: (e) => MsgError.msg('查询管理员失败: ' + String(e)),
+    });
+
+    let admin = yield* findAdmin();
 
     if (!admin) {
-      admin = yield* Effect.promise(() =>
-        dbClient.user.create({
+      /** 创建管理员 */
+      admin = yield* Effect.tryPromise({
+        try: () => dbClient.user.create({
           data: {
             email: systemAdminUser.email,
             password: hashSync(systemAdminUser.password),
@@ -54,34 +58,31 @@ const seedAdmin = () =>
               },
             },
           },
-          include: {
-            role: true,
-          },
+          include: { role: true },
         }),
-      );
+        catch: (e) => MsgError.msg('创建管理员失败: ' + String(e)),
+      });
     } else if (admin.password && !compareSync(systemAdminUser.password, admin.password)) {
       console.log('重置系统管理员帐号密码');
-      admin = yield* Effect.promise(() =>
-        dbClient.user.update({
-          where: {
-            email: systemAdminUser.email,
-          },
-          data: {
-            password: hashSync(systemAdminUser.password),
-          },
-          include: {
-            role: true,
-          },
+      /** 重置管理员密码 */
+      admin = yield* Effect.tryPromise({
+        try: () => dbClient.user.update({
+          where: { email: systemAdminUser.email },
+          data: { password: hashSync(systemAdminUser.password) },
+          include: { role: true },
         }),
-      );
+        catch: (e) => MsgError.msg('重置管理员密码失败: ' + String(e)),
+      });
     }
-    if (admin.role && !admin.role.find((el: any) => el.name === 'admin')) {
+
+    // 确保 admin 不为 null（TypeScript 收窄）
+    if (!admin) throw MsgError.msg('管理员初始化失败');
+
+    if (!admin.role?.find((el: Role) => el.name === 'admin')) {
       console.log('添加管理员角色');
-      yield* Effect.promise(() =>
-        dbClient.user.update({
-          where: {
-            email: systemAdminUser.email,
-          },
+      yield* Effect.tryPromise({
+        try: () => dbClient.user.update({
+          where: { email: systemAdminUser.email },
           data: {
             role: {
               connectOrCreate: {
@@ -91,6 +92,7 @@ const seedAdmin = () =>
             },
           },
         }),
-      );
+        catch: (e) => MsgError.msg('添加管理员角色失败: ' + String(e)),
+      });
     }
   });

@@ -5,6 +5,7 @@
 import { API } from '@/api';
 import { authInfo, authInfo_isLogin } from '@/storage';
 import { createSharedComposable } from '@vueuse/core';
+import { getErrorMessage } from '@/utils/error';
 import { computed, ref, watch } from 'vue';
 
 /** 用户信息接口 */
@@ -89,9 +90,8 @@ export const useUserProfile = createSharedComposable(() => {
           nickname: user.nickname,
         };
       }
-    } catch (err) {
-      console.error('[useUserProfile] 获取用户信息失败:', err);
-      error.value = err instanceof Error ? err.message : '获取用户信息失败';
+    } catch (err: unknown) {
+      error.value = getErrorMessage(err, '获取用户信息失败');
     } finally {
       loading.value = false;
     }
@@ -105,22 +105,17 @@ export const useUserProfile = createSharedComposable(() => {
       throw new Error('用户未登录');
     }
 
-    try {
-      await API.db.user.update({
-        where: { id: authInfo.value.userId },
-        data: { nickname },
-      });
+    await API.db.user.update({
+      where: { id: authInfo.value.userId },
+      data: { nickname },
+    });
 
-      // 更新本地状态
-      if (userProfile.value) {
-        userProfile.value.nickname = nickname;
-      }
-
-      return true;
-    } catch (err) {
-      console.error('[useUserProfile] 更新昵称失败:', err);
-      throw err;
+    // 更新本地状态
+    if (userProfile.value) {
+      userProfile.value.nickname = nickname;
     }
+
+    return true;
   }
 
   /**
@@ -131,21 +126,14 @@ export const useUserProfile = createSharedComposable(() => {
       throw new Error('用户未登录');
     }
 
-    try {
-      await API.db.user.update({
-        where: { id: authInfo.value.userId },
-        data: { avatar: avatarUrl },
-      });
+    await API.db.user.update({
+      where: { id: authInfo.value.userId },
+      data: { avatar: avatarUrl },
+    });
 
-      // 更新本地状态
-      if (userProfile.value) {
-        userProfile.value.avatar = avatarUrl;
-      }
-
-      return true;
-    } catch (err) {
-      console.error('[useUserProfile] 更新头像失败:', err);
-      throw err;
+    // 更新本地状态
+    if (userProfile.value) {
+      userProfile.value.avatar = avatarUrl;
     }
   }
 

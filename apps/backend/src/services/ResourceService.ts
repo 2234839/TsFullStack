@@ -1,74 +1,68 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
+import { DbClientEffect } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
+import { dbTry, dbPaginatedFindMany } from '../util/dbEffect';
 import { MsgError } from '../util/error';
+import type { ResourceType } from '../../.zenstack/models';
+import type { JsonValue } from '@zenstackhq/orm';
+import { DEFAULT_PAGE_SIZE } from '../util/constants';
+import type { ResourceWhereInput } from '../../.zenstack/input';
 
 /**
  * 资源服务
+ *
+ * createResource / listResources / attachFile 仅依赖 DbClientEffect；
+ * updateResource / getResource 依赖 AuthContext（需要 auth.user.id 做权限校验）。
  */
 export const ResourceService = {
   /**
    * 创建资源
    */
   createResource: (userId: string, data: {
-    type: string;
+    type: ResourceType;
     title: string;
     description?: string;
-    metadata: any;
+    metadata: JsonValue;
     taskId: number;
     tags?: string;
-  }): Effect.Effect<
-    { id: number },
-    Error,
-    AuthContext | ReqCtxService
-  > =>
+  }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      const resource = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.resource.create({
-            data: {
-              userId,
-              type: data.type as any,
-              title: data.title,
-              description: data.description,
-              metadata: data.metadata as any,
-              taskId: data.taskId,
-              status: 'pending',
-              tags: data.tags,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[ResourceService] 创建资源失败:', String(error));
-          throw MsgError.msg('创建资源失败');
-        },
-      });
+      const resource = yield* dbTry('[ResourceService]', '创建资源', () =>
+        db.resource.create({
+          data: {
+            userId,
+            type: data.type,
+            title: data.title,
+            description: data.description,
+            metadata: data.metadata,
+            taskId: data.taskId,
+            status: 'pending',
+            tags: data.tags,
+          },
+        }),
+      );
 
       return { id: resource.id };
     }),
 
   /**
-   * 更新资源
+   * 更新资源（需要 AuthContext 做权限校验）
    */
   updateResource: (resourceId: number, data: {
-    metadata?: any;
+    metadata?: JsonValue;
     status?: string;
     fileId?: number;
   }) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
 
       // 验证权限
-      const resource = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.resource.findUnique({
-            where: { id: resourceId },
-          }),
-        catch: () => null,
-      });
+      const resource = yield* dbTry('[ResourceService]', '查询资源', () =>
+        auth.db.resource.findUnique({ where: { id: resourceId } }),
+      );
 
       if (!resource) {
         throw MsgError.msg('资源不存在');
@@ -79,41 +73,24 @@ export const ResourceService = {
       }
 
       // 更新资源
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.resource.update({
-            where: { id: resourceId },
-            data: data as any,
-          }),
-        catch: (error) => {
-          reqCtx.log('[ResourceService] 更新资源失败:', String(error));
-          throw MsgError.msg('更新资源失败');
-        },
-      });
+      yield* dbTry('[ResourceService]', '更新资源', () =>
+        auth.db.resource.update({ where: { id: resourceId }, data }),
+      );
     }),
 
   /**
-   * 获取资源详情
+   * 获取资源详情（需要 AuthContext 做权限校验）
    */
   getResource: (resourceId: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
 
-      const resource = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.resource.findUnique({
-            where: { id: resourceId },
-            include: {
-              file: true,
-              task: true,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[ResourceService] 查询资源失败:', String(error));
-          throw MsgError.msg('查询资源失败');
-        },
-      });
+      const resource = yield* dbTry('[ResourceService]', '查询资源', () =>
+        auth.db.resource.findUnique({
+          where: { id: resourceId },
+          include: { file: true, task: true },
+        }),
+      );
 
       if (!resource) {
         throw MsgError.msg('资源不存在');
@@ -136,46 +113,38 @@ export const ResourceService = {
     take?: number;
   } = {}) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      const where: any = {
-        userId,
-      };
+      const where: ResourceWhereInput = { userId };
 
       if (options.type) {
-        where.type = options.type;
+        where.type = options.type as ResourceWhereInput['type'];
       }
 
       if (options.status) {
-        where.status = options.status;
+        where.status = options.status as ResourceWhereInput['status'];
       }
 
-      const [resources, total] = yield* Effect.all([
-        Effect.tryPromise({
-          try: () =>
-            auth.db.resource.findMany({
-              where,
-              include: {
-                file: true,
-                task: true,
-              },
-              skip: options.skip || 0,
-              take: options.take || 20,
-              orderBy: { created: 'desc' },
-            }),
-          catch: (error) => {
-            reqCtx.log('[ResourceService] 查询资源列表失败', String(error));
-            return [];
+      return yield* dbPaginatedFindMany('[ResourceService]',
+        () => db.resource.findMany({
+          where,
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            status: true,
+            taskId: true,
+            created: true,
+            file: { select: { id: true, filename: true, mimetype: true, size: true } },
+            task: { select: { id: true, type: true, title: true } },
           },
+          skip: options.skip || 0,
+          take: options.take || DEFAULT_PAGE_SIZE,
+          orderBy: { created: 'desc' },
         }),
-        Effect.tryPromise({
-          try: () => auth.db.resource.count({ where }),
-          catch: () => 0,
-        }),
-      ]);
-
-      return { resources, total };
+        () => db.resource.count({ where }),
+        [] as never[],
+      );
     }),
 
   /**
@@ -183,19 +152,13 @@ export const ResourceService = {
    */
   attachFile: (resourceId: number, fileId: number) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.resource.update({
-            where: { id: resourceId },
-            data: { fileId },
-          }),
-        catch: (error) => {
-          reqCtx.log('[ResourceService] 关联文件失败:', String(error));
-          throw MsgError.msg('关联文件失败');
-        },
-      });
+      yield* dbTry('[ResourceService]', '关联文件', () =>
+        db.resource.update({
+          where: { id: resourceId },
+          data: { fileId },
+        }),
+      );
     }),
 };

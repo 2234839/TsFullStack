@@ -1,8 +1,10 @@
 import { Effect } from 'effect';
-import { AuthContext } from '../Context/Auth';
+import { DbClientEffect } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
+import { dbTry, dbTryOrDefault, dbPaginatedFindMany } from '../util/dbEffect';
 import { MsgError } from '../util/error';
-import { TokenType } from '../../.zenstack/models';
+import { TokenType, Token } from '../../.zenstack/models';
+import { DEFAULT_PAGE_SIZE } from '../util/constants';
 
 /**
  * 代币消耗结果
@@ -10,7 +12,7 @@ import { TokenType } from '../../.zenstack/models';
 export interface TokenConsumptionResult {
   /** 消耗明细 */
   details: {
-    type: string;
+    type: TokenType;
     amount: number;
   }[];
   /** 总消耗 */
@@ -23,8 +25,161 @@ export interface TokenConsumptionResult {
   };
 }
 
+/** 分类后的代币 */
+interface ClassifiedTokens {
+  /** 专用代币（restrictedType 匹配任务类型） */
+  specific: Token[];
+  /** 通用代币（无 restrictedType 或为空数组） */
+  general: Token[];
+}
+
+/** 代币类型优先级分数（越小越优先消耗） */
+const TYPE_SCORE: Record<TokenType, number> = {
+  [TokenType.MONTHLY]: 1,
+  [TokenType.YEARLY]: 2,
+  [TokenType.PERMANENT]: 3,
+};
+
+/** 计算指定类型代币的可用总额（amount - used 之和） */
+function sumAvailableByType(tokens: Token[], type: TokenType): number {
+  return tokens.filter(t => t.type === type).reduce((sum, t) => sum + (t.amount - t.used), 0);
+}
+
+/** 根据代币类型计算默认过期时间 */
+function calcExpiresByType(type: TokenType): Date {
+  const now = new Date();
+  if (type === TokenType.MONTHLY) {
+    return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+  }
+  if (type === TokenType.YEARLY) {
+    return new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+  }
+  // PERMANENT 不过期，返回远未来日期
+  return new Date(now.getFullYear() + 100, 0);
+}
+
+/**
+ * 将代币按是否匹配任务类型分类
+ */
+function classifyTokens(tokens: Token[], taskType: string): ClassifiedTokens {
+  const specific: Token[] = [];
+  const general: Token[] = [];
+
+  for (const token of tokens) {
+    let restricted: unknown;
+    try {
+      restricted = token.restrictedType ? JSON.parse(token.restrictedType as string) : null;
+    } catch {
+      restricted = null;
+    }
+
+    const isEmpty = !restricted || (typeof restricted === 'object' && Array.isArray(restricted) && restricted.length === 0);
+    const matchesTask = !isEmpty && (
+      (Array.isArray(restricted) && (restricted as unknown[]).includes(taskType)) ||
+      restricted === taskType
+    );
+
+    if (!isEmpty && matchesTask) {
+      specific.push(token);
+    } else if (isEmpty) {
+      general.push(token);
+    }
+  }
+
+  return { specific, general };
+}
+
+/**
+ * 计算代币消耗计划：按优先级排序后逐个扣减，返回更新列表和消耗明细
+ */
+function calculateConsumptionPlan(
+  generalTokens: Token[],
+  specificTokens: Token[],
+  amount: number,
+): { updates: Array<{ id: number; newUsed: number }>; details: Array<{ type: TokenType; amount: number }> } {
+  const specificSet = new Set(specificTokens.map(t => t.id));
+
+  const getTokenPriority = (token: Token): number => {
+    const isSpecific = specificSet.has(token.id);
+    const typeScore = TYPE_SCORE[token.type] ?? 3;
+    return isSpecific ? typeScore : typeScore + 3;
+  };
+
+  const sorted = [...specificTokens, ...generalTokens]
+    .filter(t => (t.amount - t.used) > 0)
+    .sort((a, b) => getTokenPriority(a) - getTokenPriority(b));
+
+  const updates: Array<{ id: number; newUsed: number }> = [];
+  const details: Array<{ type: TokenType; amount: number }> = [];
+  let remaining = amount;
+
+  for (const token of sorted) {
+    if (remaining <= 0) break;
+
+    const available = token.amount - token.used;
+    const toConsume = Math.min(available, remaining);
+
+    if (toConsume > 0) {
+      updates.push({ id: token.id, newUsed: token.used + toConsume });
+      details.push({ type: token.type, amount: toConsume });
+      remaining -= toConsume;
+    }
+  }
+
+  return { updates, details };
+}
+
+/**
+ * 计算消耗前各类型代币余额快照（用于审计记录）
+ */
+function calculateBalanceSnapshot(
+  generalTokens: Token[],
+  specificTokens: Token[],
+): { monthly: number; yearly: number; permanent: number } {
+  const getBalance = (type: TokenType): number =>
+    generalTokens.filter(t => t.type === type).reduce((s, t) => s + t.amount - t.used, 0)
+    + specificTokens.filter(t => t.type === type).reduce((s, t) => s + t.amount - t.used, 0);
+
+  return {
+    monthly: getBalance(TokenType.MONTHLY),
+    yearly: getBalance(TokenType.YEARLY),
+    permanent: getBalance(TokenType.PERMANENT),
+  };
+}
+
+/**
+ * 基于原始代币数据和已消耗明细计算剩余额度（避免额外 DB 查询）
+ */
+function calculateRemaining(
+  generalTokens: Token[],
+  specificTokens: Token[],
+  details: Array<{ type: TokenType; amount: number }>,
+): { monthly: number; yearly: number; permanent: number } {
+  const consumedByType: Record<string, number> = {};
+  for (const d of details) {
+    consumedByType[d.type] = (consumedByType[d.type] || 0) + d.amount;
+  }
+
+  const getRemaining = (type: TokenType): number => {
+    const available =
+      generalTokens.filter(t => t.type === type).reduce((s, t) => s + t.amount - t.used, 0)
+      + specificTokens.filter(t => t.type === type).reduce((s, t) => s + t.amount - t.used, 0);
+    return Math.max(0, available - (consumedByType[type] || 0));
+  };
+
+  return {
+    monthly: getRemaining(TokenType.MONTHLY),
+    yearly: getRemaining(TokenType.YEARLY),
+    permanent: getRemaining(TokenType.PERMANENT),
+  };
+}
+
 /**
  * 代币服务
+ *
+ * 注意：本服务所有方法仅依赖 DbClientEffect（数据库客户端），
+ * 不依赖 AuthContext（用户身份），因为 userId 均通过参数传入。
+ * 权限控制由调用方（API 层）负责。
  */
 export const TokenService = {
   /**
@@ -32,28 +187,21 @@ export const TokenService = {
    */
   findActiveTokens: (userId: string, tokenType?: TokenType) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      return yield* Effect.tryPromise({
-        try: () =>
-          auth.db.token.findMany({
-            where: {
-              userId,
-              ...(tokenType && { type: tokenType }),
-              active: true,
-              OR: [
-                { expiresAt: null },
-                { expiresAt: { gte: new Date() } },
-              ],
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenService] 查询代币失败:', String(error));
-          reqCtx.log('[TokenService] 错误详情:', JSON.stringify(error, Object.getOwnPropertyNames(error), 2));
-          throw MsgError.msg('查询代币失败');
-        },
-      });
+      return yield* dbTry('[TokenService]', '查询代币', () =>
+        db.token.findMany({
+          where: {
+            userId,
+            ...(tokenType && { type: tokenType }),
+            active: true,
+            OR: [
+              { expiresAt: null },
+              { expiresAt: { gte: new Date() } },
+            ],
+          },
+        }),
+      );
     }),
 
   /**
@@ -65,34 +213,17 @@ export const TokenService = {
       const tokens = yield* TokenService.findActiveTokens(userId);
 
       // 计算每种类型的可用代币
-      const monthly = tokens
-        .filter(t => t.type === TokenType.MONTHLY)
-        .reduce((sum, t) => sum + (t.amount - t.used), 0);
+      const monthly = sumAvailableByType(tokens, TokenType.MONTHLY);
+      const yearly = sumAvailableByType(tokens, TokenType.YEARLY);
+      const permanent = sumAvailableByType(tokens, TokenType.PERMANENT);
 
-      const yearly = tokens
-        .filter(t => t.type === TokenType.YEARLY)
-        .reduce((sum, t) => sum + (t.amount - t.used), 0);
-
-      const permanent = tokens
-        .filter(t => t.type === TokenType.PERMANENT)
-        .reduce((sum, t) => sum + (t.amount - t.used), 0);
-
-      return {
-        monthly,
-        yearly,
-        permanent,
-        total: monthly + yearly + permanent,
-      };
+      return { monthly, yearly, permanent, total: monthly + yearly + permanent };
     }),
 
   /**
    * 检查代币是否足够
    */
-  checkTokens: (userId: string, amount: number): Effect.Effect<
-    boolean,
-    Error,
-    AuthContext | ReqCtxService
-  > =>
+  checkTokens: (userId: string, amount: number) =>
     Effect.gen(function* () {
       const available = yield* TokenService.getAvailableTokens(userId);
 
@@ -112,188 +243,58 @@ export const TokenService = {
    * 3. 年度代币（YEARLY）
    * 4. 永久代币（PERMANENT）
    */
-  consumeTokens: (userId: string, amount: number, taskId: number): Effect.Effect<
-    TokenConsumptionResult,
-    Error | void,
-    AuthContext | ReqCtxService
-  > =>
+  consumeTokens: (userId: string, amount: number, taskId: number) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
+      const db = yield* DbClientEffect;
       const reqCtx = yield* ReqCtxService;
 
-      // 0. 查询任务信息，获取任务类型
-      const task = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.findUnique({
-            where: { id: taskId },
-            select: { type: true },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenService] 查询任务失败:', String(error));
-          throw MsgError.msg('查询任务失败');
-        },
-      });
+      // 0. 查询任务类型
+      const task = yield* dbTry('[TokenService]', '查询任务', () =>
+        db.task.findUnique({ where: { id: taskId }, select: { type: true } }),
+      );
 
-      if (!task) {
-        throw MsgError.msg('任务不存在');
-      }
+      if (!task) throw MsgError.msg('任务不存在');
 
-      const taskType = task.type;
-
-      // 1. 检查代币是否足够（包括专用代币和通用代币）
+      // 1. 分类代币（专用 vs 通用）并检查余额
       const allTokens = yield* TokenService.findActiveTokens(userId);
+      const { specific: specificTokens, general: generalTokens } = classifyTokens(allTokens, task.type);
 
-      // 辅助函数：检查代币是否可用于指定任务类型
-      const canUseForTask = (token: typeof allTokens[0], taskType: string): boolean => {
-        // restrictedType 是 Json 类型（存储为 JSON 字符串），需要安全地解析
-        let restricted: unknown;
+      const totalAvailable = [...specificTokens, ...generalTokens]
+        .reduce((sum, t) => sum + t.amount - t.used, 0);
 
-        try {
-          // 尝试解析 JSON 字符串
-          restricted = token.restrictedType ? JSON.parse(token.restrictedType as string) : null;
-        } catch {
-          // 解析失败，当作 null 处理
-          restricted = null;
-        }
-
-        // null 或空数组 = 通用代币，可用于所有任务
-        if (!restricted || (typeof restricted === 'object' && Array.isArray(restricted) && restricted.length === 0)) {
-          return true;
-        }
-
-        // 非空数组，检查是否包含当前任务类型
-        if (Array.isArray(restricted)) {
-          return restricted.includes(taskType);
-        }
-
-        // 其他情况（字符串）向后兼容
-        return restricted === taskType;
-      };
-
-      // 分离专用代币和通用代币
-      const restrictedTokens = allTokens.filter((t) => canUseForTask(t, taskType) && !canUseForTask(t, ''));
-      const generalTokens = allTokens.filter((t) => canUseForTask(t, ''));
-
-      // 🔍 调试日志：输出代币详情
-      reqCtx.log(`[TokenService] 🔍 调试信息：`);
-      reqCtx.log(`[TokenService] 任务类型: ${taskType}`);
-      reqCtx.log(`[TokenService] 所有代币数量: ${allTokens.length}`);
-      allTokens.forEach(t => {
-        reqCtx.log(`[TokenService] 代币: id=${t.id}, type=${t.type}, amount=${t.amount}, used=${t.used}, available=${t.amount - t.used}, restrictedType=${t.restrictedType}, canUseForTask=${canUseForTask(t, taskType)}, isGeneral=${canUseForTask(t, '')}`);
-      });
-      reqCtx.log(`[TokenService] 专用代币数量: ${restrictedTokens.length}`);
-      reqCtx.log(`[TokenService] 通用代币数量: ${generalTokens.length}`);
-
-      // 计算总可用代币
-      let totalAvailable = 0;
-      for (const token of [...restrictedTokens, ...generalTokens]) {
-        totalAvailable += token.amount - token.used;
-      }
-
-      reqCtx.log(`[TokenService] 总可用代币: ${totalAvailable}`);
-      reqCtx.log(`[TokenService] 需要代币: ${amount}`);
+      reqCtx.log(`[TokenService] 任务类型: ${task.type}, 需要代币: ${amount}, 总可用: ${totalAvailable}`);
 
       if (totalAvailable < amount) {
-        throw MsgError.msg(
-          `代币不足！需要 ${amount} 枚，但只有 ${totalAvailable} 枚可用`
-        );
+        throw MsgError.msg(`代币不足！需要 ${amount} 枚，但只有 ${totalAvailable} 枚可用`);
       }
 
-      // 2. 按优先级消耗代币
-      const details: TokenConsumptionResult['details'] = [];
-      let remainingToConsume = amount;
+      // 2. 计算消耗计划并持久化
+      const { updates, details } = calculateConsumptionPlan(generalTokens, specificTokens, amount);
 
-      /**
-       * 代币优先级计算
-       *
-       * 设计理念：
-       * 1. 专用代币优先消耗（避免浪费专用额度）
-       * 2. 同样专一度下，有效期短的优先（避免过期浪费）
-       *
-       * 优先级分数（越小越优先）：
-       * - 专用月度: 1  (专用 + 有效期最短)
-       * - 专用年度: 2  (专用 + 有效期中等)
-       * - 专用永久: 3  (专用 + 永久)
-       * - 通用月度: 4  (通用 + 有效期最短)
-       * - 通用年度: 5  (通用 + 有效期中等)
-       * - 通用永久: 6  (通用 + 永久)
-       */
-      const getTokenPriority = (token: typeof allTokens[0]): number => {
-        const isRestricted = restrictedTokens.includes(token);
-        const typeScore = {
-          [TokenType.MONTHLY]: 1,
-          [TokenType.YEARLY]: 2,
-          [TokenType.PERMANENT]: 3,
-        }[token.type] || 3;
+      /** 消耗前余额快照（用于审计） */
+      const balanceSnapshot = calculateBalanceSnapshot(generalTokens, specificTokens);
 
-        // 专用代币优先级 = typeScore (1, 2, 3)
-        // 通用代币优先级 = typeScore + 3 (4, 5, 6)
-        return isRestricted ? typeScore : typeScore + 3;
-      };
-
-      // 合并所有可用代币并按优先级排序
-      const allAvailableTokens = [...restrictedTokens, ...generalTokens]
-        .filter(t => (t.amount - t.used) > 0)
-        .sort((a, b) => getTokenPriority(a) - getTokenPriority(b));
-
-      // 按优先级消耗代币
-      for (const token of allAvailableTokens) {
-        if (remainingToConsume <= 0) break;
-
-        const available = token.amount - token.used;
-        const toConsume = Math.min(available, remainingToConsume);
-
-        if (toConsume > 0) {
-          yield* Effect.tryPromise({
-            try: () =>
-              auth.db.token.update({
-                where: { id: token.id },
-                data: { used: token.used + toConsume },
-              }),
-            catch: (error) => {
-              reqCtx.log('[TokenService] 更新代币失败:', String(error));
-              throw MsgError.msg('更新代币失败');
-            },
-          });
-
-          details.push({
-            type: token.type,
-            amount: toConsume,
-          });
-
-          remainingToConsume -= toConsume;
-        }
-      }
-
-      // 3. 创建代币消耗记录
-      const newTransactions = details.map((detail) => ({
-        amount: detail.amount,
-        tokenType: detail.type as any,
-        userId,
-        taskId,
-        balanceSnapshot: {} as any, // 稍后更新
-        note: `任务 ${taskId} 消耗 ${detail.amount} ${detail.type} 代币`,
-      }));
-
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.tokenTransaction.createMany({
-            data: newTransactions,
+      /** 代币扣减 + 消耗记录写入在同一事务中，保证原子性（扣减成功则必有审计记录） */
+      yield* dbTry('[TokenService]', '代币扣减与消耗记录', () =>
+        db.$transaction([
+          ...updates.map(u => db.token.update({ where: { id: u.id }, data: { used: u.newUsed } })),
+          db.tokenTransaction.createMany({
+            data: details.map(d => ({
+              amount: d.amount,
+              tokenType: d.type,
+              userId,
+              taskId,
+              balanceSnapshot,
+              note: `任务 ${taskId} 消耗 ${d.amount} ${d.type} 代币`,
+            })),
           }),
-        catch: (error) => {
-          reqCtx.log('[TokenService] 创建消耗记录失败:', String(error));
-          // 消耗记录创建失败不影响主流程
-        },
-      });
+        ]),
+      );
 
-      // 4. 获取消耗后的剩余额度
-      const remaining = yield* TokenService.getAvailableTokens(userId);
+      // 4. 计算剩余额度（基于内存数据，无额外 DB 查询）
+      const remaining = calculateRemaining(generalTokens, specificTokens, details);
 
-      return {
-        details,
-        total: amount,
-        remaining,
-      };
+      return { details, total: amount, remaining };
     }),
 
   /**
@@ -303,7 +304,7 @@ export const TokenService = {
     /** 用户ID */
     userId: string;
     /** 代币类型 */
-    type: string;
+    type: TokenType;
     /** 代币数量 */
     amount: number;
     /** 来源 */
@@ -318,99 +319,60 @@ export const TokenService = {
     restrictedType?: string[] | null;
   }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
       const { userId, type, amount, source, sourceId, description, restrictedType } = params;
 
-      // 计算过期时间
+      // 计算过期时间（未指定时按类型自动计算）
       let expiresAt: Date | undefined = params.expiresAt;
-      if (type === TokenType.MONTHLY) {
-        // 月度代币：本月底过期
-        const now = new Date();
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-        expiresAt = endOfMonth;
-      } else if (type === TokenType.YEARLY) {
-        // 年度代币：今年年底过期
-        const now = new Date();
-        const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
-        expiresAt = endOfYear;
+      if (!expiresAt) {
+        expiresAt = calcExpiresByType(type);
       }
-      // PERMANENT 代币不过期
 
       // 检查是否已有该类型的未过期代币（需要匹配 restrictedType）
-      // 注意：Json 字段不能直接用字符串查询，需要在代码中过滤
-      const allTokens = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.token.findMany({
-            where: {
-              userId,
-              type: type as any,
-              active: true,
-              ...(expiresAt ? { expiresAt: { gte: expiresAt } } : {}),
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TokenService] 查询现有代币失败:', String(error));
-          throw MsgError.msg('查询代币失败');
-        },
-      });
-
-      // 在代码中匹配 restrictedType
+      // 使用事务保证查询+写入的原子性，防止并发重复创建
       const targetRestrictedType = restrictedType && restrictedType.length > 0
         ? JSON.stringify(restrictedType.sort())
         : '[]';
 
-      const existing = allTokens.find((token) => {
-        const tokenRestrictedType = token.restrictedType as string;
-        return tokenRestrictedType === targetRestrictedType;
-      });
+      yield* dbTry('[TokenService]', '发放代币', () =>
+        db.$transaction(async (tx) => {
+          const allTokens = await tx.token.findMany({
+            where: {
+              userId,
+              type,
+              active: true,
+              ...(expiresAt ? { expiresAt: { gte: expiresAt } } : {}),
+            },
+          });
 
-      if (existing) {
-        // 更新现有代币
-        yield* Effect.tryPromise({
-          try: () =>
-            auth.db.token.update({
+          const existing = allTokens.find((token) => {
+            const tokenRestrictedType = token.restrictedType as string;
+            return tokenRestrictedType === targetRestrictedType;
+          });
+
+          if (existing) {
+            return tx.token.update({
               where: { id: existing.id },
-              data: {
-                amount: existing.amount + amount,
-              },
-            }),
-          catch: (error) => {
-            reqCtx.log('[TokenService] 更新代币失败:', String(error));
-            throw MsgError.msg('更新代币失败');
-          },
-        });
-      } else {
-        // 创建新代币
-        yield* Effect.tryPromise({
-          try: () =>
-            auth.db.token.create({
-              data: {
-                userId,
-                type: type as any,
-                amount,
-                used: 0,
-                expiresAt,
-                source: source || 'system',
-                sourceId,
-                description,
-                restrictedType: restrictedType && restrictedType.length > 0 ? JSON.stringify(restrictedType.sort()) : '[]',
-              },
-            }),
-          catch: (error) => {
-            reqCtx.log('[TokenService] 创建代币失败:', String(error));
-            reqCtx.log('[TokenService] 代币数据:', JSON.stringify({
+              data: { amount: existing.amount + amount },
+            });
+          }
+
+          return tx.token.create({
+            data: {
               userId,
               type,
               amount,
+              used: 0,
               expiresAt,
-              restrictedType,
-            }, null, 2));
-            throw MsgError.msg('创建代币失败');
-          },
-        });
-      }
+              source: source || 'system',
+              sourceId,
+              description,
+              restrictedType: targetRestrictedType,
+            },
+          });
+        }),
+      );
     }),
 
   /**
@@ -421,36 +383,18 @@ export const TokenService = {
     take?: number;
   }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      const [tokens, total] = yield* Effect.all([
-        Effect.tryPromise({
-          try: () =>
-            auth.db.token.findMany({
-              where: { userId },
-              orderBy: { created: 'desc' },
-              skip: options?.skip || 0,
-              take: options?.take || 20,
-            }),
-          catch: (error) => {
-            reqCtx.log('[TokenService] 查询代币列表失败:', String(error));
-            throw MsgError.msg('查询代币列表失败');
-          },
+      return yield* dbPaginatedFindMany('[TokenService]',
+        () => db.token.findMany({
+          where: { userId },
+          orderBy: { created: 'desc' },
+          skip: options?.skip ?? 0,
+          take: options?.take ?? DEFAULT_PAGE_SIZE,
         }),
-        Effect.tryPromise({
-          try: () =>
-            auth.db.token.count({
-              where: { userId },
-            }),
-          catch: (error) => {
-            reqCtx.log('[TokenService] 查询代币总数失败:', String(error));
-            return 0;
-          },
-        }),
-      ]);
-
-      return { tokens, total };
+        () => db.token.count({ where: { userId } }),
+        [] as never[],
+      );
     }),
 
   /**
@@ -463,51 +407,34 @@ export const TokenService = {
     endDate?: Date;
   }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      const [transactions, total] = yield* Effect.all([
-        Effect.tryPromise({
-          try: () =>
-            auth.db.tokenTransaction.findMany({
-              where: {
-                userId,
-                ...(options?.startDate && { created: { gte: options.startDate } }),
-                ...(options?.endDate && { created: { lte: options.endDate } }),
-              },
-              orderBy: { created: 'desc' },
-              skip: options?.skip || 0,
-              take: options?.take || 20,
-              include: {
-                task: {
-                  select: {
-                    id: true,
-                    title: true,
-                    type: true,
-                  },
-                },
-              },
-            }),
-          catch: (error) => {
-            reqCtx.log('[TokenService] 查询代币历史失败:', String(error));
-            throw MsgError.msg('查询代币历史失败');
+      const transactions = yield* dbTry('[TokenService]', '查询代币历史', () =>
+        db.tokenTransaction.findMany({
+          where: {
+            userId,
+            ...(options?.startDate && { created: { gte: options.startDate } }),
+            ...(options?.endDate && { created: { lte: options.endDate } }),
+          },
+          orderBy: { created: 'desc' },
+          skip: options?.skip ?? 0,
+          take: options?.take ?? DEFAULT_PAGE_SIZE,
+          include: {
+            task: {
+              select: { id: true, title: true, type: true },
+            },
           },
         }),
-        Effect.tryPromise({
-          try: () =>
-            auth.db.tokenTransaction.count({
-              where: {
-                userId,
-                ...(options?.startDate && { created: { gte: options.startDate } }),
-                ...(options?.endDate && { created: { lte: options.endDate } }),
-              },
-            }),
-          catch: (error) => {
-            reqCtx.log('[TokenService] 查询代币历史总数失败:', String(error));
-            return 0;
+      );
+
+      const total = yield* dbTryOrDefault('[TokenService]', '查询代币历史总数', () =>
+        db.tokenTransaction.count({
+          where: {
+            userId,
+            ...(options?.startDate && { created: { gte: options.startDate } }),
+            ...(options?.endDate && { created: { lte: options.endDate } }),
           },
-        }),
-      ]);
+        }), 0);
 
       return { transactions, total };
     }),

@@ -20,12 +20,12 @@
         @success="handleSuccess" />
 
       <!-- QR码对话框 -->
-      <Dialog v-model:visible="qrDialogVisible" :header="t('分享二维码')" :modal="true" :style="{ width: '300px' }"
-        :closable="true" class="p-fluid">
+      <Dialog v-model:visible="qrDialogVisible" :header="t('分享二维码')" :modal="true"
+        :closable="true" class="w-75 p-fluid">
         <div class="text-center">
           <div class="mb-4">
             <h3 class="text-lg font-semibold text-primary-900 dark:text-white mb-2">
-              {{ (selectedQRItem?.data as unknown as ShareJSON)?.title }}
+              {{ selectedQRItem?.data?.title }}
             </h3>
             <p class="text-sm text-primary-600 dark:text-primary-400">
               {{ t('扫描二维码访问分享') }}
@@ -77,31 +77,31 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
           <div v-for="item in shareList.state.value.data" :key="item.id"
             class="group relative bg-white dark:bg-primary-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
-            <ShareCard :data="(item as any)" />
+            <ShareCard :data="item" />
 
             <!-- 标题和文件信息 -->
             <div class="p-4">
               <h3 class="text-lg h-8 font-semibold text-primary-900 dark:text-white truncate">
-                {{ (item.data as unknown as ShareJSON).title }}
+                {{ item.data.title }}
               </h3>
               <div class="flex items-center">
                 <div class="flex-1"></div>
                 <div class="flex gap-2">
 
-                  <Button icon="pi pi-qrcode" variant="icon" @click.stop="handleShowQRCode(item as any)"
+                  <Button icon="pi pi-qrcode" variant="icon" @click.stop="handleShowQRCode(item)"
                     :aria-label="t('显示二维码')" />
-                  <Button icon="pi pi-link" variant="icon" @click.stop="handleGotoDetail(item as any)" />
-                  <Button icon="pi pi-pencil" variant="icon" @click.stop="handleEdit(item as any)"
+                  <Button icon="pi pi-link" variant="icon" @click.stop="handleGotoDetail(item)" />
+                  <Button icon="pi pi-pencil" variant="icon" @click.stop="handleEdit(item)"
                     :aria-label="t('编辑')" />
-                  <Button icon="pi pi-trash" variant="icon" @click.stop="handleDelete(item as any, $event)"
+                  <Button icon="pi pi-trash" variant="icon" @click.stop="handleDelete(item, $event)"
                     :aria-label="t('删除')" />
                 </div>
               </div>
 
               <div class="flex items-center justify-between text-sm text-primary-500 dark:text-primary-400">
-                <span>{{ (item.data as unknown as ShareJSON).files.length }} {{ t('个文件') }}</span>
+                <span>{{ item.data.files.length }} {{ t('个文件') }}</span>
                 <span>{{
-                  formatFileSize(getTotalFileSize(item.data as unknown as ShareJSON))
+                  formatFileSize(getTotalFileSize(item.data))
                 }}</span>
               </div>
             </div>
@@ -127,12 +127,12 @@
   import { Button, Input } from '@/components/base';
   import { Dialog } from '@tsfullstack/shared-frontend/components';
   import ShareCard from '@/pages/admin/share/ShareCard.vue';
+  import { useToast } from '@/composables/useToast';
   import {
-    formatFileSize,
     getTotalFileSize,
     type ShareItemJSON,
-    type ShareJSON,
   } from '@/pages/admin/share/ShareDef';
+  import { formatFileSize } from '@/utils/format';
   import ShareForm from '@/pages/admin/share/ShareForm.vue';
   import { routeMap, routerUtil } from '@/router';
   import { userDataAppid } from '@/storage/userDataAppid';
@@ -140,13 +140,13 @@
   import QRCode from 'qrcode';
   import { reactive, ref } from 'vue';
   import { useConfirm } from '@/composables/useConfirm';
-  import { useToast } from '@/composables/useToast';
   import { useI18n } from '@/composables/useI18n';
+  import { getErrorMessage } from '@/utils/error';
 
   const { API } = useAPI();
   const { t } = useI18n();
-  const confirm = useConfirm();
   const toast = useToast();
+  const confirm = useConfirm();
 
   // 搜索关键词
   const searchTitle = ref('');
@@ -163,8 +163,8 @@
     }) as WhereInput
     const orderBy = [{ created: 'desc' as const }];
 
-    async function fetchUsers() {
-      const [data, total] = await Promise.all([
+    async function fetchShareItems(): Promise<{ data: ShareItemJSON[]; total: number }> {
+      const [rawData, total] = await Promise.all([
         API.db.userData.findMany({
           where,
           orderBy,
@@ -176,15 +176,15 @@
         }),
         API.db.userData.count({ where }),
       ]);
-      return { data, total };
+      return { data: rawData as unknown as ShareItemJSON[], total };
     }
 
     const { state, error, isLoading, execute } = useAsyncState(
       () => {
-        return fetchUsers();
+        return fetchShareItems();
       },
       {
-        data: [],
+        data: [] as ShareItemJSON[],
         total: 0,
       },
     );
@@ -243,7 +243,7 @@
     shareList.execute();
   };
 
-  const onPageChange = (event: any) => {
+  const onPageChange = (event: { page: number; first: number }) => {
     shareList.params.skip = event.first;
     shareList.execute();
   };
@@ -274,8 +274,8 @@
           light: '#FFFFFF',
         },
       });
-    } catch (error) {
-      console.error('生成二维码失败:', error);
+    } catch (error: unknown) {
+      toast.error(t('生成二维码失败'), getErrorMessage(error));
       qrCodeDataUrl.value = '';
     }
 
@@ -288,9 +288,9 @@
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(currentShareUrl.value);
-      // 这里可以添加一个toast提示，但项目可能有自己的通知系统
-    } catch (error) {
-      console.error('复制失败:', error);
+      toast.success(t('链接已复制到剪贴板'));
+    } catch (error: unknown) {
+      toast.error(t('复制失败'), getErrorMessage(error));
     }
   };
 
@@ -332,12 +332,11 @@
             detail: '删除分享成功',
             life: 3000,
           });
-        } catch (error) {
-          console.error('删除失败:', error);
+        } catch (error: unknown) {
           toast.add({
             variant: 'error',
             summary: '失败',
-            detail: '删除分享失败：' + ((error as Error).message || '未知错误'),
+            detail: '删除分享失败：' + getErrorMessage(error),
             life: 3000,
           });
         }

@@ -1,6 +1,6 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
-import type { safePrisma } from '../Context/DbService';
+import type { DbClient } from '../Context/DbService';
 import { aiApi } from './AiApi';
 import { fileApi } from './authApi/file';
 import { systemApis } from './systemApis';
@@ -36,4 +36,4 @@ export const apis = {
 
 /** ZenStack v3 客户端类型 */
 export type APIRaw = typeof apis;
-export type API = Omit<APIRaw, 'db'> & { db: safePrisma };
+export type API = Omit<APIRaw, 'db'> & { db: DbClient };

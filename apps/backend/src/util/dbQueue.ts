@@ -3,8 +3,14 @@ import * as crypto from 'crypto';
 import type { ClientContract } from '@zenstackhq/orm';
 import type { Queue as QueueModel } from '../../.zenstack/models';
 import { schema } from '../../.zenstack/schema';
+import type { DbClient } from '../Context/DbService';
 
-export type TaskMap = Record<string, { payload: any; result: any }>;
+export type TaskMap = Record<string, { payload: unknown; result: unknown }>;
+
+/** 队列运行时常量 */
+const HEARTBEAT_INTERVAL_MS = 30_000;
+const STUCK_TIMEOUT_MS = 60_000;
+const MONITOR_INTERVAL_MS = 60_000;
 
 export interface AddTaskOptions {
   priority?: number;
@@ -13,7 +19,7 @@ export interface AddTaskOptions {
 }
 
 export interface QueueOptions {
-  dbClient: ClientContract<typeof schema>;
+  dbClient: DbClient | ClientContract<typeof schema>;
   pollingInterval?: number;
   concurrency?: number;
   instanceId?: string;
@@ -23,18 +29,19 @@ export interface QueueOptions {
 
 
 export class PrismaQueue<T extends TaskMap> {
-  public readonly dbClient: ClientContract<typeof schema>;
+  public readonly dbClient: DbClient | ClientContract<typeof schema>;
   private readonly pollingInterval: number;
   private readonly concurrency: number;
   private readonly instanceId: string;
-  private readonly stuckTimeoutMs: number;
+  private stuckTimeoutMs: number;
   private isRunning = false;
   private activeWorkers = 0;
+  /** 动态任务处理器映射 — any 是本质性的（运行时类型由 register<K> 泛型保证） */
   private workers = new Map<string, (payload: any) => Promise<any>>();
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private stuckTaskTimer: NodeJS.Timeout | null = null;
 
-  constructor({ dbClient, pollingInterval = 1000, concurrency = 5, instanceId, stuckTimeoutMs = 30_000 }: QueueOptions) {
+  constructor({ dbClient, pollingInterval = 1000, concurrency = 5, instanceId, stuckTimeoutMs = STUCK_TIMEOUT_MS }: QueueOptions) {
     this.dbClient = dbClient;
     this.pollingInterval = pollingInterval;
     this.concurrency = concurrency;
@@ -64,7 +71,7 @@ export class PrismaQueue<T extends TaskMap> {
     return this.dbClient.queue.create({
       data: {
         name: name as string,
-        payload,
+        payload: payload as never, // ZenStack payload 字段要求严格类型，动态队列通过注册时泛型保证类型安全
         status: 'PENDING',
         priority: options.priority ?? 0,
         runAt: options.runAt ?? new Date(),
@@ -103,23 +110,27 @@ export class PrismaQueue<T extends TaskMap> {
           where: { status: 'PROCESSING', workerId: this.instanceId },
           data: { updated: new Date() },
         });
-      } catch (err) {
-        console.error('[Queue] Heartbeat update failed:', err);
+      } catch (error: unknown) {
+        console.error('[Queue] Heartbeat update failed:', error);
       }
-    }, 30_000);
+    }, HEARTBEAT_INTERVAL_MS);
   }
 
-  // @ts-ignore
-  private async poll() {
+  private async poll(): Promise<void> {
     if (!this.isRunning) return;
     if (this.activeWorkers >= this.concurrency) {
-      return setTimeout(() => this.poll(), this.pollingInterval);
+      void setTimeout(() => this.poll(), this.pollingInterval);
+      return;
     }
 
     try {
       const taskTypes = [...this.workers.keys()];
-      if (taskTypes.length === 0) return setTimeout(() => this.poll(), this.pollingInterval);
+      if (taskTypes.length === 0) {
+        void setTimeout(() => this.poll(), this.pollingInterval);
+        return;
+      }
 
+      // @ts-expect-error -- tx 类型因 DbClient | ClientContract 联合类型导致推导失败，但运行时类型正确
       const task = await this.dbClient.$transaction(async (tx) => {
         const candidate = await tx.queue.findFirst({
           where: {
@@ -151,15 +162,15 @@ export class PrismaQueue<T extends TaskMap> {
 
       if (task) {
         this.activeWorkers++;
-        this.processTask(task).finally(() => {
+        this.processTask(task as unknown as QueueModel).finally(() => {
           this.activeWorkers--;
           setImmediate(() => this.poll());
         });
       } else {
-        setTimeout(() => this.poll(), this.pollingInterval);
+        void setTimeout(() => this.poll(), this.pollingInterval);
       }
-    } catch (err) {
-      console.error('[Queue] Polling error:', err);
+    } catch (error: unknown) {
+      console.error('[Queue] Polling error:', error);
       setTimeout(() => this.poll(), this.pollingInterval);
     }
   }
@@ -183,17 +194,19 @@ export class PrismaQueue<T extends TaskMap> {
         },
         data: {
           status: 'COMPLETED',
-          result,
+          result: result as never, // ZenStack result 字段要求严格类型，动态队列通过注册时泛型保证类型安全
           completedAt: new Date(),
           updated: new Date(),
           error: null,
         },
       });
 
-      updated.count > 0
-        ? console.log(`[Queue] Task ${task.id} completed`)
-        : console.warn(`[Queue] Task ${task.id} update ignored`);
-    } catch (err) {
+      if (updated.count > 0) {
+        console.log(`[Queue] Task ${task.id} completed`);
+      } else {
+        console.warn(`[Queue] Task ${task.id} update ignored`);
+      }
+    } catch (error: unknown) {
       const current = await this.dbClient.queue.findUnique({ where: { id: task.id } });
       if (!current || current.workerId !== this.instanceId) return;
 
@@ -211,14 +224,14 @@ export class PrismaQueue<T extends TaskMap> {
             status: 'PENDING',
             workerId: null,
             runAt,
-            error: `Retry ${current.attempts}/${current.maxAttempts}: ${(err as Error).message}`,
+            error: `Retry ${current.attempts}/${current.maxAttempts}: ${error instanceof Error ? error.message : String(error)}`,
             updated: new Date(),
           },
         });
 
         console.log(`[Queue] Task ${task.id} will retry at ${runAt.toISOString()}`);
       } else {
-        await this.failTask(task.id, (err as Error).message);
+        await this.failTask(task.id, error instanceof Error ? error.message : String(error));
       }
     }
   }
@@ -253,65 +266,48 @@ export class PrismaQueue<T extends TaskMap> {
         },
       });
 
+      // 拆分为 retry 和 fail 两组，避免串行逐个 await
+      const toRetry: typeof stuckTasks = [];
+      const toFail: typeof stuckTasks = [];
+      // 取当前时间作为批量重试的统一 runAt（backoff 差异很小，简化处理）
+      const batchRunAt = new Date();
+
       for (const task of stuckTasks) {
         if (task.attempts < task.maxAttempts) {
-          const backoff = this.getBackoff(task.attempts);
-          const runAt = new Date(Date.now() + backoff);
-
-          await this.dbClient.queue.updateMany({
-            where: { id: task.id, updated: { lt: stuckBefore }, status: 'PROCESSING' },
-            data: {
-              status: 'PENDING',
-              workerId: null,
-              runAt,
-              error: `Recovered from stuck worker (${task.attempts}/${task.maxAttempts})`,
-              updated: new Date(),
-            },
-          });
-
-          console.warn(`[Queue] Requeued stuck task ${task.id} (worker ${task.workerId})`);
+          toRetry.push(task);
         } else {
-          await this.failTask(task.id, 'Max attempts reached after stuck timeout');
+          toFail.push(task);
         }
       }
-    } catch (err) {
-      console.error('[Queue] monitorStuckTasks failed:', err);
+
+      // 批量重试：使用 updateMany 一次更新所有需要重试的任务
+      if (toRetry.length > 0) {
+        const retryIds = toRetry.map((t) => t.id);
+        await this.dbClient.queue.updateMany({
+          where: {
+            id: { in: retryIds },
+            status: 'PROCESSING',
+          },
+          data: {
+            status: 'PENDING',
+            workerId: null,
+            runAt: batchRunAt,
+            error: `Batch recovered ${toRetry.length} stuck tasks`,
+            updated: new Date(),
+          },
+        });
+        console.warn(`[Queue] Batch requeued ${toRetry.length} stuck tasks`);
+      }
+
+      // 批量失败
+      if (toFail.length > 0) {
+        const failIds = toFail.map((t) => t.id);
+        await Promise.all(failIds.map((id) => this.failTask(id, 'Max attempts reached after stuck timeout')));
+      }
+    } catch (error: unknown) {
+      console.error('[Queue] monitorStuckTasks failed:', error);
     }
 
-    this.stuckTaskTimer = setTimeout(() => this.monitorStuckTasks(), 60_000);
-  }
-
-  async getStats() {
-    const [pending, processing, completed, failed] = await this.dbClient.$transaction([
-      this.dbClient.queue.count({ where: { status: 'PENDING' } }),
-      this.dbClient.queue.count({ where: { status: 'PROCESSING' } }),
-      this.dbClient.queue.count({ where: { status: 'COMPLETED' } }),
-      this.dbClient.queue.count({ where: { status: 'FAILED' } }),
-    ]);
-
-    return {
-      pending,
-      processing,
-      completed,
-      failed,
-      total: pending + processing + completed + failed,
-      instanceId: this.instanceId,
-      activeWorkers: this.activeWorkers,
-    };
-  }
-
-  async cleanup(olderThanDays = 7) {
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - olderThanDays);
-
-    const result = await this.dbClient.queue.deleteMany({
-      where: {
-        status: { in: ['COMPLETED', 'FAILED'] },
-        completedAt: { lt: cutoff },
-      },
-    });
-
-    console.log(`[Queue] Cleaned ${result.count} tasks`);
-    return result.count;
+    this.stuckTaskTimer = setTimeout(() => this.monitorStuckTasks(), MONITOR_INTERVAL_MS);
   }
 }

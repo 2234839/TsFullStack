@@ -8,11 +8,18 @@ import {
   type MsgErrorOpValues,
   SessionAuthSign,
 } from '@tsfullstack/backend';
-/** 直接引用后端 ts，有完善的类型，可以直接跳转定义，并且可以查看变量引用。但是 vue-tsc 过不去,暂时没想到解决的好办法，只能作为开发时方便使用的临时方案 */
-// import type { API as __API__, AppAPI as __AppAPI__, MsgErrorOpValues } from '../../backend/src/lib';
 
 import superjson from 'superjson';
 import { routeMap, routerUtil } from './router';
+
+/** RPC 响应的统一结构 */
+interface APIResponse<T = unknown> {
+  result?: T;
+  error?: {
+    op?: MsgErrorOpValues;
+    message?: string;
+  };
+}
 import { authInfo } from './storage';
 import { toastBus, authBus } from './buses';
 const baseServer = import.meta.env.VITE_API_BASE_URL || '';
@@ -45,7 +52,7 @@ export function useAPI() {
   return { API, AppAPI, APIGetUrl, AppAPIGetUrl };
 
   function genPostRemoteCall(baseUrl: string) {
-    function remoteCall(method: string, data: any[]) {
+    function remoteCall(method: string, data: unknown[]) {
       let body: BodyInit;
       let content_type;
       if (data[0] instanceof File) {
@@ -96,41 +103,32 @@ export function useAPI() {
           return res.json();
         })
         .then((r) => {
-          const res = superjson.deserialize(r) as any;
+          const res = superjson.deserialize(r) as APIResponse;
           if (!res.error) {
             return res.result;
           }
           const op = res.error.op as MsgErrorOpValues | undefined;
 
+          /** 统一发布错误 toast */
+          const errorDetail = res.error?.message ?? '';
+          const publishErrorToast = () => {
+            toastBus.publish({
+              variant: 'error',
+              summary: '错误',
+              detail: errorDetail,
+              life: 3000,
+              op,
+            });
+          };
+
           if (op === MsgError.op_logout) {
-            // 登出：发布登出事件，清理本地认证信息并跳转登录页
             authBus.publish(MsgError.op_logout);
-            toastBus.publish({
-              variant: 'error',
-              summary: 'Error',
-              detail: res.error.message,
-              life: 3000,
-              op,
-            });
+            publishErrorToast();
           } else if (op === MsgError.op_toLogin) {
-            // 跳转登录页：不清理本地数据，仅跳转
-            // 显示提示信息
-            toastBus.publish({
-              variant: 'error',
-              summary: 'Error',
-              detail: res.error.message,
-              life: 3000,
-              op,
-            });
             routerUtil.push(routeMap.login, {});
-          } else if (op === MsgError.op_msgError) {
-            toastBus.publish({
-              variant: 'error',
-              summary: 'Error',
-              detail: res.error.message,
-              life: 3000,
-              op,
-            });
+            publishErrorToast();
+          } else {
+            publishErrorToast();
           }
           throw res.error;
         });

@@ -58,9 +58,7 @@ export const useTokenStore = () => {
       const result = await API.tokenApi.getAvailableTokens();
       balance.value = result as unknown as TokenBalance;
       lastUpdated.value = new Date();
-    } catch (error) {
-      console.error('[TokenStore] 刷新余额失败:', error);
-      // 重新抛出错误以便上层处理
+    } catch (error: unknown) {
       throw error;
     } finally {
       isLoading.value = false;

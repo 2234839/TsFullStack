@@ -36,17 +36,7 @@
     if (!authInfo_isLogin.value) {
       routerUtil.push(routeMap.login, {});
     } else {
-      // const testConcurrency = async () => {
-      //   console.time('并发测试');
-      //   // 并发测试API
-      //   const promises = Array(10)
-      //     .fill(0)
-      //     .map(() => API.testApi.并发控制());
-      //   const results = await Promise.all(promises);
-      //   console.log('[results]', results);
-      //   console.timeEnd('并发测试');
-      // };
-      // await testConcurrency();
+      // 已登录，无需跳转
     }
   });
 </script>
@@ -63,11 +53,11 @@
   }
 
   .overflow-auto::-webkit-scrollbar-thumb {
-    background-color: rgba(71, 85, 105, 0.3);
+    background-color: color-mix(in srgb, var(--color-slate-500) 30%, transparent);
     border-radius: 3px;
   }
 
   .overflow-auto::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(71, 85, 105, 0.5);
+    background-color: color-mix(in srgb, var(--color-slate-500) 50%, transparent);
   }
 </style>

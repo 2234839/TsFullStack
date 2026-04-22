@@ -7,6 +7,7 @@ import { ReqCtxService } from './ReqCtx';
 export const reqClientIpEffect = Effect.gen(function* () {
   const ctx = yield* ReqCtxService;
   // 获取客户端IP（考虑 nginx 反向代理）
-  const clientIP = (ctx.req.headers['x-forwarded-for'] as string) || ctx.req.ip;
+  const forwarded = ctx.req.headers['x-forwarded-for'];
+  const clientIP = typeof forwarded === 'string' ? (forwarded.split(',')[0]?.trim() ?? ctx.req.ip) : ctx.req.ip;
   return clientIP;
 });

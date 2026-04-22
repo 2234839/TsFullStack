@@ -16,6 +16,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
   const variables = reactive<Record<string, any>>({});
   const varMap = reactive<Record<string, string>>({});
+  /** Vue reactive 不追踪 Set/Map 内部变更，必须整体赋值触发更新（= new Set()） */
   const dependencyGraph = reactive<Record<string, Set<number>>>({});
   const lineToVars = reactive<Record<number, Set<string>>>({});
   const lineResults = reactive<Record<number, CalculationResult>>({});
@@ -45,7 +46,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   /**
    * 格式化结果为可显示的字符串，处理精度问题
    */
-  function formatResult(result: any): string {
+  function formatResult(result: unknown): string {
     if (result === null || result === undefined) {
       return 'undefined';
     }
@@ -63,7 +64,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
           precision: config.showPrecision,
           notation: 'auto',
         });
-      } catch (e) {
+      } catch (e: unknown) {
         console.error('格式化数字失败:', e);
         return String(result);
       }
@@ -80,31 +81,29 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     }
 
     // 处理Unit对象
-    if (typeof result === 'object') {
-      if (result.hasOwnProperty('unit') || result.hasOwnProperty('value')) {
+    if (typeof result === 'object' && result !== null) {
+      const obj = result as Record<string, unknown>;
+      if ('unit' in obj || 'value' in obj) {
         try {
-          // 如果单位对象包含数值，也需要格式化
-          if (typeof result.value === 'number') {
-            const formattedValue = mathInstance.value.format(result.value, {
+          if (typeof obj.value === 'number') {
+            const formattedValue = mathInstance.value.format(obj.value, {
               precision: 15,
               notation: 'auto',
             });
-            // 尝试手动构建格式化的单位字符串
-            if (result.unit && result.unit.toString) {
-              return `${formattedValue} ${result.unit.toString()}`;
+            if (obj.unit && typeof obj.unit === 'object' && 'toString' in obj.unit) {
+              return `${formattedValue} ${(obj.unit as { toString(): string }).toString()}`;
             }
           }
-          return result.toString();
-        } catch (e) {
-          console.error('转换Unit对象为字符串失败:', e);
+          return String(obj);
+        } catch (e: unknown) {
           return JSON.stringify(result);
         }
       }
 
       // 其他对象类型
       try {
-        return JSON.stringify(result);
-      } catch (e) {
+        return JSON.stringify(obj);
+      } catch (e: unknown) {
         return '[复杂对象]';
       }
     }
@@ -253,21 +252,11 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   /**
    * 计算表达式
    */
-  function evalExpression(expression: string): any {
-    try {
-      const safeExpr = paserSafeExpression(expression);
-      const scope = getSafeScope();
+  function evalExpression(expression: string): unknown {
+    const safeExpr = paserSafeExpression(expression);
+    const scope = getSafeScope();
 
-      // 调试信息，帮助排查问题
-      console.log(`计算表达式: ${expression}`);
-      console.log(`安全表达式: ${safeExpr}`);
-      console.log(`作用域:`, scope);
-
-      return mathInstance.value.evaluate(safeExpr, scope);
-    } catch (error) {
-      console.error(`计算表达式错误: ${expression}`, error);
-      throw error;
-    }
+    return mathInstance.value.evaluate(safeExpr, scope);
   }
 
   /**
@@ -276,7 +265,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
    */
   function extractVariables(expression: string): Set<string> {
     const vars = new Set<string>();
-    const sortedVars = Object.keys(varMap).sort((a, b) => b.length - a.length);
+    const varNameSet = new Set(Object.keys(varMap));
 
     // 使用与paserSafeExpression相同的词元化方法
     let currentToken = '';
@@ -291,7 +280,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       } else {
         // 如果当前有词元，检查是否是变量名
         if (currentToken) {
-          if (sortedVars.includes(currentToken)) {
+          if (varNameSet.has(currentToken)) {
             vars.add(currentToken);
           }
           currentToken = '';
@@ -424,8 +413,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
             isSimpleAssignment,
             highlightedContent: highlightSyntax(line),
           };
-        } catch (e: any) {
-          console.error(`计算错误 (${line}):`, e);
+        } catch (e: unknown) {
           return {
             type: 'error',
             content: line,
@@ -459,7 +447,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
           // 如果右侧是数值，检查计算结果是否匹配
           if (isRightNumeric) {
             const rightValue = Number.parseFloat(rightExpression);
-            const isCorrect = Math.abs(leftResult - rightValue) < 1e-10; // 允许小误差
+            const isCorrect = Math.abs((leftResult as number) - rightValue) < 1e-10; // 允许小误差
 
             return {
               type: 'equation',
@@ -477,7 +465,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
             updateDependencyGraph(lineIndex, leftVars);
 
             const rightResult = evalExpression(rightExpression);
-            const isCorrect = Math.abs(leftResult - rightResult) < 1e-10; // 允许小误差
+            const isCorrect = Math.abs((leftResult as number) - (rightResult as number)) < 1e-10; // 允许小误差
 
             return {
               type: 'equation',
@@ -487,7 +475,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
               highlightedContent: highlightSyntax(line),
             };
           }
-        } catch (e) {
+        } catch (e: unknown) {
           return {
             type: 'error',
             content: line,
@@ -527,7 +515,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
             highlightedContent: highlightSyntax(line),
           };
         }
-      } catch (e) {
+      } catch (e: unknown) {
         return {
           type: 'error',
           content: line,
@@ -554,7 +542,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
         result: resultDisplay,
         highlightedContent: highlightSyntax(line),
       };
-    } catch (e) {
+    } catch (e: unknown) {
       // 如果不是表达式，就原样返回
       return {
         type: 'normal',
@@ -604,8 +592,8 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       if (task) {
         await task();
       }
-    } catch (error) {
-      console.error('计算任务执行错误:', error);
+    } catch (error: unknown) {
+      // 队列任务执行错误，静默处理（单个任务失败不影响队列继续）
     } finally {
       isCalculating.value = false;
 
@@ -629,8 +617,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
           const results = await task();
           resolve(results);
           return results;
-        } catch (error) {
-          console.error('计算任务执行失败:', error);
+        } catch (error: unknown) {
           reject(error);
           throw error;
         }
@@ -652,7 +639,6 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   async function calculateAll(content: string): Promise<CalculationResult[]> {
     // 将计算任务添加到队列
     return addCalculationTask(async () => {
-      console.log('[content]', content);
       const lines = content.split('\n');
       const results: CalculationResult[] = [];
 
@@ -667,8 +653,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       initializeVarMap(content);
 
       // 处理每一行
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
+      for (const [i, line] of lines.entries()) {
         /** 防止卡死ui */
         if (i % 10 === 0) await delay(1);
 
@@ -676,7 +661,6 @@ export function useCalculator(initialConfig: CalculatorConfig) {
         results.push(result);
         lineResults[i] = result;
       }
-      // console.log('[results]', results);
       return results;
     });
   }
@@ -694,8 +678,8 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
     // 如果行数相同，检查每行是否有修改
     if (prevLines.length === newLines.length) {
-      for (let i = 0; i < prevLines.length; i++) {
-        if (prevLines[i] !== newLines[i]) {
+      for (const [i, prevLine] of prevLines.entries()) {
+        if (prevLine !== newLines[i]) {
           diffs.push({
             type: 'modify',
             lineIndex: i,
@@ -804,7 +788,6 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
       // 检测文本变化
       const diffs = detectTextChanges(prevContent, newContent);
-      console.log('检测到的变化:', diffs);
 
       if (diffs.length === 0) {
         return Object.values(lineResults);
@@ -872,8 +855,6 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       // 更新变量映射（可能有新变量）
       initializeVarMap(newContent);
 
-      console.log('需要重新计算的行:', Array.from(linesToRecalculate));
-
       // 重新计算受影响的行
       for (const lineIndex of linesToRecalculate) {
         if (lineIndex < newLines.length) {
@@ -888,7 +869,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
       // 构建结果数组
       const results: CalculationResult[] = [];
-      for (let i = 0; i < newLines.length; i++) {
+      for (const [i] of newLines.entries()) {
         if (lineResults[i]) {
           results.push(lineResults[i]!);
         } else {

@@ -2,8 +2,7 @@
 <template>
   <!-- 展示广告位 -->
   <ins
-    class="adsbygoogle"
-    style="display: block"
+    class="adsbygoogle block"
     data-ad-client="ca-pub-7181140659254262"
     data-ad-slot="8223616080"
     data-ad-format="auto"

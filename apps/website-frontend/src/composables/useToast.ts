@@ -15,6 +15,8 @@ interface ToastMessage {
 
 const messages = ref<ToastMessage[]>([]);
 let messageIdCounter = 0;
+/** 追踪活跃的自动移除定时器，支持手动移除时取消定时器 */
+const autoRemoveTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 /** 添加消息 */
 function add(message: Omit<ToastMessage, 'id'>) {
@@ -23,18 +25,25 @@ function add(message: Omit<ToastMessage, 'id'>) {
 
   messages.value.push(messageWithId);
 
-  // 自动移除
+  // 自动移除（使用追踪 Map 支持提前移除时清理）
   if (message.life) {
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      autoRemoveTimers.delete(id);
       remove(id);
     }, message.life);
+    autoRemoveTimers.set(id, timer);
   }
 
   return id;
 }
 
-/** 移除消息 */
+/** 移除消息（同时清理自动移除定时器） */
 function remove(id: number) {
+  const timer = autoRemoveTimers.get(id);
+  if (timer) {
+    clearTimeout(timer);
+    autoRemoveTimers.delete(id);
+  }
   const index = messages.value.findIndex(m => m.id === id);
   if (index !== -1) {
     messages.value.splice(index, 1);
@@ -61,8 +70,12 @@ function warn(summary: string, detail?: string, life = 4000) {
   return add({ variant: 'warn', summary, detail, life });
 }
 
-/** 清除所有消息 */
+/** 清除所有消息（同时清理自动移除定时器） */
 function removeAll() {
+  for (const timer of autoRemoveTimers.values()) {
+    clearTimeout(timer);
+  }
+  autoRemoveTimers.clear();
   messages.value = [];
 }
 

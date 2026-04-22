@@ -15,7 +15,7 @@
       </Button>
     </div>
   </div>
-  <AutoFilter v-if="selectModelMeta" :modelFields="selectModelMeta.model.fields" @filter="
+  <AutoFilter v-if="selectModelMeta" :modelFields="selectModelMeta.model.fields as unknown as Record<string, FieldInfo>" @filter="
       (options) => {
         filter = options;
         currentPage = 1;
@@ -52,8 +52,9 @@
   import { useToast } from '@/composables/useToast';
   import { computed, h, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
+  import { getErrorMessage } from '@/utils/error';
   import AutoColumn from './AutoColumn.vue';
-  import { injectModelMetaKey, type ModelMetaNames, type Model, type FieldInfo, getModelAPI, isDataModelField, isArrayField, getBackLinkFieldName } from './type';
+  import { injectModelMetaKey, type ModelMetaNames, type Model, type FieldInfo, type DynamicQuery, getModelAPI, isDataModelField, isArrayField, getBackLinkFieldName } from './type';
   import { findIdField, useModelMeta, getModelDbName as exportGetModelDbName } from './util';
   const { t } = useI18n();
   const confirm = useConfirm();
@@ -211,11 +212,11 @@
     try {
       /** 查找一个可以用于更新指定记录的唯一主键字段  */
       const idField = findIdField(modelMeta.state.value!, selectModelName.value);
-      if (!idField) return console.error('No ID field found in the model');
+      if (!idField) return;
 
-      for (let index = 0; index < editData.value.length; index++) {
+      for (const [index, editRowItem] of editData.value.entries()) {
         const rawRow = tableData.state.value.list[index];
-        const editRow = { ...editData.value[index] };
+        const editRow = { ...editRowItem };
         const editFields = Object.keys(editRow);
         if (editFields.length === 0) continue;
 
@@ -227,14 +228,6 @@
 
         if (isDataModelField(field)) {
           const relationData = editRow[editFieldName] as RelationSelectData;
-
-          console.log('[saveChanges] Processing relation field:', {
-            editFieldName,
-            fieldType: field.type,
-            isArray: isArrayField(field),
-            add: relationData.add,
-            remove: relationData.remove,
-          });
 
           /**
            * 区分关系类型：
@@ -253,11 +246,6 @@
             const disconnectData = relationData.remove.map((item) => ({
               [refIdField.name]: item.value,
             }));
-
-            console.log('[saveChanges] Array relation operation:', {
-              connect: connectData,
-              disconnect: disconnectData,
-            });
 
             editRow[editFieldName] = {
               connect: connectData,
@@ -284,7 +272,6 @@
           }
         }
       });
-      console.log('[editRow]', editRow);
 
       /**
        * 处理关系字段的转移所有权
@@ -324,10 +311,12 @@
           // 安全检查：确保 relationData 和 relationData.add 存在
           if (relationData?.add && relationData.add.length > 0) {
             // 获取被关联模型的 API（如 UserData API）
-            const relatedModelKey = Object.keys(modelMeta.state.value!.models).find(
-              (key) => (modelMeta.state.value!.models as any)[key]?.name === field.type
-            ) as ModelMetaNames;
-            const relatedModelName = exportGetModelDbName(relatedModelKey);
+            const relatedModel = Object.values(modelMeta.state.value!.models).find((m) => m.name === (field.type as string));
+            const modelsRecord = modelMeta.state.value!.models as unknown as Record<string, unknown>;
+            const relatedModelKey = relatedModel
+              ? (Object.keys(modelsRecord).find((k) => modelsRecord[k] === relatedModel) as ModelMetaNames | undefined)
+              : undefined;
+            const relatedModelName = exportGetModelDbName(relatedModelKey!);
             const relatedAPI = getModelAPI(API, relatedModelName);
             const relatedIdField = findIdField(modelMeta.state.value!, field.type as string)!;
 
@@ -335,11 +324,10 @@
             const backLinkFieldName = getBackLinkFieldName(field);
 
             // 找到当前记录的 ID（如 User.id）
-            const currentRecordId = (rawRow as any)[idField.name];
+            const currentRecordId = (rawRow as Record<string, unknown>)[idField.name];
 
             // 安全检查：确保 backLinkFieldName 存在
             if (!backLinkFieldName) {
-              console.warn('[saveChanges] Missing backLinkFieldName for field:', field.name);
               continue;
             }
 
@@ -347,13 +335,15 @@
             for (const item of relationData.add) {
               try {
                 // 获取反向关系的外键字段名（如 UserData.user -> userId）
-                const backLinkField = (Object.values(modelMeta.state.value!.models).find(
-                  (model: any) => model.name === field.type
-                )?.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName];
-                const foreignKeyField = (backLinkField as any)?.relation?.fields?.[0];
+                const relatedModelForLink = Object.values(modelMeta.state.value!.models).find(
+                  (m) => m.name === (field.type as string),
+                );
+                const backLinkField = relatedModelForLink
+                  ? ((relatedModelForLink.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName])
+                  : undefined;
+                const foreignKeyField = backLinkField?.relation?.fields?.[0];
 
                 if (!foreignKeyField) {
-                  console.warn('[saveChanges] No foreign key field found for backLink:', backLinkFieldName);
                   continue;
                 }
 
@@ -362,20 +352,12 @@
                 await relatedAPI.update({
                   where: {
                     [relatedIdField.name]: item.value,
-                  },
+                  } as never,
                   data: {
                     [foreignKeyField]: currentRecordId,
-                  },
+                  } as never,
                 });
-                console.log('[saveChanges] Transferred ownership:', {
-                  relatedModel: field.type,
-                  recordId: item.value,
-                  foreignKeyField,
-                  newOwner: currentRecordId,
-                });
-              } catch (error: any) {
-                console.error('[saveChanges] Failed to transfer ownership:', error);
-
+              } catch (error: unknown) {
                 // 在 UI 上显示错误提示
                 toast.add({
                   variant: 'danger',
@@ -405,26 +387,23 @@
       const modelKey = selectModelMeta.value!.modelKey;
       const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
       const modelAPI = getModelAPI(API, modelName);
-      const updateRes = await modelAPI.update({
+      await modelAPI.update({
         data: editRow,
         where: {
-          [idField.name]: (rawRow as any)[idField.name],
-        } as any,
+          [idField.name]: (rawRow as Record<string, unknown>)[idField.name],
+        } as DynamicQuery,
         select: {
           [idField.name]: true,
-        } as any,
+        } as DynamicQuery,
       });
-      console.log('[updateRes]', updateRes);
     }
     reloadTableData();
-    } catch (error: any) {
-      console.error('[saveChanges] Failed to save changes:', error);
-
+    } catch (error: unknown) {
       // 在 UI 上显示错误提示
       toast.add({
         variant: 'danger',
         summary: '保存失败',
-        detail: error?.message || '保存更改时发生错误，请查看控制台了解详情',
+        detail: getErrorMessage(error, '保存更改时发生错误，请查看控制台了解详情'),
         life: 5000,
       });
     }
@@ -439,7 +418,7 @@
   async function deleteRows(rows: Array<Record<string, any> | string | number>) {
     /** 查找一个可以用于更新指定记录的唯一主键字段  */
     const idField = findIdField(modelMeta.state.value!, selectModelName.value);
-    if (!idField) return console.error('No ID field found in the model');
+    if (!idField) return;
     if (rows.length === 0)
       return toast.add({
         variant: 'info',
@@ -485,8 +464,8 @@
           OR: validIds.map((id) => ({
             [idField.name]: id,
           })),
-        },
-      } as any);
+        } as DynamicQuery,
+      });
 
       // 删除成功后清空选中状态并刷新表格
       selectRows.value = [];
@@ -498,9 +477,9 @@
         detail: `成功删除 ${validIds.length} 条数据`,
         life: 3000,
       });
-    } catch (error) {
+    } catch (error: unknown) {
       // 提取错误信息并显示给用户
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = getErrorMessage(error);
 
       // 解析 FOREIGN KEY 约束错误，给出更友好的提示
       let userMessage = errorMessage;
@@ -515,7 +494,7 @@
         life: 5000,
       });
 
-      console.error('[deleteRows] 删除失败:', error);
+      // 错误已通过 toast 通知用户
     }
   }
   function deleteConfirm(event: MouseEvent) {

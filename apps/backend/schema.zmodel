@@ -398,8 +398,6 @@ model AiModel with Base {
     description String?
     /// 模型配置（JSON存储，用于存储不同类型模型的特定配置）
     config      Json?
-
-    @@allow('read', auth() != null)
 }
 
 /// AI 模型类型枚举

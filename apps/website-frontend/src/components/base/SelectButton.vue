@@ -7,12 +7,17 @@
 import { computed, watch, ref } from 'vue';
 import { useElementBounding, useScroll } from '@vueuse/core';
 
-interface Props {
+/** 选项数据结构 */
+interface SelectOption<T = string> {
+  [key: string]: T;
+}
+
+interface Props<T = string> {
   /** 模型值 */
-  modelValue?: any;
+  modelValue?: T | T[];
   /** 选项列表 */
-  options?: any[];
-  /** 选项值的键名 */
+  options?: SelectOption<T> | T[];
+  /** 选项显示文本的键名 */
   optionLabel?: string;
   /** 选项值的键名 */
   optionValue?: string;
@@ -31,7 +36,7 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  'update:modelValue': [value: any];
+  'update:modelValue': [value: unknown];
 }>();
 
 /** 滚动容器引用 */
@@ -70,10 +75,10 @@ function scrollToRight() {
 }
 
 /** 处理选择 */
-function handleSelect(value: any) {
+function handleSelect(value: unknown) {
   if (props.multiple) {
-    const currentArray = Array.isArray(props.modelValue) ? props.modelValue : [];
-    if (currentArray.includes(value)) {
+    const currentArray = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
+    if (currentArray.some((v) => v === value)) {
       emit('update:modelValue', currentArray.filter((v) => v !== value));
     } else {
       emit('update:modelValue', [...currentArray, value]);
@@ -84,23 +89,30 @@ function handleSelect(value: any) {
 }
 
 /** 获取选项的显示值 */
-function getOptionLabel(option: any): string {
-  return typeof option === 'object' ? option[props.optionLabel] : option;
+function getOptionLabel(option: unknown): string {
+  return typeof option === 'object' && option !== null
+    ? String((option as Record<string, unknown>)[props.optionLabel] ?? '')
+    : String(option ?? '');
 }
 
 /** 获取选项的值 */
-function getOptionValue(option: any): any {
-  return typeof option === 'object' ? option[props.optionValue] : option;
+function getOptionValue(option: unknown): unknown {
+  return typeof option === 'object' && option !== null
+    ? (option as Record<string, unknown>)[props.optionValue]
+    : option;
 }
 
 /** 检查选项是否被选中 */
-function isSelected(option: any): boolean {
+function isSelected(option: unknown): boolean {
   const value = getOptionValue(option);
   if (props.multiple) {
-    return Array.isArray(props.modelValue) && props.modelValue.includes(value);
+    return Array.isArray(props.modelValue) && props.modelValue.some((v) => v === value);
   }
   return props.modelValue === value;
 }
+
+/** 最后一个选项的索引 */
+const lastIndex = computed(() => (props.options as unknown[]).length - 1);
 
 /** 按钮样式类 */
 const buttonClasses = (selected: boolean) => {
@@ -156,7 +168,7 @@ watch(
     <!-- 滚动容器 -->
     <div ref="scrollContainer" :class="[containerClasses]" class="overflow-x-auto hide-scrollbar">
       <button v-for="(option, index) in options" :key="index" :disabled="disabled"
-        :class="[buttonClasses(isSelected(option)), { 'border-r-0': index < options.length - 1 }]"
+        :class="[buttonClasses(isSelected(option)), { 'border-r-0': Number(index) < lastIndex }]"
         @click="handleSelect(getOptionValue(option))">
         {{ getOptionLabel(option) }}
       </button>

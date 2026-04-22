@@ -71,7 +71,7 @@ function handleInput(event: Event) {
       type="button"
       @click="toggleVisibility"
       :disabled="disabled"
-      class="absolute right-2 top-1/2 -transecondary-y-1/2 p-1 text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
       <i :class="visible ? 'pi pi-eye-slash' : 'pi pi-eye'" class="text-lg"></i>
     </button>
   </div>

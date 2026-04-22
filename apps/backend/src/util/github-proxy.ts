@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { AppConfigService } from '../Context/AppConfig';
 import { ReqCtxService } from '../Context/ReqCtx';
+import { MsgError } from '../util/error';
 
 /**
  * Enhanced fetch options with proxy support
@@ -20,22 +21,24 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
         const { useProxy = true, ...fetchOptions } = options;
         const githubProxyUrl = appConfig.ApiProxy.github;
 
-        ctx.log(`fetch proxy, githubProxyUrl:${githubProxyUrl}  targetUrl:${url}`);
-        // If proxy is not configured or explicitly disabled, use direct fetch
+        ctx.log('[github-proxy] fetch proxy, hasProxy=' + !!githubProxyUrl);
         if (!useProxy || !githubProxyUrl) {
-          return yield* Effect.promise(() => fetch(url, fetchOptions));
+          return yield* Effect.tryPromise({
+            try: () => fetch(url, fetchOptions),
+            catch: (e) => MsgError.msg('fetch 失败: ' + String(e)),
+          });
         }
 
-        // Use proxy for GitHub API calls
         const urlString = url.toString();
 
-        // Check if this is a GitHub API call
         if (urlString.includes('api.github.com') || urlString.includes('github.com')) {
           return yield* fetchWithPostProxy(urlString, fetchOptions, githubProxyUrl);
         }
 
-        // For non-GitHub URLs, use direct fetch
-        return yield* Effect.promise(() => fetch(url, fetchOptions));
+        return yield* Effect.tryPromise({
+          try: () => fetch(url, fetchOptions),
+          catch: (e) => MsgError.msg('fetch 失败: ' + String(e)),
+        });
       });
     }
 
@@ -52,36 +55,41 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
         const proxyUrl = new URL(githubProxyUrl);
         proxyUrl.pathname = '/proxy';
 
-        console.log('[github-proxy] using POST proxy for:', urlString);
+        ctx.log('[github-proxy] using POST proxy for GitHub API');
 
-        try {
-          return yield* Effect.promise(() =>
-            fetch(proxyUrl, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...fetchOptions.headers,
-              },
-              body: JSON.stringify({
-                url: urlString,
-                method: fetchOptions.method || 'GET',
-                headers: Object.fromEntries(
-                  Object.entries(fetchOptions.headers || {}).filter(
-                    ([_, value]) => value !== undefined,
-                  ),
+        const proxyRequest = Effect.tryPromise({
+          try: () => fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...fetchOptions.headers,
+            },
+            body: JSON.stringify({
+              url: urlString,
+              method: fetchOptions.method || 'GET',
+              headers: Object.fromEntries(
+                Object.entries(fetchOptions.headers || {}).filter(
+                  ([_, value]) => value !== undefined,
                 ),
-                body: fetchOptions.body,
-              }),
+              ),
+              body: fetchOptions.body,
             }),
-          );
-        } catch (error) {
-          console.warn('Proxy request failed, falling back to direct fetch:', error);
-          return yield* Effect.promise(() => fetch(urlString, fetchOptions));
-        }
+          }),
+          catch: (e) => MsgError.msg('代理请求失败: ' + String(e)),
+        });
+
+        return yield* Effect.orElse(proxyRequest, () =>
+          Effect.gen(function* () {
+            ctx.log('[github-proxy] fallback to direct fetch');
+            return yield* Effect.tryPromise({
+              try: () => fetch(urlString, fetchOptions),
+              catch: (e) => MsgError.msg('fallback fetch 失败: ' + String(e)),
+            });
+          }),
+        );
       });
     }
     return { fetchProxy } as const;
   }),
   dependencies: [],
 }) {}
-FetchWithProxy.Default;

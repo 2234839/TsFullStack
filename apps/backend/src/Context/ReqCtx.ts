@@ -1,6 +1,7 @@
 import { Context } from 'effect';
 import type { Database } from './Auth';
-import type { JsonValue } from 'effect/FastCheck';
+/** 通用 JSON 值类型 */
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 import type { FastifyRequest } from 'fastify';
 
 export class ReqCtxService extends Context.Tag('ReqCtxService')<ReqCtxService, ReqCtx>() {}

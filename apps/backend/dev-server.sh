@@ -15,4 +15,4 @@ fi
 
 # 启动新的服务器进程
 echo "Starting server on port $PORT..."
-node --enable-source-maps ./dist/index.js
+node --enable-source-maps ./dist/index.mjs

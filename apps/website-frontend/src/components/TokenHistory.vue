@@ -2,9 +2,15 @@
 import { ref, computed, onMounted } from 'vue';
 import { useAPI } from '@/api';
 import { useTokenStoreSingleton } from '@/stores/token';
+import { getTypeLabel } from '@/utils/admin';
+import { useToast } from '@/composables/useToast';
+import { Button } from '@/components/base';
+import { getErrorMessage } from '@/utils/error';
+import { formatDate } from '@/utils/format';
 
 const { API } = useAPI();
 const tokenStore = useTokenStoreSingleton();
+const toast = useToast();
 
 /** 代币交易记录 */
 interface TokenTransaction {
@@ -75,8 +81,8 @@ async function loadHistory() {
     } else {
       history.value.push(...newTransactions);
     }
-  } catch (error) {
-    console.error('[TokenHistory] 加载失败:', error);
+  } catch (error: unknown) {
+    toast.error('加载代币历史失败', getErrorMessage(error));
   } finally {
     isLoading.value = false;
   }
@@ -107,17 +113,7 @@ onMounted(() => {
   loadHistory();
 });
 
-/**
- * 获取类型标签
- */
-function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    MONTHLY: '月度',
-    YEARLY: '年度',
-    PERMANENT: '永久',
-  };
-  return labels[type] || type;
-}
+/** 获取类型标签 — 从 utils/admin.ts 统一导入 */
 
 /**
  * 获取类型颜色
@@ -139,15 +135,15 @@ function getTypeColor(type: string): string {
       <h3 class="text-lg font-semibold text-primary-900 dark:text-primary-100">
         代币使用历史
       </h3>
-      <button
-        type="button"
-        class="px-3 py-1.5 text-sm bg-secondary-100 dark:bg-secondary-700 text-secondary-700 dark:text-secondary-300 rounded-lg hover:bg-secondary-200 dark:hover:bg-secondary-600 transition-colors"
+      <Button
+        variant="secondary"
+        size="sm"
         :disabled="isLoading"
+        :loading="isLoading"
         @click="refresh"
       >
-        <span v-if="isLoading">刷新中...</span>
-        <span v-else>刷新</span>
-      </button>
+        {{ isLoading ? '刷新中...' : '刷新' }}
+      </Button>
     </div>
 
     <!-- 历史列表 -->
@@ -175,7 +171,7 @@ function getTypeColor(type: string): string {
               {{ record.note }}
             </div>
             <div class="text-xs text-secondary-500 dark:text-secondary-500 mt-1">
-              {{ new Date(record.created).toLocaleString('zh-CN') }}
+              {{ formatDate(record.created) }}
             </div>
           </div>
 
@@ -215,15 +211,15 @@ function getTypeColor(type: string): string {
 
     <!-- 加载更多 -->
     <div v-if="hasMore" class="text-center">
-      <button
-        type="button"
-        class="px-4 py-2 text-sm bg-secondary-100 dark:bg-secondary-700 text-secondary-700 dark:text-secondary-300 rounded-lg hover:bg-secondary-200 dark:hover:bg-secondary-600 transition-colors"
+      <Button
+        variant="secondary"
+        size="sm"
         :disabled="isLoading"
+        :loading="isLoading"
         @click="loadMore"
       >
-        <span v-if="isLoading">加载中...</span>
-        <span v-else>加载更多</span>
-      </button>
+        {{ isLoading ? '加载中...' : '加载更多' }}
+      </Button>
     </div>
   </div>
 </template>

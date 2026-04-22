@@ -93,15 +93,24 @@ export type ZenStackFieldType =
   | string;
 
 /**
- * ZenStack v3 字段信息的扩展类型
- * 直接使用 ZenStack 生成的字段类型
+ * 字段的关系信息类型
  */
-export type FieldInfo = Values<DBModelMeta['models'][ModelMetaNames]['fields']>;
+export interface FieldRelation {
+  /** 关联的字段名列表 */
+  fields?: string[];
+  /** 关联来源模型名 */
+  from?: string;
+  /** 反向关系字段名 (opposite) */
+  opposite?: string;
+}
 
 /**
- * 字段的关系信息类型（从 ZenStack FieldDef 中提取）
+ * ZenStack v3 字段信息的扩展类型
+ * 显式声明 relation 属性，避免使用 as any 访问
  */
-export type FieldRelation = FieldInfo extends { relation?: infer R } ? R : never;
+export type FieldInfo = Values<DBModelMeta['models'][ModelMetaNames]['fields']> & {
+  relation?: FieldRelation;
+};
 
 /** 辅助类型：获取对象所有值的联合类型 */
 type Values<T> = T[keyof T];
@@ -207,6 +216,23 @@ export type {
 } from '@tsfullstack/backend';
 
 /**
+ * 动态查询条件（支持任意字段名作为键）
+ * 用于 AutoTable 构建运行时确定的 where/select 条件
+ */
+export interface DynamicWhereInput {
+  [key: string]: unknown;
+  AND?: DynamicWhereInput[];
+  OR?: DynamicWhereInput[];
+}
+
+/**
+ * 动态字段选择（支持任意字段名作为键）
+ */
+export interface DynamicSelectInput {
+  [key: string]: boolean | DynamicSelectInput;
+}
+
+/**
  * 模型的 CRUD 接口定义
  * 用于 AutoTable 组件的数据库操作
  * 只包含常用的 CRUD 方法，避免引入不常用类型的复杂类型
@@ -231,6 +257,16 @@ export interface ModelCRUD {
 }
 
 /**
+ * 动态查询参数的类型安全逃逸口
+ *
+ * AutoTable 在编译期无法确定具体模型名称（用户运行时选择），
+ * 导致 ZenStack 的 WhereInput/Select 泛型参数无法实例化。
+ * 这是动态 ORM 模式固有的限制，非设计缺陷。
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type DynamicQuery<T = any> = T;
+
+/**
  * 类型安全的模型访问辅助函数
  * 返回模型的 CRUD 接口
  */
@@ -238,8 +274,9 @@ export function getModelAPI<M extends DBModelNames>(
   api: typeof API,
   modelName: M
 ): ModelCRUD {
-  // 直接返回 api.db[modelName]，TypeScript 会根据 DBModelNames 确保有正确的类型
-  return api.db[modelName] as any;
+  // api.db[modelName] 的返回类型是所有模型客户端的联合类型，无法直接赋值给 ModelCRUD
+  // 这是动态模型名称场景的固有限制：编译期无法确定具体模型类型
+  return api.db[modelName] as unknown as ModelCRUD;
 }
 
 /**

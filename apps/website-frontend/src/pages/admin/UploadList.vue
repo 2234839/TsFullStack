@@ -6,12 +6,18 @@
 import { useAPI } from '@/api';
 import { Input, InputGroup, Button, DataTable, ProgressBar } from '@/components/base';
 import { Dialog, Tooltip } from '@tsfullstack/shared-frontend/components';
-import { useClipboard } from '@vueuse/core';
+import { getErrorMessage } from '@/utils/error';
+import { formatDate } from '@/utils/format';
+import { useClipboard, useTimeoutFn } from '@vueuse/core';
 import { onMounted, ref, h, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 
 const { API, APIGetUrl, AppAPIGetUrl } = useAPI();
 const { t } = useI18n();
+const toast = useToast();
+const confirm = useConfirm();
 
 /**
  * 文件数据类型
@@ -78,19 +84,8 @@ const isImageFile = (fileType?: string) => {
   return fileType.startsWith('image/');
 };
 
-// 格式化文件大小
-const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
-
-// 格式化日期
-const formatDate = (date: string | Date) => {
-  return new Date(date).toLocaleString();
-};
+/** 格式化文件大小（从 utils/format 统一导入） */
+import { formatFileSize } from '@/utils/format';
 
 // 表格列定义
 const fileColumns = computed(() => [
@@ -99,7 +94,7 @@ const fileColumns = computed(() => [
     title: t('文件名'),
     render: (row: FileInfo) =>
       h('div', { class: 'flex items-center' }, [
-        h('div', { class: 'file-icon' }, [h('i', { class: getFileIcon(row.type) })]),
+        h('div', { class: 'flex items-center justify-center w-[50px] h-[50px] text-2xl mx-auto md:w-[50px] md:h-[50px] md:text-2xl max-md:w-[40px] max-md:h-[40px] max-md:text-xl max-[480px]:w-[30px] max-[480px]:h-[30px] max-[480px]:text-lg' }, [h('i', { class: getFileIcon(row.type) })]),
         h('span', { class: 'ml-2' }, row.name),
       ]),
   },
@@ -215,8 +210,8 @@ const loadFiles = async (page: number = 0, pageSize: number = 10) => {
       storageType: file.storageType,
       status: file.status,
     }));
-  } catch (error) {
-    console.error('Failed to load files:', error);
+  } catch (error: unknown) {
+    toast.error(t('加载文件列表失败'), getErrorMessage(error));
   } finally {
     loading.value = false;
   }
@@ -229,8 +224,8 @@ const previewFile = async (file: FileInfo) => {
     try {
       // 构建文件预览URL
       previewUrl.value = await APIGetUrl.fileApi.file(file.id);
-    } catch (error) {
-      console.error('Failed to get preview URL:', error);
+    } catch (error: unknown) {
+      toast.error(t('获取预览链接失败'), getErrorMessage(error));
     }
   }
   previewDialogVisible.value = true;
@@ -240,13 +235,25 @@ const previewFile = async (file: FileInfo) => {
 const downloadFile = async (file: FileInfo) => {
   try {
     window.open(await APIGetUrl.fileApi.file(file.id), '_blank');
-  } catch (error) {
-    console.error('Failed to download file:', error);
+  } catch (error: unknown) {
+    toast.error(t('下载文件失败'), getErrorMessage(error));
   }
 };
 async function deleteFile(row: FileInfo) {
-  await API.fileApi.delete(row.id);
-  loadFiles();
+  confirm.require({
+    message: t('确定要删除文件 {name} 吗？此操作不可撤销').replace('{name}', row.name),
+    acceptProps: { label: t('删除'), variant: 'danger' as const },
+    rejectProps: { label: t('取消') },
+    accept: async () => {
+      try {
+        await API.fileApi.delete(row.id);
+        toast.success(t('删除成功'));
+        loadFiles();
+      } catch (error: unknown) {
+        toast.error(t('删除失败'), getErrorMessage(error));
+      }
+    },
+  });
 }
 const { copy } = useClipboard();
 
@@ -309,8 +316,7 @@ const uploadFiles = async () => {
 
   try {
     // 逐个上传文件
-    for (let i = 0; i < selectedFiles.value.length; i++) {
-      const file = selectedFiles.value[i];
+    for (const [i, file] of selectedFiles.value.entries()) {
 
       // 初始化进度
       uploadProgress.value[i] = 0;
@@ -325,20 +331,20 @@ const uploadFiles = async () => {
 
         // 重新加载文件列表
         await loadFiles();
-      } catch (error) {
-        console.error('Upload failed:', error);
+      } catch (error: unknown) {
+        toast.error(t('文件上传失败'), getErrorMessage(error));
       }
     }
 
     // 重置状态
-    setTimeout(() => {
+    useTimeoutFn(() => {
       uploadDialogVisible.value = false;
       selectedFiles.value = [];
       uploadProgress.value = {};
       isUploading.value = false;
     }, 500);
-  } catch (error) {
-    console.error('Upload failed:', error);
+  } catch (error: unknown) {
+    toast.error(t('批量上传失败'), getErrorMessage(error));
     isUploading.value = false;
   }
 };
@@ -380,8 +386,8 @@ const searchFiles = async () => {
     }));
 
     totalRecords.value = result.length;
-  } catch (error) {
-    console.error('Search failed:', error);
+  } catch (error: unknown) {
+    toast.error(t('搜索失败'), getErrorMessage(error));
   } finally {
     loading.value = false;
   }
@@ -394,7 +400,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="upload-list-container p-4">
+  <div class="p-4 max-md:p-2 max-[480px]:p-1">
     <div class="flex justify-between items-center mb-4">
       <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-100">{{ t('文件管理') }}</h1>
       <Button :label="t('上传文件')" icon="pi pi-upload" variant="primary" @click="showUploadDialog" />
@@ -414,17 +420,19 @@ onMounted(() => {
     <!-- 文件上传对话框 -->
     <Dialog v-model:open="uploadDialogVisible" :title="t('上传文件')">
       <div class="upload-dialog-content">
-        <div class="upload-area" @dragover.prevent="onDragOver" @dragleave.prevent="onDragLeave" @drop.prevent="onDrop"
-          :class="{ 'drag-over': isDragging }">
-          <i class="pi pi-cloud-upload upload-icon"></i>
+        <div class="border-2 border-dashed border-neutral-400 dark:border-neutral-600 rounded-lg p-8 text-center cursor-pointer transition-all duration-300 hover:border-primary-600 hover:bg-neutral-50 dark:hover:border-primary-400 dark:hover:bg-neutral-800"
+          :class="{ 'border-primary-600 bg-neutral-50 dark:border-primary-400 dark:bg-neutral-800': isDragging }"
+          @dragover.prevent="onDragOver" @dragleave.prevent="onDragLeave" @drop.prevent="onDrop">
+          <i class="pi pi-cloud-upload text-3xl text-primary-600 dark:text-primary-400 mb-4"></i>
           <p>{{ t('拖拽文件到此处或点击选择文件') }}</p>
           <Button :label="t('选择文件')" icon="pi pi-folder" @click="triggerFileInput" class="mt-3" />
           <input ref="fileInputRef" type="file" @change="handleFileSelect" class="hidden" multiple />
         </div>
-        <div v-if="selectedFiles.length > 0" class="selected-files mt-4">
+        <div v-if="selectedFiles.length > 0" class="border-t border-neutral-200 dark:border-neutral-700 pt-4 mt-4">
           <h3>{{ t('已选择的文件') }}</h3>
           <ul class="file-list">
-            <li v-for="(file, index) in selectedFiles" :key="index" class="file-item">
+            <li v-for="(file, index) in selectedFiles" :key="index"
+              class="py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
                   <i :class="getFileIcon(file.type)" class="mr-2"></i>
@@ -449,7 +457,7 @@ onMounted(() => {
       <div class="file-preview-dialog">
         <!-- 图片文件预览 -->
         <img v-if="isImageFile(currentFile?.type)" :src="previewUrl" :alt="currentFile?.name"
-          class="file-preview-image" />
+          class="max-w-full max-h-[40vh] object-contain" />
         <!-- 非图片文件显示信息 -->
         <div v-else class="text-center">
           <i :class="getFileIcon(currentFile?.type)" class="text-6xl"></i>
@@ -464,107 +472,3 @@ onMounted(() => {
     </Dialog>
   </div>
 </template>
-
-<style scoped>
-.upload-list-container {
-  padding: 1rem;
-}
-
-.upload-area {
-  border: 2px dashed #9ca3af;
-  border-radius: 8px;
-  padding: 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.upload-area:hover,
-.upload-area.drag-over {
-  border-color: #0891b2;
-  background-color: #f3f4f6;
-}
-
-.dark .upload-area {
-  border-color: #4b5563;
-}
-
-.dark .upload-area:hover,
-.dark .upload-area.drag-over {
-  border-color: #22d3ee;
-  background-color: #1f2937;
-}
-
-.upload-icon {
-  font-size: 3rem;
-  color: #0891b2;
-  margin-bottom: 1rem;
-}
-
-.dark .upload-icon {
-  color: #22d3ee;
-}
-
-.selected-files {
-  border-top: 1px solid #d1d5db;
-  padding-top: 1rem;
-}
-
-.dark .selected-files {
-  border-top-color: #374151;
-}
-
-.file-item {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.dark .file-item {
-  border-bottom-color: #374151;
-}
-
-.file-item:last-child {
-  border-bottom: none;
-}
-
-.file-preview-image {
-  max-width: 100%;
-  max-height: 40vh;
-  object-fit: contain;
-}
-
-.file-icon {
-  font-size: 2rem;
-  margin: 0 auto;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 50px;
-  height: 50px;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .upload-list-container {
-    padding: 0.5rem;
-  }
-
-  .file-icon {
-    font-size: 1.5rem;
-    width: 40px;
-    height: 40px;
-  }
-}
-
-@media (max-width: 480px) {
-  .upload-list-container {
-    padding: 0.25rem;
-  }
-
-  .file-icon {
-    font-size: 1.25rem;
-    width: 30px;
-    height: 30px;
-  }
-}
-</style>

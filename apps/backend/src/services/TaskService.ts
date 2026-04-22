@@ -1,52 +1,48 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
-import { ReqCtxService } from '../Context/ReqCtx';
+import { DbClientEffect } from '../Context/DbService';
+import { dbTry, dbPaginatedFindMany } from '../util/dbEffect';
 import { MsgError } from '../util/error';
-import { TaskStatus } from '../../.zenstack/models';
+import type { JsonValue } from '@zenstackhq/orm';
+import { TaskStatus, TaskType } from '../../.zenstack/models';
+import type { TaskWhereInput } from '../../.zenstack/input';
+import { DEFAULT_PAGE_SIZE } from '../util/constants';
 
 /**
  * 任务服务
+ *
+ * 大部分方法仅依赖 DbClientEffect（数据库客户端），
+ * 只有 getTask 依赖 AuthContext（需要 auth.user.id 做权限校验）。
  */
 export const TaskService = {
   /**
    * 创建任务
    */
   createTask: (userId: string, data: {
-    type: string;
+    type: TaskType;
     title: string;
     description?: string;
-    inputParams: any;
+    inputParams: JsonValue;
     tokenCost: number;
     tags?: string;
-  }): Effect.Effect<
-    { id: number; tokenCost: number },
-    Error,
-    AuthContext | ReqCtxService
-  > =>
+  }) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      // 创建任务
-      const task = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.create({
-            data: {
-              userId,
-              type: data.type as any,
-              title: data.title,
-              description: data.description,
-              inputParams: data.inputParams as any,
-              tokenCost: data.tokenCost,
-              status: TaskStatus.PENDING,
-              tags: data.tags,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TaskService] 创建任务失败:', String(error));
-          throw MsgError.msg('创建任务失败');
-        },
-      });
+      const task = yield* dbTry('[TaskService]', '创建任务', () =>
+        db.task.create({
+          data: {
+            userId,
+            type: data.type,
+            title: data.title,
+            description: data.description,
+            inputParams: data.inputParams,
+            tokenCost: data.tokenCost,
+            status: TaskStatus.PENDING,
+            tags: data.tags,
+          },
+        }),
+      );
 
       return {
         id: task.id,
@@ -55,178 +51,75 @@ export const TaskService = {
     }),
 
   /**
-   * 开始任务
-   * 只能从 PENDING 状态转换为 PROCESSING
+   * 原子状态转换：使用 updateMany + 状态条件消除竞态条件
+   * 旧模式 findUnique → check → update 在并发时可能两个请求同时通过检查
+   * 新模式 updateMany(where: { status: expected }) 通过 count 判断是否成功
    */
-  startTask: (taskId: number): Effect.Effect<
-    void,
-    Error,
-    AuthContext | ReqCtxService
-  > =>
+  transitionStatus: (
+    taskId: number,
+    expectedStatus: TaskStatus,
+    newStatus: TaskStatus,
+    extraData?: Record<string, JsonValue | Date | null | undefined>,
+  ) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      // 先查询当前状态
-      const task = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.findUnique({
+      const result = yield* dbTry('[TaskService]', '状态转换', () =>
+        db.task.updateMany({
+          where: { id: taskId, status: expectedStatus },
+          data: { status: newStatus, ...extraData },
+        }),
+      );
+
+      if (result.count === 0) {
+        const task = yield* dbTry('[TaskService]', '查询任务', () =>
+          db.task.findUnique({
             where: { id: taskId },
             select: { status: true },
           }),
-        catch: (error) => {
-          reqCtx.log(`[TaskService] 查询任务失败：taskId=${taskId}`, String(error));
-          throw MsgError.msg('查询任务失败');
-        },
-      });
+        );
 
-      if (!task) {
-        throw MsgError.msg('任务不存在');
+        if (!task) {
+          throw MsgError.msg('任务不存在');
+        }
+        throw MsgError.msg(`任务状态错误：无法从 ${task.status} 转换为 ${newStatus}`);
       }
-
-      // 验证状态转换：只有 PENDING 可以开始
-      if (task.status !== TaskStatus.PENDING) {
-        throw MsgError.msg(`任务状态错误：无法从 ${task.status} 转换为 PROCESSING`);
-      }
-
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.update({
-            where: { id: taskId },
-            data: {
-              status: TaskStatus.PROCESSING,
-              startedAt: new Date(),
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log(`[TaskService] 更新任务状态失败：taskId=${taskId}, targetStatus=${TaskStatus.PROCESSING}`, String(error));
-          throw MsgError.msg('更新任务状态失败');
-        },
-      });
     }),
 
-  /**
-   * 完成任务
-   * 只能从 PROCESSING 状态转换为 COMPLETED
-   */
-  completeTask: (taskId: number, outputResult: any): Effect.Effect<
-    void,
-    Error,
-    AuthContext | ReqCtxService
-  > =>
-    Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+  /** 只能从 PENDING → PROCESSING */
+  startTask: (taskId: number) =>
+    TaskService.transitionStatus(taskId, TaskStatus.PENDING, TaskStatus.PROCESSING, { startedAt: new Date() }),
 
-      // 先查询当前状态
-      const task = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.findUnique({
-            where: { id: taskId },
-            select: { status: true },
-          }),
-        catch: (error) => {
-          reqCtx.log(`[TaskService] 查询任务失败：taskId=${taskId}`, String(error));
-          throw MsgError.msg('查询任务失败');
-        },
-      });
-
-      if (!task) {
-        throw MsgError.msg('任务不存在');
-      }
-
-      // 验证状态转换：只有 PROCESSING 可以完成
-      if (task.status !== TaskStatus.PROCESSING) {
-        throw MsgError.msg(`任务状态错误：无法从 ${task.status} 转换为 COMPLETED`);
-      }
-
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.update({
-            where: { id: taskId },
-            data: {
-              status: TaskStatus.COMPLETED,
-              completedAt: new Date(),
-              outputResult: outputResult as any,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log('[TaskService] 完成任务失败:', String(error));
-          throw MsgError.msg('完成任务失败');
-        },
-      });
+  /** 只能从 PROCESSING → COMPLETED */
+  completeTask: (taskId: number, outputResult: JsonValue) =>
+    TaskService.transitionStatus(taskId, TaskStatus.PROCESSING, TaskStatus.COMPLETED, {
+      completedAt: new Date(),
+      outputResult,
     }),
 
-  /**
-   * 失败任务
-   * 只能从 PROCESSING 状态转换为 FAILED
-   */
+  /** 只能从 PROCESSING → FAILED */
   failTask: (taskId: number, error: string) =>
-    Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
-
-      // 先查询当前状态
-      const task = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.findUnique({
-            where: { id: taskId },
-            select: { status: true },
-          }),
-        catch: (err) => {
-          reqCtx.log('[TaskService] 查询任务失败:', String(err));
-          throw MsgError.msg('查询任务失败');
-        },
-      });
-
-      if (!task) {
-        throw MsgError.msg('任务不存在');
-      }
-
-      // 验证状态转换：只有 PROCESSING 可以失败
-      if (task.status !== TaskStatus.PROCESSING) {
-        throw MsgError.msg(`任务状态错误：无法从 ${task.status} 转换为 FAILED`);
-      }
-
-      yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.update({
-            where: { id: taskId },
-            data: {
-              status: TaskStatus.FAILED,
-              completedAt: new Date(),
-              error,
-            },
-          }),
-        catch: (err) => {
-          reqCtx.log('[TaskService] 失败任务失败:', String(err));
-          throw MsgError.msg('更新任务状态失败');
-        },
-      });
+    TaskService.transitionStatus(taskId, TaskStatus.PROCESSING, TaskStatus.FAILED, {
+      completedAt: new Date(),
+      error,
     }),
 
   /**
-   * 获取任务详情
+   * 获取任务详情（需要 AuthContext 做权限校验）
    */
   getTask: (taskId: number) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
 
-      const task = yield* Effect.tryPromise({
-        try: () =>
-          auth.db.task.findUnique({
-            where: { id: taskId },
-            include: {
-              transactions: true,
-              resources: true,
-            },
-          }),
-        catch: (error) => {
-          reqCtx.log(`[TaskService] 查询任务失败：taskId=${taskId}`, String(error));
-          throw MsgError.msg('查询任务失败');
-        },
-      });
+      const task = yield* dbTry('[TaskService]', '查询任务', () =>
+        auth.db.task.findUnique({
+          where: { id: taskId },
+          include: {
+            transactions: true,
+            resources: true,
+          },
+        }),
+      );
 
       if (!task) {
         throw MsgError.msg('任务不存在');
@@ -243,18 +136,15 @@ export const TaskService = {
    * 获取用户任务列表
    */
   listTasks: (userId: string, options: {
-    status?: string;
-    type?: string;
+    status?: TaskStatus;
+    type?: TaskType;
     skip?: number;
     take?: number;
   } = {}) =>
     Effect.gen(function* () {
-      const auth = yield* AuthContext;
-      const reqCtx = yield* ReqCtxService;
+      const db = yield* DbClientEffect;
 
-      const where: any = {
-        userId,
-      };
+      const where: TaskWhereInput = { userId };
 
       if (options.status) {
         where.status = options.status;
@@ -264,30 +154,25 @@ export const TaskService = {
         where.type = options.type;
       }
 
-      const [tasks, total] = yield* Effect.all([
-        Effect.tryPromise({
-          try: () =>
-            auth.db.task.findMany({
-              where,
-              include: {
-                transactions: true,
-                resources: true,
-              },
-              skip: options.skip || 0,
-              take: options.take || 20,
-              orderBy: { created: 'desc' },
-            }),
-          catch: (error) => {
-            reqCtx.log('[TaskService] 查询任务列表失败', String(error));
-            return [];
+      return yield* dbPaginatedFindMany('[TaskService]',
+        () => db.task.findMany({
+          where,
+          select: {
+            id: true,
+            type: true,
+            title: true,
+            status: true,
+            tokenCost: true,
+            externalTaskId: true,
+            created: true,
+            updated: true,
           },
+          skip: options.skip || 0,
+          take: options.take || DEFAULT_PAGE_SIZE,
+          orderBy: { created: 'desc' },
         }),
-        Effect.tryPromise({
-          try: () => auth.db.task.count({ where }),
-          catch: () => 0,
-        }),
-      ]);
-
-      return { tasks, total };
+        () => db.task.count({ where }),
+        [] as never[],
+      );
     }),
 };

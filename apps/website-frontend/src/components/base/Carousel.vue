@@ -3,8 +3,9 @@
 -->
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import { useIntervalFn } from '@vueuse/core';
 
-interface Props<T = any> {
+interface Props<T = unknown> {
   value?: T[];
   numVisible?: number;
   numScroll?: number;
@@ -58,12 +59,12 @@ const visibleItems = computed(() => {
   return props.value.slice(start, end);
 });
 
-// 自动播放
-if (props.autoplayInterval > 0) {
-  setInterval(() => {
-    next();
-  }, props.autoplayInterval);
-}
+// 自动播放（useIntervalFn 自动在组件卸载时清理）
+useIntervalFn(
+  () => next(),
+  () => props.autoplayInterval,
+  { immediate: props.autoplayInterval > 0 },
+);
 </script>
 
 <template>
@@ -78,7 +79,7 @@ if (props.autoplayInterval > 0) {
       <button
         v-if="canGoPrev"
         @click="prev"
-        class="absolute left-2 top-1/2 -transecondary-y-1/2 bg-primary-50/80 dark:bg-primary-950/80 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-full p-2 shadow-lg transition-colors"
+        class="absolute left-2 top-1/2 -translate-y-1/2 bg-primary-50/80 dark:bg-primary-950/80 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-full p-2 shadow-lg transition-colors"
         aria-label="上一张"
       >
         <i class="pi pi-chevron-left text-primary-800 dark:text-primary-200"></i>
@@ -87,7 +88,7 @@ if (props.autoplayInterval > 0) {
       <button
         v-if="canGoNext"
         @click="next"
-        class="absolute right-2 top-1/2 -transecondary-y-1/2 bg-primary-50/80 dark:bg-primary-950/80 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-full p-2 shadow-lg transition-colors"
+        class="absolute right-2 top-1/2 -translate-y-1/2 bg-primary-50/80 dark:bg-primary-950/80 hover:bg-primary-50 dark:hover:bg-primary-950 rounded-full p-2 shadow-lg transition-colors"
         aria-label="下一张"
       >
         <i class="pi pi-chevron-right text-primary-800 dark:text-primary-200"></i>
@@ -95,7 +96,7 @@ if (props.autoplayInterval > 0) {
     </template>
 
     <!-- 指示器 -->
-    <div v-if="totalSlides > 1" class="absolute bottom-2 left-1/2 -transecondary-x-1/2 flex gap-2">
+    <div v-if="totalSlides > 1" class="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2">
       <button
         v-for="(_, index) in totalSlides"
         :key="index"

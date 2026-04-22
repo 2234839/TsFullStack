@@ -6,16 +6,12 @@ export class MsgError extends Error {
   static op_toLogin = 'op_toLogin' as const;
   /** 普通消息错误：显示错误提示 */
   static op_msgError = 'op_msgError' as const;
-  /** 跳转注册页 */
-  static op_toRegister = 'op_toRegister' as const;
-  /** 跳转忘记密码页 */
-  static op_toForgotPassword = 'op_toForgotPassword' as const;
 
   static msg(message: string) {
     return new MsgError(MsgError.op_msgError, message);
   }
   static isMsgError(err: unknown): err is MsgError {
-    return (err as any)?.errorTag === MsgError.errorTag;
+    return err instanceof MsgError;
   }
   errorTag = MsgError.errorTag;
   constructor(public op: MsgErrorOpValues, message: string) {
@@ -29,4 +25,4 @@ type ExtractOpKeys<T> = {
 
 // 使用示例
 export type MsgErrorOpValues = ExtractOpKeys<typeof MsgError>;
-// OpValues 的类型为：'op_toLogin' | 'op_msgError' | 'op_toRegister' | 'op_toForgotPassword'
+// OpValues 的类型为：'op_toLogin' | 'op_msgError'

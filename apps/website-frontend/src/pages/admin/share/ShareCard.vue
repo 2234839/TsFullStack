@@ -2,9 +2,9 @@
 <template>
   <div class="bg-primary-100 dark:bg-primary-700">
     <Carousel :value="data.data.files" :numVisible="1" :numScroll="1" :circular="true">
-      <template #item="{ data: fileData }: { data: ShareFileJSON }">
+      <template #item="{ data: fileData }">
         <div class="h-48 w-full">
-          <ShareFilePreview :file="fileData" />
+          <ShareFilePreview :file="fileData as ShareFileJSON" />
         </div>
       </template>
     </Carousel>
@@ -15,10 +15,9 @@
   import { type ShareFileJSON, type ShareItemJSON } from '@/pages/admin/share/ShareDef';
   import ShareFilePreview from '@/pages/admin/share/ShareFilePreview.vue';
 
-  defineProps({
-    data: {
-      type: null as unknown as () => ShareItemJSON,
-      required: true,
-    },
-  });
+  interface ShareCardProps {
+    data: ShareItemJSON;
+  }
+
+  defineProps<ShareCardProps>();
 </script>

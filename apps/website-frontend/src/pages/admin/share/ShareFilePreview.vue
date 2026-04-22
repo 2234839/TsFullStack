@@ -67,23 +67,14 @@
 
   const { t } = useI18n();
 
-  defineProps({
-    file: {
-      type: null as unknown as () => ShareFileJSON,
-      required: true,
-    },
-  });
+  interface ShareFilePreviewProps {
+    file: ShareFileJSON;
+  }
+
+  defineProps<ShareFilePreviewProps>();
 
   const isDark = useDark();
 
-  /** 格式化文件大小 */
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  /** 格式化文件大小（从 utils/format 统一导入） */
+  import { formatFileSize } from '@/utils/format';
 </script>

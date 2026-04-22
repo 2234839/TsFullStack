@@ -189,8 +189,7 @@
       await refresh();
 
       toast.success(t('成功'), t('头像上传成功'));
-    } catch (error) {
-      console.error('上传头像失败:', error);
+    } catch (error: unknown) {
       toast.error(t('错误'), t('头像上传失败，请重试'));
     } finally {
       uploading.value = false;
@@ -219,8 +218,7 @@
       await updateAvatar('');
       await refresh();
       toast.success(t('成功'), t('头像已删除'));
-    } catch (error) {
-      console.error('删除头像失败:', error);
+    } catch (error: unknown) {
       toast.error(t('错误'), t('删除头像失败，请重试'));
     } finally {
       removing.value = false;
@@ -240,8 +238,7 @@
       await updateNickname(nicknameInput.value.trim());
       await refresh();
       toast.success(t('成功'), t('昵称保存成功'));
-    } catch (error) {
-      console.error('保存昵称失败:', error);
+    } catch (error: unknown) {
       toast.error(t('错误'), t('保存昵称失败，请重试'));
     } finally {
       savingNickname.value = false;

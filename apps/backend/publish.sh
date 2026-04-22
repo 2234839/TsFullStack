@@ -72,6 +72,11 @@ timer_start
         ./dist/ "$SSH_TARGET:$REMOTE_PATH/dist/" &
     BACKEND_PID=$!
 
+    # 前端依赖的后端库（dist-lib 供前端 RPC 导入使用）
+    rsync -avz --delete --compress-level=9 -e "ssh $SSH_OPTS" \
+        ./dist-lib/ "$SSH_TARGET:$REMOTE_PATH/dist-lib/" &
+    DISTLIB_PID=$!
+
     # 前端代码
     rsync -avz --delete --compress-level=9 -e "ssh $SSH_OPTS" \
         ../website-frontend/dist/ "$SSH_TARGET:$REMOTE_PATH/dist/frontend/" &
@@ -86,7 +91,7 @@ timer_start
         ./CONFIG.md \
         "$SSH_TARGET:$REMOTE_PATH/" &
 
-    wait $BACKEND_PID $FRONTEND_PID $DB_PID 
+    wait $BACKEND_PID $DISTLIB_PID $FRONTEND_PID $DB_PID 
 } || { show_error "文件同步失败"; exit 1; }
 
 show_success "文件同步完成"
@@ -115,9 +120,13 @@ ssh $SSH_OPTS "$SSH_TARGET" "
 
     pnpm zenstack migrate deploy || exit 1
 
-    # 重启应用
+    # 重启应用（设置 DATABASE_URL 环境变量）
     echo '重启应用服务...'
-    pm2 reload TsFullStack || exit 1
+    pm2 delete TsFullStack || true
+    cd $REMOTE_PATH/
+    DATABASE_URL="file:$REMOTE_PATH/prisma/dev.db" \
+      pm2 start "node --enable-source-maps ./dist/index.mjs" --name "TsFullStack" || exit 1
+    pm2 save
 
     echo '部署完成'
 " || { show_error "远程部署失败"; exit 1; }

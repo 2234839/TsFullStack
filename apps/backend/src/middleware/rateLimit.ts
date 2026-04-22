@@ -120,14 +120,13 @@ class RateLimiter {
   }
 }
 
+/** 代币消耗速率限制参数 */
+const TOKEN_CONSUME_MAX_REQUESTS = 10;
+const TOKEN_CONSUME_WINDOW_MS = 60_000;
+
 /**
  * 代币消耗速率限制器
  * 每用户每分钟最多 10 次代币消耗
  */
-export const tokenConsumeRateLimiter = new RateLimiter(10, 60000);
+export const tokenConsumeRateLimiter = new RateLimiter(TOKEN_CONSUME_MAX_REQUESTS, TOKEN_CONSUME_WINDOW_MS);
 
-/**
- * API 调用速率限制器
- * 每用户每分钟最多 60 次请求
- */
-export const apiRateLimiter = new RateLimiter(60, 60000);
