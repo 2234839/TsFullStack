@@ -2,7 +2,7 @@
   <Dropdown v-model="dropdownOpen" @open="handleSearch">
     <template #trigger>
       <div
-        class="flex gap-1 items-center p-2 rounded-md cursor-pointer hotransition-colors min-h-10">
+        class="flex gap-1 items-center p-2 rounded-md cursor-pointer transition-colors min-h-10">
         <span class="bg-primary-600 dark:bg-primary-700 rounded-sm px-1 text-white">{{
           t('选择')
         }}</span>
@@ -40,7 +40,7 @@
         <Input
           v-model="searchText"
           class="w-full"
-          placeholder="搜索..."
+          :placeholder="t('搜索...')"
           @input="debounceSearch" />
       </div>
       <div class="flex items-center p-3">
@@ -163,7 +163,7 @@
   const searchText = ref('');
   const loading = ref(false);
   const dataList = ref<RemoteSelectItem[]>([]);
-  const tagHovered = ref<Record<any, boolean>>({});
+  const tagHovered = ref<Record<string, boolean>>({});
   const dropdownOpen = ref(false);
 
   const pagination = ref<Pagination>({

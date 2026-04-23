@@ -28,7 +28,10 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watch } from 'vue';
+  import { ref, watch, computed } from 'vue';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
 
   interface Props {
     /** 初始是否模糊状态，默认为 true */
@@ -49,24 +52,27 @@
     autoClear?: boolean;
   }
 
-  const {
-    initialBlurred = true,
-    overlayText = '鼠标悬停或点击查看',
-    showOverlay = true,
-    toggleOnClick = true,
-    autoClear = true,
-    containerClass = '',
-    overlayClass = 'bg-white/60 backdrop-blur-[1px]',
-    overlayTextClass = 'text-primary-700/80'
-  } = defineProps<Props>();
+  const props = withDefaults(defineProps<Props>(), {
+    initialBlurred: true,
+    overlayText: '鼠标悬停或点击查看',
+    showOverlay: true,
+    toggleOnClick: true,
+    autoClear: true,
+    containerClass: '',
+    overlayClass: 'bg-white/60 backdrop-blur-[1px]',
+    overlayTextClass: 'text-primary-700/80',
+  });
 
-  const isBlurred = ref(initialBlurred);
+  /** 遮罩文本（i18n） */
+  const overlayText = computed(() => t(props.overlayText));
+
+  const isBlurred = ref(props.initialBlurred);
   const hasInteracted = ref(false);
 
   const handleClick = () => {
-    if (toggleOnClick) {
+    if (props.toggleOnClick) {
       hasInteracted.value = true;
-      if (autoClear) {
+      if (props.autoClear) {
         // 自动清除模式下，交互后永远保持清晰
         isBlurred.value = false;
       } else {
@@ -78,7 +84,7 @@
 
   const handleMouseEnter = () => {
     // 标记为已交互
-    if (autoClear) {
+    if (props.autoClear) {
       hasInteracted.value = true;
     }
     // 变清晰
@@ -86,10 +92,10 @@
   };
 
   const handleMouseLeave = () => {
-    if (autoClear && hasInteracted.value) {
+    if (props.autoClear && hasInteracted.value) {
       // 已经交互过且是自动清除模式，保持清晰
       isBlurred.value = false;
-    } else if (!autoClear) {
+    } else if (!props.autoClear) {
       // 非自动清除模式，鼠标离开时恢复模糊
       isBlurred.value = true;
     } else {
@@ -99,7 +105,7 @@
   };
 
   // 监听 initialBlurred 变化 - Vue 3.5+ 会自动将 initialBlurred 转换为 props.initialBlurred
-  watch(() => initialBlurred, (newVal) => {
+  watch(() => props.initialBlurred, (newVal) => {
     isBlurred.value = newVal;
     hasInteracted.value = false; // 重置交互状态
   });

@@ -2,14 +2,14 @@
   <div class="min-h-screen bg-primary-50 dark:bg-primary-900 text-primary-900 dark:text-white p-6 md:p-8">
     <div class="max-w-4xl mx-auto bg-white dark:bg-primary-800 shadow-lg rounded-lg p-6">
       <h1 class="text-3xl font-bold mb-6 text-center text-primary-800 dark:text-white">
-        英文句子结构分析器
+        {{ t('英文句子结构分析器') }}
       </h1>
 
       <div class="mb-6">
         <label
           for="sentence-input"
           class="block text-lg font-medium mb-2 text-primary-700 dark:text-primary-300">
-          输入英文句子：
+          {{ t('输入英文句子：') }}
         </label>
         <Textarea
           id="sentence-input"
@@ -19,7 +19,7 @@
       </div>
 
       <Button
-        :label="isAnalyzing ? '分析中...' : '分析句子'"
+        :label="isAnalyzing ? t('分析中...') : t('分析句子')"
         :disabled="isAnalyzing || !sentence.trim()"
         class="w-full"
         @click="analyzeSentence"
@@ -28,14 +28,14 @@
       <div
         v-if="error"
         class="mt-6 p-4 bg-danger-100 text-danger-800 rounded-md dark:bg-danger-900 dark:text-danger-200 border border-danger-300 dark:border-danger-700">
-        <p class="font-medium">错误：</p>
+        <p class="font-medium">{{ t('错误：') }}</p>
         <p>{{ error }}</p>
       </div>
 
       <div
         v-if="analysisResult"
         class="mt-8 p-4 bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 overflow-x-auto">
-        <h2 class="text-xl font-semibold mb-4 text-primary-800 dark:text-white">分析结果：</h2>
+        <h2 class="text-xl font-semibold mb-4 text-primary-800 dark:text-white">{{ t('分析结果：') }}</h2>
         <!-- 顶层容器也使用 items-end 来对齐所有顶层元素底部 -->
         <div class="flex flex-row items-end gap-x-8 p-4 min-w-max">
           <ClauseOrWordRenderer
@@ -49,10 +49,11 @@
 </template>
 
 <script setup lang="tsx">
-  import { ref, computed } from 'vue';
+  import { ref } from 'vue';
   import Textarea from '@/components/base/Textarea.vue';
   import { callAiResponseJSON } from '@/pages/AiEnglish/ai';
   import { getErrorMessage } from '@/utils/error';
+  import { useI18n } from '@/composables/useI18n';
 
   // 辅助函数：合并 Tailwind CSS 类名
   const cn = (...classes: (string | undefined | null | boolean)[]) => {
@@ -83,6 +84,7 @@
   }
 
   // Vue 响应式状态
+  const { t } = useI18n();
   const sentence = ref('');
   const isAnalyzing = ref(false);
   const error = ref('');
@@ -123,6 +125,24 @@
     );
   };
 
+  /** 根据从句标签获取对应的 Tailwind 颜色类名（提取到顶层避免渲染函数中重复创建 computed） */
+  function getClauseLabelColor(label: string): string {
+    switch (label) {
+      case '主句':
+        return 'bg-primary-500 text-white';
+      case '主语从句':
+        return 'bg-warning-500 text-white';
+      case '状语从句':
+        return 'bg-warning-500 text-white';
+      case '定语从句':
+        return 'bg-success-500 text-white';
+      case '宾语从句':
+        return 'bg-secondary-500 text-white';
+      default:
+        return 'bg-primary-500 text-white';
+    }
+  }
+
   // TSX 子组件：渲染从句框或递归渲染词语/从句
   const ClauseOrWordRenderer = (props: { item: WordItem | ClauseItem }) => {
     const item = props.item;
@@ -149,23 +169,8 @@
         hasMultipleNestedClauses ? 'flex-col items-start space-y-4' : 'flex-wrap',
       );
 
-      // 根据从句标签设置颜色
-      const labelColorClass = computed(() => {
-        switch (clause.label) {
-          case '主句':
-            return 'bg-primary-500 text-white';
-          case '主语从句':
-            return 'bg-warning-500 text-white';
-          case '状语从句':
-            return 'bg-warning-500 text-white';
-          case '定语从句':
-            return 'bg-success-500 text-white'; // 示例颜色
-          case '宾语从句':
-            return 'bg-secondary-500 text-white'; // 示例颜色
-          default:
-            return 'bg-primary-500 text-white';
-        }
-      });
+      // 根据从句标签设置颜色（使用纯函数替代 computed）
+      const labelColorClass = getClauseLabelColor(clause.label);
 
       return (
         <div class={clauseOuterClasses}>
@@ -201,7 +206,7 @@
   // 分析句子的主逻辑
   const analyzeSentence = async () => {
     if (!sentence.value.trim()) {
-      error.value = '请输入有效的英文句子。';
+      error.value = t('请输入有效的英文句子。');
       return;
     }
 
@@ -312,17 +317,12 @@
       if (response) {
         analysisResult.value = response;
       } else {
-        error.value = 'AI返回内容为空。';
+        error.value = t('AI返回内容为空。');
       }
     } catch (err: unknown) {
-      error.value = `分析失败: ${getErrorMessage(err)}`;
+      error.value = t(`分析失败: ${getErrorMessage(err)}`);
     } finally {
       isAnalyzing.value = false;
     }
   };
 </script>
-
-<style scoped>
-  /* 可以添加一些全局或组件特定的样式，如果 Tailwind 不够用 */
-  /* 例如，如果需要更复杂的动画或非 Tailwind 颜色 */
-</style>

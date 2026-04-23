@@ -6,7 +6,8 @@ import { API } from '@/api';
 import { authInfo, authInfo_isLogin } from '@/storage';
 import { createSharedComposable } from '@vueuse/core';
 import { getErrorMessage } from '@/utils/error';
-import { computed, ref, watch } from 'vue';
+import { computed, ref, readonly, watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 
 /** 用户信息接口 */
 export interface UserProfile {
@@ -25,6 +26,8 @@ export interface UserProfile {
  * 提供用户信息的获取、更新和响应式状态
  */
 export const useUserProfile = createSharedComposable(() => {
+  const { t } = useI18n();
+
   /** 用户信息响应式数据 */
   const userProfile = ref<UserProfile | null>(null);
   /** 加载状态 */
@@ -38,7 +41,7 @@ export const useUserProfile = createSharedComposable(() => {
    */
   const displayName = computed(() => {
     if (!userProfile.value) {
-      return '未登录';
+      return t('未登录');
     }
     if (userProfile.value.nickname) {
       return userProfile.value.nickname;
@@ -48,15 +51,18 @@ export const useUserProfile = createSharedComposable(() => {
     return emailPrefix;
   });
 
+  /** 默认头像 URL（基于 UI Avatars API 生成首字母头像） */
+  const DEFAULT_AVATAR_URL = 'https://ui-avatars.com/api/?name=U&background=0D9488&color=fff&size=128';
+
   /**
    * 计算属性：头像 URL
-   * 如果没有设置头像，使用默认头像
+   * 如果没有设置头像，返回默认头像
    */
-  const avatarUrl = computed(() => {
+  const avatarUrl = computed<string>(() => {
     if (!userProfile.value) {
-      return null;
+      return DEFAULT_AVATAR_URL;
     }
-    return userProfile.value.avatar;
+    return userProfile.value.avatar ?? DEFAULT_AVATAR_URL;
   });
 
   /**
@@ -91,7 +97,7 @@ export const useUserProfile = createSharedComposable(() => {
         };
       }
     } catch (err: unknown) {
-      error.value = getErrorMessage(err, '获取用户信息失败');
+      error.value = getErrorMessage(err, t('获取用户信息失败'));
     } finally {
       loading.value = false;
     }
@@ -102,7 +108,7 @@ export const useUserProfile = createSharedComposable(() => {
    */
   async function updateNickname(nickname: string) {
     if (!authInfo.value?.userId) {
-      throw new Error('用户未登录');
+      throw new Error(t('用户未登录'));
     }
 
     await API.db.user.update({
@@ -123,7 +129,7 @@ export const useUserProfile = createSharedComposable(() => {
    */
   async function updateAvatar(avatarUrl: string) {
     if (!authInfo.value?.userId) {
-      throw new Error('用户未登录');
+      throw new Error(t('用户未登录'));
     }
 
     await API.db.user.update({
@@ -154,16 +160,16 @@ export const useUserProfile = createSharedComposable(() => {
   }, { immediate: true });
 
   return {
-    /** 用户信息 */
-    userProfile,
+    /** 用户信息（只读，防止外部整体替换） */
+    userProfile: readonly(userProfile),
     /** 显示名称 */
     displayName,
     /** 头像 URL */
     avatarUrl,
-    /** 加载状态 */
-    loading,
-    /** 错误信息 */
-    error,
+    /** 加载状态（只读） */
+    loading: readonly(loading),
+    /** 错误信息（只读） */
+    error: readonly(error),
     /** 获取用户信息 */
     fetchUserProfile,
     /** 更新昵称 */

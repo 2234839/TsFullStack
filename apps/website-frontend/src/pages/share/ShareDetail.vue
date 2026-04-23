@@ -53,7 +53,7 @@
                 <div class="flex items-center justify-between mt-2">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
                     :class="getFileTypeClass(file.mimetype)">
-                    {{ getFileTypeLabel(file.mimetype) }}
+                    {{ getFileTypeLabel(file.mimetype, t) }}
                   </span>
                   <span class="text-xs text-primary-500 dark:text-primary-400">
                     {{ formatFileSize(file.size) }}
@@ -147,7 +147,7 @@
         url = await AppAPIGetUrl.fileApi.file(file.id);
       }
 
-      window.open(url, '_blank');
+      window.open(url, '_blank', 'noopener,noreferrer');
     } catch (error: unknown) {
       toast.error(t('打开文件失败'), getErrorMessage(error));
     }

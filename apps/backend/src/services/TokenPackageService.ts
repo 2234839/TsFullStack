@@ -1,9 +1,9 @@
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { dbTry } from '../util/dbEffect';
-import { MsgError } from '../util/error';
+import { fail, neverReturn } from '../util/error';
 import { TokenType } from '../../.zenstack/models';
-import { DEFAULT_PAGE_SIZE_LARGE } from '../util/constants';
+import { DEFAULT_PAGE_SIZE_LARGE, MSG } from '../util/constants';
 
 /**
  * 代币套餐服务
@@ -30,15 +30,18 @@ export const TokenPackageService = {
 
       // 验证参数
       if (!request.name || request.name.trim().length === 0) {
-        throw MsgError.msg('套餐名称不能为空');
+        yield* fail('套餐名称不能为空');
+        return neverReturn();
       }
 
       if (request.amount <= 0) {
-        throw MsgError.msg('代币数量必须大于0');
+        yield* fail(MSG.TOKEN_AMOUNT_POSITIVE);
+        return neverReturn();
       }
 
       if (request.durationMonths && request.durationMonths < 0) {
-        throw MsgError.msg('套餐时长不能为负数');
+        yield* fail('套餐时长不能为负数');
+        return neverReturn();
       }
 
       // 创建套餐
@@ -81,7 +84,8 @@ export const TokenPackageService = {
       );
 
       if (!existing) {
-        throw MsgError.msg('套餐不存在');
+        yield* fail(MSG.PACKAGE_NOT_FOUND);
+        return neverReturn();
       }
 
       // 更新套餐
@@ -119,7 +123,8 @@ export const TokenPackageService = {
       );
 
       if (subscriptionsCount > 0) {
-        throw MsgError.msg(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
+        yield* fail(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
+        return neverReturn();
       }
 
       // 删除套餐

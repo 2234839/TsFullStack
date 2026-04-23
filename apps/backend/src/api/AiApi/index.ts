@@ -10,7 +10,7 @@ import {
   OpenAIRequest as OpenAIProxyRequest,
   OpenAIResponse as OpenAIProxyResponse,
 } from '../../types/ai';
-import { evaluateInfoQuality } from './信息分辨';
+import { evaluateInfoQuality } from './infoQuality';
 
 /** 默认 AI 模型 */
 const DEFAULT_AI_MODEL = 'gpt-3.5-turbo';

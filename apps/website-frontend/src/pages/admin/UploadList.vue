@@ -234,7 +234,7 @@ const previewFile = async (file: FileInfo) => {
 // 下载文件
 const downloadFile = async (file: FileInfo) => {
   try {
-    window.open(await APIGetUrl.fileApi.file(file.id), '_blank');
+    window.open(await APIGetUrl.fileApi.file(file.id), '_blank', 'noopener,noreferrer');
   } catch (error: unknown) {
     toast.error(t('下载文件失败'), getErrorMessage(error));
   }
@@ -286,8 +286,8 @@ const triggerFileInput = () => {
 const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
-    const files = Array.from(target.files);
-    selectedFiles.value = [...selectedFiles.value, ...files];
+    const pickedFiles = Array.from(target.files);
+    selectedFiles.value = [...selectedFiles.value, ...pickedFiles];
   }
 };
 
@@ -303,8 +303,8 @@ const onDragLeave = () => {
 const onDrop = (event: DragEvent) => {
   isDragging.value = false;
   if (event.dataTransfer && event.dataTransfer.files.length > 0) {
-    const files = Array.from(event.dataTransfer.files);
-    selectedFiles.value = [...selectedFiles.value, ...files];
+    const droppedFiles = Array.from(event.dataTransfer.files);
+    selectedFiles.value = [...selectedFiles.value, ...droppedFiles];
   }
 };
 
@@ -349,48 +349,13 @@ const uploadFiles = async () => {
   }
 };
 
-// 搜索文件
-const searchFiles = async () => {
-  try {
-    loading.value = true;
-
-    // 如果搜索词为空，则加载所有文件
-    if (!searchTerm.value.trim()) {
-      await loadFiles();
-      return;
-    }
-
-    // 调用后端API搜索文件
-    const result = await API.db.file.findMany({
-      where: {
-        filename: {
-          contains: searchTerm.value,
-        },
-      },
-      orderBy: {
-        created: 'desc',
-      },
-    });
-
-    // 转换字段名以匹配前端显示
-    files.value = result.map((file) => ({
-      id: file.id,
-      name: file.filename,
-      type: file.mimetype,
-      size: file.size,
-      createdAt: file.created,
-      updatedAt: file.updated,
-      path: file.path,
-      storageType: file.storageType,
-      status: file.status,
-    }));
-
-    totalRecords.value = result.length;
-  } catch (error: unknown) {
-    toast.error(t('搜索失败'), getErrorMessage(error));
-  } finally {
-    loading.value = false;
+// 搜索文件（复用 loadFiles 的分页逻辑）
+const searchFiles = () => {
+  if (!searchTerm.value.trim()) {
+    loadFiles();
+    return;
   }
+  loadFiles(0, 999);
 };
 
 // 组件挂载时加载数据
@@ -431,7 +396,7 @@ onMounted(() => {
         <div v-if="selectedFiles.length > 0" class="border-t border-neutral-200 dark:border-neutral-700 pt-4 mt-4">
           <h3>{{ t('已选择的文件') }}</h3>
           <ul class="file-list">
-            <li v-for="(file, index) in selectedFiles" :key="index"
+            <li v-for="(file, index) in selectedFiles" :key="file.name + '-' + file.size + '-' + index"
               class="py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
               <div class="flex items-center justify-between">
                 <div class="flex items-center">

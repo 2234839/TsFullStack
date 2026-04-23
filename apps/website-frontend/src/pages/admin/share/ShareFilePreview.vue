@@ -37,13 +37,13 @@
     <video v-else-if="file.mimetype.startsWith('video/')" :src="url" controls
       class="h-full w-full object-contain"
       :title="file.filename" preload="metadata">
-      您的浏览器不支持视频播放。
+      {{ t('您的浏览器不支持视频播放。') }}
     </video>
 
     <!-- 其他文件类型 -->
     <div v-else class="file-preview ">
       <div class="file-icon flex items-center justify-center">
-        <i class="pi pi-file text-3xl!" :class="{ 'text-primary-500': !isDark, 'text-primary-400': isDark }"></i>
+        <i class="pi pi-file text-3xl! text-primary-500 dark:text-primary-400"></i>
       </div>
       <div class="flex flex-col items-center">
         <div class="font-medium text-sm mb-2">
@@ -63,7 +63,6 @@
 <script setup lang="ts">
   import File2Url from '@/pages/admin/components/File2Url.vue';
   import { type ShareFileJSON } from '@/pages/admin/share/ShareDef';
-  import { useDark } from '@vueuse/core';
   import { useI18n } from '@/composables/useI18n';
   import { formatFileSize } from '@/utils/format';
 
@@ -74,6 +73,4 @@
   }
 
   defineProps<ShareFilePreviewProps>();
-
-  const isDark = useDark();
 </script>

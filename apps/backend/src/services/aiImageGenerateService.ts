@@ -1,7 +1,8 @@
 import { Effect } from 'effect';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { AppConfigService } from '../Context/AppConfig';
-import { MsgError } from '../util/error';
+import { MsgError, fail, neverReturn } from '../util/error';
+import { withFetchTimeout, FETCH_TIMEOUTS } from '../util/http';
 
 /**
  * AI 图片生成结果
@@ -25,8 +26,8 @@ interface ProviderConfig {
     headers: Record<string, string>;
     body: Record<string, unknown>;
   };
-  /** 解析响应为图片列表和任务 ID */
-  parseResponse: (result: Record<string, unknown>) => { images: string[]; taskId: string };
+  /** 解析响应为图片列表和任务 ID（可能返回 MsgError 表示业务错误） */
+  parseResponse: (result: Record<string, unknown>) => { images: string[]; taskId: string } | MsgError;
   /** 可选的错误详情提取（用于非 ok 响应） */
   extractErrorDetail?: (response: Response) => Effect.Effect<string, string>;
 }
@@ -53,7 +54,8 @@ export const aiImageGenerateService = (
 
     const config = getProviderConfig(options.provider);
     if (!config) {
-      throw MsgError.msg('不支持的 AI 服务提供商');
+      yield* fail('不支持的 AI 服务提供商');
+      return neverReturn();
     }
 
     return yield* callImageProvider(prompt, options, config);
@@ -73,7 +75,8 @@ function callImageProvider(
 
     const apiKey = appConfig.aiImage?.[config.apiKeyField];
     if (!apiKey) {
-      throw MsgError.msg(config.missingKeyMsg);
+      yield* fail(config.missingKeyMsg);
+      return neverReturn();
     }
 
     const { url, headers, body } = config.buildRequest(prompt, options);
@@ -83,35 +86,52 @@ function callImageProvider(
 
     const response = yield* Effect.tryPromise({
       try: () =>
-        fetch(url, {
+        fetch(url, withFetchTimeout({
           method: 'POST',
           headers,
           body: JSON.stringify(body),
-        }),
+        }, FETCH_TIMEOUTS.aiImage)),
       catch: (_error) => {
         reqCtx.log('[AIImage] 调用 AI API 失败');
-        throw MsgError.msg('调用 AI 服务失败');
+        return MsgError.msg('调用 AI 服务失败');
       },
     });
 
     if (!response.ok) {
       if (config.extractErrorDetail) {
         const detail = yield* config.extractErrorDetail(response);
-        throw MsgError.msg(`AI 服务返回错误: ${response.statusText} - ${detail}`);
+        yield* fail(`AI 服务返回错误: ${response.statusText} - ${detail}`);
+        return neverReturn();
       }
-      throw MsgError.msg(`AI 服务返回错误: ${response.statusText}`);
+      yield* fail(`AI 服务返回错误: ${response.statusText}`);
+      return neverReturn();
     }
 
     const result = yield* Effect.tryPromise({
       try: () => response.json() as Promise<Record<string, unknown>>,
-      catch: () => {
-        throw MsgError.msg('解析 AI 响应失败');
+      catch: (_error) => {
+        return MsgError.msg(`解析 AI 响应失败: ${String(_error)}`);
       },
     });
 
-    return config.parseResponse(result);
+    const parsed = config.parseResponse(result);
+    if (MsgError.isMsgError(parsed)) {
+      yield* Effect.fail(parsed);
+      return neverReturn();
+    }
+    return parsed;
   });
 }
+
+/** AI 图片生成 API 端点 URL 常量 */
+const QWEN_IMAGE_API_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation';
+const OPENAI_IMAGE_API_URL = 'https://api.openai.com/v1/images/generations';
+const STABILITY_IMAGE_API_URL = 'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image';
+const GLM_IMAGE_API_URL = 'https://open.bigmodel.cn/api/paas/v4/images/generations';
+
+/** Stability AI 默认推理参数 */
+const STABILITY_DEFAULT_CFG_SCALE = 7;
+const STABILITY_DEFAULT_STEPS = 30;
 
 /** GLM 尺寸映射表 — 仅保留需要转换的尺寸，其余走 fallback */
 const GLM_SIZE_MAP: Partial<Record<string, string>> = {
@@ -128,7 +148,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     apiKeyField: 'qwenApiKey',
     missingKeyMsg: '通义千问 API Key 未配置',
     buildRequest: (_prompt, options) => ({
-      url: 'https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation',
+      url: QWEN_IMAGE_API_URL,
       headers: { 'Content-Type': 'application/json' },
       body: {
         model: 'wanx-v1',
@@ -152,7 +172,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     apiKeyField: 'dalleApiKey',
     missingKeyMsg: 'DALL-E API Key 未配置',
     buildRequest: (_prompt, options) => ({
-      url: 'https://api.openai.com/v1/images/generations',
+      url: OPENAI_IMAGE_API_URL,
       headers: { 'Content-Type': 'application/json' },
       body: {
         model: 'dall-e-3',
@@ -170,16 +190,21 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     apiKeyField: 'stabilityApiKey',
     missingKeyMsg: 'Stability AI API Key 未配置',
     buildRequest: (_prompt, options) => {
-      const [width, height] = (options.size || '1024x1024').split('x').map(Number);
+      const parts = (options.size || '1024x1024').split('x').map(Number);
+      const rawWidth = parts[0];
+      const rawHeight = parts[1];
+      /** 显式 NaN/undefined 防护：非法 size 格式回退到默认值 */
+      const width = rawWidth === undefined || Number.isNaN(rawWidth) || rawWidth <= 0 ? 1024 : rawWidth;
+      const height = rawHeight === undefined || Number.isNaN(rawHeight) || rawHeight <= 0 ? 1024 : rawHeight;
       return {
-        url: 'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',
+        url: STABILITY_IMAGE_API_URL,
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: {
           text_prompts: [{ text: _prompt }],
-          cfg_scale: 7,
+          cfg_scale: STABILITY_DEFAULT_CFG_SCALE,
           height: height || 1024,
           width: width || 1024,
-          steps: 30,
+          steps: STABILITY_DEFAULT_STEPS,
           samples: options.count || 1,
         },
       };
@@ -195,7 +220,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     apiKeyField: 'glmApiKey',
     missingKeyMsg: '智谱 GLM API Key 未配置',
     buildRequest: (_prompt, options) => ({
-      url: 'https://open.bigmodel.cn/api/paas/v4/images/generations',
+      url: GLM_IMAGE_API_URL,
       headers: { 'Content-Type': 'application/json' },
       body: {
         model: 'cogview-3-plus',
@@ -208,7 +233,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       const error = result.error as Record<string, unknown> | undefined;
       if (error) {
         const msg = typeof error.message === 'string' ? error.message : JSON.stringify(error);
-        throw MsgError.msg(`智谱 GLM 生成失败: ${msg}`);
+        return MsgError.msg(`智谱 GLM 生成失败: ${msg}`);
       }
       return {
         images: ((result.data as Array<{ url: string }>) || []).map(item => item.url),
@@ -218,7 +243,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     extractErrorDetail: (response) =>
       Effect.tryPromise({
         try: () => response.text(),
-        catch: () => 'Unknown error',
+        catch: (_error) => `提取错误详情失败: ${String(_error)}`,
       }),
   },
 };

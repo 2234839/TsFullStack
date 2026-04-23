@@ -8,21 +8,21 @@
         <button
           class="toolbar-button"
           :class="{ active: config.isAutoCalculate }"
-          :title="config.isAutoCalculate ? '关闭自动计算' : '开启自动计算'"
+          :title="config.isAutoCalculate ? t('关闭自动计算') : t('开启自动计算')"
           @click="toggleAutoCalculate">
           <i class="pi" :class="config.isAutoCalculate ? 'pi-check' : 'pi-times'" />
-          <span>自动计算</span>
+          <span>{{ t('自动计算') }}</span>
         </button>
       </div>
 
       <div class="toolbar-right">
         <div v-if="calculator.isCalculating.value" class="calculation-status">
           <ProgressSpinner class="compact-spinner" />
-          <span>计算中...</span>
+          <span>{{ t('计算中...') }}</span>
         </div>
 
         <div v-else-if="lastCalculationTime" class="calculation-time">
-          <span>上次计算: {{ lastCalculationTime_v }}</span>
+          <span>{{ t('上次计算') }}: {{ lastCalculationTime_v }}</span>
         </div>
       </div>
     </div>
@@ -33,13 +33,16 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, ref, watch, computed, shallowRef } from 'vue';
+  import { onMounted, onUnmounted, ref, watch, computed, shallowRef } from 'vue';
   import { EditorView, lineNumbers, drawSelection, dropCursor, keymap, Decoration, WidgetType } from '@codemirror/view';
   import { EditorState, Compartment, Range } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
   import { useThrottleFn } from '@vueuse/core';
   import { useCalculator } from './useCalculator';
   import type { CalculationResult, CalculatorConfig } from './types';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
 
   /** 语法高亮装饰器，与 Range<Decoration> 格式一致 */
   type HighlightRange = Range<Decoration>;
@@ -53,7 +56,7 @@
     config: CalculatorConfig & { isAutoCalculate: boolean };
   }
 
-  const props = defineProps<Props>();
+  const { modelValue, config } = defineProps<Props>();
 
   const emit = defineEmits<{
     'update:modelValue': [content: string];
@@ -71,8 +74,8 @@
 
   /** 计算器实例 */
   const calculator = useCalculator({
-    precision: props.config.precision,
-    showPrecision: props.config.showPrecision,
+    precision: config.precision,
+    showPrecision: config.showPrecision,
   });
 
   /** 时间格式化 */
@@ -88,7 +91,7 @@
   /** 编辑器样式 */
   const editorClasses = computed(() => {
     return {
-      'codemirror-editor--has-content': props.modelValue.length > 0,
+      'codemirror-editor--has-content': modelValue.length > 0,
     };
   });
 
@@ -111,7 +114,7 @@
       // 根据结果类型设置样式
       if (this.result.type === 'error') {
         span.classList.add('result-widget--error');
-        span.textContent = `错误: ${this.result.error}`;
+        span.textContent = `${t('错误')}: ${this.result.error}`;
       } else if (this.result.result) {
         // 成功结果
         if (this.result.type === 'assignment' || this.result.type === 'expression' || this.result.type === 'unitConversion') {
@@ -482,7 +485,7 @@
   /** 防抖计算 */
   const debouncedCalculate = useThrottleFn(
     () => {
-      if (props.config.isAutoCalculate) {
+      if (config.isAutoCalculate) {
         calculateContent();
       }
     },
@@ -628,7 +631,7 @@
 
     // 创建编辑器状态
     const state = EditorState.create({
-      doc: props.modelValue,
+      doc: modelValue,
       extensions: [
         lineNumbers(),
         history(),
@@ -686,7 +689,7 @@
    * 切换自动计算
    */
   function toggleAutoCalculate(): void {
-    const newConfig = { ...props.config, isAutoCalculate: !props.config.isAutoCalculate };
+    const newConfig = { ...config, isAutoCalculate: !config.isAutoCalculate };
     emit('update:config', newConfig);
   }
 
@@ -694,7 +697,7 @@
    * 监听内容变化
    */
   watch(
-    () => props.modelValue,
+    () => modelValue,
     (newContent) => {
       if (view.value) {
         const currentContent = view.value.state.doc.toString();
@@ -707,15 +710,11 @@
 
   /** 监听配置变化 */
   watch(
-    () => props.config,
-    (newConfig) => {
-      calculator.updateConfig({
-        precision: newConfig.precision,
-        showPrecision: newConfig.showPrecision,
-      });
+    () => [config.precision, config.showPrecision],
+    ([precision, showPrecision]) => {
+      calculator.updateConfig({ precision, showPrecision });
       calculateContent();
     },
-    { deep: true },
   );
 
   /** 监听暗色模式变化 */
@@ -726,6 +725,12 @@
   // 初始化编辑器
   onMounted(() => {
     initEditor();
+  });
+
+  /** 组件卸载时销毁 EditorView 实例,防止内存泄漏 */
+  onUnmounted(() => {
+    view.value?.destroy();
+    view.value = undefined;
   });
 </script>
 

@@ -9,7 +9,8 @@ import { useElementBounding, useScroll } from '@vueuse/core';
 
 /** 选项数据结构 */
 interface SelectOption<T = string> {
-  [key: string]: T;
+  label: string;
+  value: T;
 }
 
 interface Props<T = string> {
@@ -27,13 +28,7 @@ interface Props<T = string> {
   multiple?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-  multiple: false,
-  options: () => [],
-  optionLabel: 'label',
-  optionValue: 'value',
-});
+const { modelValue, disabled = false, multiple = false, options = [] as unknown[], optionLabel = 'label', optionValue = 'value' } = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: unknown];
@@ -76,8 +71,8 @@ function scrollToRight() {
 
 /** 处理选择 */
 function handleSelect(value: unknown) {
-  if (props.multiple) {
-    const currentArray = Array.isArray(props.modelValue) ? [...props.modelValue] : [];
+  if (multiple) {
+    const currentArray = Array.isArray(modelValue) ? [...modelValue] : [];
     if (currentArray.some((v) => v === value)) {
       emit('update:modelValue', currentArray.filter((v) => v !== value));
     } else {
@@ -91,28 +86,28 @@ function handleSelect(value: unknown) {
 /** 获取选项的显示值 */
 function getOptionLabel(option: unknown): string {
   return typeof option === 'object' && option !== null
-    ? String((option as Record<string, unknown>)[props.optionLabel] ?? '')
+    ? String((option as Record<string, unknown>)[optionLabel] ?? '')
     : String(option ?? '');
 }
 
 /** 获取选项的值 */
 function getOptionValue(option: unknown): unknown {
   return typeof option === 'object' && option !== null
-    ? (option as Record<string, unknown>)[props.optionValue]
+    ? (option as Record<string, unknown>)[optionValue]
     : option;
 }
 
 /** 检查选项是否被选中 */
 function isSelected(option: unknown): boolean {
-  const value = getOptionValue(option);
-  if (props.multiple) {
-    return Array.isArray(props.modelValue) && props.modelValue.some((v) => v === value);
+  const val = getOptionValue(option);
+  if (multiple) {
+    return Array.isArray(modelValue) && modelValue.some((v) => v === val);
   }
-  return props.modelValue === value;
+  return modelValue === val;
 }
 
 /** 最后一个选项的索引 */
-const lastIndex = computed(() => (props.options as unknown[]).length - 1);
+const lastIndex = computed(() => (options as unknown[]).length - 1);
 
 /** 按钮样式类 */
 const buttonClasses = (selected: boolean) => {
@@ -123,19 +118,14 @@ const buttonClasses = (selected: boolean) => {
 
 const containerClasses = computed(() => {
   const base = 'inline-flex rounded-md overflow-hidden border';
-  return props.disabled
+  return disabled
     ? `${base} border-primary-100 dark:border-primary-800 opacity-50`
     : `${base} border-primary-200 dark:border-primary-700`;
 });
 
-const wrapperClasses = computed(() => {
-  return 'relative flex items-center';
-});
-
-
 /** 监听选项变化，触发滚动状态重新计算 */
 watch(
-  () => props.options,
+  () => options,
   () => {
     // VueUse 的 useScroll 会自动响应 DOM 变化
     // 这里只需要确保滚动容器存在
@@ -150,7 +140,7 @@ watch(
 </script>
 
 <template>
-  <div :class="wrapperClasses">
+  <div class="relative flex items-center">
     <!-- 左侧渐变遮罩和箭头 -->
     <Transition name="fade">
       <div v-if="showLeftHint"
@@ -167,7 +157,7 @@ watch(
 
     <!-- 滚动容器 -->
     <div ref="scrollContainer" :class="[containerClasses]" class="overflow-x-auto hide-scrollbar">
-      <button v-for="(option, index) in options" :key="index" :disabled="disabled"
+      <button v-for="(option, index) in options" :key="String(getOptionValue(option))" :disabled="disabled"
         :class="[buttonClasses(isSelected(option)), { 'border-r-0': Number(index) < lastIndex }]"
         @click="handleSelect(getOptionValue(option))">
         {{ getOptionLabel(option) }}

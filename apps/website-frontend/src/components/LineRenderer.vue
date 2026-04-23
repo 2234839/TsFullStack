@@ -52,23 +52,23 @@ interface TokenRenderInfo {
   isHighlighted?: boolean
 }
 
-const props = defineProps<Props>()
+const { line, lineStartWordIndex, currentParagraphKeyWords, getWordData, currentSession, selectionState, highlightedWordIndex, aiAnalysis } = defineProps<Props>()
 
 const emit = defineEmits<{
   wordMouseDown: [e: MouseEvent | TouchEvent, index: number]
 }>()
 
 // 按正则表达式分割行文本
-const tokens = computed(() => props.line.split(/(\s+|[^\w\s])/))
+const tokens = computed(() => line.split(/(\s+|[^\w\s])/))
 
 // 计算单词索引映射
 const wordIndexMap = computed(() => {
   const map: number[] = []
-  let currentWordIndex = props.lineStartWordIndex
+  let currentWordIndex = lineStartWordIndex
 
   tokens.value.forEach((token, index) => {
     const cleanWord = token.toLowerCase().replace(/[^\w]/g, '')
-    if (cleanWord && /^\w+$/.test(cleanWord) && props.getWordData?.(cleanWord)) {
+    if (cleanWord && /^\w+$/.test(cleanWord) && getWordData?.(cleanWord)) {
       map[index] = currentWordIndex++
     }
   })
@@ -84,17 +84,17 @@ const tokenRenderInfos = computed<TokenRenderInfo[]>(() =>
 // 渲染每个token的信息
 const renderToken = (token: string, tokenIndex: number): TokenRenderInfo => {
   const cleanWord = token.toLowerCase().replace(/[^\w]/g, '')
-  const wordData = props.getWordData?.(cleanWord)
+  const wordData = getWordData?.(cleanWord)
 
   if (!cleanWord || !/^\w+$/.test(cleanWord) || !wordData) {
     return { isWord: false }
   }
 
-  const isKeyWord = props.aiAnalysis?.keyWords?.includes(cleanWord) ||
-                   props.currentParagraphKeyWords.includes(cleanWord)
-  const isClicked = props.currentSession.clickedWords.has(cleanWord)
-  const isSelected = props.selectionState.selectedWords.has(wordIndexMap.value[tokenIndex])
-  const isHighlighted = props.highlightedWordIndex === wordIndexMap.value[tokenIndex]
+  const isKeyWord = aiAnalysis?.keyWords?.includes(cleanWord) ||
+                   currentParagraphKeyWords.includes(cleanWord)
+  const isClicked = currentSession.clickedWords.has(cleanWord)
+  const isSelected = selectionState.selectedWords.has(wordIndexMap.value[tokenIndex])
+  const isHighlighted = highlightedWordIndex === wordIndexMap.value[tokenIndex]
 
   return {
     isWord: true,

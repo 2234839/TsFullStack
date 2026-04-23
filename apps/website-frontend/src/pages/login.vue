@@ -79,10 +79,10 @@
                 ? 'bg-linear-to-r from-success-400 via-info-400 to-info-400'
                 : 'bg-linear-to-r from-success-600 via-info-600 to-info-600'
             ">
-            {{ isLogin ? '系统登录' : '用户注册' }}
+            {{ isLogin ? t('系统登录') : t('用户注册') }}
           </h2>
           <p class="mt-2 text-sm" :class="theme_isDark ? 'text-primary-300' : 'text-primary-600'">
-            {{ isLogin ? '欢迎回来，请输入您的账号和密码' : '创建一个新账号，开始您的旅程' }}
+            {{ isLogin ? t('欢迎回来，请输入您的账号和密码') : t('创建一个新账号，开始您的旅程') }}
           </p>
         </div>
 
@@ -97,7 +97,7 @@
                 <i
                   class="pi pi-user mr-2"
                   :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />{{
-                  isLogin ? '用户名' : '邮箱'
+                  isLogin ? t('用户名') : t('邮箱')
                 }}
               </label>
 
@@ -106,7 +106,7 @@
                 v-model="form.username"
                 :type="isLogin ? 'text' : 'email'"
                 required
-                :placeholder="isLogin ? '请输入用户名' : '请输入邮箱'" />
+                :placeholder="isLogin ? t('请输入用户名') : t('请输入邮箱')" />
             </div>
 
             <!-- 密码输入框 -->
@@ -117,14 +117,14 @@
                 :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
                 <i
                   class="pi pi-lock mr-2"
-                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />密码
+                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />{{ t('密码') }}
               </label>
               <Password
                 id="password"
                 v-model="form.password"
                 required
                 :feedback="!isLogin"
-                :placeholder="isLogin ? '请输入密码' : '请设置密码'" />
+                :placeholder="isLogin ? t('请输入密码') : t('请设置密码')" />
             </div>
 
             <!-- 确认密码输入框 (仅注册时显示) -->
@@ -135,20 +135,20 @@
                 :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
                 <i
                   class="pi pi-lock mr-2"
-                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />确认密码
+                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />{{ t('确认密码') }}
               </label>
               <Password
                 id="confirmPassword"
                 v-model="form.confirmPassword"
                 required
                 :feedback="false"
-                placeholder="请再次输入密码" />
+                :placeholder="t('请再次输入密码')" />
               <small
                 v-if="
                   form.password && form.confirmPassword && form.password !== form.confirmPassword
                 "
                 class="text-danger-500 mt-1 block">
-                两次输入的密码不一致
+                {{ t('两次输入的密码不一致') }}
               </small>
             </div>
           </div>
@@ -161,7 +161,7 @@
                 for="remember"
                 class="ml-2 block text-sm"
                 :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
-                记住我
+                {{ t('记住我') }}
               </label>
             </div>
 
@@ -174,7 +174,7 @@
                     ? 'text-info-400 hover:text-info-300'
                     : 'text-info-600 hover:text-info-500'
                 ">
-                忘记密码?
+                {{ t('忘记密码?') }}
               </a>
             </div>
           </div>
@@ -186,7 +186,7 @@
               for="terms"
               class="ml-2 block text-sm"
               :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
-              我已阅读并同意
+              {{ t('我已阅读并同意') }}
               <a
                 href="#"
                 class="font-medium transition-colors"
@@ -195,7 +195,7 @@
                     ? 'text-info-400 hover:text-info-300'
                     : 'text-info-600 hover:text-info-500'
                 ">
-                用户协议
+                {{ t('用户协议') }}
               </a>
               和
               <a
@@ -206,7 +206,7 @@
                     ? 'text-info-400 hover:text-info-300'
                     : 'text-info-600 hover:text-info-500'
                 ">
-                隐私政策
+                {{ t('隐私政策') }}
               </a>
             </label>
           </div>
@@ -215,7 +215,7 @@
           <div class="space-y-3">
             <Button
               v-if="authInfo_isLogin"
-              label="已处于登录状态, 点击跳转首页"
+              :label="t('已处于登录状态, 点击跳转首页')"
               icon="pi pi-home"
               @click="routerUtil.push(routeMap.admin, {})"
               variant="secondary"
@@ -226,13 +226,13 @@
               :loading="loading"
               :icon="isLogin ? 'pi pi-sign-in' : 'pi pi-user-plus'"
               :disabled="!isFormValid || loading"
-              :label="isLogin ? '登录' : '注册'" />
+              :label="isLogin ? t('登录') : t('注册')" />
           </div>
           <!-- OAuth 登录按钮  -->
           <div class="flex items-center justify-between">
             <!-- github 登录 -->
             <Button
-              label="GitHub 登录"
+              :label="t('GitHub 登录')"
               icon="pi pi-github"
               :loading="oauthLogin.isLoading.value"
               @click="oauthLogin.execute(0, 'github')"
@@ -247,13 +247,13 @@
             theme_isDark ? 'text-primary-400 border-primary-700/30' : 'text-primary-500 border-primary-200'
           ">
           <p>
-            {{ isLogin ? '还没有账号?' : '已有账号?' }}
+            {{ isLogin ? t('还没有账号?') : t('已有账号?') }}
             <a
               href="#"
               @click.prevent="toggleMode"
               class="hover:underline"
               :class="theme_isDark ? 'text-info-400' : 'text-info-600'">
-              {{ isLogin ? '立即注册' : '立即登录' }}
+              {{ isLogin ? t('立即注册') : t('立即登录') }}
             </a>
           </p>
         </div>
@@ -280,10 +280,13 @@
   import Input from '@/components/base/Input.vue';
   import Password from '@/components/base/Password.vue';
   import { useToast } from '@/composables/useToast';
+  import { useI18n } from '@/composables/useI18n';
   import { getErrorMessage } from '@/utils/error';
   import { computed, onMounted, ref } from 'vue';
 
-  const props = defineProps<{
+  const { t } = useI18n();
+
+  const { r } = defineProps<{
     r?: string;
   }>();
 
@@ -379,15 +382,15 @@
       if (isLogin.value) {
         // 登录逻辑
         const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
-        loginGoto(res, { r: props.r });
+        loginGoto(res, { r });
         if (localUserPwd.value.rememberMe) {
           localUserPwd.value.username = form.value.username;
           localUserPwd.value.password = form.value.password;
         }
         toast.add({
           variant: 'success',
-          summary: '登录成功',
-          detail: '欢迎回来，正在为您跳转...',
+          summary: t('登录成功'),
+          detail: t('欢迎回来，正在为您跳转...'),
           life: 3000,
         });
       } else {
@@ -396,8 +399,8 @@
 
         toast.add({
           variant: 'success',
-          summary: '注册成功',
-          detail: '账号创建成功，请登录',
+          summary: t('注册成功'),
+          detail: t('账号创建成功，请登录'),
           life: 3000,
         });
 
@@ -405,7 +408,7 @@
         isLogin.value = true;
       }
     } catch (error: unknown) {
-      toast.error('登录失败', getErrorMessage(error));
+      toast.error(t('登录失败'), getErrorMessage(error));
     } finally {
       loading.value = false;
     }

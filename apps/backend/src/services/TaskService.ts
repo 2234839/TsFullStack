@@ -2,11 +2,11 @@ import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
 import { DbClientEffect } from '../Context/DbService';
 import { dbTry, dbPaginatedFindMany } from '../util/dbEffect';
-import { MsgError } from '../util/error';
+import { MsgError, fail, neverReturn } from '../util/error';
 import type { JsonValue } from '@zenstackhq/orm';
 import { TaskStatus, TaskType } from '../../.zenstack/models';
 import type { TaskWhereInput } from '../../.zenstack/input';
-import { DEFAULT_PAGE_SIZE } from '../util/constants';
+import { DEFAULT_PAGE_SIZE, MSG } from '../util/constants';
 
 /**
  * 任务服务
@@ -80,9 +80,11 @@ export const TaskService = {
         );
 
         if (!task) {
-          throw MsgError.msg('任务不存在');
+          yield* fail(MSG.TASK_NOT_FOUND);
+          return neverReturn();
         }
-        throw MsgError.msg(`任务状态错误：无法从 ${task.status} 转换为 ${newStatus}`);
+        yield* fail(`任务状态错误：无法从 ${task.status} 转换为 ${newStatus}`);
+        return neverReturn();
       }
     }),
 
@@ -122,11 +124,13 @@ export const TaskService = {
       );
 
       if (!task) {
-        throw MsgError.msg('任务不存在');
+        yield* fail(MSG.TASK_NOT_FOUND);
+        return neverReturn();
       }
 
       if (task.userId !== auth.user.id) {
-        throw MsgError.msg('无权访问此任务');
+        yield* fail('无权访问此任务');
+        return neverReturn();
       }
 
       return task;
@@ -172,7 +176,6 @@ export const TaskService = {
           orderBy: { created: 'desc' },
         }),
         () => db.task.count({ where }),
-        [] as never[],
       );
     }),
 };

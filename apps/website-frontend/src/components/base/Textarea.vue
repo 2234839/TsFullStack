@@ -22,13 +22,7 @@ interface Props {
   autoResize?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-  readonly: false,
-  invalid: false,
-  rows: 3,
-  autoResize: false,
-});
+const { disabled = false, readonly = false, invalid = false, rows = 3, autoResize = false } = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
@@ -38,14 +32,14 @@ const emit = defineEmits<{
 const textareaClasses = computed(() => {
   const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 resize-none';
 
-  const stateClasses = props.invalid
+  const stateClasses = invalid
     ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
     : 'border-primary-200 dark:border-primary-700 focus:ring-primary-500 dark:focus:ring-primary-400';
 
   const bgClass = 'bg-white dark:bg-primary-900';
   const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
-  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
-  const resizeClass = props.autoResize ? 'overflow-hidden' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const resizeClass = autoResize ? 'overflow-hidden' : '';
 
   return `${base} ${stateClasses} ${bgClass} ${textClass} ${disabledClass} ${resizeClass}`;
 });

@@ -3,22 +3,24 @@ import fs from 'fs/promises';
 import { loadAppConfig } from './config/loader';
 import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
 import { AIProxyService, AIProxyServiceLive } from './Context/AIProxyService';
-import { MsgError } from './util/error';
+import { MsgError, fail, neverReturn } from './util/error';
 import { AppConfigService } from './Context/AppConfig';
+import { PaymentConfigService } from './Context/PaymentConfig';
 import { DbClientEffect } from './Context/DbService';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
 import { PrismaQueue } from './util/dbQueue';
 import { TokenGrantService } from './services/TokenGrantService';
 import { TokenCleanupService } from './services/TokenCleanupService';
-import { MS_PER_HOUR, MEMORY_LOG_INTERVAL_MS, QUEUE_STARTUP_DELAY_MS } from './util/constants';
+import { OrderReconciliationService } from './services/payment/OrderReconciliationService';
+import { MS_PER_HOUR, MEMORY_LOG_INTERVAL_MS, QUEUE_STARTUP_DELAY_MS, MS_PER_MINUTE } from './util/constants';
 
 const main = Effect.gen(function* () {
   const config = yield* AppConfigService;
 
   // 确保上传文件夹的路径存在
   const dirExists = yield* Effect.tryPromise({
-    try: () => fs.stat(config.uploadDir).catch(() => null),
+    try: async () => { try { return await fs.stat(config.uploadDir); } catch { return null; } },
     catch: (e) => MsgError.msg('检查上传目录失败: ' + String(e)),
   });
   if (!dirExists) {
@@ -28,7 +30,8 @@ const main = Effect.gen(function* () {
     });
     console.log(`Upload directory ${config.uploadDir} is ready`);
   } else if (!dirExists.isDirectory()) {
-    throw MsgError.msg(`Upload directory ${config.uploadDir} is not a directory`);
+    yield* fail(`Upload directory ${config.uploadDir} is not a directory`);
+    return neverReturn();
   }
 
   yield* seedDB
@@ -94,11 +97,13 @@ const main = Effect.gen(function* () {
     lastTime = currentTime;
   }
 
-  setInterval(logMemoryUsage, MEMORY_LOG_INTERVAL_MS);
+  /** 存储定时器句柄以便 graceful shutdown 时清理 */
+  const memoryLogTimer = setInterval(logMemoryUsage, MEMORY_LOG_INTERVAL_MS);
 
   // 定期清理过期代币（每小时一次，延迟5秒启动确保db已初始化）
-  setTimeout(() => {
-    setInterval(async () => {
+  let cleanupIntervalTimer: NodeJS.Timeout;
+  const cleanupDelayTimer = setTimeout(() => {
+    cleanupIntervalTimer = setInterval(async () => {
       try {
         const totalDeleted = await TokenCleanupService.cleanupExpiredTokens(dbClient);
         if (totalDeleted > 0) {
@@ -110,12 +115,37 @@ const main = Effect.gen(function* () {
     }, MS_PER_HOUR);
   }, QUEUE_STARTUP_DELAY_MS);
 
+  // 初始化对账服务的 Effect 查询运行器（在 PaymentConfigService 上下文中）
+  const paymentConfig = yield* PaymentConfigService;
+  OrderReconciliationService.initQueryRunner(paymentConfig);
+
+  // 定期对账支付订单（仅在有未处理订单时才执行实际查询）
+  // 开发环境: 每60秒（本地无法接收 Webhook，靠轮询模拟）
+  // 生产环境: 每5分钟（Webhook 为主，对账仅作兜底）
+  let reconcileIntervalTimer: NodeJS.Timeout;
+  const reconcileDelayTimer = setTimeout(() => {
+    const intervalMs = OrderReconciliationService.getReconcileIntervalMs();
+    const isDev = process.env.NODE_ENV !== 'production';
+    console.log(`[OrderReconciliation] 对账任务已启动 (间隔${isDev ? intervalMs / 1000 + 's' : intervalMs / 60000 + 'min'}, ${isDev ? '开发模式' : '生产模式'})`);
+
+    reconcileIntervalTimer = setInterval(async () => {
+      try {
+        // 快速检查是否有待处理订单
+        const hasPending = await OrderReconciliationService.hasPendingOrders(dbClient);
+        if (!hasPending) return;
+
+        const r = await OrderReconciliationService.reconcile(dbClient);
+        if (r.processed > 0) {
+          console.log(`[OrderReconciliation] 对账完成: 处理${r.processed}单, 支付成功${r.paid}单, 关闭${r.cancelled}单`);
+        }
+      } catch (error: unknown) {
+        console.error('[OrderReconciliation] 对账任务失败:', error);
+      }
+    }, intervalMs);
+  }, 10000);
+
   // 启动服务器
-  yield* startServer.pipe(
-    Effect.provideService(AppConfigService, config),
-    Effect.provideService(AIProxyService, AIProxyServiceLive),
-    Effect.provideService(AIConfigContext, DefaultAIConfig),
-  );
+  yield* startServer;
 });
 
 // 创建完整的启动程序并提供所有服务
@@ -125,6 +155,7 @@ const program = Effect.gen(function* () {
     Effect.provideService(AppConfigService, config),
     Effect.provideService(AIProxyService, AIProxyServiceLive),
     Effect.provideService(AIConfigContext, DefaultAIConfig),
+    Effect.provideService(PaymentConfigService, config.payment ?? {}),
   );
 });
 

@@ -1,9 +1,12 @@
-import { compareSync, hashSync } from 'bcryptjs';
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService } from '../Context/AppConfig';
-import { MsgError } from '../util/error';
+import { fail, neverReturn, MsgError } from '../util/error';
+import { hashPassword, comparePassword } from '../util/crypto';
 import type { Role } from '../../.zenstack/models';
+
+/** 管理员角色名常量 */
+const ADMIN_ROLE_NAME = 'admin';
 
 /** 对数据库进行一些初始化设置 */
 export const seedDB: Effect.Effect<
@@ -44,17 +47,20 @@ const seedAdmin = () =>
 
     let admin = yield* findAdmin();
 
-    if (!admin) {
+    /** 预先计算密码哈希（Effect.tryPromise 的 try 回调中无法使用 yield*） */
+  const hashedPassword = yield* hashPassword(systemAdminUser.password);
+
+  if (!admin) {
       /** 创建管理员 */
       admin = yield* Effect.tryPromise({
         try: () => dbClient.user.create({
           data: {
             email: systemAdminUser.email,
-            password: hashSync(systemAdminUser.password),
+            password: hashedPassword,
             role: {
               connectOrCreate: {
-                where: { name: 'admin' },
-                create: { name: 'admin' },
+                where: { name: ADMIN_ROLE_NAME },
+                create: { name: ADMIN_ROLE_NAME },
               },
             },
           },
@@ -62,23 +68,31 @@ const seedAdmin = () =>
         }),
         catch: (e) => MsgError.msg('创建管理员失败: ' + String(e)),
       });
-    } else if (admin.password && !compareSync(systemAdminUser.password, admin.password)) {
-      console.log('重置系统管理员帐号密码');
-      /** 重置管理员密码 */
-      admin = yield* Effect.tryPromise({
-        try: () => dbClient.user.update({
-          where: { email: systemAdminUser.email },
-          data: { password: hashSync(systemAdminUser.password) },
-          include: { role: true },
-        }),
-        catch: (e) => MsgError.msg('重置管理员密码失败: ' + String(e)),
-      });
+    } else if (admin.password && !(yield* comparePassword(systemAdminUser.password, admin.password))) {
+      /** 生产环境不自动重置密码，避免配置被篡改后静默接管管理员账户 */
+      if (process.env.NODE_ENV === 'production') {
+        console.warn('[Seed] 生产环境检测到管理员密码与配置不一致，跳过自动重置（请手动处理）');
+      } else {
+        console.log('重置系统管理员帐号密码');
+        /** 重置管理员密码（复用已计算的 hashedPassword） */
+        admin = yield* Effect.tryPromise({
+          try: () => dbClient.user.update({
+            where: { email: systemAdminUser.email },
+            data: { password: hashedPassword },
+            include: { role: true },
+          }),
+          catch: (e) => MsgError.msg('重置管理员密码失败: ' + String(e)),
+        });
+      }
     }
 
     // 确保 admin 不为 null（TypeScript 收窄）
-    if (!admin) throw MsgError.msg('管理员初始化失败');
+    if (!admin) {
+      yield* fail('管理员初始化失败');
+      return neverReturn();
+    }
 
-    if (!admin.role?.find((el: Role) => el.name === 'admin')) {
+    if (!admin.role?.find((el: Role) => el.name === ADMIN_ROLE_NAME)) {
       console.log('添加管理员角色');
       yield* Effect.tryPromise({
         try: () => dbClient.user.update({
@@ -86,8 +100,8 @@ const seedAdmin = () =>
           data: {
             role: {
               connectOrCreate: {
-                where: { name: 'admin' },
-                create: { name: 'admin' },
+                where: { name: ADMIN_ROLE_NAME },
+                create: { name: ADMIN_ROLE_NAME },
               },
             },
           },

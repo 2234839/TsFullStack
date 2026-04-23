@@ -50,7 +50,13 @@ export function useApiStorage<T>(
         return;
       }
 
-      const parsed = JSON.parse(value);
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(value);
+      } catch {
+        console.warn('[UseApiStorage] Invalid JSON value for key:', key, '— skipping upsert');
+        return;
+      }
       localVersion.value += 1;
       await API.db.userData.upsert({
         where: {

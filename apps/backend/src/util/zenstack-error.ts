@@ -30,18 +30,30 @@ function isP2004Error(error: Record<string, unknown>): boolean {
   return error.code === 'P2004' && isObject(error.meta);
 }
 
+/** 从错误对象中安全提取 ZenStack 元数据 */
+function extractZenStackMeta(error: Record<string, unknown>): ZenStackErrorMeta | null {
+  const meta = error.meta;
+  if (!isObject(meta)) return null;
+  /** Prisma meta → ZenStackErrorMeta: 运行时结构已知兼容，编译期无法从 Record<string,unknown> 推导 */
+  return meta as unknown as ZenStackErrorMeta;
+}
+
 /**
  * 检查错误是否为 ZenStack 权限策略错误 (P2004)
  */
 export function isZenStackPermissionError(error: unknown): boolean {
-  return isObject(error) && isP2004Error(error) && (error.meta as unknown as ZenStackErrorMeta).reason === 'ACCESS_POLICY_VIOLATION';
+  if (!isObject(error) || !isP2004Error(error)) return false;
+  const meta = extractZenStackMeta(error);
+  return meta?.reason === 'ACCESS_POLICY_VIOLATION';
 }
 
 /**
  * 检查错误是否为 ZenStack 数据验证错误 (P2004)
  */
 export function isZenStackValidationError(error: unknown): boolean {
-  return isObject(error) && isP2004Error(error) && (error.meta as unknown as ZenStackErrorMeta).reason === 'DATA_VALIDATION_VIOLATION';
+  if (!isObject(error) || !isP2004Error(error)) return false;
+  const meta = extractZenStackMeta(error);
+  return meta?.reason === 'DATA_VALIDATION_VIOLATION';
 }
 
 /**
@@ -62,7 +74,11 @@ export function getZenStackErrorDetails(error: unknown): {
     };
   }
 
-  const { reason, zodErrors } = error.meta as unknown as ZenStackErrorMeta;
+  const meta = extractZenStackMeta(error);
+  if (!meta) {
+    return { isPermissionError: false, isValidationError: false, isNotReadableError: false };
+  }
+  const { reason, zodErrors } = meta;
 
   return {
     isPermissionError: reason === 'ACCESS_POLICY_VIOLATION',

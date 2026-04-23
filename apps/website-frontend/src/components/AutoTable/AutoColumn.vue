@@ -22,7 +22,7 @@
     v-else
     :field="field"
     :row="row"
-    :cellData="props.row[field.name]" />
+    :cellData="row[field.name]" />
 </template>
 <script setup lang="ts">
   import { formatDate } from '@vueuse/core';
@@ -32,14 +32,14 @@
   import type { FieldInfo } from './type';
   import { isArrayField } from './type';
 
-  const props = defineProps<{
+  const { field, row } = defineProps<{
     field: FieldInfo;
     row: { [fieldName: string]: any };
   }>();
 
   const editValue = defineModel('editValue');
-  const cellData = computed(() => props.row[props.field.name]);
-  const isRelationArray = computed(() => isArrayField(props.field));
+  const cellData = computed(() => row[field.name]);
+  const isRelationArray = computed(() => isArrayField(field));
 
   const editMode = ref(false);
 </script>

@@ -37,20 +37,15 @@ interface Props {
   color?: ProgressBarColor;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  value: 0,
-  mode: 'determinate',
-  showValue: false,
-  color: 'primary',
-});
+const { value = 0, mode = 'determinate', showValue = false, color = 'primary' } = defineProps<Props>();
 
 /** 进度百分比 */
 const percentage = computed(() => {
-  return Math.max(0, Math.min(100, props.value));
+  return Math.max(0, Math.min(100, value));
 });
 
 /** 当前颜色的样式类 */
-const colorStyle = computed(() => COLOR_CLASSES[props.color]);
+const colorStyle = computed(() => COLOR_CLASSES[color]);
 </script>
 
 <template>

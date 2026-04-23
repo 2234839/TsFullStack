@@ -6,7 +6,7 @@ import { Effect, Option } from 'effect';
 import type { UserFindFirstArgs } from '../../.zenstack/input';
 import type { Role, User, UserSession } from '../../.zenstack/models';
 import { schema, type SchemaType } from '../../.zenstack/schema';
-import { MsgError } from '../util/error';
+import { fail, neverReturn, MsgError } from '../util/error';
 import { AppConfigService } from './AppConfig';
 import { ReqCtxService } from './ReqCtx';
 
@@ -41,7 +41,7 @@ let _cachedDbRaw: DbClient | null = null;
 let _cachedDbPath: string | null = null;
 
 /** 获取无权限检查的 dbClient，慎用！！ 使用时需要明确场景，避免权限系统被跳过 */
-export const DbClientEffect: Effect.Effect<DbClient, never, AppConfigService> = Effect.gen(function* () {
+export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService> = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;
   const databasePath = appConfig.databasePath;
 
@@ -55,9 +55,7 @@ export const DbClientEffect: Effect.Effect<DbClient, never, AppConfigService> = 
     _cachedDbPath = databasePath;
   }
 
-  const ctx = yield* Effect.serviceOption(ReqCtxService);
-  // 每次调用在基础客户端上挂载日志插件（$use 返回新代理对象，不污染原始实例）
-  if (!_cachedDbRaw) throw MsgError.msg('数据库客户端未初始化');
+  const ctx = yield* Effect.serviceOption(ReqCtxService); // 可选依赖：有 ctx 时挂载日志插件
   return _cachedDbRaw.$use(
     definePlugin({
       id: 'cost-logger',
@@ -114,6 +112,7 @@ export const getDbAuthEffect = (opt: {
   Effect.gen(function* () {
     if (Object.values(opt).filter((el) => el).length === 0) {
       yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
+      return neverReturn();
     }
     const ctx = yield* ReqCtxService;
     ctx.log('[DbService] getDbAuth: userId=' + (opt.userId ?? 'null') + ', hasSession=' + !!opt.sessionToken);
@@ -135,7 +134,9 @@ export const getDbAuthEffect = (opt: {
       where = { email: opt.email };
     } else {
       yield* Effect.fail(MsgError.msg('Invalid options'));
+      return neverReturn();
     }
+
     const dbClient = yield* DbClientEffect;
     const user = yield* Effect.tryPromise({
       try: () =>
@@ -159,7 +160,8 @@ export const getDbAuthEffect = (opt: {
     });
 
     if (!user) {
-      throw new MsgError(MsgError.op_logout, '用户登录状态失效');
+      yield* Effect.fail(new MsgError(MsgError.op_logout, '用户登录状态失效'));
+      return neverReturn();
     }
 
     // 使用统一的函数创建带权限的 db 客户端

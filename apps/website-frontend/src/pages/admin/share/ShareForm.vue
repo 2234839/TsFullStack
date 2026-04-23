@@ -8,7 +8,7 @@
 
       <!-- 文件上传区域 -->
       <div
-        class="border-2 border-dashed border-primary-300 dark:border-primary-600 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-primary-50 dark:bg-primary-800 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
+        class="upload-area border-2 border-dashed border-primary-300 dark:border-primary-600 rounded-xl p-8 text-center cursor-pointer transition-all duration-300 bg-primary-50 dark:bg-primary-800 hover:border-primary-500 dark:hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20"
         @click="triggerFileInput" @dragover.prevent="handleDragOver" @dragleave.prevent="handleDragLeave"
         @drop.prevent="handleDrop">
         <input ref="fileInputRef" type="file" multiple @change="onFileSelect" class="hidden"
@@ -23,7 +23,7 @@
       <!-- 已选择的文件列表 -->
       <div v-if="selectedFiles.length > 0">
         <div class="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-3">{{ t('已选择的文件') }}</div>
-        <div v-for="(file, index) in selectedFiles" :key="index"
+        <div v-for="(file, index) in selectedFiles" :key="file.name + '-' + file.size + '-' + index"
           class="flex items-center justify-between p-3 bg-primary-50 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 rounded-lg mb-2 last:mb-0 hover:bg-primary-100 dark:hover:bg-primary-750 hover:border-primary-300 dark:hover:border-primary-600 transition-all">
           <div class="flex items-center gap-3 text-sm text-primary-700 dark:text-primary-300 min-w-0 flex-1">
             <i class="pi pi-file text-xl shrink-0 text-primary-500"></i>
@@ -104,7 +104,7 @@
     visible: boolean;
     editingItem?: ShareItemJSON;
   }
-  const props = defineProps<Props>();
+  const { visible, editingItem } = defineProps<Props>();
 
   /** Emits */
   const emit = defineEmits<{
@@ -114,7 +114,7 @@
 
   /** 本地的 visible 状态，支持双向绑定 */
   const localVisible = computed<boolean>({
-    get: () => props.visible,
+    get: () => visible,
     set: (value: boolean) => emit('update:visible', value),
   });
 
@@ -147,18 +147,18 @@
 
   /** 对话框标题 */
   const dialogTitle = computed(() => {
-    return formType.value === 'create' ? '新建分享' : '编辑分享';
+    return formType.value === 'create' ? t('新建分享') : t('编辑分享');
   });
 
   /**
    * 加载编辑项数据
    */
   function loadEditingItem() {
-    if (props.editingItem) {
+    if (editingItem) {
       formType.value = 'update';
-      editingId.value = props.editingItem.id;
-      formData.value.title = (props.editingItem.data as ShareJSON).title;
-      uploadedFiles.value = [...((props.editingItem.data as ShareJSON)?.files ?? [])];
+      editingId.value = editingItem.id;
+      formData.value.title = (editingItem.data as ShareJSON).title;
+      uploadedFiles.value = [...((editingItem.data as ShareJSON)?.files ?? [])];
       selectedFiles.value = [];
     } else {
       resetForm();
@@ -169,7 +169,7 @@
    * 监听编辑项变化
    */
   watch(
-    () => props.editingItem,
+    () => editingItem,
     () => {
       loadEditingItem();
     },
@@ -181,7 +181,7 @@
    * 当对话框打开时重新加载数据
    */
   watch(
-    () => props.visible,
+    () => visible,
     (isVisible) => {
       if (isVisible) {
         loadEditingItem();

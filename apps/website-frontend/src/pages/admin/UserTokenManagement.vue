@@ -8,6 +8,7 @@ import Tag from '@/components/base/Tag.vue';
 import DataTable from '@/components/base/DataTable.vue';
 import type { ColumnDef } from '@/components/base/DataTable.vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { TokenOptions } from '@tsfullstack/backend';
 import { getTypeLabel } from '@/utils/admin';
 import { getErrorMessage } from '@/utils/error';
@@ -16,6 +17,7 @@ import { Button, Input, Textarea, InputNumber } from '@/components/base';
 import { onMounted, ref, watch, h, computed } from 'vue';
 
 const toast = useToast();
+const { t } = useI18n();
 const { API } = useAPI();
 
 /** RemoteSelect 项目类型 */
@@ -159,8 +161,8 @@ async function loadTokens() {
     tokensTotal.value = total as number;
   } catch (error: unknown) {
     toast.add({
-      summary: '加载失败',
-      detail: '加载代币列表失败',
+      summary: t('加载失败'),
+      detail: t('加载代币列表失败'),
       variant: 'error',
     });
   } finally {
@@ -210,8 +212,8 @@ async function loadTransactions() {
     transactionsTotal.value = total as number;
   } catch (error: unknown) {
     toast.add({
-      summary: '加载失败',
-      detail: '加载代币消耗记录失败',
+      summary: t('加载失败'),
+      detail: t('加载代币消耗记录失败'),
       variant: 'error',
     });
   } finally {
@@ -305,9 +307,9 @@ async function grantTokens() {
       } else {
         const user = grantForm.value.selectedUsers[index];
         results.push({
-          user: user?.label || '未知用户',
+          user: user?.label || t('未知用户'),
           success: false,
-          error: '请求失败',
+          error: t('请求失败'),
         });
       }
     });
@@ -317,8 +319,8 @@ async function grantTokens() {
 
     if (successCount > 0) {
       toast.add({
-        summary: '发放完成',
-        detail: `成功给 ${successCount} 个用户发放代币${failCount > 0 ? `，${failCount} 个失败` : ''}`,
+        summary: t('发放完成'),
+        detail: `${t('成功给')} ${successCount} ${t('个用户发放代币')}${failCount > 0 ? `，${failCount} ${t('个失败')}` : ''}`,
         variant: successCount === results.length ? 'success' : 'warning',
       });
 
@@ -328,15 +330,15 @@ async function grantTokens() {
       await loadTokens();
     } else {
       toast.add({
-        summary: '发放失败',
-        detail: '所有用户发放失败，请检查网络连接和权限',
+        summary: t('发放失败'),
+        detail: t('所有用户发放失败，请检查网络连接和权限'),
         variant: 'error',
       });
     }
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error, '发放代币失败');
+    const errorMessage = getErrorMessage(error, t('发放代币失败'));
     toast.add({
-      summary: '发放失败',
+      summary: t('发放失败'),
       detail: errorMessage,
       variant: 'error',
     });
@@ -400,7 +402,7 @@ function getTaskTypeLabel(type: string): string {
 /** 获取任务类型标签（支持数组） */
 function getRestrictedTypeLabel(type: string | string[]): string {
   if (Array.isArray(type)) {
-    if (type.length === 0) return '通用代币';
+    if (type.length === 0) return t('通用代币');
     return type.map(t => TokenOptions.TaskTypeLabels[t as keyof typeof TokenOptions.TaskTypeLabels] || t).join('、');
   }
   return TokenOptions.TaskTypeLabels[type as keyof typeof TokenOptions.TaskTypeLabels] || type;
@@ -416,40 +418,40 @@ function getAvailableAmount(token: UserToken): number {
 const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
   {
     key: 'user',
-    title: '用户',
+    title: t('用户'),
     width: '25%',
     render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
   },
   {
     key: 'type',
-    title: '类型',
+    title: t('类型'),
     width: '15%',
     render: (row) => h('div', { class: 'flex flex-wrap gap-1' }, [
       h(Tag, { value: getTypeLabel(row.type), variant: 'info' }),
       ...(parseRestrictedType(row.restrictedType).length > 0
-        ? [h(Tag, { value: '专用', variant: 'warn' })]
+        ? [h(Tag, { value: t('专用'), variant: 'warn' })]
         : []
       ),
     ]),
   },
   {
     key: 'amount',
-    title: '数量',
+    title: t('数量'),
     width: '15%',
     render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'text-primary-900 dark:text-primary-100' }, `总量: ${row.amount}`),
-      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `已用: ${row.used} | 可用: ${getAvailableAmount(row)}`),
+      h('div', { class: 'text-primary-900 dark:text-primary-100' }, `${t('总量')}: ${row.amount}`),
+      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${t('已用')}: ${row.used} | ${t('可用')}: ${getAvailableAmount(row)}`),
     ]),
   },
   {
     key: 'expiresAt',
-    title: '过期时间',
+    title: t('过期时间'),
     width: '15%',
-    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.expiresAt, { nullLabel: '永不过期' })),
+    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.expiresAt, { nullLabel: t('永不过期') })),
   },
   {
     key: 'description',
-    title: '备注',
+    title: t('备注'),
     width: '20%',
     render: (row) => h('div', { class: 'text-sm' }, [
       h('div', {
@@ -467,7 +469,7 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
   },
   {
     key: 'created',
-    title: '创建时间',
+    title: t('创建时间'),
     width: '10%',
     render: (row) => h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, formatDate(row.created)),
   },
@@ -477,13 +479,13 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
 const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
   {
     key: 'user',
-    title: '用户',
+    title: t('用户'),
     width: '25%',
     render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
   },
   {
     key: 'task',
-    title: '任务',
+    title: t('任务'),
     width: '17%',
     render: (row) => h('div', { class: 'text-sm' }, [
       h('div', { class: 'text-primary-900 dark:text-primary-100' }, row.task.title),
@@ -492,19 +494,19 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
   },
   {
     key: 'tokenType',
-    title: '代币类型',
+    title: t('代币类型'),
     width: '17%',
     render: (row) => h(Tag, { value: getTypeLabel(row.tokenType), variant: 'danger' }),
   },
   {
     key: 'amount',
-    title: '消耗数量',
+    title: t('消耗数量'),
     width: '10%',
     render: (row) => h('div', { class: 'text-sm font-medium text-danger-600 dark:text-danger-400' }, `-${row.amount}`),
   },
   {
     key: 'balanceSnapshot',
-    title: '余额快照',
+    title: t('余额快照'),
     width: '17%',
     render: (row) => {
       if (!row.balanceSnapshot) return '';
@@ -517,7 +519,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
   },
   {
     key: 'created',
-    title: '时间',
+    title: t('时间'),
     width: '14%',
     render: (row) => h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, formatDate(row.created)),
   },
@@ -533,10 +535,10 @@ onMounted(() => {
     <!-- 页面头部 -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-        用户代币管理
+        {{ t('用户代币管理') }}
       </h1>
       <p class="mt-2 text-primary-600 dark:text-primary-400">
-        查看和管理用户代币及消耗记录
+        {{ t('查看和管理用户代币及消耗记录') }}
       </p>
     </div>
 
@@ -553,7 +555,7 @@ onMounted(() => {
           variant="text"
           @click="activeTab = 'tokens'"
         >
-          代币列表
+          {{ t('代币列表') }}
         </Button>
         <Button
           variant="text"
@@ -565,7 +567,7 @@ onMounted(() => {
           ]"
           @click="activeTab = 'transactions'"
         >
-          消耗记录
+          {{ t('消耗记录') }}
         </Button>
       </nav>
     </div>
@@ -573,7 +575,7 @@ onMounted(() => {
     <!-- 操作按钮 -->
     <div class="mb-6" v-if="activeTab === 'tokens'">
       <Button @click="openGrantDialog">
-        发放代币
+        {{ t('发放代币') }}
       </Button>
     </div>
 
@@ -585,19 +587,19 @@ onMounted(() => {
           <div class="flex-1">
             <Input
               v-model="tokensSearchKeyword"
-              placeholder="搜索用户邮箱或备注..."
+              :placeholder="t('搜索用户邮箱或备注...')"
               @keyup.enter="searchTokens"
             />
           </div>
           <Button @click="searchTokens">
-            搜索
+            {{ t('搜索') }}
           </Button>
           <Button
             v-if="tokensSearchKeyword"
             variant="secondary"
             @click="clearTokensSearch"
           >
-            清空
+            {{ t('清空') }}
           </Button>
         </div>
       </div>
@@ -608,7 +610,7 @@ onMounted(() => {
         :columns="tokenColumns"
         :loading="isLoading"
         rowKey="id"
-        emptyText="暂无代币记录"
+        :emptyText="t('暂无代币记录')"
         striped
         size="middle"
       />
@@ -634,19 +636,19 @@ onMounted(() => {
           <div class="flex-1">
             <Input
               v-model="transactionsSearchKeyword"
-              placeholder="搜索用户邮箱或任务标题..."
+              :placeholder="t('搜索用户邮箱或任务标题...')"
               @keyup.enter="searchTransactions"
             />
           </div>
           <Button @click="searchTransactions">
-            搜索
+            {{ t('搜索') }}
           </Button>
           <Button
             v-if="transactionsSearchKeyword"
             variant="secondary"
             @click="clearTransactionsSearch"
           >
-            清空
+            {{ t('清空') }}
           </Button>
         </div>
       </div>
@@ -657,7 +659,7 @@ onMounted(() => {
         :columns="transactionColumns"
         :loading="isLoading"
         rowKey="id"
-        emptyText="暂无消耗记录"
+        :emptyText="t('暂无消耗记录')"
         striped
         size="middle"
       />
@@ -676,36 +678,36 @@ onMounted(() => {
     </div>
 
     <!-- 发放代币对话框 -->
-    <Dialog v-model:open="showGrantDialog" title="发放代币">
+    <Dialog v-model:open="showGrantDialog" :title="t('发放代币')">
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            选择用户 *
+            {{ t('选择用户 *') }}
           </label>
           <RemoteSelect v-model="grantForm.selectedUsers" :query-method="searchUsers" :show-tag="true" />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            代币类型 *
+            {{ t('代币类型 *') }}
           </label>
-          <Select v-model="grantForm.type" :options="tokenTypeOptions" placeholder="请选择代币类型" />
+          <Select v-model="grantForm.type" :options="tokenTypeOptions" :placeholder="t('请选择代币类型')" />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            专用类型
+            {{ t('专用类型') }}
           </label>
-          <MultiSelect v-model="grantForm.restrictedType" :options="taskTypeOptions" placeholder="请选择专用类型（可选）"
-            selected-items-label="{0} 个类型已选择" />
+          <MultiSelect v-model="grantForm.restrictedType" :options="taskTypeOptions" :placeholder="t('请选择专用类型（可选）')"
+            :selected-items-label="t('{0} 个类型已选择')" />
           <p class="mt-1 text-xs text-primary-500 dark:text-primary-400">
-            如果选择专用类型，代币只能用于指定类型的任务；不选择则可用于所有任务
+            {{ t('如果选择专用类型，代币只能用于指定类型的任务；不选择则可用于所有任务') }}
           </p>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            数量 *
+            {{ t('数量 *') }}
           </label>
           <InputNumber
             v-model="grantForm.amount"
@@ -715,12 +717,12 @@ onMounted(() => {
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            备注
+            {{ t('备注') }}
           </label>
           <Textarea
             v-model="grantForm.description"
             :rows="2"
-            placeholder="发放原因（可选）"
+            :placeholder="t('发放原因（可选）')"
           />
         </div>
       </div>
@@ -731,14 +733,14 @@ onMounted(() => {
             variant="secondary"
             @click="showGrantDialog = false"
           >
-            取消
+            {{ t('取消') }}
           </Button>
           <Button
             :disabled="isSubmitting || grantForm.selectedUsers.length === 0"
             :loading="isSubmitting"
             @click="grantTokens"
           >
-            {{ isSubmitting ? '发放中...' : '发放' }}
+            {{ isSubmitting ? t('发放中...') : t('发放') }}
           </Button>
         </div>
       </template>

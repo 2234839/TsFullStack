@@ -42,12 +42,7 @@ interface Emits {
   (e: 'change', value: string | string[] | null): void;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  multiple: false,
-  maxSelection: 5,
-  placeholder: '',
-  filter: true
-});
+const { modelValue, multiple = false, maxSelection = 5, placeholder = '', filter = true } = defineProps<Props>()
 
 const emit = defineEmits<Emits>();
 
@@ -57,20 +52,20 @@ const userOptions = ref<{ label: string; value: string }[]>([]);
 
 const selectedUsers = computed({
   get: () => {
-    if (props.multiple) {
-      if (Array.isArray(props.modelValue)) {
-        return props.modelValue;
+    if (multiple) {
+      if (Array.isArray(modelValue)) {
+        return modelValue;
       }
-      return props.modelValue ? [props.modelValue] : [];
+      return modelValue ? [modelValue] : [];
     } else {
-      if (Array.isArray(props.modelValue)) {
-        return props.modelValue.length > 0 ? props.modelValue[0] : null;
+      if (Array.isArray(modelValue)) {
+        return modelValue.length > 0 ? modelValue[0] : null;
       }
-      return props.modelValue || null;
+      return modelValue || null;
     }
   },
   set: (value) => {
-    if (props.multiple) {
+    if (multiple) {
       const newValue = Array.isArray(value) ? value : value ? [value] : [];
       const finalValue = newValue.length > 0 ? newValue : null;
       emit('update:modelValue', finalValue);
@@ -88,7 +83,8 @@ const selectedUsers = computed({
 const loadUsers = async () => {
   try {
     const result = await API.db.user.findMany({
-      orderBy: { id: 'asc' }
+      orderBy: { id: 'asc' },
+      take: 500,
     });
 
     users.value = result;
@@ -104,7 +100,7 @@ const loadUsers = async () => {
 // 处理选择变化
 const handleChange = (event: { value: unknown }) => {
   const value = event.value;
-  if (props.multiple) {
+  if (multiple) {
     const newValue = Array.isArray(value) ? value : value ? [value] : [];
     const finalValue = newValue.length > 0 ? newValue : null;
     emit('update:modelValue', finalValue);
@@ -117,9 +113,9 @@ const handleChange = (event: { value: unknown }) => {
   }
 };
 
-// 监听 props.modelValue 变化
-watch(() => props.modelValue, (newValue) => {
-  if (props.multiple) {
+// 监听 modelValue 变化
+watch(() => modelValue, (newValue) => {
+  if (multiple) {
     if (Array.isArray(newValue)) {
       const validValues = newValue.filter(v => userOptions.value.some(opt => opt.value === v));
       if (validValues.length !== newValue.length) {
@@ -131,7 +127,7 @@ watch(() => props.modelValue, (newValue) => {
       emit('update:modelValue', null);
     }
   }
-}, { deep: true });
+});
 
 onMounted(() => {
   loadUsers();

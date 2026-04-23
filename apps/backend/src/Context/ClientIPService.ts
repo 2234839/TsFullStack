@@ -3,11 +3,27 @@
 import { Effect } from 'effect';
 import { ReqCtxService } from './ReqCtx';
 
-/** 获取客户端IP（考虑 nginx 反向代理） */
+/** IPv4 地址正则（简化版，覆盖标准格式） */
+const IPV4_PATTERN = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+/** 验证字符串是否为合法的 IPv4 地址 */
+function isValidIPv4(ip: string): boolean {
+  if (!IPV4_PATTERN.test(ip)) return false;
+  return ip.split('.').every((octet) => {
+    const num = parseInt(octet, 10);
+    return num >= 0 && num <= 255;
+  });
+}
+
+/** 获取客户端IP（考虑 nginx 反向代理，带格式验证防伪造） */
 export const reqClientIpEffect = Effect.gen(function* () {
   const ctx = yield* ReqCtxService;
-  // 获取客户端IP（考虑 nginx 反向代理）
   const forwarded = ctx.req.headers['x-forwarded-for'];
-  const clientIP = typeof forwarded === 'string' ? (forwarded.split(',')[0]?.trim() ?? ctx.req.ip) : ctx.req.ip;
-  return clientIP;
+  if (typeof forwarded === 'string') {
+    const candidate = forwarded.split(',')[0]?.trim();
+    if (candidate && isValidIPv4(candidate)) {
+      return candidate;
+    }
+  }
+  return ctx.req.ip;
 });

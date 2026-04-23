@@ -4,10 +4,13 @@
  * 使用 Tailwind CSS 样式
  * 提供排序、分页、行选择等功能
  */
-import { computed, ref, type VNode } from 'vue';
+import { computed, ref, isVNode, h, type VNode } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 import ProgressSpinner from './ProgressSpinner.vue';
 
-export interface ColumnDef<T = unknown> {
+const { t } = useI18n();
+
+interface ColumnDef<T = unknown> {
   /** 字段名 */
   key: string;
   /** 列头 */
@@ -55,6 +58,9 @@ const props = withDefaults(defineProps<Props<T>>(), {
   selectedRowKeys: () => [],
   selectable: false,
 });
+
+/** 空数据提示文本 */
+const emptyText = computed(() => t(props.emptyText));
 
 const emit = defineEmits<{
   'update:selectedRowKeys': [keys: (string | number)[]];
@@ -165,22 +171,28 @@ function getSortIcon(column: ColumnDef<T>) {
   if (sortState.value.field !== column.key) return null;
   return sortState.value.order === 'asc' ? '↑' : '↓';
 }
+
+/** 将 render 结果统一为 VNode（string 用 span 包裹） */
+function normalizeRenderResult(result: VNode | string): VNode {
+  if (isVNode(result)) return result;
+  return h('span', result);
+}
 </script>
 
 <template>
   <div class="data-table-wrapper">
     <!-- 加载遮罩层 -->
-    <div v-if="loading" class="data-table-loading-overlay">
+    <div v-if="props.loading" class="data-table-loading-overlay">
       <ProgressSpinner />
     </div>
 
     <!-- 数据表格 -->
-    <div class="data-table-container" :class="{ 'opacity-50': loading }">
+    <div class="data-table-container" :class="{ 'opacity-50': props.loading }">
       <table class="border-collapse w-full">
         <thead class="bg-primary-50 dark:bg-primary-900">
           <tr>
             <!-- 选择列 -->
-            <th v-if="selectable" :class="[sizeConfig[size].header, 'w-12 text-center']">
+            <th v-if="props.selectable" :class="[sizeConfig[props.size].header, 'w-12 text-center']">
               <input
                 type="checkbox"
                 :checked="isAllSelected"
@@ -191,10 +203,10 @@ function getSortIcon(column: ColumnDef<T>) {
             </th>
             <!-- 数据列 -->
             <th
-              v-for="column in columns"
+              v-for="column in props.columns"
               :key="column.key"
               :class="[
-                sizeConfig[size].header,
+                sizeConfig[props.size].header,
                 'text-left text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-wider',
                 { 'cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800': column.sortable }
               ]"
@@ -212,7 +224,7 @@ function getSortIcon(column: ColumnDef<T>) {
         <tbody class="bg-primary-50 dark:bg-primary-950">
           <!-- 空数据 -->
           <tr v-if="sortedData.length === 0">
-            <td :colspan="columns.length + (selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-600 dark:text-primary-400">
+            <td :colspan="props.columns.length + (props.selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-600 dark:text-primary-400">
               {{ emptyText }}
             </td>
           </tr>
@@ -220,17 +232,17 @@ function getSortIcon(column: ColumnDef<T>) {
           <tr
             v-else
             v-for="(row, rowIndex) in sortedData"
-            :key="row[rowKey] || rowIndex"
+            :key="row[props.rowKey] || rowIndex"
             :class="[
               'border-b border-primary-200 dark:border-primary-700 transition-colors',
               {
-                'bg-primary-100 dark:bg-primary-900/50': striped && rowIndex % 2 === 0,
-                'hover:bg-primary-200 dark:hover:bg-primary-800': selectable,
-                'border': bordered,
+                'bg-primary-100 dark:bg-primary-900/50': props.striped && rowIndex % 2 === 0,
+                'hover:bg-primary-200 dark:hover:bg-primary-800': props.selectable,
+                'border': props.bordered,
               }
             ]">
             <!-- 选择列 -->
-            <td v-if="selectable" :class="[sizeConfig[size].cell, 'text-center']">
+            <td v-if="props.selectable" :class="[sizeConfig[props.size].cell, 'text-center']">
               <input
                 type="checkbox"
                 :checked="isSelected(row)"
@@ -240,21 +252,21 @@ function getSortIcon(column: ColumnDef<T>) {
             </td>
             <!-- 数据单元格 -->
             <td
-              v-for="column in columns"
+              v-for="column in props.columns"
               :key="column.key"
               :class="[
-                sizeConfig[size].cell,
-                sizeConfig[size].text,
+                sizeConfig[props.size].cell,
+                sizeConfig[props.size].text,
                 {
                   'text-center': column.align === 'center',
                   'text-right': column.align === 'right',
                   'text-left': !column.align || column.align === 'left',
                 }
               ]">
-              <!-- 自定义渲染 -->
+              <!-- 自定义渲染（统一处理 VNode 和 string） -->
               <component
                 v-if="column.render"
-                :is="column.render(row, rowIndex)"
+                :is="normalizeRenderResult(column.render(row, rowIndex))"
               />
               <!-- 默认显示 -->
               <span v-else>{{ row[column.key] }}</span>

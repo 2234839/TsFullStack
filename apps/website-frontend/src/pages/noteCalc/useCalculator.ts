@@ -14,7 +14,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     showPrecision: initialConfig.showPrecision,
   });
 
-  const variables = reactive<Record<string, any>>({});
+  const variables = reactive<Record<string, unknown>>({});
   const varMap = reactive<Record<string, string>>({});
   /** Vue reactive 不追踪 Set/Map 内部变更，必须整体赋值触发更新（= new Set()） */
   const dependencyGraph = reactive<Record<string, Set<number>>>({});
@@ -64,8 +64,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
           precision: config.showPrecision,
           notation: 'auto',
         });
-      } catch (e: unknown) {
-        console.error('格式化数字失败:', e);
+      } catch {
         return String(result);
       }
     }
@@ -239,8 +238,8 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   /**
    * 获取安全的作用域对象
    */
-  function getSafeScope(): Record<string, any> {
-    const scope: Record<string, any> = {};
+  function getSafeScope(): Record<string, unknown> {
+    const scope: Record<string, unknown> = {};
     for (const [name, safeVarName] of Object.entries(varMap)) {
       if (variables[name] !== undefined) {
         scope[safeVarName] = variables[name];

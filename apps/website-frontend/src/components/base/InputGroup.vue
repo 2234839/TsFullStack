@@ -6,14 +6,7 @@
  */
 import { ref, provide } from 'vue';
 
-interface Props {
-  /** 是否禁用 */
-  disabled?: boolean;
-}
-
-withDefaults(defineProps<Props>(), {
-  disabled: false,
-});
+defineProps<{}>();
 
 /** 焦点状态 */
 const isFocused = ref(false);

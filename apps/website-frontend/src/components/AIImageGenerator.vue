@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { useAPI } from '@/api';
 import { useTokenStoreSingleton } from '@/stores/token';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
 import { Button, Textarea } from '@/components/base';
 import { getErrorMessage } from '@/utils/error';
+
+const { t } = useI18n();
 
 /** 不应展示给用户的错误关键词 */
 const ERROR_HIDE_KEYWORDS = ['未配置', 'API Key', '配置错误'] as const;
@@ -42,7 +45,7 @@ const provider = ref<'qwen' | 'dalle' | 'stability'>('qwen');
 const availableProviders = ref<Array<{ value: string; label: string }>>([]);
 
 /** 生成数量 */
-const count = ref(1);
+const count = ref('1');
 
 /** 图片尺寸 */
 const size = ref('1024x1024');
@@ -59,13 +62,21 @@ const generatedImages = ref<string[]>([]);
 /** 显示结果对话框 */
 const showResultDialog = ref(false);
 
-/** 快捷提示词模板 */
-const promptTemplates = [
-  { label: '产品展示', value: '一个精美的产品展示图，现代简约风格，白色背景，柔和光照' },
-  { label: '文章封面', value: '博客文章封面图，科技感，抽象几何图形，蓝色渐变' },
-  { label: '人物头像', value: '专业头像照片，商务风格，微笑，清晰背景' },
-  { label: '自然风景', value: '美丽的自然风景，高清，明亮色彩，宁静氛围' },
-];
+/** 快捷提示词模板（使用 computed 确保切换语言后更新） */
+const promptTemplates = computed(() => [
+  { label: t('产品展示'), value: t('一个精美的产品展示图，现代简约风格，白色背景，柔和光照') },
+  { label: t('文章封面'), value: t('博客文章封面图，科技感，抽象几何图形，蓝色渐变') },
+  { label: t('人物头像'), value: t('专业头像照片，商务风格，微笑，清晰背景') },
+  { label: t('自然风景'), value: t('美丽的自然风景，高清，明亮色彩，宁静氛围') },
+]);
+
+/** 可用的数量选项（使用 computed 确保切换语言后更新） */
+const countOptions = computed(() => [
+  { label: t('1 张'), value: '1' },
+  { label: t('2 张'), value: '2' },
+  { label: t('3 张'), value: '3' },
+  { label: t('4 张'), value: '4' },
+]);
 
 /** 可用的尺寸选项 */
 const sizeOptions = [
@@ -101,7 +112,7 @@ const estimatedCost = computed(() => {
   const basePrice = 10;
   const sizeMult = SIZE_MULTIPLIER[size.value] || 1;
   const providerMult = PROVIDER_MULTIPLIER[provider.value] || 1;
-  return Math.ceil(basePrice * count.value * sizeMult * providerMult);
+  return Math.ceil(basePrice * Number(count.value) * sizeMult * providerMult);
 });
 
 /** 是否可以生成 */
@@ -125,7 +136,7 @@ async function loadAvailableProviders() {
       }
     }
   } catch (error: unknown) {
-    toast.error('加载服务商列表失败', getErrorMessage(error));
+    toast.error(t('加载服务商列表失败'), getErrorMessage(error));
   }
 }
 
@@ -145,8 +156,8 @@ async function startGeneration() {
   if (!canGenerate.value) {
     if (tokenStore.balance.value.total < estimatedCost.value) {
       toast.add({
-        summary: '代币不足',
-        detail: `需要 ${estimatedCost.value} 枚代币，当前余额 ${tokenStore.balance.value.total} 枚`,
+        summary: t('代币不足'),
+        detail: `${t('需要')} ${estimatedCost.value} ${t('枚代币，当前余额')} ${tokenStore.balance.value.total} ${t('枚')}`,
         variant: 'error',
       });
     }
@@ -165,7 +176,7 @@ async function startGeneration() {
     const result = await API.taskApi.generateAIImage({
       prompt: prompt.value.trim(),
       provider: provider.value,
-      count: count.value,
+      count: Number(count.value),
       size: size.value,
     });
 
@@ -174,8 +185,8 @@ async function startGeneration() {
     showResultDialog.value = true;
 
     toast.add({
-      summary: '生成成功',
-      detail: `成功生成 ${result.imagesCount} 张图片，消耗 ${estimatedCost.value} 枚代币`,
+      summary: t('生成成功'),
+      detail: `${t('成功生成')} ${result.imagesCount} ${t('张图片，消耗')} ${estimatedCost.value} ${t('枚代币')}`,
       variant: 'success',
     });
 
@@ -191,7 +202,7 @@ async function startGeneration() {
 
     try { await tokenStore.resetBalance(); } catch { /* 恢复失败继续处理 */ }
 
-    showSafeError(toast, '生成失败', '生成图片时发生错误', error);
+    showSafeError(toast, t('生成失败'), t('生成图片时发生错误'), error);
   } finally {
     isGenerating.value = false;
   }
@@ -207,13 +218,13 @@ async function selectImage(imageUrl: string) {
       imageUrl,
     });
     toast.add({
-      summary: '下载成功',
-      detail: `已保存为 ${result.filename} (${(result.size / 1024).toFixed(1)} KB)`,
+      summary: t('下载成功'),
+      detail: `${t('已保存为')} ${result.filename} (${(result.size / 1024).toFixed(1)} KB)`,
       variant: 'success',
       life: 3000,
     });
   } catch (error: unknown) {
-    showSafeError(toast, '下载失败', '下载图片时发生错误', error);
+    showSafeError(toast, t('下载失败'), t('下载图片时发生错误'), error);
   }
 }
 </script>
@@ -223,12 +234,12 @@ async function selectImage(imageUrl: string) {
     <!-- 提示词输入 -->
     <div>
       <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-        提示词
+        {{ t('提示词') }}
       </label>
       <Textarea
         v-model="prompt"
         :rows="4"
-        placeholder="描述你想要生成的图片..."
+        :placeholder="t('描述你想要生成的图片...')"
         :disabled="isGenerating"
       />
     </div>
@@ -236,7 +247,7 @@ async function selectImage(imageUrl: string) {
     <!-- 快捷模板 -->
     <div>
       <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-        快捷模板
+        {{ t('快捷模板') }}
       </label>
       <div class="flex flex-wrap gap-2">
         <Button
@@ -257,7 +268,7 @@ async function selectImage(imageUrl: string) {
       <!-- 服务提供商 -->
       <div>
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-          服务商
+          {{ t('服务商') }}
         </label>
         <Select
           v-model="provider"
@@ -269,31 +280,27 @@ async function selectImage(imageUrl: string) {
           v-if="availableProviders.length === 0"
           class="mt-1 text-sm text-primary-500 dark:text-primary-400"
         >
-          暂无可用的 AI 服务
+          {{ t('暂无可用的 AI 服务') }}
         </p>
       </div>
 
       <!-- 生成数量 -->
       <div>
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-          数量
+          {{ t('数量') }}
         </label>
-        <select
+        <Select
           v-model="count"
-          class="w-full px-3 py-2 border border-primary-300 dark:border-primary-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100"
+          :options="countOptions"
           :disabled="isGenerating"
-        >
-          <option :value="1">1 张</option>
-          <option :value="2">2 张</option>
-          <option :value="3">3 张</option>
-          <option :value="4">4 张</option>
-        </select>
+          class="w-full"
+        />
       </div>
 
       <!-- 图片尺寸 -->
       <div>
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-          尺寸
+          {{ t('尺寸') }}
         </label>
         <Select
           v-model="size"
@@ -308,15 +315,15 @@ async function selectImage(imageUrl: string) {
     <div class="flex justify-between items-center">
       <!-- 代币余额显示 -->
       <div class="text-sm text-secondary-600 dark:text-secondary-400">
-        <span class="font-medium">代币余额:</span>
+        <span class="font-medium">{{ t('代币余额:') }}</span>
         <span :class="{
           'text-danger-600 dark:text-danger-400': tokenStore.isLowBalance.value,
           'text-success-600 dark:text-success-400': !tokenStore.isLowBalance.value
         }">
-          {{ tokenStore.balance.value.total }} 枚
+          {{ tokenStore.balance.value.total }} {{ t('枚') }}
         </span>
         <span v-if="estimatedCost > 0" class="ml-2 text-secondary-500">
-          (预计消耗 {{ estimatedCost }} 枚)
+          ({{ t('预计消耗') }} {{ estimatedCost }} {{ t('枚') }})
         </span>
       </div>
 
@@ -325,25 +332,25 @@ async function selectImage(imageUrl: string) {
         :loading="isGenerating"
         @click="startGeneration"
       >
-        {{ isGenerating ? '生成中...' : '生成图片' }}
+        {{ isGenerating ? t('生成中...') : t('生成图片') }}
       </Button>
     </div>
 
     <!-- 结果对话框 -->
     <Dialog
       v-model:open="showResultDialog"
-      title="生成的图片"
+      :title="t('生成的图片')"
     >
       <!-- 图片列表 -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div
-          v-for="(imageUrl, index) in generatedImages"
-          :key="index"
+          v-for="imageUrl in generatedImages"
+          :key="imageUrl"
           class="relative group"
         >
           <img
             :src="imageUrl"
-            :alt="`Generated image ${index + 1}`"
+            :alt="t('AI 生成的图片')"
             class="w-full h-auto rounded-lg border border-primary-200 dark:border-primary-700"
           />
           <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -351,7 +358,7 @@ async function selectImage(imageUrl: string) {
               size="sm"
               @click="selectImage(imageUrl)"
             >
-              选择此图片
+              {{ t('选择此图片') }}
             </Button>
           </div>
         </div>

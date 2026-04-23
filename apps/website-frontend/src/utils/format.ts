@@ -1,4 +1,6 @@
 /** 一天的毫秒数 */
+import { t, i18n } from '@/i18n';
+
 export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /** 日期格式化选项 */
@@ -27,7 +29,7 @@ export function formatFileSize(bytes: number): string {
  * 支持中文本地化、null 安全、可选的相对时间显示
  */
 export function formatDate(date: string | Date | null | undefined, options: FormatDateOptions = {}): string {
-  const { nullLabel = '未知时间', relative = false, dateOnly = false } = options;
+  const { nullLabel = t('未知时间'), relative = false, dateOnly = false } = options;
 
   if (!date) return nullLabel;
 
@@ -40,25 +42,25 @@ export function formatDate(date: string | Date | null | undefined, options: Form
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
 
-    if (diffMs < 0) return '刚刚';
-    if (diffMs < 60_000) return '刚刚';
+    if (diffMs < 0) return t('刚刚');
+    if (diffMs < 60_000) return t('刚刚');
 
     const diffMins = Math.floor(diffMs / 60_000);
-    if (diffMins < 60) return `${diffMins}分钟前`;
+    if (diffMins < 60) return t('{n}分钟前', { n: diffMins });
 
     const diffHours = Math.floor(diffMs / 3_600_000);
-    if (diffHours < 24) return `${diffHours}小时前`;
+    if (diffHours < 24) return t('{n}小时前', { n: diffHours });
 
     const diffDays = Math.floor(diffMs / 86_400_000);
-    if (diffDays < 7) return `${diffDays}天前`;
+    if (diffDays < 7) return t('{n}天前', { n: diffDays });
 
     // 超过7天回退到绝对日期
-    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+    return d.toLocaleDateString(i18n.global.locale.value, { year: 'numeric', month: '2-digit', day: '2-digit' });
   }
 
   return dateOnly
-    ? d.toLocaleDateString('zh-CN')
-    : d.toLocaleString('zh-CN');
+    ? d.toLocaleDateString(i18n.global.locale.value)
+    : d.toLocaleString(i18n.global.locale.value);
 }
 
 /**

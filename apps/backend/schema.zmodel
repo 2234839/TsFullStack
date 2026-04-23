@@ -82,6 +82,8 @@ model User with NotIdBase {
     resources Resource[]
     /** 套餐订阅记录 */
     tokenSubscriptions UserTokenSubscription[]
+    /** 支付订单记录 */
+    orders Order[]
     /** 索引优化 */
     @@index([created])
 }
@@ -326,9 +328,6 @@ model Post extends Content {
 
     /** 回复列表（一对多） */
     replies Post[] @relation("PostReplies")
-
-    /** 索引优化：查询某帖子的回复 */
-    @@index([parentId, created])
 }
 
 /// AI 英语学习数据模型
@@ -441,6 +440,70 @@ model AiCallLog with Base {
     @@allow('read',auth() != null && userId == auth().id)
 }
 
+/// ==================== 支付系统 ====================
+
+/// 支付渠道枚举
+enum PaymentProvider {
+  MBD       // 面包多
+  AFDIAN    // 爱发电
+}
+
+/// 订单状态枚举
+enum OrderStatus {
+  PENDING    // 待支付
+  PAID       // 已支付
+  FAILED     // 支付失败
+  CANCELLED  // 已取消
+  REFUNDED   // 已退款
+}
+
+/// 支付订单
+model Order with Base {
+  /** 订单号（对外展示的唯一标识） */
+  orderNo String @unique
+
+  /** 关联用户 */
+  user User @relation(fields: [userId], references: [id])
+  userId String
+
+  /** 关联套餐 */
+  package TokenPackage @relation(fields: [packageId], references: [id])
+  packageId Int
+
+  /** 支付渠道 */
+  provider PaymentProvider
+
+  /** 订单金额（分） */
+  amount Int
+
+  /** 实际支付金额（分，可能因优惠不同） */
+  paidAmount Int?
+
+  /** 订单状态 */
+  status OrderStatus @default(PENDING)
+
+  /** 第三方交易号 */
+  tradeNo String?
+
+  /** 支付渠道返回的原始数据（JSON） */
+  providerData Json?
+
+  /** 支付完成时间 */
+  paidAt DateTime?
+
+  /** 过期时间 */
+  expireAt DateTime
+
+  /** 索引优化 */
+  @@index([userId, status])
+  @@index([orderNo])
+  @@index([status, created])
+
+  /** 权限控制：用户可读自己的订单，登录用户可创建 */
+  @@allow('read', auth() == user)
+  @@allow('create', auth() != null)
+}
+
 /// ==================== 代币系统 ====================
 
 /// 代币类型枚举
@@ -481,6 +544,8 @@ model TokenPackage with Base {
 
     /** 用户订阅记录 */
     userSubscriptions UserTokenSubscription[]
+    /** 支付订单记录 */
+    orders Order[]
 
     /** 索引 */
     @@index([active, sortOrder])

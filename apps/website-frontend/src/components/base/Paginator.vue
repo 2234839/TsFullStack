@@ -5,6 +5,9 @@
  */
 import { computed } from 'vue';
 import { Select } from '@tsfullstack/shared-frontend/components';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 interface Props {
   /** 总条数 */
@@ -21,14 +24,7 @@ interface Props {
   rowsPerPageOptions?: number[];
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  rows: 0,
-  rowsPerPage: 10,
-  page: 0,
-  disabled: false,
-  showRowsPerPageOptions: false,
-  rowsPerPageOptions: () => [10, 20, 50, 100],
-});
+const { rows = 0, rowsPerPage = 10, page = 0, disabled = false, showRowsPerPageOptions = false, rowsPerPageOptions = [10, 20, 50, 100] } = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:page': [page: number];
@@ -36,20 +32,20 @@ const emit = defineEmits<{
 }>();
 
 /** 总页数 */
-const totalPages = computed(() => Math.ceil(props.rows / props.rowsPerPage));
+const totalPages = computed(() => Math.ceil(rows / rowsPerPage));
 
 /** 当前页码（从1开始显示） */
 const currentPage = computed({
-  get: () => props.page + 1,
+  get: () => page + 1,
   set: (value) => emit('update:page', value - 1),
 });
 
 /** 起始记录索引 */
-const firstRecord = computed(() => props.page * props.rowsPerPage + 1);
+const firstRecord = computed(() => page * rowsPerPage + 1);
 
 /** 结束记录索引 */
 const lastRecord = computed(() =>
-  Math.min((props.page + 1) * props.rowsPerPage, props.rows)
+  Math.min((page + 1) * rowsPerPage, rows)
 );
 
 /** 页码列表 */
@@ -134,9 +130,9 @@ function handleRowsPerPageChange(value: unknown) {
 
 /** 每页条数选项列表 */
 const rowsPerPageSelectOptions = computed(() =>
-  props.rowsPerPageOptions.map((value) => ({
+  rowsPerPageOptions.map((value) => ({
     value: String(value),
-    label: `${value} 条/页`,
+    label: `${value} ${t('条/页')}`,
   }))
 );
 </script>
@@ -146,7 +142,7 @@ const rowsPerPageSelectOptions = computed(() =>
     <!-- 信息显示和每页条数选择器 -->
     <div class="flex items-center gap-4 text-sm text-primary-800 dark:text-primary-200">
       <div>
-        显示 {{ firstRecord }}-{{ lastRecord }} 条，共 {{ rows }} 条
+        {{ t('显示') }} {{ firstRecord }}-{{ lastRecord }} {{ t('条，共') }} {{ rows }} {{ t('条') }}
       </div>
 
       <!-- 每页条数选择器 -->
@@ -155,7 +151,7 @@ const rowsPerPageSelectOptions = computed(() =>
         :model-value="String(rowsPerPage)"
         :options="rowsPerPageSelectOptions"
         :disabled="disabled"
-        placeholder="选择每页条数"
+        :placeholder="t('选择每页条数')"
         size="sm"
         @update:model-value="handleRowsPerPageChange"
       />
@@ -166,11 +162,11 @@ const rowsPerPageSelectOptions = computed(() =>
       <!-- 上一页 -->
       <button :disabled="disabled || currentPage <= 1" :class="buttonClasses(false, disabled || currentPage <= 1)"
         @click="prevPage">
-        上一页
+        {{ t('上一页') }}
       </button>
 
       <!-- 页码 -->
-      <button v-for="(page, index) in pageNumbers" :key="index" :disabled="disabled || page === '...'"
+      <button v-for="page in pageNumbers" :key="String(page)" :disabled="disabled || page === '...'"
         :class="buttonClasses(page === currentPage, disabled || page === '...')" @click="goToPage(page)">
         {{ page }}
       </button>
@@ -178,7 +174,7 @@ const rowsPerPageSelectOptions = computed(() =>
       <!-- 下一页 -->
       <button :disabled="disabled || currentPage >= totalPages"
         :class="buttonClasses(false, disabled || currentPage >= totalPages)" @click="nextPage">
-        下一页
+        {{ t('下一页') }}
       </button>
     </div>
   </div>

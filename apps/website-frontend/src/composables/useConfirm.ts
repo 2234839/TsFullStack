@@ -96,7 +96,7 @@ export function useConfirm() {
           confirmState.value.show = false;
           try {
             await options.reject?.();
-          } catch {}
+          } catch (e) { console.warn('[useConfirm] reject callback error:', e); }
           resolve(false);
         },
       };

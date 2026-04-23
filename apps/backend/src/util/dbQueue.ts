@@ -11,6 +11,8 @@ export type TaskMap = Record<string, { payload: unknown; result: unknown }>;
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const STUCK_TIMEOUT_MS = 60_000;
 const MONITOR_INTERVAL_MS = 60_000;
+/** 指数退避最大延迟（1分钟） */
+const MAX_BACKOFF_MS = 60_000;
 
 export interface AddTaskOptions {
   priority?: number;
@@ -36,8 +38,8 @@ export class PrismaQueue<T extends TaskMap> {
   private stuckTimeoutMs: number;
   private isRunning = false;
   private activeWorkers = 0;
-  /** 动态任务处理器映射 — any 是本质性的（运行时类型由 register<K> 泛型保证） */
-  private workers = new Map<string, (payload: any) => Promise<any>>();
+  /** 动态任务处理器映射 — 运行时类型由 register<K> 泛型保证 */
+  private workers = new Map<string, (payload: unknown) => Promise<unknown>>();
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private stuckTaskTimer: NodeJS.Timeout | null = null;
 
@@ -51,6 +53,7 @@ export class PrismaQueue<T extends TaskMap> {
   }
 
   public newType<T extends TaskMap>() {
+    /** 类型擦除再恢复：运行时实例不变，仅通过泛型参数重新约束 register/add 的类型安全 */
     return this as unknown as PrismaQueue<T>;
   }
 
@@ -62,7 +65,7 @@ export class PrismaQueue<T extends TaskMap> {
     name: K,
     handler: (payload: T[K]['payload']) => Promise<T[K]['result']>,
   ) {
-    this.workers.set(name as string, handler as (payload: any) => Promise<any>);
+    this.workers.set(name as string, handler as (payload: unknown) => Promise<unknown>);
     console.log(`[Queue] Registered handler: ${name as string}`);
     return this;
   }
@@ -162,6 +165,7 @@ export class PrismaQueue<T extends TaskMap> {
 
       if (task) {
         this.activeWorkers++;
+        /** Prisma 原始类型 → QueueModel: $transaction 内的 tx 类型因联合类型推导失败，运行时结构一致 */
         this.processTask(task as unknown as QueueModel).finally(() => {
           this.activeWorkers--;
           setImmediate(() => this.poll());
@@ -201,9 +205,7 @@ export class PrismaQueue<T extends TaskMap> {
         },
       });
 
-      if (updated.count > 0) {
-        console.log(`[Queue] Task ${task.id} completed`);
-      } else {
+      if (updated.count === 0) {
         console.warn(`[Queue] Task ${task.id} update ignored`);
       }
     } catch (error: unknown) {
@@ -229,7 +231,7 @@ export class PrismaQueue<T extends TaskMap> {
           },
         });
 
-        console.log(`[Queue] Task ${task.id} will retry at ${runAt.toISOString()}`);
+        // 重试已调度，静默处理
       } else {
         await this.failTask(task.id, error instanceof Error ? error.message : String(error));
       }
@@ -250,7 +252,7 @@ export class PrismaQueue<T extends TaskMap> {
   }
 
   private getBackoff(attempts: number): number {
-    return Math.min(Math.pow(2, attempts) * 1000, 60_000);
+    return Math.min(Math.pow(2, attempts) * 1000, MAX_BACKOFF_MS);
   }
 
   private async monitorStuckTasks() {
@@ -299,10 +301,19 @@ export class PrismaQueue<T extends TaskMap> {
         console.warn(`[Queue] Batch requeued ${toRetry.length} stuck tasks`);
       }
 
-      // 批量失败
+      // 批量失败 — 单次 updateMany 替代逐个 failTask（与 toRetry 同样的批量策略）
       if (toFail.length > 0) {
         const failIds = toFail.map((t) => t.id);
-        await Promise.all(failIds.map((id) => this.failTask(id, 'Max attempts reached after stuck timeout')));
+        await this.dbClient.queue.updateMany({
+          where: { id: { in: failIds }, status: 'PROCESSING' },
+          data: {
+            status: 'FAILED',
+            error: `Max attempts reached after stuck timeout (${toFail.length} tasks)`,
+            completedAt: new Date(),
+            updated: new Date(),
+          },
+        });
+        console.error(`[Queue] Batch failed ${toFail.length} stuck tasks`);
       }
     } catch (error: unknown) {
       console.error('[Queue] monitorStuckTasks failed:', error);

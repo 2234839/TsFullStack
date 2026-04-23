@@ -1,3 +1,10 @@
+import { Effect } from 'effect';
+
+/** Effect.fail 的便捷封装，附带 never return 以缩小类型范围 */
+export const fail = (msg: string) => Effect.fail(MsgError.msg(msg));
+/** 用于 Effect.gen 中 fail() 后的 never return，帮助 TS 收窄类型 */
+export const neverReturn = () => undefined as never;
+
 export class MsgError extends Error {
   static errorTag = 'MsgError';
   /** 登出：清理本地认证信息并跳转登录页 */
@@ -23,6 +30,4 @@ type ExtractOpKeys<T> = {
   [K in keyof T]: K extends `op_${string}` ? T[K] : never;
 }[keyof T];
 
-// 使用示例
 export type MsgErrorOpValues = ExtractOpKeys<typeof MsgError>;
-// OpValues 的类型为：'op_toLogin' | 'op_msgError'

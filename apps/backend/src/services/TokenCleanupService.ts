@@ -34,24 +34,23 @@ export const TokenCleanupService = {
       /** 从未使用的过期代币直接删除（无审计价值） */
       const neverUsed = tokensToCleanup.filter((t) => t.used === 0);
 
-      if (fullyConsumed.length > 0) {
-        await db.token.deleteMany({ where: { id: { in: fullyConsumed.map(t => t.id) } } });
-        totalDeleted += fullyConsumed.length;
-      }
+      // 三类操作互不重叠 ID 集合，安全并行执行
+      await Promise.all([
+        fullyConsumed.length > 0
+          ? db.token.deleteMany({ where: { id: { in: fullyConsumed.map(t => t.id) } } })
+          : Promise.resolve({ count: 0 }),
+        partiallyConsumed.length > 0
+          ? db.token.updateMany({
+              where: { id: { in: partiallyConsumed.map(t => t.id) } },
+              data: { active: false },
+            })
+          : Promise.resolve({ count: 0 }),
+        neverUsed.length > 0
+          ? db.token.deleteMany({ where: { id: { in: neverUsed.map(t => t.id) } } })
+          : Promise.resolve({ count: 0 }),
+      ]);
 
-      /** 部分消耗的过期代币标记为 inactive（保留审计记录，防止数据膨胀） */
-      if (partiallyConsumed.length > 0) {
-        await db.token.updateMany({
-          where: { id: { in: partiallyConsumed.map(t => t.id) } },
-          data: { active: false },
-        });
-      }
-
-      /** 从未使用的过期代币直接删除（无审计价值） */
-      if (neverUsed.length > 0) {
-        await db.token.deleteMany({ where: { id: { in: neverUsed.map(t => t.id) } } });
-        totalDeleted += neverUsed.length;
-      }
+      totalDeleted += fullyConsumed.length + neverUsed.length;
 
       if (tokensToCleanup.length < BATCH_SIZE) hasMore = false;
     }

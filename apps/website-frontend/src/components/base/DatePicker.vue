@@ -18,12 +18,7 @@ interface Props {
   hourFormat?: '12' | '24';
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  showTime: true,
-  disabled: false,
-  dateFormat: 'yy/mm/dd',
-  hourFormat: '24',
-});
+const { showTime = true, disabled = false, dateFormat = 'yy/mm/dd', hourFormat = '24' } = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: Date | string | null];
@@ -45,7 +40,7 @@ function formatDateForInput(value: Date | string | null | undefined): string {
   const hours = String(date.getHours()).padStart(2, '0');
   const minutes = String(date.getMinutes()).padStart(2, '0');
 
-  if (props.showTime) {
+  if (showTime) {
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   }
 
@@ -92,7 +87,7 @@ const inputClasses = computed(() => {
   const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-secondary-500 dark:focus:ring-secondary-400';
 
   const textClass = 'text-primary-900 dark:text-primary-100';
-  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${stateClasses} ${textClass} ${disabledClass}`;
 });

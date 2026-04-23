@@ -1,5 +1,6 @@
 import { normalize, join, sep } from 'path/posix';
 import { MsgError } from '../util/error';
+import { MSG } from '../util/constants';
 
 /**
  * 安全的文件路径服务
@@ -92,7 +93,7 @@ export class FilePathService {
     const pathSegments = relativePath.split('/').filter(Boolean);
 
     if (pathSegments.length === 0 || pathSegments[0] !== userId) {
-      throw MsgError.msg('Access denied: File ownership verification failed');
+      throw MsgError.msg(MSG.FILE_ACCESS_DENIED);
     }
 
     return normalizedPath;
@@ -110,7 +111,7 @@ export class FilePathService {
    *
    * 参考：https://nodejsdesignpatterns.com/blog/nodejs-path-traversal-security/
    */
-  private static validateId(id: string): boolean {
+  static validateId(id: string): boolean {
     if (!id || typeof id !== 'string') return false;
     if (id.length > 100) return false; // 防止过长的ID
     return FilePathService.ALLOWED_CHARS.test(id);

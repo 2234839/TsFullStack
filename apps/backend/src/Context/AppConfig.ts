@@ -28,6 +28,8 @@ export type AppConfig = {
   ApiProxy: {
     github?: string;
   };
+  /** CORS 允许的来源（空数组或未设置则允许所有来源） */
+  corsOrigins?: string[];
   /** AI 图片生成服务配置 */
   aiImage?: {
     /** 通义千问 API Key */
@@ -38,5 +40,24 @@ export type AppConfig = {
     stabilityApiKey?: string;
     /** 智谱 GLM API Key */
     glmApiKey?: string;
+  };
+  /** 支付配置 */
+  payment?: {
+    /** 面包多配置 */
+    mbd?: {
+      enabled: boolean;
+      appId: string;
+      appKey: string;
+    };
+    /** 爱发电配置 */
+    afdian?: {
+      enabled: boolean;
+      userId: string;           // 创作者页面 URL 中的 ID (用于构建赞助链接)
+      apiUserId: string;        // API 调用身份 (用于签名、查订单)
+      apiKey: string;            // API Token
+      webhookToken: string;       // Webhook 验证 Token
+    };
+    /** 订单过期时间（分钟） */
+    orderExpireMinutes?: number;
   };
 };

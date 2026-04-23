@@ -25,9 +25,9 @@
                 <div v-if="loading" class="w-full h-full flex items-center justify-center">
                   <i class="pi pi-spinner pi-spin text-secondary-400"></i>
                 </div>
-                <img v-else :src="url" alt="用户头像" class="w-full h-full object-cover" />
+                <img v-else :src="url" :alt="t('用户头像')" class="w-full h-full object-cover" />
               </File2Url>
-              <img v-else :src="defaultAvatar" alt="默认头像" class="w-full h-full object-cover" />
+              <img v-else :src="defaultAvatar" :alt="t('默认头像')" class="w-full h-full object-cover" />
             </div>
             <div class="space-y-3">
               <div>
@@ -101,6 +101,20 @@
         </div>
       </div>
     </Card>
+
+    <!-- 充值入口 -->
+    <Card class="p-6 mt-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <i class="pi pi-shopping-cart text-primary-600 text-xl"></i>
+          <div>
+            <h3 class="font-medium text-primary-900 dark:text-primary-50">{{ t('购买代币套餐') }}</h3>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('选择套餐购买代币，解锁更多功能') }}</p>
+          </div>
+        </div>
+        <Button :label="t('去购买')" icon="pi pi-arrow-right" variant="primary" @click="goToPricing" />
+      </div>
+    </Card>
   </div>
 </template>
 
@@ -112,6 +126,7 @@
   import Input from '@/components/base/Input.vue';
   import ProgressSpinner from '@/components/base/ProgressSpinner.vue';
   import File2Url from '@/pages/admin/components/File2Url.vue';
+  import { routerUtil, routeMap } from '@/router';
   import { ref, computed, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
   import { useToast } from '@/composables/useToast';
@@ -137,6 +152,11 @@
   /** 删除头像状态 */
   const removing = ref(false);
   /** 保存昵称状态 */
+
+  /** 跳转到购买页 */
+  function goToPricing() {
+    routerUtil.push(routeMap.pricing, {});
+  }
   const savingNickname = ref(false);
   /** 昵称输入 */
   const nicknameInput = ref(userProfile.value?.nickname || '');

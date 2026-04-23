@@ -3,7 +3,7 @@
     <!-- 段落复杂度指示器 -->
     <div v-if="complexity > 7" class="flex items-center gap-2 text-xs text-warning-600 bg-warning-50 dark:bg-warning-900/20 p-3 rounded-lg">
       <i class="pi pi-exclamation-triangle"></i>
-      <span>较高难度段落 • 建议仔细阅读</span>
+      <span>{{ t('较高难度段落 • 建议仔细阅读') }}</span>
     </div>
 
     <!-- 段落文本 - 处理换行和格式 -->
@@ -35,16 +35,19 @@
 
     <!-- 段落信息 -->
     <div v-if="showParagraphInfo" class="flex items-center gap-4 text-xs text-secondary-500 pt-2 border-t">
-      <span>字数: {{ text.split(/\s+/).length }}</span>
-      <span v-if="estimatedReadingTime">预计阅读: {{ Math.ceil((estimatedReadingTime || 0) / 60) }}分钟</span>
-      <span v-if="complexity">复杂度: {{ complexity }}/10</span>
+      <span>{{ t('字数') }}: {{ wordCount }}</span>
+      <span v-if="readingMinutes">{{ t('预计阅读') }}: {{ readingMinutes }}{{ t('分钟') }}</span>
+      <span v-if="complexity">{{ t('复杂度') }}: {{ complexity }}/10</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import LineRenderer from './LineRenderer.vue'
+
+const { t } = useI18n()
 import type { WordData } from '@/pages/AiEnglish/data'
 import type { StudySession, SelectionState, AIAnalysis } from '@/pages/AiEnglish/types'
 
@@ -62,14 +65,16 @@ interface Props {
   aiAnalysis: AIAnalysis | null
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  complexity: 5,
-  estimatedReadingTime: 0,
-  showParagraphInfo: true
-})
+const { text, currentParagraphKeyWords, complexity = 5, estimatedReadingTime = 0, showParagraphInfo = true, onWordMouseDown, getWordData, currentSession, selectionState, highlightedWordIndex, aiAnalysis } = defineProps<Props>()
 
 // 按行分割文本，保留换行结构
-const lines = computed(() => props.text.split('\n'))
+const lines = computed(() => text.split('\n'))
+
+/** 单词数（按空白分割） */
+const wordCount = computed(() => text.split(/\s+/).length)
+
+/** 预计阅读分钟数 */
+const readingMinutes = computed(() => Math.ceil((estimatedReadingTime || 0) / 60))
 
 // 计算每行的起始单词索引
 const lineStartIndices = computed(() => {
@@ -94,7 +99,7 @@ const lineStartIndices = computed(() => {
 })
 
 const handleWordMouseDown = (e: MouseEvent | TouchEvent, index: number) => {
-  props.onWordMouseDown(e, index)
+  onWordMouseDown(e, index)
 }
 </script>
 

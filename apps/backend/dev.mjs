@@ -4,7 +4,6 @@
  * 2. 编译完成后自动重启 HTTP 服务器
  */
 import { spawn, execSync } from 'child_process';
-import { existsSync } from 'fs';
 
 const PORT = 5209;
 let serverProcess = null;
@@ -54,25 +53,29 @@ function startServer() {
 /** 主流程 */
 console.log('[dev] Starting development mode...');
 
-// 首次编译
-console.log('[dev] Initial build...');
-execSync('npx tsdown --config tsdown.config.ts', { stdio: 'inherit' });
-startServer();
+let initialBuildDone = false;
 
-// 启动 tsdown watch，监听编译完成事件
+// 启动 tsdown watch，监听编译完成事件（包括首次构建和后续 rebuild）
 const tsdown = spawn('npx', ['tsdown', '--watch', '--config', 'tsdown.config.ts'], {
-  stdio: 'inherit',
+  stdio: ['inherit', 'pipe', 'inherit'],
   env: { ...process.env, CHOKIDAR_USEPOLLING: 'true' },
 });
 
 tsdown.stdout?.on('data', (data) => {
   const output = data.toString();
-  // 检测到 "Rebuilt" 或 "Build start" 等关键输出时重启服务
-  if (output.includes('Rebuilt in') || output.includes('✔ Rebuilt')) {
-    console.log('\n[dev] Code changed, restarting server...');
-    killServer();
-    // 等一小会儿确保文件系统写入完成
-    setTimeout(startServer, 500);
+  // 转发到终端
+  process.stdout.write(output);
+  if (output.includes('Build complete') || output.includes('Rebuilt in') || output.includes('✔ Rebuilt')) {
+    if (!initialBuildDone) {
+      // 首次构建完成，启动服务器
+      initialBuildDone = true;
+      startServer();
+    } else {
+      // 后续 rebuild，重启服务器
+      console.log('\n[dev] Code changed, restarting server...');
+      killServer();
+      setTimeout(startServer, 500);
+    }
   }
 });
 

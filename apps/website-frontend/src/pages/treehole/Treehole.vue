@@ -4,10 +4,10 @@
       <!-- 页面标题 -->
       <div class="mb-8 flex items-center justify-between">
         <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50">
-          🌳 树洞
+          🌳 {{ t('树洞') }}
         </h1>
         <Button
-          label="首页"
+          :label="t('首页')"
           icon="pi pi-home"
           variant="secondary"
           @click="router.push('/')"
@@ -32,7 +32,7 @@
         <div class="relative">
           <Input
             v-model="searchKeyword"
-            placeholder="搜索标题或内容..."
+            :placeholder="t('搜索标题或内容...')"
             class="w-48"
           >
             <template #prefix>
@@ -45,7 +45,7 @@
       <!-- 创建帖子表单（展开/收起） -->
       <div class="mb-8">
         <Button
-          :label="showCreateForm ? '收起创建表单' : '创建新主题'"
+          :label="showCreateForm ? t('收起创建表单') : t('创建新主题')"
           :icon="showCreateForm ? 'pi pi-chevron-up' : 'pi pi-plus'"
           class="w-full mb-4"
           @click="showCreateForm = !showCreateForm"
@@ -74,11 +74,11 @@
         <div class="bg-white dark:bg-primary-900 rounded-lg shadow p-8">
           <i class="pi pi-comments text-4xl text-primary-400 mb-4"></i>
           <p class="text-primary-600 dark:text-primary-400 mb-4">
-            {{ getEmptyMessage() }}
+            {{ emptyMessage }}
           </p>
           <Button
             v-if="currentFilter !== 'PUBLIC'"
-            label="切换到公开内容"
+            :label="t('切换到公开内容')"
             variant="secondary"
             @click="currentFilter = 'PUBLIC'"
           />
@@ -99,7 +99,7 @@
         <!-- 加载更多 -->
         <div v-if="hasMore" class="text-center mt-8">
           <Button
-            :label="isLoadingMore ? '加载中...' : '加载更多'"
+            :label="isLoadingMore ? t('加载中...') : t('加载更多')"
             :icon="isLoadingMore ? 'pi pi-spin pi-spinner' : 'pi pi-chevron-down'"
             variant="secondary"
             :disabled="isLoadingMore"
@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { authInfo_isLogin, authInfo } from '@/storage';
 import { useAPI } from '@/api';
@@ -122,8 +122,10 @@ import TreeholePost from './TreeholePost.vue';
 import TreeholePostForm from './TreeholePostForm.vue';
 import { useDebounceFn } from '@vueuse/core';
 import type { TreeholePost as TreeholePostType } from '@tsfullstack/backend';
+import { useI18n } from '@/composables/useI18n';
 
 const router = useRouter();
+const { t } = useI18n();
 
 const { AppAPI } = useAPI();
 
@@ -140,42 +142,43 @@ const skip = ref(0);
 const take = 10;
 const hasMore = ref(false);
 
-/** 可见性过滤器 */
-const visibilityFilters = [
+/** 可见性过滤器（使用 computed 确保切换语言后更新） */
+const visibilityFilters = computed(() => [
   {
     value: 'PUBLIC' as const,
-    label: '公开',
+    label: t('公开'),
     icon: 'pi pi-globe',
     activeClass: 'bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300',
     inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
   },
   {
     value: 'MEMBERS' as const,
-    label: '登录可见',
+    label: t('登录可见'),
     icon: 'pi pi-users',
     activeClass: 'bg-info-100 text-info-700 dark:bg-info-900 dark:text-info-300',
     inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
   },
   {
     value: 'MY' as const,
-    label: '我的',
+    label: t('我的'),
     icon: 'pi pi-user',
     activeClass: 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300',
     inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
   },
-];
+]);
 
 /**
  * 获取空状态消息
  */
-function getEmptyMessage(): string {
-  const messages = {
-    PUBLIC: '还没有公开的树洞帖子，来创建一个吧！',
-    MEMBERS: '还没有登录用户可见的帖子',
-    MY: '你还没有发布过任何帖子',
+/** 空状态提示文字 */
+const emptyMessage = computed(() => {
+  const messages: Record<string, string> = {
+    PUBLIC: t('还没有公开的树洞帖子，来创建一个吧！'),
+    MEMBERS: t('还没有登录用户可见的帖子'),
+    MY: t('你还没有发布过任何帖子'),
   };
-  return messages[currentFilter.value] || '暂无内容';
-}
+  return messages[currentFilter.value] || t('暂无内容');
+});
 
 /**
  * 加载帖子列表
@@ -227,7 +230,7 @@ async function loadPosts(reset = true) {
     // 判断是否还有更多数据
     hasMore.value = result.hasMore;
   } catch (err: unknown) {
-    error.value = '加载失败：' + getErrorMessage(err);
+    error.value = t('加载失败：') + getErrorMessage(err);
   } finally {
     isLoading.value = false;
   }

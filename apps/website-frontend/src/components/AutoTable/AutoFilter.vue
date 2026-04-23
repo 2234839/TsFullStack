@@ -88,7 +88,7 @@
   import { Select } from '@tsfullstack/shared-frontend/components';
   import type { SelectOption } from '@tsfullstack/shared-frontend/components';
   import { computed, ref } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  import { useI18n } from '@/composables/useI18n';
   import type { FieldInfo } from './type';
   import { isDataModelField } from './type';
 

@@ -3,7 +3,8 @@
  * 文件上传组件
  * 使用 Tailwind CSS 样式
  */
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
+import { useI18n } from '@/composables/useI18n';
 
 interface Props {
   /** 接受的文件类型 */
@@ -16,12 +17,16 @@ interface Props {
   mode?: 'basic' | 'advanced';
 }
 
+const { t } = useI18n();
 const props = withDefaults(defineProps<Props>(), {
   accept: '*',
   chooseLabel: '选择文件',
   disabled: false,
   mode: 'basic',
 });
+
+/** 按钮文本 */
+const chooseLabel = computed(() => t(props.chooseLabel));
 
 interface FileSelectEvent {
   files: File[];
@@ -60,13 +65,13 @@ function handleFileSelect(event: Event) {
     <input
       ref="fileInputRef"
       type="file"
-      :accept="accept"
-      :disabled="disabled"
+      :accept="props.accept"
+      :disabled="props.disabled"
       class="hidden"
       @change="handleFileSelect" />
     <button
       type="button"
-      :disabled="disabled"
+      :disabled="props.disabled"
       class="px-4 py-2 bg-primary-700 hover:bg-primary-800 dark:bg-primary-300 dark:hover:bg-primary-200 text-primary-50 dark:text-primary-950 rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
       @click="chooseFile">
       <i class="pi pi-upload mr-2"></i>

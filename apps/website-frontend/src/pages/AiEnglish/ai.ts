@@ -1,9 +1,12 @@
 import { useOpenAIConfig } from '@/storage';
 import { useAPI } from '@/api';
+import { useI18n } from '@/composables/useI18n';
 import { type WordData } from './data';
 import type { AIAnalysis } from './types';
 import { getErrorMessage } from '@/utils/error';
 export type { AIAnalysis };
+
+const { t } = useI18n();
 
 export interface WordAnalysis {
   translation: string;
@@ -71,7 +74,7 @@ export async function fetchAI(
     });
 
     if (!response.ok) {
-      throw new Error(`用户配置API请求失败: ${response.status}`);
+      throw new Error(`${t('用户配置API请求失败:')} ${response.status}`);
     }
 
     return await response.json();
@@ -178,16 +181,16 @@ ${wordsList}
   const results: Record<string, WordAnalysis> = {};
   for (const { word } of words) {
     results[word] = {
-      translation: result.error || '分析失败',
+      translation: result.error || t('分析失败'),
       difficulty: 5,
-      examples: [`分析 "${word}" 时出现错误，请稍后重试。`],
+      examples: [`${t('分析')} "${word}" ${t('时出现错误，请稍后重试。')}`],
       grammar: '',
       pronunciation: '',
       definition: '',
       synonyms: [],
       wordFamily: [],
       collocations: [],
-      tips: `批量分析 "${word}" 失败，建议稍后重新分析。`,
+      tips: `${t('批量分析')} "${word}" ${t('失败，建议稍后重新分析。')}`,
     };
   }
   return results;
@@ -198,7 +201,7 @@ export const translateWithAI = async (word: string, context?: string): Promise<W
   const results = await analyzeWordsBatch([{ word, context }]);
   return (
     results[word] || {
-      translation: '翻译服务暂时不可用',
+      translation: t('翻译服务暂时不可用'),
       difficulty: 5,
       examples: [],
       grammar: '',
@@ -242,9 +245,9 @@ ${paragraphs.map((text, index) => `段落${index + 1}: "${text}"`).join('\n\n')}
     }
 
     // 确保返回所有段落的翻译
-    return paragraphs.map((_, i) => translations[i] || '翻译服务暂时不可用');
-  } catch {
-    return paragraphs.map(() => '翻译服务暂时不可用');
+    return paragraphs.map((_, i) => translations[i] || t('翻译服务暂时不可用'));
+  } catch (e) { console.warn('[AiEnglish] translate error:', e);
+    return paragraphs.map(() => t('翻译服务暂时不可用'));
   }
 };
 
@@ -312,7 +315,7 @@ export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> =>
     articleDifficulty: 5,
     suggestedStudyTime: 15,
     keyWords: [],
-    learningTips: [result.error || 'AI分析服务暂时不可用'],
+    learningTips: [result.error || t('AI分析服务暂时不可用')],
   };
 };
 
@@ -354,7 +357,7 @@ export function useCreateMixedTranslation({
 
       const data = await fetchAI(prompt);
       return data.choices[0].message.content.trim();
-    } catch {
+    } catch (e) { console.warn('[AiEnglish] translate error:', e);
       return translatedText;
     }
   };
@@ -448,7 +451,7 @@ export const segmentArticleWithAI = async (text: string): Promise<SmartSegmentat
   return {
     paragraphs: fallbackParagraphs.map((paragraph) => ({
       text: paragraph,
-      reason: '默认分段（基于空行分隔）',
+      reason: t('默认分段（基于空行分隔）'),
       complexity: 5,
       estimatedReadingTime: Math.ceil(paragraph.split(/\s+/).length * 0.3),
       keyVocabulary: [],
@@ -566,7 +569,7 @@ export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
       return JSON.parse(repairedStr);
     } catch (error: unknown) {
       // 所有方法都失败，抛出错误
-      throw new Error(`JSON解析失败: ${getErrorMessage(error)}`);
+      throw new Error(`${t('JSON解析失败:')} ${getErrorMessage(error)}`);
     }
   }
 }
@@ -637,7 +640,7 @@ export async function callAiWithFunctionCalling<T = unknown>(
   } catch (error: unknown) {
     return {
       success: false,
-      error: getErrorMessage(error, 'JSON解析失败'),
+      error: getErrorMessage(error, t('JSON解析失败')),
     };
   }
 }

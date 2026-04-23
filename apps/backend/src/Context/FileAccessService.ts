@@ -3,7 +3,8 @@ import { File as FileModel } from '../../.zenstack/models';
 import { MsgError } from '../util/error';
 import { FilePathService } from './FilePathService';
 import { AppConfigService } from './AppConfig';
-import { FileWrapItem } from '../api/authApi/file';
+import { FileWrapItem } from '../util/file-types';
+import { MSG } from '../util/constants';
 
 /**
  * 文件访问选项
@@ -67,7 +68,7 @@ export class FileAccessService {
 
     // 验证文件存在性
     if (!fileRow?.path) {
-      throw MsgError.msg('文件不存在');
+      throw MsgError.msg(MSG.FILE_NOT_FOUND);
     }
 
     // 检查文件状态
@@ -77,7 +78,7 @@ export class FileAccessService {
 
     // 检查所有权
     if (checkOwnership===true && userId && fileRow.authorId !== userId) {
-      throw MsgError.msg('Access denied: File ownership verification failed');
+      throw MsgError.msg(MSG.FILE_ACCESS_DENIED);
     }
 
     // 如果没有提供 uploadDir，则使用默认值（但应该总是提供）
@@ -114,10 +115,9 @@ export class FileAccessService {
     fileRow: FileModel,
     options: FileAccessOptions = {}
   ) {
-    return Effect.gen(function* () {
-      const appConfig = yield* AppConfigService;
-      return FileAccessService.validateFileAccess(fileRow, options, appConfig.uploadDir);
-    });
+    return FileAccessService.withAppConfig((uploadDir) =>
+      FileAccessService.validateFileAccess(fileRow, options, uploadDir),
+    );
   }
 
   /**
@@ -151,9 +151,16 @@ export class FileAccessService {
     fileRow: FileModel,
     options: FileAccessOptions = {}
   ) {
+    return FileAccessService.withAppConfig((uploadDir) =>
+      FileAccessService.createFileWrapItem(fileRow, options, uploadDir),
+    );
+  }
+
+  /** 通用 Effect 包装：获取 AppConfig 后执行回调 */
+  private static withAppConfig<T>(fn: (uploadDir: string) => T) {
     return Effect.gen(function* () {
       const appConfig = yield* AppConfigService;
-      return FileAccessService.createFileWrapItem(fileRow, options, appConfig.uploadDir);
+      return fn(appConfig.uploadDir);
     });
   }
 }

@@ -217,7 +217,7 @@
   const confirm = useConfirm();
   const { t: ti18n } = useI18n();
 
-  const props = defineProps<{
+  const { c, id } = defineProps<{
     /** lz-string 压缩后的内容  */
     c?: string;
     /** 笔记ID */
@@ -225,7 +225,7 @@
   }>();
 
   //#region 状态管理
-  const content = ref(props.c || props.id ? '' : exampleContent);
+  const content = ref(c || id ? '' : exampleContent);
   const config = ref({
     isAutoCalculate: true,
     precision: 64,
@@ -318,8 +318,8 @@
       } catch (error: unknown) {
         toast.add({
           variant: 'error',
-          summary: '加载失败',
-          detail: '获取笔记列表时出错',
+          summary: ti18n('加载失败'),
+          detail: ti18n('获取笔记列表时出错'),
           life: 3000,
         });
         return [];
@@ -373,7 +373,7 @@
 
   /** 获取笔记标题 */
   const getNoteTitle = (note: { description: string | null } | null | undefined) => {
-    return note?.description || '未命名笔记';
+    return note?.description || ti18n('未命名笔记');
   };
 
   // 获取笔记内容预览
@@ -457,8 +457,8 @@
     } catch (error: unknown) {
       toast.add({
         variant: 'error',
-        summary: '加载失败',
-        detail: '获取更多笔记时出错',
+        summary: ti18n('加载失败'),
+        detail: ti18n('获取更多笔记时出错'),
         life: 3000,
       });
     } finally {
@@ -488,8 +488,8 @@
         if (!note) {
           toast.add({
             variant: 'error',
-            summary: '加载失败',
-            detail: '未找到指定笔记',
+            summary: ti18n('加载失败'),
+            detail: ti18n('未找到指定笔记'),
             life: 3000,
           });
           return;
@@ -506,8 +506,8 @@
     } catch (error: unknown) {
       toast.add({
         variant: 'error',
-        summary: '加载失败',
-        detail: '加载指定笔记时出错',
+        summary: ti18n('加载失败'),
+        detail: ti18n('加载指定笔记时出错'),
         life: 3000,
       });
     }
@@ -519,8 +519,8 @@
       // 如果有未保存的更改，提示用户
       if (unsavedChanges.value && currentNote.value) {
         confirm.require({
-          message: '当前笔记有未保存的更改，是否继续？',
-          header: '未保存的更改',
+          message: ti18n('当前笔记有未保存的更改，是否继续？'),
+          header: ti18n('未保存的更改'),
           icon: 'pi pi-exclamation-triangle',
           accept: () => {
             doLoadNote(note);
@@ -534,8 +534,8 @@
     } catch (error: unknown) {
       toast.add({
         variant: 'error',
-        summary: '加载失败',
-        detail: '加载笔记内容时出错',
+        summary: ti18n('加载失败'),
+        detail: ti18n('加载笔记内容时出错'),
         life: 3000,
       });
     }
@@ -569,8 +569,8 @@
     if (!authInfo_isLogin.value) {
       toast.add({
         variant: 'warn',
-        summary: '未登录',
-        detail: '请先登录后再保存笔记',
+        summary: ti18n('未登录'),
+        detail: ti18n('请先登录后再保存笔记'),
         life: 3000,
       });
       return;
@@ -597,29 +597,33 @@
         // 更新本地笔记列表中的数据
         const index = notesState.state.value.findIndex((note) => note.id === currentNote.value?.id);
         if (index !== -1) {
-          notesState.state.value[index]!.data = noteData;
-          notesState.state.value[index]!.updated = new Date();
+          const note = notesState.state.value[index];
+          if (!note) return;
+          note.data = noteData;
+          note.updated = new Date();
 
           // 将更新的笔记移到列表顶部
-          const updatedNoteItem = notesState.state.value.splice(index, 1)[0]!;
-          notesState.state.value.unshift(updatedNoteItem);
+          const updatedNoteItem = notesState.state.value.splice(index, 1)[0];
+          if (updatedNoteItem) {
+            notesState.state.value.unshift(updatedNoteItem);
+          }
         }
 
         currentNote.value = updatedNote as unknown as SimpleNote;
 
         toast.add({
           variant: 'success',
-          summary: '保存成功',
-          detail: '笔记已更新',
+          summary: ti18n('保存成功'),
+          detail: ti18n('笔记已更新'),
           life: 2000,
         });
       } else {
         // 创建新笔记
-        const title = content.value.split('\n')[0]?.trim() || '未命名笔记';
+        const title = content.value.split('\n')[0]?.trim() || ti18n('未命名笔记');
         const newNote = await API.db.userData.create({
           data: {
             appId: userDataAppid.NodeCalc,
-            userId: authInfo.value!.userId,
+            userId: authInfo.value?.userId,
             key: 'note_' + Date.now(),
             data: noteData,
             description: title.length > 30 ? title.substring(0, 30) + '...' : title,
@@ -638,8 +642,8 @@
 
         toast.add({
           variant: 'success',
-          summary: '保存成功',
-          detail: '新笔记已创建',
+          summary: ti18n('保存成功'),
+          detail: ti18n('新笔记已创建'),
           life: 2000,
         });
       }
@@ -648,8 +652,8 @@
     } catch (error: unknown) {
       toast.add({
         variant: 'error',
-        summary: '保存失败',
-        detail: '保存笔记时出错',
+        summary: ti18n('保存失败'),
+        detail: ti18n('保存笔记时出错'),
         life: 3000,
       });
     } finally {
@@ -680,7 +684,7 @@
   // 确认删除笔记
   const confirmDeleteNote = (note: Note, event: MouseEvent) => {
     confirm.require({
-      message: `确定要删除笔记"${getNoteTitle(note)}"吗？`,
+      message: ti18n('确定要删除笔记"{title}"吗？', { title: getNoteTitle(note) }),
       icon: 'pi pi-exclamation-triangle',
       event,
       acceptClass: 'p-button-danger',
@@ -712,15 +716,15 @@
 
       toast.add({
         variant: 'success',
-        summary: '删除成功',
-        detail: '笔记已删除',
+        summary: ti18n('删除成功'),
+        detail: ti18n('笔记已删除'),
         life: 2000,
       });
     } catch (error: unknown) {
       toast.add({
         variant: 'error',
-        summary: '删除失败',
-        detail: '删除笔记时出错',
+        summary: ti18n('删除失败'),
+        detail: ti18n('删除笔记时出错'),
         life: 3000,
       });
     }
@@ -749,8 +753,10 @@
       // 更新本地笔记列表
       const index = notesState.state.value.findIndex((note) => note.id === noteToRename.value?.id);
       if (index !== -1) {
-        notesState.state.value[index]!.description = renameTitle.value.trim();
-        notesState.state.value[index]!.updated = new Date();
+        const note = notesState.state.value[index];
+        if (!note) return;
+        note.description = renameTitle.value.trim();
+        note.updated = new Date();
       }
 
       // 如果重命名的是当前笔记，更新当前笔记
@@ -761,15 +767,15 @@
       showRenameModal.value = false;
       toast.add({
         variant: 'success',
-        summary: '重命名成功',
-        detail: '笔记已重命名',
+        summary: ti18n('重命名成功'),
+        detail: ti18n('笔记已重命名'),
         life: 2000,
       });
     } catch (error: unknown) {
       toast.add({
         variant: 'error',
-        summary: '重命名失败',
-        detail: '重命名笔记时出错',
+        summary: ti18n('重命名失败'),
+        detail: ti18n('重命名笔记时出错'),
         life: 3000,
       });
     }
@@ -795,12 +801,12 @@
       icon: 'pi pi-exclamation-triangle',
       event,
       rejectProps: {
-        label: 'Cancel',
+        label: ti18n('取消'),
         variant: 'secondary',
         outlined: true,
       },
       acceptProps: {
-        label: 'Ok',
+        label: ti18n('确定'),
       },
       accept: () => {
         confirmNewDocument();
@@ -831,8 +837,8 @@
     } catch (error: unknown) {
       toast.add({
         variant: 'error',
-        summary: '分享失败',
-        detail: '生成分享链接时出错，请重试',
+        summary: ti18n('分享失败'),
+        detail: ti18n('生成分享链接时出错，请重试'),
         life: 3000,
       });
     }
@@ -842,8 +848,8 @@
   const loadContentFromUrl = async () => {
     try {
       // 优先检查是否有笔记ID
-      if (props.id && authInfo_isLogin.value) {
-        const noteId = parseInt(props.id);
+      if (id && authInfo_isLogin.value) {
+        const noteId = parseInt(id);
         if (!isNaN(noteId)) {
           await loadNoteById(noteId);
           return;
@@ -851,7 +857,7 @@
       }
 
       // 如果没有ID或ID无效，检查是否有压缩内容
-      const compressedContent = props.c;
+      const compressedContent = c;
       if (!compressedContent) return;
 
       // 解压内容
@@ -862,8 +868,8 @@
     } catch (error: unknown) {
       toast.add({
         variant: 'error',
-        summary: '加载失败',
-        detail: '从分享链接加载内容时出错',
+        summary: ti18n('加载失败'),
+        detail: ti18n('从分享链接加载内容时出错'),
         life: 3000,
       });
     }
@@ -922,8 +928,8 @@
         syncAutoSave();
 
         // 如果URL中有笔记ID，尝试加载
-        if (props.id) {
-          const noteId = parseInt(props.id);
+        if (id) {
+          const noteId = parseInt(id);
           if (!isNaN(noteId)) {
             loadNoteById(noteId);
           }
@@ -952,7 +958,7 @@
   });
 </script>
 
-<style>
+<style scoped>
 .list-enter-active,
 .list-leave-active {
   transition: all 0.3s ease;

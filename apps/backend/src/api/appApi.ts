@@ -1,9 +1,10 @@
-import { compare, hash } from 'bcryptjs';
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
+import { fail, neverReturn } from '../util/error';
 import { dbTry, dbTryOrDefault } from '../util/dbEffect';
 import { MsgError } from '../util/error';
+import { hashPassword, comparePassword } from '../util/crypto';
 import { genUserSession } from './appApi/_genUserSession';
 import { fileApi } from './appApi/file';
 import { githubApi } from './appApi/github';
@@ -20,7 +21,22 @@ export const appApis = {
       await randomDelay();
       return Effect.gen(function* () {
         const dbClient = yield* DbClientEffect;
-        // throw MsgError.msg('暂时关闭了直接注册帐号，请使用其他方式登录！ ');
+
+        /** 输入校验：email 格式和 password 长度 */
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+          yield* fail('邮箱格式不正确');
+          return neverReturn();
+        }
+        if (!password || typeof password !== 'string' || password.length < 6) {
+          yield* fail('密码长度不能少于6位');
+          return neverReturn();
+        }
+        if (password.length > 200) {
+          yield* fail('密码长度不能超过200位');
+          return neverReturn();
+        }
+
+        // throw MsgError.msg('暂时关闭了直接注册帐号，请使用其他方式登录！ '); // 保留注释以便需要时快速恢复注册限制
 
         const user = yield* dbTryOrDefault('[AppApi]', '查询用户', () =>
           dbClient.user.findUnique({
@@ -29,13 +45,11 @@ export const appApis = {
           null,
         );
         if (user) {
-          throw MsgError.msg('用户已存在');
+          yield* fail('用户已存在');
+          return neverReturn();
         }
         /** 对密码进行哈希处理（异步，避免阻塞事件循环） */
-        const hashedPassword = yield* Effect.tryPromise({
-          try: () => hash(password, 10),
-          catch: () => MsgError.msg('密码哈希处理失败'),
-        });
+        const hashedPassword = yield* hashPassword(password);
         const newUser = yield* dbTry('[AppApi]', '创建用户', () =>
           dbClient.user.create({
             data: { email, password: hashedPassword },
@@ -50,6 +64,17 @@ export const appApis = {
       await randomDelay();
       return Effect.gen(function* () {
         const dbClient = yield* DbClientEffect;
+
+        /** 输入校验：email 格式和 password 非空 */
+        if (!email || typeof email !== 'string' || !email.includes('@')) {
+          yield* fail('邮箱格式不正确');
+          return neverReturn();
+        }
+        if (!password || typeof password !== 'string') {
+          yield* fail('密码不能为空');
+          return neverReturn();
+        }
+
         const user = yield* dbTryOrDefault('[AppApi]', '查询用户(含角色)', () =>
           dbClient.user.findUnique({
             where: { email },
@@ -57,11 +82,9 @@ export const appApis = {
           }),
           null,
         );
-        if (!user || !(yield* Effect.tryPromise({
-          try: () => compare(password, user.password),
-          catch: () => MsgError.msg('密码比对失败'),
-        }))) {
-          throw MsgError.msg('用户不存在或账户密码错误');
+        if (!user || !(yield* comparePassword(password, user.password))) {
+          yield* fail('用户不存在或账户密码错误');
+          return neverReturn();
         }
         const userSession = yield* genUserSession(user.id);
         const ctx = yield* ReqCtxService;

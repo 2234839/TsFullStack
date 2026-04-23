@@ -4,38 +4,35 @@
       <FileUpload
         mode="basic"
         accept="image/*"
-        chooseLabel="选择图片"
+        :chooseLabel="t('选择图片')"
         @select="handleImageUpload" />
       <div class="flex flex-col">
-        <label class="text-sm mb-1">检测模式</label>
+        <label class="text-sm mb-1">{{ t('检测模式') }}</label>
         <Select
           v-model="detectionMode"
-          :options="[
-            { label: '二值化', value: '二值化' },
-            { label: '透明度', value: '透明度' }
-          ]" />
+          :options="detectionModeOptions" />
       </div>
-      <div class="flex flex-col" v-if="detectionMode === '二值化'">
-        <label class="text-sm mb-1">二值化阈值</label>
+      <div class="flex flex-col" v-if="detectionMode === 'binarize'">
+        <label class="text-sm mb-1">{{ t('二值化阈值') }}</label>
         {{ binarizeThreshold }}
         <Slider v-model="binarizeThreshold" :min="10" :max="150" />
       </div>
-      <div class="flex flex-col" v-if="detectionMode === '透明度'">
-        <label class="text-sm mb-1">透明度阈值</label>
+      <div class="flex flex-col" v-if="detectionMode === 'alpha'">
+        <label class="text-sm mb-1">{{ t('透明度阈值') }}</label>
         {{ alphaThreshold }}
         <Slider v-model="alphaThreshold" :min="0" :max="255" />
       </div>
       <div class="flex flex-col">
-        <label class="text-sm mb-1">反相处理</label>
+        <label class="text-sm mb-1">{{ t('反相处理') }}</label>
         <InputSwitch v-model="invertColors" />
       </div>
     </div>
 
     <ProgressBar v-if="loading" mode="indeterminate" />
     <div v-if="previewData" class="preview-container p-4 border border-primary-200 rounded">
-      <img :src="previewData" alt="预览" />
+      <img :src="previewData" :alt="t('预览')" />
       <Button @click="generateSVG" class="mt-2">
-        生成SVG描边
+        {{ t('生成SVG描边') }}
       </Button>
     </div>
     <div v-if="svgContainer?.innerHTML" class="mt-4 p-4 border border-primary-200 rounded">
@@ -46,9 +43,21 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watch } from 'vue';
+  import { ref, watch, computed } from 'vue';
   import { Button, FileUpload, ProgressBar, Slider } from '@/components/base';
   import { Select } from '@tsfullstack/shared-frontend/components';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
+
+  /** 检测模式类型 */
+  type DetectionMode = 'binarize' | 'alpha';
+
+  /** 检测模式选项映射 */
+  const detectionModeOptions = computed(() => [
+    { label: t('二值化'), value: 'binarize' as DetectionMode },
+    { label: t('透明度'), value: 'alpha' as DetectionMode },
+  ]);
 
   const canvas = ref<HTMLCanvasElement | null>(null);
   /** SVG 渲染容器（使用 innerHTML 替代 v-html，SVG 内容由程序化生成，无外部输入） */
@@ -57,7 +66,7 @@
   const loading = ref(false);
   const binarizeThreshold = ref(30);
   const alphaThreshold = ref(128);
-  const detectionMode = ref<'二值化' | '透明度'>('二值化');
+  const detectionMode = ref<DetectionMode>('binarize');
   const originImgUrl = ref<string>();
 
   const invertColors = ref(false);
@@ -98,7 +107,7 @@
     ctx.drawImage(img, 0, 0);
 
     const imageData = ctx.getImageData(0, 0, img.width, img.height);
-    if (detectionMode.value === '二值化') {
+    if (detectionMode.value === 'binarize') {
       binarizeImage(imageData);
     } else {
       alphaDetectImage(imageData);

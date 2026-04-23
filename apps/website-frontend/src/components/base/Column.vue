@@ -12,9 +12,9 @@ interface Props {
   /** 是否可排序 */
   sortable?: boolean;
   /** 列宽 */
-  style?: string | Record<string, any>;
+  style?: string | Record<string, string | number>;
   /** body 样式 */
-  bodyStyle?: string | Record<string, any>;
+  bodyStyle?: string | Record<string, string | number>;
   /** 列对齐 */
   align?: 'left' | 'center' | 'right';
   /** 选择模式 */

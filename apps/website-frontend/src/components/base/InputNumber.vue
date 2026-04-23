@@ -26,13 +26,7 @@ interface Props {
   showButtons?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-  step: 1,
-  minFractionDigits: 0,
-  maxFractionDigits: undefined,
-  showButtons: false,
-});
+const { modelValue, disabled = false, step = 1, min, max, minFractionDigits: _minFractionDigits = 0, maxFractionDigits: _maxFractionDigits = undefined, showButtons = false } = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: number | null];
@@ -46,7 +40,7 @@ const inputClasses = computed(() => {
 
   const bgClass = 'bg-primary-50 dark:bg-primary-900';
   const textClass = 'text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400';
-  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });
@@ -62,20 +56,20 @@ function handleInput(event: Event) {
 
 /** 减少值 */
 function decrement() {
-  if (props.disabled) return;
-  const current = props.modelValue ?? props.min ?? 0;
-  const newValue = current - props.step;
-  if (props.min === undefined || newValue >= props.min) {
+  if (disabled) return;
+  const current = modelValue ?? min ?? 0;
+  const newValue = current - step;
+  if (min === undefined || newValue >= min) {
     emit('update:modelValue', newValue);
   }
 }
 
 /** 增加值 */
 function increment() {
-  if (props.disabled) return;
-  const current = props.modelValue ?? props.min ?? 0;
-  const newValue = current + props.step;
-  if (props.max === undefined || newValue <= props.max) {
+  if (disabled) return;
+  const current = modelValue ?? min ?? 0;
+  const newValue = current + step;
+  if (max === undefined || newValue <= max) {
     emit('update:modelValue', newValue);
   }
 }

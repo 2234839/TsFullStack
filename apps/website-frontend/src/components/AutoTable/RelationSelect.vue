@@ -87,7 +87,7 @@
     return fieldData.optional !== true;
   }
 
-  const props = defineProps<{
+  const { field, row } = defineProps<{
     field: FieldInfo;
     row?: Record<string, unknown>;
   }>();
@@ -159,7 +159,7 @@
   }>();
 
   //#region 列相关数据
-  const relatedModelName = props.field.type as string;
+  const relatedModelName = field.type as string;
   const relatedModel = Object.values(modelMeta.models).find(
     (model) => model.name === relatedModelName,
   )!;
@@ -171,7 +171,7 @@
   const displayField = findDisplayField(modelMeta, relatedModelKey!) || refIdField;
 
   // 获取反向字段名称（基于 ZenStack relation.opposite）
-  const backLinkFieldName = getBackLinkFieldName(props.field);
+  const backLinkFieldName = getBackLinkFieldName(field);
 
   const rowModelIdField = backLinkFieldName
     ? findIdField(modelMeta, (relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName]?.type as string || '')
@@ -243,7 +243,7 @@
    * @param item 要添加的关联项
    */
   function addItem(item: RemoteSelectItem) {
-    const isArrayRelation = isArrayField(props.field);
+    const isArrayRelation = isArrayField(field);
     const backLinkField = backLinkFieldName
       ? (relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName]
       : undefined;
@@ -357,7 +357,7 @@
         }
       : {};
 
-    const modelIdValue = rowModelIdField ? props.row?.[rowModelIdField.name] : undefined;
+    const modelIdValue = rowModelIdField ? row?.[rowModelIdField.name] : undefined;
     // 类型安全的模型访问
     const relatedDbName = getModelDbName(relatedModelKey!);
     const relatedAPI = getModelAPI(API, relatedDbName);
@@ -421,7 +421,7 @@
   const queryData = async (param: { keyword: string; skip: number; take: number }) => {
     const { count, list } = await loadRelationData(
       modelMeta,
-      props.field,
+      field,
       param.skip,
       param.take,
       param.keyword,

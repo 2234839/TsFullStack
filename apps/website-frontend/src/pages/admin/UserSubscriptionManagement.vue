@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { useConfirm } from '@/composables/useConfirm';
 import { useAPI } from '@/api';
 import { searchUsers } from '@/utils/admin';
@@ -14,6 +15,7 @@ import { getTypeLabel } from '@/utils/admin';
 import { getErrorMessage } from '@/utils/error';
 
 const toast = useToast();
+const { t } = useI18n();
 const confirm = useConfirm();
 const { API } = useAPI();
 
@@ -98,8 +100,8 @@ async function loadSubscriptions() {
     subscriptionsTotal.value = total as number;
   } catch (error: unknown) {
     toast.add({
-      summary: '加载失败',
-      detail: '加载订阅列表失败',
+      summary: t('加载失败'),
+      detail: t('加载订阅列表失败'),
       variant: 'error',
     });
   } finally {
@@ -208,8 +210,8 @@ async function batchSubscribe() {
 
     if (successCount > 0) {
       toast.add({
-        summary: '订阅完成',
-        detail: `成功订阅 ${successCount} 个套餐${failCount > 0 ? `，${failCount} 个失败` : ''}`,
+        summary: t('订阅完成'),
+        detail: `${t('成功订阅')} ${successCount} ${t('个套餐')}${failCount > 0 ? `，${failCount} ${t('个失败')}` : ''}`,
         variant: successCount === results.length ? 'success' : 'warning',
       });
 
@@ -217,15 +219,15 @@ async function batchSubscribe() {
       await loadSubscriptions();
     } else {
       toast.add({
-        summary: '订阅失败',
-        detail: '所有订阅失败，请检查网络连接和权限',
+        summary: t('订阅失败'),
+        detail: t('所有订阅失败，请检查网络连接和权限'),
         variant: 'error',
       });
     }
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error, '批量订阅失败');
+    const errorMessage = getErrorMessage(error, t('批量订阅失败'));
     toast.add({
-      summary: '订阅失败',
+      summary: t('订阅失败'),
       detail: errorMessage,
       variant: 'error',
     });
@@ -237,7 +239,7 @@ async function batchSubscribe() {
 /** 取消订阅 */
 async function cancelSubscription(subscription: UserSubscription) {
   const accepted = await confirm.require({
-    message: `确定要取消用户"${subscription.user.email}"的套餐"${subscription.package.name}"吗？\n\n注意：取消后不会回收已发放的代币，但会停止后续的自动发放。`,
+    message: `${t('确定要取消用户')}"${subscription.user.email}"${t('的套餐')}"${subscription.package.name}"${t('吗？\n\n注意：取消后不会回收已发放的代币，但会停止后续的自动发放。')}`,
     acceptProps: { variant: 'danger' },
   });
   if (!accepted) return;
@@ -246,16 +248,16 @@ async function cancelSubscription(subscription: UserSubscription) {
     await API.tokenPackageApi.cancelSubscription(subscription.id);
 
     toast.add({
-      summary: '取消成功',
-      detail: '订阅已取消，已发放的代币不会被回收',
+      summary: t('取消成功'),
+      detail: t('订阅已取消，已发放的代币不会被回收'),
       variant: 'success',
     });
 
     await loadSubscriptions();
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error, '取消订阅失败');
+    const errorMessage = getErrorMessage(error, t('取消订阅失败'));
     toast.add({
-      summary: '取消失败',
+      summary: t('取消失败'),
       detail: errorMessage,
       variant: 'error',
     });
@@ -279,12 +281,12 @@ function getStatusBadge(subscription: UserSubscription) {
   const variants = ['danger', 'warn', 'success'] as const;
   type Variant = (typeof variants)[number];
   if (!subscription.active) {
-    return { text: '已取消', variant: 'danger' as Variant };
+    return { text: t('已取消'), variant: 'danger' as Variant };
   }
   if (subscription.endDate && new Date() > new Date(subscription.endDate)) {
-    return { text: '已过期', variant: 'warn' as Variant };
+    return { text: t('已过期'), variant: 'warn' as Variant };
   }
-  return { text: '进行中', variant: 'success' as Variant };
+  return { text: t('进行中'), variant: 'success' as Variant };
 }
 
 /** ========== DataTable 列定义 ========== */
@@ -292,13 +294,13 @@ function getStatusBadge(subscription: UserSubscription) {
 const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
   {
     key: 'user',
-    title: '用户',
+    title: t('用户'),
     width: '20%',
     render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
   },
   {
     key: 'status',
-    title: '状态',
+    title: t('状态'),
     width: '10%',
     render: (row) => {
       const badge = getStatusBadge(row);
@@ -307,34 +309,34 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
   },
   {
     key: 'package',
-    title: '套餐',
+    title: t('套餐'),
     width: '15%',
     render: (row) => h('div', { class: 'text-sm' }, [
       h('div', { class: 'font-medium text-primary-900 dark:text-primary-100' }, row.package.name),
-      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${row.package.amount} 代币`),
+      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${row.package.amount} ${t('代币')}`),
     ]),
   },
   {
     key: 'type',
-    title: '类型',
+    title: t('类型'),
     width: '10%',
     render: (row) => h(Tag, { value: getTypeLabel(row.package.type), variant: 'info' }),
   },
   {
     key: 'startDate',
-    title: '订阅时间',
+    title: t('订阅时间'),
     width: '10%',
     render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.startDate)),
   },
   {
     key: 'endDate',
-    title: '到期时间',
+    title: t('到期时间'),
     width: '10%',
-    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.endDate, { nullLabel: '永久' })),
+    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.endDate, { nullLabel: t('永久') })),
   },
   {
     key: 'nextGrantDate',
-    title: '下次发放',
+    title: t('下次发放'),
     width: '12%',
     render: (row) => {
       const days = getDaysUntilGrant(row.nextGrantDate);
@@ -344,26 +346,26 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
             ? 'text-warning-600 dark:text-warning-400'
             : 'text-primary-600 dark:text-primary-400'
         }, formatDate(row.nextGrantDate)),
-        h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${days}天后`),
+        h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${days}${t('天后')}`),
       ]);
     },
   },
   {
     key: 'grantsCount',
-    title: '已发放',
+    title: t('已发放'),
     width: '8%',
-    render: (row) => h('div', { class: 'text-sm text-primary-900 dark:text-primary-100' }, `${row.grantsCount} 次`),
+    render: (row) => h('div', { class: 'text-sm text-primary-900 dark:text-primary-100' }, `${row.grantsCount} ${t('次')}`),
   },
   {
     key: 'actions',
-    title: '操作',
+    title: t('操作'),
     width: '5%',
     render: (row) => {
       if (!row.active) {
-        return h('div', { class: 'text-sm text-primary-500 dark:text-primary-400' }, '已取消');
+        return h('div', { class: 'text-sm text-primary-500 dark:text-primary-400' }, t('已取消'));
       }
       return h(Button, {
-        label: '取消订阅',
+        label: t('取消订阅'),
         variant: 'danger',
         size: 'small',
         onClick: () => cancelSubscription(row),
@@ -382,17 +384,17 @@ onMounted(() => {
     <!-- 页面头部 -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-        用户订阅管理
+        {{ t('用户订阅管理') }}
       </h1>
       <p class="mt-2 text-primary-600 dark:text-primary-400">
-        管理用户的套餐订阅，自动发放代币
+        {{ t('管理用户的套餐订阅，自动发放代币') }}
       </p>
     </div>
 
     <!-- 操作按钮 -->
     <div class="mb-6">
       <Button @click="openSubscribeDialog">
-        添加订阅
+        {{ t('添加订阅') }}
       </Button>
     </div>
 
@@ -400,7 +402,7 @@ onMounted(() => {
     <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
       <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
         <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-100">
-          用户订阅列表
+          {{ t('用户订阅列表') }}
         </h2>
       </div>
 
@@ -410,7 +412,7 @@ onMounted(() => {
         :columns="subscriptionColumns"
         :loading="isLoading"
         rowKey="id"
-        emptyText="暂无订阅记录"
+        :emptyText="t('暂无订阅记录')"
         striped
         size="middle"
       />
@@ -429,41 +431,41 @@ onMounted(() => {
     </div>
 
     <!-- 添加订阅对话框 -->
-    <Dialog v-model:open="showSubscribeDialog" title="添加订阅">
+    <Dialog v-model:open="showSubscribeDialog" :title="t('添加订阅')">
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            选择用户 *
+            {{ t('选择用户 *') }}
           </label>
           <RemoteSelect
             v-model="subscribeForm.selectedUsers"
             :query-method="searchUsers"
             :show-tag="true"
-            placeholder="搜索用户邮箱"
+            :placeholder="t('搜索用户邮箱')"
           />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            选择套餐 *
+            {{ t('选择套餐 *') }}
           </label>
           <RemoteSelect
             v-model="subscribeForm.selectedPackages"
             :query-method="searchPackages"
             :show-tag="true"
-            placeholder="搜索套餐名称"
+            :placeholder="t('搜索套餐名称')"
           />
         </div>
 
         <div class="bg-info-50 dark:bg-info-900/20 border border-info-200 dark:border-info-800 rounded-lg p-3">
           <p class="text-sm text-info-800 dark:text-info-200">
-            <strong>提示：</strong>
+            <strong>{{ t('提示：') }}</strong>
           </p>
           <ul class="text-sm text-info-700 dark:text-info-300 list-disc list-inside mt-1 space-y-1">
-            <li>订阅后会立即发放第一批代币</li>
-            <li>月度套餐每30天自动发放一次</li>
-            <li>年度套餐每365天自动发放一次</li>
-            <li>取消订阅不会回收已发放的代币</li>
+            <li>{{ t('订阅后会立即发放第一批代币') }}</li>
+            <li>{{ t('月度套餐每30天自动发放一次') }}</li>
+            <li>{{ t('年度套餐每365天自动发放一次') }}</li>
+            <li>{{ t('取消订阅不会回收已发放的代币') }}</li>
           </ul>
         </div>
       </div>
@@ -474,14 +476,14 @@ onMounted(() => {
             variant="secondary"
             @click="showSubscribeDialog = false"
           >
-            取消
+            {{ t('取消') }}
           </Button>
           <Button
             :disabled="isSubmitting || subscribeForm.selectedUsers.length === 0 || subscribeForm.selectedPackages.length === 0"
             :loading="isSubmitting"
             @click="batchSubscribe"
           >
-            {{ isSubmitting ? '订阅中...' : '订阅' }}
+            {{ isSubmitting ? t('订阅中...') : t('订阅') }}
           </Button>
         </div>
       </template>

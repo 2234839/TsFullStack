@@ -132,6 +132,22 @@ export const routeMap = reactive({
           icon: 'pi pi-user-cog',
         },
       },
+      paymentConfig: {
+        path: 'paymentConfig',
+        component: () => import('@/pages/admin/PaymentConfig.vue'),
+        meta: {
+          title: t('支付配置'),
+          icon: 'pi pi-wallet',
+        },
+      },
+      paymentOrderList: {
+        path: 'paymentOrderList',
+        component: () => import('@/pages/admin/PaymentOrderList.vue'),
+        meta: {
+          title: t('支付订单'),
+          icon: 'pi pi-list',
+        },
+      },
     },
   },
   ShareDetail: {
@@ -146,8 +162,16 @@ export const routeMap = reactive({
     path: '/treehole',
     component: () => import('@/pages/treehole/Treehole.vue'),
     meta: {
-      title: '树洞',
+      title: t('树洞'),
       icon: 'pi pi-comments',
+    },
+  },
+  pricing: {
+    path: '/pricing',
+    component: () => import('@/pages/pricing/PricingPage.vue'),
+    meta: {
+      title: t('购买套餐'),
+      icon: 'pi pi-shopping-cart',
     },
   },
   noteCalc: {
@@ -189,17 +213,7 @@ export const routeMap = reactive({
   tests: {
     path: '/tests',
     redirect: defaultRoute,
-    child: {
-      tempTest: {
-        path: 'tempTest',
-        component: () => import('@/pages/tests/tempTest.vue'),
-        meta: {
-          title: t('临时测试页面'),
-          icon: 'pi pi-chart-line',
-        },
-      },
     },
-  },
   util: {
     path: '/util',
     redirect: defaultRoute,
@@ -234,7 +248,7 @@ export const routeMap = reactive({
     path: '/:pathMatch(.*)*',
     component: () => import('@/pages/NotFound.vue'),
     meta: {
-      title: '页面不存在',
+      title: t('页面不存在'),
       hideTab: true,
     },
   },
@@ -292,6 +306,7 @@ export function createRouteUtil(router: Router) {
         router.resolve({ name: targetRouter.name, params: props, query: query } as RouteLocationRaw)
           .href,
         '_blank',
+        'noopener,noreferrer',
       );
     },
 

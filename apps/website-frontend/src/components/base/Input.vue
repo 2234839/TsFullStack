@@ -20,12 +20,7 @@ interface Props {
   type?: 'text' | 'email' | 'number' | 'tel' | 'url';
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-  readonly: false,
-  invalid: false,
-  type: 'text',
-});
+const { disabled = false, readonly = false, invalid = false, type = 'text' } = defineProps<Props>();
 
 type ModelValue = string | number;
 
@@ -43,13 +38,13 @@ const inputClasses = computed(() => {
   // 在 InputGroup 中时，不需要圆角（由父容器控制）
   const roundedClass = inInputGroup ? 'rounded-none' : 'rounded-lg';
 
-  const stateClasses = props.invalid
+  const stateClasses = invalid
     ? 'border-danger-500 focus:border-danger-500 dark:border-danger-400'
     : 'border-primary-200 dark:border-primary-700 focus:border-primary-500 dark:focus:border-primary-400';
 
   const bgClass = 'bg-primary-50 dark:bg-primary-900';
   const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
-  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${roundedClass} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });

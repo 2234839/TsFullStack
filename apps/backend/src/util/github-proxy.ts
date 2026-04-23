@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { AppConfigService } from '../Context/AppConfig';
+import { withFetchTimeout, FETCH_TIMEOUTS } from './http';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError } from '../util/error';
 
@@ -24,7 +25,7 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
         ctx.log('[github-proxy] fetch proxy, hasProxy=' + !!githubProxyUrl);
         if (!useProxy || !githubProxyUrl) {
           return yield* Effect.tryPromise({
-            try: () => fetch(url, fetchOptions),
+            try: () => fetch(url, withFetchTimeout(fetchOptions, FETCH_TIMEOUTS.github)),
             catch: (e) => MsgError.msg('fetch 失败: ' + String(e)),
           });
         }
@@ -36,7 +37,7 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
         }
 
         return yield* Effect.tryPromise({
-          try: () => fetch(url, fetchOptions),
+          try: () => fetch(url, withFetchTimeout(fetchOptions, FETCH_TIMEOUTS.github)),
           catch: (e) => MsgError.msg('fetch 失败: ' + String(e)),
         });
       });
@@ -58,7 +59,7 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
         ctx.log('[github-proxy] using POST proxy for GitHub API');
 
         const proxyRequest = Effect.tryPromise({
-          try: () => fetch(proxyUrl, {
+          try: () => fetch(proxyUrl, withFetchTimeout({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -74,7 +75,7 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
               ),
               body: fetchOptions.body,
             }),
-          }),
+          }, FETCH_TIMEOUTS.github)),
           catch: (e) => MsgError.msg('代理请求失败: ' + String(e)),
         });
 
@@ -82,7 +83,7 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
           Effect.gen(function* () {
             ctx.log('[github-proxy] fallback to direct fetch');
             return yield* Effect.tryPromise({
-              try: () => fetch(urlString, fetchOptions),
+              try: () => fetch(urlString, withFetchTimeout(fetchOptions, FETCH_TIMEOUTS.github)),
               catch: (e) => MsgError.msg('fallback fetch 失败: ' + String(e)),
             });
           }),

@@ -199,17 +199,17 @@ interface Props {
   model?: Record<string, unknown> | null
 }
 
-interface Emits {
-  (e: 'update:visible', value: boolean): void
-  (e: 'submit', model: Record<string, unknown>): void
-}
+const { visible, model } = defineProps<Props>()
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+/** 组件事件定义 */
+const emit = defineEmits<{
+  'update:visible': [value: boolean];
+  submit: [model: Record<string, unknown>];
+}>()
 
 /** 本地的 visible 状态，支持双向绑定 */
 const localVisible = computed<boolean>({
-  get: () => props.visible,
+  get: () => visible,
   set: (value: boolean) => emit('update:visible', value),
 })
 
@@ -302,10 +302,10 @@ const onSubmit = async () => {
   try {
     const submitData = { ...form }
 
-    if (isEdit.value && props.model) {
+    if (isEdit.value && model) {
       // 编辑模式
       await API.db.aiModel.update({
-        where: { id: (props.model?.id as number) },
+        where: { id: (model?.id as number) },
         data: submitData
       })
     } else {
@@ -334,53 +334,36 @@ const onCancel = () => {
   resetForm()
 }
 
-// 监听props变化，初始化表单
-watch(() => props.visible, (newVal) => {
-  if (newVal && props.model) {
-    // 编辑模式
-    isEdit.value = true
-    Object.assign(form, {
-      name: props.model.name || '',
-      model: props.model.model || '',
-      baseUrl: props.model.baseUrl || '',
-      apiKey: '', // API密钥不显示，需要重新输入
-      ...DEFAULT_MODEL_FORM,
-      maxTokens: props.model.maxTokens ?? DEFAULT_MODEL_FORM.maxTokens,
-      temperature: props.model.temperature ?? DEFAULT_MODEL_FORM.temperature,
-      weight: props.model.weight ?? DEFAULT_MODEL_FORM.weight,
-      rpmLimit: props.model.rpmLimit ?? DEFAULT_MODEL_FORM.rpmLimit,
-      rphLimit: props.model.rphLimit ?? DEFAULT_MODEL_FORM.rphLimit,
-      rpdLimit: props.model.rpdLimit ?? DEFAULT_MODEL_FORM.rpdLimit,
-      description: props.model.description || '',
-      enabled: props.model.enabled ?? true
-    })
-  } else {
-    // 添加模式
-    isEdit.value = false
-    resetForm()
-  }
-}, { immediate: true })
-
-// 监听props.model变化
-watch(() => props.model, (newVal) => {
-  if (newVal && props.visible) {
-    isEdit.value = true
-    Object.assign(form, {
-      name: newVal.name || '',
-      model: newVal.model || '',
-      baseUrl: newVal.baseUrl || '',
-      apiKey: '', // API密钥不显示，需要重新输入
-      maxTokens: newVal.maxTokens || 2000,
-      temperature: newVal.temperature || 0.7,
-      weight: newVal.weight || 100,
-      rpmLimit: newVal.rpmLimit || 60,
-      rphLimit: newVal.rphLimit || 1000,
-      rpdLimit: newVal.rpdLimit || 10000,
-      description: newVal.description || '',
-      enabled: newVal.enabled ?? true
-    })
-  }
-}, { immediate: true })
+// 监听 props 变化，初始化表单（合并 visible 和 model 的监听）
+watch(
+  [() => visible, () => model],
+  ([isVisible, currentModel]) => {
+    if (isVisible && currentModel) {
+      // 编辑模式
+      isEdit.value = true
+      Object.assign(form, {
+        name: currentModel.name || '',
+        model: currentModel.model || '',
+        baseUrl: currentModel.baseUrl || '',
+        apiKey: '', // API密钥不显示，需要重新输入
+        ...DEFAULT_MODEL_FORM,
+        maxTokens: currentModel.maxTokens ?? DEFAULT_MODEL_FORM.maxTokens,
+        temperature: currentModel.temperature ?? DEFAULT_MODEL_FORM.temperature,
+        weight: currentModel.weight ?? DEFAULT_MODEL_FORM.weight,
+        rpmLimit: currentModel.rpmLimit ?? DEFAULT_MODEL_FORM.rpmLimit,
+        rphLimit: currentModel.rphLimit ?? DEFAULT_MODEL_FORM.rphLimit,
+        rpdLimit: currentModel.rpdLimit ?? DEFAULT_MODEL_FORM.rpdLimit,
+        description: currentModel.description || '',
+        enabled: currentModel.enabled ?? true
+      })
+    } else if (isVisible) {
+      // 添加模式（对话框打开但无 model）
+      isEdit.value = false
+      resetForm()
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
@@ -388,8 +371,10 @@ watch(() => props.model, (newVal) => {
   margin-bottom: 1rem;
 }
 
-.p-invalid {
-  border-color: var(--color-danger-500) !important;
+/** 校验失败时的边框颜色 */
+.field .p-invalid,
+.field :deep(.p-invalid) {
+  border-color: var(--color-danger-500);
 }
 
 .text-danger-500 {

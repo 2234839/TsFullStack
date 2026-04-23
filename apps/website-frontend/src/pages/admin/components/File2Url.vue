@@ -7,7 +7,7 @@
   import { ref, watch } from 'vue';
 
   const { AppAPIGetUrl, APIGetUrl } = useAPI();
-  const props = defineProps<{
+  const { fileId } = defineProps<{
     fileId: number | string;
   }>();
 
@@ -16,15 +16,15 @@
   const loading = ref(false)
 
   watch(
-    () => props.fileId,
+    () => fileId,
     async () => {
       loading.value = true
-      const fileId = typeof props.fileId === 'string' ? Number(props.fileId) : props.fileId;
+      const fileIdVal = typeof fileId === 'string' ? Number(fileId) : fileId;
       try {
         if (authInfo_isLogin.value) {
-          fileUrl.value = await APIGetUrl.fileApi.file(fileId);
+          fileUrl.value = await APIGetUrl.fileApi.file(fileIdVal);
         } else {
-          fileUrl.value = await AppAPIGetUrl.fileApi.file(fileId);
+          fileUrl.value = await AppAPIGetUrl.fileApi.file(fileIdVal);
         }
       } finally {
         loading.value = false

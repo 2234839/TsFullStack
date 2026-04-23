@@ -188,11 +188,16 @@
     const [field, order] = sortBy.value.split('-');
     filtered.sort((a, b) => {
       if (!a || !b) return 0;
-      const aValue = (a as AiModelVO)[field as keyof AiModelVO] as string | number;
-      const bValue = (b as AiModelVO)[field as keyof AiModelVO] as string | number;
+      const aValue = (a as AiModelVO)[field as keyof AiModelVO];
+      const bValue = (b as AiModelVO)[field as keyof AiModelVO];
+
+      /** Date 类型字段使用 getTime() 比较时间戳，避免 toString 后的字符串比较语义错误 */
+      if (aValue instanceof Date && bValue instanceof Date) {
+        return order === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
+      }
 
       if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return order === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+        return order === 'asc' ? (aValue as string).localeCompare(bValue as string) : (bValue as string).localeCompare(aValue as string);
       }
 
       if (typeof aValue === 'number' && typeof bValue === 'number') {
@@ -451,5 +456,3 @@
     await loadModels();
   });
 </script>
-
-<style scoped></style>

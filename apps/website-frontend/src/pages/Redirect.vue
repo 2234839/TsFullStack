@@ -10,9 +10,8 @@
 
   const router = useRouter();
   const { t } = useI18n();
-  const props = defineProps<{ path?: string }>();
+  const { path } = defineProps<{ path?: string }>();
   onMounted(() => {
-    const path = props.path;
 
     if (path && typeof path === 'string') {
       router.replace({ path });

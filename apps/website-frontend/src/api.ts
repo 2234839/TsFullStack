@@ -11,6 +11,7 @@ import {
 
 import superjson from 'superjson';
 import { routeMap, routerUtil } from './router';
+import { t } from '@/i18n';
 
 /** RPC 响应的统一结构 */
 interface APIResponse<T = unknown> {
@@ -79,20 +80,20 @@ export function useAPI() {
           if (!res.ok) {
             /** 常见 HTTP 错误状态码的友好提示 */
             const errorMessages: Record<number, string> = {
-              400: '请求参数错误',
-              401: '未授权，请重新登录',
-              403: '没有权限访问',
-              404: '请求的资源不存在',
-              500: '服务器内部错误',
-              502: '网关错误，服务暂时不可用',
-              503: '服务暂时不可用',
-              504: '请求超时，服务器响应时间过长',
+              400: t('请求参数错误'),
+              401: t('未授权，请重新登录'),
+              403: t('没有权限访问'),
+              404: t('请求的资源不存在'),
+              500: t('服务器内部错误'),
+              502: t('网关错误，服务暂时不可用'),
+              503: t('服务暂时不可用'),
+              504: t('请求超时，服务器响应时间过长'),
             };
-            const errorMessage = errorMessages[res.status] || `请求失败 (${res.status})`;
+            const errorMessage = errorMessages[res.status] || t(`请求失败 (${res.status})`);
             /** 显示错误提示 */
             toastBus.publish({
               variant: 'error',
-              summary: '网络错误',
+              summary: t('网络错误'),
               detail: errorMessage,
               life: 5000,
               op: MsgError.op_msgError,
@@ -114,7 +115,7 @@ export function useAPI() {
           const publishErrorToast = () => {
             toastBus.publish({
               variant: 'error',
-              summary: '错误',
+              summary: t('错误'),
               detail: errorDetail,
               life: 3000,
               op,

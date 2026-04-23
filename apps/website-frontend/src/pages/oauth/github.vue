@@ -18,13 +18,13 @@
   import { useI18n } from '@/composables/useI18n';
 
   const { t } = useI18n();
-  const props = defineProps<{ code?: string; r?: string }>();
+  const { code, r } = defineProps<{ code?: string; r?: string }>();
   const { AppAPI } = useAPI();
   const toast = useToast();
   const userInfo = useAsyncState(async () => {
-    if (!props.code) return undefined;
-    const res = await AppAPI.githubApi.authenticate(props.code);
-    loginGoto(res, { r: props.r });
+    if (!code) return undefined;
+    const res = await AppAPI.githubApi.authenticate(code);
+    loginGoto(res, { r });
     toast.add({
       variant: 'success',
       summary: t('登录成功'),

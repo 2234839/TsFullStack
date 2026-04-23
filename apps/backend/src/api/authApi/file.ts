@@ -1,16 +1,27 @@
 import { File as FileModel, StorageType, FileStatusEnum } from '../../../.zenstack/models';
 import { Effect } from 'effect';
-import { createReadStream, createWriteStream } from 'fs';
+import { fail, neverReturn, MsgError } from '../../util/error';
+import { createWriteStream } from 'fs';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path/posix';
 import { v7 as uuidv7 } from 'uuid';
 import { AppConfigService } from '../../Context/AppConfig';
+import { MSG } from '../../util/constants';
 import { AuthContext, authUserIsAdmin } from '../../Context/Auth';
 import { FileAccessService } from '../../Context/FileAccessService';
 import { FilePathService } from '../../Context/FilePathService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { dbTry, dbTryOrDefault } from '../../util/dbEffect';
-import { MsgError } from '../../util/error';
+
+/** 查询文件记录（统一 authApi/file.ts 中的重复查询模式） */
+const fetchFileById = (id: FileModel['id']) =>
+  Effect.gen(function* () {
+    const auth = yield* AuthContext;
+    return yield* dbTryOrDefault('[FileApi]', '查询文件', () =>
+      auth.db.file.findUnique({ where: { id } }),
+      null,
+    );
+  });
 
 /**
  * 通用文件保存函数（Buffer 一次性写入 / ReadableStream 流式写入）
@@ -63,7 +74,8 @@ export const saveFile = (options: {
       });
       options.byteLength = fileSize;
     } else {
-      throw MsgError.msg('saveFile 必须提供 buffer 或 stream');
+      yield* fail('saveFile 必须提供 buffer 或 stream');
+      return neverReturn();
     }
 
     return yield* dbTry('[FileApi]', '创建文件记录', () =>
@@ -97,7 +109,12 @@ export const fileApi = {
         try: () => reqCtx.req.file() as Promise<{ file: NodeJS.ReadableStream; filename: string; mimetype: string } | null>,
         catch: (e) => MsgError.msg('获取上传文件失败: ' + String(e)),
       });
-      if (!reqFile) throw MsgError.msg('No file uploaded');
+      if (!reqFile) {
+        yield* fail('No file uploaded');
+        return neverReturn();
+      }
+
+      reqCtx.log('[FileApi] 用户上传文件: ' + reqFile.filename + ', mimetype=' + reqFile.mimetype);
 
       /** 复用 saveFile 的流式写入模式（统一路径生成、目录创建、DB 记录） */
       return yield* saveFile({
@@ -111,20 +128,20 @@ export const fileApi = {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
 
-      const fileRow = yield* dbTryOrDefault('[FileApi]', '查询文件', () =>
-        auth.db.file.findUnique({
-          where: { id },
-        }),
-        null,
-      );
-
-      if (!fileRow) throw MsgError.msg('文件不存在');
+      const fileRow = yield* fetchFileById(id);
+      if (!fileRow) {
+        yield* fail(MSG.FILE_NOT_FOUND);
+        return neverReturn();
+      }
 
       yield* FileAccessService.validateFileAccessEffect(fileRow, {
         checkOwnership: yield* checkOwnership(true),
         userId: auth.user.id,
         publicOnly: false,
       });
+
+      const reqCtx = yield* ReqCtxService;
+      reqCtx.log('[FileApi] 更新文件状态: id=' + id + ', status=' + status);
 
       const res = yield* dbTry('[FileApi]', '更新文件状态', () =>
         auth.db.file.update({
@@ -144,21 +161,20 @@ export const fileApi = {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
 
-      const fileRow = yield* dbTryOrDefault('[FileApi]', '查询文件', () =>
-        auth.db.file.findUnique({
-          where: { id },
-        }),
-        null,
-      );
-      if (!fileRow) throw MsgError.msg('文件不存在');
+      const fileRow = yield* fetchFileById(id);
+      if (!fileRow) {
+        yield* fail(MSG.FILE_NOT_FOUND);
+        return neverReturn();
+      }
       // 使用文件访问服务验证权限并获取安全路径
-      const fileWarpItem = yield* FileAccessService.createFileWrapItemEffect(fileRow, {
+      const fileWrapItem = yield* FileAccessService.createFileWrapItemEffect(fileRow, {
         checkOwnership: yield* checkOwnership(true),
         userId: auth.user.id,
         publicOnly: false,
       });
 
-      return fileWarpItem as unknown as File;
+      /** FileWrapItem → File: http server 层通过 instanceof File 判断是否走流式传输 */
+      return fileWrapItem as unknown as File;
     });
   },
   /** 移除本地文件以及数据库记录 */
@@ -167,12 +183,7 @@ export const fileApi = {
       const auth = yield* AuthContext;
       const reqCtx = yield* ReqCtxService;
 
-      const fileRow = yield* dbTryOrDefault('[FileApi]', '查询文件', () =>
-        auth.db.file.findUnique({
-          where: { id },
-        }),
-        null,
-      );
+      const fileRow = yield* fetchFileById(id);
 
       // 如果文件不存在，直接返回成功（幂等性操作）
       if (!fileRow) {
@@ -188,14 +199,11 @@ export const fileApi = {
 
       /** 删除物理文件，如果文件不存在则忽略（ENOENT 视为成功，保证幂等性） */
       yield* Effect.tryPromise({
-        try: () => unlink(validatedPath).catch((e) => {
-          if (e.code === 'ENOENT') {
-            reqCtx.log('[File] 物理文件不存在，跳过删除:' + validatedPath);
-            return;
-          }
-          throw MsgError.msg('删除文件失败' + e);
-        }),
-        catch: (e) => MsgError.msg('删除物理文件失败: ' + String(e)),
+        try: () => unlink(validatedPath),
+        catch: (e) => {
+          if ((e as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+          return MsgError.msg('删除物理文件失败: ' + String(e));
+        },
       });
 
       // 删除数据库记录
@@ -217,20 +225,5 @@ function checkOwnership(shouldCheck: boolean) {
   });
 }
 
-export class FileWrapItem {
-  constructor(
-    public path: string,
-    public model: FileModel,
-  ) {}
-  /** 获取完整文件流 */
-  public getFileStream() {
-    return createReadStream(this.path);
-  }
-  /**
-   * 获取指定字节范围的文件流（支持 HTTP Range requests）
-   * 用于视频/大文件的分段加载，避免浏览器全量下载
-   */
-  public getFileStreamRange(start: number, end: number) {
-    return createReadStream(this.path, { start, end });
-  }
-}
+/** FileWrapItem 已提取到 util/file-types.ts，此处 re-export 保持向后兼容 */
+export { FileWrapItem } from '../../util/file-types';

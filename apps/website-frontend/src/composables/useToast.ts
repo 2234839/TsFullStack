@@ -2,7 +2,7 @@
  * 全局 Toast composable
  * 提供通知功能
  */
-import { ref } from 'vue';
+import { ref, readonly } from 'vue';
 
 interface ToastMessage {
   id: number;
@@ -97,5 +97,5 @@ export function useToast() {
 
 /** 导出 messages 供 Toast 组件使用 */
 export function useToastMessages() {
-  return { messages };
+  return { messages: readonly(messages) };
 }

@@ -15,18 +15,16 @@ interface Props {
   options?: ChartOptions;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  type: 'bar' as ChartType,
-});
+const { type = 'bar' as ChartType, data, options } = defineProps<Props>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-let chartInstance: ChartInstance | null = null;
+const chartInstance = ref<ChartInstance | null>(null);
 /** 使用 shallowRef + triggerRef 实现响应式暴露 */
 const chartRef = shallowRef<ChartInstance | null>(null);
 
 /** 更新 chartRef 并通知 Vue 响应式系统 */
 function updateChartRef(instance: ChartInstance | null) {
-  chartInstance = instance;
+  chartInstance.value = instance;
   chartRef.value = instance;
   triggerRef(chartRef);
 }
@@ -45,37 +43,37 @@ async function initChart() {
 
   await loadChart();
 
-  if (chartInstance) {
-    chartInstance.destroy();
+  if (chartInstance.value) {
+    chartInstance.value.destroy();
   }
 
   const ctx = canvasRef.value.getContext('2d');
   if (!ctx || !Chart) return;
 
-  chartInstance = new Chart(ctx, {
-    type: props.type,
-    data: props.data ?? { datasets: [] },
-    options: props.options ?? {},
+  chartInstance.value = new Chart(ctx, {
+    type,
+    data: data ?? { datasets: [] },
+    options: options ?? {},
   });
   // 通过 updateChartRef 使 defineExpose 的 getter 返回最新实例
-  updateChartRef(chartInstance);
+  updateChartRef(chartInstance.value);
 }
 
 function destroyChart() {
-  if (chartInstance) {
-    chartInstance.destroy();
+  if (chartInstance.value) {
+    chartInstance.value.destroy();
     updateChartRef(null);
   }
 }
 
 // 监听数据变化
 watch(
-  () => [props.data, props.options],
+  () => [data, options],
   () => {
-    if (chartInstance && props.data) {
-      chartInstance.data = props.data;
-      if (props.options) chartInstance.options = props.options;
-      chartInstance.update();
+    if (chartInstance.value && data) {
+      chartInstance.value.data = data;
+      if (options) chartInstance.value.options = options;
+      chartInstance.value.update();
     }
   },
   { deep: true }

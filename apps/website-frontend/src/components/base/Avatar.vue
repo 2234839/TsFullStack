@@ -18,11 +18,7 @@ interface Props {
   disabled?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  size: 'normal',
-  shape: 'circle',
-  disabled: false,
-});
+const { size = 'normal', shape = 'circle', disabled = false } = defineProps<Props>();
 
 /** 头像样式类 */
 const avatarClasses = computed(() => {
@@ -32,11 +28,11 @@ const avatarClasses = computed(() => {
     xlarge: 'w-16 h-16',
   };
 
-  const shapeClass = props.shape === 'circle' ? 'rounded-full' : 'rounded-md';
+  const shapeClass = shape === 'circle' ? 'rounded-full' : 'rounded-md';
 
-  const disabledClass = props.disabled ? 'opacity-50' : '';
+  const disabledClass = disabled ? 'opacity-50' : '';
 
-  return `${sizeClasses[props.size]} ${shapeClass} ${disabledClass} overflow-hidden bg-primary-200 dark:bg-primary-800`;
+  return `${sizeClasses[size]} ${shapeClass} ${disabledClass} overflow-hidden bg-primary-200 dark:bg-primary-800`;
 });
 
 /** 图片样式 */

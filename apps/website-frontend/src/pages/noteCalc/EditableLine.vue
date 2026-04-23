@@ -47,6 +47,9 @@
 <script setup lang="ts">
   import { computed, ref, watch } from 'vue';
   import type { CalculationResult } from './types';
+  import { useI18n } from '@/composables/useI18n';
+
+  const { t } = useI18n();
 
   interface Props {
     /** 行内容 */
@@ -61,10 +64,7 @@
     showResult?: boolean;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    isFocused: false,
-    showResult: true,
-  });
+  const { content, result, lineIndex, isFocused = false, showResult = true } = defineProps<Props>()
 
   const emit = defineEmits<{
     'update:content': [content: string];
@@ -74,24 +74,24 @@
   }>();
 
   /** 本地内容状态 */
-  const localContent = ref(props.content);
+  const localContent = ref(content);
   const inputRef = ref<HTMLInputElement>();
   const isComposing = ref(false);
 
   /** 行样式类 */
   const lineClasses = computed(() => {
     return {
-      'editable-line--focused': props.isFocused,
-      'editable-line--error': props.result.type === 'error',
-      'editable-line--title': props.result.type === 'title',
-      'editable-line--subtitle': props.result.type === 'subtitle',
-      'editable-line--comment': props.result.type === 'comment',
+      'editable-line--focused': isFocused,
+      'editable-line--error': result.type === 'error',
+      'editable-line--title': result.type === 'title',
+      'editable-line--subtitle': result.type === 'subtitle',
+      'editable-line--comment': result.type === 'comment',
     };
   });
 
   /** 输入框样式类 */
   const inputClasses = computed(() => {
-    const type = props.result.type;
+    const type = result.type;
     const classes: string[] = [`line-input--${type}`];
 
     // 根据行类型添加不同的样式
@@ -107,13 +107,13 @@
 
   /** 结果徽章样式类 */
   const resultBadgeClasses = computed(() => {
-    const type = props.result.type;
+    const type = result.type;
 
     if (type === 'error') {
       return 'result-badge--error';
     }
 
-    if (type === 'equation' && props.result.isCorrect === false) {
+    if (type === 'equation' && result.isCorrect === false) {
       return 'result-badge--warning';
     }
 
@@ -126,28 +126,28 @@
 
   /** 占位符 */
   const placeholder = computed(() => {
-    switch (props.result.type) {
+    switch (result.type) {
       case 'empty':
-        return '输入表达式或按 Enter 换行...';
+        return t('输入表达式或按 Enter 换行...');
       case 'title':
-        return '输入一级标题...';
+        return t('输入一级标题...');
       case 'subtitle':
-        return '输入二级标题...';
+        return t('输入二级标题...');
       case 'comment':
-        return '输入注释...';
+        return t('输入注释...');
       default:
-        return '输入表达式...';
+        return t('输入表达式...');
     }
   });
 
   /** 是否显示类型图标 */
   const showTypeIcon = computed(() => {
-    return ['title', 'subtitle', 'comment'].includes(props.result.type);
+    return ['title', 'subtitle', 'comment'].includes(result.type);
   });
 
   /** 是否应该显示结果 */
   const shouldShowResult = computed(() => {
-    if (!props.showResult) return false;
+    if (!showResult) return false;
     if (isComposing.value) return false;
     if (!hasResult.value) return false;
     return true;
@@ -155,21 +155,21 @@
 
   /** 是否有结果 */
   const hasResult = computed(() => {
-    return props.result.result !== undefined || props.result.type === 'error';
+    return result.result !== undefined || result.type === 'error';
   });
 
   /** 是否显示错误 */
   const showError = computed(() => {
-    return props.result.type === 'error' && props.isFocused;
+    return result.type === 'error' && isFocused;
   });
 
   /** 格式化结果 */
   const formattedResult = computed(() => {
-    if (props.result.type === 'error') {
-      return `错误: ${props.result.error}`;
+    if (result.type === 'error') {
+      return `${t('错误')}: ${result.error}`;
     }
-    if (props.result.result) {
-      return `= ${props.result.result}`;
+    if (result.result) {
+      return `= ${result.result}`;
     }
     return '';
   });
@@ -218,7 +218,7 @@
 
   /** 同步外部内容变化 */
   watch(
-    () => props.content,
+    () => content,
     newContent => {
       if (newContent !== localContent.value) {
         localContent.value = newContent;

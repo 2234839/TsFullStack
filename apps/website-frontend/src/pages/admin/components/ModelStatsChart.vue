@@ -140,7 +140,7 @@ const lineChartData = ref({
   labels: [] as string[],
   datasets: [
     {
-      label: '请求数量',
+      label: t('请求数量'),
       data: [] as number[],
       borderColor: CHART_COLORS.primary,
       backgroundColor: CHART_COLORS.primaryBg,
@@ -186,7 +186,7 @@ const userActivityData = ref({
   labels: [] as string[],
   datasets: [
     {
-      label: '活跃用户数',
+      label: t('活跃用户数'),
       data: [] as number[],
       backgroundColor: CHART_COLORS.successFill,
       borderColor: CHART_COLORS.success,
@@ -257,13 +257,15 @@ const updateUserStatsDisplay = async () => {
   const now = new Date()
   const startTime = new Date(now.getTime() - ONE_DAY_MS)
 
-  // Query API call logs with model information
+  // Query API call logs with model information（限制最近 10000 条防止性能问题）
   const apiCalls = await API.db.aiCallLog.findMany({
     where: {
       timestamp: {
         gte: startTime
       }
-    }
+    },
+    take: 10000,
+    orderBy: { timestamp: 'desc' },
   }) as ApiCallLog[]
 
   // Get unique user IDs from API calls
@@ -331,17 +333,19 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
   const days = TIME_RANGE_DAYS[timeRange] ?? 1;
   const startTime = new Date(now.getTime() - days * ONE_DAY_MS);
 
-  // Query API call logs with model information
+  // Query API call logs with model information（限制最近 10000 条防止性能问题）
   const apiCalls = await API.db.aiCallLog.findMany({
     where: {
       timestamp: {
         gte: startTime
       }
-    }
+    },
+    take: 10000,
+    orderBy: { timestamp: 'desc' },
   }) as ApiCallLog[]
 
   // Get AI models for mapping
-  const aiModels = await API.db.aiModel.findMany() as { id: number; name: string }[]
+  const aiModels = await API.db.aiModel.findMany({ take: 500 }) as { id: number; name: string }[]
 
   // Create model mapping
   const modelMap = new Map<number, { id: number; name: string }>()
@@ -439,7 +443,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
     datasets: [
       {
-        label: '请求数量',
+        label: t('请求数量'),
         data: Array.from({ length: 24 }, (_, i) => hourlyData.get(i) || 0),
         borderColor: CHART_COLORS.primary,
         backgroundColor: CHART_COLORS.primaryBg,
@@ -453,7 +457,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
     datasets: [
       {
-        label: '活跃用户数',
+        label: t('活跃用户数'),
         data: Array.from({ length: 24 }, (_, i) => hourlyUsers.get(i)?.size || 0),
         backgroundColor: CHART_COLORS.successFill,
         borderColor: CHART_COLORS.success,
@@ -464,7 +468,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
 
   // Update doughnut chart data
   const modelNames = Array.from(modelStats.keys())
-  const modelCounts = modelNames.map(name => modelStats.get(name)!.count)
+  const modelCounts = modelNames.map(name => modelStats.get(name)?.count ?? 0)
 
   doughnutChartData.value = {
     labels: modelNames,

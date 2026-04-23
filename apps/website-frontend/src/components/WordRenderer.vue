@@ -21,7 +21,10 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 import { getMemoryColor } from '@/utils/format'
+
+const { t } = useI18n()
 
 interface Props {
   word: string
@@ -33,32 +36,26 @@ interface Props {
   isHighlighted?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  isKeyWord: false,
-  memoryLevel: 0,
-  isClicked: false,
-  isSelected: false,
-  isHighlighted: false
-})
+const { word, index, isKeyWord = false, memoryLevel = 0, isClicked = false, isSelected = false, isHighlighted = false } = defineProps<Props>()
 
 const emit = defineEmits<{
   wordMouseDown: [e: MouseEvent | TouchEvent, index: number]
 }>()
 
-const color = computed(() => getMemoryColor(props.memoryLevel || 0))
+const color = computed(() => getMemoryColor(memoryLevel || 0))
 
 const className = computed(() => {
   let base = 'cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0'
 
-  if (props.isHighlighted) {
+  if (isHighlighted) {
     base += ' bg-white dark:bg-primary-900 font-bold text-primary-800 dark:text-primary-200 border-2 border-primary-200 dark:border-primary-700 word-highlight'
-  } else if (props.isSelected) {
+  } else if (isSelected) {
     base += ' bg-primary-100 font-medium word-selected'
-  } else if (props.isClicked) {
+  } else if (isClicked) {
     base += ' bg-primary-50/40'
   }
 
-  if (props.isKeyWord) {
+  if (isKeyWord) {
     base += ' font-medium'
   }
 
@@ -66,12 +63,12 @@ const className = computed(() => {
 })
 
 const titleText = computed(() => {
-  const level = props.memoryLevel || 0
-  let text = `${props.word}: ${level}/10`
+  const level = memoryLevel || 0
+  let text = `${word}: ${level}/10`
 
-  if (props.isClicked) text += ' (已操作)'
-  if (props.isKeyWord) text += ' (关键词)'
-  if (props.isHighlighted) text += ' (当前选中)'
+  if (isClicked) text += ` (${t('已操作')})`
+  if (isKeyWord) text += ` (${t('关键词')})`
+  if (isHighlighted) text += ` (${t('当前选中')})`
 
   return text
 })
@@ -84,7 +81,7 @@ const style = computed(() => ({
 }))
 
 const handleMouseDown = (e: MouseEvent | TouchEvent) => {
-  emit('wordMouseDown', e, props.index)
+  emit('wordMouseDown', e, index)
 }
 </script>
 

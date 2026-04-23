@@ -1,6 +1,5 @@
 import type { DbClient } from '../Context/DbService';
 import { MS_PER_DAY } from '../util/constants';
-import { MsgError } from '../util/error';
 
 /**
  * 代币发放队列任务的服务方法
@@ -11,14 +10,26 @@ import { MsgError } from '../util/error';
  */
 
 /** 根据套餐类型计算发放间隔天数 */
-export function getGrantIntervalDays(tokenType: string): number {
+function getGrantIntervalDays(tokenType: string): number {
   if (tokenType === 'MONTHLY') return 30;
   if (tokenType === 'YEARLY' || tokenType === 'PERMANENT') return 365;
   return 30; // 默认月度
 }
 
+/** 事务客户端所需的最小方法集（使用宽松类型以兼容 Prisma TransactionClient 和 DbClient） */
+interface GrantTxClient {
+  token: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> };
+  userTokenSubscription: { update: (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<unknown> };
+  queue: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> };
+}
+
+/** 将 $transaction 回调中的 tx 窄窄为 GrantTxClient（运行时保证有这 3 个方法） */
+export function asGrantTx<T>(tx: T): T & GrantTxClient {
+  return tx as T & GrantTxClient;
+}
+
 /** 执行一次订阅代币发放的核心逻辑（创建代币、更新订阅、调度下次任务），供 subscribePackage 和队列处理器共用 */
-async function grantOnce(tx: DbClient, subscription: {
+async function grantOnce(tx: GrantTxClient, subscription: {
   id: number;
   userId: string;
   package: { type: string; amount: number; name: boolean | string };
@@ -89,7 +100,7 @@ export const TokenGrantService = {
         return { success: false, skipped: true, reason: '套餐已停用' };
       }
 
-      const { nextGrantDate } = await grantOnce(tx as unknown as DbClient, subscription, '套餐自动发放：');
+      const { nextGrantDate } = await grantOnce(asGrantTx(tx), subscription, '套餐自动发放：');
 
       return {
         success: true,
@@ -100,7 +111,7 @@ export const TokenGrantService = {
       };
     }),
 
-  /** 首次订阅时立即发放一次代币（与 processSubscriptionGrant 共用 grantOnce 核心） */
-  grantFirstTime: (tx: DbClient, subscription: { id: number; userId: string; package: { type: string; amount: number; name: boolean | string } }) =>
-    grantOnce(tx as Parameters<typeof grantOnce>[0], subscription, '订阅套餐：'),
+  /** 首次订阅时立即发放一次代币（与 processSubscriptionGrant 共用 grantOnce 核心），调用方需自行通过 asGrantTx 窄化 tx */
+  grantFirstTime: (tx: GrantTxClient, subscription: { id: number; userId: string; package: { type: string; amount: number; name: boolean | string } }) =>
+    grantOnce(tx, subscription, '订阅套餐：'),
 };

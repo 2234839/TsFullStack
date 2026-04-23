@@ -1,5 +1,7 @@
 import { ref, computed } from 'vue';
+import { createSharedComposable } from '@vueuse/core';
 import { useAPI } from '@/api';
+import { useI18n } from '@/composables/useI18n';
 
 /**
  * 代币余额
@@ -14,8 +16,10 @@ export interface TokenBalance {
 /**
  * 代币 Store - 全局代币状态管理
  */
-export const useTokenStore = () => {
+/** 代币 Store 内部实现 */
+const useTokenStoreImpl = () => {
   const { API } = useAPI();
+  const { t } = useI18n();
 
   /** 代币余额 */
   const balance = ref<TokenBalance>({
@@ -58,8 +62,6 @@ export const useTokenStore = () => {
       const result = await API.tokenApi.getAvailableTokens();
       balance.value = result as unknown as TokenBalance;
       lastUpdated.value = new Date();
-    } catch (error: unknown) {
-      throw error;
     } finally {
       isLoading.value = false;
     }
@@ -79,7 +81,7 @@ export const useTokenStore = () => {
   function optimisticallyDeduct(amount: number) {
     // 防御性检查：确保余额足够
     if (balance.value.total < amount) {
-      throw new Error(`余额不足：需要 ${amount}，当前 ${balance.value.total}`);
+      throw new Error(t('余额不足：需要 {required}，当前 {current}', { required: amount, current: balance.value.total }));
     }
 
     balance.value.total -= amount;
@@ -108,7 +110,7 @@ export const useTokenStore = () => {
     // 最后扣永久
     if (remaining > 0) {
       if (balance.value.permanent < remaining) {
-        throw new Error(`永久代币不足：需要 ${remaining}，当前 ${balance.value.permanent}`);
+        throw new Error(t('永久代币不足：需要 {required}，当前 {current}', { required: remaining, current: balance.value.permanent }));
       }
       balance.value.permanent -= remaining;
       remaining = 0;
@@ -116,7 +118,7 @@ export const useTokenStore = () => {
 
     // 最终验证：确保没有负数（理论上不应该到这里，因为上面已经检查过）
     if (balance.value.monthly < 0 || balance.value.yearly < 0 || balance.value.permanent < 0) {
-      throw new Error('代币扣减异常：余额变为负数');
+      throw new Error(t('代币扣减异常：余额变为负数'));
     }
   }
 
@@ -140,12 +142,5 @@ export const useTokenStore = () => {
   };
 };
 
-// 单例模式
-let tokenStoreInstance: ReturnType<typeof useTokenStore> | null = null;
-
-export function useTokenStoreSingleton() {
-  if (!tokenStoreInstance) {
-    tokenStoreInstance = useTokenStore();
-  }
-  return tokenStoreInstance;
-}
+/** 全局单例：代币状态管理 */
+export const useTokenStore = createSharedComposable(useTokenStoreImpl);

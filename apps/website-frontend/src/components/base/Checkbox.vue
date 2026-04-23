@@ -16,10 +16,7 @@ interface Props {
   value?: string | number | boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-  binary: true,
-});
+const { modelValue, disabled = false, binary: _binary = true } = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean];
@@ -29,24 +26,24 @@ const emit = defineEmits<{
 const boxClasses = computed(() => {
   const base = 'flex items-center justify-center w-5 h-5 border rounded transition-all duration-200 cursor-pointer';
 
-  const checkedClasses = props.modelValue
+  const checkedClasses = modelValue
     ? 'bg-primary-600 dark:bg-primary-500 border-primary-600 dark:border-primary-500'
     : 'bg-white dark:bg-primary-900 border-primary-200 dark:border-primary-700 hover:border-primary-300 dark:hover:border-primary-600';
 
-  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${checkedClasses} ${disabledClass}`;
 });
 
 /** 容器样式类 */
 const containerClasses = computed(() => {
-  return props.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
+  return disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
 });
 
 /** 处理点击事件 */
 function handleClick() {
-  if (!props.disabled) {
-    emit('update:modelValue', !props.modelValue);
+  if (!disabled) {
+    emit('update:modelValue', !modelValue);
   }
 }
 </script>

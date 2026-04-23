@@ -37,43 +37,45 @@
   import { ContextMenu } from '@tsfullstack/shared-frontend/components';
   import { computed, ref, useTemplateRef, watch } from 'vue';
   import { useRoute, useRouter } from 'vue-router';
+  import { useI18n } from '@/composables/useI18n';
 
   const router = useRouter();
   const route = useRoute();
   const tabsStore = useTabsStore();
+  const { t } = useI18n();
 
   const currentContextTab = ref<TabItem | null>(null);
   const menuRef = useTemplateRef('__contextMenu');
   const contextMenuItems = computed(() => [
     {
-      label: '刷新页面',
+      label: t('刷新页面'),
       icon: 'pi pi-refresh',
       command: handleRefresh,
     },
     {
-      label: '关闭标签',
+      label: t('关闭标签'),
       icon: 'pi pi-times',
       command: () => handleCloseTab(currentContextTab.value?.path),
     },
     {
-      label: '关闭其他标签',
+      label: t('关闭其他标签'),
       icon: 'pi pi-window-minimize',
       command: handleCloseOtherTabs,
     },
     {
-      label: '关闭所有标签',
+      label: t('关闭所有标签'),
       icon: 'pi pi-times-circle',
       command: handleCloseAllTabs,
     },
   ]);
 
   watch(
-    () => route,
-    (newRoute) => {
-      if (newRoute.meta.hideTab) return;
-      tabsStore.addTab(newRoute);
+    () => route.fullPath,
+    () => {
+      if (route.meta.hideTab) return;
+      tabsStore.addTab(route);
     },
-    { immediate: true, deep: true },
+    { immediate: true },
   );
 
   const handleTabClick = (tab: TabItem) => {

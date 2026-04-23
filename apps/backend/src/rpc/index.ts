@@ -174,25 +174,26 @@ export function createRPC<API_TYPE>(
   }
 
   /** 包装了一次的 RC 方便跳转到函数定义  */
+  /** Proxy → DeepAsyncify<API_TYPE>: 动态代理无法在编译期精确匹配嵌套 API 类型结构 */
   const API = new Proxy(() => {}, createNestedProxy()) as unknown as DeepAsyncify<API_TYPE>;
   return { API, RC };
 }
 
 /** 获取函数的返回值类型，并将其包裹在 Promise 中  */
-export type AsyncifyReturnType<T> = T extends (...args: any[]) => infer R
+export type AsyncifyReturnType<T> = T extends (...args: unknown[]) => infer R
   ? (...args: Parameters<T>) => Promise<Awaited<R>>
   : T;
-export type AsyncifyUnEffectReturnType<T> = T extends (...args: any[]) => infer R
+export type AsyncifyUnEffectReturnType<T> = T extends (...args: unknown[]) => infer R
   ? (...args: Parameters<T>) => Promise<ExtractEffectSuccess<Awaited<R>>>
   : T;
-/** 因为如果是远程调用，那么返回值肯定要是 promise （网络异步的特性决定的），所以使用这个类型来将所有返回值的类型包裹一层promise */
-export type DeepAsyncify<T> = T extends (...args: any[]) => any
+/** 因为如果是远程调用，那么返回值肯定是要 promise （网络异步的特性决定的），所以使用这个类型来将所有返回值的类型包裹一层promise */
+export type DeepAsyncify<T> = T extends (...args: unknown[]) => unknown
   ? AsyncifyReturnType<T>
   : T extends object
   ? { [K in keyof T]: DeepAsyncify<T[K]> }
   : T;
 /** 如果是客户端调用，服务端必须要已经处理了 Effect ，所以返回的就是解开来 Effect 的*/
-export type DeepAsyncEffect<T> = T extends (...args: any[]) => any
+export type DeepAsyncEffect<T> = T extends (...args: unknown[]) => unknown
   ? AsyncifyUnEffectReturnType<T>
   : T extends object
   ? { [K in keyof T]: DeepAsyncEffect<T[K]> }
@@ -201,13 +202,13 @@ export type DeepAsyncEffect<T> = T extends (...args: any[]) => any
 /** 获取一个深度嵌套的对象（apis）上的函数的返回值联合类型
  * 这是一个辅助类型，方便程序无遗漏的处理所有可能的返回值类型
  */
-export type DeepReturnTypeUnion<T> = T extends (...args: any[]) => any
+export type DeepReturnTypeUnion<T> = T extends (...args: unknown[]) => unknown
   ? Awaited<ReturnType<T>>
   : T extends object
   ? { [K in keyof T]: DeepReturnTypeUnion<T[K]> }[keyof T]
   : never;
 
-export type DeepUnEffectReturnTypeUnion<T> = T extends (...args: any[]) => any
+export type DeepUnEffectReturnTypeUnion<T> = T extends (...args: unknown[]) => unknown
   ? ExtractEffectSuccess<Awaited<ReturnType<T>>>
   : T extends object
   ? { [K in keyof T]: DeepUnEffectReturnTypeUnion<T[K]> }[keyof T]
@@ -219,8 +220,8 @@ export type ExtractEffectSuccess<T> = T extends Effect.Effect<infer A, infer E, 
  * 定义递归的链式调用类型，支持结果转换
  * R 是可选的结果转换类型
  */
-type ChainedProxy<T, R = [string, any[]], P extends string[] = []> = {
-  [K in keyof T]: T[K] extends (...args: infer A) => any
+type ChainedProxy<T, R = [string, unknown[]], P extends string[] = []> = {
+  [K in keyof T]: T[K] extends (...args: infer A) => unknown
     ? (...args: A) => R
     : ChainedProxy<T[K], R, [...P, string & K]>;
 };

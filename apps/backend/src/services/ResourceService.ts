@@ -1,108 +1,45 @@
 import { Effect } from 'effect';
-import { AuthContext } from '../Context/Auth';
 import { DbClientEffect } from '../Context/DbService';
-import { ReqCtxService } from '../Context/ReqCtx';
 import { dbTry, dbPaginatedFindMany } from '../util/dbEffect';
-import { MsgError } from '../util/error';
 import type { ResourceType } from '../../.zenstack/models';
 import type { JsonValue } from '@zenstackhq/orm';
 import { DEFAULT_PAGE_SIZE } from '../util/constants';
 import type { ResourceWhereInput } from '../../.zenstack/input';
 
+/** 合法的 ResourceType 枚举值集合，用于运行时校验 */
+const VALID_RESOURCE_TYPES = new Set<string>(['IMAGE', 'TEXT', 'VIDEO', 'AUDIO', 'FILE']);
+
+/** 合法的 Resource status 值集合，用于运行时校验 */
+const VALID_RESOURCE_STATUSES = new Set<string>(['pending', 'processing', 'completed', 'failed']);
+
+/**
+ * 校验并返回安全的 ResourceType where 过滤值
+ * 若传入值不在合法枚举中则返回 undefined（不添加该过滤条件）
+ */
+function toResourceTypeFilter(value: string): ResourceWhereInput['type'] | undefined {
+  if (VALID_RESOURCE_TYPES.has(value)) {
+    return { equals: value as ResourceType } as ResourceWhereInput['type'];
+  }
+  return undefined;
+}
+
+/**
+ * 校验并返回安全的 ResourceStatus where 过滤值
+ * 若传入值不在合法枚举中则返回 undefined（不添加该过滤条件）
+ */
+function toResourceStatusFilter(value: string): ResourceWhereInput['status'] | undefined {
+  if (VALID_RESOURCE_STATUSES.has(value)) {
+    return { equals: value } as ResourceWhereInput['status'];
+  }
+  return undefined;
+}
+
 /**
  * 资源服务
  *
- * createResource / listResources / attachFile 仅依赖 DbClientEffect；
- * updateResource / getResource 依赖 AuthContext（需要 auth.user.id 做权限校验）。
+ * 所有方法仅依赖 DbClientEffect（数据库客户端）。
  */
 export const ResourceService = {
-  /**
-   * 创建资源
-   */
-  createResource: (userId: string, data: {
-    type: ResourceType;
-    title: string;
-    description?: string;
-    metadata: JsonValue;
-    taskId: number;
-    tags?: string;
-  }) =>
-    Effect.gen(function* () {
-      const db = yield* DbClientEffect;
-
-      const resource = yield* dbTry('[ResourceService]', '创建资源', () =>
-        db.resource.create({
-          data: {
-            userId,
-            type: data.type,
-            title: data.title,
-            description: data.description,
-            metadata: data.metadata,
-            taskId: data.taskId,
-            status: 'pending',
-            tags: data.tags,
-          },
-        }),
-      );
-
-      return { id: resource.id };
-    }),
-
-  /**
-   * 更新资源（需要 AuthContext 做权限校验）
-   */
-  updateResource: (resourceId: number, data: {
-    metadata?: JsonValue;
-    status?: string;
-    fileId?: number;
-  }) =>
-    Effect.gen(function* () {
-      const auth = yield* AuthContext;
-
-      // 验证权限
-      const resource = yield* dbTry('[ResourceService]', '查询资源', () =>
-        auth.db.resource.findUnique({ where: { id: resourceId } }),
-      );
-
-      if (!resource) {
-        throw MsgError.msg('资源不存在');
-      }
-
-      if (resource.userId !== auth.user.id) {
-        throw MsgError.msg('无权操作此资源');
-      }
-
-      // 更新资源
-      yield* dbTry('[ResourceService]', '更新资源', () =>
-        auth.db.resource.update({ where: { id: resourceId }, data }),
-      );
-    }),
-
-  /**
-   * 获取资源详情（需要 AuthContext 做权限校验）
-   */
-  getResource: (resourceId: number) =>
-    Effect.gen(function* () {
-      const auth = yield* AuthContext;
-
-      const resource = yield* dbTry('[ResourceService]', '查询资源', () =>
-        auth.db.resource.findUnique({
-          where: { id: resourceId },
-          include: { file: true, task: true },
-        }),
-      );
-
-      if (!resource) {
-        throw MsgError.msg('资源不存在');
-      }
-
-      if (resource.userId !== auth.user.id && resource.status !== 'public') {
-        throw MsgError.msg('无权访问此资源');
-      }
-
-      return resource;
-    }),
-
   /**
    * 获取用户资源列表
    */
@@ -118,11 +55,17 @@ export const ResourceService = {
       const where: ResourceWhereInput = { userId };
 
       if (options.type) {
-        where.type = options.type as ResourceWhereInput['type'];
+        const typeFilter = toResourceTypeFilter(options.type);
+        if (typeFilter) {
+          where.type = typeFilter;
+        }
       }
 
       if (options.status) {
-        where.status = options.status as ResourceWhereInput['status'];
+        const statusFilter = toResourceStatusFilter(options.status);
+        if (statusFilter) {
+          where.status = statusFilter;
+        }
       }
 
       return yield* dbPaginatedFindMany('[ResourceService]',
@@ -138,27 +81,12 @@ export const ResourceService = {
             file: { select: { id: true, filename: true, mimetype: true, size: true } },
             task: { select: { id: true, type: true, title: true } },
           },
-          skip: options.skip || 0,
-          take: options.take || DEFAULT_PAGE_SIZE,
+          skip: options.skip ?? 0,
+          take: options.take ?? DEFAULT_PAGE_SIZE,
           orderBy: { created: 'desc' },
         }),
         () => db.resource.count({ where }),
-        [] as never[],
       );
     }),
 
-  /**
-   * 关联文件
-   */
-  attachFile: (resourceId: number, fileId: number) =>
-    Effect.gen(function* () {
-      const db = yield* DbClientEffect;
-
-      yield* dbTry('[ResourceService]', '关联文件', () =>
-        db.resource.update({
-          where: { id: resourceId },
-          data: { fileId },
-        }),
-      );
-    }),
 };

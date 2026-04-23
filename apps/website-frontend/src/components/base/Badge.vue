@@ -12,9 +12,7 @@ interface Props {
   variant?: 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'secondary',
-});
+const { variant = 'secondary' } = defineProps<Props>();
 
 /** 徽章样式类 */
 const badgeClasses = computed(() => {
@@ -27,7 +25,7 @@ const badgeClasses = computed(() => {
     secondary: 'bg-secondary-100 text-secondary-800 dark:bg-secondary-700 dark:text-secondary-300',
     contrast: 'bg-primary-800 text-primary-50 dark:bg-primary-50 dark:text-primary-800',
   };
-  return `${base} ${variantClasses[props.variant] || 'bg-secondary-100 text-secondary-800'}`;
+  return `${base} ${variantClasses[variant] || 'bg-secondary-100 text-secondary-800'}`;
 });
 </script>
 

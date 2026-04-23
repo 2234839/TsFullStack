@@ -1,0 +1,78 @@
+/* 共享编辑器样式 - WysiwygEditor 与 CodeMirrorEditor 共用 */
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-gray-200, #e5e7eb);
+  background-color: var(--color-gray-50, #f9fafb);
+}
+
+.dark .editor-toolbar {
+  border-bottom-color: var(--color-gray-700, #374151);
+  background-color: var(--color-gray-900, #111827);
+}
+
+.toolbar-left,
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--color-gray-200, #e5e7eb);
+  border-radius: 6px;
+  background-color: var(--color-white, #fff);
+  color: var(--color-gray-700, #374151);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dark .toolbar-button {
+  border-color: var(--color-gray-600, #4b5563);
+  background-color: var(--color-gray-800, #1f2937);
+  color: var(--color-gray-200, #e5e7eb);
+}
+
+.toolbar-button:hover {
+  background-color: var(--color-gray-100, #f3f4f6);
+  border-color: var(--color-gray-300, #d1d5db);
+}
+
+.dark .toolbar-button:hover {
+  background-color: var(--color-gray-700, #374151);
+  border-color: var(--color-gray-500, #6b7280);
+}
+
+.toolbar-button.active {
+  background-color: var(--color-blue-100, #dbeafe);
+  border-color: var(--color-blue-500, #3b82f6);
+  color: var(--color-blue-800, #1e40af);
+}
+
+.dark .toolbar-button.active {
+  background-color: var(--color-blue-900, #1e3a8a);
+  border-color: var(--color-blue-500, #3b82f6);
+  color: var(--color-blue-300, #93c5fd);
+}
+
+.calculation-status,
+.calculation-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-gray-500, #6b7280);
+}
+
+.dark .calculation-status,
+.dark .calculation-time {
+  color: var(--color-gray-400, #9ca3af);
+}

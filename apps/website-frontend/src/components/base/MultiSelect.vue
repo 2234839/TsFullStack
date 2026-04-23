@@ -4,6 +4,9 @@
  * 使用 Tailwind CSS 样式
  */
 import { computed, ref } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 /** 将可能为数组/单值/null/undefined的值规范化为数组 */
 function normalizeToArray<T>(value: T[] | T | null | undefined): T[] {
@@ -33,13 +36,7 @@ interface Props<T = unknown> {
   selectedItemsLabel?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-  invalid: false,
-  options: () => [],
-  maxSelectedLabels: 3,
-  selectedItemsLabel: '{0} items selected',
-});
+const { modelValue, disabled = false, invalid = false, options = [] as Option[], placeholder, maxSelectedLabels = 3, selectedItemsLabel = '{0} items selected' } = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: unknown[]];
@@ -50,7 +47,7 @@ const isOpen = ref(false);
 
 /** 切换下拉框 */
 function toggleDropdown() {
-  if (!props.disabled) {
+  if (!disabled) {
     isOpen.value = !isOpen.value;
   }
 }
@@ -59,7 +56,7 @@ function toggleDropdown() {
 function handleOptionClick(option: Option) {
   if (option.disabled) return;
 
-  const rawValue = props.modelValue;
+  const rawValue = modelValue;
   const currentValue = normalizeToArray(rawValue);
   const index = currentValue.indexOf(option.value);
 
@@ -73,16 +70,16 @@ function handleOptionClick(option: Option) {
 
 /** 检查选项是否被选中 */
 const isSelected = (option: Option) => {
-  const rawValue = props.modelValue;
+  const rawValue = modelValue;
   const valueArray = Array.isArray(rawValue) ? rawValue : rawValue != null ? [rawValue] : [];
   return valueArray.some((v) => v === option.value);
 };
 
 /** 获取选中的选项标签 */
 const selectedLabels = computed(() => {
-  const rawValue = props.modelValue;
+  const rawValue = modelValue;
   const valueArray = Array.isArray(rawValue) ? rawValue : rawValue != null ? [rawValue] : [];
-  const selected = (props.options || []).filter(opt =>
+  const selected = (options || []).filter(opt =>
     valueArray.includes(opt.value)
   );
   return selected.map(opt => opt.label);
@@ -91,22 +88,22 @@ const selectedLabels = computed(() => {
 /** 显示的标签文本 */
 const displayLabel = computed(() => {
   const labels = selectedLabels.value;
-  if (labels.length === 0) return props.placeholder;
-  if (labels.length <= props.maxSelectedLabels) {
+  if (labels.length === 0) return placeholder;
+  if (labels.length <= maxSelectedLabels) {
     return labels.join(', ');
   }
-  return props.selectedItemsLabel.replace('{0}', String(labels.length));
+  return selectedItemsLabel.replace('{0}', String(labels.length));
 });
 
 /** 触发按钮样式类 */
 const triggerClasses = computed(() => {
   const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer';
 
-  const stateClasses = props.invalid
+  const stateClasses = invalid
     ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
     : 'border-primary-200 dark:border-primary-700 focus:ring-primary-500 dark:focus:ring-primary-400';
 
-  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${stateClasses} ${disabledClass}`;
 });
@@ -151,8 +148,8 @@ const triggerClasses = computed(() => {
         v-if="isOpen"
         :class="'absolute z-50 w-full mt-1 bg-white dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-lg max-h-60 overflow-y-auto'">
         <div
-          v-for="(option, index) in options"
-          :key="index"
+          v-for="option in options"
+          :key="option.value"
           class="flex items-center px-3 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-700 transition-colors"
           :class="{ 'opacity-50 cursor-not-allowed': option.disabled }"
           @click="handleOptionClick(option)">
@@ -173,7 +170,7 @@ const triggerClasses = computed(() => {
         <div
           v-if="options.length === 0"
           class="px-3 py-2 text-sm text-primary-500 dark:text-primary-400 text-center">
-          没有可用选项
+          {{ t('没有可用选项') }}
         </div>
       </div>
     </Transition>

@@ -54,27 +54,6 @@ const isAudioType = (mimetype: string) => audioTypes.includes(mimetype);
 const isDocumentType = (mimetype: string) => documentTypes.includes(mimetype);
 const isArchiveType = (mimetype: string) => archiveTypes.includes(mimetype);
 
-/** 获取文件预览样式类 */
-export const getFilePreviewClass = (file: ShareFileJSON) => {
-  if (!file) return '';
-  if (isImageType(file.mimetype)) {
-    return 'bg-white dark:bg-primary-600';
-  }
-  if (isVideoType(file.mimetype)) {
-    return 'bg-secondary-100 dark:bg-secondary-900';
-  }
-  if (isAudioType(file.mimetype)) {
-    return 'bg-warning-100 dark:bg-warning-900';
-  }
-  if (isDocumentType(file.mimetype)) {
-    return 'bg-info-100 dark:bg-info-900';
-  }
-  if (isArchiveType(file.mimetype)) {
-    return 'bg-warning-100 dark:bg-warning-900';
-  }
-  return 'bg-primary-200 dark:bg-primary-600';
-};
-
 // 获取文件类型图标
 export const getFileTypeIcon = (mimetype: string) => {
   if (isImageType(mimetype)) return 'pi pi-image';
@@ -85,28 +64,14 @@ export const getFileTypeIcon = (mimetype: string) => {
   return 'pi pi-file';
 };
 
-// 获取文件类型标签
-export const getFileTypeLabel = (type: string) => {
-  if (isImageType(type)) return '图片';
-  if (isVideoType(type)) return '视频';
-  if (isAudioType(type)) return '音频';
-  if (isDocumentType(type)) return '文档';
-  if (isArchiveType(type)) return '压缩包';
-  return '文件';
-};
-
-// 获取文件类型列表
-export const getFileTypes = (share: ShareJSON) => {
-  const types = new Set<string>();
-  share.files.forEach((file) => {
-    if (isImageType(file.mimetype)) types.add('图片');
-    else if (isVideoType(file.mimetype)) types.add('视频');
-    else if (isAudioType(file.mimetype)) types.add('音频');
-    else if (isDocumentType(file.mimetype)) types.add('文档');
-    else if (isArchiveType(file.mimetype)) types.add('压缩包');
-    else types.add('其他');
-  });
-  return Array.from(types);
+// 获取文件类型标签（接受 t 函数参数，避免模块顶层调用 useI18n）
+export const getFileTypeLabel = (type: string, t: (key: string) => string) => {
+  if (isImageType(type)) return t('图片');
+  if (isVideoType(type)) return t('视频');
+  if (isAudioType(type)) return t('音频');
+  if (isDocumentType(type)) return t('文档');
+  if (isArchiveType(type)) return t('压缩包');
+  return t('文件');
 };
 
 // 计算总文件大小

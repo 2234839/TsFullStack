@@ -9,10 +9,7 @@ interface Props {
   closable?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'info',
-  closable: false,
-});
+const { variant = 'info', closable = false } = defineProps<Props>();
 
 const emit = defineEmits<{
   close: [];
@@ -25,7 +22,7 @@ const messageClasses = computed(() => {
     warn: 'bg-warning-50 border-warning-200 text-warning-700 dark:bg-warning-900/20 dark:border-warning-700 dark:text-warning-300',
     error: 'bg-danger-50 border-danger-200 text-danger-700 dark:bg-danger-900/20 dark:border-danger-700 dark:text-danger-300',
   };
-  return `border rounded-lg p-4 ${variantClasses[props.variant]}`;
+  return `border rounded-lg p-4 ${variantClasses[variant]}`;
 });
 
 const iconClasses = computed(() => {
@@ -35,7 +32,7 @@ const iconClasses = computed(() => {
     warn: 'pi pi-exclamation-triangle',
     error: 'pi pi-times-circle',
   };
-  return iconMap[props.variant];
+  return iconMap[variant];
 });
 </script>
 

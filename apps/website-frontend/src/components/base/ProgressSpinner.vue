@@ -12,10 +12,7 @@ interface Props {
   strokeWidth?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  size: 'normal',
-  strokeWidth: '4',
-});
+const { size = 'normal', strokeWidth = '4' } = defineProps<Props>();
 
 const sizeClasses = computed(() => {
   const sizes = {
@@ -23,7 +20,7 @@ const sizeClasses = computed(() => {
     normal: 'w-16 h-16',
     large: 'w-24 h-24',
   };
-  return sizes[props.size];
+  return sizes[size];
 });
 </script>
 

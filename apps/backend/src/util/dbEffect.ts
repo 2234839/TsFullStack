@@ -13,16 +13,13 @@ export function dbTry<T>(
   fn: () => Promise<T>,
 ): Effect.Effect<T, Error, ReqCtxService> {
   return Effect.flatMap(ReqCtxService, (reqCtx) =>
-    Effect.mapError(
-      Effect.tryPromise({
-        try: fn,
-        catch: (error: unknown) => {
-          reqCtx.log(`${label} ${operation}失败:`, String(error));
-          return MsgError.msg(`${operation}失败`);
-        },
-      }),
-      () => MsgError.msg(`${operation}失败`),
-    ),
+    Effect.tryPromise({
+      try: fn,
+      catch: (error: unknown) => {
+        reqCtx.log(`${label} ${operation}失败:`, String(error));
+        return MsgError.msg(`${operation}失败`);
+      },
+    }),
   );
 }
 
@@ -58,10 +55,10 @@ export function dbPaginatedFindMany<T>(
   label: string,
   findManyFn: () => Promise<T[]>,
   countFn: () => Promise<number>,
-  emptyValue: T[],
+  emptyValue?: T[],
 ): Effect.Effect<{ items: T[]; total: number }, Error | never, ReqCtxService> {
   return Effect.flatMap(Effect.all([
-    dbTryOrDefault(label, '查询列表', findManyFn, emptyValue),
+    dbTryOrDefault(label, '查询列表', findManyFn, emptyValue ?? ([] as unknown as T[])),
     dbTryOrDefault(label, '查询总数', countFn, 0),
   ]), ([items, total]) => Effect.succeed({ items, total }));
 }

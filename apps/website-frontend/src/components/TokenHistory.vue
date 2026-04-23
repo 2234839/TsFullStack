@@ -4,6 +4,7 @@ import { useAPI } from '@/api';
 import { useTokenStoreSingleton } from '@/stores/token';
 import { getTypeLabel } from '@/utils/admin';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { Button } from '@/components/base';
 import { getErrorMessage } from '@/utils/error';
 import { formatDate } from '@/utils/format';
@@ -11,6 +12,7 @@ import { formatDate } from '@/utils/format';
 const { API } = useAPI();
 const tokenStore = useTokenStoreSingleton();
 const toast = useToast();
+const { t } = useI18n();
 
 /** 代币交易记录 */
 interface TokenTransaction {
@@ -82,7 +84,7 @@ async function loadHistory() {
       history.value.push(...newTransactions);
     }
   } catch (error: unknown) {
-    toast.error('加载代币历史失败', getErrorMessage(error));
+    toast.error(t('加载代币历史失败'), getErrorMessage(error));
   } finally {
     isLoading.value = false;
   }
@@ -113,8 +115,6 @@ onMounted(() => {
   loadHistory();
 });
 
-/** 获取类型标签 — 从 utils/admin.ts 统一导入 */
-
 /**
  * 获取类型颜色
  */
@@ -133,7 +133,7 @@ function getTypeColor(type: string): string {
     <!-- 标题栏 -->
     <div class="flex justify-between items-center">
       <h3 class="text-lg font-semibold text-primary-900 dark:text-primary-100">
-        代币使用历史
+        {{ t('代币使用历史') }}
       </h3>
       <Button
         variant="secondary"
@@ -142,7 +142,7 @@ function getTypeColor(type: string): string {
         :loading="isLoading"
         @click="refresh"
       >
-        {{ isLoading ? '刷新中...' : '刷新' }}
+        {{ isLoading ? t('刷新中...') : t('刷新') }}
       </Button>
     </div>
 
@@ -158,7 +158,7 @@ function getTypeColor(type: string): string {
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
               <span class="font-medium text-primary-900 dark:text-primary-100">
-                {{ record.task?.title || '未知任务' }}
+                {{ record.task?.title || t('未知任务') }}
               </span>
               <span
                 v-if="record.tokenType"
@@ -181,7 +181,7 @@ function getTypeColor(type: string): string {
               -{{ record.amount }}
             </div>
             <div class="text-xs text-secondary-500 dark:text-secondary-500">
-              代币
+              {{ t('代币') }}
             </div>
           </div>
         </div>
@@ -206,7 +206,7 @@ function getTypeColor(type: string): string {
           d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
         />
       </svg>
-      <p class="mt-2">暂无使用记录</p>
+      <p class="mt-2">{{ t('暂无使用记录') }}</p>
     </div>
 
     <!-- 加载更多 -->
@@ -218,7 +218,7 @@ function getTypeColor(type: string): string {
         :loading="isLoading"
         @click="loadMore"
       >
-        {{ isLoading ? '加载中...' : '加载更多' }}
+        {{ isLoading ? t('加载中...') : t('加载更多') }}
       </Button>
     </div>
   </div>

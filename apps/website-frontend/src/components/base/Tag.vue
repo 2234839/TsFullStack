@@ -23,15 +23,12 @@ defineSlots<{
   icon?: (props: {}) => any;
 }>();
 
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'secondary',
-  rounded: false,
-});
+const { variant = 'secondary', rounded = false } = defineProps<Props>();
 
 /** 标签样式类 */
 const tagClasses = computed(() => {
   const base = 'inline-flex items-center gap-1 px-2.5 py-0.5 text-sm font-medium';
-  const roundedClass = props.rounded ? 'rounded-full' : 'rounded';
+  const roundedClass = rounded ? 'rounded-full' : 'rounded';
 
   const variantClasses = {
     success: 'bg-success-100 text-success-800 dark:bg-success-900/30 dark:text-success-400',
@@ -42,7 +39,7 @@ const tagClasses = computed(() => {
     contrast: 'bg-primary-800 text-primary-50 dark:bg-primary-50 dark:text-primary-800',
   };
 
-  return `${base} ${roundedClass} ${variantClasses[props.variant]}`;
+  return `${base} ${roundedClass} ${variantClasses[variant]}`;
 });
 </script>
 

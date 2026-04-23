@@ -11,7 +11,7 @@
       <div class="py-1">
         <Button variant="ghost" @click="switchI18n('zh-CN')"
           class="w-full justify-start">
-          中文
+          {{ t('中文') }}
         </Button>
         <Button variant="ghost" @click="switchI18n('en')"
           class="w-full justify-start">

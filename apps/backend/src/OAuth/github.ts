@@ -1,17 +1,16 @@
-// ===== 常量定义 =====
-
-// 定义默认权限范围
-const DEFAULT_SCOPES = ['read:user', 'user:email'] as const;
-
-// API URLs
-const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
-const GITHUB_API_URL = 'https://api.github.com';
-
-// Import proxy utilities
 import { Context, Effect, Layer } from 'effect';
 import { FetchWithProxy } from '../util/github-proxy';
 import { AppConfigService } from '../Context/AppConfig';
-import { MsgError } from '../util/error';
+import { fail, neverReturn, MsgError } from '../util/error';
+
+// ===== 常量定义 =====
+
+/** GitHub OAuth 默认权限范围 */
+const DEFAULT_SCOPES = ['read:user', 'user:email'] as const;
+
+/** GitHub OAuth / API 端点 URL */
+const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
+const GITHUB_API_URL = 'https://api.github.com';
 
 // ===== 接口定义 =====
 
@@ -126,7 +125,10 @@ export class GithubAuthService extends Context.Tag('GithubAuthService')<
 export const GithubAuthLiveEffect = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;
   const config = appConfig.OAuth_github;
-  if (!config) throw new MsgError(MsgError.op_msgError, '未配置 OAuth_github');
+  if (!config) {
+      yield* Effect.fail(new MsgError(MsgError.op_msgError, '未配置 OAuth_github'));
+      return neverReturn();
+    }
   const { fetchProxy } = yield* FetchWithProxy;
   const getAccessToken = (code: string) => {
     if (!config.clientSecret) {
@@ -143,6 +145,7 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
         yield* Effect.fail(
           new GitHubAuthError('Authorization code is required', GitHubAuthErrorCode.INVALID_CODE),
         );
+        return neverReturn();
       }
 
       const response = yield* fetchProxy(`${GITHUB_OAUTH_URL}/access_token`, {
@@ -161,7 +164,7 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
 
       const data = yield* Effect.tryPromise({
         try: () => response.json() as Promise<GitHubTokenApiResponse>,
-        catch: () => { throw new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR); },
+        catch: () => { return new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR); },
       });
 
       if (data.error) {
@@ -172,6 +175,7 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
             response.status,
           ),
         );
+        return neverReturn();
       }
 
       return {
@@ -195,6 +199,7 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
         yield* Effect.fail(
           new GitHubAuthError('Access token is required', GitHubAuthErrorCode.INVALID_TOKEN),
         );
+        return neverReturn();
       }
 
       const response = yield* fetchProxy(`${GITHUB_API_URL}/user`, {
@@ -212,11 +217,12 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
             response.status,
           ),
         );
+        return neverReturn();
       }
 
       const data = yield* Effect.tryPromise({
         try: () => response.json() as Promise<GitHubUserApiResponse>,
-        catch: () => { throw new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR); },
+        catch: () => { return new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR); },
       });
 
       return {

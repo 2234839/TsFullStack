@@ -8,6 +8,7 @@ import { testApi } from './testApi';
 import { taskApi } from './authApi/taskApi';
 import { tokenPackageApi } from './authApi/tokenPackageApi';
 import { tokenApi } from './authApi/tokenApi';
+import { paymentApi } from './authApi/paymentApi';
 // 导入项目聚合服务
 import { projects } from '../projects';
 
@@ -19,6 +20,7 @@ export const apis = {
   taskApi,
   tokenPackageApi,
   tokenApi,
+  paymentApi,
   // 聚合的后端项目 API
   projects,
   // 直接获取数据库 db 操作对象,这个函数仅用于给 Effect 提供 apis 依赖 AuthContext 的类型提示 ， server/index.ts 中会覆盖此变量交给用户，覆盖之后的类型参考下面的  API 类型

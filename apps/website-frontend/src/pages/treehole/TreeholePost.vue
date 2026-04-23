@@ -9,7 +9,7 @@
           </div>
           <div>
             <div class="font-semibold text-primary-900 dark:text-primary-50">
-              {{ post.author.nickname || '匿名用户' }}
+              {{ post.author.nickname || t('匿名用户') }}
             </div>
             <div class="text-xs text-primary-500 dark:text-primary-400">
               {{ formatDate(post.updated, { relative: true }) }}
@@ -22,7 +22,7 @@
           </div>
           <div>
             <div class="font-semibold text-primary-900 dark:text-primary-50">
-              未知用户
+              {{ t('未知用户') }}
             </div>
             <div class="text-xs text-primary-500 dark:text-primary-400">
               {{ formatDate(post.updated, { relative: true }) }}
@@ -66,7 +66,7 @@
                 icon="pi pi-pencil"
                 @click="handleEdit"
               >
-                编辑
+                {{ t('编辑') }}
               </Button>
               <Button
                 variant="ghost"
@@ -74,7 +74,7 @@
                 icon="pi pi-trash"
                 @click="handleDelete"
               >
-                删除
+                {{ t('删除') }}
               </Button>
             </div>
           </div>
@@ -96,14 +96,14 @@
 
       <!-- 折叠状态下的摘要 -->
       <div v-else class="text-primary-600 dark:text-primary-400 text-sm">
-        {{ post.title || '无标题' }} - {{ post.content.substring(0, 50) }}{{ post.content.length > 50 ? '...' : '' }}
+        {{ post.title || t('无标题') }} - {{ post.content.substring(0, 50) }}{{ post.content.length > 50 ? '...' : '' }}
       </div>
 
       <!-- 帖子底部：操作按钮和回复数 -->
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-2">
           <Button
-            :label="isReplying ? '取消回复' : '回复'"
+            :label="isReplying ? t('取消回复') : t('回复')"
             :icon="isReplying ? 'pi pi-times' : 'pi pi-reply'"
             variant="text"
             size="small"
@@ -121,7 +121,7 @@
         </div>
         <div class="flex items-center gap-1 text-sm text-primary-500 dark:text-primary-400">
           <i class="pi pi-comments"></i>
-          <span>{{ post._count?.replies ?? 0 }} 条回复</span>
+          <span>{{ post._count?.replies ?? 0 }} {{ t('条回复') }}</span>
         </div>
       </div>
 
@@ -142,8 +142,8 @@
         :key="reply.id"
         :post="reply"
         :depth="depth + 1"
-        @updated="$emit('updated')"
-        @deleted="$emit('deleted')"
+        @updated="emit('updated')"
+        @deleted="emit('deleted')"
       />
     </div>
   </div>
@@ -159,6 +159,7 @@ import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
 import type { TreeholePost } from '@tsfullstack/backend';
 import { getErrorMessage } from '@/utils/error';
+import { useI18n } from '@/composables/useI18n';
 
 interface Props {
   post: TreeholePost;
@@ -166,9 +167,7 @@ interface Props {
   depth?: number;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  depth: 0,
-});
+const { post, depth = 0 } = defineProps<Props>()
 
 const emit = defineEmits<{
   updated: [];
@@ -178,6 +177,7 @@ const emit = defineEmits<{
 const { API, AppAPI } = useAPI();
 const toast = useToast();
 const confirm = useConfirm();
+const { t } = useI18n();
 
 const showMenu = ref(false);
 const isReplying = ref(false);
@@ -188,12 +188,12 @@ const repliesLoaded = ref(false);
 
 /** 当前用户是否是帖子作者 */
 const isAuthor = computed(() =>
-  authInfo_isLogin.value ? authInfo.value.userId === props.post.authorId : false,
+  authInfo_isLogin.value ? authInfo.value.userId === post.authorId : false,
 );
 
 /** 是否有回复可以展开 */
 const hasMoreReplies = computed(() => {
-  const totalReplies = props.post._count?.replies || 0;
+  const totalReplies = post._count?.replies || 0;
   // 如果回复还没加载过,只要有回复就可以展开
   if (!repliesLoaded.value) {
     return totalReplies > 0;
@@ -205,9 +205,9 @@ const hasMoreReplies = computed(() => {
 /** 展开按钮的文本 */
 const expandButtonText = computed(() => {
   if (!repliesLoaded.value) {
-    return `展开 ${props.post._count?.replies ?? 0} 条回复`;
+    return t(`展开 ${post._count?.replies ?? 0} 条回复`);
   }
-  return isExpanded.value ? '收起回复' : `展开回复`;
+  return isExpanded.value ? t('收起回复') : t(`展开回复`);
 });
 
 /**
@@ -249,12 +249,12 @@ function getVisibilityClass(visibility: string): string {
  */
 function getVisibilityLabel(visibility: string): string {
   const labels = {
-    DRAFT: '草稿',
-    PRIVATE: '私密',
-    MEMBERS: '登录可见',
-    PUBLIC: '公开',
+    DRAFT: t('草稿'),
+    PRIVATE: t('私密'),
+    MEMBERS: t('登录可见'),
+    PUBLIC: t('公开'),
   };
-  return labels[visibility as keyof typeof labels] || '未知';
+  return labels[visibility as keyof typeof labels] || t('未知');
 }
 
 /**
@@ -288,7 +288,7 @@ async function loadReplies() {
     const result = await AppAPI.treeholeApi.queryPosts({
       skip: 0,
       take: 100, // 回复数量通常不会太多
-      parentId: props.post.id,
+      parentId: post.id,
     });
 
     replies.value = result.posts;
@@ -297,8 +297,8 @@ async function loadReplies() {
   } catch (error: unknown) {
     toast.add({
       variant: 'error',
-      summary: '错误',
-      detail: '加载回复失败',
+      summary: t('错误'),
+      detail: t('加载回复失败'),
       life: 3000,
     });
   }
@@ -321,8 +321,8 @@ function handleEdit() {
   /** 编辑功能待实现：需要打开编辑对话框预填当前内容，调用更新 API */
   toast.add({
     variant: 'info',
-    summary: '提示',
-    detail: '编辑功能开发中',
+    summary: t('提示'),
+    detail: t('编辑功能开发中'),
     life: 3000,
   });
 }
@@ -334,32 +334,32 @@ function handleDelete() {
   showMenu.value = false;
 
   confirm.require({
-    message: '确定要删除这条帖子吗？',
+    message: t('确定要删除这条帖子吗？'),
     icon: 'pi pi-exclamation-triangle',
     rejectProps: {
-      label: '取消',
+      label: t('取消'),
       variant: 'secondary',
       outlined: true,
     },
     acceptProps: {
-      label: '删除',
+      label: t('删除'),
       variant: 'danger',
     },
     accept: async () => {
       try {
-        await API.db.post.delete({ where: { id: props.post.id } });
+        await API.db.post.delete({ where: { id: post.id } });
         toast.add({
           variant: 'success',
-          summary: '成功',
-          detail: '删除成功',
+          summary: t('成功'),
+          detail: t('删除成功'),
           life: 3000,
         });
         emit('deleted');
       } catch (error: unknown) {
         toast.add({
           variant: 'error',
-          summary: '错误',
-          detail: '删除失败：' + getErrorMessage(error),
+          summary: t('错误'),
+          detail: t('删除失败：') + getErrorMessage(error),
           life: 3000,
         });
       }
@@ -369,7 +369,7 @@ function handleDelete() {
 
 // 只有第一级回复(主题帖的直属回复)默认自动加载
 // 子回复需要用户点击展开按钮才加载
-if (props.depth === 0 && props.post._count?.replies && props.post._count.replies > 0) {
+if (depth === 0 && post._count?.replies && post._count.replies > 0) {
   loadReplies();
 }
 </script>

@@ -3,7 +3,8 @@ import { Effect } from 'effect';
 import { DbClientEffect } from '../../Context/DbService';
 import { FileAccessService } from '../../Context/FileAccessService';
 import { dbTryOrDefault } from '../../util/dbEffect';
-import { MsgError } from '../../util/error';
+import { fail, neverReturn, MsgError } from '../../util/error';
+import { MSG } from '../../util/constants';
 
 export const fileApi = {
   /** 这里同样是为了解决非流式传递导致的内存占用过大问题
@@ -20,14 +21,18 @@ export const fileApi = {
         null,
       );
 
-      if (!fileRow) throw MsgError.msg('文件不存在');
+      if (!fileRow) {
+        yield* fail(MSG.FILE_NOT_FOUND);
+        return neverReturn();
+      }
 
-      const fileWarpItem = yield* FileAccessService.createFileWrapItemEffect(fileRow, {
+      const fileWrapItem = yield* FileAccessService.createFileWrapItemEffect(fileRow, {
         checkOwnership: false,
         publicOnly: true,
       });
 
-      return fileWarpItem as unknown as File;
+      /** FileWrapItem → File: http server 层通过 instanceof File 判断是否走流式传输 */
+      return fileWrapItem as unknown as File;
     });
   },
 };

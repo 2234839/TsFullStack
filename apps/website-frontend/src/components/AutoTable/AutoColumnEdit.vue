@@ -47,24 +47,24 @@
   import { computed, ref, useTemplateRef } from 'vue';
   import { type FieldInfo, isDataModelField } from './type';
 
-  const props = defineProps<{
+  const { field, cellData, row } = defineProps<{
     field: FieldInfo;
     /** 动态单元格数据 — AutoTable 动态字段系统无法静态确定具体类型 */
     cellData: any;
     row?: Record<string, unknown>;
   }>();
 
-  const eidtModel = defineModel<any>();
+  const editModel = defineModel<any>();
 
   const datePickerShow = ref(false);
-  /** 双向绑定，但当值未修改时，不更新 eidtModel  */
+  /** 双向绑定，但当值未修改时，不更新 editModel  */
   const editValue = computed({
     get: () => {
-      return eidtModel.value ?? props.cellData;
+      return editModel.value ?? cellData;
     },
     set: (value) => {
-      if (props.cellData !== value) {
-        eidtModel.value = value;
+      if (cellData !== value) {
+        editModel.value = value;
       }
     },
   });
@@ -73,9 +73,9 @@
   const editMode = defineModel<boolean>('editMode', { default: false });
 
   // 模板辅助属性，避免类型推断问题
-  const fieldType = computed<string>(() => props.field.type);
-  const fieldName = computed<string>(() => props.field.name);
-  const isRelationField = computed(() => isDataModelField(props.field));
+  const fieldType = computed<string>(() => field.type);
+  const fieldName = computed<string>(() => field.name);
+  const isRelationField = computed(() => isDataModelField(field));
 
   //#region 关联关系的编辑映射
   function changeRelation(relation: RelationSelectData) {
@@ -85,11 +85,11 @@
 
   /** 实现如果值未修改，点击外部时关闭编辑模式 */
   onClickOutside(editEl, () => {
-    if (props.field.type === 'DateTime' && datePickerShow.value) {
+    if (field.type === 'DateTime' && datePickerShow.value) {
       return /** 因为日期选择面板是在不在当前 div 中，所以当用户选择日期的时候先不管点击外部事件，等日期选择面板关闭后再处理点击外部事件 */;
     }
-    if (isDataModelField(props.field)) return;
-    if (eidtModel.value === undefined) {
+    if (isDataModelField(field)) return;
+    if (editModel.value === undefined) {
       editMode.value = false;
     }
   });

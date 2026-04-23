@@ -2,17 +2,17 @@
   <div class="flex flex-col gap-4 p-4">
     <div class="flex items-center justify-between">
       <h3 class="text-lg font-medium">{{ t('AI 配置') }}</h3>
-      <Tag variant="info" value="混合模式" />
+      <Tag variant="info" :value="t('混合模式')" />
     </div>
 
     <!-- 说明信息 -->
     <div class="text-sm text-secondary-600 dark:text-secondary-400 bg-primary-50 dark:bg-primary-900/20 p-3 rounded-lg">
-      <p class="mb-2"><strong>混合模式说明：</strong></p>
+      <p class="mb-2"><strong>{{ t('混合模式说明：') }}</strong></p>
       <ul class="space-y-1 text-xs">
-        <li>• 优先使用您配置的AI服务</li>
-        <li>• 当您的配置不可用时，自动切换到后台代理服务</li>
-        <li>• 无需配置也可直接使用后台提供的AI服务</li>
-        <li>• 支持多个AI提供商的负载均衡</li>
+        <li>• {{ t('优先使用您配置的AI服务') }}</li>
+        <li>• {{ t('当您的配置不可用时，自动切换到后台代理服务') }}</li>
+        <li>• {{ t('无需配置也可直接使用后台提供的AI服务') }}</li>
+        <li>• {{ t('支持多个AI提供商的负载均衡') }}</li>
       </ul>
     </div>
 
@@ -106,10 +106,15 @@
   };
 
   watch(
-    () => openAIConfig.value,
+    () => ({
+      baseURL: openAIConfig.value.baseURL,
+      apiKey: openAIConfig.value.apiKey,
+      model: openAIConfig.value.model,
+      maxTokens: openAIConfig.value.maxTokens,
+      temperature: openAIConfig.value.temperature,
+    }),
     (newConfig) => {
       Object.assign(config, newConfig);
     },
-    { deep: true },
   );
 </script>

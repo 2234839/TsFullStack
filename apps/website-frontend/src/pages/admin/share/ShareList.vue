@@ -307,16 +307,16 @@
   // 删除处理
   const handleDelete = (item: ShareItemJSON, event: MouseEvent) => {
     confirm.require({
-      message: '确定要删除这个分享吗？',
+      message: t('确定要删除这个分享吗？'),
       icon: 'pi pi-exclamation-triangle',
       event,
       rejectProps: {
-        label: '取消',
+        label: t('取消'),
         variant: 'secondary',
         outlined: true,
       },
       acceptProps: {
-        label: '删除',
+        label: t('删除'),
         variant: 'danger',
       },
       accept: async () => {
@@ -333,15 +333,15 @@
           shareList.execute(); // 刷新列表
           toast.add({
             variant: 'success',
-            summary: '成功',
-            detail: '删除分享成功',
+            summary: t('成功'),
+            detail: t('删除分享成功'),
             life: 3000,
           });
         } catch (error: unknown) {
           toast.add({
             variant: 'error',
-            summary: '失败',
-            detail: '删除分享失败：' + getErrorMessage(error),
+            summary: t('失败'),
+            detail: t('删除分享失败：') + getErrorMessage(error),
             life: 3000,
           });
         }

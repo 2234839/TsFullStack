@@ -6,33 +6,33 @@
         <Button variant="ghost" size="sm" @click="showTitle = !showTitle"
           class="flex items-center gap-2">
           <i :class="showTitle ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
-          <span>{{ showTitle ? '收起标题' : '添加标题（可选）' }}</span>
+          <span>{{ showTitle ? t('收起标题') : t('添加标题（可选）') }}</span>
         </Button>
         <div v-if="showTitle" class="mt-2">
-          <Input v-model="formData.title" placeholder="请输入标题（1-256个字符）" :maxlength="256" class="w-full" />
+          <Input v-model="formData.title" :placeholder="t('请输入标题（1-256个字符）')" :maxlength="256" class="w-full" />
         </div>
       </div>
 
       <!-- 发主题帖时标题必填 -->
       <div v-else>
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-          标题
+          {{ t('标题') }}
         </label>
-        <Input v-model="formData.title" placeholder="请输入标题（1-256个字符）" :maxlength="256" class="w-full" />
+        <Input v-model="formData.title" :placeholder="t('请输入标题（1-256个字符）')" :maxlength="256" class="w-full" />
       </div>
 
       <!-- 内容输入 -->
       <div>
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-          内容
+          {{ t('内容') }}
         </label>
-        <Textarea v-model="formData.content" :placeholder="isReply ? '说点什么吧...' : '说点什么吧...'" :rows="4" class="w-full" />
+        <Textarea v-model="formData.content" :placeholder="isReply ? t('说点什么吧...') : t('说点什么吧...')" :rows="4" class="w-full" />
       </div>
 
       <!-- 可见性选择 -->
       <div>
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-          可见性
+          {{ t('可见性') }}
         </label>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <Button v-for="option in visibilityOptions" :key="option.value"
@@ -51,8 +51,8 @@
 
       <!-- 操作按钮 -->
       <div class="flex justify-end gap-2">
-        <Button v-if="showCancel" label="取消" variant="secondary" @click="$emit('cancel')" />
-        <Button label="发布" :icon="isSubmitting ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
+        <Button v-if="showCancel" :label="t('取消')" variant="secondary" @click="emit('cancel')" />
+        <Button :label="t('发布')" :icon="isSubmitting ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
           :disabled="!isValid || isSubmitting" @click="handleSubmit" />
       </div>
     </div>
@@ -68,6 +68,7 @@ import type { ContentVisibility } from '@tsfullstack/backend';
 import { getErrorMessage } from '@/utils/error';
 import { $Enums } from '@tsfullstack/backend';
 import { authInfo } from '@/storage';
+import { useI18n } from '@/composables/useI18n';
 
 interface Props {
   /** 父帖子ID（不传则为创建主题帖） */
@@ -76,10 +77,7 @@ interface Props {
   showCancel?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  parentId: null,
-  showCancel: false,
-});
+const { parentId = null, showCancel = false } = defineProps<Props>()
 
 const emit = defineEmits<{
   submit: [];
@@ -88,12 +86,13 @@ const emit = defineEmits<{
 
 const { API } = useAPI();
 const toast = useToast();
+const { t } = useI18n();
 
 const isSubmitting = ref(false);
 const showTitle = ref(false);
 
 /** 是否为回复 */
-const isReply = computed(() => props.parentId !== null);
+const isReply = computed(() => parentId !== null);
 
 /** 表单数据 */
 const formData = ref({
@@ -106,35 +105,35 @@ const formData = ref({
 const visibilityOptions = [
   {
     value: $Enums.ContentVisibility.DRAFT,
-    label: '草稿',
+    label: t('草稿'),
     icon: 'pi pi-file',
     activeClass: 'border-primary-400 bg-primary-100 text-primary-700 dark:bg-primary-700 dark:text-primary-300',
     inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
-    description: '仅您可见，可随时编辑或发布',
+    description: t('仅您可见，可随时编辑或发布'),
   },
   {
     value: $Enums.ContentVisibility.PRIVATE,
-    label: '私密',
+    label: t('私密'),
     icon: 'pi pi-eye-slash',
     activeClass: 'border-warning-500 bg-warning-50 text-warning-700 dark:bg-warning-900 dark:text-warning-300',
     inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
-    description: '仅您可见，永久保密',
+    description: t('仅您可见，永久保密'),
   },
   {
     value: $Enums.ContentVisibility.MEMBERS,
-    label: '登录用户',
+    label: t('登录用户'),
     icon: 'pi pi-user',
     activeClass: 'border-info-500 bg-info-50 text-info-700 dark:bg-info-900 dark:text-info-300',
     inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
-    description: '所有登录用户可见',
+    description: t('所有登录用户可见'),
   },
   {
     value: $Enums.ContentVisibility.PUBLIC,
-    label: '公开',
+    label: t('公开'),
     icon: 'pi pi-globe',
     activeClass: 'border-success-500 bg-success-50 text-success-700 dark:bg-success-900 dark:text-success-300',
     inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
-    description: '所有人可见，包括游客',
+    description: t('所有人可见，包括游客'),
   },
 ];
 
@@ -169,7 +168,7 @@ async function handleSubmit() {
       visibility: formData.value.visibility,
       authorId: authInfo.value.userId,
       ...(formData.value.title.trim() ? { title: formData.value.title } : {}),
-      ...(props.parentId ? { parentId: props.parentId } : {}),
+      ...(parentId ? { parentId } : {}),
     } as Parameters<typeof API.db.post.create>[0]['data'];
 
     await API.db.post.create({
@@ -178,8 +177,8 @@ async function handleSubmit() {
 
     toast.add({
       variant: 'success',
-      summary: '成功',
-      detail: props.parentId ? '回复成功' : '发布成功',
+      summary: t('成功'),
+      detail: parentId ? t('回复成功') : t('发布成功'),
       life: 3000,
     });
 
@@ -198,8 +197,8 @@ async function handleSubmit() {
   } catch (error: unknown) {
     toast.add({
       variant: 'error',
-      summary: '错误',
-      detail: '发布失败：' + getErrorMessage(error),
+      summary: t('错误'),
+      detail: t('发布失败：') + getErrorMessage(error),
       life: 3000,
     });
   } finally {

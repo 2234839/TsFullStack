@@ -6,6 +6,7 @@
  * - 限制最大entry数量防止内存泄漏
  * - 使用LRU淘汰策略
  */
+import { MS_PER_MINUTE } from '../util/constants';
 
 interface RateLimitEntry {
   count: number;
@@ -27,7 +28,7 @@ class RateLimiter {
     // 每分钟清理一次过期记录
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
-    }, 60000);
+    }, MS_PER_MINUTE);
   }
 
   /**
@@ -70,7 +71,8 @@ class RateLimiter {
    */
   private evictLRU() {
     let oldestKey: string | null = null;
-    let oldestTime = Date.now();
+    /** 使用 Infinity 确保第一个 entry 总是满足淘汰条件（防止同毫秒批量创建导致死循环） */
+    let oldestTime = Infinity;
 
     for (const [key, entry] of this.requests.entries()) {
       if (entry.lastAccess < oldestTime) {

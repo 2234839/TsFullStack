@@ -2,9 +2,11 @@
 import { ref } from 'vue';
 import AIImageGenerator from '@/components/AIImageGenerator.vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { useRouter } from 'vue-router';
 
 const toast = useToast();
+const { t } = useI18n();
 const router = useRouter();
 
 /** 生成完成后的任务ID列表 */
@@ -15,8 +17,8 @@ function handleGenerationComplete(taskId: number) {
   completedTaskIds.value.push(taskId);
 
   toast.add({
-    summary: '任务已完成',
-    detail: '图片已生成并保存到资源库',
+    summary: t('任务已完成'),
+    detail: t('图片已生成并保存到资源库'),
     variant: 'success',
   });
 
@@ -33,10 +35,10 @@ function viewResourceGallery() {
     <!-- 页面头部 -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-        AI 图片生成
+        {{ t('AI 图片生成') }}
       </h1>
       <p class="mt-2 text-primary-600 dark:text-primary-400">
-        使用 AI 生成创意图片，支持多种服务商和自定义参数
+        {{ t('使用 AI 生成创意图片，支持多种服务商和自定义参数') }}
       </p>
     </div>
 
@@ -48,11 +50,11 @@ function viewResourceGallery() {
         </svg>
         <div class="flex-1">
           <h3 class="text-sm font-medium text-info-800 dark:text-info-200">
-            代币消耗说明
+            {{ t('代币消耗说明') }}
           </h3>
           <div class="mt-1 text-sm text-info-700 dark:text-info-300">
-            <p>每生成 1 张图片消耗 <strong>10 枚代币</strong></p>
-            <p class="mt-1">生成完成后，图片会自动保存到资源库中</p>
+            <p>{{ t('每生成 1 张图片消耗 {count} 枚代币', { count: 10 }) }}</p>
+            <p class="mt-1">{{ t('生成完成后，图片会自动保存到资源库中') }}</p>
           </div>
         </div>
         <Button
@@ -61,7 +63,7 @@ function viewResourceGallery() {
           size="sm"
           @click="viewResourceGallery"
         >
-          查看资源库 →
+          {{ t('查看资源库') }} →
         </Button>
       </div>
     </div>
@@ -74,7 +76,7 @@ function viewResourceGallery() {
     <!-- 统计信息 -->
     <div v-if="completedTaskIds.length > 0" class="mt-6 bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800 rounded-lg p-4">
       <p class="text-sm text-success-800 dark:text-success-200">
-        本次会话已完成 {{ completedTaskIds.length }} 个生成任务
+        {{ t('本次会话已完成 {count} 个生成任务', { count: completedTaskIds.length }) }}
       </p>
     </div>
   </div>

@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
+import { AuthContext } from '../../Context/Auth';
 import { dbTryOrDefault, dbPaginatedFindMany } from '../../util/dbEffect';
 import type { ContentVisibility } from '../../../.zenstack/models';
 import type { PostWhereInput } from '../../../.zenstack/input';
@@ -78,7 +79,12 @@ export const treeholeApi = {
       const dbClient = yield* DbClientEffect;
       const ctx = yield* ReqCtxService;
 
-      ctx.log('[Treehole] queryPosts, skip=' + params.skip + ', take=' + params.take + ', hasKeyword=' + !!params.keyword);
+      /** 分页参数边界校验 */
+      const skip = Math.max(0, Math.floor(params.skip) || 0);
+      const MAX_TAKE = 100;
+      const take = Math.min(MAX_TAKE, Math.max(1, Math.floor(params.take) || 10));
+
+      ctx.log('[Treehole] queryPosts, skip=' + skip + ', take=' + take + ', hasKeyword=' + !!params.keyword);
 
       // 构建查询条件
       const where: PostWhereInput = {};
@@ -102,9 +108,12 @@ export const treeholeApi = {
         where.parentId = params.parentId;
       }
 
-      // 作者过滤（"我的帖子"）
+      // 作者过滤（"我的帖子"，IDOR 防护：仅允许查询自己的帖子）
       if (params.authorId) {
-        where.authorId = params.authorId;
+        const ctx = yield* ReqCtxService;
+        const auth = yield* AuthContext;
+        /** 强制 authorId 只能是当前登录用户，防止枚举他人帖子 */
+        where.authorId = auth.user.id;
       }
 
       // 搜索关键词
@@ -121,8 +130,8 @@ export const treeholeApi = {
         () => dbClient.post.findMany({
           where,
           orderBy: [{ created: 'desc' }],
-          skip: params.skip,
-          take: params.take,
+          skip: skip,
+          take: take,
           select: {
             id: true,
             title: true,
@@ -138,7 +147,6 @@ export const treeholeApi = {
           },
         }),
         () => dbClient.post.count({ where }),
-        [],
       );
 
       // 提取当前帖子列表的 ID，一次性查询这些帖子的回复数统计
@@ -171,7 +179,7 @@ export const treeholeApi = {
       return {
         posts: postsWithCounts,
         total,
-        hasMore: params.skip + posts.length < total,
+        hasMore: skip + posts.length < total,
       } as TreeholePostsResult;
     });
   },

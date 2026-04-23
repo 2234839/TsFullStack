@@ -12,7 +12,7 @@
                 <div class="flex items-center justify-center min-h-screen">
                   <div class="text-center">
                     <ProgressSpinner />
-                    <p class="mt-4 text-primary-600 dark:text-primary-400">正在加载...</p>
+                    <p class="mt-4 text-primary-600 dark:text-primary-400">{{ t('正在加载...') }}</p>
                   </div>
                 </div>
               </template>
@@ -40,6 +40,9 @@ import Confirm from '@/components/base/Confirm.vue';
 import { computed, onMounted, onUnmounted, onErrorCaptured } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 import { toastBus, authBus } from '@/buses';
 import { authInfo_logout } from '@/storage';
 import { MsgError } from '@tsfullstack/backend';
@@ -81,7 +84,7 @@ onMounted(() => {
     console.error('[ErrorBoundary]', errMsg, error);
     toast.add({
       variant: 'danger',
-      summary: '运行时错误',
+      summary: t('运行时错误'),
       detail: errMsg.slice(0, 200),
       life: 5000,
     });

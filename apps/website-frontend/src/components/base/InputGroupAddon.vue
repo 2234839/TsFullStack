@@ -12,10 +12,12 @@ interface Props {
   clickable?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-  clickable: false,
-});
+const { disabled = false, clickable = false } = defineProps<Props>();
+
+/** 组件事件定义 */
+const emit = defineEmits<{
+  click: [event: MouseEvent];
+}>();
 
 /** 从 InputGroup 获取焦点状态 */
 const inputGroupFocused = inject('inputGroupFocused', { value: false });
@@ -28,16 +30,16 @@ const addonClasses = computed(() => {
     ? 'border-info-600 dark:border-info-500'
     : '';
 
-  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
   // 只有可点击时才有 hover 效果
-  const hoverClass = !props.disabled && props.clickable ? 'hover:bg-primary-100 dark:hover:bg-primary-800 cursor-pointer' : '';
+  const hoverClass = !disabled && clickable ? 'hover:bg-primary-100 dark:hover:bg-primary-800 cursor-pointer' : '';
 
   return `${base} ${focusClass} ${disabledClass} ${hoverClass}`;
 });
 </script>
 
 <template>
-  <div :class="addonClasses" @click="$emit('click', $event)">
+  <div :class="addonClasses" @click="emit('click', $event)">
     <slot />
   </div>
 </template>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
 import { useAPI } from '@/api';
 import { Button } from '@/components/base';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
@@ -9,6 +10,7 @@ import { getErrorMessage } from '@/utils/error';
 import { getResourceUrl } from '@/utils/resource';
 
 const toast = useToast();
+const { t } = useI18n();
 const { API } = useAPI();
 
 /** 资源项（与后端 listResources 返回的 select 字段一致，附加前端展示字段） */
@@ -48,22 +50,22 @@ const statusFilter = ref<string>('all');
 /** 资源类型筛选 */
 const typeFilter = ref<string>('all');
 
-/** 状态筛选选项 */
-const statusOptions: SelectOption[] = [
-  { value: 'all', label: '全部' },
-  { value: 'completed', label: '已完成' },
-  { value: 'pending', label: '待处理' },
-  { value: 'failed', label: '失败' },
-];
+/** 状态筛选选项（使用 computed 确保切换语言后更新） */
+const statusOptions = computed<SelectOption[]>(() => [
+  { value: 'all', label: t('全部') },
+  { value: 'completed', label: t('已完成') },
+  { value: 'pending', label: t('待处理') },
+  { value: 'failed', label: t('失败') },
+]);
 
-/** 资源类型筛选选项 */
-const typeOptions: SelectOption[] = [
-  { value: 'all', label: '全部' },
-  { value: 'IMAGE', label: '图片' },
-  { value: 'TEXT', label: '文本' },
-  { value: 'VIDEO', label: '视频' },
-  { value: 'AUDIO', label: '音频' },
-];
+/** 资源类型筛选选项（使用 computed 确保切换语言后更新） */
+const typeOptions = computed<SelectOption[]>(() => [
+  { value: 'all', label: t('全部') },
+  { value: 'IMAGE', label: t('图片') },
+  { value: 'TEXT', label: t('文本') },
+  { value: 'VIDEO', label: t('视频') },
+  { value: 'AUDIO', label: t('音频') },
+]);
 
 /** 选中的资源 */
 const selectedResource = ref<ResourceItem | null>(null);
@@ -74,19 +76,13 @@ const showDetailDialog = ref(false);
 /** 已加载所有数据 */
 const hasLoadedAll = computed(() => resources.value.length >= total.value);
 
-/** 过滤后的资源列表 */
+/** 过滤后的资源列表（组合过滤：status 和 type 同时生效） */
 const filteredResources = computed(() => {
   const list = resources.value ?? [];
-
-  if (statusFilter.value !== 'all') {
-    return list.filter(r => r.status === statusFilter.value);
-  }
-
-  if (typeFilter.value !== 'all') {
-    return list.filter(r => r.type === typeFilter.value);
-  }
-
-  return list;
+  return list.filter(r =>
+    (statusFilter.value === 'all' || r.status === statusFilter.value) &&
+    (typeFilter.value === 'all' || r.type === typeFilter.value),
+  );
 });
 
 /** 加载资源 */
@@ -117,13 +113,34 @@ async function loadResources(reset = false) {
     currentPage.value++;
   } catch (error: unknown) {
     toast.add({
-      summary: '加载失败',
-      detail: getErrorMessage(error, '加载资源列表时发生错误'),
+      summary: t('加载失败'),
+      detail: getErrorMessage(error, t('加载资源列表时发生错误')),
       variant: 'error',
     });
   } finally {
     isLoading.value = false;
   }
+}
+
+/** 获取资源状态标签（i18n 映射） */
+function getStatusLabel(status: string): string {
+  const map: Record<string, string> = {
+    completed: t('已完成'),
+    pending: t('待处理'),
+    failed: t('失败'),
+  };
+  return map[status] || status;
+}
+
+/** 获取资源类型标签（i18n 映射） */
+function getTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    IMAGE: t('图片'),
+    TEXT: t('文本'),
+    VIDEO: t('视频'),
+    AUDIO: t('音频'),
+  };
+  return map[type] || type;
 }
 
 /** 查看详情 */
@@ -174,10 +191,10 @@ onMounted(() => {
     <!-- 页面头部 -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-        资源库
+        {{ t('资源库') }}
       </h1>
       <p class="mt-2 text-primary-600 dark:text-primary-400">
-        管理你的 AI 生成资源
+        {{ t('管理你的 AI 生成资源') }}
       </p>
     </div>
 
@@ -185,23 +202,23 @@ onMounted(() => {
     <div class="mb-6 flex flex-wrap gap-4">
       <div>
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-          状态
+          {{ t('状态') }}
         </label>
         <Select
           v-model="statusFilter"
           :options="statusOptions"
-          placeholder="全部"
+          :placeholder="t('全部')"
         />
       </div>
 
       <div>
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-          类型
+          {{ t('类型') }}
         </label>
         <Select
           v-model="typeFilter"
           :options="typeOptions"
-          placeholder="全部"
+          :placeholder="t('全部')"
         />
       </div>
     </div>
@@ -210,18 +227,18 @@ onMounted(() => {
     <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
       <!-- 表格头部 -->
       <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-primary-200 dark:border-primary-700 font-medium text-sm text-primary-700 dark:text-primary-300">
-        <div class="col-span-1">预览</div>
-        <div class="col-span-3">标题</div>
-        <div class="col-span-2">类型</div>
-        <div class="col-span-2">状态</div>
-        <div class="col-span-2">创建时间</div>
-        <div class="col-span-2">操作</div>
+        <div class="col-span-1">{{ t('预览') }}</div>
+        <div class="col-span-3">{{ t('标题') }}</div>
+        <div class="col-span-2">{{ t('类型') }}</div>
+        <div class="col-span-2">{{ t('状态') }}</div>
+        <div class="col-span-2">{{ t('创建时间') }}</div>
+        <div class="col-span-2">{{ t('操作') }}</div>
       </div>
 
       <!-- 加载中 -->
       <div v-if="isLoading && filteredResources.length === 0" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">加载中...</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">{{ t('加载中...') }}</p>
       </div>
 
       <!-- 空状态 -->
@@ -229,7 +246,7 @@ onMounted(() => {
         <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">暂无资源</p>
+        <p class="mt-2 text-primary-600 dark:text-primary-400">{{ t('暂无资源') }}</p>
       </div>
 
       <!-- 资源列表 -->
@@ -271,14 +288,14 @@ onMounted(() => {
           <!-- 类型 -->
           <div class="col-span-2 flex items-center">
             <span class="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded">
-              {{ resource.type }}
+              {{ getTypeLabel(resource.type) }}
             </span>
           </div>
 
           <!-- 状态 -->
           <div class="col-span-2 flex items-center">
             <span :class="getStatusBadgeClass(resource.status)">
-              {{ resource.status }}
+              {{ getStatusLabel(resource.status) }}
             </span>
           </div>
 
@@ -294,7 +311,7 @@ onMounted(() => {
               size="sm"
               @click="viewDetail(resource)"
             >
-              查看详情
+              {{ t('查看详情') }}
             </Button>
           </div>
         </div>
@@ -308,8 +325,8 @@ onMounted(() => {
           :disabled="isLoading"
           @click="loadResources()"
         >
-          <span v-if="isLoading">加载中...</span>
-          <span v-else>加载更多</span>
+          <span v-if="isLoading">{{ t('加载中...') }}</span>
+          <span v-else>{{ t('加载更多') }}</span>
         </Button>
       </div>
     </div>
@@ -318,7 +335,7 @@ onMounted(() => {
     <Dialog
       v-if="selectedResource"
       v-model:open="showDetailDialog"
-      title="资源详情"
+      :title="t('资源详情')"
     >
       <!-- 图片预览 -->
       <div v-if="selectedResource.type === 'IMAGE'" class="mb-6">
@@ -333,7 +350,7 @@ onMounted(() => {
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-            标题
+            {{ t('标题') }}
           </label>
           <p class="text-primary-900 dark:text-primary-100">
             {{ selectedResource.title }}
@@ -342,16 +359,16 @@ onMounted(() => {
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-            描述
+            {{ t('描述') }}
           </label>
           <p class="text-primary-600 dark:text-primary-400">
-            {{ selectedResource.description || '无' }}
+            {{ selectedResource.description || t('无') }}
           </p>
         </div>
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-            类型
+            {{ t('类型') }}
           </label>
           <p class="text-primary-900 dark:text-primary-100">
             {{ selectedResource.type }}
@@ -360,7 +377,7 @@ onMounted(() => {
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-            状态
+            {{ t('状态') }}
           </label>
           <span :class="getStatusBadgeClass(selectedResource.status)">
             {{ selectedResource.status }}
@@ -369,7 +386,7 @@ onMounted(() => {
 
         <div>
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-            创建时间
+            {{ t('创建时间') }}
           </label>
           <p class="text-primary-600 dark:text-primary-400">
             {{ formatDate(selectedResource.created) }}
@@ -378,7 +395,7 @@ onMounted(() => {
 
         <div v-if="selectedResource.metadata">
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-            元数据
+            {{ t('元数据') }}
           </label>
           <pre class="bg-primary-100 dark:bg-primary-900 p-3 rounded text-xs overflow-auto max-h-40">{{ JSON.stringify(selectedResource.metadata, null, 2) }}</pre>
         </div>

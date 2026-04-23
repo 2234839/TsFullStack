@@ -36,11 +36,11 @@
           <a href="https://shenzilong.cn" target="_blank">
             <File2Url v-if="avatarUrl" :fileId="avatarUrl" v-slot="{ url }">
               <div class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-info-400 mr-3">
-                <img :src="url" alt="用户头像" class="w-full h-full object-cover" />
+                <img :src="url" :alt="t('用户头像')" class="w-full h-full object-cover" />
               </div>
             </File2Url>
             <div v-else class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-info-400 mr-3">
-              <img :src="avatarImageSrc" alt="默认头像" class="w-full h-full object-cover" />
+              <img :src="avatarImageSrc" :alt="t('默认头像')" class="w-full h-full object-cover" />
             </div>
           </a>
           <span
@@ -49,7 +49,7 @@
         <div class="user-info transition-all duration-300 overflow-hidden whitespace-nowrap"
           :class="[isCollapsed ? 'opacity-0 w-0' : 'opacity-100 flex-1']">
           <h2 class="font-medium text-primary-800 dark:text-primary-50">{{ displayName }}</h2>
-          <p class="text-sm text-primary-500 dark:text-secondary-400">{{ userProfile?.email || '未登录' }}</p>
+          <p class="text-sm text-primary-500 dark:text-secondary-400">{{ userProfile?.email || t('未登录') }}</p>
         </div>
         <Badge v-if="!isCollapsed" value="3" variant="info" class="ml-auto"></Badge>
       </div>
@@ -59,7 +59,7 @@
         class="search-box px-4 py-3 transition-all duration-300 overflow-hidden border-b border-primary-200 dark:border-secondary-700/50"
         :class="[isCollapsed ? 'opacity-0 h-0 py-0' : 'opacity-100']">
         <span class="p-input-icon-left w-full">
-          <Input v-model="searchQuery" placeholder="搜索..."
+          <Input v-model="searchQuery" :placeholder="t('搜索...')"
             class="w-full p-input-sm rounded-lg bg-primary-100 dark:bg-secondary-700/50 border-primary-300 dark:border-secondary-600 text-primary-800 dark:text-primary-50" />
         </span>
       </div>
@@ -327,6 +327,26 @@
             },
           ],
         },
+        {
+          key: 'paymentManagement',
+          label: t('支付管理'),
+          icon: 'pi pi-wallet',
+          expanded: false,
+          items: [
+            {
+              key: 'paymentConfig',
+              label: t('支付配置'),
+              icon: routeMap.admin.child.paymentConfig.meta.icon,
+              to: routerUtil.to(routeMap.admin.child.paymentConfig, {}),
+            },
+            {
+              key: 'paymentOrderList',
+              label: t('支付订单'),
+              icon: routeMap.admin.child.paymentOrderList.meta.icon,
+              to: routerUtil.to(routeMap.admin.child.paymentOrderList, {}),
+            },
+          ],
+        },
       ],
     },
     {
@@ -414,22 +434,23 @@
     const result: MenuCategory[] = [];
 
     menuItems.forEach((category) => {
-      const filteredItems = category.items.filter((item) => {
-        const matchesSearch = item.label.toLowerCase().includes(searchQuery.value.toLowerCase());
+      const filteredItems = category.items
+        .map((item) => {
+          const matchesSearch = item.label.toLowerCase().includes(searchQuery.value.toLowerCase());
 
-        if (item.items) {
-          const filteredSubItems = item.items.filter((subItem) =>
-            subItem.label.toLowerCase().includes(searchQuery.value.toLowerCase()),
-          );
+          if (item.items) {
+            const filteredSubItems = item.items.filter((subItem) =>
+              subItem.label.toLowerCase().includes(searchQuery.value.toLowerCase()),
+            );
 
-          if (filteredSubItems.length > 0) {
-            item = { ...item, items: filteredSubItems };
-            return true;
+            if (filteredSubItems.length > 0) {
+              return { ...item, items: filteredSubItems };
+            }
           }
-        }
 
-        return matchesSearch;
-      });
+          return matchesSearch ? item : null;
+        })
+        .filter((item): item is MenuItem => item !== null);
 
       if (filteredItems.length > 0) {
         result.push({
@@ -468,9 +489,12 @@
     router.push(item.to);
   };
 
-  // 检查是否是当前活动路由
+  // 检查是否是当前活动路由（支持 string 路径和路由名称对象两种格式）
   const isActiveRoute = (item: MenuItem): boolean => {
-    return router.currentRoute.value.path === item.to;
+    if (typeof item.to === 'string') {
+      return router.currentRoute.value.path === item.to;
+    }
+    return router.currentRoute.value.name === (item.to as { name?: string })?.name;
   };
 
   // 获取徽章样式

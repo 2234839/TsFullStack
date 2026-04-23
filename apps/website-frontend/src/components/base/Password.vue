@@ -16,13 +16,13 @@ interface Props {
   invalid?: boolean;
   /** 是否显示强度指示器 */
   feedback?: boolean;
+  /** 外部控制密码可见性切换（传入时使用外部状态） */
+  toggleMask?: () => void;
+  /** input 元素 id */
+  inputId?: string;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  disabled: false,
-  invalid: false,
-  feedback: false,
-});
+const { disabled = false, invalid = false, feedback = false, toggleMask: externalToggle, inputId } = defineProps<Props>();
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
@@ -31,8 +31,12 @@ const emit = defineEmits<{
 /** 密码可见性 */
 const visible = ref(false);
 
-/** 切换密码可见性 */
+/** 切换密码可见性（优先使用外部传入的切换函数） */
 const toggleVisibility = () => {
+  if (externalToggle) {
+    externalToggle();
+    return;
+  }
   visible.value = !visible.value;
 };
 
@@ -40,13 +44,13 @@ const toggleVisibility = () => {
 const inputClasses = computed(() => {
   const base = 'w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200';
 
-  const stateClasses = props.invalid
+  const stateClasses = invalid
     ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
     : 'border-primary-300 dark:border-primary-700 focus:ring-secondary-500 dark:focus:ring-secondary-400';
 
   const bgClass = 'bg-primary-50 dark:bg-primary-950';
   const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
-  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${base} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });
@@ -61,6 +65,7 @@ function handleInput(event: Event) {
 <template>
   <div class="relative">
     <input
+      :id="inputId"
       :type="visible ? 'text' : 'password'"
       :placeholder="placeholder"
       :disabled="disabled"

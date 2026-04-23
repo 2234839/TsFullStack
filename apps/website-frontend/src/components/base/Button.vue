@@ -24,24 +24,17 @@ interface Props {
   rounded?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  variant: 'primary',
-  size: 'md',
-  disabled: false,
-  type: 'button',
-  loading: false,
-  rounded: false,
-});
+const { variant = 'primary', size = 'md', disabled = false, type = 'button', loading = false, rounded = false, label, icon } = defineProps<Props>();
 
 /** 按钮样式类 */
 const buttonClasses = computed(() => {
-  const baseFontClass = props.variant === 'ghost' || props.variant === 'text-button' ? 'font-normal' : 'font-medium';
-  const base = props.rounded
+  const baseFontClass = variant === 'ghost' || variant === 'text-button' ? 'font-normal' : 'font-medium';
+  const base = rounded
     ? `inline-flex items-center justify-center rounded-full ${baseFontClass} transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`
     : `inline-flex items-center justify-center rounded-md ${baseFontClass} transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`;
 
   // icon 和 text-button 变体：有文本时使用常规 padding，无文本时使用小的正方形 padding
-  const hasLabel = !!props.label;
+  const hasLabel = !!label;
   const iconSizeClasses: Record<string, string> = {
     sm: hasLabel ? 'px-3 py-1.5 text-sm' : 'p-1.5 text-sm',
     small: hasLabel ? 'px-3 py-1.5 text-sm' : 'p-1.5 text-sm',
@@ -58,15 +51,15 @@ const buttonClasses = computed(() => {
   };
 
   /** 根据变体和尺寸获取尺寸类名 */
-  const getSizeClass = (size: string): string => {
-    if (props.variant === 'ghost') return size === 'lg' ? 'text-lg' : size === 'md' ? 'text-base' : 'text-sm';
-    if (props.variant === 'text-button') return textButtonSizeClasses[size] || 'text-sm';
-    if (props.variant === 'icon') return iconSizeClasses[size] || 'text-sm';
+  const getSizeClass = (sz: string): string => {
+    if (variant === 'ghost') return sz === 'lg' ? 'text-lg' : sz === 'md' ? 'text-base' : 'text-sm';
+    if (variant === 'text-button') return textButtonSizeClasses[sz] || 'text-sm';
+    if (variant === 'icon') return iconSizeClasses[sz] || 'text-sm';
     return {
       small: 'px-3 py-1.5 text-sm',
       md: 'px-4 py-2 text-base',
       lg: 'px-6 py-3 text-lg',
-    }[size] || 'px-3 py-1.5 text-sm';
+    }[sz] || 'px-3 py-1.5 text-sm';
   };
 
   const sizeClasses: Record<string, string> = {
@@ -88,9 +81,9 @@ const buttonClasses = computed(() => {
 
   // 当只有图标时，调整为正方形
   // ghost、text-button 和 icon 变体不需要额外的 padding，已经在 sizeClasses 中处理
-  const iconOnlyClass = props.icon && !props.label && props.variant !== 'ghost' && props.variant !== 'icon' && props.variant !== 'text-button' ? 'p-2' : '';
+  const iconOnlyClass = icon && !label && variant !== 'ghost' && variant !== 'icon' && variant !== 'text-button' ? 'p-2' : '';
 
-  return `${base} ${sizeClasses[props.size]} ${variantClasses[props.variant]} ${iconOnlyClass}`;
+  return `${base} ${sizeClasses[size]} ${variantClasses[variant]} ${iconOnlyClass}`;
 });
 </script>
 

@@ -2,9 +2,12 @@ import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { dbTry, dbTryOrDefault, dbPaginatedFindMany } from '../util/dbEffect';
-import { MsgError } from '../util/error';
+import { MsgError, fail, neverReturn } from '../util/error';
 import { TokenType, Token } from '../../.zenstack/models';
-import { DEFAULT_PAGE_SIZE } from '../util/constants';
+import { DEFAULT_PAGE_SIZE, MSG } from '../util/constants';
+
+/** 代币默认来源 */
+const DEFAULT_TOKEN_SOURCE = 'system';
 
 /**
  * 代币消耗结果
@@ -221,20 +224,6 @@ export const TokenService = {
     }),
 
   /**
-   * 检查代币是否足够
-   */
-  checkTokens: (userId: string, amount: number) =>
-    Effect.gen(function* () {
-      const available = yield* TokenService.getAvailableTokens(userId);
-
-      if (available.total < amount) {
-        return false;
-      }
-
-      return true;
-    }),
-
-  /**
    * 消耗代币（支持组合消耗）
    *
    * 消耗优先级：
@@ -248,15 +237,18 @@ export const TokenService = {
       const db = yield* DbClientEffect;
       const reqCtx = yield* ReqCtxService;
 
-      // 0. 查询任务类型
-      const task = yield* dbTry('[TokenService]', '查询任务', () =>
-        db.task.findUnique({ where: { id: taskId }, select: { type: true } }),
-      );
+      // 0. 并行查询任务类型和用户代币（两者无数据依赖）
+      const [taskRaw, allTokens] = yield* Effect.all([
+        dbTry('[TokenService]', '查询任务', () =>
+          db.task.findUnique({ where: { id: taskId }, select: { type: true } }),
+        ),
+        TokenService.findActiveTokens(userId),
+      ]);
 
-      if (!task) throw MsgError.msg('任务不存在');
+      const task = taskRaw;
+      if (!task) { yield* fail(MSG.TASK_NOT_FOUND); return neverReturn(); }
 
       // 1. 分类代币（专用 vs 通用）并检查余额
-      const allTokens = yield* TokenService.findActiveTokens(userId);
       const { specific: specificTokens, general: generalTokens } = classifyTokens(allTokens, task.type);
 
       const totalAvailable = [...specificTokens, ...generalTokens]
@@ -265,7 +257,8 @@ export const TokenService = {
       reqCtx.log(`[TokenService] 任务类型: ${task.type}, 需要代币: ${amount}, 总可用: ${totalAvailable}`);
 
       if (totalAvailable < amount) {
-        throw MsgError.msg(`代币不足！需要 ${amount} 枚，但只有 ${totalAvailable} 枚可用`);
+        yield* fail(`代币不足！需要 ${amount} 枚，但只有 ${totalAvailable} 枚可用`);
+        return neverReturn();
       }
 
       // 2. 计算消耗计划并持久化
@@ -320,8 +313,21 @@ export const TokenService = {
   }) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
+      const reqCtx = yield* ReqCtxService;
 
       const { userId, type, amount, source, sourceId, description, restrictedType } = params;
+
+      /** 代币数量必须为正有限数 */
+      if (typeof amount !== 'number' || !Number.isFinite(amount) || amount <= 0) {
+        yield* fail('代币数量必须为正数');
+        return neverReturn();
+      }
+
+      /** restrictedType 必须是扁平字符串数组或 null（防止嵌套结构导致消耗匹配失败） */
+      if (restrictedType !== null && (!Array.isArray(restrictedType) || restrictedType.some((t) => typeof t !== 'string'))) {
+        yield* fail('restrictedType 必须为字符串数组或 null');
+        return neverReturn();
+      }
 
       // 计算过期时间（未指定时按类型自动计算）
       let expiresAt: Date | undefined = params.expiresAt;
@@ -365,7 +371,7 @@ export const TokenService = {
               amount,
               used: 0,
               expiresAt,
-              source: source || 'system',
+              source: source || DEFAULT_TOKEN_SOURCE,
               sourceId,
               description,
               restrictedType: targetRestrictedType,
@@ -373,6 +379,8 @@ export const TokenService = {
           });
         }),
       );
+
+      reqCtx.log('[TokenService] 发放代币: userId=' + userId + ', amount=' + amount + ', type=' + type);
     }),
 
   /**
@@ -393,7 +401,6 @@ export const TokenService = {
           take: options?.take ?? DEFAULT_PAGE_SIZE,
         }),
         () => db.token.count({ where: { userId } }),
-        [] as never[],
       );
     }),
 

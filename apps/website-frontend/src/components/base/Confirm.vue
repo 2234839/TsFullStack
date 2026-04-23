@@ -7,9 +7,12 @@
  * 2. Popover 模式（传入 event，使用 reka-ui Popover 在元素附近显示）
  */
 import { useConfirmState } from '@/composables/useConfirm';
+import { useI18n } from '@/composables/useI18n';
 import Button from './Button.vue';
 import { PopoverRoot, PopoverPortal, PopoverContent, PopoverArrow, PopoverAnchor } from 'reka-ui';
 import { computed } from 'vue';
+
+const { t } = useI18n();
 
 const { confirmState } = useConfirmState();
 
@@ -77,11 +80,11 @@ function handleOpenChange(open: boolean) {
           <!-- 按钮 -->
           <div class="flex justify-end gap-3">
             <Button
-              :label="confirmState.rejectLabel || '取消'"
+              :label="confirmState.rejectLabel || t('取消')"
               variant="secondary"
               @click="handleReject" />
             <Button
-              :label="confirmState.acceptLabel || '确认'"
+              :label="confirmState.acceptLabel || t('确认')"
               :class="confirmState.acceptClass"
               @click="handleAccept" />
           </div>
@@ -139,11 +142,11 @@ function handleOpenChange(open: boolean) {
           <!-- 按钮 -->
           <div class="flex justify-end gap-3">
             <Button
-              :label="confirmState.rejectLabel || '取消'"
+              :label="confirmState.rejectLabel || t('取消')"
               variant="secondary"
               @click="handleReject" />
             <Button
-              :label="confirmState.acceptLabel || '确认'"
+              :label="confirmState.acceptLabel || t('确认')"
               :class="confirmState.acceptClass"
               @click="handleAccept" />
           </div>

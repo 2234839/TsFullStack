@@ -212,11 +212,12 @@
     <!-- 简化的二维码弹窗 -->
     <Dialog
       v-model:open="showQRCode"
+      class="sponsorship-dialog"
       :title="t('感谢您的支持')">
       <div class="qr-content space-y-4">
         <!-- 二维码展示区 -->
         <div class="qr-display flex justify-center">
-          <img src="/afdian-崮生.webp" class="max-w-full h-96 rounded-lg shadow-md" />
+          <img src="/afdian-崮生.webp" :alt="t('爱发电赞助二维码')" class="max-w-full h-96 rounded-lg shadow-md" />
         </div>
 
         <!-- 感谢信息 -->
@@ -283,50 +284,43 @@
     qqGroupNumber?: string;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    compactThreshold: 120,
-    expandedThreshold: 500,
-    sponsorCount: 1,
-    totalAmount: 30,
-    targetAmount: 5000,
-    qqGroupNumber: '706761641',
-  });
+  const { compactThreshold = 120, expandedThreshold = 500, sponsorCount = 1, totalAmount = 30, targetAmount = 5000, qqGroupNumber = '706761641' } = defineProps<Props>();
 
   const showQRCode = ref(false);
   const containerRef = useTemplateRef('containerRef');
   const { width: containerWidth } = useElementSize(containerRef);
 
-  const isCompact = computed(() => containerWidth.value < props.compactThreshold);
+  const isCompact = computed(() => containerWidth.value < compactThreshold);
   const isStandard = computed(
     () =>
-      containerWidth.value >= props.compactThreshold &&
-      containerWidth.value < props.expandedThreshold,
+      containerWidth.value >= compactThreshold &&
+      containerWidth.value < expandedThreshold,
   );
 
   const handleDirectPay = () => {
-    window.open('https://afdian.com/a/llej0', '_blank');
+    window.open('https://afdian.com/a/llej0', '_blank', 'noopener,noreferrer');
   };
 
   const joinQQGroup = () => {
-    const qqGroupUrl = `https://qm.qq.com/cgi-bin/qm/qr?k=${props.qqGroupNumber}&jump_from=webapi`;
-    window.open(qqGroupUrl, '_blank');
+    const qqGroupUrl = `https://qm.qq.com/cgi-bin/qm/qr?k=${qqGroupNumber}&jump_from=webapi`;
+    window.open(qqGroupUrl, '_blank', 'noopener,noreferrer');
   };
 
   const { share } = useSharePlus();
   const shareContent = () => {
     share({
-      title: '支持独立创作者',
-      text: '发现了一个很棒的创作者，一起来支持吧！',
+      title: t('支持独立创作者'),
+      text: t('发现了一个很棒的创作者，一起来支持吧！'),
       url: window.location.href,
     });
   };
 
   const followCreator = () => {
-    window.open('https://github.com/2234839', '_blank');
+    window.open('https://github.com/2234839', '_blank', 'noopener,noreferrer');
   };
 
   const provideFeedback = () => {
-    window.open('https://github.com/2234839/TsFullStack/issues', '_blank');
+    window.open('https://github.com/2234839/TsFullStack/issues', '_blank', 'noopener,noreferrer');
   };
 </script>
 
@@ -363,9 +357,9 @@
       margin-top: 0.5rem;
     }
 
-    .qr-dialog {
-      width: 90vw !important;
-      max-width: 380px !important;
+    .sponsorship-dialog :deep([data-state="open"]) {
+      width: 90vw;
+      max-width: 380px;
     }
   }
 

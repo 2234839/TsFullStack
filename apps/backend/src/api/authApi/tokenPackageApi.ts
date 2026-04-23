@@ -2,12 +2,12 @@ import { Effect } from 'effect';
 import { AuthContext, requireAdmin } from '../../Context/Auth';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { dbTry } from '../../util/dbEffect';
-import { MsgError } from '../../util/error';
+import { MsgError, fail, neverReturn } from '../../util/error';
 import { TokenService } from '../../services/TokenService';
 import { TokenPackageService } from '../../services/TokenPackageService';
-import { TokenGrantService } from '../../services/TokenGrantService';
+import { TokenGrantService, asGrantTx } from '../../services/TokenGrantService';
 import { TokenType } from '../../../.zenstack/models';
-import { MS_PER_DAY } from '../../util/constants';
+import { MS_PER_DAY, MSG } from '../../util/constants';
 
 /** 业务规则常量 */
 const MAX_GRANT_AMOUNT = 1_000_000;
@@ -16,11 +16,12 @@ const MAX_DESCRIPTION_LENGTH = 500;
 const VALID_TOKEN_TYPES: TokenType[] = ['MONTHLY', 'YEARLY', 'PERMANENT'];
 
 /** 验证 userId 非空 */
-function validateUserId(userId: string | undefined | null) {
-  if (!userId || userId.trim().length === 0) {
-    throw MsgError.msg('用户ID不能为空');
-  }
-}
+const validateUserId = (userId: string | undefined | null): Effect.Effect<void, MsgError> =>
+  Effect.gen(function* () {
+    if (!userId || userId.trim().length === 0) {
+      yield* Effect.fail(MsgError.msg('用户ID不能为空'));
+    }
+  });
 
 /**
  * 创建代币套餐
@@ -105,24 +106,28 @@ export const grantTokens = (request: {
     const reqCtx = yield* ReqCtxService;
 
     // 严格的参数验证
-    validateUserId(request.userId);
+    yield* validateUserId(request.userId);
 
     if (request.amount <= 0) {
-      throw MsgError.msg('代币数量必须大于0');
+      yield* fail(MSG.TOKEN_AMOUNT_POSITIVE);
+      return neverReturn();
     }
 
     if (request.amount > MAX_GRANT_AMOUNT) {
-      throw MsgError.msg('单次发放代币数量不能超过100万');
+      yield* fail('单次发放代币数量不能超过100万');
+      return neverReturn();
     }
 
     // 验证代币类型
     if (!VALID_TOKEN_TYPES.includes(request.type)) {
-      throw MsgError.msg('无效的代币类型');
+      yield* fail('无效的代币类型');
+      return neverReturn();
     }
 
     // 验证描述长度
     if (request.description && request.description.length > MAX_DESCRIPTION_LENGTH) {
-      throw MsgError.msg(`描述不能超过${MAX_DESCRIPTION_LENGTH}字符`);
+      yield* fail(`描述不能超过${MAX_DESCRIPTION_LENGTH}字符`);
+      return neverReturn();
     }
 
     // 发放代币
@@ -151,12 +156,13 @@ export const subscribePackage = (request: {
     yield* requireAdmin();
     const reqCtx = yield* ReqCtxService;
 
-    // 参数验证
+    // 参数验证（先 trim 再校验）
     const userId = request.userId.trim();
-    validateUserId(request.userId);
+    yield* validateUserId(userId);
 
     if (request.packageId <= 0) {
-      throw MsgError.msg('套餐ID必须大于0');
+      yield* fail('套餐ID必须大于0');
+      return neverReturn();
     }
 
     // 使用事务确保订阅和代币发放的原子性
@@ -171,7 +177,7 @@ export const subscribePackage = (request: {
         ]);
 
         if (existingSubscription) throw MsgError.msg('用户已订阅此套餐，请勿重复订阅');
-        if (!tokenPackage) throw MsgError.msg('套餐不存在');
+        if (!tokenPackage) throw MsgError.msg(MSG.PACKAGE_NOT_FOUND);
         if (!tokenPackage.active) throw MsgError.msg('套餐已停用');
 
         const now = new Date();
@@ -193,7 +199,7 @@ export const subscribePackage = (request: {
         });
 
         // 复用 TokenGrantService 的核心发放逻辑（创建代币、更新订阅、调度下次任务）
-        await TokenGrantService.grantFirstTime(tx as unknown as import('../../Context/DbService').DbClient, {
+        await TokenGrantService.grantFirstTime(asGrantTx(tx), {
           ...subscription,
           package: { type: tokenPackage.type, amount: tokenPackage.amount, name: tokenPackage.name },
         });
@@ -223,14 +229,18 @@ export const cancelSubscription = (subscriptionId: number) =>
   });
 
 /**
- * 获取用户订阅列表
+ * 获取用户订阅列表（需要管理员权限）
  */
 export const listUserSubscriptions = (options?: {
   userId?: string;
   active?: boolean;
   skip?: number;
   take?: number;
-}) => TokenPackageService.listSubscriptions(options);
+}) =>
+  Effect.gen(function* () {
+    yield* requireAdmin();
+    return yield* TokenPackageService.listSubscriptions(options);
+  });
 
 /**
  * 套餐管理 API

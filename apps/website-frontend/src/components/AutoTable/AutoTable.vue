@@ -7,11 +7,11 @@
         <Button @click="saveChanges">{{ t('保存修改结果') }}</Button>
         <Button @click="discardChanges" variant="secondary">{{ t('丢弃修改') }}</Button>
         <span>
-          {{ t('autoTable.affectedRows', { rows: editRows.length, cells: eidtCellCount }) }}
+          {{ t('autoTable.affectedRows', { rows: editRows.length, cells: editCellCount }) }}
         </span>
       </template>
       <Button v-if="selectRows.length" @click="deleteConfirm($event)" variant="danger">
-        Delete( {{ selectRows.length }} )
+        {{ t('删除') }}( {{ selectRows.length }} )
       </Button>
     </div>
   </div>
@@ -62,7 +62,13 @@
   const { API } = useAPI();
 
   const modelMeta = await useModelMeta();
-  provide(injectModelMetaKey, modelMeta.state.value!);
+  const initialMeta = modelMeta.state.value;
+  if (!initialMeta) {
+    /** 未登录或 API 不可用时提供空 meta，避免 throw 导致 Suspense 崩溃 */
+    provide(injectModelMetaKey, { models: {} } as NonNullable<typeof initialMeta>);
+  } else {
+    provide(injectModelMetaKey, initialMeta);
+  }
   const models = computed(() => {
     const meta = modelMeta.state.value;
     return meta?.models ?? {};
@@ -179,9 +185,10 @@
     },
   );
   function reloadTableData() {
-    if (!selectModelMeta.value?.modelKey) return;
+    const meta = selectModelMeta.value;
+    if (!meta?.modelKey) return;
     tableData.execute(200, {
-      modelKey: selectModelMeta.value!.modelKey,
+      modelKey: meta.modelKey,
       page: currentPage.value,
       pageSize: pageSize.value,
     });
@@ -203,15 +210,17 @@
   const editRows = computed(() => {
     return editData.value.filter((row) => Object.keys(row).length > 0);
   });
-  const eidtCellCount = computed(() => {
+  const editCellCount = computed(() => {
     return editRows.value.reduce((acc, row) => acc + Object.keys(row).length, 0);
   });
   async function saveChanges() {
     if (!selectModelName.value) return;
 
     try {
+      const currentModelMeta = modelMeta.state.value;
+      if (!currentModelMeta) return;
       /** 查找一个可以用于更新指定记录的唯一主键字段  */
-      const idField = findIdField(modelMeta.state.value!, selectModelName.value);
+      const idField = findIdField(currentModelMeta, selectModelName.value);
       if (!idField) return;
 
       for (const [index, editRowItem] of editData.value.entries()) {
@@ -224,7 +233,7 @@
       editFields.forEach((editFieldName) => {
         const field = (selectModelMeta.value?.model.fields as unknown as Record<string, FieldInfo>)[editFieldName]!;
         /** 被引用的模型的 id 列定义 */
-        const refIdField = findIdField(modelMeta.state.value!, field.type as string)!;
+        const refIdField = findIdField(currentModelMeta, field.type as string)!;
 
         if (isDataModelField(field)) {
           const relationData = editRow[editFieldName] as RelationSelectData;
@@ -311,14 +320,15 @@
           // 安全检查：确保 relationData 和 relationData.add 存在
           if (relationData?.add && relationData.add.length > 0) {
             // 获取被关联模型的 API（如 UserData API）
-            const relatedModel = Object.values(modelMeta.state.value!.models).find((m) => m.name === (field.type as string));
-            const modelsRecord = modelMeta.state.value!.models as unknown as Record<string, unknown>;
+            const relatedModel = Object.values(currentModelMeta.models).find((m) => m.name === (field.type as string));
+            const modelsRecord = currentModelMeta.models as unknown as Record<string, unknown>;
             const relatedModelKey = relatedModel
               ? (Object.keys(modelsRecord).find((k) => modelsRecord[k] === relatedModel) as ModelMetaNames | undefined)
               : undefined;
-            const relatedModelName = exportGetModelDbName(relatedModelKey!);
+            if (!relatedModelKey) continue;
+            const relatedModelName = exportGetModelDbName(relatedModelKey);
             const relatedAPI = getModelAPI(API, relatedModelName);
-            const relatedIdField = findIdField(modelMeta.state.value!, field.type as string)!;
+            const relatedIdField = findIdField(currentModelMeta, field.type as string)!;
 
             // 获取反向字段名称（如 UserData.user）
             const backLinkFieldName = getBackLinkFieldName(field);
@@ -335,7 +345,7 @@
             for (const item of relationData.add) {
               try {
                 // 获取反向关系的外键字段名（如 UserData.user -> userId）
-                const relatedModelForLink = Object.values(modelMeta.state.value!.models).find(
+                const relatedModelForLink = Object.values(currentModelMeta.models).find(
                   (m) => m.name === (field.type as string),
                 );
                 const backLinkField = relatedModelForLink
@@ -361,8 +371,8 @@
                 // 在 UI 上显示错误提示
                 toast.add({
                   variant: 'danger',
-                  summary: '关联失败',
-                  detail: `无法将 ${field.type} 记录转移到当前用户：该记录可能与目标用户的现有记录冲突（唯一约束）`,
+                  summary: t('关联失败'),
+                  detail: t(`无法将 ${field.type} 记录转移到当前用户：该记录可能与目标用户的现有记录冲突（唯一约束）`),
                   life: 5000,
                 });
 
@@ -384,7 +394,9 @@
         }
       }
 
-      const modelKey = selectModelMeta.value!.modelKey;
+      const currentMeta = selectModelMeta.value;
+      if (!currentMeta?.modelKey) return;
+      const modelKey = currentMeta.modelKey;
       const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
       const modelAPI = getModelAPI(API, modelName);
       await modelAPI.update({
@@ -402,8 +414,8 @@
       // 在 UI 上显示错误提示
       toast.add({
         variant: 'danger',
-        summary: '保存失败',
-        detail: getErrorMessage(error, '保存更改时发生错误，请查看控制台了解详情'),
+        summary: t('保存失败'),
+        detail: getErrorMessage(error, t('保存更改时发生错误，请查看控制台了解详情')),
         life: 5000,
       });
     }
@@ -416,17 +428,21 @@
     });
   }
   async function deleteRows(rows: Array<Record<string, any> | string | number>) {
+    const deleteModelMeta = modelMeta.state.value;
+    if (!deleteModelMeta) return;
     /** 查找一个可以用于更新指定记录的唯一主键字段  */
-    const idField = findIdField(modelMeta.state.value!, selectModelName.value);
+    const idField = findIdField(deleteModelMeta, selectModelName.value);
     if (!idField) return;
     if (rows.length === 0)
       return toast.add({
         variant: 'info',
-        summary: 'Warn',
+        summary: t('警告'),
         detail: t('未选中数据'),
         life: 3000,
       });
-    const modelKey = selectModelMeta.value!.modelKey;
+    const deleteMeta = selectModelMeta.value;
+    if (!deleteMeta?.modelKey) return;
+    const modelKey = deleteMeta.modelKey;
     const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
     const modelAPI = getModelAPI(API, modelName);
 
@@ -452,8 +468,8 @@
     if (validIds.length === 0) {
       return toast.add({
         variant: 'warning',
-        summary: '删除失败',
-        detail: '选中的数据没有有效的 ID',
+        summary: t('删除失败'),
+        detail: t('选中的数据没有有效的 ID'),
         life: 3000,
       });
     }
@@ -473,8 +489,8 @@
 
       toast.add({
         variant: 'success',
-        summary: '删除数据',
-        detail: `成功删除 ${validIds.length} 条数据`,
+        summary: t('删除数据'),
+        detail: t(`成功删除 ${validIds.length} 条数据`),
         life: 3000,
       });
     } catch (error: unknown) {
@@ -484,12 +500,12 @@
       // 解析 FOREIGN KEY 约束错误，给出更友好的提示
       let userMessage = errorMessage;
       if (errorMessage.includes('FOREIGN KEY constraint failed')) {
-        userMessage = '无法删除：该数据被其他记录引用，请先删除关联数据';
+        userMessage = t('无法删除：该数据被其他记录引用，请先删除关联数据');
       } 
 
       toast.add({
         variant: 'danger',
-        summary: '删除失败',
+        summary: t('删除失败'),
         detail: userMessage,
         life: 5000,
       });
@@ -499,11 +515,11 @@
   }
   function deleteConfirm(event: MouseEvent) {
     confirm.require({
-      message: '确定删除吗？',
+      message: t('确定删除吗？'),
       icon: 'pi pi-exclamation-triangle',
       event,
       acceptProps: {
-        label: 'Delete！',
+        label: t('删除'),
         variant: 'danger',
       },
       accept: () => {

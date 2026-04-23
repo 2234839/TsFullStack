@@ -49,7 +49,7 @@
   import { useToast } from '@/composables/useToast';
   import { getErrorMessage } from '@/utils/error';
   import { computed, reactive, ref, watch } from 'vue';
-  import { useI18n } from 'vue-i18n';
+  import { useI18n } from '@/composables/useI18n';
   import type { FieldInfo, ModelMeta as ModelMetaType, ModelMetaNames } from './type';
   import { findIdField, getModelDbName, isIdField, isArrayField, isOptionalField, isDataModelField, hasDefaultField, isUpdatedAtField, getModelAPI } from './util';
   import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
@@ -58,20 +58,20 @@
   const toast = useToast();
   const { API } = useAPI();
 
-  const props = defineProps<{
+  const { modelKey, modelMeta } = defineProps<{
     modelKey: string; // PascalCase 模型键，如 'Role', 'User'
     modelMeta: ModelMetaType;
   }>();
 
   // modelKey 是 PascalCase，用于访问 modelMeta.models
-  const selectModel = computed(() => props.modelMeta.models[props.modelKey as keyof typeof props.modelMeta.models]);
+  const selectModel = computed(() => modelMeta.models[modelKey as keyof typeof modelMeta.models]);
   const modelFields = computed(() => selectModel.value?.fields || {});
   const emit = defineEmits(['created', 'update:visible']);
 
   // 表单状态
   const visible = ref(false);
   const saving = ref(false);
-  const formData = reactive<Record<string, any>>({});
+  const formData = reactive<Record<string, unknown>>({});
   const fieldErrors = ref<Record<string, string>>({});
 
   // 计算属性：表单字段
@@ -123,13 +123,13 @@
   }
 
   async function saveRecord() {
-    if (!validateForm() || !props.modelKey) return;
+    if (!validateForm() || !modelKey) return;
 
     saving.value = true;
 
     try {
       // 准备数据，处理关系字段
-      const data: Record<string, any> = {};
+      const data: Record<string, unknown> = {};
 
       for (const field of formFields.value) {
         const fieldName = field.name;
@@ -141,10 +141,10 @@
         }
 
         // 处理关系字段
-        if (isDataModelField(field) && props.modelMeta && value) {
+        if (isDataModelField(field) && modelMeta && value) {
           const relationData = value as RelationSelectData;
 
-          const idField = findIdField(props.modelMeta, field.type);
+          const idField = findIdField(modelMeta, field.type);
           if (idField) {
             data[fieldName] = {
               connect: relationData.add.map((item) => ({
@@ -159,7 +159,7 @@
       }
       // 创建记录
       // 使用类型安全的模型访问
-      const modelName = getModelDbName(props.modelKey as ModelMetaNames);
+      const modelName = getModelDbName(modelKey as ModelMetaNames);
       const modelAPI = getModelAPI(API, modelName);
       const result = await modelAPI.create({
         data,

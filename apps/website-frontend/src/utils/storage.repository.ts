@@ -2,8 +2,9 @@ import localforage from 'localforage';
 import { reactive, ref } from 'vue';
 import superjson from 'superjson';
 import { getErrorMessage } from './error';
-import { useAPI } from '@/api';
+import { API, AppAPI } from '@/api';
 import { authInfo } from '@/storage';
+import { t } from '@/i18n';
 
 export interface StorageStats {
   readCount: number;
@@ -168,7 +169,7 @@ export abstract class StorageStrategy {
 export class UserDataStrategy extends StorageStrategy {
   name = 'Remote API';
 
-  api = useAPI();
+  api = { API, AppAPI };
 
   constructor(options?: StorageOptions) {
     super(options);
@@ -196,19 +197,22 @@ export class UserDataStrategy extends StorageStrategy {
       });
 
       if (updatedCount.count === 0) {
+        /** 未登录时无法创建用户数据 */
+        const userId = authInfo.value?.userId;
+        if (!userId) throw new Error(t('未登录,无法保存数据'));
         await this.api.API.db.userData.create({
           data: {
             key,
             data,
             appId: this.bucket,
-            userId: authInfo.value!.userId!,
+            userId,
           },
         });
       }
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
     } catch (error: unknown) {
-      this.stats.lastError = `保存失败: ${error}`;
+      this.stats.lastError = `${t('保存失败')}: ${error}`;
       throw error;
     }
   }
@@ -226,7 +230,7 @@ export class UserDataStrategy extends StorageStrategy {
       this.stats.readTime += performance.now() - start;
       return data?.data;
     } catch (error: unknown) {
-      this.stats.lastError = `加载失败: ${error}`;
+      this.stats.lastError = `${t('加载失败')}: ${error}`;
       throw error;
     }
   }
@@ -240,7 +244,7 @@ export class UserDataStrategy extends StorageStrategy {
         },
       });
     } catch (error: unknown) {
-      this.stats.lastError = `删除失败: ${error}`;
+      this.stats.lastError = `${t('删除失败')}: ${error}`;
       throw error;
     }
   }
@@ -256,7 +260,7 @@ export class UserDataStrategy extends StorageStrategy {
       this.stats.writeCount += items.length;
       this.stats.writeTime += performance.now() - start;
     } catch (error: unknown) {
-      this.stats.lastError = `批量保存失败: ${error}`;
+      this.stats.lastError = `${t('批量保存失败')}: ${error}`;
       throw error;
     }
   }
@@ -278,7 +282,7 @@ export class UserDataStrategy extends StorageStrategy {
       this.stats.readTime += performance.now() - start;
       return data;
     } catch (error: unknown) {
-      this.stats.lastError = `批量加载失败: ${error}`;
+      this.stats.lastError = `${t('批量加载失败')}: ${error}`;
       throw error;
     }
   }
@@ -295,7 +299,7 @@ export class UserDataStrategy extends StorageStrategy {
       });
       return keys.map((el) => el.key);
     } catch (error: unknown) {
-      this.stats.lastError = `获取所有键失败: ${error}`;
+      this.stats.lastError = `${t('获取所有键失败')}: ${error}`;
       throw error;
     }
   }
@@ -309,7 +313,7 @@ export class UserDataStrategy extends StorageStrategy {
         },
       });
     } catch (error: unknown) {
-      this.stats.lastError = `批量删除失败: ${error}`;
+      this.stats.lastError = `${t('批量删除失败')}: ${error}`;
       throw error;
     }
   }
@@ -317,7 +321,7 @@ export class UserDataStrategy extends StorageStrategy {
 export class WordDataStrategy extends StorageStrategy {
   name = 'Remote API';
 
-  api = useAPI();
+  api = { API, AppAPI };
 
   constructor(options?: StorageOptions) {
     super(options);
@@ -336,7 +340,8 @@ export class WordDataStrategy extends StorageStrategy {
     return this.bucketConfig.bucketName || 'ai-english-data';
   }
   get authorId() {
-    return authInfo.value!.userId;
+    /** 未登录时返回空字符串,调用方需自行判断 */
+    return authInfo.value?.userId ?? '';
   }
   protected async rawSave(key: string, data: any): Promise<void> {
     const start = performance.now();
@@ -363,7 +368,7 @@ export class WordDataStrategy extends StorageStrategy {
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
     } catch (error: unknown) {
-      this.stats.lastError = `保存失败: ${error}`;
+      this.stats.lastError = `${t('保存失败')}: ${error}`;
       throw error;
     }
   }
@@ -383,7 +388,7 @@ export class WordDataStrategy extends StorageStrategy {
       this.stats.readTime += performance.now() - start;
       return data;
     } catch (error: unknown) {
-      this.stats.lastError = `加载失败: ${error}`;
+      this.stats.lastError = `${t('加载失败')}: ${error}`;
       throw error;
     }
   }
@@ -399,7 +404,7 @@ export class WordDataStrategy extends StorageStrategy {
         },
       });
     } catch (error: unknown) {
-      this.stats.lastError = `删除失败: ${error}`;
+      this.stats.lastError = `${t('删除失败')}: ${error}`;
       throw error;
     }
   }
@@ -450,7 +455,7 @@ export class WordDataStrategy extends StorageStrategy {
       this.stats.writeCount += items.length;
       this.stats.writeTime += performance.now() - start;
     } catch (error: unknown) {
-      this.stats.lastError = `批量保存失败: ${error}`;
+      this.stats.lastError = `${t('批量保存失败')}: ${error}`;
       throw error;
     }
   }
@@ -472,7 +477,7 @@ export class WordDataStrategy extends StorageStrategy {
       this.stats.readTime += performance.now() - start;
       return data;
     } catch (error: unknown) {
-      this.stats.lastError = `批量加载失败: ${error}`;
+      this.stats.lastError = `${t('批量加载失败')}: ${error}`;
       throw error;
     }
   }
@@ -489,7 +494,7 @@ export class WordDataStrategy extends StorageStrategy {
       });
       return keys.map((el) => el.key);
     } catch (error: unknown) {
-      this.stats.lastError = `获取所有键失败: ${error}`;
+      this.stats.lastError = `${t('获取所有键失败')}: ${error}`;
       throw error;
     }
   }
@@ -503,7 +508,7 @@ export class WordDataStrategy extends StorageStrategy {
         },
       });
     } catch (error: unknown) {
-      this.stats.lastError = `批量删除失败: ${error}`;
+      this.stats.lastError = `${t('批量删除失败')}: ${error}`;
       throw error;
     }
   }
@@ -536,7 +541,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       return true;
     } catch (error: unknown) {
       this.isAvailable = false;
-      this.stats.lastError = `IndexedDB初始化失败: ${error}`;
+      this.stats.lastError = `${t('IndexedDB初始化失败')}: ${error}`;
       return false;
     }
   }
@@ -549,7 +554,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
     } catch (error: unknown) {
-      this.stats.lastError = `保存失败: ${error}`;
+      this.stats.lastError = `${t('保存失败')}: ${error}`;
       throw error;
     }
   }
@@ -563,7 +568,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       this.stats.readTime += performance.now() - start;
       return data;
     } catch (error: unknown) {
-      this.stats.lastError = `加载失败: ${error}`;
+      this.stats.lastError = `${t('加载失败')}: ${error}`;
       throw error;
     }
   }
@@ -573,7 +578,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       if (!this.store) throw new Error('IndexedDB未初始化');
       await this.store.removeItem(key);
     } catch (error: unknown) {
-      this.stats.lastError = `删除失败: ${error}`;
+      this.stats.lastError = `${t('删除失败')}: ${error}`;
       throw error;
     }
   }
@@ -589,7 +594,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       this.stats.writeCount += items.length;
       this.stats.writeTime += performance.now() - start;
     } catch (error: unknown) {
-      this.stats.lastError = `批量保存失败: ${error}`;
+      this.stats.lastError = `${t('批量保存失败')}: ${error}`;
       throw error;
     }
   }
@@ -609,7 +614,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       this.stats.readTime += performance.now() - start;
       return result;
     } catch (error: unknown) {
-      this.stats.lastError = `批量加载失败: ${error}`;
+      this.stats.lastError = `${t('批量加载失败')}: ${error}`;
       throw error;
     }
   }
@@ -619,7 +624,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       if (!this.store) throw new Error('IndexedDB未初始化');
       return await this.store.keys();
     } catch (error: unknown) {
-      this.stats.lastError = `获取所有键失败: ${error}`;
+      this.stats.lastError = `${t('获取所有键失败')}: ${error}`;
       throw error;
     }
   }
@@ -632,7 +637,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
 
       await Promise.all(promises);
     } catch (error: unknown) {
-      this.stats.lastError = `批量删除失败: ${error}`;
+      this.stats.lastError = `${t('批量删除失败')}: ${error}`;
       throw error;
     }
   }
@@ -650,7 +655,7 @@ export class LocalStorageStrategy extends StorageStrategy {
       return true;
     } catch (error: unknown) {
       this.isAvailable = false;
-      this.stats.lastError = `LocalStorage初始化失败: ${error}`;
+      this.stats.lastError = `${t('LocalStorage初始化失败')}: ${error}`;
       return false;
     }
   }
@@ -662,7 +667,7 @@ export class LocalStorageStrategy extends StorageStrategy {
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
     } catch (error: unknown) {
-      this.stats.lastError = `保存失败: ${error}`;
+      this.stats.lastError = `${t('保存失败')}: ${error}`;
       throw error;
     }
   }
@@ -675,7 +680,7 @@ export class LocalStorageStrategy extends StorageStrategy {
       this.stats.readTime += performance.now() - start;
       return data;
     } catch (error: unknown) {
-      this.stats.lastError = `加载失败: ${error}`;
+      this.stats.lastError = `${t('加载失败')}: ${error}`;
       throw error;
     }
   }
@@ -684,7 +689,7 @@ export class LocalStorageStrategy extends StorageStrategy {
     try {
       localStorage.removeItem(key);
     } catch (error: unknown) {
-      this.stats.lastError = `删除失败: ${error}`;
+      this.stats.lastError = `${t('删除失败')}: ${error}`;
       throw error;
     }
   }
@@ -698,7 +703,7 @@ export class LocalStorageStrategy extends StorageStrategy {
       this.stats.writeCount += items.length;
       this.stats.writeTime += performance.now() - start;
     } catch (error: unknown) {
-      this.stats.lastError = `批量保存失败: ${error}`;
+      this.stats.lastError = `${t('批量保存失败')}: ${error}`;
       throw error;
     }
   }
@@ -714,7 +719,7 @@ export class LocalStorageStrategy extends StorageStrategy {
       this.stats.readTime += performance.now() - start;
       return result;
     } catch (error: unknown) {
-      this.stats.lastError = `批量加载失败: ${error}`;
+      this.stats.lastError = `${t('批量加载失败')}: ${error}`;
       throw error;
     }
   }
@@ -723,7 +728,7 @@ export class LocalStorageStrategy extends StorageStrategy {
     try {
       return Object.keys(localStorage);
     } catch (error: unknown) {
-      this.stats.lastError = `获取所有键失败: ${error}`;
+      this.stats.lastError = `${t('获取所有键失败')}: ${error}`;
       throw error;
     }
   }
@@ -734,7 +739,7 @@ export class LocalStorageStrategy extends StorageStrategy {
         localStorage.removeItem(key);
       });
     } catch (error: unknown) {
-      this.stats.lastError = `批量删除失败: ${error}`;
+      this.stats.lastError = `${t('批量删除失败')}: ${error}`;
       throw error;
     }
   }
@@ -778,7 +783,7 @@ export class StorageRepository {
       return true;
     } catch (error: unknown) {
       this.status.value = 'error';
-      this.error.value = `初始化失败: ${getErrorMessage(error)}`;
+      this.error.value = `${t('初始化失败')}: ${getErrorMessage(error)}`;
       return false;
     }
   }
@@ -792,7 +797,7 @@ export class StorageRepository {
 
     const strategies = this.getAvailableStrategies();
     if (strategies.length === 0) {
-      throw new Error('没有可用的存储策略');
+      throw new Error(t('没有可用的存储策略'));
     }
 
     let lastError: string | null = null;
@@ -803,11 +808,11 @@ export class StorageRepository {
         return;
       } catch (error: unknown) {
         lastError = getErrorMessage(error);
-        console.warn(`[${strategy.name}] 存储失败`, error);
+        console.warn(`[${strategy.name}] ${t('存储失败')}`, error);
       }
     }
 
-    throw new Error(lastError || '所有存储策略均失败');
+    throw new Error(lastError || t('所有存储策略均失败'));
   }
 
   async load(key: string): Promise<any> {
@@ -815,7 +820,7 @@ export class StorageRepository {
 
     const strategies = this.getAvailableStrategies();
     if (strategies.length === 0) {
-      throw new Error('没有可用的存储策略');
+      throw new Error(t('没有可用的存储策略'));
     }
 
     let lastError: string | null = null;
@@ -830,11 +835,11 @@ export class StorageRepository {
         }
       } catch (error: unknown) {
         lastError = getErrorMessage(error);
-        console.warn(`[${strategy.name}] 读取失败`, error);
+        console.warn(`[${strategy.name}] ${t('读取失败')}`, error);
       }
     }
 
-    throw new Error(lastError || '数据未找到');
+    throw new Error(lastError || t('数据未找到'));
   }
 
   private async writeToHigherPriority(
@@ -855,7 +860,7 @@ export class StorageRepository {
       higherStrategies.map((s) =>
         s
           .save(key, data, this.options.bucket)
-          .catch((e) => console.warn(`回写到 ${s.name} 失败`, e)),
+          .catch((e) => console.warn(`${t('回写到')} ${s.name} ${t('失败')}`, e)),
       ),
     );
   }
@@ -865,12 +870,12 @@ export class StorageRepository {
 
     const strategies = this.getAvailableStrategies();
     if (strategies.length === 0) {
-      throw new Error('没有可用的存储策略');
+      throw new Error(t('没有可用的存储策略'));
     }
 
     await Promise.all(
       strategies.map((s) =>
-        s.remove(key, this.options.bucket).catch((e) => console.warn(`[${s.name}] 删除失败`, e)),
+        s.remove(key, this.options.bucket).catch((e) => console.warn(`[${s.name}] ${t('删除失败')}`, e)),
       ),
     );
   }
@@ -883,7 +888,7 @@ export class StorageRepository {
 
     const strategies = this.getAvailableStrategies();
     if (strategies.length === 0) {
-      throw new Error('没有可用的存储策略');
+      throw new Error(t('没有可用的存储策略'));
     }
 
     // 分批处理
@@ -898,11 +903,11 @@ export class StorageRepository {
         return;
       } catch (error: unknown) {
         lastError = getErrorMessage(error);
-        console.warn(`[${strategy.name}] 批量存储失败`, error);
+        console.warn(`[${strategy.name}] ${t('批量存储失败')}`, error);
       }
     }
 
-    throw new Error(lastError || '所有存储策略批量存储均失败');
+    throw new Error(lastError || t('所有存储策略批量存储均失败'));
   }
 
   async loadBatch(keys: string[], batchSize = this.defaultBatchSize): Promise<Record<string, any>> {
@@ -910,7 +915,7 @@ export class StorageRepository {
 
     const strategies = this.getAvailableStrategies();
     if (strategies.length === 0) {
-      throw new Error('没有可用的存储策略');
+      throw new Error(t('没有可用的存储策略'));
     }
 
     // 分批处理
@@ -933,11 +938,11 @@ export class StorageRepository {
         return result;
       } catch (error: unknown) {
         lastError = getErrorMessage(error);
-        console.warn(`[${strategy.name}] 批量读取失败`, error);
+        console.warn(`[${strategy.name}] ${t('批量读取失败')}`, error);
       }
     }
 
-    throw new Error(lastError || '数据未找到且所有存储策略批量读取均失败');
+    throw new Error(lastError || t('数据未找到且所有存储策略批量读取均失败'));
   }
 
   private async writeBatchToHigherPriority(
@@ -961,7 +966,7 @@ export class StorageRepository {
 
     await Promise.all(
       higherStrategies.map((s) =>
-        s.saveBatch(items).catch((e) => console.warn(`批量回写到 ${s.name} 失败`, e)),
+        s.saveBatch(items).catch((e) => console.warn(`${t('批量回写到')} ${s.name} ${t('失败')}`, e)),
       ),
     );
   }
@@ -971,14 +976,14 @@ export class StorageRepository {
 
     const strategies = this.getAvailableStrategies();
     if (strategies.length === 0) {
-      throw new Error('没有可用的存储策略');
+      throw new Error(t('没有可用的存储策略'));
     }
 
     // 使用第一个支持bucket的策略
     const strategy = strategies.find((s) => s.options.bucket !== undefined);
 
     if (!strategy) {
-      throw new Error('没有支持bucket的存储策略');
+      throw new Error(t('没有支持bucket的存储策略'));
     }
 
     return strategy.getBucketKeys(bucket);
@@ -989,14 +994,14 @@ export class StorageRepository {
 
     const strategies = this.getAvailableStrategies();
     if (strategies.length === 0) {
-      throw new Error('没有可用的存储策略');
+      throw new Error(t('没有可用的存储策略'));
     }
 
     // 使用第一个支持bucket的策略
     const strategy = strategies.find((s) => s.options.bucket !== undefined);
 
     if (!strategy) {
-      throw new Error('没有支持bucket的存储策略');
+      throw new Error(t('没有支持bucket的存储策略'));
     }
 
     await strategy.clearBucket(bucket);
