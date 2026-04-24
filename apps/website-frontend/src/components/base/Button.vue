@@ -24,7 +24,7 @@ interface Props {
   rounded?: boolean;
 }
 
-const { variant = 'primary', size = 'md', disabled = false, type = 'button', loading = false, rounded = false, label, icon } = defineProps<Props>();
+const { variant = 'primary', size = 'md', disabled = false, type = 'button', loading = false, rounded = false, label, icon, onClick } = defineProps<Props & { onClick?: () => void }>();
 
 /** 按钮样式类 */
 const buttonClasses = computed(() => {
@@ -91,7 +91,8 @@ const buttonClasses = computed(() => {
   <button
     :type="type"
     :disabled="disabled || loading"
-    :class="buttonClasses">
+    :class="buttonClasses"
+    @click="onClick">
     <slot>
       <i v-if="icon && !loading" :class="[icon, { 'mr-2': label }]"></i>
       <i v-if="loading" :class="['pi pi-spin pi-spinner', { 'mr-2': label }]"></i>

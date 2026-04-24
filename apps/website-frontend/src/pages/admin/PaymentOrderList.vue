@@ -60,16 +60,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, h } from 'vue';
+import { ref, computed, onMounted, watch, h, type VNode } from 'vue';
 import { useNow } from '@vueuse/core';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
-import { Card, ProgressSpinner, DataTable, Paginator, Tag, Input } from '@/components/base';
+import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
+import { Card, ProgressSpinner, DataTable, Paginator, Tag, Input, Button } from '@/components/base';
 import { Select } from '@tsfullstack/shared-frontend/components';
-import type { ColumnDef } from '@/components/base/DataTable.vue';
 import { formatDate } from '@/utils/format';
 
+/** DataTable 列定义（从 DataTable.vue 内部复制，因为未导出） */
+interface ColumnDef<T = unknown> {
+  key: string;
+  title: string;
+  sortable?: boolean;
+  width?: string | number;
+  render?: (row: T, index: number) => VNode | string;
+}
+
 interface OrderRow {
+  id: number;
   orderNo: string;
   user?: { email?: string; nickname?: string } | null;
   package?: { name?: string } | null;
@@ -82,6 +93,8 @@ interface OrderRow {
 }
 
 const { t } = useI18n();
+const toast = useToast();
+const confirm = useConfirm();
 /** 响应式当前时间（每秒更新） */
 const now = useNow({ interval: 1000 });
 const { API } = useAPI();
@@ -140,6 +153,7 @@ function getProviderName(provider: string | null): string {
   const map: Record<string, string> = {
     MBD: t('面包多'),
     AFDIAN: t('爱发电'),
+    WECHAT: t('微信好友'),
   };
   return map[provider] ?? provider;
 }
@@ -212,6 +226,23 @@ const columns = computed<ColumnDef<OrderRow>[]>(() => [
     title: t('创建时间'),
     render: (row) => formatDate(new Date(row.created)),
   },
+  {
+    key: 'actions',
+    title: t('操作'),
+    render: (row) => {
+      if (row.provider === 'WECHAT' && row.status === 'PENDING') {
+        return h(Button, {
+          label: confirmingOrderId.value === row.id ? t('确认中...') : t('确认到账'),
+          icon: confirmingOrderId.value === row.id ? 'pi pi-spinner pi-spin' : 'pi pi-check-circle',
+          variant: 'primary',
+          size: 'small',
+          disabled: confirmingOrderId.value !== null,
+          onClick: () => handleConfirmPayment(row),
+        });
+      }
+      return null;
+    },
+  },
 ]);
 
 /** 加载订单列表 */
@@ -237,6 +268,36 @@ watch([statusFilter, userIdFilter], () => {
   currentPage.value = 0;
   loadOrders();
 });
+
+/** 正在确认中的订单 ID（防止重复点击） */
+const confirmingOrderId = ref<number | null>(null);
+
+/**
+ * 确认微信订单到账
+ */
+async function handleConfirmPayment(row: OrderRow) {
+  const confirmed = await confirm({
+    message: t(`确认订单 ${row.orderNo} 已通过微信转账到账？\n\n确认后将自动发放 ${row.package?.name ?? ''} 套餐的代币。`),
+    header: t('确认到账'),
+    acceptLabel: t('确认到账'),
+    acceptProps: { variant: 'success', icon: 'pi pi-check-circle' },
+    rejectLabel: t('取消'),
+  });
+
+  if (!confirmed) return;
+
+  confirmingOrderId.value = row.id;
+  try {
+    await API.paymentApi.confirmOrderPayment(row.id);
+    toast.success(t('订单已确认为已支付，代币已发放'));
+    await loadOrders();
+  } catch (e) {
+    console.error('[PaymentOrderList] 确认到账失败:', e);
+    toast.error(String(e));
+  } finally {
+    confirmingOrderId.value = null;
+  }
+}
 
 onMounted(() => {
   loadOrders();

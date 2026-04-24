@@ -94,7 +94,13 @@ export const PaymentService = {
 
       reqCtx.log('[PaymentService] 创建订单:', orderNo, 'provider:', params.provider, 'amount:', pkg.price);
 
-      return { orderId: order.id, orderNo: order.orderNo, payUrl: paymentResult.payUrl, expireAt: order.expireAt };
+      return {
+        orderId: order.id,
+        orderNo: order.orderNo,
+        payUrl: paymentResult.payUrl,
+        providerData: paymentResult.providerData ?? undefined,
+        expireAt: order.expireAt,
+      };
     }),
 
   /**

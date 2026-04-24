@@ -13,6 +13,27 @@ import superjson from 'superjson';
 import { routeMap, routerUtil } from './router';
 import { t } from '@/i18n';
 
+import type { Effect } from '@tsfullstack/backend';
+
+/** 解开 Effect 成功类型 */
+type UnEffect<T> = T extends Effect.Effect<infer A, infer _E, infer _R> ? A : T;
+
+/**
+ * 将 API 类型映射为异步调用类型（函数返回值解开 Effect 后包裹 Promise）
+ * 在前端本地定义，避免 TypeScript 跨 .d.mts 实例化参数化映射类型时返回 {} 的问题
+ */
+type AsyncAPI<T> = {
+  [K0 in keyof T]: T[K0] extends (...args: unknown[]) => infer R
+    ? (...args: Parameters<T[K0]>) => Promise<UnEffect<Awaited<R>>>
+    : T[K0] extends object
+    ? {
+        [K1 in keyof T[K0]]: T[K0][K1] extends (...args: unknown[]) => infer R
+          ? (...args: Parameters<T[K0][K1]>) => Promise<UnEffect<Awaited<R>>>
+          : T[K0][K1]
+      }
+    : T[K0]
+};
+
 /** RPC 响应的统一结构 */
 interface APIResponse<T = unknown> {
   result?: T;
@@ -27,12 +48,14 @@ const baseServer = import.meta.env.VITE_API_BASE_URL || '';
 
 /** 方便组件调用时进行一些定制操作 */
 export function useAPI() {
-  const { API } = createRPC<__API__>('apiConsumer', {
+  const { API: _API } = createRPC<__API__>('apiConsumer', {
     remoteCall: genPostRemoteCall(`${baseServer}/api/`),
   });
-  const { API: AppAPI } = createRPC<__AppAPI__>('apiConsumer', {
+  const { API: _AppAPI } = createRPC<__AppAPI__>('apiConsumer', {
     remoteCall: genPostRemoteCall(`${baseServer}/app-api/`),
   });
+  const API = _API as unknown as AsyncAPI<__API__>;
+  const AppAPI = _AppAPI as unknown as AsyncAPI<__AppAPI__>;
 
   /** 生成 API 请求 get 形式的 URL，方便在某些场景下使用，例如生成可以直接访问的文件/图片 url 下载链接 */
   const APIGetUrl = proxyCall(API, async ([path, args]) => {

@@ -31,7 +31,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('App Key (签名密钥)') }}</label>
-            <Password v-model="config.mbd.appKey" :placeholder="t('用于签名验证，请妥善保管')" :feedback="false" toggleMask />
+            <Password v-model="config.mbd.appKey" :placeholder="t('用于签名验证，请妥善保管')" :feedback="false" :toggleMask="undefined" />
           </div>
         </div>
       </Card>
@@ -52,7 +52,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('API Token') }}</label>
-            <Password v-model="config.afdian.apiKey" :placeholder="t('API 调用签名用 Token')" :feedback="false" toggleMask />
+            <Password v-model="config.afdian.apiKey" :placeholder="t('API 调用签名用 Token')" :feedback="false" :toggleMask="undefined" />
           </div>
           <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
             <i class="pi pi-info-circle mr-1"></i>
@@ -73,6 +73,31 @@
           <p v-if="testResult" class="mt-2 text-xs" :class="testResult.success ? 'text-green-600' : 'text-red-600'">
             {{ testResult.message }}
           </p>
+        </div>
+      </Card>
+
+      <!-- 微信好友支付配置 -->
+      <Card class="p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-primary-800 dark:text-primary-50 flex items-center gap-2">
+            <i class="pi pi-wechat" /> {{ t('微信好友支付 (WECHAT)') }}
+          </h2>
+          <ToggleSwitch :modelValue="config.wechat.enabled" @update:model-value="(v: boolean) => config.wechat.enabled = v" />
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('微信号') }}</label>
+            <Input v-model="config.wechat.accountId" :placeholder="t('用于展示给用户的站长微信号')" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('微信昵称(可选)') }}</label>
+            <Input v-model="config.wechat.accountName" :placeholder="t('展示用的昵称，方便用户识别')" />
+          </div>
+          <div class="p-3 rounded-lg bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400">
+            <i class="pi pi-info-circle mr-1"></i>
+            {{ t('选择此支付方式的用户将看到您的微信号和订单信息，需管理员在订单列表中手动确认到账。不受订单过期时间限制。') }}
+          </div>
         </div>
       </Card>
 
@@ -136,6 +161,11 @@ const config = reactive({
     userId: '',
     apiKey: '',
   },
+  wechat: {
+    enabled: false,
+    accountId: '',
+    accountName: '',
+  },
   orderExpireMinutes: 30,
 });
 
@@ -146,6 +176,7 @@ async function loadConfig() {
     const data = await API.paymentApi.getPaymentConfig();
     if (data?.mbd) Object.assign(config.mbd, data.mbd);
     if (data?.afdian) Object.assign(config.afdian, data.afdian);
+    if (data?.wechat) Object.assign(config.wechat, data.wechat);
     if (data?.orderExpireMinutes) config.orderExpireMinutes = data.orderExpireMinutes;
   } catch (e) {
     console.error('[PaymentConfig] 加载配置失败:', e);
@@ -161,6 +192,7 @@ async function handleSave() {
     await API.paymentApi.savePaymentConfig({
       mbd: { ...config.mbd },
       afdian: { ...config.afdian },
+      wechat: { ...config.wechat },
       orderExpireMinutes: config.orderExpireMinutes,
     });
     toast.success(t('支付配置已保存'));

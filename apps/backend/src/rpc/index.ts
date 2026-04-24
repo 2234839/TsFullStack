@@ -179,29 +179,29 @@ export function createRPC<API_TYPE>(
   return { API, RC };
 }
 
-/** 获取函数的返回值类型，并将其包裹在 Promise 中  */
-export type AsyncifyReturnType<T> = T extends (...args: unknown[]) => infer R
+/** 将函数返回值包裹 Promise */
+type WrapPromise<T> = T extends (...args: unknown[]) => infer R
   ? (...args: Parameters<T>) => Promise<Awaited<R>>
   : T;
-export type AsyncifyUnEffectReturnType<T> = T extends (...args: unknown[]) => infer R
+/** 将函数返回值解开 Effect 再包裹 Promise */
+type WrapPromiseUnEffect<T> = T extends (...args: unknown[]) => infer R
   ? (...args: Parameters<T>) => Promise<ExtractEffectSuccess<Awaited<R>>>
   : T;
+
 /** 因为如果是远程调用，那么返回值肯定是要 promise （网络异步的特性决定的），所以使用这个类型来将所有返回值的类型包裹一层promise */
 export type DeepAsyncify<T> = T extends (...args: unknown[]) => unknown
-  ? AsyncifyReturnType<T>
+  ? WrapPromise<T>
   : T extends object
   ? { [K in keyof T]: DeepAsyncify<T[K]> }
   : T;
 /** 如果是客户端调用，服务端必须要已经处理了 Effect ，所以返回的就是解开来 Effect 的*/
 export type DeepAsyncEffect<T> = T extends (...args: unknown[]) => unknown
-  ? AsyncifyUnEffectReturnType<T>
+  ? WrapPromiseUnEffect<T>
   : T extends object
   ? { [K in keyof T]: DeepAsyncEffect<T[K]> }
   : T;
 
-/** 获取一个深度嵌套的对象（apis）上的函数的返回值联合类型
- * 这是一个辅助类型，方便程序无遗漏的处理所有可能的返回值类型
- */
+/** 获取一个深度嵌套的对象（apis）上的函数的返回值联合类型 */
 export type DeepReturnTypeUnion<T> = T extends (...args: unknown[]) => unknown
   ? Awaited<ReturnType<T>>
   : T extends object
@@ -214,7 +214,7 @@ export type DeepUnEffectReturnTypeUnion<T> = T extends (...args: unknown[]) => u
   ? { [K in keyof T]: DeepUnEffectReturnTypeUnion<T[K]> }[keyof T]
   : never;
 /** 解开可能是 Effect 的返回值，如果是 Effect 则返回其成功类型，否则返回原类型 */
-export type ExtractEffectSuccess<T> = T extends Effect.Effect<infer A, infer E, infer P> ? A : T;
+export type ExtractEffectSuccess<T> = T extends Effect.Effect<infer A, infer _E, infer _R> ? A : T;
 
 /**
  * 定义递归的链式调用类型，支持结果转换

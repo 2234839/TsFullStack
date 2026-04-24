@@ -76,7 +76,7 @@
             :label="pkg.active ? t('立即购买') : t('已停用')"
             :icon="'pi pi-shopping-cart'"
             :disabled="!pkg.active || pkg.price === null || pkg.price <= 0"
-            :variant="selectedPackage?.id === pkg.id ? 'primary' : 'outline'"
+            :variant="selectedPackage?.id === pkg.id ? 'primary' : 'secondary'"
             class="w-full"
             @click.stop="openPayDialog(pkg)"
           />
@@ -103,7 +103,7 @@
             :icon="getProviderIcon(provider.provider)"
             :disabled="!provider.enabled || creatingOrder"
             :loading="creatingOrder && creatingProvider === provider.provider"
-            variant="outline"
+            variant="secondary"
             class="w-full h-14 text-left justify-start gap-3"
             @click="handleCreateOrder(provider.provider as PaymentProvider)"
           />
@@ -114,6 +114,29 @@
         </div>
       </div>
     </Dialog>
+
+    <!-- 微信支付引导面板 -->
+    <WechatPayGuide
+      v-if="wechatGuideOpen"
+      :orderInfo="wechatOrderInfo!"
+      @close="wechatGuideOpen = false"
+    />
+
+    <!-- 联系微信指引（支付问题兜底） -->
+    <div
+      v-if="contactInfo.wechatAccountId"
+      class="mt-6 p-3 rounded-lg bg-info-50 dark:bg-info-950 border border-info-200 dark:border-info-800 flex items-center gap-3 text-sm"
+    >
+      <i class="pi pi-info-circle text-info-500 flex-shrink-0" />
+      <span class="text-info-700 dark:text-info-300">
+        {{ t('遇到支付问题？添加微信') }}
+        <button
+          class="font-mono font-medium text-info-800 dark:text-info-200 underline hover:no-underline mx-1"
+          @click="copyContactId"
+        >{{ contactInfo.wechatAccountId }}</button>
+        {{ t('联系站长') }}
+      </span>
+    </div>
   </div>
 </template>
 
@@ -125,11 +148,24 @@ import { useI18n } from '@/composables/useI18n';
 import { Card, Button, Tag, ProgressSpinner } from '@/components/base';
 import { Dialog } from '@tsfullstack/shared-frontend/components';
 import { useDocumentVisibility, useIntervalFn, tryOnUnmounted } from '@vueuse/core';
-import type { PaymentProvider, OrderStatus, TokenPackage, Order } from '@tsfullstack/backend';
+import WechatPayGuide from './WechatPayGuide.vue';
+import type { PaymentProvider, OrderStatus } from '@tsfullstack/backend';
 
 const toast = useToast();
 const { t } = useI18n();
 const { API } = useAPI();
+
+/** 套餐数据类型（与后端 TokenPackage 模型对应） */
+interface TokenPackage {
+  id: number;
+  name: string;
+  type: string;
+  description: string | null;
+  amount: number;
+  price: number | null;
+  durationMonths: number;
+  active: boolean;
+}
 
 /** 套餐列表 */
 const packages = ref<TokenPackage[]>([]);
@@ -145,6 +181,23 @@ const availableProviders = ref<{ provider: string; name: string; enabled: boolea
 const creatingOrder = ref(false);
 /** 当前正在创建的支付渠道 */
 const creatingProvider = ref<string>('');
+
+/** 微信引导面板是否打开 */
+const wechatGuideOpen = ref(false);
+/** 当前微信订单信息 */
+const wechatOrderInfo = ref<{
+  orderId: number;
+  orderNo: string;
+  amount: number;
+  packageName: string;
+  wechatAccountId: string;
+  wechatAccountName: string;
+} | null>(null);
+/** 联系方式信息（从后端配置读取） */
+const contactInfo = ref<{ wechatAccountId: string | null; wechatAccountName: string | null }>({
+  wechatAccountId: null,
+  wechatAccountName: null,
+});
 
 /** ========== 支付结果轮询相关 ========== */
 
@@ -204,8 +257,8 @@ async function pollOrderStatus() {
   }
 }
 
-/** 启动轮询 */
-function startPolling(orderId: number) {
+/** 启动轮询（预留：非微信渠道支付后可启用） */
+function _startPolling(orderId: number) {
   stopPolling();
 
   pollingOrderId.value = orderId;
@@ -256,12 +309,12 @@ function getTypeLabel(type: string): string {
 }
 
 /** 获取类型标签颜色变体 */
-function getTypeVariant(type: string): 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info' {
-  const map: Record<string, 'primary' | 'secondary' | 'success' | 'warning' | 'danger' | 'info'> = {
-    MONTHLY: 'primary',
+function getTypeVariant(type: string): 'secondary' | 'success' | 'warn' | 'danger' | 'info' {
+  const map: Record<string, 'secondary' | 'success' | 'warn' | 'danger' | 'info'> = {
+    MONTHLY: 'info',
     YEARLY: 'secondary',
     PERMANENT: 'success',
-    ONCE: 'warning',
+    ONCE: 'warn',
   };
   return map[type] ?? 'info';
 }
@@ -277,6 +330,7 @@ function getProviderIcon(provider: string): string {
   const map: Record<string, string> = {
     MBD: 'pi pi-wallet',
     AFDIAN: 'pi pi-heart',
+    WECHAT: 'pi pi-comments',
   };
   return map[provider] ?? 'pi pi-credit-card';
 }
@@ -293,7 +347,7 @@ function openPayDialog(pkg: TokenPackage) {
   payDialogOpen.value = true;
 }
 
-/** 创建订单并跳转支付 */
+/** 创建订单后跳转订单详情页 */
 async function handleCreateOrder(provider: PaymentProvider) {
   if (!selectedPackage.value) return;
 
@@ -307,12 +361,24 @@ async function handleCreateOrder(provider: PaymentProvider) {
     });
 
     if (result?.payUrl && result?.orderId) {
-      window.open(result.payUrl, '_blank');
-      payDialogOpen.value = false;
-      toast.success(t('订单已创建，请在新窗口完成支付'));
+      // 微信好友支付：保存订单信息后打开引导面板
+      if (result.payUrl === 'wechat://manual') {
+        payDialogOpen.value = false;
+        const pd = result.providerData as Record<string, unknown> | undefined;
+        wechatOrderInfo.value = {
+          orderId: result.orderId,
+          orderNo: result.orderNo,
+          amount: selectedPackage.value.price ?? 0,
+          packageName: selectedPackage.value.name,
+          wechatAccountId: String(pd?.wechatAccountId ?? ''),
+          wechatAccountName: String(pd?.wechatAccountName ?? ''),
+        };
+        wechatGuideOpen.value = true;
+      }
 
-      // 启动支付结果轮询
-      startPolling(result.orderId);
+      // 所有渠道：关闭弹窗，跳转到订单列表
+      payDialogOpen.value = false;
+      window.location.href = '/pricing/orderList';
     }
   } catch (e) {
     console.error('[PricingPage] 创建订单失败:', e);
@@ -348,8 +414,38 @@ async function loadProviders() {
   }
 }
 
+/** 加载公开联系方式（微信号等） */
+async function loadContactInfo() {
+  try {
+    const result = await API.paymentApi.getPublicContactInfo();
+    contactInfo.value = result ?? { wechatAccountId: null, wechatAccountName: null };
+  } catch (e) {
+    console.error('[PricingPage] 加载联系方式失败:', e);
+  }
+}
+
+/** 复制联系方式微信号 */
+async function copyContactId() {
+  if (!contactInfo.value.wechatAccountId) return;
+  try {
+    await navigator.clipboard.writeText(contactInfo.value.wechatAccountId);
+    toast.success(t('已复制到剪贴板'));
+  } catch {
+    const textarea = document.createElement('textarea');
+    textarea.value = contactInfo.value.wechatAccountId;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    toast.success(t('已复制到剪贴板'));
+  }
+}
+
 onMounted(() => {
   loadPackages();
   loadProviders();
+  loadContactInfo();
 });
 </script>

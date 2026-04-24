@@ -446,6 +446,7 @@ model AiCallLog with Base {
 enum PaymentProvider {
   MBD       // 面包多
   AFDIAN    // 爱发电
+  WECHAT    // 微信好友支付（站长人工确认）
 }
 
 /// 订单状态枚举

@@ -14,7 +14,6 @@ export default defineConfig({
       '@zenstackhq/runtime',
       'kysely',
       'better-sqlite3',
-      'effect',
       'fastify',
       'superjson',
       'bcryptjs',

@@ -10,7 +10,8 @@ import { PaymentAdapterRegistry } from '../../services/payment/adapter-registry'
 import { PaymentProvider, OrderStatus } from '../../../.zenstack/models';
 import { fail, neverReturn } from '../../util/error';
 import { dbTry } from '../../util/dbEffect';
-import { DEFAULT_PAGE_SIZE } from '../../util/constants';
+import { DEFAULT_PAGE_SIZE, MS_PER_DAY, MSG } from '../../util/constants';
+import { TokenGrantService, asGrantTx } from '../../services/TokenGrantService';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -84,6 +85,11 @@ export const getAvailableProviders = () =>
     }
     if (!config.afdian?.enabled) {
       providers.push({ provider: PaymentProvider.AFDIAN as string, name: '爱发电', enabled: false });
+    }
+    if (config.wechat?.enabled) {
+      providers.push({ provider: PaymentProvider.WECHAT as string, name: '微信好友支付', enabled: true });
+    } else {
+      providers.push({ provider: PaymentProvider.WECHAT as string, name: '微信好友支付', enabled: false });
     }
 
     return providers;
@@ -201,6 +207,118 @@ export const testAfdianWebhook = () =>
   });
 
 /**
+ * 管理：手动确认微信订单已到账
+ *
+ * 将微信好友支付的 PENDING 订单标记为 PAID，并触发代币发放。
+ * 不受订单过期时间限制，即使已过期也可确认。
+ */
+export const confirmOrderPayment = (orderId: number) =>
+  Effect.gen(function* () {
+    yield* requireAdmin();
+    const db = yield* DbClientEffect;
+    const reqCtx = yield* ReqCtxService;
+
+    const order = yield* dbTry('[PaymentApi]', '查询待确认订单', () =>
+      db.order.findUnique({
+        where: { id: orderId },
+        include: { package: true, user: true },
+      }),
+    );
+
+    if (!order) { yield* fail(MSG.ORDER_NOT_FOUND); return neverReturn(); }
+    if (order.provider !== PaymentProvider.WECHAT) {
+      yield* fail('仅支持确认微信好友支付的订单'); return neverReturn();
+    }
+    if (order.status === OrderStatus.PAID) {
+      yield* fail('该订单已经确认过了'); return neverReturn();
+    }
+    if (order.status !== OrderStatus.PENDING && order.status !== OrderStatus.FAILED) {
+      yield* fail('只能确认待支付或支付失败的订单'); return neverReturn();
+    }
+
+    const pkg = order.package!;
+    const now = new Date();
+
+    yield* dbTry('[PaymentApi]', '确认微信订单到账', () =>
+      db.$transaction(async (tx) => {
+        await tx.order.update({
+          where: { id: orderId },
+          data: {
+            status: OrderStatus.PAID,
+            tradeNo: `WX_MANUAL_${Date.now()}`,
+            paidAmount: order.amount,
+            paidAt: now,
+            providerData: JSON.parse(JSON.stringify({
+              source: 'admin_manual_confirm',
+              confirmedBy: 'admin',
+              confirmedAt: now.toISOString(),
+            })),
+          },
+        });
+
+        if (pkg.durationMonths > 0) {
+          const endDate = new Date(now.getTime() + pkg.durationMonths * 30 * MS_PER_DAY);
+          const subscription = await tx.userTokenSubscription.create({
+            data: {
+              userId: order.userId,
+              packageId: pkg.id,
+              startDate: now,
+              endDate,
+              nextGrantDate: now,
+              active: true,
+              grantsCount: 0,
+            },
+          });
+          await TokenGrantService.grantFirstTime(asGrantTx(tx), {
+            id: subscription.id,
+            userId: order.userId,
+            package: { type: pkg.type, amount: pkg.amount, name: pkg.name },
+          });
+        } else {
+          const expiresAt = new Date(Date.now() + 365 * MS_PER_DAY);
+          await tx.token.create({
+            data: {
+              userId: order.userId,
+              type: pkg.type,
+              amount: pkg.amount,
+              used: 0,
+              expiresAt,
+              source: 'payment',
+              sourceId: String(orderId),
+              description: `购买套餐: ${pkg.name}(微信人工确认)`,
+              restrictedType: typeof pkg.restrictedType === 'string' ? pkg.restrictedType : '[]',
+              active: true,
+            },
+          });
+        }
+      }),
+    );
+
+    reqCtx.log(
+      '[PaymentApi] 管理员确认微信订单到账:',
+      'orderNo=', order.orderNo,
+      'userId=', order.userId,
+      'package=', pkg.name,
+    );
+
+    return { success: true, orderId };
+  });
+
+/**
+ * 公开：获取联系方式信息（无需登录）
+ *
+ * 返回微信号等联系信息供前端公共页面展示（支付页兜底指引等）。
+ */
+export const getPublicContactInfo = () =>
+  Effect.gen(function* () {
+    const config = yield* PaymentConfigService;
+    return {
+      wechatAccountId: config.wechat?.accountId ?? null,
+      wechatAccountName: config.wechat?.accountName ?? null,
+    };
+  });
+
+/**
  * 支付 API 导出
  */
 export const paymentApi = {
@@ -213,4 +331,6 @@ export const paymentApi = {
   getPaymentConfig,
   savePaymentConfig,
   testAfdianWebhook,
+  confirmOrderPayment,
+  getPublicContactInfo,
 };

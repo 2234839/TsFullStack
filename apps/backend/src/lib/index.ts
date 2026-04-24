@@ -3,10 +3,13 @@
  * WARNING: This file should only contain what frontend actually needs
  */
 
+// Re-export Effect type so frontend can match Effect types in API signatures
+export type { Effect } from 'effect';
+
 // ZenStack v3 生成的完整模型类型（仅在必要时使用）
 // 这些类型非常复杂，会导致 TypeScript 编译内存溢出
 
-export type { OauthProvider, StorageType, FileStatusEnum, LogLevel, TokenType, TaskType, TaskStatus, AiModelType, ContentVisibility, ContentType } from '../../.zenstack/models';
+export type { OauthProvider, StorageType, FileStatusEnum, LogLevel, TokenType, TaskType, TaskStatus, AiModelType, ContentVisibility, ContentType, PaymentProvider, OrderStatus } from '../../.zenstack/models';
 
 // ZenStack schema 类型定义 - 用于前端类型推断
 export { schema } from '../../.zenstack/schema';
@@ -57,6 +60,8 @@ import {
   AiModelType,
   ContentVisibility,
   ContentType,
+  PaymentProvider,
+  OrderStatus,
 } from '../../.zenstack/models';
 
 export const $Enums = {
@@ -70,6 +75,8 @@ export const $Enums = {
   AiModelType,
   ContentVisibility,
   ContentType,
+  PaymentProvider,
+  OrderStatus,
 } as const;
 
 /** 代币系统相关的类型标签和选项配置 */

@@ -2,11 +2,13 @@ import type { PaymentAdapter } from './adapters/types';
 import { PaymentProvider } from '../../../.zenstack/models';
 import { MbdAdapter } from './adapters/mbd.adapter';
 import { AfdianAdapter } from './adapters/afdian.adapter';
+import { WechatAdapter } from './adapters/wechat.adapter';
 
 /** 已注册的适配器映射 */
 const adapterMap = new Map<PaymentProvider, PaymentAdapter>([
   [PaymentProvider.MBD, MbdAdapter],
   [PaymentProvider.AFDIAN, AfdianAdapter],
+  [PaymentProvider.WECHAT, WechatAdapter],
 ]);
 
 /**

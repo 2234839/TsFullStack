@@ -57,6 +57,14 @@ export type AppConfig = {
       apiKey: string;            // API Token
       webhookToken: string;       // Webhook 验证 Token
     };
+    /** 微信好友支付配置（站长人工确认到账） */
+    wechat?: {
+      enabled: boolean;
+      /** 站长微信号 */
+      accountId: string;
+      /** 站长微信昵称（展示用） */
+      accountName: string;
+    };
     /** 订单过期时间（分钟） */
     orderExpireMinutes?: number;
   };
