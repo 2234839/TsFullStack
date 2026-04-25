@@ -2,13 +2,13 @@
 <template>
   <div class="text-nowrap p-1 min-h-8" @click="editMode = true" v-if="!editMode">
     <template v-if="field.type === 'DateTime'">
-      {{ cellData ? formatDate(cellData, 'YYYY-MM-DD HH:mm:ss') : '-' }}
+      {{ cellData instanceof Date ? formatDate(cellData) : '-' }}
     </template>
     <template v-else-if="'relation' in field">
       <Tag>
         <template #icon v-if="isRelationArray">
           <div class="border-r pr-1">
-            {{ row._count[field.name] }}
+            {{ (row._count as Record<string, unknown>)?.[field.name] ?? '' }}
           </div>
         </template>
         {{ field.type }}
@@ -25,8 +25,7 @@
     :cellData="row[field.name]" />
 </template>
 <script setup lang="ts">
-  import { formatDate } from '@vueuse/core';
-  import Tag from '@/components/base/Tag.vue';
+  import { formatDate } from '@/utils/format';
   import { computed, ref } from 'vue';
   import AutoColumnEdit from './AutoColumnEdit.vue';
   import type { FieldInfo } from './type';
@@ -34,10 +33,10 @@
 
   const { field, row } = defineProps<{
     field: FieldInfo;
-    row: { [fieldName: string]: any };
+    row: Record<string, unknown>;
   }>();
 
-  const editValue = defineModel('editValue');
+  const editValue = defineModel<unknown>('editValue');
   const cellData = computed(() => row[field.name]);
   const isRelationArray = computed(() => isArrayField(field));
 

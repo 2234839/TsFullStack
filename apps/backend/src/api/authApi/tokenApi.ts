@@ -12,43 +12,28 @@ import { DEFAULT_PAGE_SIZE } from '../../util/constants';
  * 3. 消耗代币通过业务逻辑（如任务系统）间接调用，不直接暴露
  */
 
-/**
- * 获取当前用户的可用代币余额
- * @returns Promise<{ monthly: number; yearly: number; permanent: number; total: number }>
- */
-export const getAvailableTokens = () =>
+/** 获取当前用户的可用代币余额 */
+const getAvailableTokens = () =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
-
-    // 从认证上下文获取当前用户ID，确保用户只能查询自己的余额
     return yield* TokenService.getAvailableTokens(auth.user.id);
   });
 
-/**
- * 获取当前用户的代币列表
- * @param options - 查询选项
- * @returns Promise<{ tokens: Token[], total: number }> - 代币列表和总数
- */
-export const getUserTokens = (options?: {
+/** 获取当前用户的代币列表 */
+const getUserTokens = (options?: {
   skip?: number;
   take?: number;
 }) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
-
-    // 从认证上下文获取当前用户ID，确保用户只能查询自己的代币
     return yield* TokenService.getUserTokens(auth.user.id, {
-      skip: options?.skip || 0,
-      take: options?.take || DEFAULT_PAGE_SIZE,
+      skip: options?.skip ?? 0,
+      take: options?.take ?? DEFAULT_PAGE_SIZE,
     });
   });
 
-/**
- * 获取当前用户的代币使用历史
- * @param options - 查询选项
- * @returns Promise<{ transactions: TokenTransaction[], total: number }> - 代币交易记录列表和总数
- */
-export const getTokenHistory = (options?: {
+/** 获取当前用户的代币使用历史 */
+const getTokenHistory = (options?: {
   skip?: number;
   take?: number;
   startDate?: Date;
@@ -56,11 +41,9 @@ export const getTokenHistory = (options?: {
 }) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
-
-    // 确保用户只能查询自己的历史记录
     return yield* TokenService.getTokenHistory(auth.user.id, {
-      skip: options?.skip || 0,
-      take: options?.take || DEFAULT_PAGE_SIZE,
+      skip: options?.skip ?? 0,
+      take: options?.take ?? DEFAULT_PAGE_SIZE,
       startDate: options?.startDate,
       endDate: options?.endDate,
     });

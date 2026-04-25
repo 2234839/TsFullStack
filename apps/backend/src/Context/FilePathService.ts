@@ -1,6 +1,6 @@
 import { normalize, join, sep } from 'path/posix';
 import { MsgError } from '../util/error';
-import { MSG } from '../util/constants';
+import { MSG, MAX_ID_LENGTH, MAX_FILENAME_LENGTH } from '../util/constants';
 
 /**
  * 安全的文件路径服务
@@ -29,19 +29,19 @@ export class FilePathService {
    * - 规范化路径并验证边界
    */
   static generateUserFilePath(userId: string, fileId: string, baseDir: string): string {
-    // 验证用户ID和文件ID格式
+    /** 验证用户ID和文件ID格式 */
     if (!FilePathService.validateId(userId) || !FilePathService.validateId(fileId)) {
       throw MsgError.msg('Invalid user or file ID format');
     }
 
-    // 构建用户专属目录路径: baseDir/userId/fileId
+    /** 构建用户专属目录路径: baseDir/userId/fileId */
     const userDir = join(baseDir, userId);
     const filePath = join(userDir, fileId);
 
-    // 规范化路径，防止路径遍历
+    /** 规范化路径，防止路径遍历 */
     const normalizedPath = normalize(filePath);
 
-    // 确保路径在基础目录内
+    /** 确保路径在基础目录内 */
     // 使用 sep 防止 /uploads-backup 攻绕过检查
     const normalizedBaseDir = normalize(baseDir);
     if (!normalizedPath.startsWith(normalizedBaseDir + sep)) {
@@ -113,7 +113,7 @@ export class FilePathService {
    */
   static validateId(id: string): boolean {
     if (!id || typeof id !== 'string') return false;
-    if (id.length > 100) return false; // 防止过长的ID
+    if (id.length > MAX_ID_LENGTH) return false; // 防止过长的ID
     return FilePathService.ALLOWED_CHARS.test(id);
   }
 
@@ -144,7 +144,7 @@ export class FilePathService {
     const sanitized = originalFilename
       .replace(/[\/\\:*?"<>|]/g, '_')
       .replace(/^\./, '_') // 防止隐藏文件
-      .substring(0, 255); // 限制长度
+      .substring(0, MAX_FILENAME_LENGTH); // 限制长度
 
     if (!sanitized) {
       throw MsgError.msg('Invalid filename after sanitization');

@@ -26,7 +26,7 @@ export type ShareItemJSON = {
   appId: string | null;
 };
 
-// 支持的文件类型
+/** 支持的文件类型 */
 const imageTypes = [
   'image/jpeg',
   'image/png',
@@ -54,7 +54,7 @@ const isAudioType = (mimetype: string) => audioTypes.includes(mimetype);
 const isDocumentType = (mimetype: string) => documentTypes.includes(mimetype);
 const isArchiveType = (mimetype: string) => archiveTypes.includes(mimetype);
 
-// 获取文件类型图标
+/** 获取文件类型图标 */
 export const getFileTypeIcon = (mimetype: string) => {
   if (isImageType(mimetype)) return 'pi pi-image';
   if (isVideoType(mimetype)) return 'pi pi-video';
@@ -64,7 +64,7 @@ export const getFileTypeIcon = (mimetype: string) => {
   return 'pi pi-file';
 };
 
-// 获取文件类型标签（接受 t 函数参数，避免模块顶层调用 useI18n）
+/** 获取文件类型标签（接受 t 函数参数，避免模块顶层调用 useI18n） */
 export const getFileTypeLabel = (type: string, t: (key: string) => string) => {
   if (isImageType(type)) return t('图片');
   if (isVideoType(type)) return t('视频');
@@ -74,8 +74,8 @@ export const getFileTypeLabel = (type: string, t: (key: string) => string) => {
   return t('文件');
 };
 
-// 计算总文件大小
+/** 计算总文件大小 */
 export const getTotalFileSize = (share: ShareJSON) => {
-  return share.files?.reduce((total, file) => total + (file.size || 0), 0) ?? 0;
+  return share.files?.reduce((total, file) => total + (file.size ?? 0), 0) ?? 0;
 };
 

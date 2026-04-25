@@ -16,11 +16,7 @@ const completedTaskIds = ref<number[]>([]);
 function handleGenerationComplete(taskId: number) {
   completedTaskIds.value.push(taskId);
 
-  toast.add({
-    summary: t('任务已完成'),
-    detail: t('图片已生成并保存到资源库'),
-    variant: 'success',
-  });
+  toast.success(t('任务已完成'), t('图片已生成并保存到资源库'));
 
 }
 
@@ -33,14 +29,9 @@ function viewResourceGallery() {
 <template>
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-        {{ t('AI 图片生成') }}
-      </h1>
-      <p class="mt-2 text-primary-600 dark:text-primary-400">
-        {{ t('使用 AI 生成创意图片，支持多种服务商和自定义参数') }}
-      </p>
-    </div>
+    <PageHeader size="large" :subtitle="t('使用 AI 生成创意图片，支持多种服务商和自定义参数')">
+      {{ t('AI 图片生成') }}
+    </PageHeader>
 
     <!-- 提示信息 -->
     <div class="mb-6 p-4 bg-info-50 dark:bg-info-900/20 border border-info-200 dark:border-info-800 rounded-lg">

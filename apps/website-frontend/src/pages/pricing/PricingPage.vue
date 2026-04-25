@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="mb-8 text-center">
       <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50 mb-2">{{ t('选择套餐') }}</h1>
-      <p class="text-gray-500 dark:text-gray-400">{{ t('选择适合您的代币套餐，立即开始使用') }}</p>
+      <p class="text-primary-600 dark:text-primary-400">{{ t('选择适合您的代币套餐，立即开始使用') }}</p>
     </div>
 
     <!-- 支付状态轮询指示器 -->
@@ -12,7 +12,7 @@
       class="mb-6 p-4 rounded-lg bg-info-50 dark:bg-info-950 border border-info-200 dark:border-info-800"
     >
       <div class="flex items-center gap-3">
-        <ProgressSpinner style="width: 24px; height: 24px" />
+        <ProgressSpinner class="w-6 h-6" />
         <div>
           <p class="text-sm font-medium text-info-800 dark:text-info-200">
             {{ t('等待支付完成...') }}
@@ -45,20 +45,19 @@
           <!-- 套餐名称和类型标签 -->
           <div class="flex items-center justify-between mb-4">
             <h3 class="text-xl font-semibold text-primary-900 dark:text-primary-50">{{ pkg.name }}</h3>
-            <Tag :value="getTypeLabel(pkg.type)" :variant="getTypeVariant(pkg.type)" />
+            <Tag :value="getPackageTypeLabel(pkg.type, t)" :variant="getPackageTypeVariant(pkg.type)" />
           </div>
 
           <!-- 描述 -->
-          <p v-if="pkg.description" class="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-2">
+          <p v-if="pkg.description" class="text-sm text-primary-600 dark:text-primary-400 mb-4 line-clamp-2">
             {{ pkg.description }}
           </p>
 
           <!-- 价格 -->
           <div class="mb-4">
-            <span class="text-3xl font-bold text-primary-600 dark:text-info-400">
-              {{ formatPrice(pkg.price) }}
+            <span class="text-3xl font-bold text-primary-600 dark:text-primary-200">
+              {{ formatPriceWithCurrency(pkg.price) }}
             </span>
-            <span class="text-sm text-gray-500 dark:text-gray-400 ml-1">{{ t('元') }}</span>
           </div>
 
           <!-- 代币数量 -->
@@ -66,7 +65,7 @@
             <span class="text-lg font-medium text-secondary-700 dark:text-secondary-300">
               {{ pkg.amount }} {{ t('代币') }}
             </span>
-            <span v-if="pkg.durationMonths > 0" class="text-sm text-gray-500 dark:text-gray-400">
+            <span v-if="pkg.durationMonths > 0" class="text-sm text-primary-600 dark:text-primary-400">
               / {{ pkg.durationMonths }}{{ t('个月') }}
             </span>
           </div>
@@ -85,7 +84,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="!loading && packages.length === 0" class="text-center py-12 text-gray-500 dark:text-gray-400">
+    <div v-if="!loading && packages.length === 0" class="text-center py-12 text-primary-600 dark:text-primary-400">
       <i class="pi pi-inbox text-4xl mb-4 block"></i>
       <p>{{ t('暂无可用套餐') }}</p>
     </div>
@@ -93,8 +92,8 @@
     <!-- 支付方式选择弹窗 -->
     <Dialog v-model:open="payDialogOpen" :title="t('选择支付方式')">
       <div class="space-y-4">
-        <p class="text-sm text-gray-500 dark:text-gray-400">
-          {{ t('套餐') }}: {{ selectedPackage?.name }} - {{ formatPrice(selectedPackage?.price) }}{{ t('元') }}
+        <p class="text-sm text-primary-600 dark:text-primary-400">
+          {{ t('套餐') }}: {{ selectedPackage?.name }} - {{ formatPriceWithCurrency(selectedPackage?.price) }}
         </p>
 
         <div v-for="provider in availableProviders" :key="provider.provider" class="space-y-2">
@@ -109,7 +108,7 @@
           />
         </div>
 
-        <div v-if="availableProviders.length === 0" class="text-center py-4 text-gray-500 dark:text-gray-400">
+        <div v-if="availableProviders.length === 0" class="text-center py-4 text-primary-600 dark:text-primary-400">
           {{ t('暂无可用的支付渠道') }}
         </div>
       </div>
@@ -127,7 +126,7 @@
       v-if="contactInfo.wechatAccountId"
       class="mt-6 p-3 rounded-lg bg-info-50 dark:bg-info-950 border border-info-200 dark:border-info-800 flex items-center gap-3 text-sm"
     >
-      <i class="pi pi-info-circle text-info-500 flex-shrink-0" />
+      <i class="pi pi-info-circle text-info-500 dark:text-info-400 shrink-0" />
       <span class="text-info-700 dark:text-info-300">
         {{ t('遇到支付问题？添加微信') }}
         <button
@@ -141,42 +140,37 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue';
+import { ref, shallowRef, computed, onMounted, watch } from 'vue';
 import { useAPI } from '@/api';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { Card, Button, Tag, ProgressSpinner } from '@/components/base';
 import { Dialog } from '@tsfullstack/shared-frontend/components';
 import { useDocumentVisibility, useIntervalFn, tryOnUnmounted } from '@vueuse/core';
 import WechatPayGuide from './WechatPayGuide.vue';
-import type { PaymentProvider, OrderStatus } from '@tsfullstack/backend';
+import type { PaymentProvider } from '@tsfullstack/backend';
+import { WECHAT_PAY_URL } from '@tsfullstack/backend';
+import type { DbListItem } from '@/utils/apiType';
+import { formatPriceWithCurrency } from '@/utils/format';
+import { useContactInfo } from '@/composables/useContactInfo';
+import { getPackageTypeLabel, getPackageTypeVariant, getProviderIcon } from '@/utils/payment';
 
 const toast = useToast();
 const { t } = useI18n();
 const { API } = useAPI();
 
-/** 套餐数据类型（与后端 TokenPackage 模型对应） */
-interface TokenPackage {
-  id: number;
-  name: string;
-  type: string;
-  description: string | null;
-  amount: number;
-  price: number | null;
-  durationMonths: number;
-  active: boolean;
-}
+/** 从 API 方法签名推导套餐元素类型 */
+type PackageItem = DbListItem<'tokenPackage'>;
 
 /** 套餐列表 */
-const packages = ref<TokenPackage[]>([]);
+const packages = shallowRef<PackageItem[]>([]);
 /** 加载状态 */
 const loading = ref(true);
 /** 选中的套餐 */
-const selectedPackage = ref<TokenPackage | null>(null);
+const selectedPackage = ref<PackageItem | null>(null);
 /** 支付弹窗是否打开 */
 const payDialogOpen = ref(false);
 /** 可用的支付渠道 */
-const availableProviders = ref<{ provider: string; name: string; enabled: boolean }[]>([]);
+const availableProviders = shallowRef<{ provider: string; name: string; enabled: boolean }[]>([]);
 /** 正在创建订单 */
 const creatingOrder = ref(false);
 /** 当前正在创建的支付渠道 */
@@ -193,26 +187,25 @@ const wechatOrderInfo = ref<{
   wechatAccountId: string;
   wechatAccountName: string;
 } | null>(null);
-/** 联系方式信息（从后端配置读取） */
-const contactInfo = ref<{ wechatAccountId: string | null; wechatAccountName: string | null }>({
-  wechatAccountId: null,
-  wechatAccountName: null,
-});
+
+const { contactInfo, loadContactInfo, copyContactId } = useContactInfo();
 
 /** ========== 支付结果轮询相关 ========== */
 
 /** 当前正在轮询的订单ID */
 const pollingOrderId = ref<number | null>(null);
-/** 轮询中的订单状态 */
-const pollingOrderStatus = ref<OrderStatus | null>(null);
-/** 是否正在轮询中 */
-const isPolling = ref(false);
-/** 最大轮询次数 (5秒 * 60 = 5分钟超时) */
-const MAX_POLL_COUNT = 60;
+/** 是否正在轮询中（派生自 pollingOrderId） */
+const isPolling = computed(() => pollingOrderId.value !== null);
+/** 轮询间隔（毫秒） */
+const POLL_INTERVAL_MS = 5000;
+/** 轮询超时时间（毫秒） */
+const POLL_TIMEOUT_MS = 5 * 60 * 1000;
+/** 最大轮询次数 */
+const MAX_POLL_COUNT = POLL_TIMEOUT_MS / POLL_INTERVAL_MS;
 /** 当前轮询次数 */
 let pollCount = 0;
 /** 轮询控制器 */
-let pollControls: { pause: () => void; resume: () => void } | null = null;
+let pollControls: { pause: () => void; resume: () => void; stopWatch: () => void } | null = null;
 
 /**
  * 轮询订单状态
@@ -226,14 +219,13 @@ async function pollOrderStatus() {
   if (!pollingOrderId.value) return;
 
   try {
-    const order = await API.paymentApi.queryOrder(pollingOrderId.value) as Order | null;
+    const order = await API.paymentApi.queryOrder(pollingOrderId.value);
 
     if (!order) {
       stopPolling();
       return;
     }
 
-    pollingOrderStatus.value = order.status as OrderStatus;
     pollCount++;
 
     if (order.status === 'PAID') {
@@ -252,24 +244,22 @@ async function pollOrderStatus() {
       stopPolling();
       toast.info(t('支付结果确认中，请稍后在"我的订单"页面查看'));
     }
-  } catch (e) {
-    console.error('[PricingPage] 轮询订单状态失败:', e);
+  } catch (_e: unknown) {
+    toast.error(t('检查订单状态失败'));
   }
 }
 
 /** 启动轮询（预留：非微信渠道支付后可启用） */
-function _startPolling(orderId: number) {
+function startPolling(orderId: number) {
   stopPolling();
 
   pollingOrderId.value = orderId;
-  pollingOrderStatus.value = null;
-  isPolling.value = true;
   pollCount = 0;
 
-  const { pause, resume } = useIntervalFn(pollOrderStatus, 5000);
+  const { pause, resume } = useIntervalFn(pollOrderStatus, POLL_INTERVAL_MS);
 
   const visibility = useDocumentVisibility();
-  watch(visibility, (vis) => {
+  const stopWatch = watch(visibility, (vis) => {
     if (vis === 'visible') {
       resume();
       pollOrderStatus();
@@ -278,7 +268,7 @@ function _startPolling(orderId: number) {
     }
   });
 
-  pollControls = { pause, resume };
+  pollControls = { pause, resume, stopWatch };
 
   tryOnUnmounted(() => {
     stopPolling();
@@ -289,59 +279,21 @@ function _startPolling(orderId: number) {
 function stopPolling() {
   if (pollControls) {
     pollControls.pause();
+    pollControls.stopWatch();
     pollControls = null;
   }
-  isPolling.value = false;
   pollingOrderId.value = null;
 }
 
 /** ========== 套餐/购买相关 ========== */
 
-/** 获取类型标签文本 */
-function getTypeLabel(type: string): string {
-  const map: Record<string, string> = {
-    MONTHLY: t('月度订阅'),
-    YEARLY: t('年度订阅'),
-    PERMANENT: t('永久'),
-    ONCE: t('一次性'),
-  };
-  return map[type] ?? type;
-}
-
-/** 获取类型标签颜色变体 */
-function getTypeVariant(type: string): 'secondary' | 'success' | 'warn' | 'danger' | 'info' {
-  const map: Record<string, 'secondary' | 'success' | 'warn' | 'danger' | 'info'> = {
-    MONTHLY: 'info',
-    YEARLY: 'secondary',
-    PERMANENT: 'success',
-    ONCE: 'warn',
-  };
-  return map[type] ?? 'info';
-}
-
-/** 格式化价格（分→元） */
-function formatPrice(price: number | null): string {
-  if (price === null || price === undefined) return '--';
-  return (price / 100).toFixed(2);
-}
-
-/** 获取支付渠道图标 */
-function getProviderIcon(provider: string): string {
-  const map: Record<string, string> = {
-    MBD: 'pi pi-wallet',
-    AFDIAN: 'pi pi-heart',
-    WECHAT: 'pi pi-comments',
-  };
-  return map[provider] ?? 'pi pi-credit-card';
-}
-
 /** 选择套餐 */
-function selectPackage(pkg: TokenPackage) {
+function selectPackage(pkg: PackageItem) {
   selectedPackage.value = pkg;
 }
 
 /** 打开支付弹窗 */
-function openPayDialog(pkg: TokenPackage) {
+function openPayDialog(pkg: PackageItem) {
   if (!pkg.active || pkg.price === null || pkg.price <= 0) return;
   selectedPackage.value = pkg;
   payDialogOpen.value = true;
@@ -361,9 +313,10 @@ async function handleCreateOrder(provider: PaymentProvider) {
     });
 
     if (result?.payUrl && result?.orderId) {
-      // 微信好友支付：保存订单信息后打开引导面板
-      if (result.payUrl === 'wechat://manual') {
-        payDialogOpen.value = false;
+      payDialogOpen.value = false;
+
+      if (result.payUrl === WECHAT_PAY_URL) {
+        // 微信好友支付：保存订单信息后打开引导面板
         const pd = result.providerData as Record<string, unknown> | undefined;
         wechatOrderInfo.value = {
           orderId: result.orderId,
@@ -374,14 +327,13 @@ async function handleCreateOrder(provider: PaymentProvider) {
           wechatAccountName: String(pd?.wechatAccountName ?? ''),
         };
         wechatGuideOpen.value = true;
+      } else {
+        // 非微信渠道：启动轮询等待支付结果
+        startPolling(result.orderId);
       }
-
-      // 所有渠道：关闭弹窗，跳转到订单列表
-      payDialogOpen.value = false;
-      window.location.href = '/pricing/orderList';
     }
-  } catch (e) {
-    console.error('[PricingPage] 创建订单失败:', e);
+  } catch (_e: unknown) {
+    toast.error(t('创建订单失败'));
   } finally {
     creatingOrder.value = false;
     creatingProvider.value = '';
@@ -396,9 +348,9 @@ async function loadPackages() {
       where: { active: true },
       orderBy: [{ price: 'asc' }],
     });
-    packages.value = (result ?? []) as TokenPackage[];
-  } catch (e) {
-    console.error('[PricingPage] 加载套餐失败:', e);
+    packages.value = result ?? [];
+  } catch (_e: unknown) {
+    toast.error(t('加载套餐失败'));
   } finally {
     loading.value = false;
   }
@@ -409,37 +361,8 @@ async function loadProviders() {
   try {
     const result = await API.paymentApi.getAvailableProviders();
     availableProviders.value = result ?? [];
-  } catch (e) {
-    console.error('[PricingPage] 加载支付渠道失败:', e);
-  }
-}
-
-/** 加载公开联系方式（微信号等） */
-async function loadContactInfo() {
-  try {
-    const result = await API.paymentApi.getPublicContactInfo();
-    contactInfo.value = result ?? { wechatAccountId: null, wechatAccountName: null };
-  } catch (e) {
-    console.error('[PricingPage] 加载联系方式失败:', e);
-  }
-}
-
-/** 复制联系方式微信号 */
-async function copyContactId() {
-  if (!contactInfo.value.wechatAccountId) return;
-  try {
-    await navigator.clipboard.writeText(contactInfo.value.wechatAccountId);
-    toast.success(t('已复制到剪贴板'));
-  } catch {
-    const textarea = document.createElement('textarea');
-    textarea.value = contactInfo.value.wechatAccountId;
-    textarea.style.position = 'fixed';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    toast.success(t('已复制到剪贴板'));
+  } catch (_e: unknown) {
+    toast.error(t('加载支付渠道失败'));
   }
 }
 

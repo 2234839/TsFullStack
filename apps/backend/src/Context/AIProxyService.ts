@@ -4,9 +4,9 @@ import { ReqCtxService } from '../Context/ReqCtx';
 import { DbClientEffect } from './DbService';
 import { AppConfigService } from './AppConfig';
 import { dbTry, dbTryOrDefault } from '../util/dbEffect';
-import { fail, neverReturn, MsgError } from '../util/error';
+import { fail, MsgError, requireOrFail, extractErrorMessage } from '../util/error';
 import { AIModel as AIModelConfig, OpenAIRequest, OpenAIResponse } from '../types/ai';
-import { MS_PER_MINUTE, MS_PER_HOUR, MS_PER_DAY } from '../util/constants';
+import { MS_PER_MINUTE, MS_PER_HOUR, MS_PER_DAY, JSON_CONTENT_HEADERS, MSG } from '../util/constants';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../util/http';
 
 /** 匿名用户频率限制 */
@@ -38,14 +38,17 @@ function checkLimits(
   return null;
 }
 
+/** 日志前缀 */
+const LOG_PREFIX = '[AIProxy]';
+
 /** AI 代理服务工具类 */
-export class AIProxyServiceUtils {
+class AIProxyServiceUtils {
   /** 检查频率限制 */
   static checkRateLimit = (
     clientIp: string,
     userId: string | null,
     aiModelId: number,
-  ): Effect.Effect<RateLimitCheck, Error, AppConfigService | ReqCtxService> =>
+  ) =>
     Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
 
@@ -54,7 +57,7 @@ export class AIProxyServiceUtils {
       const oneHourAgo = new Date(now.getTime() - MS_PER_HOUR);
       const oneDayAgo = new Date(now.getTime() - MS_PER_DAY);
 
-      const aiModel = yield* dbTry('[AIProxy]', '查询AI模型', () =>
+      const aiModel = yield* dbTry(LOG_PREFIX, '查询AI模型', () =>
         dbClient.aiModel.findUnique({ where: { id: aiModelId } }),
       );
       if (!aiModel || !aiModel.enabled) {
@@ -63,7 +66,7 @@ export class AIProxyServiceUtils {
 
       /** 用单次 SQL 条件聚合替代 3 次 COUNT 查询（3 次 DB 往返 → 1 次） */
       /** 所有动态值必须通过 Prisma ${} 占位符参数化，禁止字符串拼接防 SQL 注入 */
-      const rawCounts = yield* dbTryOrDefault('[AIProxy]', '查询频率限制计数', async () => {
+      const rawCounts = yield* dbTryOrDefault(LOG_PREFIX, '查询频率限制计数', async () => {
         const rows = await dbClient.$queryRaw<{ rpm: number; rph: number; rpd: number }[]>`
           SELECT
             SUM(CASE WHEN "timestamp" >= ${oneMinuteAgo.toISOString()} THEN 1 ELSE 0 END) AS rpm,
@@ -93,28 +96,27 @@ export class AIProxyServiceUtils {
     });
 
   /** 记录API调用 */
-  static recordApiCall = (
-    clientIp: string,
-    userId: string | null,
-    aiModelId: number,
-    modelName: string,
-    inputTokens?: number,
-    outputTokens?: number,
-    success: boolean = true,
-  ): Effect.Effect<void, Error, AppConfigService | ReqCtxService> =>
+  static recordApiCall = (params: {
+    clientIp: string;
+    userId: string | null;
+    aiModelId: number;
+    modelName: string;
+    inputTokens?: number;
+    outputTokens?: number;
+    success?: boolean;
+  }) =>
     Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
-
-      yield* dbTry('[AIProxy]', '记录API调用', () =>
+      return yield* dbTry(LOG_PREFIX, '记录API调用', () =>
         dbClient.aiCallLog.create({
           data: {
-            clientIp,
-            userId,
-            aiModelId,
-            modelName,
-            inputTokens,
-            outputTokens,
-            success,
+            clientIp: params.clientIp,
+            userId: params.userId,
+            aiModelId: params.aiModelId,
+            modelName: params.modelName,
+            inputTokens: params.inputTokens,
+            outputTokens: params.outputTokens,
+            success: params.success ?? true,
             timestamp: new Date(),
           },
         }),
@@ -122,18 +124,16 @@ export class AIProxyServiceUtils {
     });
 
   /** 获取可用的AI模型列表 */
-  static getAvailableModels = (): Effect.Effect<AIModelConfig[], Error, AppConfigService | ReqCtxService> =>
+  static getAvailableModels = () =>
     Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
-
-      const models = yield* dbTry('[AIProxy]', '获取AI模型列表', () =>
+      const models = yield* dbTry(LOG_PREFIX, '获取AI模型列表', () =>
         dbClient.aiModel.findMany({
           where: { enabled: true },
           orderBy: { weight: 'desc' },
         }),
       );
-
-      return models.map((model) => ({
+      return models.map(model => ({
         id: model.id,
         name: model.name,
         model: model.model,
@@ -149,36 +149,36 @@ export class AIProxyServiceUtils {
       }));
     });
 
-  /** 选择AI模型（负载均衡） */
+  /** 选择AI模型（负载均衡，纯同步函数） */
   static selectModel = (
     models: AIModelConfig[],
-  ): Effect.Effect<AIModelConfig | null, never, never> => {
+  ): AIModelConfig | null => {
     if (models.length === 0) {
-      return Effect.succeed(null);
+      return null;
     }
 
     if (models.length === 1) {
-      return Effect.succeed(models[0]!);
+      return models[0]!;
     }
 
-    // 加权随机选择
+    /** 加权随机选择 */
     const totalWeight = models.reduce((sum, model) => sum + model.weight, 0);
     let random = Math.random() * totalWeight;
 
     for (const model of models) {
       random -= model.weight;
       if (random <= 0) {
-        return Effect.succeed(model);
+        return model;
       }
     }
-    return Effect.succeed(models[models.length - 1]!);
+    return models[models.length - 1]!;
   };
 
   /** 调用OpenAI API */
   static callOpenAI = (
     request: OpenAIRequest,
     aiModel: AIModelConfig,
-  ): Effect.Effect<OpenAIResponse, Error, never> =>
+  ) =>
     Effect.tryPromise({
       try: async () => {
         const url = `${aiModel.baseUrl}/chat/completions`;
@@ -190,7 +190,7 @@ export class AIProxyServiceUtils {
           temperature: request.temperature ?? aiModel.temperature,
           max_tokens: request.max_tokens ?? aiModel.maxTokens,
           stream: request.stream ?? false,
-          thinking: request.thinking || {
+          thinking: request.thinking ?? {
             type: 'disabled',
           },
         };
@@ -206,7 +206,7 @@ export class AIProxyServiceUtils {
         const response = await fetch(url, withFetchTimeout({
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            ...JSON_CONTENT_HEADERS,
             Authorization: `Bearer ${aiModel.apiKey}`,
           },
           body: JSON.stringify(requestBody),
@@ -222,7 +222,7 @@ export class AIProxyServiceUtils {
       catch: (error) => {
         /** 保留原始 MsgError 的详细错误信息，避免二次包装丢失 HTTP status 等关键信息 */
         if (MsgError.isMsgError(error)) return error;
-        return MsgError.msg(`调用OpenAI API失败: ${error instanceof Error ? error.message : String(error)}`);
+        return MsgError.msg(`调用OpenAI API失败: ${extractErrorMessage(error)}`);
       },
     });
 
@@ -230,25 +230,22 @@ export class AIProxyServiceUtils {
   static proxyOpenAIRequest = (
     request: OpenAIRequest,
     clientIp: string,
-  ): Effect.Effect<OpenAIResponse, Error, AppConfigService | AuthContext | ReqCtxService> =>
+  ) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
-      const currentUserId = auth.user?.id || null;
+      const currentUserId = auth.user?.id ?? null;
 
       // 获取可用模型
       const availableModels = yield* AIProxyServiceUtils.getAvailableModels();
       if (availableModels.length === 0) {
-        yield* fail('没有可用的AI模型');
-        return neverReturn();
+        return yield* fail(MSG.NO_AI_MODEL_AVAILABLE);
       }
 
       // 选择模型（availableModels 已在上方校验非空，selectModel 对非空数组保证返回非 null）
-      const selectedModelRaw = yield* AIProxyServiceUtils.selectModel(availableModels);
-      if (!selectedModelRaw) {
-        yield* fail('模型选择失败');
-        return neverReturn();
-      }
-      const selectedModel = selectedModelRaw;
+      const selectedModel = yield* requireOrFail(
+        AIProxyServiceUtils.selectModel(availableModels),
+        '模型选择失败',
+      );
 
       // 检查频率限制
       const rateLimitCheck = yield* AIProxyServiceUtils.checkRateLimit(
@@ -258,27 +255,23 @@ export class AIProxyServiceUtils {
       );
       if (!rateLimitCheck.allowed) {
         // 记录失败的频率限制检查
-        yield* AIProxyServiceUtils.recordApiCall(
-          clientIp,
-          currentUserId,
-          selectedModel.id,
-          selectedModel.model,
-          undefined,
-          undefined,
-          false,
-        );
-        yield* fail(rateLimitCheck.reason || '请求频率超限');
-        return neverReturn();
+        yield* AIProxyServiceUtils.recordApiCall({
+          clientIp, userId: currentUserId,
+          aiModelId: selectedModel.id, modelName: selectedModel.model,
+          success: false,
+        });
+        return yield* fail(rateLimitCheck.reason ?? '请求频率超限');
       }
 
-      // 调用 OpenAI API — 失败时记录调用并传播错误（yield* 确保 Effect 在正确上下文中执行）
+      // 调用 OpenAI API — 失败时记录调用并传播错误
       const response = yield* AIProxyServiceUtils.callOpenAI(request, selectedModel).pipe(
         Effect.catchAll((error) =>
           Effect.gen(function* () {
-            yield* AIProxyServiceUtils.recordApiCall(
-              clientIp, currentUserId, selectedModel.id, selectedModel.model,
-              undefined, undefined, false,
-            );
+            yield* AIProxyServiceUtils.recordApiCall({
+              clientIp, userId: currentUserId,
+              aiModelId: selectedModel.id, modelName: selectedModel.model,
+              success: false,
+            });
             return yield* Effect.fail(error);
           }),
         ),
@@ -289,37 +282,25 @@ export class AIProxyServiceUtils {
       const outputTokens = response.usage?.completion_tokens;
 
       // 记录成功的API调用
-      yield* AIProxyServiceUtils.recordApiCall(
-        clientIp,
-        currentUserId,
-        selectedModel.id,
-        selectedModel.model,
-        inputTokens,
-        outputTokens,
-        true,
-      );
+      yield* AIProxyServiceUtils.recordApiCall({
+        clientIp, userId: currentUserId,
+        aiModelId: selectedModel.id, modelName: selectedModel.model,
+        inputTokens, outputTokens, success: true,
+      });
 
       return response;
     });
 
   /** 清理过期的API调用记录（30天前） */
-  static cleanupExpiredApiLogs = (): Effect.Effect<
-    { success: boolean; deletedCount: number; message: string },
-    Error,
-    AppConfigService | ReqCtxService
-  > =>
+  static cleanupExpiredApiLogs = () =>
     Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
       const thirtyDaysAgo = new Date(Date.now() - AI_CALL_LOG_RETENTION_DAYS * MS_PER_DAY);
-
-      const result = yield* dbTry('[AIProxy]', '清理过期API调用记录', () =>
+      const result = yield* dbTry(LOG_PREFIX, '清理过期API调用记录', () =>
         dbClient.aiCallLog.deleteMany({
-          where: {
-            timestamp: { lt: thirtyDaysAgo },
-          },
+          where: { timestamp: { lt: thirtyDaysAgo } },
         }),
       );
-
       return {
         success: true,
         deletedCount: result.count,
@@ -340,21 +321,21 @@ export class AIProxyService extends Context.Tag('AIProxyService')<
     ) => Effect.Effect<RateLimitCheck, Error, AppConfigService | ReqCtxService>;
 
     /** 记录API调用 */
-    recordApiCall: (
-      clientIp: string,
-      userId: string | null,
-      aiModelId: number,
-      modelName: string,
-      inputTokens?: number,
-      outputTokens?: number,
-      success?: boolean,
-    ) => Effect.Effect<void, Error, AppConfigService | ReqCtxService>;
+    recordApiCall: (params: {
+      clientIp: string;
+      userId: string | null;
+      aiModelId: number;
+      modelName: string;
+      inputTokens?: number;
+      outputTokens?: number;
+      success?: boolean;
+    }) => Effect.Effect<void, Error, AppConfigService | ReqCtxService>;
 
     /** 获取可用的AI模型列表 */
     getAvailableModels: () => Effect.Effect<AIModelConfig[], Error, AppConfigService | ReqCtxService>;
 
-    /** 选择AI模型（负载均衡） */
-    selectModel: (models: AIModelConfig[]) => Effect.Effect<AIModelConfig | null, never, never>;
+    /** 选择AI模型（负载均衡，纯同步） */
+    selectModel: (models: AIModelConfig[]) => AIModelConfig | null;
 
     /** 调用OpenAI API */
     callOpenAI: (

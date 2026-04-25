@@ -7,6 +7,8 @@
  * - 便于测试、维护和版本控制
  */
 
+import type { AiImageProvider } from '../util/constants';
+
 /** AI 图片生成选项 */
 interface AiImageOptions {
   /** 生成数量 */
@@ -14,7 +16,7 @@ interface AiImageOptions {
   /** 图片尺寸 */
   size: string;
   /** 服务商 */
-  provider: 'qwen' | 'dalle' | 'stability' | 'glm';
+  provider: AiImageProvider;
 }
 
 /** 代币消耗计算结果 */
@@ -69,8 +71,8 @@ export class TokenPricingCalculator {
    * @returns 代币消耗计算结果
    */
   static aiImageGeneration(options: AiImageOptions): TokenCostResult {
-    const sizeMult = TokenPricingCalculator.SIZE_MULTIPLIER[options.size] || 1;
-    const providerMult = TokenPricingCalculator.PROVIDER_MULTIPLIER[options.provider] || 1;
+    const sizeMult = TokenPricingCalculator.SIZE_MULTIPLIER[options.size] ?? 1;
+    const providerMult = TokenPricingCalculator.PROVIDER_MULTIPLIER[options.provider] ?? 1;
 
     const total = Math.ceil(TokenPricingCalculator.IMAGE_BASE_PRICE * options.count * sizeMult * providerMult);
 

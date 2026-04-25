@@ -1,4 +1,6 @@
 import { Effect } from 'effect';
+import { fail } from '../../../util/error';
+import { MSG } from '../../../util/constants';
 import type {
   PaymentAdapter,
   CreatePaymentParams,
@@ -7,6 +9,8 @@ import type {
 import { PaymentProvider } from '../../../../.zenstack/models';
 import { PaymentConfigService } from '../../../Context/PaymentConfig';
 import { ReqCtxService } from '../../../Context/ReqCtx';
+
+const LOG_PREFIX = '[WechatAdapter]';
 
 /**
  * 微信好友支付适配器
@@ -29,10 +33,10 @@ export const WechatAdapter: PaymentAdapter = {
       const wechatConfig = config.wechat;
 
       if (!wechatConfig?.enabled || !wechatConfig.accountId) {
-        throw Error('微信好友支付未启用或缺少微信号配置');
+        return yield* fail(MSG.WECHAT_NOT_ENABLED);
       }
 
-      reqCtx.log('[WechatAdapter] 创建微信支付订单:', params.orderNo);
+      reqCtx.log(LOG_PREFIX, '创建微信支付订单:', params.orderNo);
 
       return {
         payUrl: WECHAT_PAY_URL,
@@ -47,12 +51,8 @@ export const WechatAdapter: PaymentAdapter = {
     }),
 
   parseWebhook: () =>
-    Effect.gen(function* () {
-      throw Error('微信好友支付不支持 Webhook 回调');
-    }),
+    fail(MSG.WECHAT_NO_WEBHOOK),
 
   queryOrderStatus: () =>
-    Effect.gen(function* () {
-      return null;
-    }),
+    Effect.succeed(null),
 };

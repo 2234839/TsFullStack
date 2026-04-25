@@ -112,11 +112,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, shallowRef, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { authInfo_isLogin, authInfo } from '@/storage';
 import { useAPI } from '@/api';
-import { Button, Input, Message, ProgressSpinner } from '@/components/base';
 import { getErrorMessage } from '@/utils/error';
 import TreeholePost from './TreeholePost.vue';
 import TreeholePostForm from './TreeholePostForm.vue';
@@ -129,7 +128,7 @@ const { t } = useI18n();
 
 const { AppAPI } = useAPI();
 
-const posts = ref<TreeholePostType[]>([]);
+const posts = shallowRef<TreeholePostType[]>([]);
 const isLoading = ref(false);
 const isLoadingMore = ref(false);
 const error = ref('');
@@ -177,7 +176,7 @@ const emptyMessage = computed(() => {
     MEMBERS: t('还没有登录用户可见的帖子'),
     MY: t('你还没有发布过任何帖子'),
   };
-  return messages[currentFilter.value] || t('暂无内容');
+  return messages[currentFilter.value] ?? t('暂无内容');
 });
 
 /**
@@ -224,7 +223,7 @@ async function loadPosts(reset = true) {
     if (reset) {
       posts.value = result.posts;
     } else {
-      posts.value.push(...result.posts);
+      posts.value = [...posts.value, ...result.posts];
     }
 
     // 判断是否还有更多数据
@@ -245,9 +244,11 @@ async function loadMore() {
   isLoadingMore.value = true;
   skip.value += take;
 
-  await loadPosts(false);
-
-  isLoadingMore.value = false;
+  try {
+    await loadPosts(false);
+  } finally {
+    isLoadingMore.value = false;
+  }
 }
 
 /**
@@ -268,20 +269,8 @@ watch(searchKeyword, () => {
   debouncedSearch();
 });
 
-// 监听过滤器变化
+/** 监听过滤器变化，immediate: true 同时替代 onMounted */
 watch(currentFilter, () => {
   loadPosts();
-});
-
-// 页面加载时获取帖子
-onMounted(() => {
-  loadPosts();
-});
+}, { immediate: true });
 </script>
-
-<style scoped>
-/* 添加过渡动画 */
-.treehole-post {
-  transition: all 0.3s ease;
-}
-</style>

@@ -34,7 +34,7 @@
       <div class="user-profile px-4 py-5 flex items-center border-b border-primary-200 dark:border-secondary-700/50">
         <div class="relative">
           <a href="https://shenzilong.cn" target="_blank">
-            <File2Url v-if="avatarUrl" :fileId="avatarUrl" v-slot="{ url }">
+            <File2Url v-if="avatarFileId" :fileId="avatarFileId" v-slot="{ url }">
               <div class="w-12 h-12 rounded-full overflow-hidden shadow-lg border-2 border-primary-400 dark:border-info-400 mr-3">
                 <img :src="url" :alt="t('用户头像')" class="w-full h-full object-cover" />
               </div>
@@ -49,7 +49,7 @@
         <div class="user-info transition-all duration-300 overflow-hidden whitespace-nowrap"
           :class="[isCollapsed ? 'opacity-0 w-0' : 'opacity-100 flex-1']">
           <h2 class="font-medium text-primary-800 dark:text-primary-50">{{ displayName }}</h2>
-          <p class="text-sm text-primary-500 dark:text-secondary-400">{{ userProfile?.email || t('未登录') }}</p>
+          <p class="text-sm text-primary-500 dark:text-secondary-400">{{ userProfile?.email ?? t('未登录') }}</p>
         </div>
         <Badge v-if="!isCollapsed" value="3" variant="info" class="ml-auto"></Badge>
       </div>
@@ -58,9 +58,9 @@
       <div
         class="search-box px-4 py-3 transition-all duration-300 overflow-hidden border-b border-primary-200 dark:border-secondary-700/50"
         :class="[isCollapsed ? 'opacity-0 h-0 py-0' : 'opacity-100']">
-        <span class="p-input-icon-left w-full">
+        <span class="w-full">
           <Input v-model="searchQuery" :placeholder="t('搜索...')"
-            class="w-full p-input-sm rounded-lg bg-primary-100 dark:bg-secondary-700/50 border-primary-300 dark:border-secondary-600 text-primary-800 dark:text-primary-50" />
+            class="w-full rounded-lg bg-primary-100 dark:bg-secondary-700/50 border-primary-300 dark:border-secondary-600 text-primary-800 dark:text-primary-50" />
         </span>
       </div>
 
@@ -191,11 +191,8 @@
 <script setup lang="ts">
   import I18nSwitch from '@/components/system/I18nSwitch.vue';
   import ThemeSwitch from '@/components/system/ThemeToggle.vue';
-  import { useComputedI18n } from '@/i18n';
+  import { useI18n } from '@/composables/useI18n';
   import { routeMap, router, routerUtil } from '@/router';
-  import Badge from '@/components/base/Badge.vue';
-  import Button from '@/components/base/Button.vue';
-  import Input from '@/components/base/Input.vue';
   import File2Url from '@/pages/admin/components/File2Url.vue';
   import { Dropdown, Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, reactive, ref } from 'vue';
@@ -205,7 +202,7 @@
   import { useUserProfile } from '@/composables/useUserProfile';
 
   /** 获取用户信息 */
-  const { displayName, avatarUrl, userProfile } = useUserProfile();
+  const { displayName, avatarFileId, userProfile } = useUserProfile();
 
   // 定义类型
   interface MenuItem {
@@ -228,20 +225,20 @@
   const isCollapsed = ref(false);
   const searchQuery = ref('');
 
-  // 存储 Dropdown 打开状态的响应式对象
+  /** 存储 Dropdown 打开状态的响应式对象 */
   const dropdownOpenStates = reactive<Record<string, boolean>>({});
 
-  // 跳转到首页
+  /** 跳转到首页 */
   const navigateToHome = (): void => {
     router.push(routerUtil.to(routeMap.index, {}));
   };
 
-  // 切换折叠状态
+  /** 切换折叠状态 */
   const toggleCollapse = (): void => {
     isCollapsed.value = !isCollapsed.value;
   };
 
-  const t = useComputedI18n();
+  const { t } = useI18n();
 
   const menuItems = reactive([
     {
@@ -408,7 +405,7 @@
     },
   ]) as MenuCategory[];
 
-  // 折叠状态下的菜单项（只显示顶级菜单）
+  /** 折叠状态下的菜单项（只显示顶级菜单） */
   const collapsedMenuItems = computed<MenuItem[]>(() => {
     const items: MenuItem[] = [];
     menuItems.forEach((category) => {
@@ -427,7 +424,7 @@
     return items;
   });
 
-  // 过滤菜单项
+  /** 过滤菜单项 */
   const filteredMenuItems = computed<MenuCategory[]>(() => {
     if (!searchQuery.value) return menuItems;
 
@@ -463,7 +460,7 @@
     return result;
   });
 
-  // 切换子菜单展开/折叠
+  /** 切换子菜单展开/折叠 */
   const toggleSubmenu = (item: MenuItem): void => {
     if (item.items && item.items.length) {
       item.expanded = !item.expanded;
@@ -472,14 +469,14 @@
     }
   };
 
-  // 检查是否有子菜单项
+  /** 检查是否有子菜单项 */
   const hasSubmenuItems = (item: MenuItem): boolean => {
     return !!(item.items && item.items.length);
   };
 
-  // 获取子菜单项
+  /** 获取子菜单项 */
   const getSubmenuItems = (item: MenuItem): MenuItem[] => {
-    return item.items || [];
+    return item.items ?? [];
   };
 
   const navigateTo = (item: MenuItem): void => {
@@ -489,7 +486,7 @@
     router.push(item.to);
   };
 
-  // 检查是否是当前活动路由（支持 string 路径和路由名称对象两种格式）
+  /** 检查是否是当前活动路由（支持 string 路径和路由名称对象两种格式） */
   const isActiveRoute = (item: MenuItem): boolean => {
     if (typeof item.to === 'string') {
       return router.currentRoute.value.path === item.to;
@@ -497,9 +494,9 @@
     return router.currentRoute.value.name === (item.to as { name?: string })?.name;
   };
 
-  // 获取徽章样式
+  /** 获取徽章样式 */
   const getBadgeVariant = (item: MenuItem): string => {
-    return item.badgeVariant || 'info';
+    return item.badgeVariant ?? 'info';
   };
 </script>
 

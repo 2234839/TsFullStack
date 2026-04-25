@@ -9,9 +9,7 @@ interface Props {
   clickable?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  clickable: false,
-});
+const { clickable = false } = defineProps<Props>();
 </script>
 
 <template>

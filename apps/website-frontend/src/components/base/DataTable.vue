@@ -1,3 +1,21 @@
+<script lang="ts">
+/** DataTable 列定义类型 */
+export interface ColumnDef<T = unknown> {
+  /** 字段名 */
+  key: string;
+  /** 列头 */
+  title: string;
+  /** 是否可排序 */
+  sortable?: boolean;
+  /** 列宽 */
+  width?: string | number;
+  /** 单元格自定义渲染 */
+  render?: (row: T, index: number) => import('vue').VNode | string | null;
+  /** 列对齐 */
+  align?: 'left' | 'center' | 'right';
+}
+</script>
+
 <script setup lang="ts" generic="T extends Record<string, any>">
 /**
  * 数据表格组件
@@ -9,21 +27,6 @@ import { useI18n } from '@/composables/useI18n';
 import ProgressSpinner from './ProgressSpinner.vue';
 
 const { t } = useI18n();
-
-interface ColumnDef<T = unknown> {
-  /** 字段名 */
-  key: string;
-  /** 列头 */
-  title: string;
-  /** 是否可排序 */
-  sortable?: boolean;
-  /** 列宽 */
-  width?: string | number;
-  /** 单元格自定义渲染 */
-  render?: (row: T, index: number) => VNode | string;
-  /** 列对齐 */
-  align?: 'left' | 'center' | 'right';
-}
 
 interface Props<T> {
   /** 数据列表 */
@@ -105,9 +108,12 @@ const sortedData = computed(() => {
   });
 });
 
+/** 选中键的 Set 缓存，避免 Array.includes 的 O(n) 查找 */
+const selectedKeySet = computed(() => new Set<string | number>(props.selectedRowKeys));
+
 /** 检查是否选中 */
 function isSelected(row: T): boolean {
-  return props.selectedRowKeys.includes(row[props.rowKey]);
+  return selectedKeySet.value.has(row[props.rowKey]);
 }
 
 /** 处理行选择 */
@@ -115,16 +121,15 @@ function handleRowSelect(row: T) {
   if (!props.selectable) return;
 
   const key = row[props.rowKey];
-  const newSelection = [...props.selectedRowKeys];
-  const index = newSelection.indexOf(key);
+  const selectionSet = new Set(props.selectedRowKeys);
 
-  if (index === -1) {
-    newSelection.push(key);
+  if (selectionSet.has(key)) {
+    selectionSet.delete(key);
   } else {
-    newSelection.splice(index, 1);
+    selectionSet.add(key);
   }
 
-  emit('update:selectedRowKeys', newSelection);
+  emit('update:selectedRowKeys', [...selectionSet]);
 }
 
 /** 全选/取消全选 */
@@ -172,8 +177,9 @@ function getSortIcon(column: ColumnDef<T>) {
   return sortState.value.order === 'asc' ? '↑' : '↓';
 }
 
-/** 将 render 结果统一为 VNode（string 用 span 包裹） */
-function normalizeRenderResult(result: VNode | string): VNode {
+/** 将 render 结果统一为 VNode（string 用 span 包裹，null 渲染为空 span） */
+function normalizeRenderResult(result: VNode | string | null): VNode {
+  if (result === null) return h('span', '');
   if (isVNode(result)) return result;
   return h('span', result);
 }
@@ -198,7 +204,7 @@ function normalizeRenderResult(result: VNode | string): VNode {
                 :checked="isAllSelected"
                 :indeterminate="isSomeSelected"
                 @change="handleSelectAll"
-                class="h-4 w-4 rounded border-primary-300 text-primary-700 focus:ring-primary-600"
+                class="h-4 w-4 rounded border-primary-300 dark:border-primary-600 text-primary-700 dark:text-primary-400 focus:ring-primary-600 dark:focus:ring-primary-400"
               />
             </th>
             <!-- 数据列 -->
@@ -214,7 +220,7 @@ function normalizeRenderResult(result: VNode | string): VNode {
               @click="column.sortable ? handleSort(column) : null">
               <div class="flex items-center gap-2">
                 {{ column.title }}
-                <span v-if="column.sortable" class="text-primary-500">
+                <span v-if="column.sortable" class="text-primary-500 dark:text-primary-400">
                   {{ getSortIcon(column) }}
                 </span>
               </div>
@@ -246,8 +252,8 @@ function normalizeRenderResult(result: VNode | string): VNode {
               <input
                 type="checkbox"
                 :checked="isSelected(row)"
-                @change="() => handleRowSelect(row)"
-                class="h-4 w-4 rounded border-primary-300 text-primary-700 focus:ring-primary-600"
+                @change="handleRowSelect(row)"
+                class="h-4 w-4 rounded border-primary-300 dark:border-primary-600 text-primary-700 dark:text-primary-400 focus:ring-primary-600 dark:focus:ring-primary-400"
               />
             </td>
             <!-- 数据单元格 -->

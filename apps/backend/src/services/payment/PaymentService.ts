@@ -2,14 +2,13 @@ import { Effect } from 'effect';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { PaymentConfigService } from '../../Context/PaymentConfig';
-import { dbTry, dbTryOrDefault } from '../../util/dbEffect';
-import { fail, neverReturn } from '../../util/error';
-import { MSG } from '../../util/constants';
+import { dbTry, dbTryRequire, dbPaginatedFindMany } from '../../util/dbEffect';
+import { fail } from '../../util/error';
+import { MSG, MS_PER_MINUTE, DEFAULT_PAGE_SIZE, deepCloneToJson } from '../../util/constants';
 import { OrderStatus, PaymentProvider } from '../../../.zenstack/models';
 import { PaymentAdapterRegistry } from './adapter-registry';
-import type { CreatePaymentResult, ParsedWebhookResult } from './adapters/types';
-import { TokenGrantService, asGrantTx } from '../TokenGrantService';
-import { MS_PER_MINUTE, MS_PER_DAY } from '../../util/constants';
+import { grantTokensForPackage } from './grantTokensForPackage';
+import { asGrantTx } from '../TokenGrantService';
 
 /** 生成订单号: TS + 时间戳(36进制) + 随机6位 */
 function generateOrderNo(): string {
@@ -19,6 +18,9 @@ function generateOrderNo(): string {
 }
 
 const DEFAULT_ORDER_EXPIRE_MINUTES = 30;
+
+/** 日志前缀 */
+const LOG_PREFIX = '[PaymentService]';
 
 /**
  * 支付服务
@@ -39,15 +41,15 @@ export const PaymentService = {
       const reqCtx = yield* ReqCtxService;
 
       // 1. 查询套餐
-      const pkg = yield* dbTry('[PaymentService]', '查询套餐', () =>
+      const pkg = yield* dbTryRequire(LOG_PREFIX, '查询套餐', () =>
         db.tokenPackage.findUnique({ where: { id: params.packageId } }),
+        MSG.PACKAGE_NOT_FOUND,
       );
-      if (!pkg) { yield* fail(MSG.PACKAGE_NOT_FOUND); return neverReturn(); }
-      if (!pkg.active) { yield* fail('该套餐已停用'); return neverReturn(); }
+      if (!pkg.active) { return yield* fail(MSG.PACKAGE_DISABLED); }
       if (pkg.price === null || pkg.price <= 0) {
-        yield* fail('该套餐不支持在线购买（价格未设置）');
-        return neverReturn();
+        return yield* fail(MSG.PACKAGE_NO_ONLINE_PURCHASE);
       }
+      const price = pkg.price;
 
       // 2. 生成订单号和过期时间
       const orderNo = generateOrderNo();
@@ -55,14 +57,14 @@ export const PaymentService = {
       const expireAt = new Date(Date.now() + expireMinutes * MS_PER_MINUTE);
 
       // 3. 创建订单记录
-      const order = yield* dbTry('[PaymentService]', '创建订单', () =>
+      const order = yield* dbTry(LOG_PREFIX, '创建订单', () =>
         db.order.create({
           data: {
             orderNo,
             userId: params.userId,
             packageId: params.packageId,
             provider: params.provider,
-            amount: pkg.price!,
+            amount: price,
             status: OrderStatus.PENDING,
             expireAt,
           },
@@ -70,35 +72,34 @@ export const PaymentService = {
       );
 
       // 4. 获取适配器并创建支付
-      const adapter = PaymentAdapterRegistry.getAdapter(params.provider);
+      const adapter = yield* PaymentAdapterRegistry.getAdapter(params.provider);
       const paymentResultRaw = yield* adapter.createPayment({
         orderNo,
-        amount: pkg.price!,
+        amount: price,
         subject: `TsFullStack - ${pkg.name}`,
         description: pkg.description ?? undefined,
         notifyUrl: '',
         returnUrl: '',
         expireAt,
       });
-      const paymentResult = paymentResultRaw as CreatePaymentResult;
 
       // 5. 更新订单的 providerData（如果有）
-      if (paymentResult?.providerData) {
-        yield* dbTry('[PaymentService]', '更新订单支付数据', () =>
+      if (paymentResultRaw?.providerData) {
+        yield* dbTry(LOG_PREFIX, '更新订单支付数据', () =>
           db.order.update({
             where: { id: order.id },
-            data: { providerData: JSON.parse(JSON.stringify(paymentResult.providerData)) },
+            data: { providerData: deepCloneToJson(paymentResultRaw.providerData) },
           }),
         );
       }
 
-      reqCtx.log('[PaymentService] 创建订单:', orderNo, 'provider:', params.provider, 'amount:', pkg.price);
+      reqCtx.log(LOG_PREFIX, '创建订单:', orderNo, 'provider:', params.provider, 'amount:', price);
 
       return {
         orderId: order.id,
         orderNo: order.orderNo,
-        payUrl: paymentResult.payUrl,
-        providerData: paymentResult.providerData ?? undefined,
+        payUrl: paymentResultRaw.payUrl,
+        providerData: paymentResultRaw.providerData ?? undefined,
         expireAt: order.expireAt,
       };
     }),
@@ -109,7 +110,7 @@ export const PaymentService = {
   getOrder: (orderId: number, userId: string) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
-      return yield* dbTry('[PaymentService]', '查询订单', () =>
+      return yield* dbTry(LOG_PREFIX, '查询订单', () =>
         db.order.findFirst({
           where: { id: orderId, userId },
           include: { package: true },
@@ -123,22 +124,18 @@ export const PaymentService = {
   listOrders: (params: { userId: string; status?: OrderStatus; skip?: number; take?: number }) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
-      const [orders, total] = yield* Effect.all([
-        dbTry('[PaymentService]', '查询订单列表', () =>
-          db.order.findMany({
-            where: { userId: params.userId, ...(params.status && { status: params.status }) },
-            orderBy: { created: 'desc' },
-            skip: params.skip ?? 0,
-            take: params.take ?? 20,
-            include: { package: true },
-          }),
-        ),
-        dbTryOrDefault('[PaymentService]', '查询订单总数', () =>
-          db.order.count({
-            where: { userId: params.userId, ...(params.status && { status: params.status }) },
-          }), 0),
-      ]);
-      return { orders, total };
+      const where = { userId: params.userId, ...(params.status && { status: params.status }) };
+      const { items, total } = yield* dbPaginatedFindMany(LOG_PREFIX,
+        () => db.order.findMany({
+          where,
+          orderBy: { created: 'desc' },
+          skip: params.skip ?? 0,
+          take: params.take ?? DEFAULT_PAGE_SIZE,
+          include: { package: true },
+        }),
+        () => db.order.count({ where }),
+      );
+      return { orders: items, total };
     }),
 
   /**
@@ -153,12 +150,11 @@ export const PaymentService = {
       const reqCtx = yield* ReqCtxService;
 
       // 1. 获取适配器并验证+解析回调
-      const adapter = PaymentAdapterRegistry.getAdapter(provider);
-      const parsedRaw = yield* adapter.parseWebhook(payload, headers);
-      const parsed = parsedRaw as ParsedWebhookResult;
+      const adapter = yield* PaymentAdapterRegistry.getAdapter(provider);
+      const parsed = yield* adapter.parseWebhook(payload, headers);
 
       reqCtx.log(
-        '[PaymentService] Webhook 回调:',
+        LOG_PREFIX, 'Webhook 回调:',
         'provider=', provider,
         'orderNo=', parsed.orderNo,
         'tradeNo=', parsed.tradeNo,
@@ -166,7 +162,7 @@ export const PaymentService = {
       );
 
       // 2. 查找订单
-      const order = yield* dbTry('[PaymentService]', '查找订单', () =>
+      const order = yield* dbTry(LOG_PREFIX, '查找订单', () =>
         db.order.findFirst({
           where: { orderNo: parsed.orderNo },
           include: { package: true, user: true },
@@ -174,22 +170,26 @@ export const PaymentService = {
       );
 
       if (!order) {
-        reqCtx.log('[PaymentService] 订单不存在:', parsed.orderNo);
+        reqCtx.log(LOG_PREFIX, '订单不存在:', parsed.orderNo);
         return { success: false, reason: 'ORDER_NOT_FOUND' as const };
       }
 
       // 3. 幂等处理：已支付的订单不再处理
       if (order.status === OrderStatus.PAID) {
-        reqCtx.log('[PaymentService] 订单已支付，跳过幂等处理:', order.orderNo);
+        reqCtx.log(LOG_PREFIX, '订单已支付，跳过幂等处理:', order.orderNo);
         return { success: true, reason: 'ALREADY_PAID' as const, skipped: true };
       }
 
       // 4. 处理支付结果
       if (parsed.paymentStatus === 'success') {
-        const pkg = order.package!;
+        const pkg = order.package;
+        if (!pkg) {
+          reqCtx.log(LOG_PREFIX, '订单缺少关联套餐:', order.orderNo);
+          return { success: false as const, reason: 'PACKAGE_NOT_FOUND' as const };
+        }
 
         // 使用事务保证：更新订单 + 发放代币 的原子性
-        yield* dbTry('[PaymentService]', '支付成功事务处理', () =>
+        yield* dbTry(LOG_PREFIX, '支付成功事务处理', () =>
           db.$transaction(async (tx) => {
             // 4a. 更新订单状态为已支付
             await tx.order.update({
@@ -199,59 +199,17 @@ export const PaymentService = {
                 tradeNo: parsed.tradeNo,
                 paidAmount: parsed.paidAmount,
                 paidAt: parsed.paidAt,
-                providerData: JSON.parse(JSON.stringify(parsed.rawPayload)),
+                providerData: deepCloneToJson(parsed.rawPayload),
               },
             });
 
             // 4b. 根据套餐类型发放代币
-            if (pkg.durationMonths > 0) {
-              // 订阅型套餐：创建订阅记录 + 首次发放
-              const now = new Date();
-              const endDate = pkg.durationMonths > 0
-                ? new Date(now.getTime() + pkg.durationMonths * 30 * MS_PER_DAY)
-                : null;
-
-              const subscription = await tx.userTokenSubscription.create({
-                data: {
-                  userId: order.userId,
-                  packageId: pkg.id,
-                  startDate: now,
-                  endDate,
-                  nextGrantDate: now,
-                  active: true,
-                  grantsCount: 0,
-                },
-              });
-
-              // 复用 TokenGrantService 的首次发放逻辑
-              await TokenGrantService.grantFirstTime(asGrantTx(tx), {
-                id: subscription.id,
-                userId: order.userId,
-                package: { type: pkg.type, amount: pkg.amount, name: pkg.name },
-              });
-            } else {
-              // 一次性购买：直接发放代币
-              const expiresAt = new Date(Date.now() + 365 * MS_PER_DAY); // 默认1年有效期
-              await tx.token.create({
-                data: {
-                  userId: order.userId,
-                  type: pkg.type,
-                  amount: pkg.amount,
-                  used: 0,
-                  expiresAt,
-                  source: 'payment',
-                  sourceId: String(order.id),
-                  description: `购买套餐: ${pkg.name}`,
-                  restrictedType: typeof pkg.restrictedType === 'string' ? pkg.restrictedType : '[]',
-                  active: true,
-                },
-              });
-            }
+            await grantTokensForPackage(asGrantTx(tx), order.userId, pkg, order.id, `购买套餐: ${pkg.name}`);
           }),
         );
 
         reqCtx.log(
-          '[PaymentService] 支付成功, 代币已发放:',
+          LOG_PREFIX, '支付成功, 代币已发放:',
           'orderNo=', order.orderNo,
           'userId=', order.userId,
           'package=', pkg.name,
@@ -262,17 +220,17 @@ export const PaymentService = {
       }
 
       if (parsed.paymentStatus === 'closed') {
-        yield* dbTry('[PaymentService]', '更新订单为关闭', () =>
+        yield* dbTry(LOG_PREFIX, '更新订单为关闭', () =>
           db.order.update({
             where: { id: order.id },
-            data: { status: OrderStatus.CANCELLED, providerData: JSON.parse(JSON.stringify(parsed.rawPayload)) },
+            data: { status: OrderStatus.CANCELLED, providerData: deepCloneToJson(parsed.rawPayload) },
           }),
         );
         return { success: true as const, reason: 'PAYMENT_CLOSED' as const };
       }
 
       // 其他状态不更新，等待后续回调
-      reqCtx.log('[PaymentService] 未识别的支付状态:', parsed.paymentStatus);
+      reqCtx.log(LOG_PREFIX, '未识别的支付状态:', parsed.paymentStatus);
       return { success: false as const, reason: 'UNKNOWN_STATUS' as const };
     }),
 
@@ -283,16 +241,15 @@ export const PaymentService = {
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
 
-      const order = yield* dbTry('[PaymentService]', '查询订单', () =>
+      const order = yield* dbTryRequire(LOG_PREFIX, '查询订单', () =>
         db.order.findFirst({ where: { id: orderId, userId } }),
+        MSG.ORDER_NOT_FOUND,
       );
-      if (!order) { yield* fail(MSG.ORDER_NOT_FOUND); return neverReturn(); }
       if (order.status !== OrderStatus.PENDING) {
-        yield* fail('只能取消待支付的订单');
-        return neverReturn();
+        return yield* fail(MSG.CANCEL_PENDING_ONLY);
       }
 
-      yield* dbTry('[PaymentService]', '取消订单', () =>
+      yield* dbTry(LOG_PREFIX, '取消订单', () =>
         db.order.update({ where: { id: orderId }, data: { status: OrderStatus.CANCELLED } }),
       );
     }),

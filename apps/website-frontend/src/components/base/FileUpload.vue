@@ -18,15 +18,10 @@ interface Props {
 }
 
 const { t } = useI18n();
-const props = withDefaults(defineProps<Props>(), {
-  accept: '*',
-  chooseLabel: '选择文件',
-  disabled: false,
-  mode: 'basic',
-});
+const { accept = '*', chooseLabel: chooseLabelProp = '选择文件', disabled = false } = defineProps<Props>();
 
 /** 按钮文本 */
-const chooseLabel = computed(() => t(props.chooseLabel));
+const chooseLabel = computed(() => t(chooseLabelProp));
 
 interface FileSelectEvent {
   files: File[];
@@ -41,7 +36,7 @@ const fileInputRef = ref<HTMLInputElement | null>(null);
 
 /** 触发文件选择 */
 function chooseFile() {
-  if (!props.disabled) {
+  if (!disabled) {
     fileInputRef.value?.click();
   }
 }
@@ -49,7 +44,7 @@ function chooseFile() {
 /** 处理文件选择 */
 function handleFileSelect(event: Event) {
   const target = event.target as HTMLInputElement;
-  const files = Array.from(target.files || []);
+  const files = Array.from(target.files ?? []);
 
   if (files.length > 0) {
     emit('select', { files });
@@ -65,13 +60,13 @@ function handleFileSelect(event: Event) {
     <input
       ref="fileInputRef"
       type="file"
-      :accept="props.accept"
-      :disabled="props.disabled"
+      :accept="accept"
+      :disabled="disabled"
       class="hidden"
       @change="handleFileSelect" />
     <button
       type="button"
-      :disabled="props.disabled"
+      :disabled="disabled"
       class="px-4 py-2 bg-primary-700 hover:bg-primary-800 dark:bg-primary-300 dark:hover:bg-primary-200 text-primary-50 dark:text-primary-950 rounded-md transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
       @click="chooseFile">
       <i class="pi pi-upload mr-2"></i>

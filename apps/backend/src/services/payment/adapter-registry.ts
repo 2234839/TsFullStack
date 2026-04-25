@@ -1,3 +1,6 @@
+import { Effect } from 'effect';
+import { MsgError } from '../../util/error';
+import { MSG } from '../../util/constants';
 import type { PaymentAdapter } from './adapters/types';
 import { PaymentProvider } from '../../../.zenstack/models';
 import { MbdAdapter } from './adapters/mbd.adapter';
@@ -18,13 +21,17 @@ const adapterMap = new Map<PaymentProvider, PaymentAdapter>([
  * 新增支付平台只需：(1) 实现 PaymentAdapter 接口 (2) 在此处注册 (3) 添加 webhook 路由
  */
 export const PaymentAdapterRegistry = {
-  /** 获取指定平台的适配器 */
-  getAdapter: (provider: PaymentProvider): PaymentAdapter => {
+  /**
+   * 获取指定平台的适配器
+   *
+   * 返回 Effect 而非 throw，确保在 Effect.gen 内部调用时错误走 Fail 而非 Die
+   */
+  getAdapter: (provider: PaymentProvider): Effect.Effect<PaymentAdapter, MsgError> => {
     const adapter = adapterMap.get(provider);
     if (!adapter) {
-      throw Error(`未找到支付平台适配器: ${provider}`);
+      return Effect.fail(MsgError.msg(`${MSG.PROVIDER_ADAPTER_NOT_FOUND}: ${provider}`));
     }
-    return adapter;
+    return Effect.succeed(adapter);
   },
 
   /** 获取所有已注册的适配器（用于遍历/Webhook路由分发） */

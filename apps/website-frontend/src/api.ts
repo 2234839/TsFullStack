@@ -13,26 +13,7 @@ import superjson from 'superjson';
 import { routeMap, routerUtil } from './router';
 import { t } from '@/i18n';
 
-import type { Effect } from '@tsfullstack/backend';
-
-/** 解开 Effect 成功类型 */
-type UnEffect<T> = T extends Effect.Effect<infer A, infer _E, infer _R> ? A : T;
-
-/**
- * 将 API 类型映射为异步调用类型（函数返回值解开 Effect 后包裹 Promise）
- * 在前端本地定义，避免 TypeScript 跨 .d.mts 实例化参数化映射类型时返回 {} 的问题
- */
-type AsyncAPI<T> = {
-  [K0 in keyof T]: T[K0] extends (...args: unknown[]) => infer R
-    ? (...args: Parameters<T[K0]>) => Promise<UnEffect<Awaited<R>>>
-    : T[K0] extends object
-    ? {
-        [K1 in keyof T[K0]]: T[K0][K1] extends (...args: unknown[]) => infer R
-          ? (...args: Parameters<T[K0][K1]>) => Promise<UnEffect<Awaited<R>>>
-          : T[K0][K1]
-      }
-    : T[K0]
-};
+import type { AsyncAPI } from '@/utils/apiType';
 
 /** RPC 响应的统一结构 */
 interface APIResponse<T = unknown> {

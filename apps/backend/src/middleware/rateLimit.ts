@@ -8,6 +8,9 @@
  */
 import { MS_PER_MINUTE } from '../util/constants';
 
+/** 速率限制器最大记录数 */
+const DEFAULT_MAX_RATE_LIMIT_ENTRIES = 10_000;
+
 interface RateLimitEntry {
   count: number;
   resetTime: number;
@@ -22,7 +25,7 @@ class RateLimiter {
   constructor(
     private maxRequests: number,
     private windowMs: number,
-    maxEntries: number = 10000 // 默认最多保存10000个用户的记录
+    maxEntries: number = DEFAULT_MAX_RATE_LIMIT_ENTRIES // 默认最多保存10000个用户的记录
   ) {
     this.maxEntries = maxEntries;
     // 每分钟清理一次过期记录

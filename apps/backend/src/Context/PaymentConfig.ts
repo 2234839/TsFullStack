@@ -1,6 +1,9 @@
 import { Context } from 'effect';
 import type { AppConfig } from './AppConfig';
 
+/** 支付配置类型（从 AppConfig.payment 提取） */
+export type PaymentConfig = NonNullable<AppConfig['payment']>;
+
 /**
  * 支付配置 Effect Context Tag
  *
@@ -9,5 +12,5 @@ import type { AppConfig } from './AppConfig';
  */
 export class PaymentConfigService extends Context.Tag('PaymentConfigService')<
   PaymentConfigService,
-  NonNullable<AppConfig['payment']>
+  PaymentConfig
 >() {}

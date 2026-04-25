@@ -44,8 +44,8 @@ class AuthBus {
       listeners.forEach((listener) => {
         try {
           listener();
-        } catch (error: unknown) {
-          console.error(`[AuthBus] 监听器执行出错:`, error);
+        } catch (_error: unknown) {
+          /** 静默处理监听器异常 */
         }
       });
     }

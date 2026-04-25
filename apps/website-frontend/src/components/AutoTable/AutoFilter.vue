@@ -83,8 +83,6 @@
 
 <script setup lang="ts">
   import AutoColumnEdit from '@/components/AutoTable/AutoColumnEdit.vue';
-  import Button from '@/components/base/Button.vue';
-  import Input from '@/components/base/Input.vue';
   import { Select } from '@tsfullstack/shared-frontend/components';
   import type { SelectOption } from '@tsfullstack/shared-frontend/components';
   import { computed, ref } from 'vue';
@@ -100,9 +98,11 @@
 
   const { modelFields } = defineProps<AutoFilterProps>();
 
-  const emit = defineEmits(['filter']);
+  const emit = defineEmits<{
+    filter: [prismaFilter: Record<string, unknown>];
+  }>();
 
-  // 可用字段列表
+  /** 可用字段列表 */
   const availableFieldsOptions = computed<SelectOption[]>(() => {
     return Object.values(modelFields)
       .filter((field: FieldInfo) => {
@@ -118,13 +118,13 @@
       }));
   });
 
-  // 获取字段对象（通过字段名）
+  /** 获取字段对象（通过字段名） */
   const getFieldByName = (fieldName: string | null): FieldInfo | null => {
     if (!fieldName) return null;
     return Object.values(modelFields).find((field: FieldInfo) => field.name === fieldName) || null;
   };
 
-  // 筛选条件列表
+  /** 筛选条件列表 */
   const filters = ref<
     Array<{
       id: string;
@@ -134,7 +134,7 @@
     }>
   >([]);
 
-  // 添加筛选条件
+  /** 添加筛选条件 */
   function addFilter() {
     filters.value.push({
       id: Date.now().toString(), // 使用时间戳作为唯一ID
@@ -144,18 +144,18 @@
     });
   }
 
-  // 移除筛选条件
+  /** 移除筛选条件 */
   function removeFilter(index: number) {
     filters.value.splice(index, 1);
   }
 
-  // 清除所有筛选条件
+  /** 清除所有筛选条件 */
   function clearAllFilters() {
     filters.value = [];
     emit('filter', {});
   }
 
-  // 根据字段类型获取可用的操作符
+  /** 根据字段类型获取可用的操作符 */
   const getOperatorsForField = (fieldName: string | null): SelectOption[] => {
     const commonOperators: SelectOption[] = [
       { value: 'equals', label: t('等于') },
@@ -204,13 +204,13 @@
     }
   };
 
-  // 更新操作符列表
+  /** 更新操作符列表 */
   function updateOperators(filter: { id: string; field: string | null; operator: string | null; value: Record<string, unknown> | string | number | boolean | null }) {
     filter.operator = null;
     filter.value = null;
   }
 
-  // 应用筛选条件
+  /** 应用筛选条件 */
   function applyFilters() {
     const prismaFilter: Record<string, any> = {};
 

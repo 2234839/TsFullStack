@@ -8,14 +8,14 @@
         showTime
         hourFormat="24"
         dateFormat="yy/mm/dd"
-        v-model="editValue"
+        v-model="dateValue"
         class="w-full" />
     </template>
     <template v-else-if="fieldType === 'String'">
-      <Input v-model="editValue" class="w-full min-w-28" />
+      <Input v-model="stringValue" class="w-full min-w-28" />
     </template>
     <template v-else-if="fieldType === 'Int'">
-      <InputNumber v-model="editValue" class="w-full min-w-28" inputClass="w-full" />
+      <InputNumber v-model="numberValue" class="w-full min-w-28" inputClass="w-full" />
     </template>
     <template v-else-if="isRelationField">
       <div class="flex items-center">
@@ -28,7 +28,7 @@
     </template>
     <template v-else>
       <Tooltip :content="`Unsupported field type: ${fieldType}`" side="top">
-        <span class="text-danger-500 text-sm">
+        <span class="text-danger-500 dark:text-danger-400 text-sm">
           {{ fieldType }}
         </span>
       </Tooltip>
@@ -41,8 +41,6 @@
     type RelationSelectData,
   } from '@/components/AutoTable/RelationSelect.vue';
   import { onClickOutside } from '@vueuse/core';
-  import { InputNumber, Input } from '@/components/base';
-  import { DatePicker } from '@/components/base';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { computed, ref, useTemplateRef } from 'vue';
   import { type FieldInfo, isDataModelField } from './type';
@@ -50,11 +48,12 @@
   const { field, cellData, row } = defineProps<{
     field: FieldInfo;
     /** 动态单元格数据 — AutoTable 动态字段系统无法静态确定具体类型 */
-    cellData: any;
+    cellData: unknown;
     row?: Record<string, unknown>;
   }>();
 
-  const editModel = defineModel<any>();
+  /** editModel 类型与 cellData 一致，动态字段系统无法静态确定 */
+  const editModel = defineModel<unknown>();
 
   const datePickerShow = ref(false);
   /** 双向绑定，但当值未修改时，不更新 editModel  */
@@ -67,6 +66,22 @@
         editModel.value = value;
       }
     },
+  });
+
+  /** 日期字段绑定值 */
+  const dateValue = computed<Date | string | null>({
+    get: () => editValue.value instanceof Date || typeof editValue.value === 'string' ? editValue.value : null,
+    set: (v) => { editValue.value = v; },
+  });
+  /** 字符串字段绑定值 */
+  const stringValue = computed<string>({
+    get: () => typeof editValue.value === 'string' ? editValue.value : String(editValue.value ?? ''),
+    set: (v) => { editValue.value = v; },
+  });
+  /** 数值字段绑定值 */
+  const numberValue = computed<number | undefined>({
+    get: () => typeof editValue.value === 'number' ? editValue.value : undefined,
+    set: (v) => { editValue.value = v; },
   });
 
   const editEl = useTemplateRef<HTMLElement>('__editEl');

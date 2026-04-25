@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, shallowRef, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAPI } from '@/api';
-import { useTokenStoreSingleton } from '@/stores/token';
+import { useTokenStore } from '@/stores/token';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
-import { Button, Textarea } from '@/components/base';
 import { getErrorMessage } from '@/utils/error';
 
 const { t } = useI18n();
@@ -24,7 +23,7 @@ function showSafeError(
 ) {
   const message = getErrorMessage(error, fallbackMessage);
   if (ERROR_HIDE_KEYWORDS.some((kw) => message.includes(kw))) return;
-  toast.add({ summary, detail: message, variant: 'error' });
+  toast.error(summary, message);
 }
 
 const emit = defineEmits<{
@@ -33,7 +32,7 @@ const emit = defineEmits<{
 
 const toast = useToast();
 const { API } = useAPI();
-const tokenStore = useTokenStoreSingleton();
+const tokenStore = useTokenStore();
 
 /** 提示词 */
 const prompt = ref('');
@@ -42,7 +41,7 @@ const prompt = ref('');
 const provider = ref<'qwen' | 'dalle' | 'stability'>('qwen');
 
 /** 可用的服务商列表 */
-const availableProviders = ref<Array<{ value: string; label: string }>>([]);
+const availableProviders = shallowRef<Array<{ value: string; label: string }>>([]);
 
 /** 生成数量 */
 const count = ref('1');
@@ -57,7 +56,7 @@ const isGenerating = ref(false);
 const currentTaskId = ref<number | null>(null);
 
 /** 生成的图片 URL */
-const generatedImages = ref<string[]>([]);
+const generatedImages = shallowRef<string[]>([]);
 
 /** 显示结果对话框 */
 const showResultDialog = ref(false);
@@ -110,8 +109,8 @@ const PROVIDER_MULTIPLIER: Record<string, number> = {
 /** 预计消耗代币（与后端公式保持一致：basePrice × count × sizeMult × providerMult） */
 const estimatedCost = computed(() => {
   const basePrice = 10;
-  const sizeMult = SIZE_MULTIPLIER[size.value] || 1;
-  const providerMult = PROVIDER_MULTIPLIER[provider.value] || 1;
+  const sizeMult = SIZE_MULTIPLIER[size.value] ?? 1;
+  const providerMult = PROVIDER_MULTIPLIER[provider.value] ?? 1;
   return Math.ceil(basePrice * Number(count.value) * sizeMult * providerMult);
 });
 
@@ -147,7 +146,7 @@ onMounted(() => {
 });
 
 /** 使用模板 */
-function useTemplate(template: typeof promptTemplates[0]) {
+function useTemplate(template: { label: string; value: string }) {
   prompt.value = template.value;
 }
 
@@ -155,11 +154,10 @@ function useTemplate(template: typeof promptTemplates[0]) {
 async function startGeneration() {
   if (!canGenerate.value) {
     if (tokenStore.balance.value.total < estimatedCost.value) {
-      toast.add({
-        summary: t('代币不足'),
-        detail: `${t('需要')} ${estimatedCost.value} ${t('枚代币，当前余额')} ${tokenStore.balance.value.total} ${t('枚')}`,
-        variant: 'error',
-      });
+      toast.error(
+        t('代币不足'),
+        `${t('需要')} ${estimatedCost.value} ${t('枚代币，当前余额')} ${tokenStore.balance.value.total} ${t('枚')}`,
+      );
     }
     return;
   }
@@ -184,11 +182,10 @@ async function startGeneration() {
     generatedImages.value = result.images;
     showResultDialog.value = true;
 
-    toast.add({
-      summary: t('生成成功'),
-      detail: `${t('成功生成')} ${result.imagesCount} ${t('张图片，消耗')} ${estimatedCost.value} ${t('枚代币')}`,
-      variant: 'success',
-    });
+    toast.success(
+      t('生成成功'),
+      `${t('成功生成')} ${result.imagesCount} ${t('张图片，消耗')} ${estimatedCost.value} ${t('枚代币')}`,
+    );
 
     emit('complete', result.taskId);
 
@@ -217,12 +214,10 @@ async function selectImage(imageUrl: string) {
       taskId: currentTaskId.value,
       imageUrl,
     });
-    toast.add({
-      summary: t('下载成功'),
-      detail: `${t('已保存为')} ${result.filename} (${(result.size / 1024).toFixed(1)} KB)`,
-      variant: 'success',
-      life: 3000,
-    });
+    toast.success(
+      t('下载成功'),
+      `${t('已保存为')} ${result.filename} (${(result.size / 1024).toFixed(1)} KB)`,
+    );
   } catch (error: unknown) {
     showSafeError(toast, t('下载失败'), t('下载图片时发生错误'), error);
   }
@@ -322,7 +317,7 @@ async function selectImage(imageUrl: string) {
         }">
           {{ tokenStore.balance.value.total }} {{ t('枚') }}
         </span>
-        <span v-if="estimatedCost > 0" class="ml-2 text-secondary-500">
+        <span v-if="estimatedCost > 0" class="ml-2 text-secondary-500 dark:text-secondary-400">
           ({{ t('预计消耗') }} {{ estimatedCost }} {{ t('枚') }})
         </span>
       </div>
@@ -353,7 +348,7 @@ async function selectImage(imageUrl: string) {
             :alt="t('AI 生成的图片')"
             class="w-full h-auto rounded-lg border border-primary-200 dark:border-primary-700"
           />
-          <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
             <Button
               size="sm"
               @click="selectImage(imageUrl)"

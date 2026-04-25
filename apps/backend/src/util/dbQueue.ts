@@ -4,6 +4,7 @@ import type { ClientContract } from '@zenstackhq/orm';
 import type { Queue as QueueModel } from '../../.zenstack/models';
 import { schema } from '../../.zenstack/schema';
 import type { DbClient } from '../Context/DbService';
+import { extractErrorMessage } from './error';
 
 export type TaskMap = Record<string, { payload: unknown; result: unknown }>;
 
@@ -13,6 +14,17 @@ const STUCK_TIMEOUT_MS = 60_000;
 const MONITOR_INTERVAL_MS = 60_000;
 /** 指数退避最大延迟（1分钟） */
 const MAX_BACKOFF_MS = 60_000;
+/** 默认队列轮询间隔（毫秒） */
+const DEFAULT_POLLING_INTERVAL_MS = 1000;
+/** 指数退避基础延迟（1秒） */
+const BACKOFF_BASE_MS = 1000;
+
+/** 日志前缀 */
+const LOG_PREFIX = '[Queue]';
+/** 默认最大重试次数 */
+const DEFAULT_MAX_ATTEMPTS = 3;
+/** 默认队列并发数 */
+const DEFAULT_QUEUE_CONCURRENCY = 5;
 
 export interface AddTaskOptions {
   priority?: number;
@@ -43,13 +55,13 @@ export class PrismaQueue<T extends TaskMap> {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private stuckTaskTimer: NodeJS.Timeout | null = null;
 
-  constructor({ dbClient, pollingInterval = 1000, concurrency = 5, instanceId, stuckTimeoutMs = STUCK_TIMEOUT_MS }: QueueOptions) {
+  constructor({ dbClient, pollingInterval = DEFAULT_POLLING_INTERVAL_MS, concurrency = DEFAULT_QUEUE_CONCURRENCY, instanceId, stuckTimeoutMs = STUCK_TIMEOUT_MS }: QueueOptions) {
     this.dbClient = dbClient;
     this.pollingInterval = pollingInterval;
     this.concurrency = concurrency;
     this.instanceId = instanceId ?? this.generateInstanceId();
     this.stuckTimeoutMs = stuckTimeoutMs;
-    console.log(`[Queue] Initialized: ${this.instanceId}`);
+    console.log(`${LOG_PREFIX} Initialized: ${this.instanceId}`);
   }
 
   public newType<T extends TaskMap>() {
@@ -66,7 +78,7 @@ export class PrismaQueue<T extends TaskMap> {
     handler: (payload: T[K]['payload']) => Promise<T[K]['result']>,
   ) {
     this.workers.set(name as string, handler as (payload: unknown) => Promise<unknown>);
-    console.log(`[Queue] Registered handler: ${name as string}`);
+    console.log(`${LOG_PREFIX} Registered handler: ${name as string}`);
     return this;
   }
 
@@ -78,7 +90,7 @@ export class PrismaQueue<T extends TaskMap> {
         status: 'PENDING',
         priority: options.priority ?? 0,
         runAt: options.runAt ?? new Date(),
-        maxAttempts: options.maxAttempts ?? 3,
+        maxAttempts: options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
       },
     });
   }
@@ -102,7 +114,7 @@ export class PrismaQueue<T extends TaskMap> {
       clearTimeout(this.stuckTaskTimer);
       this.stuckTaskTimer = null;
     }
-    console.log(`[Queue] Stopped: ${this.instanceId}`);
+    console.log(`${LOG_PREFIX} Stopped: ${this.instanceId}`);
     return this;
   }
 
@@ -114,7 +126,7 @@ export class PrismaQueue<T extends TaskMap> {
           data: { updated: new Date() },
         });
       } catch (error: unknown) {
-        console.error('[Queue] Heartbeat update failed:', error);
+        console.error(`${LOG_PREFIX} Heartbeat update failed:`, error);
       }
     }, HEARTBEAT_INTERVAL_MS);
   }
@@ -174,7 +186,7 @@ export class PrismaQueue<T extends TaskMap> {
         void setTimeout(() => this.poll(), this.pollingInterval);
       }
     } catch (error: unknown) {
-      console.error('[Queue] Polling error:', error);
+      console.error(`${LOG_PREFIX} Polling error:`, error);
       setTimeout(() => this.poll(), this.pollingInterval);
     }
   }
@@ -206,7 +218,7 @@ export class PrismaQueue<T extends TaskMap> {
       });
 
       if (updated.count === 0) {
-        console.warn(`[Queue] Task ${task.id} update ignored`);
+        console.warn(`${LOG_PREFIX} Task ${task.id} update ignored`);
       }
     } catch (error: unknown) {
       const current = await this.dbClient.queue.findUnique({ where: { id: task.id } });
@@ -226,14 +238,14 @@ export class PrismaQueue<T extends TaskMap> {
             status: 'PENDING',
             workerId: null,
             runAt,
-            error: `Retry ${current.attempts}/${current.maxAttempts}: ${error instanceof Error ? error.message : String(error)}`,
+            error: `Retry ${current.attempts}/${current.maxAttempts}: ${extractErrorMessage(error)}`,
             updated: new Date(),
           },
         });
 
         // 重试已调度，静默处理
       } else {
-        await this.failTask(task.id, error instanceof Error ? error.message : String(error));
+        await this.failTask(task.id, extractErrorMessage(error));
       }
     }
   }
@@ -248,11 +260,11 @@ export class PrismaQueue<T extends TaskMap> {
         updated: new Date(),
       },
     });
-    console.error(`[Queue] Task ${id} failed: ${reason}`);
+    console.error(`${LOG_PREFIX} Task ${id} failed: ${reason}`);
   }
 
   private getBackoff(attempts: number): number {
-    return Math.min(Math.pow(2, attempts) * 1000, MAX_BACKOFF_MS);
+    return Math.min(Math.pow(2, attempts) * BACKOFF_BASE_MS, MAX_BACKOFF_MS);
   }
 
   private async monitorStuckTasks() {
@@ -298,7 +310,7 @@ export class PrismaQueue<T extends TaskMap> {
             updated: new Date(),
           },
         });
-        console.warn(`[Queue] Batch requeued ${toRetry.length} stuck tasks`);
+        console.warn(`${LOG_PREFIX} Batch requeued ${toRetry.length} stuck tasks`);
       }
 
       // 批量失败 — 单次 updateMany 替代逐个 failTask（与 toRetry 同样的批量策略）
@@ -313,10 +325,10 @@ export class PrismaQueue<T extends TaskMap> {
             updated: new Date(),
           },
         });
-        console.error(`[Queue] Batch failed ${toFail.length} stuck tasks`);
+        console.error(`${LOG_PREFIX} Batch failed ${toFail.length} stuck tasks`);
       }
     } catch (error: unknown) {
-      console.error('[Queue] monitorStuckTasks failed:', error);
+      console.error(`${LOG_PREFIX} monitorStuckTasks failed:`, error);
     }
 
     this.stuckTaskTimer = setTimeout(() => this.monitorStuckTasks(), MONITOR_INTERVAL_MS);

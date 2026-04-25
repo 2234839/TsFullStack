@@ -9,7 +9,7 @@
           </div>
           <div>
             <div class="font-semibold text-primary-900 dark:text-primary-50">
-              {{ post.author.nickname || t('匿名用户') }}
+              {{ post.author.nickname ?? t('匿名用户') }}
             </div>
             <div class="text-xs text-primary-500 dark:text-primary-400">
               {{ formatDate(post.updated, { relative: true }) }}
@@ -70,7 +70,7 @@
               </Button>
               <Button
                 variant="ghost"
-                class="w-full justify-start text-danger-600"
+                class="w-full justify-start text-danger-600 dark:text-danger-400"
                 icon="pi pi-trash"
                 @click="handleDelete"
               >
@@ -96,7 +96,7 @@
 
       <!-- 折叠状态下的摘要 -->
       <div v-else class="text-primary-600 dark:text-primary-400 text-sm">
-        {{ post.title || t('无标题') }} - {{ post.content.substring(0, 50) }}{{ post.content.length > 50 ? '...' : '' }}
+        {{ post.title ?? t('无标题') }} - {{ postSummary }}
       </div>
 
       <!-- 帖子底部：操作按钮和回复数 -->
@@ -150,16 +150,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, shallowRef, computed } from 'vue';
 import { authInfo, authInfo_isLogin } from '@/storage';
 import { useAPI } from '@/api';
-import { Button } from '@/components/base';
 import TreeholePostForm from './TreeholePostForm.vue';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
 import type { TreeholePost } from '@tsfullstack/backend';
 import { getErrorMessage } from '@/utils/error';
 import { useI18n } from '@/composables/useI18n';
+import { truncateText } from '@/utils/format';
 
 interface Props {
   post: TreeholePost;
@@ -183,7 +183,7 @@ const showMenu = ref(false);
 const isReplying = ref(false);
 const isExpanded = ref(false);
 const isPostCollapsed = ref(false); /** 主贴内容是否折叠 */
-const replies = ref<TreeholePost[]>([]);
+const replies = shallowRef<TreeholePost[]>([]);
 const repliesLoaded = ref(false);
 
 /** 当前用户是否是帖子作者 */
@@ -191,9 +191,12 @@ const isAuthor = computed(() =>
   authInfo_isLogin.value ? authInfo.value.userId === post.authorId : false,
 );
 
+/** 折叠状态下的帖子内容摘要 */
+const postSummary = computed(() => truncateText(post.content, 50));
+
 /** 是否有回复可以展开 */
 const hasMoreReplies = computed(() => {
-  const totalReplies = post._count?.replies || 0;
+  const totalReplies = post._count?.replies ?? 0;
   // 如果回复还没加载过,只要有回复就可以展开
   if (!repliesLoaded.value) {
     return totalReplies > 0;
@@ -241,7 +244,7 @@ function getVisibilityClass(visibility: string): string {
     MEMBERS: 'bg-info-100 text-info-700 dark:bg-info-900 dark:text-info-300',
     PUBLIC: 'bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300',
   };
-  return classes[visibility as keyof typeof classes] || classes.DRAFT;
+  return classes[visibility as keyof typeof classes] ?? classes.DRAFT;
 }
 
 /**
@@ -254,7 +257,7 @@ function getVisibilityLabel(visibility: string): string {
     MEMBERS: t('登录可见'),
     PUBLIC: t('公开'),
   };
-  return labels[visibility as keyof typeof labels] || t('未知');
+  return labels[visibility as keyof typeof labels] ?? t('未知');
 }
 
 /**
@@ -295,12 +298,7 @@ async function loadReplies() {
     repliesLoaded.value = true;
     isExpanded.value = true;
   } catch (error: unknown) {
-    toast.add({
-      variant: 'error',
-      summary: t('错误'),
-      detail: t('加载回复失败'),
-      life: 3000,
-    });
+    toast.error(t('错误'), t('加载回复失败'));
   }
 }
 
@@ -319,12 +317,7 @@ function handleReplySubmit() {
 function handleEdit() {
   showMenu.value = false;
   /** 编辑功能待实现：需要打开编辑对话框预填当前内容，调用更新 API */
-  toast.add({
-    variant: 'info',
-    summary: t('提示'),
-    detail: t('编辑功能开发中'),
-    life: 3000,
-  });
+  toast.info(t('提示'), t('编辑功能开发中'));
 }
 
 /**
@@ -348,20 +341,10 @@ function handleDelete() {
     accept: async () => {
       try {
         await API.db.post.delete({ where: { id: post.id } });
-        toast.add({
-          variant: 'success',
-          summary: t('成功'),
-          detail: t('删除成功'),
-          life: 3000,
-        });
+        toast.success(t('成功'), t('删除成功'));
         emit('deleted');
       } catch (error: unknown) {
-        toast.add({
-          variant: 'error',
-          summary: t('错误'),
-          detail: t('删除失败：') + getErrorMessage(error),
-          life: 3000,
-        });
+        toast.error(t('错误'), t('删除失败：') + getErrorMessage(error));
       }
     },
   });

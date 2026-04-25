@@ -2,15 +2,15 @@ import { Effect } from 'effect';
 import { AIProxyService } from '../../Context/AIProxyService';
 import { requireAdmin } from '../../Context/Auth';
 import { reqClientIpEffect } from '../../Context/ClientIPService';
-import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
-import { dbTry } from '../../util/dbEffect';
+import { adminDbTry } from '../../util/dbEffect';
 import {
-  AIModel,
   OpenAIRequest as OpenAIProxyRequest,
-  OpenAIResponse as OpenAIProxyResponse,
 } from '../../types/ai';
 import { evaluateInfoQuality } from './infoQuality';
+
+/** 日志前缀 */
+const LOG_PREFIX = '[AiApi]';
 
 /** 默认 AI 模型 */
 const DEFAULT_AI_MODEL = 'gpt-3.5-turbo';
@@ -65,104 +65,68 @@ export const aiApi = {
   proxyOpenAI: (request: OpenAIProxyRequest) =>
     Effect.gen(function* () {
       const aiProxyService = yield* AIProxyService;
-      // 获取客户端IP
       const clientIp = yield* reqClientIpEffect;
-
-      // 确保model字段有值
-      const finalRequest = {
-        ...request,
-        model: request.model || DEFAULT_AI_MODEL,
-      };
-
-      // 调用AI代理服务
-      const result = yield* aiProxyService.proxyOpenAIRequest(finalRequest, clientIp);
-      return result as OpenAIProxyResponse;
+      return yield* aiProxyService.proxyOpenAIRequest(
+        { ...request, model: request.model ?? DEFAULT_AI_MODEL },
+        clientIp,
+      );
     }),
 
   /** 获取所有AI模型（管理员） */
   getAIModels: () =>
-    Effect.gen(function* () {
-      yield* requireAdmin();
-
-      const dbClient = yield* DbClientEffect;
-      const models = yield* dbTry('[AiApi]', '获取AI模型', () =>
-        dbClient.aiModel.findMany({
-          orderBy: { id: 'asc' },
-        }),
-      );
-
-      return models as AIModel[];
-    }),
+    adminDbTry(LOG_PREFIX, '获取AI模型', (dbClient) =>
+      dbClient.aiModel.findMany({ orderBy: { id: 'asc' } }),
+    ),
 
   /** 创建AI模型（管理员） */
   createAIModel: (request: CreateAIModelRequest) =>
-    Effect.gen(function* () {
-      yield* requireAdmin();
-
-      const dbClient = yield* DbClientEffect;
-      const model = yield* dbTry('[AiApi]', '创建AI模型', () =>
-        dbClient.aiModel.create({
-          data: {
-            name: request.name,
-            model: request.model,
-            baseUrl: request.baseUrl,
-            apiKey: request.apiKey,
-            maxTokens: request.maxTokens ?? DEFAULT_AI_CONFIG.maxTokens,
-            temperature: request.temperature ?? DEFAULT_AI_CONFIG.temperature,
-            enabled: request.enabled !== undefined ? request.enabled : true,
-            weight: request.weight ?? DEFAULT_AI_CONFIG.weight,
-            rpmLimit: request.rpmLimit ?? DEFAULT_AI_CONFIG.rpmLimit,
-            rphLimit: request.rphLimit ?? DEFAULT_AI_CONFIG.rphLimit,
-            rpdLimit: request.rpdLimit ?? DEFAULT_AI_CONFIG.rpdLimit,
-            description: request.description,
-          },
-        }),
-      );
-
-      return model as AIModel;
-    }),
+    adminDbTry(LOG_PREFIX, '创建AI模型', (dbClient) =>
+      dbClient.aiModel.create({
+        data: {
+          name: request.name,
+          model: request.model,
+          baseUrl: request.baseUrl,
+          apiKey: request.apiKey,
+          maxTokens: request.maxTokens ?? DEFAULT_AI_CONFIG.maxTokens,
+          temperature: request.temperature ?? DEFAULT_AI_CONFIG.temperature,
+          enabled: request.enabled !== undefined ? request.enabled : true,
+          weight: request.weight ?? DEFAULT_AI_CONFIG.weight,
+          rpmLimit: request.rpmLimit ?? DEFAULT_AI_CONFIG.rpmLimit,
+          rphLimit: request.rphLimit ?? DEFAULT_AI_CONFIG.rphLimit,
+          rpdLimit: request.rpdLimit ?? DEFAULT_AI_CONFIG.rpdLimit,
+          description: request.description,
+        },
+      }),
+    ),
 
   /** 更新AI模型（管理员） */
   updateAIModel: (request: UpdateAIModelRequest) =>
-    Effect.gen(function* () {
-      yield* requireAdmin();
-
-      const dbClient = yield* DbClientEffect;
-      const model = yield* dbTry('[AiApi]', '更新AI模型', () =>
-        dbClient.aiModel.update({
-          where: { id: request.id },
-          data: {
-            ...(request.name !== undefined && { name: request.name }),
-            ...(request.model !== undefined && { model: request.model }),
-            ...(request.baseUrl !== undefined && { baseUrl: request.baseUrl }),
-            ...(request.apiKey !== undefined && { apiKey: request.apiKey }),
-            ...(request.maxTokens !== undefined && { maxTokens: request.maxTokens }),
-            ...(request.temperature !== undefined && { temperature: request.temperature }),
-            ...(request.enabled !== undefined && { enabled: request.enabled }),
-            ...(request.weight !== undefined && { weight: request.weight }),
-            ...(request.rpmLimit !== undefined && { rpmLimit: request.rpmLimit }),
-            ...(request.rphLimit !== undefined && { rphLimit: request.rphLimit }),
-            ...(request.rpdLimit !== undefined && { rpdLimit: request.rpdLimit }),
-            ...(request.description !== undefined && { description: request.description }),
-          },
-        }),
-      );
-
-      return model as AIModel;
-    }),
+    adminDbTry(LOG_PREFIX, '更新AI模型', (dbClient) =>
+      dbClient.aiModel.update({
+        where: { id: request.id },
+        data: {
+          ...(request.name !== undefined && { name: request.name }),
+          ...(request.model !== undefined && { model: request.model }),
+          ...(request.baseUrl !== undefined && { baseUrl: request.baseUrl }),
+          ...(request.apiKey !== undefined && { apiKey: request.apiKey }),
+          ...(request.maxTokens !== undefined && { maxTokens: request.maxTokens }),
+          ...(request.temperature !== undefined && { temperature: request.temperature }),
+          ...(request.enabled !== undefined && { enabled: request.enabled }),
+          ...(request.weight !== undefined && { weight: request.weight }),
+          ...(request.rpmLimit !== undefined && { rpmLimit: request.rpmLimit }),
+          ...(request.rphLimit !== undefined && { rphLimit: request.rphLimit }),
+          ...(request.rpdLimit !== undefined && { rpdLimit: request.rpdLimit }),
+          ...(request.description !== undefined && { description: request.description }),
+        },
+      }),
+    ),
 
   /** 删除AI模型（管理员） */
   deleteAIModel: (id: number) =>
     Effect.gen(function* () {
-      yield* requireAdmin();
-
-      const dbClient = yield* DbClientEffect;
-      yield* dbTry('[AiApi]', '删除AI模型', () =>
-        dbClient.aiModel.delete({
-          where: { id },
-        }),
+      yield* adminDbTry(LOG_PREFIX, '删除AI模型', (dbClient) =>
+        dbClient.aiModel.delete({ where: { id } }),
       );
-
       return { success: true };
     }),
 
@@ -170,12 +134,10 @@ export const aiApi = {
   cleanupExpiredApiCalls: () =>
     Effect.gen(function* () {
       yield* requireAdmin();
-
       const aiProxyService = yield* AIProxyService;
       const result = yield* aiProxyService.cleanupExpiredApiLogs();
-
       const ctx = yield* ReqCtxService;
-      ctx.log('[AiApi] ' + result.message);
+      ctx.log(`${LOG_PREFIX} ${result.message}`);
       return result;
     }),
 };

@@ -1,6 +1,6 @@
 import { File as FileModel, StorageType, FileStatusEnum } from '../../../.zenstack/models';
 import { Effect } from 'effect';
-import { fail, neverReturn, MsgError } from '../../util/error';
+import { fail, MsgError, requireOrFail, tryOrFail, extractErrorMessage } from '../../util/error';
 import { createWriteStream } from 'fs';
 import { mkdir, unlink, writeFile } from 'fs/promises';
 import { join } from 'path/posix';
@@ -13,11 +13,14 @@ import { FilePathService } from '../../Context/FilePathService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { dbTry, dbTryOrDefault } from '../../util/dbEffect';
 
+/** 日志前缀 */
+const LOG_PREFIX = '[FileApi]';
+
 /** 查询文件记录（统一 authApi/file.ts 中的重复查询模式） */
 const fetchFileById = (id: FileModel['id']) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
-    return yield* dbTryOrDefault('[FileApi]', '查询文件', () =>
+    return yield* dbTryOrDefault(LOG_PREFIX, '查询文件', () =>
       auth.db.file.findUnique({ where: { id } }),
       null,
     );
@@ -29,7 +32,7 @@ const fetchFileById = (id: FileModel['id']) =>
  *
  * @param source - Buffer（一次性写入）或 { stream, byteLength }（流式写入）
  */
-export const saveFile = (options: {
+const saveFile = (options: {
   filename: string;
   mimetype: string;
   /** Buffer 模式：直接传入完整数据 */
@@ -45,17 +48,11 @@ export const saveFile = (options: {
 
     const filePath = FilePathService.generateUserFilePath(auth.user.id, fileId, appConfig.uploadDir);
 
-    yield* Effect.tryPromise({
-      try: () => mkdir(join(appConfig.uploadDir, auth.user.id), { recursive: true }),
-      catch: (e) => MsgError.msg('创建目录失败: ' + String(e)),
-    });
+    yield* tryOrFail('创建目录', () => mkdir(join(appConfig.uploadDir, auth.user.id), { recursive: true }));
 
     if (options.buffer) {
       /** Buffer 模式：一次性写入（适合已在内存的数据，如 AI 图片下载） */
-      yield* Effect.tryPromise({
-        try: () => writeFile(filePath, options.buffer!),
-        catch: (e) => MsgError.msg('写入文件失败: ' + String(e)),
-      });
+      yield* tryOrFail('写入文件', () => writeFile(filePath, options.buffer!));
     } else if (options.stream) {
       /** 流式模式：pipe 写入（适合大文件上传，避免内存暴涨） */
       let fileSize = options.byteLength ?? 0;
@@ -64,21 +61,17 @@ export const saveFile = (options: {
       });
       const writeStream = createWriteStream(filePath);
       trackedStream.pipe(writeStream);
-      yield* Effect.tryPromise({
-        try: () => new Promise<void>((resolve, reject) => {
-          writeStream.on('finish', resolve);
-          writeStream.on('error', reject);
-          trackedStream.on('error', reject);
-        }),
-        catch: (e) => MsgError.msg('文件写入失败: ' + String(e)),
-      });
+      yield* tryOrFail('写入文件', () => new Promise<void>((resolve, reject) => {
+        writeStream.on('finish', resolve);
+        writeStream.on('error', reject);
+        trackedStream.on('error', reject);
+      }));
       options.byteLength = fileSize;
     } else {
-      yield* fail('saveFile 必须提供 buffer 或 stream');
-      return neverReturn();
+      return yield* fail(MSG.SAVE_FILE_NO_DATA);
     }
 
-    return yield* dbTry('[FileApi]', '创建文件记录', () =>
+    return yield* dbTry(LOG_PREFIX, '创建文件记录', () =>
       auth.db.file.create({
         data: {
           filename: FilePathService.sanitizeFilename(options.filename),
@@ -105,16 +98,12 @@ export const fileApi = {
       const reqCtx = yield* ReqCtxService;
 
       /** 获取上传文件 */
-      const reqFile = yield* Effect.tryPromise({
-        try: () => reqCtx.req.file() as Promise<{ file: NodeJS.ReadableStream; filename: string; mimetype: string } | null>,
-        catch: (e) => MsgError.msg('获取上传文件失败: ' + String(e)),
-      });
-      if (!reqFile) {
-        yield* fail('No file uploaded');
-        return neverReturn();
-      }
+      const reqFile = yield* requireOrFail(
+        yield* tryOrFail('获取上传文件', () => reqCtx.req.file() as Promise<{ file: NodeJS.ReadableStream; filename: string; mimetype: string } | null>),
+        'No file uploaded',
+      );
 
-      reqCtx.log('[FileApi] 用户上传文件: ' + reqFile.filename + ', mimetype=' + reqFile.mimetype);
+      reqCtx.log(`${LOG_PREFIX} 用户上传文件: ${reqFile.filename}, mimetype=${reqFile.mimetype}`);
 
       /** 复用 saveFile 的流式写入模式（统一路径生成、目录创建、DB 记录） */
       return yield* saveFile({
@@ -128,11 +117,7 @@ export const fileApi = {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
 
-      const fileRow = yield* fetchFileById(id);
-      if (!fileRow) {
-        yield* fail(MSG.FILE_NOT_FOUND);
-        return neverReturn();
-      }
+      const fileRow = yield* requireOrFail(yield* fetchFileById(id), MSG.FILE_NOT_FOUND);
 
       yield* FileAccessService.validateFileAccessEffect(fileRow, {
         checkOwnership: yield* checkOwnership(true),
@@ -141,16 +126,14 @@ export const fileApi = {
       });
 
       const reqCtx = yield* ReqCtxService;
-      reqCtx.log('[FileApi] 更新文件状态: id=' + id + ', status=' + status);
+      reqCtx.log(`${LOG_PREFIX} 更新文件状态: id=${id}, status=${status}`);
 
-      const res = yield* dbTry('[FileApi]', '更新文件状态', () =>
+      return yield* dbTry(LOG_PREFIX, '更新文件状态', () =>
         auth.db.file.update({
           where: { id },
           data: { status },
         }),
       );
-
-      return res;
     });
   },
   /** 这里同样是为了解决非流式传递导致的内存占用过大问题
@@ -161,11 +144,7 @@ export const fileApi = {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
 
-      const fileRow = yield* fetchFileById(id);
-      if (!fileRow) {
-        yield* fail(MSG.FILE_NOT_FOUND);
-        return neverReturn();
-      }
+      const fileRow = yield* requireOrFail(yield* fetchFileById(id), MSG.FILE_NOT_FOUND);
       // 使用文件访问服务验证权限并获取安全路径
       const fileWrapItem = yield* FileAccessService.createFileWrapItemEffect(fileRow, {
         checkOwnership: yield* checkOwnership(true),
@@ -202,16 +181,18 @@ export const fileApi = {
         try: () => unlink(validatedPath),
         catch: (e) => {
           if ((e as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
-          return MsgError.msg('删除物理文件失败: ' + String(e));
+          return MsgError.msg(`删除物理文件失败: ${extractErrorMessage(e)}`);
         },
       });
 
       // 删除数据库记录
-      yield* dbTry('[FileApi]', '删除文件记录', () =>
+      yield* dbTry(LOG_PREFIX, '删除文件记录', () =>
         auth.db.file.delete({
           where: { id },
         }),
       );
+
+      reqCtx.log(`${LOG_PREFIX} 删除文件: id=${id}, path=${validatedPath}`);
     });
   },
 };
@@ -220,10 +201,8 @@ export const fileApi = {
 function checkOwnership(shouldCheck: boolean) {
   return Effect.gen(function* () {
     const isAdmin = yield* authUserIsAdmin();
-    if (isAdmin) return false;
-    return shouldCheck;
+    return !isAdmin && shouldCheck;
   });
 }
 
-/** FileWrapItem 已提取到 util/file-types.ts，此处 re-export 保持向后兼容 */
-export { FileWrapItem } from '../../util/file-types';
+/** FileWrapItem 已提取到 util/file-types.ts，所有消费者已直接导入 */

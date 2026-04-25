@@ -4,6 +4,7 @@
  * 使用 Tailwind CSS 样式
  */
 import { computed } from 'vue';
+import { INPUT_BASE_CLASSES } from './inputStyles';
 
 interface Props {
   /** 模型值 */
@@ -34,15 +35,13 @@ const emit = defineEmits<{
 
 /** 输入框样式类 */
 const inputClasses = computed(() => {
-  const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200';
-
   const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-info-600 dark:focus:ring-info-500';
 
   const bgClass = 'bg-primary-50 dark:bg-primary-900';
   const textClass = 'text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
-  return `${base} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
+  return `${INPUT_BASE_CLASSES} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });
 
 /** 处理输入事件 */

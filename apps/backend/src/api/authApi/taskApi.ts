@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { AuthContext } from '../../Context/Auth';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { AppConfigService, AppConfig } from '../../Context/AppConfig';
-import { MsgError, fail, neverReturn } from '../../util/error';
+import { MsgError, fail, extractErrorMessage } from '../../util/error';
 import { saveFileFromBuffer } from './file';
 import { dbTry } from '../../util/dbEffect';
 import { TokenService } from '../../services/TokenService';
@@ -13,13 +13,16 @@ import { TokenPricingCalculator } from '../../services/TokenPricingCalculator';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../util/http';
 import { TaskType, TaskStatus, ResourceType } from '../../../.zenstack/models';
 import { tokenConsumeRateLimiter } from '../../middleware/rateLimit';
+import { DEFAULT_IMAGE_SIZE, DEFAULT_IMAGE_DIMENSION, AI_IMAGE_PROVIDERS, type AiImageProvider, MSG } from '../../util/constants';
+
+/** 日志前缀 */
+const LOG_PREFIX = '[TaskApi]';
 
 /** 图片生成参数常量 */
 const MAX_PROMPT_LENGTH = 2000;
 const MAX_IMAGE_COUNT = 4;
-const DEFAULT_IMAGE_SIZE = '1024x1024';
-const VALID_IMAGE_SIZES = ['1024x1024', '1024x768', '768x1024', '512x512',
-  '1344x768', '768x1344', '864x1152', '1152x864'] as const;
+const VALID_IMAGE_SIZES = new Set(['1024x1024', '1024x768', '768x1024', '512x512',
+  '1344x768', '768x1344', '864x1152', '1152x864']);
 const MAX_TOKEN_COST = 1000;
 const PROMPT_TRUNCATE_LENGTH = 50;
 const DEFAULT_COMPRESS_QUALITY = 85;
@@ -40,27 +43,28 @@ const PRIVATE_IP_PATTERNS = [
 ];
 
 /** 校验图片 URL 是否安全（防止 SSRF） */
-function validateImageUrl(url: string): void {
+function validateImageUrl(url: string) {
   let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
-    throw MsgError.msg('无效的图片URL格式');
+    return fail(MSG.INVALID_IMAGE_URL);
   }
 
   if (!ALLOWED_URL_PROTOCOLS.includes(parsed.protocol)) {
-    throw MsgError.msg('图片URL协议不允许: ' + parsed.protocol);
+    return fail(`图片URL协议不允许: ${parsed.protocol}`);
   }
 
   const hostname = parsed.hostname.toLowerCase();
   if (hostname === 'localhost' || hostname === '[::1]') {
-    throw MsgError.msg('禁止访问本地地址');
+    return fail(MSG.LOCAL_ADDRESS_BLOCKED);
   }
   for (const pattern of PRIVATE_IP_PATTERNS) {
     if (pattern.test(hostname)) {
-      throw MsgError.msg('禁止访问私有IP地址');
+      return fail(MSG.PRIVATE_IP_BLOCKED);
     }
   }
+  return Effect.void;
 }
 
 /** sharp 最小类型（可选依赖，不安装时无 @types/sharp） */
@@ -92,9 +96,10 @@ interface SharpPipeline {
   toBuffer(): Promise<Buffer>;
 }
 
-/** AI 图片生成支持的服务商列表 */
-const AI_IMAGE_PROVIDERS = ['qwen', 'dalle', 'stability', 'glm'] as const;
-export type AiImageProvider = (typeof AI_IMAGE_PROVIDERS)[number];
+/** 类型守卫：检查字符串是否为合法的 AiImageProvider */
+function isAiImageProvider(value: string): value is AiImageProvider {
+  return (AI_IMAGE_PROVIDERS as readonly string[]).includes(value);
+}
 
 /** Provider 显示名称映射 */
 const PROVIDER_LABELS: Record<AiImageProvider, string> = {
@@ -112,46 +117,33 @@ const PROVIDER_KEY_MAP: { readonly [K in AiImageProvider]: keyof NonNullable<App
   glm: 'glmApiKey',
 };
 
-/** 图片生成请求参数（已验证） */
-interface ValidatedImageParams {
-  prompt: string;
-  provider: AiImageProvider;
-  count: number;
-  size: string;
-}
-
 /** 验证并规范化图片生成参数 */
 const validateImageParams = (request: {
   prompt?: string;
   provider?: string;
   count?: number;
   size?: string;
-}): Effect.Effect<ValidatedImageParams, MsgError> =>
+}) =>
   Effect.gen(function* () {
     if (!request.prompt?.trim()) {
-      yield* Effect.fail(MsgError.msg('提示词不能为空'));
-      return neverReturn();
+      return yield* fail(MSG.PROMPT_REQUIRED);
     }
     const prompt = request.prompt.trim()!;
     if (prompt.length > MAX_PROMPT_LENGTH) {
-      yield* Effect.fail(MsgError.msg(`提示词不能超过${MAX_PROMPT_LENGTH}字符`));
-      return neverReturn();
+      return yield* fail(`提示词不能超过${MAX_PROMPT_LENGTH}字符`);
     }
 
-    const rawProvider = request.provider || 'qwen';
-    if (!AI_IMAGE_PROVIDERS.includes(rawProvider as AiImageProvider)) {
-      yield* Effect.fail(MsgError.msg('不支持的服务商' + rawProvider));
-      return neverReturn();
+    const rawProvider = request.provider ?? 'qwen';
+    if (!isAiImageProvider(rawProvider)) {
+      return yield* fail(`不支持的服务商${rawProvider}`);
     }
-    const provider = rawProvider as AiImageProvider;
+    const provider = rawProvider;
 
-    const count = Math.floor(Math.max(1, Math.min(MAX_IMAGE_COUNT, request.count || 1)));
+    const count = Math.floor(Math.max(1, Math.min(MAX_IMAGE_COUNT, request.count ?? 1)));
 
-    const validSizes: string[] = [...VALID_IMAGE_SIZES];
-    const size = request.size || DEFAULT_IMAGE_SIZE;
-    if (!validSizes.includes(size)) {
-      yield* Effect.fail(MsgError.msg('不支持的尺寸格式'));
-      return neverReturn();
+    const size = request.size ?? DEFAULT_IMAGE_SIZE;
+    if (!VALID_IMAGE_SIZES.has(size)) {
+      return yield* fail(MSG.INVALID_SIZE_FORMAT);
     }
 
     return { prompt, provider, count, size };
@@ -160,7 +152,7 @@ const validateImageParams = (request: {
 /**
  * 生成 AI 图片
  */
-export const generateAIImage = (request: {
+const generateAIImage = (request: {
   prompt: string;
   provider?: AiImageProvider;
   count?: number;
@@ -173,8 +165,7 @@ export const generateAIImage = (request: {
     // 1. 速率限制检查
     const rateLimitResult = tokenConsumeRateLimiter.check(auth.user.id);
     if (!rateLimitResult.allowed) {
-      yield* fail('请求过于频繁，请稍后再试');
-      return neverReturn();
+      return yield* fail(MSG.RATE_LIMITED);
     }
 
     // 2. 参数验证
@@ -185,11 +176,10 @@ export const generateAIImage = (request: {
     const tokenCost = pricingResult.total;
 
     if (tokenCost <= 0 || tokenCost > MAX_TOKEN_COST) {
-      yield* fail('代币费用计算异常');
-      return neverReturn();
+      return yield* fail(MSG.TOKEN_FEE_ERROR);
     }
 
-    ctx.log(`[TaskAPI] 代币消耗: ${tokenCost}`);
+    ctx.log(`${LOG_PREFIX} 代币消耗: ${tokenCost}`);
 
     // 4. 创建任务
     const task = yield* TaskService.createTask(auth.user.id, {
@@ -200,7 +190,7 @@ export const generateAIImage = (request: {
       tokenCost,
     });
 
-    ctx.log(`[TaskAPI] 创建任务 ${task.id}, 消耗 ${tokenCost} 代币`);
+    ctx.log(`${LOG_PREFIX} 创建任务 ${task.id}, 消耗 ${tokenCost} 代币`);
 
     // 5. 开始任务
     yield* TaskService.startTask(task.id);
@@ -208,16 +198,16 @@ export const generateAIImage = (request: {
     /** 图片生成 → 创建资源 → 完成任务 → 消耗代币 的完整管道，失败时标记任务为 failed */
     const result = yield* aiImageGenerateService(prompt, { provider, count, size }).pipe(
       Effect.tap((generateResult) => {
-        ctx.log('[TaskAPI] AI 服务返回 ' + generateResult.images.length + ' 张图片');
+        ctx.log(`${LOG_PREFIX} AI 服务返回 ${generateResult.images.length} 张图片`);
       }),
       Effect.andThen((generateResult) =>
         Effect.gen(function* () {
           // 7. 批量创建资源记录
           const [rawWidth, rawHeight] = size.split('x');
           /** parseInt 防御：非法格式回退到默认值 */
-          const width = Math.max(1, parseInt(rawWidth || '1024') || 1024);
-          const height = Math.max(1, parseInt(rawHeight || '1024') || 1024);
-          const createManyResult = yield* dbTry('[TaskAPI]', '批量创建资源', () =>
+          const width = Math.max(1, parseInt(rawWidth ?? '') || DEFAULT_IMAGE_DIMENSION);
+          const height = Math.max(1, parseInt(rawHeight ?? '') || DEFAULT_IMAGE_DIMENSION);
+          const createManyResult = yield* dbTry(LOG_PREFIX, '批量创建资源', () =>
             auth.db.resource.createMany({
               data: generateResult.images.map((imageUrl: string) => ({
                 userId: auth.user.id,
@@ -235,7 +225,7 @@ export const generateAIImage = (request: {
             }),
           );
 
-          ctx.log('[TaskAPI] 批量创建 ' + createManyResult.count + ' 个资源记录');
+          ctx.log(`${LOG_PREFIX} 批量创建 ${createManyResult.count} 个资源记录`);
 
           // 8. 完成任务
           yield* TaskService.completeTask(task.id, {
@@ -245,7 +235,7 @@ export const generateAIImage = (request: {
 
           // 9. 消耗代币
           yield* TokenService.consumeTokens(auth.user.id, tokenCost, task.id);
-          ctx.log('[TaskAPI] 消耗代币成功, total=' + tokenCost);
+          ctx.log(`${LOG_PREFIX} 消耗代币成功, total=${tokenCost}`);
 
           return { taskId: task.id, imagesCount: generateResult.images.length, images: generateResult.images };
         }),
@@ -253,7 +243,7 @@ export const generateAIImage = (request: {
       /** 失败时标记任务为 FAILED 并传播原始错误（yield* 确保 Effect 在正确上下文中执行） */
       Effect.catchAll((error) =>
         Effect.gen(function* () {
-          yield* TaskService.failTask(task.id, String(error));
+          yield* TaskService.failTask(task.id, extractErrorMessage(error));
           return yield* Effect.fail(error);
         }),
       ),
@@ -265,7 +255,7 @@ export const generateAIImage = (request: {
 /**
  * 选择并下载图片
  */
-export const selectAndDownloadImage = (request: {
+const selectAndDownloadImage = (request: {
   taskId: number;
   imageUrl: string;
   compressOptions?: {
@@ -280,37 +270,36 @@ export const selectAndDownloadImage = (request: {
 
     /** taskId 必须为正整数 */
     if (!request.taskId || typeof request.taskId !== 'number' || request.taskId <= 0 || !Number.isFinite(request.taskId)) {
-      yield* fail('taskId 无效');
-      return neverReturn();
+      return yield* fail(MSG.INVALID_TASK_ID);
     }
 
-    // 1. 验证任务权限（Service 层已校验 userId）
-    const task = yield* TaskService.getTask(request.taskId);
+    // 1. 验证任务权限（Service 层已校验 userId，不存在或不属于当前用户则报错）
+    yield* TaskService.getTask(request.taskId);
 
-    ctx.log('[TaskAPI] 用户选择图片, taskId=' + request.taskId);
+    ctx.log(`${LOG_PREFIX} 用户选择图片, taskId=${request.taskId}`);
 
     // 2. 校验 imageUrl 安全性（SSRF 防护）
-    yield* Effect.sync(() => validateImageUrl(request.imageUrl));
+    yield* validateImageUrl(request.imageUrl);
 
     // 3. 下载图片
     const imageResponse = yield* Effect.tryPromise({
       try: () => fetch(request.imageUrl, withFetchTimeout({}, FETCH_TIMEOUTS.imageDownload)),
       catch: (error) => {
-        ctx.log('[TaskAPI] 下载图片失败:', String(error));
-        return MsgError.msg('下载图片失败');
+        ctx.log(LOG_PREFIX, '下载图片失败:', extractErrorMessage(error));
+        if (MsgError.isMsgError(error)) return error;
+        return MsgError.msg(MSG.IMAGE_DOWNLOAD_FAILED);
       },
     });
 
     if (!imageResponse.ok) {
-      yield* fail(`下载图片失败: ${imageResponse.statusText}`);
-      return neverReturn();
+      return yield* fail(`下载图片失败: ${imageResponse.statusText}`);
     }
 
     // 3. 读取图片数据
     const buffer = yield* Effect.tryPromise({
       try: () => imageResponse.arrayBuffer(),
       catch: () => {
-        return MsgError.msg('读取图片数据失败');
+        return MsgError.msg(MSG.IMAGE_READ_FAILED);
       },
     });
 
@@ -318,12 +307,14 @@ export const selectAndDownloadImage = (request: {
     let finalBuffer: Buffer = Buffer.from(buffer);
     const compressOpts = request.compressOptions;
     if (compressOpts?.enabled !== false) {
+      const quality = compressOpts?.quality ?? DEFAULT_COMPRESS_QUALITY;
+      const format = compressOpts?.format ?? 'jpeg';
+
       /** sharp 压缩管道：模块不存在或压缩失败时降级为原图 */
       const compressionResult: Buffer = yield* Effect.tryPromise({
         try: async (): Promise<Buffer> => {
           const sharp = getSharp();
-          if (!sharp) throw MsgError.msg('sharp 模块未安装');
-          const quality = compressOpts?.quality || DEFAULT_COMPRESS_QUALITY;
+          if (!sharp) throw MsgError.msg(MSG.SHARP_NOT_INSTALLED);
 
           let pipeline = sharp(finalBuffer);
 
@@ -336,7 +327,6 @@ export const selectAndDownloadImage = (request: {
           }
 
           // 选择格式和质量
-          const format = compressOpts?.format || 'jpeg';
           switch (format) {
             case 'jpeg':
               pipeline = pipeline.jpeg({ quality });
@@ -352,17 +342,17 @@ export const selectAndDownloadImage = (request: {
           return pipeline.toBuffer() as Promise<Buffer>;
         },
         catch: (error) => {
-          ctx.log('[TaskAPI] 压缩图片失败，使用原图:', String(error));
+          ctx.log(LOG_PREFIX, '压缩图片失败，使用原图:', extractErrorMessage(error));
           return finalBuffer;
         },
       });
 
       finalBuffer = compressionResult;
-      ctx.log('[TaskAPI] 图片压缩完成: ' + (compressOpts?.format || 'jpeg') + ', 质量 ' + (compressOpts?.quality || DEFAULT_COMPRESS_QUALITY));
+      ctx.log(`${LOG_PREFIX} 图片压缩完成: ${format}, 质量 ${quality}`);
     }
 
     // 5. 复用文件上传系统的 saveFileFromBuffer（统一路径生成、目录创建、DB 记录）
-    const ext = (request.compressOptions?.format || 'jpg').replace('jpeg', 'jpg');
+    const ext = (request.compressOptions?.format ?? 'jpg').replace('jpeg', 'jpg');
     const filename = `ai-image-${request.taskId}-${Date.now()}.${ext}`;
 
     const fileRecord = yield* saveFileFromBuffer({
@@ -371,7 +361,7 @@ export const selectAndDownloadImage = (request: {
       buffer: finalBuffer,
     });
 
-    ctx.log('[TaskAPI] 图片保存完成, size=' + finalBuffer.length + ', fileId=' + fileRecord.id);
+    ctx.log(`${LOG_PREFIX} 图片保存完成, size=${finalBuffer.length}, fileId=${fileRecord.id}`);
 
     return {
       fileId: fileRecord.id,
@@ -383,7 +373,7 @@ export const selectAndDownloadImage = (request: {
 /**
  * 获取任务列表
  */
-export const listTasks = (options?: {
+const listTasks = (options?: {
   status?: TaskStatus;
   type?: TaskType;
   skip?: number;
@@ -391,25 +381,19 @@ export const listTasks = (options?: {
 }) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
-
     return yield* TaskService.listTasks(auth.user.id, options);
   });
 
 /**
  * 获取任务详情
  */
-export const getTaskDetail = (taskId: number) =>
-  Effect.gen(function* () {
-    // Service 层 getTask 已校验 userId 权限
-    const task = yield* TaskService.getTask(taskId);
-
-    return task;
-  });
+const getTaskDetail = (taskId: number) =>
+  TaskService.getTask(taskId);
 
 /**
  * 获取资源列表
  */
-export const listResources = (options?: {
+const listResources = (options?: {
   type?: string;
   status?: string;
   skip?: number;
@@ -417,26 +401,18 @@ export const listResources = (options?: {
 }) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
-
     return yield* ResourceService.listResources(auth.user.id, options);
   });
 
 /**
  * 获取可用的 AI 图片生成服务商列表
  */
-export const getAvailableProviders = () =>
+const getAvailableProviders = () =>
   Effect.gen(function* () {
     const appConfig = yield* AppConfigService;
-    const providers: Array<{ value: AiImageProvider; label: string }> = [];
-
-    for (const provider of AI_IMAGE_PROVIDERS) {
-      const apiKey = appConfig.aiImage?.[PROVIDER_KEY_MAP[provider]];
-      if (apiKey) {
-        providers.push({ value: provider, label: PROVIDER_LABELS[provider] });
-      }
-    }
-
-    return providers;
+    return AI_IMAGE_PROVIDERS
+      .filter(provider => appConfig.aiImage?.[PROVIDER_KEY_MAP[provider]])
+      .map(provider => ({ value: provider, label: PROVIDER_LABELS[provider] }));
   });
 
 /**

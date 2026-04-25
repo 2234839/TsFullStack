@@ -1,12 +1,9 @@
 <template>
   <div class="user-settings-page p-6 max-w-4xl mx-auto">
     <!-- 页面标题 -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 flex items-center gap-2">
-        <i class="pi pi-user text-primary-600" />
-        {{ t('个人设置') }}
-      </h1>
-    </div>
+    <PageHeader icon="pi pi-user text-primary-600 dark:text-primary-400">
+      {{ t('个人设置') }}
+    </PageHeader>
 
     <!-- 设置卡片 -->
     <Card class="p-6">
@@ -21,9 +18,9 @@
           <div class="flex items-center gap-6">
             <!-- 头像预览 -->
             <div class="w-16 h-16 rounded-full overflow-hidden shadow-lg border-4 border-secondary-200 dark:border-secondary-700 shrink-0 bg-secondary-100 dark:bg-secondary-800">
-              <File2Url v-if="avatarUrl" :fileId="avatarUrl" v-slot="{ url, loading }">
+              <File2Url v-if="avatarFileId" :fileId="avatarFileId" v-slot="{ url, loading }">
                 <div v-if="loading" class="w-full h-full flex items-center justify-center">
-                  <i class="pi pi-spinner pi-spin text-secondary-400"></i>
+                  <i class="pi pi-spinner pi-spin text-secondary-400 dark:text-secondary-500"></i>
                 </div>
                 <img v-else :src="url" :alt="t('用户头像')" class="w-full h-full object-cover" />
               </File2Url>
@@ -49,7 +46,7 @@
                 {{ t('支持 JPG、PNG 格式，文件大小不超过 2MB') }}
               </p>
               <Button
-                v-if="avatarUrl"
+                v-if="avatarFileId"
                 variant="danger"
                 size="small"
                 :label="removing ? t('删除中...') : t('删除头像')"
@@ -106,10 +103,10 @@
     <Card class="p-6 mt-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <i class="pi pi-shopping-cart text-primary-600 text-xl"></i>
+          <i class="pi pi-shopping-cart text-primary-600 dark:text-primary-400 text-xl"></i>
           <div>
             <h3 class="font-medium text-primary-900 dark:text-primary-50">{{ t('购买代币套餐') }}</h3>
-            <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('选择套餐购买代币，解锁更多功能') }}</p>
+            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('选择套餐购买代币，解锁更多功能') }}</p>
           </div>
         </div>
         <Button :label="t('去购买')" icon="pi pi-arrow-right" variant="primary" @click="goToPricing" />
@@ -121,10 +118,6 @@
 <script setup lang="ts">
   import { useUserProfile } from '@/composables/useUserProfile';
   import { API } from '@/api';
-  import Card from '@/components/base/Card.vue';
-  import Button from '@/components/base/Button.vue';
-  import Input from '@/components/base/Input.vue';
-  import ProgressSpinner from '@/components/base/ProgressSpinner.vue';
   import File2Url from '@/pages/admin/components/File2Url.vue';
   import { routerUtil, routeMap } from '@/router';
   import { ref, computed, watch } from 'vue';
@@ -138,7 +131,7 @@
   const confirm = useConfirm();
   const {
     userProfile,
-    avatarUrl,
+    avatarFileId,
     updateNickname,
     updateAvatar,
     refresh,
@@ -159,11 +152,11 @@
   }
   const savingNickname = ref(false);
   /** 昵称输入 */
-  const nicknameInput = ref(userProfile.value?.nickname || '');
+  const nicknameInput = ref(userProfile.value?.nickname ?? '');
 
   /** 监听 userProfile 变化，同步更新昵称输入框 */
   watch(
-    () => userProfile.value?.nickname || '',
+    () => userProfile.value?.nickname ?? '',
     (newNickname) => {
       if (newNickname !== nicknameInput.value) {
         nicknameInput.value = newNickname;
@@ -173,7 +166,7 @@
 
   /** 昵称是否有变化 */
   const nicknameChanged = computed(() => {
-    return nicknameInput.value !== (userProfile.value?.nickname || '');
+    return nicknameInput.value !== (userProfile.value?.nickname ?? '');
   });
 
   /** 触发文件选择 */

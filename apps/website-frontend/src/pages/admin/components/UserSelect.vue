@@ -19,8 +19,7 @@
 </template>
 
 <script setup lang="ts">
-import { MultiSelect } from '@/components/base';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, shallowRef, watch } from 'vue';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
@@ -42,13 +41,13 @@ interface Emits {
   (e: 'change', value: string | string[] | null): void;
 }
 
-const { modelValue, multiple = false, maxSelection = 5, placeholder = '', filter = true } = defineProps<Props>()
+const { modelValue, multiple = false, maxSelection = 5, placeholder = '' } = defineProps<Props>()
 
 const emit = defineEmits<Emits>();
 
 const { API } = useAPI();
-const users = ref<Array<{ id: string; email: string }>>([]);
-const userOptions = ref<{ label: string; value: string }[]>([]);
+const users = shallowRef<Array<{ id: string; email: string }>>([]);
+const userOptions = shallowRef<{ label: string; value: string }[]>([]);
 
 const selectedUsers = computed({
   get: () => {
@@ -59,9 +58,9 @@ const selectedUsers = computed({
       return modelValue ? [modelValue] : [];
     } else {
       if (Array.isArray(modelValue)) {
-        return modelValue.length > 0 ? modelValue[0] : null;
+        return modelValue.length > 0 ? modelValue[0] : '';
       }
-      return modelValue || null;
+      return modelValue ?? '';
     }
   },
   set: (value) => {
@@ -79,7 +78,7 @@ const selectedUsers = computed({
   }
 });
 
-// 加载用户列表
+/** 加载用户列表 */
 const loadUsers = async () => {
   try {
     const result = await API.db.user.findMany({
@@ -97,7 +96,7 @@ const loadUsers = async () => {
   }
 };
 
-// 处理选择变化
+/** 处理选择变化 */
 const handleChange = (event: { value: unknown }) => {
   const value = event.value;
   if (multiple) {
@@ -129,7 +128,5 @@ watch(() => modelValue, (newValue) => {
   }
 });
 
-onMounted(() => {
-  loadUsers();
-});
+onMounted(loadUsers);
 </script>

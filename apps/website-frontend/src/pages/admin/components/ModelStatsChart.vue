@@ -49,15 +49,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { Chart, DataTable } from '@/components/base'
-import Paginator from '@/components/base/Paginator.vue'
+import { ref, shallowRef, onMounted, computed, markRaw } from 'vue'
 import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
+import { useToast } from '@/composables/useToast'
 import { ONE_DAY_MS } from '@/utils/format'
+import { DEFAULT_PAGE_SIZE } from '@/utils/constants'
 
 const { API } = useAPI()
 const { t } = useI18n()
+const toast = useToast()
 
 /** 图表颜色常量（与 Tailwind 调色板一致） */
 const CHART_COLORS = {
@@ -77,6 +78,8 @@ const CHART_COLORS = {
   /** gray - 中性/默认 */
   gray: 'rgb(107, 114, 128)',
   grayFill: 'rgba(107, 114, 128, 0.8)',
+  /** pink - 补充色 */
+  pinkFill: 'rgba(236, 72, 153, 0.8)',
 } as const
 
 /** 饼图配色（6色循环） */
@@ -86,7 +89,7 @@ const DOUGHNUT_COLORS = [
   CHART_COLORS.warningFill,
   CHART_COLORS.dangerFill,
   CHART_COLORS.grayFill,
-  'rgba(236, 72, 153, 0.8)',
+  CHART_COLORS.pinkFill,
 ]
 
 /**
@@ -136,7 +139,7 @@ interface UserStat {
   lastUsed: string
 }
 
-const lineChartData = ref({
+const lineChartData = shallowRef(markRaw({
   labels: [] as string[],
   datasets: [
     {
@@ -147,9 +150,9 @@ const lineChartData = ref({
       tension: 0.4
     }
   ]
-})
+}))
 
-const doughnutChartData = ref({
+const doughnutChartData = shallowRef(markRaw({
   labels: [] as string[],
   datasets: [
     {
@@ -157,10 +160,10 @@ const doughnutChartData = ref({
       backgroundColor: DOUGHNUT_COLORS,
     }
   ]
-})
+}))
 
-const detailedStats = ref<DetailedStats[]>([])
-const userStats = ref<UserStat[]>([])
+const detailedStats = shallowRef<DetailedStats[]>([])
+const userStats = shallowRef<UserStat[]>([])
 
 // 用户排行表格列定义
 const userStatsColumns = computed(() => [
@@ -182,7 +185,7 @@ const detailedStatsColumns = computed(() => [
   { key: 'avgTokens', title: t('平均令牌数') },
   { key: 'lastUsed', title: t('最后使用时间') },
 ])
-const userActivityData = ref({
+const userActivityData = shallowRef(markRaw({
   labels: [] as string[],
   datasets: [
     {
@@ -193,15 +196,15 @@ const userActivityData = ref({
       borderWidth: 1
     }
   ]
-})
+}))
 
 const userPagination = ref({
   page: 0,
-  pageSize: 10,
+  pageSize: DEFAULT_PAGE_SIZE,
   total: 0
 })
 
-const chartOptions = computed(() => ({
+const chartOptions = markRaw({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -217,9 +220,9 @@ const chartOptions = computed(() => ({
       }
     }
   }
-}))
+})
 
-const doughnutOptions = computed(() => ({
+const doughnutOptions = markRaw({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -227,9 +230,9 @@ const doughnutOptions = computed(() => ({
       position: 'right' as const
     }
   }
-}))
+})
 
-const barOptions = computed(() => ({
+const barOptions = markRaw({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
@@ -245,11 +248,16 @@ const barOptions = computed(() => ({
       }
     }
   }
-}))
+})
 
-const changeUserPage = (page: number) => {
+const changeUserPage = async (page: number) => {
   userPagination.value.page = page
-  updateUserStatsDisplay()
+  try {
+    await updateUserStatsDisplay()
+  } catch (error: unknown) {
+    toast.error(t('加载失败'), t('无法加载用户统计'))
+    console.error('ModelStatsChart changeUserPage failed:', error)
+  }
 }
 
 const updateUserStatsDisplay = async () => {
@@ -290,14 +298,14 @@ const updateUserStatsDisplay = async () => {
     if (apiCall.userId) {
       const user = userMap.get(apiCall.userId)
       if (user) {
-        const userStat = userStatsMap.get(user.email) || {
+        const userStat = userStatsMap.get(user.email) ?? {
           requestCount: 0,
           totalTokens: 0,
           lastUsed: new Date(0)
         }
 
         userStat.requestCount++
-        userStat.totalTokens += (apiCall.inputTokens || 0) + (apiCall.outputTokens || 0)
+        userStat.totalTokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0)
         if (apiCall.timestamp > userStat.lastUsed) {
           userStat.lastUsed = apiCall.timestamp
         }
@@ -384,7 +392,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     if (!model) return
 
     const modelName = model.name
-    const current = modelStats.get(modelName) || {
+    const current = modelStats.get(modelName) ?? {
       count: 0,
       tokens: 0,
       success: 0,
@@ -392,7 +400,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     }
 
     current.count++
-    current.tokens += (apiCall.inputTokens || 0) + (apiCall.outputTokens || 0)
+    current.tokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0)
     if (apiCall.success) {
       current.success++
     }
@@ -406,14 +414,14 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     if (apiCall.userId) {
       const user = userMap.get(apiCall.userId)
       if (user) {
-        const userStat = userStatsMap.get(user.email) || {
+        const userStat = userStatsMap.get(user.email) ?? {
           requestCount: 0,
           totalTokens: 0,
           lastUsed: new Date(0)
         }
 
         userStat.requestCount++
-        userStat.totalTokens += (apiCall.inputTokens || 0) + (apiCall.outputTokens || 0)
+        userStat.totalTokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0)
         if (apiCall.timestamp > userStat.lastUsed) {
           userStat.lastUsed = apiCall.timestamp
         }
@@ -433,44 +441,44 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
 
     // Track unique users per hour
     if (apiCall.userId) {
-      const userSet = hourlyUsers.get(hour) || new Set<string>()
+      const userSet = hourlyUsers.get(hour) ?? new Set<string>()
       userSet.add(apiCall.userId)
       hourlyUsers.set(hour, userSet)
     }
   })
 
-  lineChartData.value = {
+  lineChartData.value = markRaw({
     labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
     datasets: [
       {
         label: t('请求数量'),
-        data: Array.from({ length: 24 }, (_, i) => hourlyData.get(i) || 0),
+        data: Array.from({ length: 24 }, (_, i) => hourlyData.get(i) ?? 0),
         borderColor: CHART_COLORS.primary,
         backgroundColor: CHART_COLORS.primaryBg,
         tension: 0.4
       }
     ]
-  }
+  })
 
   // Update user activity data
-  userActivityData.value = {
+  userActivityData.value = markRaw({
     labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
     datasets: [
       {
         label: t('活跃用户数'),
-        data: Array.from({ length: 24 }, (_, i) => hourlyUsers.get(i)?.size || 0),
+        data: Array.from({ length: 24 }, (_, i) => hourlyUsers.get(i)?.size ?? 0),
         backgroundColor: CHART_COLORS.successFill,
         borderColor: CHART_COLORS.success,
         borderWidth: 1
       }
     ]
-  }
+  })
 
   // Update doughnut chart data
   const modelNames = Array.from(modelStats.keys())
   const modelCounts = modelNames.map(name => modelStats.get(name)?.count ?? 0)
 
-  doughnutChartData.value = {
+  doughnutChartData.value = markRaw({
     labels: modelNames,
     datasets: [
       {
@@ -478,7 +486,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
         backgroundColor: DOUGHNUT_COLORS,
       }
     ]
-  }
+  })
 
   // Update detailed stats
   detailedStats.value = Array.from(modelStats.entries()).map(([modelName, stats]) => ({
@@ -509,8 +517,13 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
   }))
 }
 
-onMounted(() => {
-  loadRequestStats()
+onMounted(async () => {
+  try {
+    await loadRequestStats()
+  } catch (error: unknown) {
+    toast.error(t('加载失败'), t('无法加载统计数据'))
+    console.error('ModelStatsChart loadRequestStats failed:', error)
+  }
 })
 
 defineExpose({
@@ -518,9 +531,3 @@ defineExpose({
   changeUserPage
 })
 </script>
-
-<style scoped>
-.chart-container {
-  height: 300px;
-}
-</style>

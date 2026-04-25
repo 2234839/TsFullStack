@@ -28,6 +28,7 @@
     getModelDbName,
     getModelAPI,
     isArrayField,
+    fieldsToMap,
   } from '@/components/AutoTable/type';
   import { findDisplayField, findIdField } from '@/components/AutoTable/util';
   import { computed, inject, reactive } from 'vue';
@@ -69,7 +70,7 @@
     );
     if (!relatedModel || !backLinkFieldName) return false;
 
-    const backLinkField = (relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName];
+    const backLinkField = fieldsToMap(relatedModel.fields)[backLinkFieldName];
     if (!backLinkField) return false;
 
     const fieldData = backLinkField as unknown as Record<string, unknown>;
@@ -174,7 +175,7 @@
   const backLinkFieldName = getBackLinkFieldName(field);
 
   const rowModelIdField = backLinkFieldName
-    ? findIdField(modelMeta, (relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName]?.type as string || '')
+    ? findIdField(modelMeta, fieldsToMap(relatedModel.fields)[backLinkFieldName]?.type as string || '')
     : undefined;
   //#endregion
 
@@ -245,7 +246,7 @@
   function addItem(item: RemoteSelectItem) {
     const isArrayRelation = isArrayField(field);
     const backLinkField = backLinkFieldName
-      ? (relatedModel.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName]
+      ? fieldsToMap(relatedModel.fields)[backLinkFieldName]
       : undefined;
     const isBackLinkArray = (backLinkField as unknown as Record<string, unknown>)?.array === true;
 

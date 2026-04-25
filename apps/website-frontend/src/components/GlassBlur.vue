@@ -52,27 +52,27 @@
     autoClear?: boolean;
   }
 
-  const props = withDefaults(defineProps<Props>(), {
-    initialBlurred: true,
-    overlayText: '鼠标悬停或点击查看',
-    showOverlay: true,
-    toggleOnClick: true,
-    autoClear: true,
-    containerClass: '',
-    overlayClass: 'bg-white/60 backdrop-blur-[1px]',
-    overlayTextClass: 'text-primary-700/80',
-  });
+  const {
+    initialBlurred = true,
+    overlayText: overlayTextProp = '鼠标悬停或点击查看',
+    showOverlay = true,
+    toggleOnClick = true,
+    autoClear = true,
+    containerClass = '',
+    overlayClass = 'bg-white/60 dark:bg-gray-900/60 backdrop-blur-[1px]',
+    overlayTextClass = 'text-primary-700/80 dark:text-primary-200/80',
+  } = defineProps<Props>();
 
   /** 遮罩文本（i18n） */
-  const overlayText = computed(() => t(props.overlayText));
+  const overlayText = computed(() => t(overlayTextProp));
 
-  const isBlurred = ref(props.initialBlurred);
+  const isBlurred = ref(initialBlurred);
   const hasInteracted = ref(false);
 
   const handleClick = () => {
-    if (props.toggleOnClick) {
+    if (toggleOnClick) {
       hasInteracted.value = true;
-      if (props.autoClear) {
+      if (autoClear) {
         // 自动清除模式下，交互后永远保持清晰
         isBlurred.value = false;
       } else {
@@ -84,7 +84,7 @@
 
   const handleMouseEnter = () => {
     // 标记为已交互
-    if (props.autoClear) {
+    if (autoClear) {
       hasInteracted.value = true;
     }
     // 变清晰
@@ -92,10 +92,10 @@
   };
 
   const handleMouseLeave = () => {
-    if (props.autoClear && hasInteracted.value) {
+    if (autoClear && hasInteracted.value) {
       // 已经交互过且是自动清除模式，保持清晰
       isBlurred.value = false;
-    } else if (!props.autoClear) {
+    } else if (!autoClear) {
       // 非自动清除模式，鼠标离开时恢复模糊
       isBlurred.value = true;
     } else {
@@ -104,8 +104,8 @@
     }
   };
 
-  // 监听 initialBlurred 变化 - Vue 3.5+ 会自动将 initialBlurred 转换为 props.initialBlurred
-  watch(() => props.initialBlurred, (newVal) => {
+  // 监听 initialBlurred 变化
+  watch(() => initialBlurred, (newVal) => {
     isBlurred.value = newVal;
     hasInteracted.value = false; // 重置交互状态
   });

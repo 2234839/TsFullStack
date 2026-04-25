@@ -82,7 +82,7 @@ export function useConfirm() {
         targetElement,
         acceptLabel: options.acceptLabel || options.acceptProps?.label || t('确认'),
         rejectLabel: options.rejectLabel || options.rejectProps?.label || t('取消'),
-        acceptClass: options.acceptProps?.variant === 'danger' ? 'bg-red-600 hover:bg-red-700 text-white' : options.acceptClass,
+        acceptClass: options.acceptProps?.variant === 'danger' ? 'bg-danger-600 hover:bg-danger-700 text-white' : options.acceptClass,
         _accept: async () => {
           confirmState.value.show = false;
           try {
@@ -96,7 +96,7 @@ export function useConfirm() {
           confirmState.value.show = false;
           try {
             await options.reject?.();
-          } catch (e) { console.warn('[useConfirm] reject callback error:', e); }
+          } catch (e: unknown) { console.warn('[useConfirm] reject callback error:', e); }
           resolve(false);
         },
       };

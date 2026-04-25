@@ -1,20 +1,16 @@
 <script setup lang="ts">
 import { useAPI } from '@/api';
 import { searchUsers } from '@/utils/admin';
-import MultiSelect from '@/components/base/MultiSelect.vue';
-import Paginator from '@/components/base/Paginator.vue';
-import RemoteSelect from '@/components/base/RemoteSelect.vue';
-import Tag from '@/components/base/Tag.vue';
-import DataTable from '@/components/base/DataTable.vue';
+import { Tag } from '@/components/base';
 import type { ColumnDef } from '@/components/base/DataTable.vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { TokenOptions } from '@tsfullstack/backend';
+import { TokenOptions, type TokenType } from '@tsfullstack/backend';
 import { getTypeLabel } from '@/utils/admin';
 import { getErrorMessage } from '@/utils/error';
+import { formatDate } from '@/utils/format';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
-import { Button, Input, Textarea, InputNumber } from '@/components/base';
-import { onMounted, ref, watch, h, computed } from 'vue';
+import { ref, shallowRef, watch, h, computed } from 'vue';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -26,43 +22,37 @@ interface SelectItem {
   label: string;
 }
 
-/** 用户代币记录 */
+/** 代币记录（含 include user） */
 interface UserToken {
+  type: TokenType;
+  created: Date;
+  updated: Date;
   id: number;
+  description: string | null;
   userId: string;
-  user: {
-    id: string;
-    email: string;
-  };
-  type: string;
+  expiresAt: Date | null;
   amount: number;
   used: number;
-  expiresAt: string | null;
-  /** 专用类型（JSON 字符串，需要解析为数组） */
-  restrictedType: string | null;
-  description: string | null;
-  created: string;
+  source: string;
+  sourceId: string | null;
+  restrictedType: unknown;
+  active: boolean;
+  user?: { id: string; email: string };
 }
 
-/** 代币消耗记录 */
+/** 代币消耗记录（含 include user, task） */
 interface TokenTransaction {
+  created: Date;
+  updated: Date;
   id: number;
-  amount: number;
-  tokenType: string;
-  userId: string;
-  user: {
-    id: string;
-    email: string;
-  };
   taskId: number;
-  task: {
-    id: number;
-    type: string;
-    title: string;
-  };
-  balanceSnapshot: Record<string, number>;
+  userId: string;
+  amount: number;
+  tokenType: TokenType;
+  balanceSnapshot: unknown;
   note: string | null;
-  created: string;
+  user?: { id: string; email: string };
+  task?: { id: number; type: string; title: string };
 }
 
 /** 当前激活的标签页 */
@@ -70,7 +60,7 @@ const activeTab = ref<'tokens' | 'transactions'>('tokens');
 
 /** ========== 代币列表相关 ========== */
 /** 代币列表 */
-const tokens = ref<UserToken[]>([]);
+const tokens = shallowRef<UserToken[]>([]);
 
 /** 代币总数 */
 const tokensTotal = ref(0);
@@ -86,7 +76,7 @@ const tokensSearchKeyword = ref('');
 
 /** ========== 代币消耗记录相关 ========== */
 /** 消耗记录列表 */
-const transactions = ref<TokenTransaction[]>([]);
+const transactions = shallowRef<TokenTransaction[]>([]);
 
 /** 消耗记录总数 */
 const transactionsTotal = ref(0);
@@ -111,7 +101,7 @@ const showGrantDialog = ref(false);
 const grantForm = ref({
   selectedUsers: [] as SelectItem[],
   amount: 100,
-  type: 'PERMANENT' as 'MONTHLY' | 'YEARLY' | 'PERMANENT',
+  type: 'PERMANENT' as TokenType,
   description: '',
   restrictedType: [] as string[],
 });
@@ -157,14 +147,10 @@ async function loadTokens() {
       API.db.token.count({ where }),
     ]);
 
-    tokens.value = result as unknown as UserToken[];
-    tokensTotal.value = total as number;
+    tokens.value = result;
+    tokensTotal.value = total;
   } catch (error: unknown) {
-    toast.add({
-      summary: t('加载失败'),
-      detail: t('加载代币列表失败'),
-      variant: 'error',
-    });
+    toast.error(t('加载失败'), t('加载代币列表失败'));
   } finally {
     isLoading.value = false;
   }
@@ -208,14 +194,10 @@ async function loadTransactions() {
       API.db.tokenTransaction.count({ where }),
     ]);
 
-    transactions.value = result as unknown as TokenTransaction[];
-    transactionsTotal.value = total as number;
+    transactions.value = result;
+    transactionsTotal.value = total;
   } catch (error: unknown) {
-    toast.add({
-      summary: t('加载失败'),
-      detail: t('加载代币消耗记录失败'),
-      variant: 'error',
-    });
+    toast.error(t('加载失败'), t('加载代币消耗记录失败'));
   } finally {
     isLoading.value = false;
   }
@@ -230,10 +212,10 @@ function loadData() {
   }
 }
 
-/** 监听标签页切换 */
+/** 监听标签页切换，immediate: true 同时替代 onMounted */
 watch(activeTab, () => {
   loadData();
-});
+}, { immediate: true });
 
 /** ========== 搜索功能 ========== */
 /** 代币列表搜索 */
@@ -318,30 +300,23 @@ async function grantTokens() {
     const failCount = results.length - successCount;
 
     if (successCount > 0) {
-      toast.add({
-        summary: t('发放完成'),
-        detail: `${t('成功给')} ${successCount} ${t('个用户发放代币')}${failCount > 0 ? `，${failCount} ${t('个失败')}` : ''}`,
-        variant: successCount === results.length ? 'success' : 'warning',
-      });
+      const detail = `${t('成功给')} ${successCount} ${t('个用户发放代币')}${failCount > 0 ? `，${failCount} ${t('个失败')}` : ''}`;
+      if (successCount === results.length) {
+        toast.success(t('发放完成'), detail);
+      } else {
+        toast.warn(t('发放完成'), detail);
+      }
 
       // 失败信息已通过 toast 通知用户
 
       showGrantDialog.value = false;
       await loadTokens();
     } else {
-      toast.add({
-        summary: t('发放失败'),
-        detail: t('所有用户发放失败，请检查网络连接和权限'),
-        variant: 'error',
-      });
+      toast.error(t('发放失败'), t('所有用户发放失败，请检查网络连接和权限'));
     }
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error, t('发放代币失败'));
-    toast.add({
-      summary: t('发放失败'),
-      detail: errorMessage,
-      variant: 'error',
-    });
+    toast.error(t('发放失败'), errorMessage);
   } finally {
     isSubmitting.value = false;
   }
@@ -376,21 +351,21 @@ function updateTransactionsPageSize(size: number) {
 
 /** ========== 工具函数 ========== */
 /**
- * 解析 restrictedType JSON 字符串为数组
- * @param jsonStr - JSON 字符串或 null
- * @returns 解析后的字符串数组，解析失败返回空数组
+ * 解析 restrictedType JSON 数据为数组
  */
-function parseRestrictedType(jsonStr: string | null): string[] {
-  if (!jsonStr) return [];
-  try {
-    const parsed = JSON.parse(jsonStr);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+function parseRestrictedType(data: unknown): string[] {
+  if (!data) return [];
+  if (Array.isArray(data)) return data.filter((v): v is string => typeof v === 'string');
+  if (typeof data === 'string') {
+    try {
+      const parsed = JSON.parse(data);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   }
+  return [];
 }
-
-import { formatDate } from '@/utils/format';
 
 /** 获取类型标签 — 从 utils/admin.ts 统一导入 */
 
@@ -420,7 +395,7 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
     key: 'user',
     title: t('用户'),
     width: '25%',
-    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user?.email ?? '--'),
   },
   {
     key: 'type',
@@ -481,15 +456,15 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     key: 'user',
     title: t('用户'),
     width: '25%',
-    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user?.email ?? '--'),
   },
   {
     key: 'task',
     title: t('任务'),
     width: '17%',
     render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'text-primary-900 dark:text-primary-100' }, row.task.title),
-      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, getTaskTypeLabel(row.task.type)),
+      h('div', { class: 'text-primary-900 dark:text-primary-100' }, row.task?.title ?? '--'),
+      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, getTaskTypeLabel(row.task?.type ?? '')),
     ]),
   },
   {
@@ -524,23 +499,14 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     render: (row) => h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, formatDate(row.created)),
   },
 ]);
-
-onMounted(() => {
-  loadData();
-});
 </script>
 
 <template>
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-        {{ t('用户代币管理') }}
-      </h1>
-      <p class="mt-2 text-primary-600 dark:text-primary-400">
-        {{ t('查看和管理用户代币及消耗记录') }}
-      </p>
-    </div>
+    <PageHeader size="large" :subtitle="t('查看和管理用户代币及消耗记录')">
+      {{ t('用户代币管理') }}
+    </PageHeader>
 
     <!-- 标签页导航 -->
     <div class="mb-6 border-b border-primary-200 dark:border-primary-700">

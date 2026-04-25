@@ -66,13 +66,9 @@
 
 <script setup lang="ts">
   import { useOpenAIConfig } from '@/storage';
-  import Button from '@/components/base/Button.vue';
-  import InputNumber from '@/components/base/InputNumber.vue';
-  import Input from '@/components/base/Input.vue';
-  import Password from '@/components/base/Password.vue';
-  import Tag from '@/components/base/Tag.vue';
   import { reactive, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
+  import { DEFAULT_OPENAI_BASE_URL, DEFAULT_MAX_TOKENS } from '@/utils/constants';
 
   const { t } = useI18n();
 
@@ -96,10 +92,10 @@
 
   const resetConfig = () => {
     Object.assign(config, {
-      baseURL: 'https://api.openai.com/v1',
+      baseURL: DEFAULT_OPENAI_BASE_URL,
       apiKey: '',
       model: 'gpt-3.5-turbo',
-      maxTokens: 2000,
+      maxTokens: DEFAULT_MAX_TOKENS,
       temperature: 0.7,
     });
     openAIConfig.value = { ...config };

@@ -1,8 +1,11 @@
 import { Effect } from 'effect';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { AppConfigService } from '../Context/AppConfig';
-import { MsgError, fail, neverReturn } from '../util/error';
+import { MsgError, fail, requireOrFail, tryOrFail, extractErrorMessage } from '../util/error';
+import { JSON_CONTENT_HEADERS, DEFAULT_IMAGE_SIZE, type AiImageProvider } from '../util/constants';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../util/http';
+
+const LOG_PREFIX = '[AIImage]';
 
 /**
  * AI 图片生成结果
@@ -38,7 +41,7 @@ interface ProviderConfig {
 export const aiImageGenerateService = (
   prompt: string,
   options: {
-    provider: 'qwen' | 'dalle' | 'stability' | 'glm';
+    provider: AiImageProvider;
     count?: number;
     size?: string;
     quality?: string;
@@ -50,13 +53,9 @@ export const aiImageGenerateService = (
 > =>
   Effect.gen(function* () {
     const reqCtx = yield* ReqCtxService;
-    reqCtx.log('[AIImage] 生成图片, provider=' + options.provider);
+    reqCtx.log(`${LOG_PREFIX} 生成图片, provider=${options.provider}`);
 
-    const config = getProviderConfig(options.provider);
-    if (!config) {
-      yield* fail('不支持的 AI 服务提供商');
-      return neverReturn();
-    }
+    const config = yield* requireOrFail(getProviderConfig(options.provider), '不支持的 AI 服务提供商');
 
     return yield* callImageProvider(prompt, options, config);
   });
@@ -68,16 +67,15 @@ function callImageProvider(
   prompt: string,
   options: { count?: number; size?: string; quality?: string },
   config: ProviderConfig,
-): Effect.Effect<AIImageGenerateResult, Error | string, ReqCtxService | AppConfigService> {
+) {
   return Effect.gen(function* () {
     const reqCtx = yield* ReqCtxService;
     const appConfig = yield* AppConfigService;
 
-    const apiKey = appConfig.aiImage?.[config.apiKeyField];
-    if (!apiKey) {
-      yield* fail(config.missingKeyMsg);
-      return neverReturn();
-    }
+    const apiKey = yield* requireOrFail(
+      appConfig.aiImage?.[config.apiKeyField],
+      config.missingKeyMsg,
+    );
 
     const { url, headers, body } = config.buildRequest(prompt, options);
 
@@ -91,33 +89,26 @@ function callImageProvider(
           headers,
           body: JSON.stringify(body),
         }, FETCH_TIMEOUTS.aiImage)),
-      catch: (_error) => {
-        reqCtx.log('[AIImage] 调用 AI API 失败');
-        return MsgError.msg('调用 AI 服务失败');
+      catch: (e) => {
+        reqCtx.log(`${LOG_PREFIX} 调用 AI API 失败: ${extractErrorMessage(e)}`);
+        if (MsgError.isMsgError(e)) return e;
+        return MsgError.msg(`调用 AI 服务失败: ${extractErrorMessage(e)}`);
       },
     });
 
     if (!response.ok) {
       if (config.extractErrorDetail) {
         const detail = yield* config.extractErrorDetail(response);
-        yield* fail(`AI 服务返回错误: ${response.statusText} - ${detail}`);
-        return neverReturn();
+        return yield* fail(`AI 服务返回错误: ${response.statusText} - ${detail}`);
       }
-      yield* fail(`AI 服务返回错误: ${response.statusText}`);
-      return neverReturn();
+      return yield* fail(`AI 服务返回错误: ${response.statusText}`);
     }
 
-    const result = yield* Effect.tryPromise({
-      try: () => response.json() as Promise<Record<string, unknown>>,
-      catch: (_error) => {
-        return MsgError.msg(`解析 AI 响应失败: ${String(_error)}`);
-      },
-    });
+    const result = yield* tryOrFail('解析 AI 响应', () => response.json() as Promise<Record<string, unknown>>);
 
     const parsed = config.parseResponse(result);
     if (MsgError.isMsgError(parsed)) {
-      yield* Effect.fail(parsed);
-      return neverReturn();
+      return yield* Effect.fail(parsed);
     }
     return parsed;
   });
@@ -128,6 +119,11 @@ const QWEN_IMAGE_API_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/
 const OPENAI_IMAGE_API_URL = 'https://api.openai.com/v1/images/generations';
 const STABILITY_IMAGE_API_URL = 'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image';
 const GLM_IMAGE_API_URL = 'https://open.bigmodel.cn/api/paas/v4/images/generations';
+
+/** Qwen provider 默认图片尺寸（使用 '*' 分隔符） */
+const DEFAULT_IMAGE_SIZE_QWEN = '1024*1024';
+/** 默认图片宽高（用于 Stability AI 解析后的 fallback） */
+const DEFAULT_IMAGE_DIMENSION = 1024;
 
 /** Stability AI 默认推理参数 */
 const STABILITY_DEFAULT_CFG_SCALE = 7;
@@ -149,13 +145,13 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     missingKeyMsg: '通义千问 API Key 未配置',
     buildRequest: (_prompt, options) => ({
       url: QWEN_IMAGE_API_URL,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...JSON_CONTENT_HEADERS },
       body: {
         model: 'wanx-v1',
         input: { prompt: _prompt },
         parameters: {
-          size: options.size || '1024*1024',
-          n: options.count || 1,
+          size: options.size ?? DEFAULT_IMAGE_SIZE_QWEN,
+          n: options.count ?? 1,
         },
       },
     }),
@@ -163,8 +159,8 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       const output = result.output as Record<string, unknown> | undefined;
       const results = output?.results as Array<{ url: string }> | undefined;
       return {
-        images: (results || []).map(r => r.url),
-        taskId: String(result.request_id || ''),
+        images: (results ?? []).map(r => r.url),
+        taskId: String(result.request_id ?? ''),
       };
     },
   },
@@ -173,47 +169,47 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     missingKeyMsg: 'DALL-E API Key 未配置',
     buildRequest: (_prompt, options) => ({
       url: OPENAI_IMAGE_API_URL,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...JSON_CONTENT_HEADERS },
       body: {
         model: 'dall-e-3',
         prompt: _prompt,
         n: 1,
-        size: options.size || '1024x1024',
+        size: options.size ?? DEFAULT_IMAGE_SIZE,
       },
     }),
     parseResponse: (result) => ({
-      images: ((result.data as Array<{ url: string }>) || []).map(item => item.url),
-      taskId: String(result.created || ''),
+      images: ((result.data as Array<{ url: string }>) ?? []).map(item => item.url),
+      taskId: String(result.created ?? ''),
     }),
   },
   stability: {
     apiKeyField: 'stabilityApiKey',
     missingKeyMsg: 'Stability AI API Key 未配置',
     buildRequest: (_prompt, options) => {
-      const parts = (options.size || '1024x1024').split('x').map(Number);
+      const parts = (options.size ?? DEFAULT_IMAGE_SIZE).split('x').map(Number);
       const rawWidth = parts[0];
       const rawHeight = parts[1];
       /** 显式 NaN/undefined 防护：非法 size 格式回退到默认值 */
-      const width = rawWidth === undefined || Number.isNaN(rawWidth) || rawWidth <= 0 ? 1024 : rawWidth;
-      const height = rawHeight === undefined || Number.isNaN(rawHeight) || rawHeight <= 0 ? 1024 : rawHeight;
+      const width = rawWidth === undefined || Number.isNaN(rawWidth) || rawWidth <= 0 ? DEFAULT_IMAGE_DIMENSION : rawWidth;
+      const height = rawHeight === undefined || Number.isNaN(rawHeight) || rawHeight <= 0 ? DEFAULT_IMAGE_DIMENSION : rawHeight;
       return {
         url: STABILITY_IMAGE_API_URL,
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { ...JSON_CONTENT_HEADERS, Accept: 'application/json' },
         body: {
           text_prompts: [{ text: _prompt }],
           cfg_scale: STABILITY_DEFAULT_CFG_SCALE,
-          height: height || 1024,
-          width: width || 1024,
+          height,
+          width,
           steps: STABILITY_DEFAULT_STEPS,
-          samples: options.count || 1,
+          samples: options.count ?? 1,
         },
       };
     },
     parseResponse: (result) => ({
-      images: ((result.artifacts as Array<{ base64: string }>) || []).map(
+      images: ((result.artifacts as Array<{ base64: string }>) ?? []).map(
         item => `data:image/png;base64,${item.base64}`,
       ),
-      taskId: String(result.request_id || ''),
+      taskId: String(result.request_id ?? ''),
     }),
   },
   glm: {
@@ -221,12 +217,12 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     missingKeyMsg: '智谱 GLM API Key 未配置',
     buildRequest: (_prompt, options) => ({
       url: GLM_IMAGE_API_URL,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...JSON_CONTENT_HEADERS },
       body: {
         model: 'cogview-3-plus',
         prompt: _prompt,
-        size: GLM_SIZE_MAP[options.size || '1024x1024'] || '1024x1024',
-        n: options.count || 1,
+        size: GLM_SIZE_MAP[options.size ?? DEFAULT_IMAGE_SIZE] ?? DEFAULT_IMAGE_SIZE,
+        n: options.count ?? 1,
       },
     }),
     parseResponse: (result) => {
@@ -236,8 +232,8 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         return MsgError.msg(`智谱 GLM 生成失败: ${msg}`);
       }
       return {
-        images: ((result.data as Array<{ url: string }>) || []).map(item => item.url),
-        taskId: String(result.id || Date.now()),
+        images: ((result.data as Array<{ url: string }>) ?? []).map(item => item.url),
+        taskId: String(result.id ?? Date.now()),
       };
     },
     extractErrorDetail: (response) =>
@@ -252,5 +248,5 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
  * 获取 Provider 配置
  */
 function getProviderConfig(provider: string): ProviderConfig | null {
-  return PROVIDER_CONFIGS[provider] || null;
+  return PROVIDER_CONFIGS[provider] ?? null;
 }

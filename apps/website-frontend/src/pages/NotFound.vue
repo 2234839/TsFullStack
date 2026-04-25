@@ -14,13 +14,13 @@
           @click="router.go(-1)"
           :label="t('返回上页')"
           icon="pi pi-arrow-left"
-          class="p-button-secondary"
+          variant="secondary"
         />
         <Button
           @click="router.push('/')"
           :label="t('返回首页')"
           icon="pi pi-home"
-          class="p-button-primary"
+          variant="primary"
         />
       </div>
     </div>

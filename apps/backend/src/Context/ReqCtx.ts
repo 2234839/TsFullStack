@@ -1,7 +1,6 @@
 import { Context } from 'effect';
 import type { Database } from './Auth';
-/** 通用 JSON 值类型 */
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+import type { JsonValue } from '@zenstackhq/orm';
 import type { FastifyRequest } from 'fastify';
 
 export class ReqCtxService extends Context.Tag('ReqCtxService')<ReqCtxService, ReqCtx>() {}

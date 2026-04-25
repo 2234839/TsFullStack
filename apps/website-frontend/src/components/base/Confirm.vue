@@ -68,7 +68,7 @@ function handleOpenChange(open: boolean) {
           <!-- 图标和消息 -->
           <div class="flex items-start gap-4 mb-6">
             <div v-if="confirmState.icon" class="shrink-0">
-              <i :class="confirmState.icon" class="text-2xl text-warning-600" />
+              <i :class="confirmState.icon" class="text-2xl text-warning-600 dark:text-warning-400" />
             </div>
             <div class="flex-1">
               <p class="text-primary-800 dark:text-primary-200">
@@ -100,14 +100,10 @@ function handleOpenChange(open: boolean) {
       <!-- 隐藏的 anchor 元素用于定位 -->
       <div
         ref="anchorRef"
+        class="fixed w-px h-px pointer-events-none invisible"
         :style="{
-          position: 'fixed',
           left: `${anchorPosition.x}px`,
           top: `${anchorPosition.y}px`,
-          width: '1px',
-          height: '1px',
-          pointerEvents: 'none',
-          visibility: 'hidden',
         }">
         <PopoverAnchor />
       </div>
@@ -130,7 +126,7 @@ function handleOpenChange(open: boolean) {
           <!-- 图标和消息 -->
           <div class="flex items-start gap-4 mb-6">
             <div v-if="confirmState.icon" class="shrink-0">
-              <i :class="confirmState.icon" class="text-2xl text-warning-600" />
+              <i :class="confirmState.icon" class="text-2xl text-warning-600 dark:text-warning-400" />
             </div>
             <div class="flex-1">
               <p class="text-primary-800 dark:text-primary-200">

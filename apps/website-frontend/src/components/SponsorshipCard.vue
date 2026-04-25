@@ -84,7 +84,7 @@
             class="function-btn! flex-col! items-center! p-2!"
             @click="shareContent"
           >
-            <i class="pi pi-share-alt text-sm text-primary-500 mb-1"></i>
+            <i class="pi pi-share-alt text-sm text-primary-500 dark:text-primary-400 mb-1"></i>
             <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('分享') }}</span>
           </Button>
           <Button
@@ -92,7 +92,7 @@
             class="function-btn! flex-col! items-center! p-2!"
             @click="followCreator"
           >
-            <i class="pi pi-heart text-sm text-danger-500 mb-1"></i>
+            <i class="pi pi-heart text-sm text-danger-500 dark:text-danger-400 mb-1"></i>
             <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('关注') }}</span>
           </Button>
           <Button
@@ -100,7 +100,7 @@
             class="function-btn! flex-col! items-center! p-2!"
             @click="provideFeedback"
           >
-            <i class="pi pi-comment text-sm text-success-500 mb-1"></i>
+            <i class="pi pi-comment text-sm text-success-500 dark:text-success-400 mb-1"></i>
             <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('反馈') }}</span>
           </Button>
         </div>
@@ -184,7 +184,7 @@
               :title="t('分享推荐')"
               @click="shareContent"
             >
-              <i class="pi pi-share-alt text-sm text-primary-500"></i>
+              <i class="pi pi-share-alt text-sm text-primary-500 dark:text-primary-400"></i>
             </Button>
             <Button
               variant="ghost"
@@ -193,7 +193,7 @@
               :title="t('关注作者')"
               @click="followCreator"
             >
-              <i class="pi pi-heart text-sm text-danger-500"></i>
+              <i class="pi pi-heart text-sm text-danger-500 dark:text-danger-400"></i>
             </Button>
             <Button
               variant="ghost"
@@ -202,7 +202,7 @@
               :title="t('意见反馈')"
               @click="provideFeedback"
             >
-              <i class="pi pi-comment text-sm text-success-500"></i>
+              <i class="pi pi-comment text-sm text-success-500 dark:text-success-400"></i>
             </Button>
           </div>
         </div>
@@ -269,9 +269,9 @@
   import { useSharePlus } from '@/utils/hooks/useSharePlus';
   import { useElementSize } from '@vueuse/core';
   import { Dialog } from '@tsfullstack/shared-frontend/components';
-  import { Button } from '@/components/base';
   import { computed, ref, useTemplateRef } from 'vue';
   import { useI18n } from '@/composables/useI18n';
+  import { AFDIAN_SPONSOR_URL, GITHUB_PROFILE_URL, GITHUB_ISSUES_URL, QQ_GROUP_NUMBER, QQ_GROUP_INVITE_URL } from '@/utils/constants';
 
   const { t } = useI18n();
 
@@ -284,7 +284,7 @@
     qqGroupNumber?: string;
   }
 
-  const { compactThreshold = 120, expandedThreshold = 500, sponsorCount = 1, totalAmount = 30, targetAmount = 5000, qqGroupNumber = '706761641' } = defineProps<Props>();
+  const { compactThreshold = 120, expandedThreshold = 500, sponsorCount = 1, qqGroupNumber = QQ_GROUP_NUMBER } = defineProps<Props>();
 
   const showQRCode = ref(false);
   const containerRef = useTemplateRef('containerRef');
@@ -298,12 +298,11 @@
   );
 
   const handleDirectPay = () => {
-    window.open('https://afdian.com/a/llej0', '_blank', 'noopener,noreferrer');
+    window.open(AFDIAN_SPONSOR_URL, '_blank', 'noopener,noreferrer');
   };
 
   const joinQQGroup = () => {
-    const qqGroupUrl = `https://qm.qq.com/cgi-bin/qm/qr?k=${qqGroupNumber}&jump_from=webapi`;
-    window.open(qqGroupUrl, '_blank', 'noopener,noreferrer');
+    window.open(QQ_GROUP_INVITE_URL, '_blank', 'noopener,noreferrer');
   };
 
   const { share } = useSharePlus();
@@ -316,11 +315,11 @@
   };
 
   const followCreator = () => {
-    window.open('https://github.com/2234839', '_blank', 'noopener,noreferrer');
+    window.open(GITHUB_PROFILE_URL, '_blank', 'noopener,noreferrer');
   };
 
   const provideFeedback = () => {
-    window.open('https://github.com/2234839/TsFullStack/issues', '_blank', 'noopener,noreferrer');
+    window.open(GITHUB_ISSUES_URL, '_blank', 'noopener,noreferrer');
   };
 </script>
 

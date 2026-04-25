@@ -32,11 +32,9 @@
 <script setup lang="ts">
 import GithubStar from '@/components/system/GithubStar.vue';
 import TestWarningBanner from '@/components/system/TestWarningBanner.vue';
-import ProgressSpinner from '@/components/base/ProgressSpinner.vue';
 import { allRoutes, findRouteNode } from '@/router';
 import { useTitle } from '@vueuse/core';
 import Toast from '@/components/system/Toast.vue';
-import Confirm from '@/components/base/Confirm.vue';
 import { computed, onMounted, onUnmounted, onErrorCaptured } from 'vue';
 import { useRoute } from 'vue-router';
 import { useToast } from '@/composables/useToast';

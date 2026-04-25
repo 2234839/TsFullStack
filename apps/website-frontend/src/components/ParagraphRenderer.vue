@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-4">
     <!-- 段落复杂度指示器 -->
-    <div v-if="complexity > 7" class="flex items-center gap-2 text-xs text-warning-600 bg-warning-50 dark:bg-warning-900/20 p-3 rounded-lg">
+    <div v-if="complexity > 7" class="flex items-center gap-2 text-xs text-warning-600 dark:text-warning-400 bg-warning-50 dark:bg-warning-900/20 p-3 rounded-lg">
       <i class="pi pi-exclamation-triangle"></i>
       <span>{{ t('较高难度段落 • 建议仔细阅读') }}</span>
     </div>
@@ -34,7 +34,7 @@
     </div>
 
     <!-- 段落信息 -->
-    <div v-if="showParagraphInfo" class="flex items-center gap-4 text-xs text-secondary-500 pt-2 border-t">
+    <div v-if="showParagraphInfo" class="flex items-center gap-4 text-xs text-secondary-500 dark:text-secondary-400 pt-2 border-t">
       <span>{{ t('字数') }}: {{ wordCount }}</span>
       <span v-if="readingMinutes">{{ t('预计阅读') }}: {{ readingMinutes }}{{ t('分钟') }}</span>
       <span v-if="complexity">{{ t('复杂度') }}: {{ complexity }}/10</span>
@@ -74,7 +74,7 @@ const lines = computed(() => text.split('\n'))
 const wordCount = computed(() => text.split(/\s+/).length)
 
 /** 预计阅读分钟数 */
-const readingMinutes = computed(() => Math.ceil((estimatedReadingTime || 0) / 60))
+const readingMinutes = computed(() => Math.ceil((estimatedReadingTime ?? 0) / 60))
 
 // 计算每行的起始单词索引
 const lineStartIndices = computed(() => {

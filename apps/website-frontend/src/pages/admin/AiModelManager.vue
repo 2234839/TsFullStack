@@ -2,10 +2,9 @@
   <div class="p-4 space-y-4">
     <!-- 页面标题和操作按钮 -->
     <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-primary-800 dark:text-white">{{ t('AI模型管理') }}</h1>
-        <p class="text-primary-600 dark:text-primary-400">{{ t('管理和配置AI模型') }}</p>
-      </div>
+      <PageHeader no-margin :subtitle="t('管理和配置AI模型')">
+        {{ t('AI模型管理') }}
+      </PageHeader>
       <div class="flex gap-2">
         <Button
           :label="t('添加模型')"
@@ -111,20 +110,20 @@
   </div>
 
   <!-- 添加/编辑模型表单 -->
-  <AiModelForm v-model:visible="modelFormVisible" :model="selectedModel" @submit="onModelSubmit" />
+  <AiModelForm v-model:open="modelFormVisible" :model="selectedModel" @submit="onModelSubmit" />
 </template>
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
-  import { computed, onMounted, ref } from 'vue';
+  import { computed, h, onMounted, ref, shallowRef } from 'vue';
   import { useI18n } from '@/composables/useI18n';
-  import { Button, Badge, DataTable } from '@/components/base';
+  import { Button } from '@/components/base';
   import { useConfirm } from '@/composables/useConfirm';
   import { useToast } from '@/composables/useToast';
   import AiModelForm from './components/AiModelForm.vue';
   import ModelStatsChart from './components/ModelStatsChart.vue';
   import { getErrorMessage } from '@/utils/error';
-  import { h } from 'vue';
+  import { DEFAULT_MAX_TOKENS } from '@/utils/constants';
 
   const { API } = useAPI();
   const { t } = useI18n();
@@ -147,7 +146,7 @@
   }
 
   // 响应式数据
-  const models = ref<AiModelVO[]>([]);
+  const models = shallowRef<AiModelVO[]>([]);
   const isLoading = ref(false);
   const modelFormVisible = ref(false);
   const selectedModel = ref<AiModelVO | null>(null);
@@ -163,9 +162,9 @@
   const totalModels = computed(() => models.value.length);
   const enabledModels = computed(() => models.value.filter(m => m?.enabled).length);
   const disabledModels = computed(() => models.value.filter(m => !m?.enabled).length);
-  const totalWeight = computed(() => models.value.reduce((sum, m) => sum + (m?.weight || 0), 0));
+  const totalWeight = computed(() => models.value.reduce((sum, m) => sum + (m?.weight ?? 0), 0));
 
-  // 过滤和排序后的模型列表
+  /** 过滤和排序后的模型列表 */
   const filteredModels = computed(() => {
     let filtered = [...models.value];
 
@@ -210,7 +209,7 @@
     return filtered;
   });
 
-  // 表格列定义
+  /** 表格列定义 */
   const aiModelColumns = computed(() => [
     {
       key: 'id',
@@ -257,13 +256,13 @@
       title: t('最大Token'),
       width: '100px',
       render: (row: AiModelVO) =>
-        h('span', { class: 'font-mono' }, (row.maxTokens || 2000).toLocaleString()),
+        h('span', { class: 'font-mono' }, (row.maxTokens ?? DEFAULT_MAX_TOKENS).toLocaleString()),
     },
     {
       key: 'temperature',
       title: t('温度'),
       width: '80px',
-      render: (row: AiModelVO) => h('span', { class: 'font-mono' }, row.temperature || 0.7),
+      render: (row: AiModelVO) => h('span', { class: 'font-mono' }, row.temperature ?? 0.7),
     },
     {
       key: 'actions',
@@ -304,7 +303,7 @@
     },
   ]);
 
-  // 加载AI模型数据
+  /** 加载AI模型数据 */
   const loadModels = async () => {
     isLoading.value = true;
     try {
@@ -313,30 +312,25 @@
       });
       models.value = result;
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: t('失败'),
-        detail: t('加载失败：') + getErrorMessage(error),
-        life: 3000,
-      });
+      toast.error(t('失败'), t('加载失败：') + getErrorMessage(error));
     } finally {
       isLoading.value = false;
     }
   };
 
-  // 显示添加模型表单
+  /** 显示添加模型表单 */
   const showAddModel = () => {
     selectedModel.value = null;
     modelFormVisible.value = true;
   };
 
-  // 编辑模型
+  /** 编辑模型 */
   const editModel = (model: AiModelVO) => {
     selectedModel.value = model;
     modelFormVisible.value = true;
   };
 
-  // 切换模型状态
+  /** 切换模型状态 */
   const toggleModelStatus = (model: AiModelVO, event: MouseEvent) => {
     if (!model) return;
 
@@ -360,20 +354,10 @@
             data: { enabled: !model.enabled },
           });
 
-          toast.add({
-            variant: 'success',
-            summary: t('成功'),
-            detail: t('{0}成功', model.enabled ? t('禁用') : t('启用')),
-            life: 3000,
-          });
+          toast.success(t('成功'), t('{0}成功', model.enabled ? t('禁用') : t('启用')));
           await loadModels(); // 重新加载数据
         } catch (error: unknown) {
-          toast.add({
-            variant: 'error',
-            summary: t('失败'),
-            detail: t('操作失败：') + getErrorMessage(error),
-            life: 3000,
-          });
+          toast.error(t('失败'), t('操作失败：') + getErrorMessage(error));
         }
       },
       reject: () => {
@@ -382,7 +366,7 @@
     });
   };
 
-  // 删除模型
+  /** 删除模型 */
   const deleteModel = (model: AiModelVO, event: MouseEvent) => {
     if (!model) return;
 
@@ -405,20 +389,10 @@
             where: { id: model.id },
           });
 
-          toast.add({
-            variant: 'success',
-            summary: t('成功'),
-            detail: t('删除成功'),
-            life: 3000,
-          });
+          toast.success(t('成功'), t('删除成功'));
           await loadModels(); // 重新加载数据
         } catch (error: unknown) {
-          toast.add({
-            variant: 'error',
-            summary: t('失败'),
-            detail: t('删除失败：') + getErrorMessage(error),
-            life: 3000,
-          });
+          toast.error(t('失败'), t('删除失败：') + getErrorMessage(error));
         }
       },
       reject: () => {
@@ -427,12 +401,12 @@
     });
   };
 
-  // 模型表单提交
+  /** 模型表单提交 */
   const onModelSubmit = async () => {
     await loadModels(); // 重新加载数据
   };
 
-  // 刷新统计数据
+  /** 刷新统计数据 */
   const refreshStats = async () => {
     if (!modelStatsChartRef.value) return;
 
@@ -440,19 +414,12 @@
     try {
       await modelStatsChartRef.value.loadRequestStats();
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: t('失败'),
-        detail: t('刷新统计数据失败：') + getErrorMessage(error),
-        life: 3000,
-      });
+      toast.error(t('失败'), t('刷新统计数据失败：') + getErrorMessage(error));
     } finally {
       isStatsLoading.value = false;
     }
   };
 
   // 页面加载时获取数据
-  onMounted(async () => {
-    await loadModels();
-  });
+  onMounted(loadModels);
 </script>

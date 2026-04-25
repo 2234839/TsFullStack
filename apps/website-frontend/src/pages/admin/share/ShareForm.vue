@@ -13,7 +13,7 @@
         @drop.prevent="handleDrop">
         <input ref="fileInputRef" type="file" multiple @change="onFileSelect" class="hidden"
           :placeholder="t('请选择文件')" />
-        <div class="text-primary-500 mb-4 flex justify-center">
+        <div class="text-primary-500 dark:text-primary-400 mb-4 flex justify-center">
           <i class="pi pi-cloud-upload text-5xl"></i>
         </div>
         <div class="text-sm text-primary-600 dark:text-primary-400 mb-1">{{ t('点击或拖拽文件到此处上传') }}</div>
@@ -23,10 +23,10 @@
       <!-- 已选择的文件列表 -->
       <div v-if="selectedFiles.length > 0">
         <div class="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-3">{{ t('已选择的文件') }}</div>
-        <div v-for="(file, index) in selectedFiles" :key="file.name + '-' + file.size + '-' + index"
+        <div v-for="(file, index) in selectedFiles" :key="`${file.name}-${file.size}-${index}`"
           class="flex items-center justify-between p-3 bg-primary-50 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 rounded-lg mb-2 last:mb-0 hover:bg-primary-100 dark:hover:bg-primary-750 hover:border-primary-300 dark:hover:border-primary-600 transition-all">
           <div class="flex items-center gap-3 text-sm text-primary-700 dark:text-primary-300 min-w-0 flex-1">
-            <i class="pi pi-file text-xl shrink-0 text-primary-500"></i>
+            <i class="pi pi-file text-xl shrink-0 text-primary-500 dark:text-primary-400"></i>
             <span class="truncate flex-1">{{ file.name }}</span>
             <span class="text-xs text-primary-500 dark:text-primary-400 shrink-0 ml-2">{{ formatFileSize(file.size) }}</span>
           </div>
@@ -56,7 +56,7 @@
             <span class="truncate flex-1">{{ file.filename }}</span>
             <span class="text-xs shrink-0 ml-2" :class="isFileMarkedForDeletion(file.id)
                 ? 'text-primary-400 dark:text-primary-600'
-                : 'text-primary-500 dark:text-primary-400'">{{ formatFileSize(file.size || 0) }}</span>
+                : 'text-primary-500 dark:text-primary-400'">{{ formatFileSize(file.size ?? 0) }}</span>
           </div>
           <Button type="button" variant="ghost" size="sm"
             :class="isFileMarkedForDeletion(file.id)
@@ -90,32 +90,35 @@
   import { authInfo } from '@/storage';
   import { userDataAppid } from '@/storage/userDataAppid';
   import { $Enums } from '@tsfullstack/backend';
-  import { computed, ref, watch } from 'vue';
+  import { computed, ref, shallowRef, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
+  import { useToast } from '@/composables/useToast';
+  import { getErrorMessage } from '@/utils/error';
   import { Dialog } from '@tsfullstack/shared-frontend/components';
-  import { Button, Input } from '@/components/base';
   import { formatFileSize } from '@/utils/format';
+  import { toJsonValue } from '@/utils/apiType';
 
   const { API } = useAPI();
   const { t } = useI18n();
+  const toast = useToast();
 
   /** Props */
   interface Props {
-    visible: boolean;
+    open: boolean;
     editingItem?: ShareItemJSON;
   }
-  const { visible, editingItem } = defineProps<Props>();
+  const { open, editingItem } = defineProps<Props>();
 
   /** Emits */
   const emit = defineEmits<{
-    (e: 'update:visible', value: boolean): void;
+    (e: 'update:open', value: boolean): void;
     (e: 'success'): void;
   }>();
 
-  /** 本地的 visible 状态，支持双向绑定 */
+  /** 本地的 open 状态，支持双向绑定 */
   const localVisible = computed<boolean>({
-    get: () => visible,
-    set: (value: boolean) => emit('update:visible', value),
+    get: () => open,
+    set: (value: boolean) => emit('update:open', value),
   });
 
   /** 表单数据 */
@@ -134,7 +137,7 @@
   const selectedFiles = ref<File[]>([]);
 
   /** 已上传的文件列表 */
-  const uploadedFiles = ref<ShareFileJSON[]>([]);
+  const uploadedFiles = shallowRef<ShareFileJSON[]>([]);
 
   /** 标记为删除的文件ID集合 */
   const deletedFileIds = ref<Set<number>>(new Set());
@@ -181,7 +184,7 @@
    * 当对话框打开时重新加载数据
    */
   watch(
-    () => visible,
+    () => open,
     (isVisible) => {
       if (isVisible) {
         loadEditingItem();
@@ -301,7 +304,7 @@
         Promise.all(deletePromises),
       ]);
 
-      uploadedFiles.value.push(...uploadedResults);
+      uploadedFiles.value = [...uploadedFiles.value, ...uploadedResults];
 
       // 清空选中的文件
       selectedFiles.value = [];
@@ -321,10 +324,10 @@
             appId: userDataAppid.shareInfo,
             userId: authInfo.value.userId,
             key: crypto.randomUUID(),
-            data: JSON.stringify({
+            data: toJsonValue(JSON.stringify({
               title: formData.value.title,
               files: uploadedFiles.value,
-            }) as unknown as import('@tsfullstack/backend').JsonValue,
+            })),
           },
         });
         /** 创建成功后切换为编辑模式，后续提交走更新逻辑 */
@@ -335,16 +338,18 @@
         await API.db.userData.update({
           where: { id: editingId.value },
           data: {
-            data: JSON.stringify({
+            data: toJsonValue(JSON.stringify({
               title: formData.value.title,
               files: uploadedFiles.value,
-            }) as unknown as import('@tsfullstack/backend').JsonValue,
+            })),
           },
         });
       }
 
       // 通知成功，但不关闭对话框
       emit('success');
+    } catch (error: unknown) {
+      toast.error(t('保存失败'), getErrorMessage(error, t('保存分享信息时发生错误')));
     } finally {
       isSubmitting.value = false;
     }
@@ -354,7 +359,7 @@
    * 关闭对话框
    */
   function close() {
-    emit('update:visible', false);
+    emit('update:open', false);
   }
 
   /**

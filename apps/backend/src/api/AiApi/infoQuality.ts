@@ -1,8 +1,12 @@
 import { Effect } from 'effect';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { AIConfigContext } from '../../Context/AIConfig';
-import { MsgError, fail, neverReturn } from '../../util/error';
+import { MsgError, fail, tryOrFail } from '../../util/error';
+import { JSON_CONTENT_HEADERS, MSG } from '../../util/constants';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../util/http';
+
+/** 日志前缀 */
+const LOG_PREFIX = '[InfoQuality]';
 
 /** 信息分辨服务最大内容长度 */
 const MAX_CONTENT_LENGTH = 5000;
@@ -16,9 +20,6 @@ export interface InfoQualityResponse {
   result: 'pass' | 'block';
   reason?: string;
 }
-
-/** 最大 prompt 内容长度（含模板前缀） */
-const MAX_PROMPT_LENGTH = 5500;
 
 /** 清理用户输入中的潜在 prompt 注入指令 */
 function sanitizeForPrompt(content: string): string {
@@ -46,9 +47,7 @@ function createOptimizedPrompt(content: string): string {
 async function callOllamaAPI(prompt: string, model: string, ollamaUrl: string): Promise<string> {
   const response = await fetch(`${ollamaUrl}/api/generate`, withFetchTimeout({
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: JSON_CONTENT_HEADERS,
     body: JSON.stringify({
       model,
       /** 禁止思考：https://qwenlm.github.io/blog/qwen3/#advanced-usages */
@@ -73,7 +72,7 @@ function extractVerdict(rawResult: string): 'pass' | 'block' {
   if (lastLine === 'pass') return 'pass';
   if (lastLine === 'block') return 'block';
 
-  // 搜索整个文本中的最后一个关键词
+  /** 搜索整个文本中的最后一个关键词 */
   const passIndex = rawResult.toLowerCase().lastIndexOf('pass');
   const blockIndex = rawResult.toLowerCase().lastIndexOf('block');
   return passIndex > blockIndex ? 'pass' : 'block';
@@ -87,24 +86,20 @@ export function evaluateInfoQuality(request: InfoQualityRequest) {
     const { content, model = aiConfig.ollama.defaultModel } = request;
     const ollamaUrl = aiConfig.ollama.url;
 
-    if (!content || content.trim().length === 0) {
-      yield* fail('内容不能为空');
-      return neverReturn();
+    if (!content?.trim()) {
+      return yield* fail(MSG.CONTENT_REQUIRED);
     }
 
     if (content.length > MAX_CONTENT_LENGTH) {
-      yield* fail(`内容长度不能超过${MAX_CONTENT_LENGTH}字符`);
-      return neverReturn();
+      return yield* fail(`内容长度不能超过${MAX_CONTENT_LENGTH}字符`);
     }
 
     const prompt = createOptimizedPrompt(content);
-    const result = yield* Effect.tryPromise({
-      try: () => callOllamaAPI(prompt, model, ollamaUrl),
-      catch: (e) => MsgError.msg('Ollama API 调用失败: ' + String(e)),
-    });
+    const result = yield* tryOrFail('Ollama API 调用', () => callOllamaAPI(prompt, model, ollamaUrl));
 
-    ctx.log('[InfoQuality] Ollama 返回: ' + extractVerdict(result));
+    const verdict = extractVerdict(result);
+    ctx.log(`${LOG_PREFIX} Ollama 返回: ${verdict}`);
 
-    return { result: extractVerdict(result) };
+    return { result: verdict };
   });
 }

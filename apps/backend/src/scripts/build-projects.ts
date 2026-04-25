@@ -40,7 +40,7 @@ function generateProjectsIndex() {
 
   // 直接导入所有项目并导出
   projects.forEach(project => {
-    const varName = project.name.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase())
+    const varName = project.name.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())
     content += `import * as ${varName} from '../../projects/${project.name}/index';\n`
   })
 
@@ -48,7 +48,7 @@ function generateProjectsIndex() {
   content += `export const projects = {\n`
 
   projects.forEach(project => {
-    const varName = project.name.replace(/-([a-z])/g, (match, letter) => letter.toUpperCase())
+    const varName = project.name.replace(/-([a-z])/g, (_match, letter) => letter.toUpperCase())
     content += `  '${project.name}': ${varName},\n`
   })
 

@@ -4,7 +4,7 @@ import { t, i18n } from '@/i18n';
 export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /** 日期格式化选项 */
-export interface FormatDateOptions {
+interface FormatDateOptions {
   /** null 值时的显示文本，默认为 '未知时间' */
   nullLabel?: string;
   /** 是否显示相对时间（如 "3分钟前"），默认 false */
@@ -74,4 +74,28 @@ export function getMemoryColor(level: number): string {
     return `rgb(255, ${Math.round(255 * (ratio * 2))}, 0)`;
   }
   return `rgb(${Math.round(255 * (2 - ratio * 2))}, 255, 0)`;
+}
+
+/** 格式化价格（分→元），返回保留两位小数的字符串 */
+export function formatPrice(price: number | null | undefined): string {
+  if (price === null || price === undefined) return '--';
+  return (price / 100).toFixed(2);
+}
+
+/** 格式化价格并附带货币单位 */
+export function formatPriceWithCurrency(price: number | null | undefined): string {
+  return `${formatPrice(price)}${t('元')}`;
+}
+
+/** 截断文本，超出 maxLength 时追加省略号 */
+export function truncateText(text: string, maxLength: number): string {
+  return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+}
+
+/**
+ * 安全解析可能是字符串的 JSON 字段
+ * ZenStack Json 字段在序列化传输时可能是 string 或已解析的对象
+ */
+export function parseJsonField<T = unknown>(data: unknown): T {
+  return typeof data === 'string' ? JSON.parse(data) : data as T;
 }

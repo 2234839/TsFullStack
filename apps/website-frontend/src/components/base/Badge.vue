@@ -25,7 +25,7 @@ const badgeClasses = computed(() => {
     secondary: 'bg-secondary-100 text-secondary-800 dark:bg-secondary-700 dark:text-secondary-300',
     contrast: 'bg-primary-800 text-primary-50 dark:bg-primary-50 dark:text-primary-800',
   };
-  return `${base} ${variantClasses[variant] || 'bg-secondary-100 text-secondary-800'}`;
+  return `${base} ${variantClasses[variant] ?? 'bg-secondary-100 text-secondary-800 dark:bg-secondary-700 dark:text-secondary-300'}`;
 });
 </script>
 

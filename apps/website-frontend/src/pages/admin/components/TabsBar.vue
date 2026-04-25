@@ -95,7 +95,7 @@
   };
 
   const handleRefresh = () => {
-    const { fullPath } = currentContextTab.value || {};
+    const { fullPath } = currentContextTab.value ?? {};
     if (fullPath) {
       routerUtil.replace(
         routeMap.redirect,

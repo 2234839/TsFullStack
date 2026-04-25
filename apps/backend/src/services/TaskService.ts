@@ -1,12 +1,14 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../Context/Auth';
 import { DbClientEffect } from '../Context/DbService';
-import { dbTry, dbPaginatedFindMany } from '../util/dbEffect';
-import { MsgError, fail, neverReturn } from '../util/error';
+import { dbTry, dbPaginatedFindMany, dbTryRequire } from '../util/dbEffect';
+import { fail } from '../util/error';
 import type { JsonValue } from '@zenstackhq/orm';
 import { TaskStatus, TaskType } from '../../.zenstack/models';
 import type { TaskWhereInput } from '../../.zenstack/input';
 import { DEFAULT_PAGE_SIZE, MSG } from '../util/constants';
+
+const LOG_PREFIX = '[TaskService]';
 
 /**
  * 任务服务
@@ -29,7 +31,7 @@ export const TaskService = {
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
 
-      const task = yield* dbTry('[TaskService]', '创建任务', () =>
+      const task = yield* dbTry(LOG_PREFIX, '创建任务', () =>
         db.task.create({
           data: {
             userId,
@@ -64,7 +66,7 @@ export const TaskService = {
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
 
-      const result = yield* dbTry('[TaskService]', '状态转换', () =>
+      const result = yield* dbTry(LOG_PREFIX, '状态转换', () =>
         db.task.updateMany({
           where: { id: taskId, status: expectedStatus },
           data: { status: newStatus, ...extraData },
@@ -72,19 +74,15 @@ export const TaskService = {
       );
 
       if (result.count === 0) {
-        const task = yield* dbTry('[TaskService]', '查询任务', () =>
+        const task = yield* dbTryRequire(LOG_PREFIX, '查询任务', () =>
           db.task.findUnique({
             where: { id: taskId },
             select: { status: true },
           }),
+          MSG.TASK_NOT_FOUND,
         );
 
-        if (!task) {
-          yield* fail(MSG.TASK_NOT_FOUND);
-          return neverReturn();
-        }
-        yield* fail(`任务状态错误：无法从 ${task.status} 转换为 ${newStatus}`);
-        return neverReturn();
+        return yield* fail(`任务状态错误：无法从 ${task.status} 转换为 ${newStatus}`);
       }
     }),
 
@@ -113,7 +111,7 @@ export const TaskService = {
     Effect.gen(function* () {
       const auth = yield* AuthContext;
 
-      const task = yield* dbTry('[TaskService]', '查询任务', () =>
+      const task = yield* dbTryRequire(LOG_PREFIX, '查询任务', () =>
         auth.db.task.findUnique({
           where: { id: taskId },
           include: {
@@ -121,16 +119,11 @@ export const TaskService = {
             resources: true,
           },
         }),
+        MSG.TASK_NOT_FOUND,
       );
 
-      if (!task) {
-        yield* fail(MSG.TASK_NOT_FOUND);
-        return neverReturn();
-      }
-
       if (task.userId !== auth.user.id) {
-        yield* fail('无权访问此任务');
-        return neverReturn();
+        return yield* fail(MSG.TASK_ACCESS_DENIED);
       }
 
       return task;
@@ -147,7 +140,6 @@ export const TaskService = {
   } = {}) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
-
       const where: TaskWhereInput = { userId };
 
       if (options.status) {
@@ -158,7 +150,7 @@ export const TaskService = {
         where.type = options.type;
       }
 
-      return yield* dbPaginatedFindMany('[TaskService]',
+      return yield* dbPaginatedFindMany(LOG_PREFIX,
         () => db.task.findMany({
           where,
           select: {
@@ -171,8 +163,8 @@ export const TaskService = {
             created: true,
             updated: true,
           },
-          skip: options.skip || 0,
-          take: options.take || DEFAULT_PAGE_SIZE,
+          skip: options.skip ?? 0,
+          take: options.take ?? DEFAULT_PAGE_SIZE,
           orderBy: { created: 'desc' },
         }),
         () => db.task.count({ where }),

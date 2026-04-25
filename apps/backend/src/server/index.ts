@@ -18,16 +18,13 @@ import { appApis } from '../api/appApi';
 import { FileWrapItem } from '../util/file-types';
 import { verifySignByToken } from '../lib/SessionAuthSign';
 import { createRPC } from '../rpc';
-import { MsgError, fail, neverReturn } from '../util/error';
+import { MsgError, fail, tryOrFail, extractErrorMessage } from '../util/error';
 import { FetchWithProxy } from '../util/github-proxy';
 
 /** 通用 RPC 调用辅助（消除 app-api/api 两分支的重复 tryPromise+isEffect 模式） */
 const callRpc = <T>(rpc: ReturnType<typeof createRPC>, method: string, params: unknown[]) =>
   Effect.gen(function* () {
-    const res = yield* Effect.tryPromise({
-      try: () => rpc.RC(method, params),
-      catch: (e) => MsgError.msg('RPC 调用失败: ' + String(e)),
-    });
+    const res = yield* tryOrFail('RPC 调用', () => rpc.RC(method, params));
     if (Effect.isEffect(res)) return yield* res as Effect.Effect<T>;
     return res as T;
   });
@@ -40,12 +37,18 @@ import {
 } from '../util/zenstack-error';
 import { getAuthFromCache } from './authCache';
 import { registerWebhookRoutes } from './webhook';
-import { CORS_MAX_AGE_SECONDS, MAX_UPLOAD_BYTES, SERVER_PORT, SERVER_HOST, MAX_WAIT_MS } from '../util/constants';
+import { CORS_MAX_AGE_SECONDS, MAX_UPLOAD_BYTES, SERVER_PORT, SERVER_HOST, MAX_WAIT_MS, MSG } from '../util/constants';
 
-// ESM 模块中获取 __dirname 的替代方案
+/** ESM 模块中获取 __dirname 的替代方案 */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// 统一错误序列化函数
+/** 日志前缀 */
+const LOG_PREFIX = '[Server]';
+
+/** 每个 CPU 核心分配的请求并发数 */
+const REQUESTS_PER_CPU_CORE = 10;
+
+/** 统一错误序列化函数 */
 function handleCause(cause: Cause.Cause<unknown>) {
   let err;
   function setErr(error: unknown): string {
@@ -58,16 +61,16 @@ function handleCause(cause: Cause.Cause<unknown>) {
        * Why set reason as NOT_FOUND instead of REJECTED_BY_POLICY? Because the rationale is rows that don't satisfy the policies "don't exist".
        */
       if (error.reason === ORMErrorReason.NOT_FOUND) {
-        err = { message: '无权访问/修改或记录不存在' };
+        err = { message: MSG.NO_ACCESS_OR_NOT_FOUND };
       } else if (
         /** 检查是否为 Prisma/ZenStack 的 P2004 或 P2025 错误 */
         isZenStackPermissionError(error)
       ) {
-        err = { message: '权限不足' };
+        err = { message: MSG.ACCESS_DENIED };
       } else if (isRecordNotFoundError(error)) {
-        err = { message: '记录不存在或已被删除' };
+        err = { message: MSG.RECORD_NOT_FOUND };
       } else if (isZenStackValidationError(error)) {
-        err = { message: '数据验证失败，请检查输入' };
+        err = { message: MSG.VALIDATION_FAILED };
       } else {
         // 其他错误，使用第一行错误消息
         err = { message: error.message.split('\n')[0] };
@@ -92,13 +95,13 @@ function handleCause(cause: Cause.Cause<unknown>) {
   return { message: causeMsg };
 }
 
-// 参数解析函数
+/** 参数解析函数 */
 async function parseParams(req: FastifyRequest): Promise<unknown[]> {
   const contentType = req.headers['content-type'];
   if (contentType === 'application/json') {
     const parsed = superjson.deserialize(req.body as SuperJSONResult) as unknown;
     if (!Array.isArray(parsed)) {
-      throw MsgError.msg('参数格式错误: 期望数组类型');
+      throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
     }
     return parsed;
   } else if (contentType?.startsWith('multipart/form-data')) {
@@ -113,11 +116,11 @@ async function parseParams(req: FastifyRequest): Promise<unknown[]> {
     if (!query.args) return [];
     const parsed = superjson.parse(query.args) as unknown;
     if (!Array.isArray(parsed)) {
-      throw MsgError.msg('参数格式错误: 期望数组类型');
+      throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
     }
     return parsed;
   } else {
-    throw MsgError.msg('Unknown content type:' + contentType);
+    throw MsgError.msg(`Unknown content type: ${contentType}`);
   }
 }
 /** 解析参数并通过参数获取鉴权对象 */
@@ -151,22 +154,17 @@ function parseParamsAndAuth(req: FastifyRequest) {
     if (querySignMode) {
       const session = user.userSession[0];
       if (!session) {
-        yield* Effect.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 session'));
-        return neverReturn();
+        return yield* Effect.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 session'));
       }
       const verify = yield* Effect.try({
-        try: () => verifySignByToken(query.args || '', session.token, query.sign || ''),
-        catch: (e) => MsgError.msg('签名验证失败: ' + String(e)),
+        try: () => verifySignByToken(query.args ?? '', session.token, query.sign ?? ''),
+        catch: (e) => MsgError.msg(`签名验证失败: ${extractErrorMessage(e)}`),
       });
       if (!verify) {
-        yield* Effect.fail(new MsgError(MsgError.op_msgError, '签名验证失败'));
-        return neverReturn();
+        return yield* fail(MSG.SIGNATURE_INVALID);
       }
     }
-    const params = yield* Effect.tryPromise({
-      try: () => parseParams(req),
-      catch: (e) => MsgError.msg('参数解析失败: ' + String(e)),
-    });
+    const params = yield* tryOrFail('参数解析', () => parseParams(req));
     return { params, db, user };
   });
 }
@@ -196,7 +194,7 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
 
   const program = buildReqProgram({ req, reply, pathPrefix, method, enqueueTime });
 
-  // 合成层，避免其他 service 还在依赖 FetchWithProxy
+  /** 合成层，避免其他 service 还在依赖 FetchWithProxy */
   const unFetchProxyLayer = Layer.provide(GithubAuthLive, FetchWithProxy.Default);
 
   const reqLayer = Layer.succeed(ReqCtxService, reqCtx);
@@ -213,13 +211,13 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
     */ reqLayer,
   ]);
 
-  // 拦截并处理所有错误
+  /** 拦截并处理所有错误 */
   return Effect.gen(function* () {
     const exit = yield* Effect.exit(runnable);
     if (Exit.isFailure(exit)) {
       const cause = exit.cause;
 
-      // 记录详细的错误信息
+      /** 记录详细的错误信息 */
       if (Cause.isDieType(cause)) {
         const defect = cause.defect;
         const defectStack = defect instanceof Error
@@ -259,27 +257,21 @@ function buildReqProgram(opts: { req: FastifyRequest; reply: FastifyReply; pathP
   return Effect.gen(function* () {
     const waitTime = Date.now() - opts.enqueueTime;
     if (waitTime > MAX_WAIT_MS) {
-      yield* fail('服务器繁忙，请稍后再试');
-      return neverReturn();
+      return yield* fail(MSG.SERVER_BUSY);
     }
 
     let result: unknown;
     if (opts.pathPrefix === '/app-api/') {
-      const params = yield* Effect.tryPromise({
-        try: () => parseParams(opts.req),
-        catch: (e) => { return MsgError.msg('参数解析失败: ' + String(e)); },
-      });
+      const params = yield* tryOrFail('参数解析', () => parseParams(opts.req));
       result = yield* callRpc(appApisRpc, opts.method, params);
     } else if (opts.pathPrefix === '/api/') {
-      // 处理需要鉴权的 API
+      /** 处理需要鉴权的 API */
       const { params, db, user } = yield* parseParamsAndAuth(opts.req);
-      result = yield* Effect.gen(function* () {
-        const apisRpc = createRPC('apiProvider', {
-          /** apis + db → APIRaw: 动态合并的模块对象无法在编译期精确匹配 APIRaw 接口，运行时结构一致 */
-          genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
-        });
-        return yield* callRpc(apisRpc, opts.method, params);
-      })
+      const apisRpc = createRPC('apiProvider', {
+        /** apis + db → APIRaw: 动态合并的模块对象无法在编译期精确匹配 APIRaw 接口，运行时结构一致 */
+        genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
+      });
+      result = yield* callRpc(apisRpc, opts.method, params)
         // 提供 apis 模块所需要的依赖
         .pipe(Effect.provideService(AuthContext, { db, user }));
     }
@@ -299,7 +291,7 @@ function sendFileResponse(reply: FastifyReply, fileItem: FileWrapItem) {
 
     // 设置公共文件响应头
     reply
-      .type(fileItem.model.mimetype || 'application/octet-stream')
+      .type(fileItem.model.mimetype ?? 'application/octet-stream')
       .header('Accept-Ranges', 'bytes')
       .header('Content-Disposition', `inline; filename="${encodeURIComponent(fileItem.model.filename ?? 'file')}"`);
 
@@ -323,7 +315,7 @@ function sendFileResponse(reply: FastifyReply, fileItem: FileWrapItem) {
     }
   });
 }
-// 服务器初始化
+/** 服务器初始化 */
 export const startServer = Effect.gen(function* () {
   const fastify = Fastify({ logger: false });
   const appConfig = yield* AppConfigService;
@@ -344,34 +336,38 @@ export const startServer = Effect.gen(function* () {
   fastify.register(fastifyMultipart, {
     limits: { fileSize: MAX_UPLOAD_BYTES }, // 1GB
   });
-  console.log('[static]', path.join(__dirname, 'frontend'));
+  console.log(`${LOG_PREFIX} static files:`, path.join(__dirname, 'frontend'));
   fastify.register(fastifyStatic, {
     root: path.join(__dirname, 'frontend'),
     prefix: '/',
   });
   //#endregion
 
-  // 创建一个无界队列
+  /** 创建一个无界队列 */
   const queue = yield* Queue.unbounded<ApiCtx>();
 
-  // 解决 Effect 的异步边界问题，也就是创建一个普通的回调函数来将数据传递给外层的 Effect 程序，然后外层程序通过消费队列来处理数据
-  // emitReq 将请求放入队列，返回 Promise 以支持 await
+  /**
+   * 解决 Effect 的异步边界问题：创建一个普通的回调函数来将数据传递给外层的 Effect 程序，然后外层程序通过消费队列来处理数据。
+   * emitReq 将请求放入队列，返回 Promise 以支持 await。
+   */
   const emitReq = (ctx: ApiCtx) => Effect.runPromise(Queue.offer(queue, ctx));
 
-  // onEnd 是为了解决 fastify 的回调函数执行完毕后，fastify 会自动结束请求，而我们希望在 Effect Stream 中处理请求，所以需要维持时机到处理完毕
-  // 这个 onEnd 实现的比较丑陋，但是没想到什么好方法解决这个问题
+  /**
+   * onEnd 是为了解决 fastify 的回调函数执行完毕后，fastify 会自动结束请求，而我们希望在 Effect Stream 中处理请求，所以需要维持时机到处理完毕。
+   * 这个 onEnd 实现的比较丑陋，但是没想到什么好方法解决这个问题。
+   */
   function registerRoute(pathPrefix: string) {
     return async function (req: FastifyRequest, reply: FastifyReply) {
       let resolved = false;
       const p = new Promise<void>((resolve) => {
-        // 包装 resolve，防止多次调用 onEnd
+        /** 包装 resolve，防止多次调用 onEnd */
         const onceResolve = () => {
           if (!resolved) {
             resolved = true;
             resolve();
           }
         };
-        // 将请求上下文放入队列
+        /** 将请求上下文放入队列 */
         emitReq({
           req,
           reply,
@@ -387,10 +383,10 @@ export const startServer = Effect.gen(function* () {
   fastify.all('/api/*', registerRoute('/api/'));
   fastify.all('/app-api/*', registerRoute('/app-api/'));
 
-  // 注册支付 Webhook 回调路由（不走 RPC 系统，由第三方平台直接调用）
+  /** 注册支付 Webhook 回调路由（不走 RPC 系统，由第三方平台直接调用） */
   registerWebhookRoutes(fastify);
 
-  // 处理 SPA 路由回退
+  /** 处理 SPA 路由回退 */
   fastify.setNotFoundHandler((request, reply) => {
     if (!request.url.startsWith('/api') && !request.url.startsWith('/app-api')) {
       reply.sendFile('index.html');
@@ -400,27 +396,22 @@ export const startServer = Effect.gen(function* () {
   });
 
   //#region 启动服务器
-  const address = yield* Effect.tryPromise({
-    try: () => fastify.listen({ port: SERVER_PORT, host: SERVER_HOST }),
-    catch(error: unknown) {
-      return MsgError.msg(`服务器启动失败: ${String(error)}`);
-    },
-  });
-  console.log(`Server listening on ${address}`);
+  const address = yield* tryOrFail('服务器启动', () => fastify.listen({ port: SERVER_PORT, host: SERVER_HOST }));
+  console.log(`${LOG_PREFIX} listening on ${address}`);
   //#endregion
 
-  // 创建控制最大并发数的信号量
+  /** 创建控制最大并发数的信号量 */
   const cpuCount = os.cpus().length;
-  const recommendedConcurrency = cpuCount * 10;
-  console.log(`设置的请求并发上限为:${recommendedConcurrency}`);
+  const recommendedConcurrency = cpuCount * REQUESTS_PER_CPU_CORE;
+  console.log(`${LOG_PREFIX} 请求并发上限: ${recommendedConcurrency}`);
 
   const semaphore = yield* Effect.makeSemaphore(recommendedConcurrency);
 
-  // 请求队列消费循环
+  /** 请求队列消费循环 */
   while (true) {
     const ctx = yield* Queue.take(queue);
 
-    // fork 一个 Fiber 去执行请求处理，确保不会阻塞循环
+    /** fork 一个 Fiber 去执行请求处理，确保不会阻塞循环 */
     yield* Effect.forkDaemon(
       semaphore.withPermits(1)(
         handleReq(ctx).pipe(

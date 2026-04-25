@@ -29,14 +29,6 @@ let cleanupTimer: NodeJS.Timeout | null = setInterval(() => {
   userCache.cleanUp((entry) => entry.expiresAt < now);
 }, CACHE_CLEANUP_INTERVAL_MS);
 
-/** 停止缓存定时器（graceful shutdown 时调用） */
-export function destroyAuthCache(): void {
-  if (cleanupTimer) {
-    clearInterval(cleanupTimer);
-    cleanupTimer = null;
-  }
-}
-
 /**
  * 基于内存的用户鉴权缓存，避免每次请求都查询数据库中的用户信息
  *

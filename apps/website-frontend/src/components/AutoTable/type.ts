@@ -123,11 +123,21 @@ export type Model = DBModelMeta['models'][ModelMetaNames];
 
 export const injectModelMetaKey = Symbol('injectModelMetaKey') as InjectionKey<ModelMeta>;
 
+/** 将 FieldInfo 转为字典类型以便动态属性访问（集中类型断言） */
+function toRecord(field: FieldInfo): Record<string, unknown> {
+  return field as Record<string, unknown>;
+}
+
+/** 将 model.fields 安全转换为字段映射（集中类型断言） */
+export function fieldsToMap(fields: unknown): Record<string, FieldInfo> {
+  return fields as Record<string, FieldInfo>;
+}
+
 /**
  * 判断字段是否为 ID 字段
  */
 export function isIdField(field: FieldInfo): field is FieldInfo & { id: true } {
-  const f = field as Record<string, unknown>;
+  const f = toRecord(field);
   return typeof f.id === 'boolean' && f.id === true;
 }
 
@@ -135,7 +145,7 @@ export function isIdField(field: FieldInfo): field is FieldInfo & { id: true } {
  * 判断字段是否为数组
  */
 export function isArrayField(field: FieldInfo): field is FieldInfo & { array: true } {
-  const f = field as Record<string, unknown>;
+  const f = toRecord(field);
   return typeof f.array === 'boolean' && f.array === true;
 }
 
@@ -143,7 +153,7 @@ export function isArrayField(field: FieldInfo): field is FieldInfo & { array: tr
  * 判断字段是否为数据模型（关系字段）
  */
 export function isDataModelField(field: FieldInfo): field is FieldInfo & { relation: Record<string, unknown> } {
-  const f = field as Record<string, unknown>;
+  const f = toRecord(field);
   return typeof f.relation === 'object' && f.relation !== null;
 }
 
@@ -151,7 +161,7 @@ export function isDataModelField(field: FieldInfo): field is FieldInfo & { relat
  * 判断字段是否可选
  */
 export function isOptionalField(field: FieldInfo): field is FieldInfo & { optional: true } {
-  const f = field as Record<string, unknown>;
+  const f = toRecord(field);
   return typeof f.optional === 'boolean' && f.optional === true;
 }
 
@@ -159,7 +169,7 @@ export function isOptionalField(field: FieldInfo): field is FieldInfo & { option
  * 判断字段是否有默认值
  */
 export function hasDefaultField(field: FieldInfo): boolean {
-  const f = field as Record<string, unknown>;
+  const f = toRecord(field);
   return 'default' in f && f.default !== undefined;
 }
 
@@ -167,7 +177,7 @@ export function hasDefaultField(field: FieldInfo): boolean {
  * 判断字段是否为 updatedAt 字段
  */
 export function isUpdatedAtField(field: FieldInfo): field is FieldInfo & { updatedAt: true } {
-  const f = field as Record<string, unknown>;
+  const f = toRecord(field);
   return typeof f.updatedAt === 'boolean' && f.updatedAt === true;
 }
 

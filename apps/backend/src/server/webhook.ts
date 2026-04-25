@@ -3,6 +3,11 @@ import { Effect } from 'effect';
 import { PaymentService } from '../services/payment/PaymentService';
 import { PaymentProvider } from '../../.zenstack/models';
 import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
+import { extractErrorMessage } from '../util/error';
+import { WEBHOOK_MAX_LOG_PAYLOAD } from '../util/constants';
+
+/** 日志前缀 */
+const LOG_PREFIX = '[Webhook]';
 
 /**
  * 注册 Webhook 回调路由
@@ -36,17 +41,17 @@ async function handleWebhookRequest(
     const payload = (typeof req.body === 'object' ? req.body : {}) as Record<string, unknown>;
     const headers = req.headers as Record<string, string>;
 
-    reqCtx.log(`[Webhook] 收到 ${provider} 回调`, JSON.stringify(payload).slice(0, 500));
+    reqCtx.log(`${LOG_PREFIX} 收到 ${provider} 回调`, JSON.stringify(payload).slice(0, WEBHOOK_MAX_LOG_PAYLOAD));
 
     const program = PaymentService.handleWebhook(provider, payload, headers).pipe(
       Effect.provideService(ReqCtxService, reqCtx),
     );
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await Effect.runPromise(program as any);
+    /** adapter 接口 R 包含 DbClientEffect 等（各适配器依赖不同 Context），provideService 仅注入了 ReqCtxService，DbClientEffect 在 Effect 运行时自动提供。此处 cast 为无依赖 Effect，避免 Effect.runPromise 要求 R=never 的类型约束 */
+    const result = await Effect.runPromise(program as Effect.Effect<unknown, never, never>);
 
     const elapsed = Date.now() - startTime;
-    reqCtx.log(`[Webhook] ${provider} 处理完成 (${elapsed}ms):`, JSON.stringify(result));
+    reqCtx.log(`${LOG_PREFIX} ${provider} 处理完成 (${elapsed}ms):`, JSON.stringify(result));
 
     if (provider === PaymentProvider.MBD) {
       reply.send({ code: 0, msg: 'success' });
@@ -55,7 +60,7 @@ async function handleWebhookRequest(
     }
   } catch (error: unknown) {
     const elapsed = Date.now() - startTime;
-    reqCtx.log(`[Webhook] ${provider} 处理失败 (${elapsed}ms):`, String(error));
+    reqCtx.log(`${LOG_PREFIX} ${provider} 处理失败 (${elapsed}ms):`, extractErrorMessage(error));
 
     if (provider === PaymentProvider.MBD) {
       reply.send({ code: -1, msg: 'error' });

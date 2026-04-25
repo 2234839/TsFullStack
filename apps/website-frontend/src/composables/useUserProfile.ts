@@ -3,6 +3,7 @@
  * 用于获取和更新当前用户的信息（头像、昵称等）
  */
 import { API } from '@/api';
+import { DEFAULT_AVATAR_URL } from '@/utils/constants';
 import { authInfo, authInfo_isLogin } from '@/storage';
 import { createSharedComposable } from '@vueuse/core';
 import { getErrorMessage } from '@/utils/error';
@@ -51,18 +52,22 @@ export const useUserProfile = createSharedComposable(() => {
     return emailPrefix;
   });
 
-  /** 默认头像 URL（基于 UI Avatars API 生成首字母头像） */
-  const DEFAULT_AVATAR_URL = 'https://ui-avatars.com/api/?name=U&background=0D9488&color=fff&size=128';
-
   /**
-   * 计算属性：头像 URL
-   * 如果没有设置头像，返回默认头像
+   * 计算属性：头像 URL（兼容旧用法，直接返回完整 URL）
    */
   const avatarUrl = computed<string>(() => {
     if (!userProfile.value) {
       return DEFAULT_AVATAR_URL;
     }
     return userProfile.value.avatar ?? DEFAULT_AVATAR_URL;
+  });
+
+  /**
+   * 计算属性：头像文件 ID
+   * 仅当用户设置了自定义头像（数据库中存的是文件 ID）时返回，否则为 null
+   */
+  const avatarFileId = computed<string | null>(() => {
+    return userProfile.value?.avatar ?? null;
   });
 
   /**
@@ -166,6 +171,8 @@ export const useUserProfile = createSharedComposable(() => {
     displayName,
     /** 头像 URL */
     avatarUrl,
+    /** 头像文件 ID（仅自定义头像时有值） */
+    avatarFileId,
     /** 加载状态（只读） */
     loading: readonly(loading),
     /** 错误信息（只读） */

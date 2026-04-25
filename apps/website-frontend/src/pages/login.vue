@@ -1,15 +1,9 @@
 <template>
   <div
-    class="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-500"
-    :class="theme_isDark ? 'dark bg-primary-950' : 'bg-primary-50'">
+    class="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-500 bg-primary-50 dark:bg-primary-950">
     <!-- 炫酷背景 -->
     <div
-      class="absolute inset-0 transition-all duration-500"
-      :class="
-        theme_isDark
-          ? 'bg-linear-to-br from-primary-950 via-secondary-900 to-info-900'
-          : 'bg-linear-to-br from-info-100 via-info-200 to-info-100'
-      ">
+      class="absolute inset-0 transition-all duration-500 bg-linear-to-br from-info-100 via-info-200 to-info-100 dark:from-primary-950 dark:via-secondary-900 dark:to-info-900">
       <!-- 动态背景元素 -->
       <div class="stars-container" v-if="theme_isDark">
         <div v-for="n in 20" :key="`star-${n}`" class="star" :style="getRandomStarStyle()"></div>
@@ -17,25 +11,20 @@
 
       <!-- 光效元素 -->
       <div
-        class="glow-effect glow-1"
-        :class="theme_isDark ? 'bg-success-500/30' : 'bg-success-300/40'"></div>
+        class="glow-effect glow-1 bg-success-300/40 dark:bg-success-500/30"></div>
       <div
-        class="glow-effect glow-2"
-        :class="theme_isDark ? 'bg-info-500/30' : 'bg-info-300/40'"></div>
+        class="glow-effect glow-2 bg-info-300/40 dark:bg-info-500/30"></div>
       <div
-        class="glow-effect glow-3"
-        :class="theme_isDark ? 'bg-info-500/20' : 'bg-info-300/30'"></div>
+        class="glow-effect glow-3 bg-info-300/30 dark:bg-info-500/20"></div>
 
       <!-- 动态光线 -->
       <div
-        class="light-beam light-beam-1"
-        :class="theme_isDark ? 'bg-linear-dark' : 'bg-linear-light'"></div>
+        class="light-beam light-beam-1 bg-linear-beam"></div>
       <div
-        class="light-beam light-beam-2"
-        :class="theme_isDark ? 'bg-linear-dark' : 'bg-linear-light'"></div>
+        class="light-beam light-beam-2 bg-linear-beam"></div>
 
       <!-- 网格效果 -->
-      <div class="grid-overlay" :class="theme_isDark ? 'grid-dark' : 'grid-light'"></div>
+      <div class="grid-overlay grid-pattern"></div>
     </div>
 
     <!-- 主题切换按钮 -->
@@ -44,44 +33,24 @@
     </div>
 
     <div
-      class="w-full max-w-md p-8 space-y-6 rounded-2xl shadow-2xl border transition-all duration-300 relative z-10"
-      :class="
-        theme_isDark
-          ? 'bg-primary-800/40 backdrop-blur-xl border-primary-700/30 hover:shadow-success-500/20'
-          : 'bg-white/90 backdrop-blur-sm border-primary-200 hover:shadow-success-500/10'
-      ">
+      class="w-full max-w-md p-8 space-y-6 rounded-2xl shadow-2xl border transition-all duration-300 relative z-10 bg-white/90 dark:bg-primary-800/40 backdrop-blur-sm dark:backdrop-blur-xl border-primary-200 dark:border-primary-700/30 hover:shadow-success-500/10 dark:hover:shadow-success-500/20">
       <!-- 卡片内部光晕 -->
       <div
-        class="absolute pointer-events-none -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200"
-        :class="
-          theme_isDark
-            ? 'bg-linear-to-r from-success-500 to-info-600'
-            : 'bg-linear-to-r from-info-400 to-success-500'
-        "></div>
+        class="absolute pointer-events-none -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200 bg-linear-to-r from-info-400 to-success-500 dark:from-success-500 dark:to-info-600"></div>
       <div class="relative z-10">
         <!-- 顶部Logo和标题 -->
         <div class="text-center">
           <div class="flex justify-center mb-4">
             <div
-              class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow"
-              :class="
-                theme_isDark
-                  ? 'bg-linear-to-r from-success-500 to-info-600 shadow-success-500/30'
-                  : 'bg-linear-to-r from-info-500 to-success-600 shadow-success-500/20'
-              ">
+              class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow bg-linear-to-r from-info-500 to-success-600 dark:from-success-500 dark:to-info-600 shadow-success-500/20 dark:shadow-success-500/30">
               <i class="pi pi-shield text-white text-3xl"></i>
             </div>
           </div>
           <h2
-            class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient"
-            :class="
-              theme_isDark
-                ? 'bg-linear-to-r from-success-400 via-info-400 to-info-400'
-                : 'bg-linear-to-r from-success-600 via-info-600 to-info-600'
-            ">
+            class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient bg-linear-to-r from-success-600 via-info-600 to-info-600 dark:from-success-400 dark:via-info-400 dark:to-info-400">
             {{ isLogin ? t('系统登录') : t('用户注册') }}
           </h2>
-          <p class="mt-2 text-sm" :class="theme_isDark ? 'text-primary-300' : 'text-primary-600'">
+          <p class="mt-2 text-sm text-primary-600 dark:text-primary-300">
             {{ isLogin ? t('欢迎回来，请输入您的账号和密码') : t('创建一个新账号，开始您的旅程') }}
           </p>
         </div>
@@ -92,11 +61,9 @@
             <div class="group">
               <label
                 for="username"
-                class="block text-sm font-medium mb-1"
-                :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
+                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
                 <i
-                  class="pi pi-user mr-2"
-                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />{{
+                  class="pi pi-user mr-2 text-primary-500 dark:text-primary-300" />{{
                   isLogin ? t('用户名') : t('邮箱')
                 }}
               </label>
@@ -113,11 +80,9 @@
             <div class="group">
               <label
                 for="password"
-                class="block text-sm font-medium mb-1"
-                :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
+                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
                 <i
-                  class="pi pi-lock mr-2"
-                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />{{ t('密码') }}
+                  class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{ t('密码') }}
               </label>
               <Password
                 id="password"
@@ -131,11 +96,9 @@
             <div v-if="!isLogin" class="group">
               <label
                 for="confirmPassword"
-                class="block text-sm font-medium mb-1"
-                :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
+                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
                 <i
-                  class="pi pi-lock mr-2"
-                  :class="theme_isDark ? 'text-primary-300' : 'text-primary-500'" />{{ t('确认密码') }}
+                  class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{ t('确认密码') }}
               </label>
               <Password
                 id="confirmPassword"
@@ -147,7 +110,7 @@
                 v-if="
                   form.password && form.confirmPassword && form.password !== form.confirmPassword
                 "
-                class="text-danger-500 mt-1 block">
+                class="text-danger-500 dark:text-danger-400 mt-1 block">
                 {{ t('两次输入的密码不一致') }}
               </small>
             </div>
@@ -159,8 +122,7 @@
               <Checkbox v-model="localUserPwd.rememberMe" id="remember" binary />
               <label
                 for="remember"
-                class="ml-2 block text-sm"
-                :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
+                class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
                 {{ t('记住我') }}
               </label>
             </div>
@@ -168,12 +130,7 @@
             <div class="text-sm">
               <a
                 href="#"
-                class="font-medium transition-colors"
-                :class="
-                  theme_isDark
-                    ? 'text-info-400 hover:text-info-300'
-                    : 'text-info-600 hover:text-info-500'
-                ">
+                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300">
                 {{ t('忘记密码?') }}
               </a>
             </div>
@@ -184,28 +141,17 @@
             <Checkbox v-model="agreeTerms" id="terms" binary />
             <label
               for="terms"
-              class="ml-2 block text-sm"
-              :class="theme_isDark ? 'text-primary-200' : 'text-primary-700'">
+              class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
               {{ t('我已阅读并同意') }}
               <a
                 href="#"
-                class="font-medium transition-colors"
-                :class="
-                  theme_isDark
-                    ? 'text-info-400 hover:text-info-300'
-                    : 'text-info-600 hover:text-info-500'
-                ">
+                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300">
                 {{ t('用户协议') }}
               </a>
-              和
+              {{ t('和') }}
               <a
                 href="#"
-                class="font-medium transition-colors"
-                :class="
-                  theme_isDark
-                    ? 'text-info-400 hover:text-info-300'
-                    : 'text-info-600 hover:text-info-500'
-                ">
+                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300">
                 {{ t('隐私政策') }}
               </a>
             </label>
@@ -242,17 +188,13 @@
 
         <!-- 底部切换登录/注册 -->
         <div
-          class="pt-4 text-center text-xs border-t"
-          :class="
-            theme_isDark ? 'text-primary-400 border-primary-700/30' : 'text-primary-500 border-primary-200'
-          ">
+          class="pt-4 text-center text-xs border-t text-primary-500 border-primary-200 dark:text-primary-400 dark:border-primary-700/30">
           <p>
             {{ isLogin ? t('还没有账号?') : t('已有账号?') }}
             <a
               href="#"
               @click.prevent="toggleMode"
-              class="hover:underline"
-              :class="theme_isDark ? 'text-info-400' : 'text-info-600'">
+              class="hover:underline text-info-600 dark:text-info-400">
               {{ isLogin ? t('立即注册') : t('立即登录') }}
             </a>
           </p>
@@ -263,8 +205,7 @@
     <!-- 动态光圈效果 - 跟随鼠标 -->
     <div
       ref="cursorLight"
-      class="cursor-light"
-      :class="theme_isDark ? 'cursor-light-dark' : 'cursor-light-light'"></div>
+      class="cursor-light cursor-light-glow"></div>
   </div>
 </template>
 
@@ -275,10 +216,6 @@
   import { routeMap, routerUtil } from '@/router';
   import { authInfo_isLogin, localUserPwd, theme_isDark } from '@/storage';
   import { useAsyncState, useEventListener } from '@vueuse/core';
-  import Button from '@/components/base/Button.vue';
-  import Checkbox from '@/components/base/Checkbox.vue';
-  import Input from '@/components/base/Input.vue';
-  import Password from '@/components/base/Password.vue';
   import { useToast } from '@/composables/useToast';
   import { useI18n } from '@/composables/useI18n';
   import { getErrorMessage } from '@/utils/error';
@@ -317,7 +254,7 @@
     { immediate: false },
   );
 
-  // 表单验证
+  /** 表单验证 */
   const isFormValid = computed(() => {
     if (isLogin.value) {
       // 登录模式验证
@@ -334,7 +271,7 @@
     }
   });
 
-  // 切换登录/注册模式
+  /** 切换登录/注册模式 */
   const toggleMode = () => {
     isLogin.value = !isLogin.value;
     // 清空表单
@@ -347,7 +284,7 @@
     agreeTerms.value = false;
   };
 
-  // 生成随机星星样式
+  /** 生成随机星星样式 */
   const getRandomStarStyle = () => {
     const size = Math.random() * 4 + 1;
     const top = Math.random() * 100;
@@ -365,7 +302,7 @@
     };
   };
 
-  // 鼠标跟随效果
+  /** 鼠标跟随效果 */
   const handleMouseMove = (e: MouseEvent) => {
     if (cursorLight.value) {
       cursorLight.value.style.left = `${e.clientX}px`;
@@ -373,7 +310,7 @@
     }
   };
 
-  // 处理表单提交
+  /** 处理表单提交 */
   const handleSubmit = async () => {
     if (!isFormValid.value) return;
 
@@ -387,28 +324,18 @@
           localUserPwd.value.username = form.value.username;
           localUserPwd.value.password = form.value.password;
         }
-        toast.add({
-          variant: 'success',
-          summary: t('登录成功'),
-          detail: t('欢迎回来，正在为您跳转...'),
-          life: 3000,
-        });
+        toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
       } else {
         // 注册逻辑
         await AppAPI.system.register(form.value.username, form.value.password);
 
-        toast.add({
-          variant: 'success',
-          summary: t('注册成功'),
-          detail: t('账号创建成功，请登录'),
-          life: 3000,
-        });
+        toast.success(t('注册成功'), t('账号创建成功，请登录'));
 
         // 注册成功后切换到登录页
         isLogin.value = true;
       }
     } catch (error: unknown) {
-      toast.error(t('登录失败'), getErrorMessage(error));
+      toast.error(t(isLogin.value ? '登录失败' : '注册失败'), getErrorMessage(error));
     } finally {
       loading.value = false;
     }
@@ -424,6 +351,11 @@
 </script>
 
 <style scoped>
+  :root {
+    /** 登录页光效主色，对应 success-500 (#22c55e) */
+    --login-glow-color: 34, 197, 94;
+  }
+
   /* 动画效果 */
   @keyframes fadeIn {
     from {
@@ -450,13 +382,13 @@
 
   @keyframes pulse-slow {
     0% {
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+      box-shadow: 0 0 0 0 rgba(var(--login-glow-color), 0.7);
     }
     70% {
-      box-shadow: 0 0 0 15px rgba(34, 197, 94, 0);
+      box-shadow: 0 0 0 15px rgba(var(--login-glow-color), 0);
     }
     100% {
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+      box-shadow: 0 0 0 0 rgba(var(--login-glow-color), 0);
     }
   }
 
@@ -568,12 +500,12 @@
     transform: rotate(45deg);
   }
 
-  .bg-linear-dark {
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  .bg-linear-beam {
+    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
   }
 
-  .bg-linear-light {
-    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+  .dark .bg-linear-beam {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   }
 
   .light-beam-1 {
@@ -593,16 +525,15 @@
     z-index: 1;
   }
 
-  .grid-dark {
-    background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
-
-  .grid-light {
+  .grid-pattern {
     background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
       linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
     background-size: 40px 40px;
+  }
+
+  .dark .grid-pattern {
+    background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
   }
 
   /* 鼠标跟随光效 */
@@ -617,12 +548,13 @@
     mix-blend-mode: screen;
   }
 
-  .cursor-light-dark {
-    background: radial-gradient(circle, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0) 70%);
+  .cursor-light-glow {
+    background: radial-gradient(circle, rgba(var(--login-glow-color), 0.15) 0%, rgba(var(--login-glow-color), 0) 70%);
+    mix-blend-mode: multiply;
   }
 
-  .cursor-light-light {
-    background: radial-gradient(circle, rgba(34, 197, 94, 0.15) 0%, rgba(34, 197, 94, 0) 70%);
-    mix-blend-mode: multiply;
+  .dark .cursor-light-glow {
+    background: radial-gradient(circle, rgba(var(--login-glow-color), 0.2) 0%, rgba(var(--login-glow-color), 0) 70%);
+    mix-blend-mode: screen;
   }
 </style>

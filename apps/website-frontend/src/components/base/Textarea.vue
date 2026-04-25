@@ -4,6 +4,7 @@
  * 使用 Tailwind CSS 样式
  */
 import { computed } from 'vue';
+import { INPUT_BASE_CLASSES } from './inputStyles';
 
 interface Props {
   /** 模型值 */
@@ -30,7 +31,7 @@ const emit = defineEmits<{
 
 /** 输入框样式类 */
 const textareaClasses = computed(() => {
-  const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 resize-none';
+  const resizeNone = 'resize-none';
 
   const stateClasses = invalid
     ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
@@ -39,9 +40,9 @@ const textareaClasses = computed(() => {
   const bgClass = 'bg-white dark:bg-primary-900';
   const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
-  const resizeClass = autoResize ? 'overflow-hidden' : '';
+  const overflowClass = autoResize ? 'overflow-hidden' : '';
 
-  return `${base} ${stateClasses} ${bgClass} ${textClass} ${disabledClass} ${resizeClass}`;
+  return `${INPUT_BASE_CLASSES} ${resizeNone} ${stateClasses} ${bgClass} ${textClass} ${disabledClass} ${overflowClass}`;
 });
 
 /** 处理输入事件 */

@@ -2,17 +2,17 @@
   <Dialog
     v-model:open="visible"
     :title="t('新增记录')">
-    <div class="p-fluid min-w-72 max-w-[50vw]">
+    <div class="min-w-72 max-w-[50vw]">
       <div v-for="field in formFields" :key="field.name" class="field col-12 md:col-6 mb-4">
-        <label :for="'field-' + field.name" class="block text-sm font-medium mb-1">
+        <label :for="`field-${field.name}`" class="block text-sm font-medium mb-1">
           <span class="font-bold">{{ field.name }}</span>
-          <span v-if="isRequiredField(field)" class="text-danger-500">*</span>
+          <span v-if="isRequiredField(field)" class="text-danger-500 dark:text-danger-400">*</span>
           <Tooltip :content="JSON.stringify(field, null, 2)" side="top">
-            <span class="text-xs text-primary-400 ml-1">
+            <span class="text-xs text-primary-400 dark:text-primary-500 ml-1">
               {{ field.type }}{{ isArrayField(field) ? '[ ]' : '' }}
             </span>
           </Tooltip>
-          <span v-for="attr of field.attributes" class="text-xs text-secondary-500 ml-1">{{
+          <span v-for="attr of field.attributes" :key="attr.name" class="text-xs text-secondary-500 dark:text-secondary-400 ml-1">{{
             attr.name
           }}</span>
         </label>
@@ -23,7 +23,7 @@
             :field="field"
             :cellData="undefined"
             v-model="formData[field.name]" />
-          <small v-if="fieldErrors[field.name]" class="text-danger-500 block mt-1">{{
+          <small v-if="fieldErrors[field.name]" class="text-danger-500 dark:text-danger-400 block mt-1">{{
             fieldErrors[field.name]
           }}</small>
         </div>
@@ -43,7 +43,6 @@
 <script setup lang="ts">
   import { useAPI } from '@/api';
   import AutoColumnEdit from '@/components/AutoTable/AutoColumnEdit.vue';
-  import { Button } from '@/components/base';
   import { Dialog } from '@tsfullstack/shared-frontend/components';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { useToast } from '@/composables/useToast';
@@ -63,10 +62,13 @@
     modelMeta: ModelMetaType;
   }>();
 
-  // modelKey 是 PascalCase，用于访问 modelMeta.models
+  /** modelKey 是 PascalCase，用于访问 modelMeta.models */
   const selectModel = computed(() => modelMeta.models[modelKey as keyof typeof modelMeta.models]);
-  const modelFields = computed(() => selectModel.value?.fields || {});
-  const emit = defineEmits(['created', 'update:visible']);
+  const modelFields = computed(() => selectModel.value?.fields ?? {});
+  const emit = defineEmits<{
+    created: [result: unknown];
+    'update:visible': [value: boolean];
+  }>();
 
   // 表单状态
   const visible = ref(false);
@@ -74,7 +76,7 @@
   const formData = reactive<Record<string, unknown>>({});
   const fieldErrors = ref<Record<string, string>>({});
 
-  // 计算属性：表单字段
+  /** 计算属性：表单字段 */
   const formFields = computed(() => {
     return Object.values(modelFields.value).filter((field) => {
       const f = field as FieldInfo;
@@ -84,7 +86,7 @@
     }) as FieldInfo[];
   });
 
-  // 判断字段是否必填
+  /** 判断字段是否必填 */
   function isRequiredField(field: FieldInfo) {
     if (hasDefaultField(field)) return false;
     if (isUpdatedAtField(field)) return false;
@@ -92,7 +94,7 @@
     return !isOptionalField(field) && !isIdField(field);
   }
 
-  // 重置表单
+  /** 重置表单 */
   function resetForm() {
     Object.values(modelFields.value).forEach((field) => {
       const f = field as FieldInfo;
@@ -101,7 +103,7 @@
     fieldErrors.value = {};
   }
 
-  // 验证表单
+  /** 验证表单 */
   function validateForm() {
     fieldErrors.value = {};
     let isValid = true;
@@ -165,22 +167,12 @@
         data,
       });
 
-      toast.add({
-        variant: 'success',
-        summary: t('成功'),
-        detail: t('记录创建成功'),
-        life: 3000,
-      });
+      toast.success(t('成功'), t('记录创建成功'));
 
       emit('created', result);
       visible.value = false;
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: t('错误'),
-        detail: getErrorMessage(error, t('创建记录失败')),
-        life: 5000,
-      });
+      toast.error(t('错误'), getErrorMessage(error, t('创建记录失败')));
     } finally {
       saving.value = false;
     }
@@ -194,7 +186,7 @@
     },
   );
 
-  // 打开对话框
+  /** 打开对话框 */
   function open() {
     resetForm();
     visible.value = true;

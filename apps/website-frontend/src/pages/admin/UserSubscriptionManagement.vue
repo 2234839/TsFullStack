@@ -3,42 +3,34 @@ import { ref, onMounted, computed, h } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useConfirm } from '@/composables/useConfirm';
+import { usePaginatedQuery } from '@/composables/usePaginatedQuery';
 import { useAPI } from '@/api';
 import { searchUsers } from '@/utils/admin';
-import Paginator from '@/components/base/Paginator.vue';
-import RemoteSelect from '@/components/base/RemoteSelect.vue';
-import Button from '@/components/base/Button.vue';
-import DataTable from '@/components/base/DataTable.vue';
-import Tag from '@/components/base/Tag.vue';
+import { Button, Tag } from '@/components/base';
 import type { ColumnDef } from '@/components/base/DataTable.vue';
 import { getTypeLabel } from '@/utils/admin';
 import { getErrorMessage } from '@/utils/error';
+import { formatDate, ONE_DAY_MS } from '@/utils/format';
 
 const toast = useToast();
 const { t } = useI18n();
 const confirm = useConfirm();
 const { API } = useAPI();
 
-/** 用户订阅记录 */
+/** 用户订阅记录（手动定义，含 include 的关联字段） */
 interface UserSubscription {
   id: number;
+  created: Date;
+  updated: Date;
   userId: string;
-  user: {
-    id: string;
-    email: string;
-  };
-  package: {
-    id: number;
-    name: string;
-    type: 'MONTHLY' | 'YEARLY' | 'PERMANENT';
-    amount: number;
-  };
-  startDate: string;
-  endDate: string | null;
-  nextGrantDate: string;
+  packageId: number;
   active: boolean;
+  startDate: Date;
+  endDate: Date | null;
+  nextGrantDate: Date;
   grantsCount: number;
-  created: string;
+  package?: { id: number; name: string; type: string; amount: number; price: number | null; durationMonths: number; active: boolean };
+  user?: { id: string; email: string };
 }
 
 /** 套餐选项 */
@@ -47,42 +39,23 @@ interface PackageOption {
   label: string;
 }
 
-/** 订阅列表 */
-const subscriptions = ref<UserSubscription[]>([]);
-
-/** 订阅总数 */
-const subscriptionsTotal = ref(0);
-
-/** 当前页（从0开始，用于 Paginator 组件） */
-const subscriptionsPage = ref(0);
-
-/** 每页数量 */
-const subscriptionsPageSize = ref(10);
-
-/** 加载中 */
-const isLoading = ref(false);
-
-/** 显示订阅对话框 */
-const showSubscribeDialog = ref(false);
-
-/** 订阅表单 */
-const subscribeForm = ref({
-  selectedUsers: [] as Array<{ value: string; label: string }>,
-  selectedPackages: [] as PackageOption[],
-});
-
-/** 提交中 */
-const isSubmitting = ref(false);
-
-/** 加载订阅列表 */
-async function loadSubscriptions() {
-  isLoading.value = true;
-  try {
-    const [result, total] = await Promise.all([
+const {
+  items: subscriptions,
+  total: subscriptionsTotal,
+  currentPage: subscriptionsPage,
+  pageSize: subscriptionsPageSize,
+  isLoading,
+  load: loadSubscriptions,
+  goToPage,
+  updatePageSize,
+} = usePaginatedQuery<UserSubscription>({
+  errorMessage: '加载订阅列表失败',
+  fetchFn: async ({ skip, take }) => {
+    const [data, total] = await Promise.all([
       API.db.userTokenSubscription.findMany({
         orderBy: { created: 'desc' },
-        skip: subscriptionsPage.value * subscriptionsPageSize.value,
-        take: subscriptionsPageSize.value,
+        skip,
+        take,
         include: {
           package: true,
           user: {
@@ -95,19 +68,21 @@ async function loadSubscriptions() {
       }),
       API.db.userTokenSubscription.count(),
     ]);
+    return { data, total };
+  },
+});
 
-    subscriptions.value = result as unknown as UserSubscription[];
-    subscriptionsTotal.value = total as number;
-  } catch (error: unknown) {
-    toast.add({
-      summary: t('加载失败'),
-      detail: t('加载订阅列表失败'),
-      variant: 'error',
-    });
-  } finally {
-    isLoading.value = false;
-  }
-}
+/** 显示订阅对话框 */
+const showSubscribeDialog = ref(false);
+
+/** 订阅表单 */
+const subscribeForm = ref({
+  selectedUsers: [] as Array<{ value: string; label: string }>,
+  selectedPackages: [] as PackageOption[],
+});
+
+/** 提交中 */
+const isSubmitting = ref(false);
 
 /** 搜索套餐 */
 async function searchPackages(params: {
@@ -145,21 +120,9 @@ async function searchPackages(params: {
       total: count,
     };
   } catch (error: unknown) {
+    toast.error(t('加载失败'), getErrorMessage(error, t('无法加载套餐列表')));
     return { data: [], total: 0 };
   }
-}
-
-/** 翻页 */
-function goToPage(page: number) {
-  subscriptionsPage.value = page;
-  loadSubscriptions();
-}
-
-/** 每页条数变化 */
-function updatePageSize(size: number) {
-  subscriptionsPageSize.value = size;
-  subscriptionsPage.value = 0;
-  loadSubscriptions();
 }
 
 /** 打开订阅对话框 */
@@ -209,28 +172,21 @@ async function batchSubscribe() {
     const failCount = results.length - successCount;
 
     if (successCount > 0) {
-      toast.add({
-        summary: t('订阅完成'),
-        detail: `${t('成功订阅')} ${successCount} ${t('个套餐')}${failCount > 0 ? `，${failCount} ${t('个失败')}` : ''}`,
-        variant: successCount === results.length ? 'success' : 'warning',
-      });
+      const detail = `${t('成功订阅')} ${successCount} ${t('个套餐')}${failCount > 0 ? `，${failCount} ${t('个失败')}` : ''}`;
+      if (successCount === results.length) {
+        toast.success(t('订阅完成'), detail);
+      } else {
+        toast.warn(t('订阅完成'), detail);
+      }
 
       showSubscribeDialog.value = false;
       await loadSubscriptions();
     } else {
-      toast.add({
-        summary: t('订阅失败'),
-        detail: t('所有订阅失败，请检查网络连接和权限'),
-        variant: 'error',
-      });
+      toast.error(t('订阅失败'), t('所有订阅失败，请检查网络连接和权限'));
     }
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error, t('批量订阅失败'));
-    toast.add({
-      summary: t('订阅失败'),
-      detail: errorMessage,
-      variant: 'error',
-    });
+    toast.error(t('订阅失败'), errorMessage);
   } finally {
     isSubmitting.value = false;
   }
@@ -239,7 +195,7 @@ async function batchSubscribe() {
 /** 取消订阅 */
 async function cancelSubscription(subscription: UserSubscription) {
   const accepted = await confirm.require({
-    message: `${t('确定要取消用户')}"${subscription.user.email}"${t('的套餐')}"${subscription.package.name}"${t('吗？\n\n注意：取消后不会回收已发放的代币，但会停止后续的自动发放。')}`,
+    message: `${t('确定要取消用户')}"${subscription.user?.email ?? '--'}"${t('的套餐')}"${subscription.package?.name ?? '--'}"${t('吗？\n\n注意：取消后不会回收已发放的代币，但会停止后续的自动发放。')}`,
     acceptProps: { variant: 'danger' },
   });
   if (!accepted) return;
@@ -247,29 +203,19 @@ async function cancelSubscription(subscription: UserSubscription) {
   try {
     await API.tokenPackageApi.cancelSubscription(subscription.id);
 
-    toast.add({
-      summary: t('取消成功'),
-      detail: t('订阅已取消，已发放的代币不会被回收'),
-      variant: 'success',
-    });
+    toast.success(t('取消成功'), t('订阅已取消，已发放的代币不会被回收'));
 
     await loadSubscriptions();
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error, t('取消订阅失败'));
-    toast.add({
-      summary: t('取消失败'),
-      detail: errorMessage,
-      variant: 'error',
-    });
+    toast.error(t('取消失败'), errorMessage);
   }
 }
-
-import { formatDate, ONE_DAY_MS } from '@/utils/format';
 
 /** 获取类型标签 — 从 utils/admin.ts 统一导入 */
 
 /** 计算下次发放剩余天数 */
-function getDaysUntilGrant(nextGrantDate: string): number {
+function getDaysUntilGrant(nextGrantDate: Date | string): number {
   const now = new Date();
   const next = new Date(nextGrantDate);
   const diff = next.getTime() - now.getTime();
@@ -296,7 +242,7 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     key: 'user',
     title: t('用户'),
     width: '20%',
-    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user.email),
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user?.email ?? '--'),
   },
   {
     key: 'status',
@@ -312,15 +258,15 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     title: t('套餐'),
     width: '15%',
     render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'font-medium text-primary-900 dark:text-primary-100' }, row.package.name),
-      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${row.package.amount} ${t('代币')}`),
+      h('div', { class: 'font-medium text-primary-900 dark:text-primary-100' }, row.package?.name ?? '--'),
+      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${row.package?.amount ?? '--'} ${t('代币')}`),
     ]),
   },
   {
     key: 'type',
     title: t('类型'),
     width: '10%',
-    render: (row) => h(Tag, { value: getTypeLabel(row.package.type), variant: 'info' }),
+    render: (row) => h(Tag, { value: getTypeLabel(row.package?.type ?? ''), variant: 'info' }),
   },
   {
     key: 'startDate',
@@ -374,22 +320,15 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
   },
 ]);
 
-onMounted(() => {
-  loadSubscriptions();
-});
+onMounted(loadSubscriptions);
 </script>
 
 <template>
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-        {{ t('用户订阅管理') }}
-      </h1>
-      <p class="mt-2 text-primary-600 dark:text-primary-400">
-        {{ t('管理用户的套餐订阅，自动发放代币') }}
-      </p>
-    </div>
+    <PageHeader size="large" :subtitle="t('管理用户的套餐订阅，自动发放代币')">
+      {{ t('用户订阅管理') }}
+    </PageHeader>
 
     <!-- 操作按钮 -->
     <div class="mb-6">

@@ -17,9 +17,9 @@
     <div v-if="hideSwitch !== 'true'" class="flex gap-1 items-center">
       <div class="flex-1 overflow-x-auto min-h-0 hide-scrollbar" @wheel.prevent="handleWheel">
         <SelectButton v-model="selectModelName"
-          :options="Object.values(modelMeta.state.value?.models ?? {}).map((el) => el.name)" />
+          :options="Object.values(modelMeta?.state.value?.models ?? {}).map((el) => el.name)" />
       </div>
-      <Button icon="pi pi-refresh" @click="modelMeta.execute()" :loading="modelMeta.isLoading.value" :title="t('更新表格元数据')" />
+      <Button icon="pi pi-refresh" @click="modelMeta?.execute()" :loading="modelMeta?.isLoading.value" :title="t('更新表格元数据')" />
     </div>
     <AutoTable v-if="selectModelName" v-bind:model-name="selectModelName" />
   </div>
@@ -27,8 +27,6 @@
 <script setup lang="ts">
   import AutoTable from '@/components/AutoTable/AutoTable.vue';
   import { useModelMeta } from '@/components/AutoTable/util';
-  import Button from '@/components/base/Button.vue';
-  import SelectButton from '@/components/base/SelectButton.vue';
   import { ref, watch } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
   import { useI18n } from '@/composables/useI18n';

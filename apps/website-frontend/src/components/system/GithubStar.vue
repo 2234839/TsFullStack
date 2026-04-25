@@ -4,7 +4,7 @@
       <!-- 大按钮 -->
       <a
         v-show="githubStarShow !== 'hide'"
-        href="https://github.com/2234839/TsFullStack"
+        :href="GITHUB_REPO_URL"
         target="_blank"
         class="github-button large-button flex items-center gap-2 px-4 py-3 bg-linear-to-r from-primary-800 to-primary-900 hover:from-primary-700 hover:to-primary-800 text-white rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
         :class="{
@@ -39,6 +39,7 @@
 <script setup lang="ts">
   import { githubStarShow } from '@/storage'
   import { useI18n } from '@/composables/useI18n';
+  import { GITHUB_REPO_URL } from '@/utils/constants';
 
   const { t } = useI18n();
 

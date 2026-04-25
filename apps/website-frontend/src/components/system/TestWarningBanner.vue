@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="showTestWarn && visible"
-    class="fixed top-0 left-0 right-0 bg-warning-600/80 p-2.5 text-center z-[1000] flex justify-center items-center gap-2.5 text-sm">
+    class="fixed top-0 left-0 right-0 bg-warning-600/80 dark:bg-warning-800/90 p-2.5 text-center z-1000 flex justify-center items-center gap-2.5 text-sm text-white dark:text-warning-100">
     <span class="font-bold"
       >{{ t('这是测试账号，仅供测试使用!! 数据会不定时清空，请另外注册帐号使用。') }}
     </span>
@@ -22,7 +22,6 @@
   import { computed, ref } from 'vue';
   import { useRoute } from 'vue-router';
   import { useI18n } from '@/composables/useI18n';
-  import { Button } from '@/components/base';
 
   const { t } = useI18n();
   const route = useRoute();

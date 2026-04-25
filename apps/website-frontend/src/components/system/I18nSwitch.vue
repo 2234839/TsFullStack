@@ -26,7 +26,6 @@
   import { i18nStore } from '@/storage';
   import { ref } from 'vue';
   import { useI18n } from '@/composables/useI18n';
-  import { Button } from '@/components/base';
   import { Dropdown, Tooltip } from '@tsfullstack/shared-frontend/components';
 
   const { t } = useI18n();

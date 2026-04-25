@@ -3,8 +3,10 @@ import { Effect } from 'effect';
 import { DbClientEffect } from '../../Context/DbService';
 import { FileAccessService } from '../../Context/FileAccessService';
 import { dbTryOrDefault } from '../../util/dbEffect';
-import { fail, neverReturn, MsgError } from '../../util/error';
+import { requireOrFail } from '../../util/error';
 import { MSG } from '../../util/constants';
+
+const LOG_PREFIX = '[FileApi]';
 
 export const fileApi = {
   /** 这里同样是为了解决非流式传递导致的内存占用过大问题
@@ -14,17 +16,16 @@ export const fileApi = {
   file(id: FileModel['id']) {
     return Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
-      const fileRow = yield* dbTryOrDefault('[FileApi]', '查询文件', () =>
-        dbClient.file.findUnique({
-          where: { id },
-        }),
-        null,
-      );
 
-      if (!fileRow) {
-        yield* fail(MSG.FILE_NOT_FOUND);
-        return neverReturn();
-      }
+      const fileRow = yield* requireOrFail(
+        yield* dbTryOrDefault(LOG_PREFIX, '查询文件', () =>
+          dbClient.file.findUnique({
+            where: { id },
+          }),
+          null,
+        ),
+        MSG.FILE_NOT_FOUND,
+      );
 
       const fileWrapItem = yield* FileAccessService.createFileWrapItemEffect(fileRow, {
         checkOwnership: false,

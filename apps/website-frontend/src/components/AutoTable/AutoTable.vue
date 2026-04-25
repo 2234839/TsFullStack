@@ -15,7 +15,7 @@
       </Button>
     </div>
   </div>
-  <AutoFilter v-if="selectModelMeta" :modelFields="selectModelMeta.model.fields as unknown as Record<string, FieldInfo>" @filter="
+  <AutoFilter v-if="selectModelMeta" :modelFields="fieldsToMap(selectModelMeta.model.fields)" @filter="
       (options) => {
         filter = options;
         currentPage = 1;
@@ -47,14 +47,14 @@
   import AutoForm from '@/components/AutoTable/AutoForm.vue';
   import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
   import { useAsyncState } from '@vueuse/core';
-  import { Button, DataTable, Paginator } from '@/components/base';
   import { useConfirm } from '@/composables/useConfirm';
   import { useToast } from '@/composables/useToast';
-  import { computed, h, nextTick, provide, ref, useTemplateRef, watch } from 'vue';
+  import { computed, h, nextTick, provide, ref, shallowRef, useTemplateRef, watch } from 'vue';
   import { useI18n } from '@/composables/useI18n';
   import { getErrorMessage } from '@/utils/error';
   import AutoColumn from './AutoColumn.vue';
-  import { injectModelMetaKey, type ModelMetaNames, type Model, type FieldInfo, type DynamicQuery, getModelAPI, isDataModelField, isArrayField, getBackLinkFieldName } from './type';
+  import { injectModelMetaKey, type ModelMetaNames, type Model, type DynamicQuery, getModelAPI, isDataModelField, isArrayField, getBackLinkFieldName, fieldsToMap } from './type';
+
   import { findIdField, useModelMeta, getModelDbName as exportGetModelDbName } from './util';
   const { t } = useI18n();
   const confirm = useConfirm();
@@ -80,7 +80,7 @@
    * 选中的行键值数组（存储 ID 值，不是完整对象）
    * DataTable 组件的 update:selectedRowKeys 事件只返回 ID 值
    */
-  const selectRows = ref<Array<string | number>>([]);
+  const selectRows = shallowRef<Array<string | number>>([]);
 
   /** 表格列定义 */
   const tableColumns = computed(() => {
@@ -148,7 +148,7 @@
       const models = meta?.models;
       if (!meta || !models) return { list: [], modelFields: {}, count: 0 };
   
-      const modelFields = (models[opt.modelKey as ModelMetaNames]?.fields || {}) as unknown as Record<string, FieldInfo>;
+      const modelFields = fieldsToMap(models[opt.modelKey as ModelMetaNames]?.fields ?? {});
       let _count = { select: {} as { [key: string]: boolean } };
       Object.entries(modelFields).forEach(([key, field]) => {
         if ('relation' in field && 'array' in field && field.array) {
@@ -231,7 +231,7 @@
 
       /** 修改关联字段不能直接修改字段值，需要使用 connect 关联字段的 ID  */
       editFields.forEach((editFieldName) => {
-        const field = (selectModelMeta.value?.model.fields as unknown as Record<string, FieldInfo>)[editFieldName]!;
+        const field = fieldsToMap(selectModelMeta.value?.model.fields)[editFieldName]!;
         /** 被引用的模型的 id 列定义 */
         const refIdField = findIdField(currentModelMeta, field.type as string)!;
 
@@ -312,7 +312,7 @@
        * - 结果：`UserData.userId` 更新为 `'user-b'`，所有权从用户 A 转移到用户 B
        */
       for (const editFieldName of editFields) {
-        const field = (selectModelMeta.value?.model.fields as unknown as Record<string, FieldInfo>)[editFieldName]!;
+        const field = fieldsToMap(selectModelMeta.value?.model.fields)[editFieldName]!;
 
         if (isDataModelField(field) && isArrayField(field)) {
           const relationData = editRow[editFieldName] as RelationSelectData;
@@ -349,7 +349,7 @@
                   (m) => m.name === (field.type as string),
                 );
                 const backLinkField = relatedModelForLink
-                  ? ((relatedModelForLink.fields as unknown as Record<string, FieldInfo>)[backLinkFieldName])
+                  ? fieldsToMap(relatedModelForLink.fields)[backLinkFieldName]
                   : undefined;
                 const foreignKeyField = backLinkField?.relation?.fields?.[0];
 
@@ -369,16 +369,14 @@
                 });
               } catch (error: unknown) {
                 // 在 UI 上显示错误提示
-                toast.add({
-                  variant: 'danger',
-                  summary: t('关联失败'),
-                  detail: t(`无法将 ${field.type} 记录转移到当前用户：该记录可能与目标用户的现有记录冲突（唯一约束）`),
-                  life: 5000,
-                });
+                toast.error(
+                  t('关联失败'),
+                  t(`无法将 ${field.type} 记录转移到当前用户：该记录可能与目标用户的现有记录冲突（唯一约束）`),
+                );
 
                 // 如果转移失败（可能因为唯一约束），从 editRow 中移除这个 connect
                 if (editRow[editFieldName]?.connect) {
-                  const connectData = editRow[editFieldName].connect || [];
+                  const connectData = editRow[editFieldName].connect ?? [];
                   editRow[editFieldName].connect = connectData.filter(
                     (conn: any) => conn[relatedIdField.name] !== item.value
                   );
@@ -412,12 +410,10 @@
     reloadTableData();
     } catch (error: unknown) {
       // 在 UI 上显示错误提示
-      toast.add({
-        variant: 'danger',
-        summary: t('保存失败'),
-        detail: getErrorMessage(error, t('保存更改时发生错误，请查看控制台了解详情')),
-        life: 5000,
-      });
+      toast.error(
+        t('保存失败'),
+        getErrorMessage(error, t('保存更改时发生错误，请查看控制台了解详情')),
+      );
     }
   }
   function discardChanges() {
@@ -434,12 +430,7 @@
     const idField = findIdField(deleteModelMeta, selectModelName.value);
     if (!idField) return;
     if (rows.length === 0)
-      return toast.add({
-        variant: 'info',
-        summary: t('警告'),
-        detail: t('未选中数据'),
-        life: 3000,
-      });
+      return toast.info(t('警告'), t('未选中数据'));
     const deleteMeta = selectModelMeta.value;
     if (!deleteMeta?.modelKey) return;
     const modelKey = deleteMeta.modelKey;
@@ -466,12 +457,7 @@
     const validIds = ids.filter((id) => id != null);
 
     if (validIds.length === 0) {
-      return toast.add({
-        variant: 'warning',
-        summary: t('删除失败'),
-        detail: t('选中的数据没有有效的 ID'),
-        life: 3000,
-      });
+      return toast.warn(t('删除失败'), t('选中的数据没有有效的 ID'));
     }
 
     try {
@@ -487,12 +473,7 @@
       selectRows.value = [];
       reloadTableData();
 
-      toast.add({
-        variant: 'success',
-        summary: t('删除数据'),
-        detail: t(`成功删除 ${validIds.length} 条数据`),
-        life: 3000,
-      });
+      toast.success(t('删除数据'), t(`成功删除 ${validIds.length} 条数据`));
     } catch (error: unknown) {
       // 提取错误信息并显示给用户
       const errorMessage = getErrorMessage(error);
@@ -503,12 +484,7 @@
         userMessage = t('无法删除：该数据被其他记录引用，请先删除关联数据');
       } 
 
-      toast.add({
-        variant: 'danger',
-        summary: t('删除失败'),
-        detail: userMessage,
-        life: 5000,
-      });
+      toast.error(t('删除失败'), userMessage);
 
       // 错误已通过 toast 通知用户
     }

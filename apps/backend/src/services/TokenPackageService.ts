@@ -1,9 +1,12 @@
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
-import { dbTry } from '../util/dbEffect';
-import { fail, neverReturn } from '../util/error';
+import { dbTry, dbTryRequire } from '../util/dbEffect';
+import { fail } from '../util/error';
 import { TokenType } from '../../.zenstack/models';
 import { DEFAULT_PAGE_SIZE_LARGE, MSG } from '../util/constants';
+
+/** 日志前缀 */
+const LOG_PREFIX = '[TokenPackageService]';
 
 /**
  * 代币套餐服务
@@ -29,32 +32,29 @@ export const TokenPackageService = {
       const db = yield* DbClientEffect;
 
       // 验证参数
-      if (!request.name || request.name.trim().length === 0) {
-        yield* fail('套餐名称不能为空');
-        return neverReturn();
+      if (!request.name?.trim()) {
+        return yield* fail(MSG.PACKAGE_NAME_REQUIRED);
       }
 
       if (request.amount <= 0) {
-        yield* fail(MSG.TOKEN_AMOUNT_POSITIVE);
-        return neverReturn();
+        return yield* fail(MSG.TOKEN_AMOUNT_POSITIVE);
       }
 
       if (request.durationMonths && request.durationMonths < 0) {
-        yield* fail('套餐时长不能为负数');
-        return neverReturn();
+        return yield* fail(MSG.PACKAGE_DURATION_INVALID);
       }
 
       // 创建套餐
-      return yield* dbTry('[TokenPackageService]', '创建套餐', () =>
+      return yield* dbTry(LOG_PREFIX, '创建套餐', () =>
         db.tokenPackage.create({
           data: {
             name: request.name.trim(),
             description: request.description?.trim() || null,
             type: request.type,
             amount: request.amount,
-            price: request.price || null,
-            durationMonths: request.durationMonths || 0,
-            sortOrder: request.sortOrder || 0,
+            price: request.price ?? null,
+            durationMonths: request.durationMonths ?? 0,
+            sortOrder: request.sortOrder ?? 0,
             active: true,
           },
         }),
@@ -76,27 +76,23 @@ export const TokenPackageService = {
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
 
-      // 检查套餐是否存在
-      const existing = yield* dbTry('[TokenPackageService]', '查询套餐', () =>
+      // 检查套餐是否存在（不存在则抛错）
+      yield* dbTryRequire(LOG_PREFIX, '查询套餐', () =>
         db.tokenPackage.findUnique({
           where: { id: packageId },
         }),
+        MSG.PACKAGE_NOT_FOUND,
       );
 
-      if (!existing) {
-        yield* fail(MSG.PACKAGE_NOT_FOUND);
-        return neverReturn();
-      }
-
       // 更新套餐
-      return yield* dbTry('[TokenPackageService]', '更新套餐', () =>
+      return yield* dbTry(LOG_PREFIX, '更新套餐', () =>
         db.tokenPackage.update({
           where: { id: packageId },
           data: {
             ...(request.name !== undefined && { name: request.name.trim() }),
             ...(request.description !== undefined && { description: request.description.trim() || null }),
             ...(request.amount !== undefined && { amount: request.amount }),
-            ...(request.price !== undefined && { price: request.price || null }),
+            ...(request.price !== undefined && { price: request.price ?? null }),
             ...(request.durationMonths !== undefined && { durationMonths: request.durationMonths }),
             ...(request.sortOrder !== undefined && { sortOrder: request.sortOrder }),
             ...(request.active !== undefined && { active: request.active }),
@@ -113,7 +109,7 @@ export const TokenPackageService = {
       const db = yield* DbClientEffect;
 
       // 检查是否有用户订阅
-      const subscriptionsCount = yield* dbTry('[TokenPackageService]', '查询订阅记录', () =>
+      const subscriptionsCount = yield* dbTry(LOG_PREFIX, '查询订阅记录', () =>
         db.userTokenSubscription.count({
           where: {
             packageId,
@@ -123,12 +119,11 @@ export const TokenPackageService = {
       );
 
       if (subscriptionsCount > 0) {
-        yield* fail(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
-        return neverReturn();
+        return yield* fail(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
       }
 
       // 删除套餐
-      yield* dbTry('[TokenPackageService]', '删除套餐', () =>
+      yield* dbTry(LOG_PREFIX, '删除套餐', () =>
         db.tokenPackage.delete({
           where: { id: packageId },
         }),
@@ -145,8 +140,7 @@ export const TokenPackageService = {
   }) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
-
-      return yield* dbTry('[TokenPackageService]', '获取套餐列表', () =>
+      return yield* dbTry(LOG_PREFIX, '获取套餐列表', () =>
         db.tokenPackage.findMany({
           where: options?.active !== undefined ? { active: options.active } : undefined,
           orderBy: { sortOrder: 'asc' },
@@ -162,8 +156,7 @@ export const TokenPackageService = {
   updateSubscriptionNextGrant: (subscriptionId: number, nextGrantDate: Date, grantsCount: number) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
-
-      yield* dbTry('[TokenPackageService]', '更新订阅', () =>
+      return yield* dbTry(LOG_PREFIX, '更新订阅', () =>
         db.userTokenSubscription.update({
           where: { id: subscriptionId },
           data: {
@@ -180,8 +173,7 @@ export const TokenPackageService = {
   cancelSubscription: (subscriptionId: number) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
-
-      yield* dbTry('[TokenPackageService]', '取消订阅', () =>
+      return yield* dbTry(LOG_PREFIX, '取消订阅', () =>
         db.userTokenSubscription.update({
           where: { id: subscriptionId },
           data: {
@@ -202,8 +194,7 @@ export const TokenPackageService = {
   }) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
-
-      return yield* dbTry('[TokenPackageService]', '获取订阅列表', () =>
+      return yield* dbTry(LOG_PREFIX, '获取订阅列表', () =>
         db.userTokenSubscription.findMany({
           where: {
             ...(options?.userId && { userId: options.userId }),

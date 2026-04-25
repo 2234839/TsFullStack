@@ -6,9 +6,13 @@ import { Effect, Option } from 'effect';
 import type { UserFindFirstArgs } from '../../.zenstack/input';
 import type { Role, User, UserSession } from '../../.zenstack/models';
 import { schema, type SchemaType } from '../../.zenstack/schema';
-import { fail, neverReturn, MsgError } from '../util/error';
+import { fail, MsgError, tryOrFail } from '../util/error';
+import { MSG } from '../util/constants';
 import { AppConfigService } from './AppConfig';
 import { ReqCtxService } from './ReqCtx';
+
+/** 日志前缀 */
+const LOG_PREFIX = '[DbService]';
 
 /** 需要脱敏的敏感字段名 */
 const SENSITIVE_FIELDS = ['apiKey', 'password', 'token', 'clientSecret', 'sessionToken'] as const;
@@ -94,12 +98,7 @@ export const createAuthDbClient = (
 ) =>
   Effect.gen(function* () {
     const dbClient = yield* DbClientEffect;
-
-    // v3 中使用 PolicyPlugin 来增强客户端
-    const authDb = dbClient.$use(new PolicyPlugin());
-    const db = authDb.$setAuth(user);
-
-    return db;
+    return dbClient.$use(new PolicyPlugin()).$setAuth(user);
   });
 
 /** 根据入参获取有权限检查的 dbClinet，慎用！！只应该在登录鉴权等场景使用，避免入参直接由用户传入 */
@@ -110,12 +109,11 @@ export const getDbAuthEffect = (opt: {
   sessionID?: number;
 }) =>
   Effect.gen(function* () {
-    if (Object.values(opt).filter((el) => el).length === 0) {
-      yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
-      return neverReturn();
+    if (!Object.values(opt).some(Boolean)) {
+      return yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
     }
     const ctx = yield* ReqCtxService;
-    ctx.log('[DbService] getDbAuth: userId=' + (opt.userId ?? 'null') + ', hasSession=' + !!opt.sessionToken);
+    ctx.log(`${LOG_PREFIX} getDbAuth: userId=${opt.userId ?? "null"}, hasSession=${!!opt.sessionToken}`);
     /** 统一时间基准，避免多次 new Date() 导致边界条件不一致 */
     const now = new Date();
     // 构建 where 条件 - v3 中使用生成的 input 类型
@@ -133,13 +131,11 @@ export const getDbAuthEffect = (opt: {
     } else if (opt.email) {
       where = { email: opt.email };
     } else {
-      yield* Effect.fail(MsgError.msg('Invalid options'));
-      return neverReturn();
+      return yield* fail(MSG.INVALID_QUERY_OPTIONS);
     }
 
     const dbClient = yield* DbClientEffect;
-    const user = yield* Effect.tryPromise({
-      try: () =>
+    const user = yield* tryOrFail('查询用户', () =>
         dbClient.user.findFirst({
           where,
           include: {
@@ -156,15 +152,13 @@ export const getDbAuthEffect = (opt: {
             },
           },
         }) as Promise<(User & { role: Role[]; userSession: UserSession[] }) | null>,
-      catch: (e) => MsgError.msg('查询用户失败: ' + String(e)),
-    });
+    );
 
     if (!user) {
-      yield* Effect.fail(new MsgError(MsgError.op_logout, '用户登录状态失效'));
-      return neverReturn();
+      return yield* Effect.fail(new MsgError(MsgError.op_logout, '用户登录状态失效'));
     }
 
-    // 使用统一的函数创建带权限的 db 客户端
+    /** 使用统一的函数创建带权限的 db 客户端 */
     const db = yield* createAuthDbClient(user);
 
     return {

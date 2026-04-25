@@ -29,13 +29,13 @@
     </div>
 
     <ProgressBar v-if="loading" mode="indeterminate" />
-    <div v-if="previewData" class="preview-container p-4 border border-primary-200 rounded">
+    <div v-if="previewData" class="preview-container p-4 border border-primary-200 dark:border-primary-700 rounded">
       <img :src="previewData" :alt="t('预览')" />
       <Button @click="generateSVG" class="mt-2">
         {{ t('生成SVG描边') }}
       </Button>
     </div>
-    <div v-if="svgContainer?.innerHTML" class="mt-4 p-4 border border-primary-200 rounded">
+    <div v-if="svgContainer?.innerHTML" class="mt-4 p-4 border border-primary-200 dark:border-primary-700 rounded">
       <div ref="svgContainer"></div>
     </div>
     <canvas ref="canvas" class="hidden"></canvas>
@@ -44,7 +44,6 @@
 
 <script setup lang="ts">
   import { ref, watch, computed } from 'vue';
-  import { Button, FileUpload, ProgressBar, Slider } from '@/components/base';
   import { Select } from '@tsfullstack/shared-frontend/components';
   import { useI18n } from '@/composables/useI18n';
 

@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, shallowRef, computed, onMounted } from 'vue';
+import { Tag } from '@/components/base';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useAPI } from '@/api';
-import { Button } from '@/components/base';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
 import type { SelectOption } from '@tsfullstack/shared-frontend/components';
 import { getErrorMessage } from '@/utils/error';
 import { getResourceUrl } from '@/utils/resource';
+import { formatDate } from '@/utils/format';
+import { DEFAULT_PAGE_SIZE } from '@/utils/constants';
 
 const toast = useToast();
 const { t } = useI18n();
@@ -28,7 +30,7 @@ interface ResourceItem {
 }
 
 /** 资源列表 */
-const resources = ref<ResourceItem[]>([]);
+const resources = shallowRef<ResourceItem[]>([]);
 
 /** 任务列表 */
 
@@ -42,7 +44,7 @@ const isLoading = ref(false);
 const currentPage = ref(0);
 
 /** 每页数量 */
-const pageSize = 20;
+const pageSize = DEFAULT_PAGE_SIZE;
 
 /** 状态筛选 */
 const statusFilter = ref<string>('all');
@@ -106,17 +108,13 @@ async function loadResources(reset = false) {
     if (reset) {
       resources.value = items;
     } else {
-      resources.value.push(...items);
+      resources.value = [...resources.value, ...items];
     }
 
     total.value = result?.total ?? 0;
     currentPage.value++;
   } catch (error: unknown) {
-    toast.add({
-      summary: t('加载失败'),
-      detail: getErrorMessage(error, t('加载资源列表时发生错误')),
-      variant: 'error',
-    });
+    toast.error(t('加载失败'), getErrorMessage(error));
   } finally {
     isLoading.value = false;
   }
@@ -129,18 +127,18 @@ function getStatusLabel(status: string): string {
     pending: t('待处理'),
     failed: t('失败'),
   };
-  return map[status] || status;
+  return map[status] ?? status;
 }
 
 /** 获取资源类型标签（i18n 映射） */
-function getTypeLabel(type: string): string {
+function getResourceTypeLabel(type: string): string {
   const map: Record<string, string> = {
     IMAGE: t('图片'),
     TEXT: t('文本'),
     VIDEO: t('视频'),
     AUDIO: t('音频'),
   };
-  return map[type] || type;
+  return map[type] ?? type;
 }
 
 /** 查看详情 */
@@ -163,40 +161,26 @@ function hasExternalUrl(resource: ResourceItem): boolean {
   return typeof metadata.externalUrl === 'string' && metadata.externalUrl.length > 0;
 }
 
-import { formatDate } from '@/utils/format';
-
-/** 获取状态标签样式 */
-function getStatusBadgeClass(status: string): string {
-  const baseClass = 'px-2 py-1 text-xs rounded ';
-  switch (status) {
-    case 'completed':
-      return baseClass + 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200';
-    case 'pending':
-      return baseClass + 'bg-warning-100 text-warning-800 dark:bg-warning-900 dark:text-warning-200';
-    case 'failed':
-      return baseClass + 'bg-danger-100 text-danger-800 dark:bg-danger-900 dark:text-danger-200';
-    default:
-      return baseClass + 'bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-primary-300';
-  }
+/** 状态对应的 Tag variant */
+function getStatusVariant(status: string): 'success' | 'warn' | 'danger' | 'secondary' {
+  const map: Record<string, 'success' | 'warn' | 'danger' | 'secondary'> = {
+    completed: 'success',
+    pending: 'warn',
+    failed: 'danger',
+  };
+  return map[status] ?? 'secondary';
 }
 
 /** 组件挂载时加载数据 */
-onMounted(() => {
-  loadResources(true);
-});
+onMounted(() => loadResources(true));
 </script>
 
 <template>
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
-    <div class="mb-8">
-      <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-        {{ t('资源库') }}
-      </h1>
-      <p class="mt-2 text-primary-600 dark:text-primary-400">
-        {{ t('管理你的 AI 生成资源') }}
-      </p>
-    </div>
+    <PageHeader size="large" :subtitle="t('管理你的 AI 生成资源')">
+      {{ t('资源库') }}
+    </PageHeader>
 
     <!-- 筛选器 -->
     <div class="mb-6 flex flex-wrap gap-4">
@@ -237,7 +221,7 @@ onMounted(() => {
 
       <!-- 加载中 -->
       <div v-if="isLoading && filteredResources.length === 0" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <ProgressSpinner />
         <p class="mt-2 text-primary-600 dark:text-primary-400">{{ t('加载中...') }}</p>
       </div>
 
@@ -258,7 +242,7 @@ onMounted(() => {
         >
           <!-- 预览 -->
           <div class="col-span-1">
-            <div v-if="resource.type === 'IMAGE'" class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 overflow-hidden">
+            <div v-if="resource.type === 'IMAGE'" key="image" class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 overflow-hidden">
               <img
                 v-if="resource.file || hasExternalUrl(resource)"
                 :src="getImageUrl(resource)"
@@ -271,7 +255,7 @@ onMounted(() => {
                 </svg>
               </div>
             </div>
-            <div v-else class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 flex items-center justify-center">
+            <div v-else key="file" class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 flex items-center justify-center">
               <svg class="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
               </svg>
@@ -288,15 +272,13 @@ onMounted(() => {
           <!-- 类型 -->
           <div class="col-span-2 flex items-center">
             <span class="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded">
-              {{ getTypeLabel(resource.type) }}
+              {{ getResourceTypeLabel(resource.type) }}
             </span>
           </div>
 
           <!-- 状态 -->
           <div class="col-span-2 flex items-center">
-            <span :class="getStatusBadgeClass(resource.status)">
-              {{ getStatusLabel(resource.status) }}
-            </span>
+            <Tag :value="getStatusLabel(resource.status)" :variant="getStatusVariant(resource.status)" />
           </div>
 
           <!-- 创建时间 -->
@@ -325,8 +307,8 @@ onMounted(() => {
           :disabled="isLoading"
           @click="loadResources()"
         >
-          <span v-if="isLoading">{{ t('加载中...') }}</span>
-          <span v-else>{{ t('加载更多') }}</span>
+          <span v-if="isLoading" key="loading">{{ t('加载中...') }}</span>
+          <span v-else key="idle">{{ t('加载更多') }}</span>
         </Button>
       </div>
     </div>
@@ -362,7 +344,7 @@ onMounted(() => {
             {{ t('描述') }}
           </label>
           <p class="text-primary-600 dark:text-primary-400">
-            {{ selectedResource.description || t('无') }}
+            {{ selectedResource.description ?? t('无') }}
           </p>
         </div>
 
@@ -379,9 +361,7 @@ onMounted(() => {
           <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
             {{ t('状态') }}
           </label>
-          <span :class="getStatusBadgeClass(selectedResource.status)">
-            {{ selectedResource.status }}
-          </span>
+          <Tag :value="getStatusLabel(selectedResource.status)" :variant="getStatusVariant(selectedResource.status)" />
         </div>
 
         <div>

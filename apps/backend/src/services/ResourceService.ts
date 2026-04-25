@@ -1,10 +1,12 @@
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
-import { dbTry, dbPaginatedFindMany } from '../util/dbEffect';
+import { dbPaginatedFindMany } from '../util/dbEffect';
 import type { ResourceType } from '../../.zenstack/models';
-import type { JsonValue } from '@zenstackhq/orm';
 import { DEFAULT_PAGE_SIZE } from '../util/constants';
 import type { ResourceWhereInput } from '../../.zenstack/input';
+
+/** 日志前缀 */
+const LOG_PREFIX = '[ResourceService]';
 
 /** 合法的 ResourceType 枚举值集合，用于运行时校验 */
 const VALID_RESOURCE_TYPES = new Set<string>(['IMAGE', 'TEXT', 'VIDEO', 'AUDIO', 'FILE']);
@@ -51,7 +53,6 @@ export const ResourceService = {
   } = {}) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
-
       const where: ResourceWhereInput = { userId };
 
       if (options.type) {
@@ -68,7 +69,7 @@ export const ResourceService = {
         }
       }
 
-      return yield* dbPaginatedFindMany('[ResourceService]',
+      return yield* dbPaginatedFindMany(LOG_PREFIX,
         () => db.resource.findMany({
           where,
           select: {

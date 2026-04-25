@@ -51,8 +51,8 @@ export function createRPC<API_TYPE>(
 ) {
   const remoteCall = type === 'apiConsumer' ? options.remoteCall : undefined;
 
-  // 默认的安全配置
-  const securityOptions = options.securityOptions || {};
+  /** 默认的安全配置 */
+  const securityOptions = options.securityOptions ?? {};
   const forbiddenProps = new Set([
     '__proto__',
     'constructor',
@@ -61,10 +61,10 @@ export function createRPC<API_TYPE>(
     '__defineSetter__',
     '__lookupGetter__',
     '__lookupSetter__',
-    ...(securityOptions.forbiddenProps || []),
+    ...(securityOptions.forbiddenProps ?? []),
   ]);
 
-  // 白名单路径检查函数
+  /** 白名单路径检查函数 */
   const isAllowedPath = (method: string): boolean => {
     if (!securityOptions.allowedPaths || securityOptions.allowedPaths.length === 0) {
       return true; // 如果没有设置白名单，则默认允许所有路径
@@ -88,7 +88,7 @@ export function createRPC<API_TYPE>(
       throw MsgError.msg(`方法 ${method} 不在允许的路径白名单中`);
     }
 
-    // 洋葱路由的核心逻辑
+    /** 洋葱路由的核心逻辑 */
     async function executeMiddleware(index: number): Promise<unknown> {
       if (options.middleware && index < options.middleware.length) {
         return options.middleware[index]?.(method, data, () => executeMiddleware(index + 1));
@@ -260,7 +260,7 @@ export function proxyCall<T extends object, R = [string, unknown[]]>(
     });
   };
 
-  // 创建顶层代理
+  /** 创建顶层代理 */
   const handler: ProxyHandler<Record<string, unknown>> = {
     get(_target, prop, _receiver) {
       if (typeof prop === 'string' && prop !== 'then') {

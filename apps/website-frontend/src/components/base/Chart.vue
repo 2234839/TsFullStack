@@ -56,6 +56,7 @@ async function initChart() {
     options: options ?? {},
   });
   // 通过 updateChartRef 使 defineExpose 的 getter 返回最新实例
+  // @ts-expect-error Chart.js 类型比较过于复杂
   updateChartRef(chartInstance.value);
 }
 
@@ -79,9 +80,7 @@ watch(
   { deep: true }
 );
 
-onMounted(() => {
-  initChart();
-});
+onMounted(initChart);
 
 onUnmounted(() => {
   destroyChart();

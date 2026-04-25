@@ -45,7 +45,7 @@ export async function verifySignByToken(
 
   let result = 0;
   for (let i = 0; i < expected.length; i++) {
-    result |= expected[i] ^ provided[i];
+    result |= expected[i]! ^ provided[i]!;
   }
   return result === 0;
 }

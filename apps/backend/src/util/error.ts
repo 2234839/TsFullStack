@@ -1,9 +1,35 @@
 import { Effect } from 'effect';
 
-/** Effect.fail 的便捷封装，附带 never return 以缩小类型范围 */
+/** 从未知错误中提取可读消息 */
+export function extractErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+/** Effect.fail 的便捷封装 */
 export const fail = (msg: string) => Effect.fail(MsgError.msg(msg));
-/** 用于 Effect.gen 中 fail() 后的 never return，帮助 TS 收窄类型 */
-export const neverReturn = () => undefined as never;
+
+/**
+ * 非空断言 + fail 的组合操作
+ *
+ * 用法: `const val = yield* requireOrFail(nullable, 'msg')`
+ */
+export function requireOrFail<T>(value: T | null | undefined, msg: string) {
+  if (value == null) return Effect.fail(MsgError.msg(msg));
+  return Effect.succeed(value as NonNullable<T>);
+}
+
+/**
+ * 通用 tryPromise 错误包装
+ *
+ * 消除重复的 `Effect.tryPromise({ try: fn, catch: (e) => MsgError.msg('${label}失败: ' + String(e)) })` 模式。
+ * 用法: `yield* tryOrFail('创建目录', () => mkdir(...))`
+ */
+export function tryOrFail<T>(label: string, fn: () => Promise<T>) {
+  return Effect.tryPromise({
+    try: fn,
+    catch: (e) => MsgError.msg(`${label}失败: ${String(e)}`),
+  });
+}
 
 export class MsgError extends Error {
   static errorTag = 'MsgError';

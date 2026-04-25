@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import { loadAppConfig } from './config/loader';
 import { AIConfigContext, DefaultAIConfig } from './Context/AIConfig';
 import { AIProxyService, AIProxyServiceLive } from './Context/AIProxyService';
-import { MsgError, fail, neverReturn } from './util/error';
+import { fail, tryOrFail } from './util/error';
 import { AppConfigService } from './Context/AppConfig';
 import { PaymentConfigService } from './Context/PaymentConfig';
 import { DbClientEffect } from './Context/DbService';
@@ -13,34 +13,35 @@ import { PrismaQueue } from './util/dbQueue';
 import { TokenGrantService } from './services/TokenGrantService';
 import { TokenCleanupService } from './services/TokenCleanupService';
 import { OrderReconciliationService } from './services/payment/OrderReconciliationService';
-import { MS_PER_HOUR, MEMORY_LOG_INTERVAL_MS, QUEUE_STARTUP_DELAY_MS, MS_PER_MINUTE } from './util/constants';
+import { MS_PER_HOUR, MEMORY_LOG_INTERVAL_MS, QUEUE_STARTUP_DELAY_MS, RECONCILE_STARTUP_DELAY_MS, QUEUE_NAME_GRANT_TOKENS } from './util/constants';
+
+/** 日志前缀 */
+const LOG_PREFIX_TOKEN_GRANT = '[TokenGrant]';
+const LOG_PREFIX_TOKEN_CLEANUP = '[TokenCleanup]';
+const LOG_PREFIX_RECONCILE = '[OrderReconciliation]';
+const LOG_PREFIX_FATAL = '[Fatal]';
 
 const main = Effect.gen(function* () {
   const config = yield* AppConfigService;
 
-  // 确保上传文件夹的路径存在
-  const dirExists = yield* Effect.tryPromise({
-    try: async () => { try { return await fs.stat(config.uploadDir); } catch { return null; } },
-    catch: (e) => MsgError.msg('检查上传目录失败: ' + String(e)),
+  /** 确保上传文件夹的路径存在 */
+  const dirExists = yield* tryOrFail('检查上传目录', async () => {
+    try { return await fs.stat(config.uploadDir); } catch { return null; }
   });
   if (!dirExists) {
-    yield* Effect.tryPromise({
-      try: () => fs.mkdir(config.uploadDir, { recursive: true }),
-      catch: (e) => MsgError.msg('创建上传目录失败: ' + String(e)),
-    });
+    yield* tryOrFail('创建上传目录', () => fs.mkdir(config.uploadDir, { recursive: true }));
     console.log(`Upload directory ${config.uploadDir} is ready`);
   } else if (!dirExists.isDirectory()) {
-    yield* fail(`Upload directory ${config.uploadDir} is not a directory`);
-    return neverReturn();
+    return yield* fail(`Upload directory ${config.uploadDir} is not a directory`);
   }
 
   yield* seedDB
 
-  // 启动代币发放队列
+  /** 启动代币发放队列 */
   const dbClient = yield* DbClientEffect;
 
   type QueueTasks = {
-    grantSubscriptionTokens: {
+    [QUEUE_NAME_GRANT_TOKENS]: {
       payload: { subscriptionId: number; userId: string };
       result: { success: boolean; skipped?: boolean; reason?: string; userId?: string; packageName?: string; amount?: number; nextGrantDate?: Date };
     };
@@ -49,15 +50,15 @@ const main = Effect.gen(function* () {
   const tokenQueue = new PrismaQueue<QueueTasks>({ dbClient });
 
   // 注册代币发放任务处理器（委托给 TokenGrantService）
-  tokenQueue.register('grantSubscriptionTokens', async (payload) => {
+  tokenQueue.register(QUEUE_NAME_GRANT_TOKENS, async (payload) => {
     const result = await TokenGrantService.processSubscriptionGrant(payload, dbClient);
 
     if (result.success) {
       console.log(
-        `[TokenGrant] 用户 ${result.userId} 的订阅 ${result.packageName} 自动发放 ${result.amount} 代币，下次发放时间: ${result.nextGrantDate?.toISOString()}`,
+        `${LOG_PREFIX_TOKEN_GRANT} 用户 ${result.userId} 的订阅 ${result.packageName} 自动发放 ${result.amount} 代币，下次发放时间: ${result.nextGrantDate?.toISOString()}`,
       );
     } else {
-      console.log(`[TokenGrant] ${result.reason}，跳过发放`);
+      console.log(`${LOG_PREFIX_TOKEN_GRANT} ${result.reason}，跳过发放`);
     }
 
     return result;
@@ -65,7 +66,7 @@ const main = Effect.gen(function* () {
 
   // 启动队列
   tokenQueue.start();
-  console.log('[TokenGrant] 代币发放队列已启动');
+  console.log(`${LOG_PREFIX_TOKEN_GRANT} 代币发放队列已启动`);
 
   // 监控内存使用情况（每5秒，仅在数据变化时输出）
   let lastUsage = { rssMB: 0, heapTotalMB: 0 };
@@ -107,15 +108,15 @@ const main = Effect.gen(function* () {
       try {
         const totalDeleted = await TokenCleanupService.cleanupExpiredTokens(dbClient);
         if (totalDeleted > 0) {
-          console.log(`[TokenCleanup] 清理完成：删除了 ${totalDeleted} 条过期代币记录`);
+          console.log(`${LOG_PREFIX_TOKEN_CLEANUP} 清理完成：删除了 ${totalDeleted} 条过期代币记录`);
         }
       } catch (error: unknown) {
-        console.error('[TokenCleanup] 清理任务失败:', error);
+        console.error(`${LOG_PREFIX_TOKEN_CLEANUP} 清理任务失败:`, error);
       }
     }, MS_PER_HOUR);
   }, QUEUE_STARTUP_DELAY_MS);
 
-  // 初始化对账服务的 Effect 查询运行器（在 PaymentConfigService 上下文中）
+  /** 初始化对账服务的 Effect 查询运行器（在 PaymentConfigService 上下文中） */
   const paymentConfig = yield* PaymentConfigService;
   OrderReconciliationService.initQueryRunner(paymentConfig);
 
@@ -126,8 +127,7 @@ const main = Effect.gen(function* () {
   const reconcileDelayTimer = setTimeout(() => {
     const intervalMs = OrderReconciliationService.getReconcileIntervalMs();
     const isDev = process.env.NODE_ENV !== 'production';
-    console.log(`[OrderReconciliation] 对账任务已启动 (间隔${isDev ? intervalMs / 1000 + 's' : intervalMs / 60000 + 'min'}, ${isDev ? '开发模式' : '生产模式'})`);
-
+    console.log(`${LOG_PREFIX_RECONCILE} 对账任务已启动 (间隔${isDev ? `${intervalMs / 1000}s` : `${intervalMs / 60000}min`}, ${isDev ? '开发模式' : '生产模式'})`);
     reconcileIntervalTimer = setInterval(async () => {
       try {
         // 快速检查是否有待处理订单
@@ -136,19 +136,19 @@ const main = Effect.gen(function* () {
 
         const r = await OrderReconciliationService.reconcile(dbClient);
         if (r.processed > 0) {
-          console.log(`[OrderReconciliation] 对账完成: 处理${r.processed}单, 支付成功${r.paid}单, 关闭${r.cancelled}单`);
+          console.log(`${LOG_PREFIX_RECONCILE} 对账完成: 处理${r.processed}单, 支付成功${r.paid}单, 关闭${r.cancelled}单`);
         }
       } catch (error: unknown) {
-        console.error('[OrderReconciliation] 对账任务失败:', error);
+        console.error(`${LOG_PREFIX_RECONCILE} 对账任务失败:`, error);
       }
     }, intervalMs);
-  }, 10000);
+  }, RECONCILE_STARTUP_DELAY_MS);
 
   // 启动服务器
   yield* startServer;
 });
 
-// 创建完整的启动程序并提供所有服务
+/** 创建完整的启动程序并提供所有服务 */
 const program = Effect.gen(function* () {
   const config = yield* loadAppConfig;
   yield* main.pipe(
@@ -159,4 +159,7 @@ const program = Effect.gen(function* () {
   );
 });
 
-Effect.runPromise(program);
+Effect.runPromise(program).catch((e) => {
+  console.error(`${LOG_PREFIX_FATAL} 服务启动失败:`, e);
+  process.exit(1);
+});

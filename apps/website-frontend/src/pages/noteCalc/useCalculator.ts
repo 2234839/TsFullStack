@@ -258,6 +258,11 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     return mathInstance.value.evaluate(safeExpr, scope);
   }
 
+  /** 将 eval 结果安全转为数字，非数值返回 NaN */
+  function toNumber(result: unknown): number {
+    return typeof result === 'number' ? result : Number.NaN;
+  }
+
   /**
    * 提取表达式中的变量
    * 修复：使用与paserSafeExpression相同的词元化方法
@@ -375,7 +380,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 首先尝试识别变量赋值（允许等号前有空格）
     const assignmentMatch = line.match(/^([a-zA-Z0-9_\u4e00-\u9fa5]+)\s*=\s*(.+)$/);
     if (assignmentMatch) {
-      const varName = assignmentMatch[1]?.trim() || '';
+      const varName = assignmentMatch[1]?.trim() ?? '';
       const expression = assignmentMatch[2]?.trim() || '';
 
       // 检查右侧是否是一个表达式而不是等式验证
@@ -426,7 +431,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 处理等号表达式（如 "1+2 = 3"）
     const equalsMatch = line.match(/^(.+)=(.+)$/);
     if (equalsMatch) {
-      const leftExpression = equalsMatch[1]?.trim() || '';
+      const leftExpression = equalsMatch[1]?.trim() ?? '';
       const rightExpression = equalsMatch[2]?.trim() || '';
 
       // 检查左侧是否是简单变量名，如果是，已经在上面处理过了
@@ -446,7 +451,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
           // 如果右侧是数值，检查计算结果是否匹配
           if (isRightNumeric) {
             const rightValue = Number.parseFloat(rightExpression);
-            const isCorrect = Math.abs((leftResult as number) - rightValue) < 1e-10; // 允许小误差
+            const isCorrect = Math.abs(toNumber(leftResult) - rightValue) < 1e-10; // 允许小误差
 
             return {
               type: 'equation',
@@ -464,7 +469,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
             updateDependencyGraph(lineIndex, leftVars);
 
             const rightResult = evalExpression(rightExpression);
-            const isCorrect = Math.abs((leftResult as number) - (rightResult as number)) < 1e-10; // 允许小误差
+            const isCorrect = Math.abs(toNumber(leftResult) - toNumber(rightResult)) < 1e-10; // 允许小误差
 
             return {
               type: 'equation',
@@ -488,7 +493,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     // 处理单位转换 (如 "距离 to m")
     const unitConvMatch = line.match(/^(.+)\s+to\s+([a-zA-Z]+)$/);
     if (unitConvMatch) {
-      const varName = unitConvMatch[1]?.trim() || '';
+      const varName = unitConvMatch[1]?.trim() ?? '';
 
       try {
         // 提取表达式中使用的变量
@@ -564,7 +569,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       // 使用与calculateLine中相同的正则表达式来识别变量赋值
       const assignmentMatch = line.match(/^([a-zA-Z0-9_\u4e00-\u9fa5]+)\s*=\s*(.+)$/);
       if (assignmentMatch) {
-        const varName = assignmentMatch[1]?.trim() || '';
+        const varName = assignmentMatch[1]?.trim() ?? '';
         const expression = assignmentMatch[2]?.trim() || '';
 
         // 确保右侧不包含等号，是真正的变量赋值

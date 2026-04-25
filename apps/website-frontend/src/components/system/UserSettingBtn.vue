@@ -13,7 +13,6 @@
 </template>
 <script setup lang="ts">
   import { authInfo_isLogin, authInfo_logout } from '@/storage';
-  import Button from '@/components/base/Button.vue';
   import { Tooltip } from '@tsfullstack/shared-frontend/components';
   import { useI18n } from '@/composables/useI18n';
   import { useRoute } from 'vue-router';

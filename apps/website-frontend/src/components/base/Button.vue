@@ -24,66 +24,55 @@ interface Props {
   rounded?: boolean;
 }
 
-const { variant = 'primary', size = 'md', disabled = false, type = 'button', loading = false, rounded = false, label, icon, onClick } = defineProps<Props & { onClick?: () => void }>();
+/** 按钮变体样式映射（静态常量，不依赖 props） */
+const VARIANT_CLASSES: Record<string, string> = {
+  primary: 'bg-primary-900 hover:bg-primary-950 text-white focus:ring-primary-700 dark:bg-primary-50 dark:hover:bg-primary-100 dark:text-primary-950 dark:focus:ring-primary-300',
+  secondary: 'bg-secondary-700 hover:bg-secondary-800 text-white focus:ring-secondary-500 dark:bg-secondary-600 dark:hover:bg-secondary-700',
+  text: 'text-primary-700 hover:bg-primary-50 focus:ring-primary-500 dark:text-primary-300 dark:hover:bg-primary-800',
+  danger: 'bg-danger-600 hover:bg-danger-700 text-white focus:ring-danger-500 dark:bg-danger-500 dark:hover:bg-danger-600',
+  ghost: 'text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-200',
+  icon: 'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
+  'text-button': 'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
+};
+
+/** text-button 变体的尺寸映射 */
+const TEXT_BUTTON_SIZE: Record<string, string> = {
+  sm: 'px-2 py-1 text-sm',
+  small: 'px-2 py-1 text-sm',
+  md: 'px-3 py-1.5 text-base',
+  lg: 'px-4 py-2 text-lg',
+};
+
+/** 常规按钮尺寸映射 */
+const DEFAULT_SIZE: Record<string, string> = {
+  small: 'px-3 py-1.5 text-sm',
+  md: 'px-4 py-2 text-base',
+  lg: 'px-6 py-3 text-lg',
+};
+
+const { variant = 'primary', size = 'md', disabled = false, type = 'button', loading = false, rounded = false, label, icon } = defineProps<Props>();
 
 /** 按钮样式类 */
 const buttonClasses = computed(() => {
   const baseFontClass = variant === 'ghost' || variant === 'text-button' ? 'font-normal' : 'font-medium';
-  const base = rounded
-    ? `inline-flex items-center justify-center rounded-full ${baseFontClass} transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`
-    : `inline-flex items-center justify-center rounded-md ${baseFontClass} transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`;
+  const borderRadius = rounded ? 'rounded-full' : 'rounded-md';
+  const base = `inline-flex items-center justify-center ${borderRadius} ${baseFontClass} transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`;
 
-  // icon 和 text-button 变体：有文本时使用常规 padding，无文本时使用小的正方形 padding
   const hasLabel = !!label;
-  const iconSizeClasses: Record<string, string> = {
-    sm: hasLabel ? 'px-3 py-1.5 text-sm' : 'p-1.5 text-sm',
-    small: hasLabel ? 'px-3 py-1.5 text-sm' : 'p-1.5 text-sm',
-    md: hasLabel ? 'px-4 py-2 text-base' : 'p-2 text-base',
-    lg: hasLabel ? 'px-6 py-3 text-lg' : 'p-3 text-lg',
-  };
-
-  // text-button 总是有 padding，但比普通按钮少一些
-  const textButtonSizeClasses: Record<string, string> = {
-    sm: 'px-2 py-1 text-sm',
-    small: 'px-2 py-1 text-sm',
-    md: 'px-3 py-1.5 text-base',
-    lg: 'px-4 py-2 text-lg',
-  };
 
   /** 根据变体和尺寸获取尺寸类名 */
-  const getSizeClass = (sz: string): string => {
-    if (variant === 'ghost') return sz === 'lg' ? 'text-lg' : sz === 'md' ? 'text-base' : 'text-sm';
-    if (variant === 'text-button') return textButtonSizeClasses[sz] || 'text-sm';
-    if (variant === 'icon') return iconSizeClasses[sz] || 'text-sm';
-    return {
-      small: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2 text-base',
-      lg: 'px-6 py-3 text-lg',
-    }[sz] || 'px-3 py-1.5 text-sm';
+  const getSizeClass = (): string => {
+    if (variant === 'ghost') return size === 'lg' ? 'text-lg' : size === 'md' ? 'text-base' : 'text-sm';
+    if (variant === 'text-button') return TEXT_BUTTON_SIZE[size] ?? 'text-sm';
+    if (variant === 'icon') return hasLabel
+      ? (DEFAULT_SIZE[size] ?? 'px-3 py-1.5 text-sm')
+      : { sm: 'p-1.5 text-sm', small: 'p-1.5 text-sm', md: 'p-2 text-base', lg: 'p-3 text-lg' }[size] ?? 'p-2 text-base';
+    return DEFAULT_SIZE[size] ?? 'px-3 py-1.5 text-sm';
   };
 
-  const sizeClasses: Record<string, string> = {
-    sm: getSizeClass('sm'),
-    small: getSizeClass('small'),
-    md: getSizeClass('md'),
-    lg: getSizeClass('lg'),
-  };
-
-  const variantClasses: Record<string, string> = {
-    primary: 'bg-primary-900 hover:bg-primary-950 text-white focus:ring-primary-700 dark:bg-primary-50 dark:hover:bg-primary-100 dark:text-primary-950 dark:focus:ring-primary-300',
-    secondary: 'bg-secondary-700 hover:bg-secondary-800 text-white focus:ring-secondary-500 dark:bg-secondary-600 dark:hover:bg-secondary-700',
-    text: 'text-primary-700 hover:bg-primary-50 focus:ring-primary-500 dark:text-primary-300 dark:hover:bg-primary-800',
-    danger: 'bg-danger-600 hover:bg-danger-700 text-white focus:ring-danger-500 dark:bg-danger-500 dark:hover:bg-danger-600',
-    ghost: 'text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-200',
-    icon: 'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
-    'text-button': 'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
-  };
-
-  // 当只有图标时，调整为正方形
-  // ghost、text-button 和 icon 变体不需要额外的 padding，已经在 sizeClasses 中处理
   const iconOnlyClass = icon && !label && variant !== 'ghost' && variant !== 'icon' && variant !== 'text-button' ? 'p-2' : '';
 
-  return `${base} ${sizeClasses[size]} ${variantClasses[variant]} ${iconOnlyClass}`;
+  return `${base} ${getSizeClass()} ${VARIANT_CLASSES[variant]} ${iconOnlyClass}`;
 });
 </script>
 
@@ -91,8 +80,7 @@ const buttonClasses = computed(() => {
   <button
     :type="type"
     :disabled="disabled || loading"
-    :class="buttonClasses"
-    @click="onClick">
+    :class="buttonClasses">
     <slot>
       <i v-if="icon && !loading" :class="[icon, { 'mr-2': label }]"></i>
       <i v-if="loading" :class="['pi pi-spin pi-spinner', { 'mr-2': label }]"></i>

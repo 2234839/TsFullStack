@@ -2,7 +2,7 @@ import { OauthProvider } from '../../../.zenstack/models';
 import type { JsonValue } from '@zenstackhq/orm';
 import { randomBytes } from 'node:crypto';
 import { Effect } from 'effect';
-import { fail, neverReturn, MsgError } from '../../util/error';
+import { requireOrFail } from '../../util/error';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { dbTry } from '../../util/dbEffect';
@@ -10,9 +10,23 @@ import { hashPassword } from '../../util/crypto';
 import { GithubAuthService } from '../../OAuth/github';
 import { genUserSession } from './_genUserSession';
 
+/** 日志前缀 */
+const LOG_PREFIX = '[GithubApi]';
+
+/** OAuth 随机密码字节数 */
+const OAUTH_PASSWORD_BYTES = 32;
+
+/** OAuth 伪邮箱随机字节数 */
+const OAUTH_EMAIL_RANDOM_BYTES = 16;
+
 /** 生成加密安全的随机密码（OAuth 用户不会通过密码登录，仅满足数据库非空约束） */
 function generateSecureRandomPassword(): string {
-  return randomBytes(32).toString('hex');
+  return randomBytes(OAUTH_PASSWORD_BYTES).toString('hex');
+}
+
+/** 生成伪随机邮箱（OAuth 用户不使用邮箱登录，仅满足数据库唯一约束） */
+function generateFakeEmail(): string {
+  return `${randomBytes(OAUTH_EMAIL_RANDOM_BYTES).toString('hex')}@oauth.local`;
 }
 
 /** 通过 Github 登录 */
@@ -30,7 +44,7 @@ export const githubApi = {
       const auth = yield* githubAuth;
       const { user: githubUser } = yield* auth.authenticate(code);
 
-      let user = yield* dbTry('[GithubApi]', '查询用户', () =>
+      let user = yield* dbTry(LOG_PREFIX, '查询用户', () =>
         dbClient.user.findFirst({
           where: {
             oAuthAccount: {
@@ -49,10 +63,10 @@ export const githubApi = {
         const randomPassword = generateSecureRandomPassword();
         const hashedPassword = yield* hashPassword(randomPassword);
 
-        user = yield* dbTry('[GithubApi]', '创建用户', () =>
+        user = yield* dbTry(LOG_PREFIX, '创建用户', () =>
           dbClient.user.create({
             data: {
-              email: generateSecureRandomPassword() + '@oauth.local',
+              email: generateFakeEmail(),
               password: hashedPassword,
               oAuthAccount: {
                 create: {
@@ -69,15 +83,12 @@ export const githubApi = {
         );
       }
 
-      // TypeScript 类型收窄：上面已经确保 user 不为 null
-      if (!user) {
-        yield* fail('用户创建失败');
-        return neverReturn();
-      }
+      /** TypeScript 类型收窄：上面已经确保 user 不为 null */
+      user = yield* requireOrFail(user, '用户创建失败');
 
       const userId = user.id;
       const userSession = yield* genUserSession(userId);
-      reqCtx.log('[GithubApi] user login by github', userId);
+      reqCtx.log(`${LOG_PREFIX} user login by github`, userId);
 
       return {
         id: userSession.id,
@@ -95,6 +106,4 @@ export const githubApi = {
   },
 };
 
-const githubAuth = Effect.gen(function* () {
-  return yield* GithubAuthService;
-});
+const githubAuth = GithubAuthService;

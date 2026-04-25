@@ -33,9 +33,7 @@ export const encryptSerializer = {
       const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, await key, ciphertext);
       return decrypted ? JSON.parse(new TextDecoder().decode(decrypted)) : undefined;
     } catch {
-      /** 密钥变更或数据损坏时静默返回 undefined，让调用方重置为默认值。
-       * 同时清除无效数据防止 useStorageAsync 反复写入 */
-      localStorage.removeItem('caller-will-set-this-key');
+      /** 密钥变更或数据损坏时静默返回 undefined，让调用方重置为默认值 */
       return undefined;
     }
   },

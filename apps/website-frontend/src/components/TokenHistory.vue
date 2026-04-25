@@ -1,36 +1,37 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, shallowRef, computed, onMounted } from 'vue';
 import { useAPI } from '@/api';
-import { useTokenStoreSingleton } from '@/stores/token';
+import { useTokenStore } from '@/stores/token';
 import { getTypeLabel } from '@/utils/admin';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
-import { Button } from '@/components/base';
 import { getErrorMessage } from '@/utils/error';
 import { formatDate } from '@/utils/format';
+import { DEFAULT_PAGE_SIZE } from '@/utils/constants';
 
 const { API } = useAPI();
-const tokenStore = useTokenStoreSingleton();
+const tokenStore = useTokenStore();
 const toast = useToast();
 const { t } = useI18n();
 
-/** 代币交易记录 */
+/** 代币交易记录（手动定义以避免 DbListItem 递归类型推导 TS2589） */
 interface TokenTransaction {
   id: number;
   amount: number;
   tokenType: string;
-  created: string;
-  task: {
-    id: number;
-    title: string;
-    type: string;
-    status: string;
-  } | null;
+  userId: string;
+  taskId: number | null;
+  /** JSON 字段（ZenStack JsonValue 类型） */
+  balanceSnapshot: unknown;
   note: string | null;
+  created: Date;
+  updated: Date;
+  /** 关联的任务信息（来自 include） */
+  task?: { id: number; title: string; type: string } | null;
 }
 
 /** 交易历史 */
-const history = ref<TokenTransaction[]>([]);
+const history = shallowRef<TokenTransaction[]>([]);
 
 /** 加载中 */
 const isLoading = ref(false);
@@ -39,7 +40,7 @@ const isLoading = ref(false);
 const currentPage = ref(0);
 
 /** 每页数量 */
-const pageSize = 20;
+const pageSize = DEFAULT_PAGE_SIZE;
 
 /** 总数 */
 const total = ref(0);
@@ -75,13 +76,13 @@ async function loadHistory() {
       API.db.tokenTransaction.count(),
     ]);
 
-    const newTransactions = transactions as unknown as TokenTransaction[];
-    total.value = count as number;
+    const newTransactions: TokenTransaction[] = transactions;
+    total.value = count;
 
     if (currentPage.value === 0) {
       history.value = newTransactions;
     } else {
-      history.value.push(...newTransactions);
+      history.value = [...history.value, ...newTransactions];
     }
   } catch (error: unknown) {
     toast.error(t('加载代币历史失败'), getErrorMessage(error));
@@ -111,9 +112,7 @@ function refresh() {
 }
 
 /** 组件挂载时加载 */
-onMounted(() => {
-  loadHistory();
-});
+onMounted(loadHistory);
 
 /**
  * 获取类型颜色
@@ -124,7 +123,7 @@ function getTypeColor(type: string): string {
     YEARLY: 'text-success-600 dark:text-success-400',
     PERMANENT: 'text-primary-600 dark:text-primary-400',
   };
-  return colors[type] || 'text-secondary-600 dark:text-secondary-400';
+  return colors[type] ?? 'text-secondary-600 dark:text-secondary-400';
 }
 </script>
 
@@ -158,7 +157,7 @@ function getTypeColor(type: string): string {
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
               <span class="font-medium text-primary-900 dark:text-primary-100">
-                {{ record.task?.title || t('未知任务') }}
+                {{ record.task?.title ?? t('未知任务') }}
               </span>
               <span
                 v-if="record.tokenType"
@@ -170,7 +169,7 @@ function getTypeColor(type: string): string {
             <div v-if="record.note" class="text-sm text-secondary-600 dark:text-secondary-400">
               {{ record.note }}
             </div>
-            <div class="text-xs text-secondary-500 dark:text-secondary-500 mt-1">
+            <div class="text-xs text-secondary-500 dark:text-secondary-400 mt-1">
               {{ formatDate(record.created) }}
             </div>
           </div>
@@ -180,7 +179,7 @@ function getTypeColor(type: string): string {
             <div class="text-lg font-semibold text-danger-600 dark:text-danger-400">
               -{{ record.amount }}
             </div>
-            <div class="text-xs text-secondary-500 dark:text-secondary-500">
+            <div class="text-xs text-secondary-500 dark:text-secondary-400">
               {{ t('代币') }}
             </div>
           </div>

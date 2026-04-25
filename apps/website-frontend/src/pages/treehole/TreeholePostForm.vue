@@ -62,7 +62,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useAPI } from '@/api';
-import { Button, Input, Textarea } from '@/components/base';
 import { useToast } from '@/composables/useToast';
 import type { ContentVisibility } from '@tsfullstack/backend';
 import { getErrorMessage } from '@/utils/error';
@@ -151,7 +150,7 @@ const isValid = computed(() => {
  */
 function getVisibilityDescription(): string {
   const option = visibilityOptions.find((opt) => opt.value === formData.value.visibility);
-  return option?.description || '';
+  return option?.description ?? '';
 }
 
 /**
@@ -175,12 +174,7 @@ async function handleSubmit() {
       data: createData,
     });
 
-    toast.add({
-      variant: 'success',
-      summary: t('成功'),
-      detail: parentId ? t('回复成功') : t('发布成功'),
-      life: 3000,
-    });
+    toast.success(t('成功'), parentId ? t('回复成功') : t('发布成功'));
 
     // 重置表单
     formData.value = {
@@ -195,12 +189,7 @@ async function handleSubmit() {
 
     emit('submit');
   } catch (error: unknown) {
-    toast.add({
-      variant: 'error',
-      summary: t('错误'),
-      detail: t('发布失败：') + getErrorMessage(error),
-      life: 3000,
-    });
+    toast.error(t('错误'), t('发布失败：') + getErrorMessage(error));
   } finally {
     isSubmitting.value = false;
   }

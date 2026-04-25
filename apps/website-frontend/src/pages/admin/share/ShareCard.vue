@@ -11,7 +11,6 @@
   </div>
 </template>
 <script setup lang="ts">
-  import { Carousel } from '@/components/base';
   import { type ShareFileJSON, type ShareItemJSON } from '@/pages/admin/share/ShareDef';
   import ShareFilePreview from '@/pages/admin/share/ShareFilePreview.vue';
 

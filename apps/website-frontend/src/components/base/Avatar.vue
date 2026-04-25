@@ -20,19 +20,18 @@ interface Props {
 
 const { size = 'normal', shape = 'circle', disabled = false } = defineProps<Props>();
 
+/** 尺寸映射（静态常量） */
+const AVATAR_SIZE_CLASSES: Record<string, string> = {
+  normal: 'w-8 h-8',
+  large: 'w-12 h-12',
+  xlarge: 'w-16 h-16',
+};
+
 /** 头像样式类 */
 const avatarClasses = computed(() => {
-  const sizeClasses = {
-    normal: 'w-8 h-8',
-    large: 'w-12 h-12',
-    xlarge: 'w-16 h-16',
-  };
-
   const shapeClass = shape === 'circle' ? 'rounded-full' : 'rounded-md';
-
   const disabledClass = disabled ? 'opacity-50' : '';
-
-  return `${sizeClasses[size]} ${shapeClass} ${disabledClass} overflow-hidden bg-primary-200 dark:bg-primary-800`;
+  return `${AVATAR_SIZE_CLASSES[size]} ${shapeClass} ${disabledClass} overflow-hidden bg-primary-200 dark:bg-primary-800`;
 });
 
 /** 图片样式 */

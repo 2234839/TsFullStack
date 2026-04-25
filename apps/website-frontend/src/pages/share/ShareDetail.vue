@@ -92,16 +92,19 @@
   import { useI18n } from '@/composables/useI18n';
   import { useToast } from '@/composables/useToast';
   import { getErrorMessage } from '@/utils/error';
-  import { Button } from '@/components/base';
 
   const { AppAPI, APIGetUrl, AppAPIGetUrl } = useAPI();
   const { t } = useI18n();
   const toast = useToast();
   const { id } = defineProps<{ id: string }>();
 
-  const { state, isLoading, error } = useAsyncState(() => {
-    return AppAPI.shareApi.detail(Number(id)) as unknown as Promise<ShareItemJSON>;
-  }, undefined);
+  /** 将后端 UserData 结果解析为前端 ShareItemJSON 类型 */
+  const loadShareDetail = async (): Promise<ShareItemJSON> => {
+    const data = await AppAPI.shareApi.detail(Number(id));
+    return data as unknown as ShareItemJSON;
+  };
+
+  const { state, isLoading, error } = useAsyncState(loadShareDetail, undefined);
 
   const getFileTypeClass = (mimetype: string) => {
     if (mimetype.startsWith('image/'))

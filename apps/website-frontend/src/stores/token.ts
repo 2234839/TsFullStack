@@ -60,7 +60,7 @@ const useTokenStoreImpl = () => {
     isLoading.value = true;
     try {
       const result = await API.tokenApi.getAvailableTokens();
-      balance.value = result as unknown as TokenBalance;
+      balance.value = result;
       lastUpdated.value = new Date();
     } finally {
       isLoading.value = false;

@@ -64,7 +64,7 @@ export abstract class StorageStrategy {
 
   constructor(public options: StorageOptions = {}) {
     // Initialize serializer
-    this.serializer = options.serializer || {
+    this.serializer = options.serializer ?? {
       serialize: superjson.stringify,
       deserialize: superjson.parse,
     };
@@ -520,8 +520,8 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
 
   constructor(options?: StorageOptions & { dbName?: string; storeName?: string }) {
     super(options);
-    this.dbName = options?.dbName || 'app-storage';
-    this.storeName = options?.storeName || 'data';
+    this.dbName = options?.dbName ?? 'app-storage';
+    this.storeName = options?.storeName ?? 'data';
   }
 
   private dbName: string;
@@ -587,8 +587,9 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
     const start = performance.now();
     try {
       if (!this.store) throw new Error('IndexedDB未初始化');
+      const store = this.store;
 
-      const promises = items.map((item) => this.store!.setItem(item.key, item.data));
+      const promises = items.map((item) => store.setItem(item.key, item.data));
 
       await Promise.all(promises);
       this.stats.writeCount += items.length;
@@ -603,10 +604,11 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
     const start = performance.now();
     try {
       if (!this.store) throw new Error('IndexedDB未初始化');
+      const store = this.store;
 
       const result: Record<string, any> = {};
       const promises = keys.map(async (key) => {
-        result[key] = await this.store!.getItem(key);
+        result[key] = await store.getItem(key);
       });
 
       await Promise.all(promises);
@@ -632,8 +634,9 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
   protected async rawRemoveBatch(keys: string[]): Promise<void> {
     try {
       if (!this.store) throw new Error('IndexedDB未初始化');
+      const store = this.store;
 
-      const promises = keys.map((key) => this.store!.removeItem(key));
+      const promises = keys.map((key) => store.removeItem(key));
 
       await Promise.all(promises);
     } catch (error: unknown) {
@@ -792,13 +795,18 @@ export class StorageRepository {
     return this.strategies;
   }
 
-  async save(key: string, data: any): Promise<void> {
+  /** 确保已初始化且有可用策略，否则抛出错误 */
+  private async requireStrategies(): Promise<StorageStrategy[]> {
     if (!this.initialized) await this.initialize();
-
     const strategies = this.getAvailableStrategies();
     if (strategies.length === 0) {
       throw new Error(t('没有可用的存储策略'));
     }
+    return strategies;
+  }
+
+  async save(key: string, data: any): Promise<void> {
+    const strategies = await this.requireStrategies();
 
     let lastError: string | null = null;
 
@@ -816,12 +824,7 @@ export class StorageRepository {
   }
 
   async load(key: string): Promise<any> {
-    if (!this.initialized) await this.initialize();
-
-    const strategies = this.getAvailableStrategies();
-    if (strategies.length === 0) {
-      throw new Error(t('没有可用的存储策略'));
-    }
+    const strategies = await this.requireStrategies();
 
     let lastError: string | null = null;
 
@@ -866,12 +869,7 @@ export class StorageRepository {
   }
 
   async remove(key: string): Promise<void> {
-    if (!this.initialized) await this.initialize();
-
-    const strategies = this.getAvailableStrategies();
-    if (strategies.length === 0) {
-      throw new Error(t('没有可用的存储策略'));
-    }
+    const strategies = await this.requireStrategies();
 
     await Promise.all(
       strategies.map((s) =>
@@ -884,12 +882,7 @@ export class StorageRepository {
     items: { key: string; data: any }[],
     batchSize = this.defaultBatchSize,
   ): Promise<void> {
-    if (!this.initialized) await this.initialize();
-
-    const strategies = this.getAvailableStrategies();
-    if (strategies.length === 0) {
-      throw new Error(t('没有可用的存储策略'));
-    }
+    const strategies = await this.requireStrategies();
 
     // 分批处理
     const chunks = this.chunkArray(items, batchSize);
@@ -911,12 +904,7 @@ export class StorageRepository {
   }
 
   async loadBatch(keys: string[], batchSize = this.defaultBatchSize): Promise<Record<string, any>> {
-    if (!this.initialized) await this.initialize();
-
-    const strategies = this.getAvailableStrategies();
-    if (strategies.length === 0) {
-      throw new Error(t('没有可用的存储策略'));
-    }
+    const strategies = await this.requireStrategies();
 
     // 分批处理
     const chunks = this.chunkArray(keys, batchSize);
@@ -972,12 +960,7 @@ export class StorageRepository {
   }
 
   async getBucketKeys(bucket: string): Promise<string[]> {
-    if (!this.initialized) await this.initialize();
-
-    const strategies = this.getAvailableStrategies();
-    if (strategies.length === 0) {
-      throw new Error(t('没有可用的存储策略'));
-    }
+    const strategies = await this.requireStrategies();
 
     // 使用第一个支持bucket的策略
     const strategy = strategies.find((s) => s.options.bucket !== undefined);
@@ -990,12 +973,7 @@ export class StorageRepository {
   }
 
   async clearBucket(bucket: string): Promise<void> {
-    if (!this.initialized) await this.initialize();
-
-    const strategies = this.getAvailableStrategies();
-    if (strategies.length === 0) {
-      throw new Error(t('没有可用的存储策略'));
-    }
+    const strategies = await this.requireStrategies();
 
     // 使用第一个支持bucket的策略
     const strategy = strategies.find((s) => s.options.bucket !== undefined);

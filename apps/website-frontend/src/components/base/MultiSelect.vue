@@ -5,6 +5,7 @@
  */
 import { computed, ref } from 'vue';
 import { useI18n } from '@/composables/useI18n';
+import { INPUT_BASE_CLASSES } from './inputStyles';
 
 const { t } = useI18n();
 
@@ -13,13 +14,13 @@ function normalizeToArray<T>(value: T[] | T | null | undefined): T[] {
   return Array.isArray(value) ? value : value != null ? [value] : [];
 }
 
-interface Option<T = unknown> {
+interface Option<T extends PropertyKey = PropertyKey> {
   label: string;
   value: T;
   disabled?: boolean;
 }
 
-interface Props<T = unknown> {
+interface Props<T extends PropertyKey = PropertyKey> {
   /** 模型值 */
   modelValue?: T[] | T;
   /** 选项列表 */
@@ -79,7 +80,7 @@ const isSelected = (option: Option) => {
 const selectedLabels = computed(() => {
   const rawValue = modelValue;
   const valueArray = Array.isArray(rawValue) ? rawValue : rawValue != null ? [rawValue] : [];
-  const selected = (options || []).filter(opt =>
+  const selected = (options ?? []).filter(opt =>
     valueArray.includes(opt.value)
   );
   return selected.map(opt => opt.label);
@@ -97,7 +98,7 @@ const displayLabel = computed(() => {
 
 /** 触发按钮样式类 */
 const triggerClasses = computed(() => {
-  const base = 'w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer';
+  const extraClasses = 'bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer';
 
   const stateClasses = invalid
     ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
@@ -105,7 +106,7 @@ const triggerClasses = computed(() => {
 
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
-  return `${base} ${stateClasses} ${disabledClass}`;
+  return `${INPUT_BASE_CLASSES} ${extraClasses} ${stateClasses} ${disabledClass}`;
 });
 
 /** 下拉面板样式 */
@@ -157,7 +158,7 @@ const triggerClasses = computed(() => {
             <!-- 复选框 -->
             <div class="w-4 h-4 border rounded mr-3 flex items-center justify-center shrink-0"
                  :class="isSelected(option)
-                   ? 'bg-primary-500 border-primary-500'
+                   ? 'bg-primary-500 dark:bg-primary-600 border-primary-500 dark:border-primary-600'
                    : 'border-primary-200 dark:border-primary-700'">
               <svg v-if="isSelected(option)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />

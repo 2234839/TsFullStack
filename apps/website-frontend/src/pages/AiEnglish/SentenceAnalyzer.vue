@@ -50,171 +50,17 @@
 
 <script setup lang="tsx">
   import { ref } from 'vue';
-  import Textarea from '@/components/base/Textarea.vue';
   import { callAiResponseJSON } from '@/pages/AiEnglish/ai';
   import { getErrorMessage } from '@/utils/error';
   import { useI18n } from '@/composables/useI18n';
 
-  // 辅助函数：合并 Tailwind CSS 类名
+  /** 辅助函数：合并 Tailwind CSS 类名 */
   const cn = (...classes: (string | undefined | null | boolean)[]) => {
     return classes.filter(Boolean).join(' ');
   };
 
-  // 定义 AI 输出的类型接口
-  interface WordItem {
-    type: 'word'; // 明确的判别属性
-    text: string;
-    role?: string;
-    pos?: string;
-    className?: string;
-    label?: string;
-    labelClassName?: string;
-  }
-
-  interface ClauseItem {
-    type: 'clause'; // 明确的判别属性
-    label: string;
-    className?: string;
-    connector?: WordItem;
-    content?: (WordItem | ClauseItem)[];
-  }
-
-  interface AnalysisResult {
-    analysis: (WordItem | ClauseItem)[];
-  }
-
-  // Vue 响应式状态
-  const { t } = useI18n();
-  const sentence = ref('');
-  const isAnalyzing = ref(false);
-  const error = ref('');
-  const analysisResult = ref<AnalysisResult | null>(null);
-
-  // TSX 子组件：渲染单个词语节点
-  const WordNode = (props: WordItem) => {
-    return (
-      // 确保所有 WordNode 的总高度一致，并底部对齐
-      <div class="relative flex flex-col items-center justify-end min-h-[80px]">
-        {' '}
-        {/* 增加最小高度以容纳 role/pos */}
-        {props.label && (
-          <span
-            class={cn(
-              'absolute -top-6 px-2 py-0.5 text-xs rounded-md font-semibold',
-              props.labelClassName,
-            )}>
-            {props.label}
-          </span>
-        )}
-        <div
-          class={cn(
-            'px-4 py-2 rounded-md shadow-sm text-sm font-medium whitespace-nowrap',
-            'border border-primary-200 dark:border-primary-600', // Default border
-            props.className,
-          )}>
-          {props.text}
-        </div>
-        {(props.role || props.pos) && (
-          <div class="text-xs text-primary-500 dark:text-primary-400 mt-1 text-center">
-            {props.role && <span>{props.role}</span>}
-            {props.role && props.pos && <span> / </span>}
-            {props.pos && <span>{props.pos}</span>}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  /** 根据从句标签获取对应的 Tailwind 颜色类名（提取到顶层避免渲染函数中重复创建 computed） */
-  function getClauseLabelColor(label: string): string {
-    switch (label) {
-      case '主句':
-        return 'bg-primary-500 text-white';
-      case '主语从句':
-        return 'bg-warning-500 text-white';
-      case '状语从句':
-        return 'bg-warning-500 text-white';
-      case '定语从句':
-        return 'bg-success-500 text-white';
-      case '宾语从句':
-        return 'bg-secondary-500 text-white';
-      default:
-        return 'bg-primary-500 text-white';
-    }
-  }
-
-  // TSX 子组件：渲染从句框或递归渲染词语/从句
-  const ClauseOrWordRenderer = (props: { item: WordItem | ClauseItem }) => {
-    const item = props.item;
-
-    // 使用类型守卫来判断 item 的类型
-    if (item.type === 'clause') {
-      const clause = item as ClauseItem; // TypeScript 现在可以安全地将其视为 ClauseItem
-
-      // 判断内容中是否有多个嵌套从句，以决定内部排列方式
-      // 确保 clause.content 是数组，即使它是 undefined
-      const hasMultipleNestedClauses =
-        (clause.content || []).filter((contentItem) => contentItem.type === 'clause').length > 1;
-
-      // 从句框的外部样式，只包含边框和圆角，不包含内边距
-      const clauseOuterClasses = cn(
-        'relative rounded-lg bg-white dark:bg-primary-700 shadow-md border',
-        'flex flex-col items-start', // 保持 flex-col 结构
-        clause.className, // 包含 border-2 border-primary-300 等
-      );
-
-      // 从句内容容器的内部样式，包含内边距和对齐方式
-      const contentContainerClasses = cn(
-        'flex items-end gap-x-4 gap-y-8 pt-8 pb-4 px-4', // 调整内边距，pt-8 为标签留出空间
-        hasMultipleNestedClauses ? 'flex-col items-start space-y-4' : 'flex-wrap',
-      );
-
-      // 根据从句标签设置颜色（使用纯函数替代 computed）
-      const labelColorClass = getClauseLabelColor(clause.label);
-
-      return (
-        <div class={clauseOuterClasses}>
-          <span
-            class={cn(
-              'absolute -top-3 left-4 px-3 py-1 text-xs rounded-md font-semibold',
-              labelColorClass.value,
-            )}>
-            {clause.label}
-          </span>
-          <div class={contentContainerClasses}>
-            {clause.connector && (
-              <WordNode
-                text={clause.connector.text}
-                role={clause.connector.role}
-                pos={clause.connector.pos}
-                className={clause.connector.className}
-                type="word" // 明确指定类型
-              />
-            )}
-            {clause.content?.map((contentItem, index) => (
-              <ClauseOrWordRenderer key={index} item={contentItem} />
-            ))}
-          </div>
-        </div>
-      );
-    } else {
-      // 如果不是从句，则渲染为词语节点
-      return <WordNode {...(item as WordItem)} />;
-    }
-  };
-
-  // 分析句子的主逻辑
-  const analyzeSentence = async () => {
-    if (!sentence.value.trim()) {
-      error.value = t('请输入有效的英文句子。');
-      return;
-    }
-
-    isAnalyzing.value = true;
-    error.value = '';
-    analysisResult.value = null;
-
-    const prompt = `
+  /** 语法分析 prompt 模板（静态部分，避免每次调用重建） */
+  const ANALYSIS_PROMPT_TEMPLATE = `
       请分析以下英文句子的语法结构，并以严格的JSON格式返回。
       你的输出必须是一个JSON对象，包含一个名为 "analysis" 的数组。
       数组中的每个元素代表一个从句或一个词语。
@@ -309,7 +155,163 @@
         ]
       }
 
-      句子: "${sentence.value}"
+      句子: `;
+
+  /** 定义 AI 输出的类型接口 */
+  interface WordItem {
+    type: 'word'; // 明确的判别属性
+    text: string;
+    role?: string;
+    pos?: string;
+    className?: string;
+    label?: string;
+    labelClassName?: string;
+  }
+
+  interface ClauseItem {
+    type: 'clause'; // 明确的判别属性
+    label: string;
+    className?: string;
+    connector?: WordItem;
+    content?: (WordItem | ClauseItem)[];
+  }
+
+  interface AnalysisResult {
+    analysis: (WordItem | ClauseItem)[];
+  }
+
+  // Vue 响应式状态
+  const { t } = useI18n();
+  const sentence = ref('');
+  const isAnalyzing = ref(false);
+  const error = ref('');
+  const analysisResult = ref<AnalysisResult | null>(null);
+
+  /** TSX 子组件：渲染单个词语节点 */
+  const WordNode = (props: WordItem) => {
+    return (
+      // 确保所有 WordNode 的总高度一致，并底部对齐
+      <div class="relative flex flex-col items-center justify-end min-h-[80px]">
+        {' '}
+        {/* 增加最小高度以容纳 role/pos */}
+        {props.label && (
+          <span
+            class={cn(
+              'absolute -top-6 px-2 py-0.5 text-xs rounded-md font-semibold',
+              props.labelClassName,
+            )}>
+            {props.label}
+          </span>
+        )}
+        <div
+          class={cn(
+            'px-4 py-2 rounded-md shadow-sm text-sm font-medium whitespace-nowrap',
+            'border border-primary-200 dark:border-primary-600', // Default border
+            props.className,
+          )}>
+          {props.text}
+        </div>
+        {(props.role || props.pos) && (
+          <div class="text-xs text-primary-500 dark:text-primary-400 mt-1 text-center">
+            {props.role && <span>{props.role}</span>}
+            {props.role && props.pos && <span> / </span>}
+            {props.pos && <span>{props.pos}</span>}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  /** 根据从句标签获取对应的 Tailwind 颜色类名（提取到顶层避免渲染函数中重复创建 computed） */
+  function getClauseLabelColor(label: string): string {
+    switch (label) {
+      case '主句':
+        return 'bg-primary-500 text-white';
+      case '主语从句':
+        return 'bg-warning-500 text-white';
+      case '状语从句':
+        return 'bg-warning-500 text-white';
+      case '定语从句':
+        return 'bg-success-500 text-white';
+      case '宾语从句':
+        return 'bg-secondary-500 text-white';
+      default:
+        return 'bg-primary-500 text-white';
+    }
+  }
+
+  /** TSX 子组件：渲染从句框或递归渲染词语/从句 */
+  const ClauseOrWordRenderer = (props: { item: WordItem | ClauseItem }) => {
+    const item = props.item;
+
+    // 使用类型守卫来判断 item 的类型
+    if (item.type === 'clause') {
+      const clause = item as ClauseItem; // TypeScript 现在可以安全地将其视为 ClauseItem
+
+      // 判断内容中是否有多个嵌套从句，以决定内部排列方式
+      // 确保 clause.content 是数组，即使它是 undefined
+      const hasMultipleNestedClauses =
+        (clause.content ?? []).filter((contentItem) => contentItem.type === 'clause').length > 1;
+
+      // 从句框的外部样式，只包含边框和圆角，不包含内边距
+      const clauseOuterClasses = cn(
+        'relative rounded-lg bg-white dark:bg-primary-700 shadow-md border',
+        'flex flex-col items-start', // 保持 flex-col 结构
+        clause.className, // 包含 border-2 border-primary-300 等
+      );
+
+      // 从句内容容器的内部样式，包含内边距和对齐方式
+      const contentContainerClasses = cn(
+        'flex items-end gap-x-4 gap-y-8 pt-8 pb-4 px-4', // 调整内边距，pt-8 为标签留出空间
+        hasMultipleNestedClauses ? 'flex-col items-start space-y-4' : 'flex-wrap',
+      );
+
+      // 根据从句标签设置颜色（使用纯函数替代 computed）
+      const labelColorClass = getClauseLabelColor(clause.label);
+
+      return (
+        <div class={clauseOuterClasses}>
+          <span
+            class={cn(
+              'absolute -top-3 left-4 px-3 py-1 text-xs rounded-md font-semibold',
+              labelColorClass,
+            )}>
+            {clause.label}
+          </span>
+          <div class={contentContainerClasses}>
+            {clause.connector && (
+              <WordNode
+                text={clause.connector.text}
+                role={clause.connector.role}
+                pos={clause.connector.pos}
+                className={clause.connector.className}
+                type="word" // 明确指定类型
+              />
+            )}
+            {clause.content?.map((contentItem, index) => (
+              <ClauseOrWordRenderer key={index} item={contentItem} />
+            ))}
+          </div>
+        </div>
+      );
+    } else {
+      // 如果不是从句，则渲染为词语节点
+      return <WordNode {...(item as WordItem)} />;
+    }
+  };
+
+  /** 分析句子的主逻辑 */
+  const analyzeSentence = async () => {
+    if (!sentence.value.trim()) {
+      error.value = t('请输入有效的英文句子。');
+      return;
+    }
+
+    isAnalyzing.value = true;
+    error.value = '';
+    analysisResult.value = null;
+
+    const prompt = `${ANALYSIS_PROMPT_TEMPLATE}"${sentence.value}"
     `;
 
     try {

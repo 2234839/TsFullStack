@@ -1,56 +1,68 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useConfirm } from '@/composables/useConfirm';
+import { usePaginatedQuery } from '@/composables/usePaginatedQuery';
 import { useAPI } from '@/api';
 import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
-import Paginator from '@/components/base/Paginator.vue';
-import { Button, Input, Textarea, InputNumber, Checkbox } from '@/components/base';
-import { TokenOptions } from '@tsfullstack/backend';
+import { TokenOptions, type TokenType } from '@tsfullstack/backend';
 import { getTypeLabel } from '@/utils/admin';
 import { getErrorMessage } from '@/utils/error';
-
-const toast = useToast();
+import { formatPriceWithCurrency } from '@/utils/format';
 const { t } = useI18n();
+const toast = useToast();
 const confirm = useConfirm();
 const { API } = useAPI();
 
-/** 套餐项类型 */
+/** 套餐项类型（手动定义，避免 DbListItem 对含 Json 字段模型的 TS2589） */
 interface TokenPackage {
   id: number;
+  created: Date;
+  updated: Date;
   name: string;
   description: string | null;
-  type: 'MONTHLY' | 'YEARLY' | 'PERMANENT';
+  type: TokenType;
   amount: number;
   price: number | null;
   durationMonths: number;
   active: boolean;
   sortOrder: number;
-  created: string;
-  updated: string;
+  restrictedType: unknown;
 }
 
-/** 套餐列表 */
-const packages = ref<TokenPackage[]>([]);
+const {
+  items: packages,
+  total: packagesTotal,
+  currentPage: packagesPage,
+  pageSize: packagesPageSize,
+  isLoading,
+  load: loadPackages,
+  goToPage,
+  updatePageSize,
+} = usePaginatedQuery<TokenPackage>({
+  pageSize: 9,
+  errorMessage: '加载套餐列表失败',
+  fetchFn: async ({ skip, take }) => {
+    const [data, total] = await Promise.all([
+      API.db.tokenPackage.findMany({
+        orderBy: { sortOrder: 'asc' },
+        skip,
+        take,
+      }),
+      API.db.tokenPackage.count(),
+    ]);
+    return { data, total };
+  },
+});
 
-/** 套餐总数 */
-const packagesTotal = ref(0);
-
-/** 当前页（从0开始，用于 Paginator 组件） */
-const packagesPage = ref(0);
-
-/** 每页数量 */
-const packagesPageSize = ref(9);
-
-/** 加载中 */
-const isLoading = ref(false);
-
-/** 显示创建对话框 */
-const showCreateDialog = ref(false);
-
-/** 显示编辑对话框 */
-const showEditDialog = ref(false);
+/** 对话框模式 */
+type DialogMode = 'create' | 'edit' | null;
+const dialogMode = ref<DialogMode>(null);
+const showDialog = computed({
+  get: () => dialogMode.value !== null,
+  set: (v: boolean) => { if (!v) dialogMode.value = null; },
+});
 
 /** 当前编辑的套餐 */
 const editingPackage = ref<TokenPackage | null>(null);
@@ -59,7 +71,7 @@ const editingPackage = ref<TokenPackage | null>(null);
 const formData = ref({
   name: '',
   description: '',
-  type: 'MONTHLY' as 'MONTHLY' | 'YEARLY' | 'PERMANENT',
+  type: 'MONTHLY' as TokenType,
   amount: 100,
   price: 0,
   durationMonths: 1,
@@ -73,45 +85,6 @@ const isSubmitting = ref(false);
 /** 代币类型选项（从后端导入） */
 const tokenTypeOptions = TokenOptions.TokenTypeOptions;
 
-/** 加载套餐列表 */
-async function loadPackages() {
-  isLoading.value = true;
-  try {
-    const [result, total] = await Promise.all([
-      API.db.tokenPackage.findMany({
-        orderBy: { sortOrder: 'asc' },
-        skip: packagesPage.value * packagesPageSize.value,
-        take: packagesPageSize.value,
-      }),
-      API.db.tokenPackage.count(),
-    ]);
-
-    packages.value = result as unknown as TokenPackage[];
-    packagesTotal.value = total as number;
-  } catch (error: unknown) {
-    toast.add({
-      summary: t('加载失败'),
-      detail: t('加载套餐列表失败'),
-      variant: 'error',
-    });
-  } finally {
-    isLoading.value = false;
-  }
-}
-
-/** 翻页 */
-function goToPage(page: number) {
-  packagesPage.value = page;
-  loadPackages();
-}
-
-/** 每页条数变化 */
-function updatePageSize(size: number) {
-  packagesPageSize.value = size;
-  packagesPage.value = 0;
-  loadPackages();
-}
-
 /** 打开创建对话框 */
 function openCreateDialog() {
   formData.value = {
@@ -124,7 +97,7 @@ function openCreateDialog() {
     sortOrder: 0,
     active: true,
   };
-  showCreateDialog.value = true;
+  dialogMode.value = 'create';
 }
 
 /** 打开编辑对话框 */
@@ -135,12 +108,12 @@ function openEditDialog(pkg: TokenPackage) {
     description: pkg.description || '',
     type: pkg.type,
     amount: pkg.amount,
-    price: pkg.price || 0,
+    price: pkg.price ?? 0,
     durationMonths: pkg.durationMonths,
     sortOrder: pkg.sortOrder,
     active: pkg.active,
   };
-  showEditDialog.value = true;
+  dialogMode.value = 'edit';
 }
 
 /** 创建套餐 */
@@ -159,21 +132,13 @@ async function createPackage() {
       sortOrder: formData.value.sortOrder,
     });
 
-    toast.add({
-      summary: t('创建成功'),
-      detail: t('套餐创建成功'),
-      variant: 'success',
-    });
+    toast.success(t('创建成功'), t('套餐创建成功'));
 
-    showCreateDialog.value = false;
+    dialogMode.value = null;
     await loadPackages();
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error, t('创建套餐失败'));
-    toast.add({
-      summary: t('创建失败'),
-      detail: errorMessage,
-      variant: 'error',
-    });
+    toast.error(t('创建失败'), errorMessage);
   } finally {
     isSubmitting.value = false;
   }
@@ -195,21 +160,13 @@ async function updatePackage() {
       active: formData.value.active,
     });
 
-    toast.add({
-      summary: t('更新成功'),
-      detail: t('套餐更新成功'),
-      variant: 'success',
-    });
+    toast.success(t('更新成功'), t('套餐更新成功'));
 
-    showEditDialog.value = false;
+    dialogMode.value = null;
     await loadPackages();
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error, t('更新套餐失败'));
-    toast.add({
-      summary: t('更新失败'),
-      detail: errorMessage,
-      variant: 'error',
-    });
+    toast.error(t('更新失败'), errorMessage);
   } finally {
     isSubmitting.value = false;
   }
@@ -222,19 +179,11 @@ async function togglePackageActive(pkg: TokenPackage) {
       active: !pkg.active,
     });
 
-    toast.add({
-      summary: t('操作成功'),
-      detail: pkg.active ? t('套餐已停用') : t('套餐已启用'),
-      variant: 'success',
-    });
+    toast.success(t('操作成功'), pkg.active ? t('套餐已停用') : t('套餐已启用'));
 
     await loadPackages();
   } catch (error: unknown) {
-    toast.add({
-      summary: t('操作失败'),
-      detail: t('切换套餐状态失败'),
-      variant: 'error',
-    });
+    toast.error(t('操作失败'), t('切换套餐状态失败'));
   }
 }
 
@@ -249,48 +198,27 @@ async function deletePackage(pkg: TokenPackage) {
   try {
     await API.tokenPackageApi.deleteTokenPackage(pkg.id);
 
-    toast.add({
-      summary: t('删除成功'),
-      detail: t('套餐删除成功'),
-      variant: 'success',
-    });
+    toast.success(t('删除成功'), t('套餐删除成功'));
 
     await loadPackages();
   } catch (error: unknown) {
     const errorMessage = getErrorMessage(error, t('删除套餐失败'));
-    toast.add({
-      summary: t('删除失败'),
-      detail: errorMessage,
-      variant: 'error',
-    });
+    toast.error(t('删除失败'), errorMessage);
   }
 }
 
 /** 获取类型标签 — 从 utils/admin.ts 统一导入 */
 
-/** 格式化价格 */
-function formatPrice(price: number | null): string {
-  if (price === null) return t('免费');
-  return `${t('¥')}${(price / 100).toFixed(2)}`;
-}
-
-onMounted(() => {
-  loadPackages();
-});
+onMounted(loadPackages);
 </script>
 
 <template>
   <div class="container mx-auto px-4 py-8">
     <!-- 页面头部 -->
     <div class="mb-8 flex justify-between items-center">
-      <div>
-        <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-100">
-          {{ t('代币套餐管理') }}
-        </h1>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">
-          {{ t('管理用户的代币套餐和订阅') }}
-        </p>
-      </div>
+      <PageHeader size="large" no-margin :subtitle="t('管理用户的代币套餐和订阅')">
+        {{ t('代币套餐管理') }}
+      </PageHeader>
       <Button @click="openCreateDialog">
         {{ t('创建套餐') }}
       </Button>
@@ -300,7 +228,7 @@ onMounted(() => {
     <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
       <!-- 加载中 -->
       <div v-if="isLoading" class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <ProgressSpinner />
         <p class="mt-2 text-primary-600 dark:text-primary-400">{{ t('加载中...') }}</p>
       </div>
 
@@ -349,7 +277,7 @@ onMounted(() => {
               <div class="flex justify-between">
                 <span class="text-primary-600 dark:text-primary-400">{{ t('价格:') }}</span>
                 <span class="font-medium text-primary-900 dark:text-primary-100">
-                  {{ formatPrice(pkg.price) }}
+                  {{ pkg.price === null ? t('免费') : formatPriceWithCurrency(pkg.price) }}
                 </span>
               </div>
               <div class="flex justify-between">
@@ -407,10 +335,10 @@ onMounted(() => {
       </div>
     </div>
 
-    <!-- 创建对话框 -->
+    <!-- 创建/编辑对话框（统一模板，通过 dialogMode 区分） -->
     <Dialog
-      v-model:open="showCreateDialog"
-      :title="t('创建套餐')"
+      v-model:open="showDialog"
+      :title="dialogMode === 'create' ? t('创建套餐') : t('编辑套餐')"
     >
       <div class="space-y-4">
         <div>
@@ -419,7 +347,7 @@ onMounted(() => {
           </label>
           <Input
             v-model="formData.name"
-            :placeholder="t('例如：基础套餐')"
+            :placeholder="dialogMode === 'create' ? t('例如：基础套餐') : undefined"
           />
         </div>
 
@@ -430,7 +358,7 @@ onMounted(() => {
           <Textarea
             v-model="formData.description"
             :rows="3"
-            :placeholder="t('描述套餐的特点和适用人群')"
+            :placeholder="dialogMode === 'create' ? t('描述套餐的特点和适用人群') : undefined"
           />
         </div>
 
@@ -465,7 +393,7 @@ onMounted(() => {
             <InputNumber
               v-model="formData.price"
               :min="0"
-              :placeholder="t('0 表示免费')"
+              :placeholder="dialogMode === 'create' ? t('0 表示免费') : undefined"
             />
           </div>
 
@@ -476,107 +404,7 @@ onMounted(() => {
             <InputNumber
               v-model="formData.durationMonths"
               :min="0"
-              :placeholder="t('0 表示永久')"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            {{ t('排序顺序') }}
-          </label>
-          <InputNumber
-            v-model="formData.sortOrder"
-            :min="0"
-          />
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="flex justify-end gap-2">
-          <Button
-            variant="secondary"
-            @click="showCreateDialog = false"
-          >
-            {{ t('取消') }}
-          </Button>
-          <Button
-            :disabled="isSubmitting || !formData.name"
-            :loading="isSubmitting"
-            @click="createPackage"
-          >
-            {{ isSubmitting ? t('创建中...') : t('创建') }}
-          </Button>
-        </div>
-      </template>
-    </Dialog>
-
-    <!-- 编辑对话框 -->
-    <Dialog
-      v-model:open="showEditDialog"
-      :title="t('编辑套餐')"
-    >
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            {{ t('套餐名称 *') }}
-          </label>
-          <Input
-            v-model="formData.name"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-            {{ t('套餐描述') }}
-          </label>
-          <Textarea
-            v-model="formData.description"
-            :rows="3"
-          />
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-              {{ t('代币类型 *') }}
-            </label>
-            <Select
-              v-model="formData.type"
-              :options="tokenTypeOptions"
-              :placeholder="t('请选择代币类型')"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-              {{ t('代币数量 *') }}
-            </label>
-            <InputNumber
-              v-model="formData.amount"
-              :min="1"
-            />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-              {{ t('价格（分）') }}
-            </label>
-            <InputNumber
-              v-model="formData.price"
-              :min="0"
-            />
-          </div>
-
-          <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
-              {{ t('时长（月）') }}
-            </label>
-            <InputNumber
-              v-model="formData.durationMonths"
-              :min="0"
+              :placeholder="dialogMode === 'create' ? t('0 表示永久') : undefined"
             />
           </div>
         </div>
@@ -592,7 +420,7 @@ onMounted(() => {
             />
           </div>
 
-          <div class="flex items-center">
+          <div v-if="dialogMode === 'edit'" class="flex items-center">
             <Checkbox v-model="formData.active" :label="t('启用套餐')" />
           </div>
         </div>
@@ -602,16 +430,16 @@ onMounted(() => {
         <div class="flex justify-end gap-2">
           <Button
             variant="secondary"
-            @click="showEditDialog = false"
+            @click="dialogMode = null"
           >
             {{ t('取消') }}
           </Button>
           <Button
             :disabled="isSubmitting || !formData.name"
             :loading="isSubmitting"
-            @click="updatePackage"
+            @click="dialogMode === 'create' ? createPackage() : updatePackage()"
           >
-            {{ isSubmitting ? t('更新中...') : t('更新') }}
+            {{ isSubmitting ? (dialogMode === 'create' ? t('创建中...') : t('更新中...')) : (dialogMode === 'create' ? t('创建') : t('更新')) }}
           </Button>
         </div>
       </template>

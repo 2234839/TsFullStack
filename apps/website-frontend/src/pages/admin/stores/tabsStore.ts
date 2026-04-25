@@ -29,7 +29,7 @@ export interface TabItem extends RouteMetaTabs {
   name: string;
 }
 
-// 创建一个注入键
+/** 创建一个注入键 */
 export const TabsStoreKey: InjectionKey<ReturnType<typeof createTabsStore>> = Symbol('TabsStore');
 
 export function createTabsStore() {
@@ -76,7 +76,7 @@ export function createTabsStore() {
       // 如果关闭的是当前激活的页签，需要激活其他页签
       if (fullPath === activeTab.value) {
         // 优先激活右侧页签，如果没有则激活左侧页签
-        const nextTab = tabs.value[tabIndex + 1] || tabs.value[tabIndex - 1];
+        const nextTab = tabs.value[tabIndex + 1] ?? tabs.value[tabIndex - 1];
         if (nextTab) {
           router.push(nextTab.value.fullPath);
         }
@@ -115,7 +115,7 @@ export function createTabsStore() {
   });
 }
 
-// 提供一个使用TabsStore的钩子函数
+/** 提供一个使用TabsStore的钩子函数 */
 export function useTabsStore() {
   const store = inject(TabsStoreKey);
 
@@ -126,7 +126,7 @@ export function useTabsStore() {
   return store;
 }
 
-// 提供一个Provider组件
+/** 提供一个Provider组件 */
 export function provideTabsStore() {
   const store = createTabsStore();
   provide(TabsStoreKey, store);

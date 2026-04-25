@@ -8,7 +8,8 @@ import {
   useStorage,
   useStorageAsync,
 } from '@vueuse/core';
-import { computed, watch } from 'vue';
+import { computed, watchEffect } from 'vue';
+import { DEFAULT_OPENAI_BASE_URL, DEFAULT_MAX_TOKENS } from '@/utils/constants';
 export const appId = 'tfs_';
 /** 用户认证信息存储  */
 export const authInfo = useStorageAsync<loginByEmailPwd_res>(
@@ -59,12 +60,8 @@ export const theme_isDark = computed<boolean>({
     return theme.value === 'dark';
   },
 });
-watch(theme_isDark, (isDark) => {
-  if (isDark) {
-    document.documentElement.classList.add(theme_darkModeClass);
-  } else {
-    document.documentElement.classList.remove(theme_darkModeClass);
-  }
+watchEffect(() => {
+  document.documentElement.classList.toggle(theme_darkModeClass, theme_isDark.value);
 });
 
 //#endregion 主题功能
@@ -95,10 +92,10 @@ export const useOpenAIConfig = createSharedComposable(function () {
   return useApiStorage<OpenAIConfig>(
     appId + 'openAIConfig',
     {
-      baseURL: 'https://api.openai.com/v1',
+      baseURL: DEFAULT_OPENAI_BASE_URL,
       apiKey: '',
       model: 'gpt-3.5-turbo',
-      maxTokens: 2000,
+      maxTokens: DEFAULT_MAX_TOKENS,
       temperature: 0.7,
     },
     {

@@ -4,6 +4,7 @@
  * 使用 Tailwind CSS 样式
  */
 import { computed, inject } from 'vue';
+import { INPUT_BASE_CLASSES } from './inputStyles';
 
 interface Props {
   /** 模型值 */
@@ -33,10 +34,9 @@ const inInputGroup = inject('inInputGroup', false);
 
 /** 输入框样式类 */
 const inputClasses = computed(() => {
-  const base = 'w-full px-3 py-2 border focus:outline-none transition-all duration-200';
-
-  // 在 InputGroup 中时，不需要圆角（由父容器控制）
+  // 在 InputGroup 中时，不需要圆角和 focus ring（由父容器控制）
   const roundedClass = inInputGroup ? 'rounded-none' : 'rounded-lg';
+  const ringClass = inInputGroup ? '' : 'focus:ring-2 focus:ring-offset-0';
 
   const stateClasses = invalid
     ? 'border-danger-500 focus:border-danger-500 dark:border-danger-400'
@@ -46,7 +46,7 @@ const inputClasses = computed(() => {
   const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
-  return `${base} ${roundedClass} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
+  return `${INPUT_BASE_CLASSES} ${roundedClass} ${ringClass} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });
 
 /** 处理输入事件 */

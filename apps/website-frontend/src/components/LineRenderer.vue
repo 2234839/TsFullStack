@@ -15,8 +15,7 @@
       />
       <span
         v-else
-        class="select-none"
-        :style="{ lineHeight: '1.6' }"
+        class="select-none leading-relaxed"
       >
         {{ tokens[tokenIndex] }}
       </span>
@@ -58,10 +57,10 @@ const emit = defineEmits<{
   wordMouseDown: [e: MouseEvent | TouchEvent, index: number]
 }>()
 
-// 按正则表达式分割行文本
+/** 按正则表达式分割行文本 */
 const tokens = computed(() => line.split(/(\s+|[^\w\s])/))
 
-// 计算单词索引映射
+/** 计算单词索引映射 */
 const wordIndexMap = computed(() => {
   const map: number[] = []
   let currentWordIndex = lineStartWordIndex
@@ -81,7 +80,7 @@ const tokenRenderInfos = computed<TokenRenderInfo[]>(() =>
   tokens.value.map((token, tokenIndex) => renderToken(token, tokenIndex))
 )
 
-// 渲染每个token的信息
+/** 渲染每个token的信息 */
 const renderToken = (token: string, tokenIndex: number): TokenRenderInfo => {
   const cleanWord = token.toLowerCase().replace(/[^\w]/g, '')
   const wordData = getWordData?.(cleanWord)
@@ -100,7 +99,7 @@ const renderToken = (token: string, tokenIndex: number): TokenRenderInfo => {
     isWord: true,
     word: cleanWord,
     isKeyWord,
-    memoryLevel: wordData.memoryLevel || 0,
+    memoryLevel: wordData.memoryLevel ?? 0,
     isClicked,
     isSelected,
     isHighlighted

@@ -13,15 +13,15 @@
           <Input v-model="searchTitle" :placeholder="t('搜索')" class="w-full pl-10" />
         </div>
         <Button :label="t('新建分享')" icon="pi pi-plus" @click="openCreateDialog"
-          class="p-button-success self-end sm:self-auto" />
+          variant="primary" class="self-end sm:self-auto" />
       </div>
 
-      <ShareForm :visible="dialogVisible" :editing-item="editingItem" @update:visible="dialogVisible = $event"
+      <ShareForm :open="dialogVisible" :editing-item="editingItem" @update:open="dialogVisible = $event"
         @success="handleSuccess" />
 
       <!-- QR码对话框 -->
-      <Dialog v-model:visible="qrDialogVisible" :header="t('分享二维码')" :modal="true"
-        :closable="true" class="w-75 p-fluid">
+      <Dialog v-model:open="qrDialogVisible" :header="t('分享二维码')" :modal="true"
+        :closable="true" class="w-75">
         <div class="text-center">
           <div class="mb-4">
             <h3 class="text-lg font-semibold text-primary-900 dark:text-white mb-2">
@@ -35,7 +35,7 @@
           <div class="flex justify-center mb-4">
             <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" :alt="t('分享二维码')"
               class="border border-primary-300 dark:border-primary-600 rounded-lg" width="200" height="200" />
-            <div v-else class="w-52 h-52 flex items-center justify-center text-primary-500">
+            <div v-else class="w-52 h-52 flex items-center justify-center text-primary-500 dark:text-primary-400">
               {{ t('生成二维码中...') }}
             </div>
           </div>
@@ -45,7 +45,7 @@
           </div>
 
           <div class="mt-4">
-            <Button :label="t('复制链接')" icon="pi pi-copy" class="p-button-sm" @click="copyToClipboard" />
+            <Button :label="t('复制链接')" icon="pi pi-copy" size="sm" @click="handleCopyLink" />
           </div>
         </div>
       </Dialog>
@@ -124,7 +124,6 @@
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
-  import { Button, Input } from '@/components/base';
   import { Dialog } from '@tsfullstack/shared-frontend/components';
   import ShareCard from '@/pages/admin/share/ShareCard.vue';
   import { useToast } from '@/composables/useToast';
@@ -142,13 +141,14 @@
   import { useConfirm } from '@/composables/useConfirm';
   import { useI18n } from '@/composables/useI18n';
   import { getErrorMessage } from '@/utils/error';
+  import { copyToClipboard } from '@/utils/clipboard';
 
   const { API } = useAPI();
   const { t } = useI18n();
   const toast = useToast();
   const confirm = useConfirm();
 
-  // 搜索关键词
+  /** 搜索关键词 */
   const searchTitle = ref('');
 
   function useShareList() {
@@ -253,7 +253,7 @@
     shareList.execute();
   };
 
-  // 编辑处理
+  /** 编辑处理 */
   const handleEdit = (item: ShareItemJSON) => {
     openEditDialog(item);
   };
@@ -290,9 +290,9 @@
   /**
    * 复制分享链接到剪贴板
    */
-  const copyToClipboard = async () => {
+  const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(currentShareUrl.value);
+      await copyToClipboard(currentShareUrl.value);
       toast.success(t('链接已复制到剪贴板'));
     } catch (error: unknown) {
       toast.error(t('复制失败'), getErrorMessage(error));
@@ -304,7 +304,7 @@
       id: String(item.id),
     });
   };
-  // 删除处理
+  /** 删除处理 */
   const handleDelete = (item: ShareItemJSON, event: MouseEvent) => {
     confirm.require({
       message: t('确定要删除这个分享吗？'),
@@ -331,19 +331,9 @@
             },
           });
           shareList.execute(); // 刷新列表
-          toast.add({
-            variant: 'success',
-            summary: t('成功'),
-            detail: t('删除分享成功'),
-            life: 3000,
-          });
+          toast.success(t('成功'), t('删除分享成功'));
         } catch (error: unknown) {
-          toast.add({
-            variant: 'error',
-            summary: t('失败'),
-            detail: t('删除分享失败：') + getErrorMessage(error),
-            life: 3000,
-          });
+          toast.error(t('失败'), t('删除分享失败：') + getErrorMessage(error));
         }
       },
       reject: () => {

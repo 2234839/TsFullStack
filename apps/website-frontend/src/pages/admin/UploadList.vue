@@ -4,12 +4,13 @@
  * 提供文件上传、预览、下载、删除等功能
  */
 import { useAPI } from '@/api';
-import { Input, InputGroup, Button, DataTable, ProgressBar } from '@/components/base';
+import { Button } from '@/components/base';
 import { Dialog, Tooltip } from '@tsfullstack/shared-frontend/components';
 import { getErrorMessage } from '@/utils/error';
-import { formatDate } from '@/utils/format';
-import { useClipboard, useTimeoutFn } from '@vueuse/core';
-import { onMounted, ref, h, computed } from 'vue';
+import { formatDate, formatFileSize } from '@/utils/format';
+import { useTimeoutFn } from '@vueuse/core';
+import { copyToClipboard } from '@/utils/clipboard';
+import { onMounted, ref, shallowRef, h, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
@@ -35,7 +36,7 @@ interface FileInfo {
 }
 
 // 响应式数据
-const files = ref<FileInfo[]>([]);
+const files = shallowRef<FileInfo[]>([]);
 const loading = ref(false);
 const totalRecords = ref(0);
 const previewDialogVisible = ref(false);
@@ -53,7 +54,7 @@ const isUploading = ref(false);
 // 搜索相关
 const searchTerm = ref('');
 
-// 文件类型图标映射
+/** 文件类型图标映射 */
 const getFileIcon = (fileType?: string) => {
   if (!fileType) return 'pi pi-file';
 
@@ -78,16 +79,13 @@ const getFileIcon = (fileType?: string) => {
   }
 };
 
-// 判断是否为图片文件
+/** 判断是否为图片文件 */
 const isImageFile = (fileType?: string) => {
   if (!fileType) return false;
   return fileType.startsWith('image/');
 };
 
-/** 格式化文件大小（从 utils/format 统一导入） */
-import { formatFileSize } from '@/utils/format';
-
-// 表格列定义
+/** 表格列定义 */
 const fileColumns = computed(() => [
   {
     key: 'name',
@@ -145,7 +143,7 @@ const fileColumns = computed(() => [
   },
 ]);
 
-// 分页查询
+/** 分页查询 */
 const loadFiles = async (page: number = 0, pageSize: number = 10) => {
   try {
     loading.value = true;
@@ -165,37 +163,35 @@ const loadFiles = async (page: number = 0, pageSize: number = 10) => {
 
     // 如果有搜索词，使用搜索API
     if (searchTerm.value.trim()) {
-      result = await API.db.file.findMany({
-        where: {
-          filename: {
-            contains: searchTerm.value,
-          },
+      const where = {
+        filename: {
+          contains: searchTerm.value,
         },
-        skip,
-        take: pageSize,
-        orderBy: {
-          created: 'desc',
-        },
-      });
+      };
 
-      totalRecords.value = await API.db.file.count({
-        where: {
-          filename: {
-            contains: searchTerm.value,
+      [result, totalRecords.value] = await Promise.all([
+        API.db.file.findMany({
+          where,
+          skip,
+          take: pageSize,
+          orderBy: {
+            created: 'desc',
           },
-        },
-      });
+        }),
+        API.db.file.count({ where }),
+      ]);
     } else {
       // 否则加载所有文件
-      result = await API.db.file.findMany({
-        skip,
-        take: pageSize,
-        orderBy: {
-          created: 'desc',
-        },
-      });
-
-      totalRecords.value = await API.db.file.count();
+      [result, totalRecords.value] = await Promise.all([
+        API.db.file.findMany({
+          skip,
+          take: pageSize,
+          orderBy: {
+            created: 'desc',
+          },
+        }),
+        API.db.file.count(),
+      ]);
     }
 
     // 转换字段名以匹配前端显示
@@ -217,7 +213,7 @@ const loadFiles = async (page: number = 0, pageSize: number = 10) => {
   }
 };
 
-// 预览文件
+/** 预览文件 */
 const previewFile = async (file: FileInfo) => {
   currentFile.value = file;
   if (isImageFile(file.type)) {
@@ -231,7 +227,7 @@ const previewFile = async (file: FileInfo) => {
   previewDialogVisible.value = true;
 };
 
-// 下载文件
+/** 下载文件 */
 const downloadFile = async (file: FileInfo) => {
   try {
     window.open(await APIGetUrl.fileApi.file(file.id), '_blank', 'noopener,noreferrer');
@@ -255,34 +251,37 @@ async function deleteFile(row: FileInfo) {
     },
   });
 }
-const { copy } = useClipboard();
-
 async function shareFile(file: FileInfo) {
-  copy(AppAPIGetUrl.fileApi.file(file.id));
+  try {
+    await copyToClipboard(AppAPIGetUrl.fileApi.file(file.id));
+    toast.success(t('链接已复制'));
+  } catch {
+    toast.error(t('复制失败'));
+  }
 }
 
-// 下载当前文件
+/** 下载当前文件 */
 const downloadCurrentFile = () => {
   if (currentFile.value) {
     downloadFile(currentFile.value);
   }
 };
 
-// 显示上传对话框
+/** 显示上传对话框 */
 const showUploadDialog = () => {
   uploadDialogVisible.value = true;
   selectedFiles.value = [];
   uploadProgress.value = {};
 };
 
-// 触发文件选择
+/** 触发文件选择 */
 const triggerFileInput = () => {
   if (fileInputRef.value) {
     fileInputRef.value.click();
   }
 };
 
-// 处理文件选择
+/** 处理文件选择 */
 const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement;
   if (target.files && target.files.length > 0) {
@@ -291,7 +290,7 @@ const handleFileSelect = (event: Event) => {
   }
 };
 
-// 拖拽事件处理
+/** 拖拽事件处理 */
 const onDragOver = () => {
   isDragging.value = true;
 };
@@ -308,7 +307,7 @@ const onDrop = (event: DragEvent) => {
   }
 };
 
-// 上传文件
+/** 上传文件 */
 const uploadFiles = async () => {
   if (selectedFiles.value.length === 0) return;
 
@@ -349,7 +348,7 @@ const uploadFiles = async () => {
   }
 };
 
-// 搜索文件（复用 loadFiles 的分页逻辑）
+/** 搜索文件（复用 loadFiles 的分页逻辑） */
 const searchFiles = () => {
   if (!searchTerm.value.trim()) {
     loadFiles();
@@ -359,15 +358,15 @@ const searchFiles = () => {
 };
 
 // 组件挂载时加载数据
-onMounted(() => {
-  loadFiles();
-});
+onMounted(loadFiles);
 </script>
 
 <template>
   <div class="p-4 max-md:p-2 max-[480px]:p-1">
     <div class="flex justify-between items-center mb-4">
-      <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-100">{{ t('文件管理') }}</h1>
+      <PageHeader no-margin>
+        {{ t('文件管理') }}
+      </PageHeader>
       <Button :label="t('上传文件')" icon="pi pi-upload" variant="primary" @click="showUploadDialog" />
     </div>
 
@@ -396,7 +395,7 @@ onMounted(() => {
         <div v-if="selectedFiles.length > 0" class="border-t border-neutral-200 dark:border-neutral-700 pt-4 mt-4">
           <h3>{{ t('已选择的文件') }}</h3>
           <ul class="file-list">
-            <li v-for="(file, index) in selectedFiles" :key="file.name + '-' + file.size + '-' + index"
+            <li v-for="(file, index) in selectedFiles" :key="`${file.name}-${file.size}-${index}`"
               class="py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
               <div class="flex items-center justify-between">
                 <div class="flex items-center">

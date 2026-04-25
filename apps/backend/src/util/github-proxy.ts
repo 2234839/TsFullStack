@@ -2,7 +2,11 @@ import { Effect } from 'effect';
 import { AppConfigService } from '../Context/AppConfig';
 import { withFetchTimeout, FETCH_TIMEOUTS } from './http';
 import { ReqCtxService } from '../Context/ReqCtx';
-import { MsgError } from '../util/error';
+import { tryOrFail } from '../util/error';
+import { JSON_CONTENT_HEADERS } from './constants';
+
+/** 日志前缀 */
+const LOG_PREFIX = '[github-proxy]';
 
 /**
  * Enhanced fetch options with proxy support
@@ -17,17 +21,19 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
     const appConfig = yield* AppConfigService;
     const ctx = yield* ReqCtxService;
 
+    /** 直接 fetch（无代理），共用错误处理 */
+    function directFetch(url: string | URL, fetchOptions: RequestInit) {
+      return tryOrFail('fetch', () => fetch(url, withFetchTimeout(fetchOptions, FETCH_TIMEOUTS.github)));
+    }
+
     function fetchProxy(url: string | URL, options: ProxyFetchOptions = {}) {
       return Effect.gen(function* () {
         const { useProxy = true, ...fetchOptions } = options;
         const githubProxyUrl = appConfig.ApiProxy.github;
 
-        ctx.log('[github-proxy] fetch proxy, hasProxy=' + !!githubProxyUrl);
+        ctx.log(`${LOG_PREFIX} fetch proxy, hasProxy=${!!githubProxyUrl}`);
         if (!useProxy || !githubProxyUrl) {
-          return yield* Effect.tryPromise({
-            try: () => fetch(url, withFetchTimeout(fetchOptions, FETCH_TIMEOUTS.github)),
-            catch: (e) => MsgError.msg('fetch 失败: ' + String(e)),
-          });
+          return yield* directFetch(url, fetchOptions);
         }
 
         const urlString = url.toString();
@@ -36,10 +42,7 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
           return yield* fetchWithPostProxy(urlString, fetchOptions, githubProxyUrl);
         }
 
-        return yield* Effect.tryPromise({
-          try: () => fetch(url, withFetchTimeout(fetchOptions, FETCH_TIMEOUTS.github)),
-          catch: (e) => MsgError.msg('fetch 失败: ' + String(e)),
-        });
+        return yield* directFetch(url, fetchOptions);
       });
     }
 
@@ -56,38 +59,30 @@ export class FetchWithProxy extends Effect.Service<FetchWithProxy>()('FetchWithP
         const proxyUrl = new URL(githubProxyUrl);
         proxyUrl.pathname = '/proxy';
 
-        ctx.log('[github-proxy] using POST proxy for GitHub API');
+        ctx.log(`${LOG_PREFIX} using POST proxy for GitHub API`);
 
-        const proxyRequest = Effect.tryPromise({
-          try: () => fetch(proxyUrl, withFetchTimeout({
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...fetchOptions.headers,
-            },
-            body: JSON.stringify({
-              url: urlString,
-              method: fetchOptions.method || 'GET',
-              headers: Object.fromEntries(
-                Object.entries(fetchOptions.headers || {}).filter(
-                  ([_, value]) => value !== undefined,
-                ),
+        const proxyRequest = tryOrFail('代理请求', () => fetch(proxyUrl, withFetchTimeout({
+          method: 'POST',
+          headers: {
+            ...JSON_CONTENT_HEADERS,
+            ...fetchOptions.headers,
+          },
+          body: JSON.stringify({
+            url: urlString,
+            method: fetchOptions.method ?? 'GET',
+            headers: Object.fromEntries(
+              Object.entries(fetchOptions.headers ?? {}).filter(
+                ([_, value]) => value !== undefined,
               ),
-              body: fetchOptions.body,
-            }),
-          }, FETCH_TIMEOUTS.github)),
-          catch: (e) => MsgError.msg('代理请求失败: ' + String(e)),
-        });
-
-        return yield* Effect.orElse(proxyRequest, () =>
-          Effect.gen(function* () {
-            ctx.log('[github-proxy] fallback to direct fetch');
-            return yield* Effect.tryPromise({
-              try: () => fetch(urlString, withFetchTimeout(fetchOptions, FETCH_TIMEOUTS.github)),
-              catch: (e) => MsgError.msg('fallback fetch 失败: ' + String(e)),
-            });
+            ),
+            body: fetchOptions.body,
           }),
-        );
+        }, FETCH_TIMEOUTS.github)));
+
+        return yield* Effect.orElse(proxyRequest, () => {
+          ctx.log(`${LOG_PREFIX} fallback to direct fetch`);
+          return directFetch(urlString, fetchOptions);
+        });
       });
     }
     return { fetchProxy } as const;

@@ -7,52 +7,52 @@
     <div class="space-y-4">
       <div class="field">
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-          {{ t('模型名称') }} <span class="text-danger-500">*</span>
+          {{ t('模型名称') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
           v-model="form.name"
           :placeholder="t('请输入模型名称')"
-          :class="{ 'p-invalid': errors.name }"
+          :class="{ 'ring-2 ring-danger-500': errors.name }"
           @input="validateField('name')" />
-        <small v-if="errors.name" class="text-danger-500">{{ errors.name }}</small>
+        <small v-if="errors.name" class="text-danger-500 dark:text-danger-400">{{ errors.name }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-          {{ t('模型标识') }} <span class="text-danger-500">*</span>
+          {{ t('模型标识') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
           v-model="form.model"
           :placeholder="t('如：gpt-3.5-turbo, claude-3-sonnet')"
-          :class="{ 'p-invalid': errors.model }"
+          :class="{ 'ring-2 ring-danger-500': errors.model }"
           @input="validateField('model')" />
-        <small v-if="errors.model" class="text-danger-500">{{ errors.model }}</small>
+        <small v-if="errors.model" class="text-danger-500 dark:text-danger-400">{{ errors.model }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-          {{ t('API基础URL') }} <span class="text-danger-500">*</span>
+          {{ t('API基础URL') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
           v-model="form.baseUrl"
           :placeholder="t('请输入API基础URL')"
-          :class="{ 'p-invalid': errors.baseUrl }"
+          :class="{ 'ring-2 ring-danger-500': errors.baseUrl }"
           @input="validateField('baseUrl')" />
-        <small v-if="errors.baseUrl" class="text-danger-500">{{ errors.baseUrl }}</small>
+        <small v-if="errors.baseUrl" class="text-danger-500 dark:text-danger-400">{{ errors.baseUrl }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
-          {{ t('API密钥') }} <span class="text-danger-500">*</span>
+          {{ t('API密钥') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Password
           v-model="form.apiKey"
           :placeholder="t('请输入API密钥')"
           :feedback="false"
           toggleMask
-          :class="{ 'p-invalid': errors.apiKey }"
+          :class="{ 'ring-2 ring-danger-500': errors.apiKey }"
           @input="validateField('apiKey')" />
-        <small v-if="errors.apiKey" class="text-danger-500">{{ errors.apiKey }}</small>
+        <small v-if="errors.apiKey" class="text-danger-500 dark:text-danger-400">{{ errors.apiKey }}</small>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -185,32 +185,27 @@ import { useAPI } from '@/api'
 import { useI18n } from '@/composables/useI18n'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/error'
-import Button from '@/components/base/Button.vue'
+import { DEFAULT_MAX_TOKENS } from '@/utils/constants'
 import { Dialog } from '@tsfullstack/shared-frontend/components'
-import Input from '@/components/base/Input.vue'
-import Password from '@/components/base/Password.vue'
-import InputNumber from '@/components/base/InputNumber.vue'
-import Textarea from '@/components/base/Textarea.vue'
-import Checkbox from '@/components/base/Checkbox.vue'
 
 /** AiModel 表单数据（与 AiModelVO 对齐，允许 null 表示新建模式） */
 interface Props {
-  visible: boolean
+  open: boolean
   model?: Record<string, unknown> | null
 }
 
-const { visible, model } = defineProps<Props>()
+const { open, model } = defineProps<Props>()
 
 /** 组件事件定义 */
 const emit = defineEmits<{
-  'update:visible': [value: boolean];
+  'update:open': [value: boolean];
   submit: [model: Record<string, unknown>];
 }>()
 
-/** 本地的 visible 状态，支持双向绑定 */
+/** 本地的 open 状态，支持双向绑定 */
 const localVisible = computed<boolean>({
-  get: () => visible,
-  set: (value: boolean) => emit('update:visible', value),
+  get: () => open,
+  set: (value: boolean) => emit('update:open', value),
 })
 
 const { API } = useAPI()
@@ -221,7 +216,7 @@ const isEdit = ref(false)
 
 /** AI 模型表单默认值 */
 const DEFAULT_MODEL_FORM = {
-  maxTokens: 2000,
+  maxTokens: DEFAULT_MAX_TOKENS,
   temperature: 0.7,
   weight: 100,
   rpmLimit: 60,
@@ -229,7 +224,7 @@ const DEFAULT_MODEL_FORM = {
   rpdLimit: 10000,
 } as const
 
-// 表单数据
+/** 表单数据 */
 const form = reactive({
   name: '',
   model: '',
@@ -240,7 +235,7 @@ const form = reactive({
   enabled: true
 })
 
-// 错误信息
+/** 错误信息 */
 const errors = reactive({
   name: '',
   model: '',
@@ -248,7 +243,7 @@ const errors = reactive({
   apiKey: ''
 })
 
-// 验证规则
+/** 验证规则 */
 const validateField = (field: string) => {
   switch (field) {
     case 'name':
@@ -316,27 +311,23 @@ const onSubmit = async () => {
     }
 
     emit('submit', submitData)
-    emit('update:visible', false)
+    emit('update:open', false)
     resetForm()
   } catch (error: unknown) {
-    toast.add({
-      summary: t('保存失败'),
-      detail: getErrorMessage(error),
-      variant: 'error',
-    })
+    toast.error(t('保存失败'), getErrorMessage(error))
   } finally {
     loading.value = false
   }
 }
 
 const onCancel = () => {
-  emit('update:visible', false)
+  emit('update:open', false)
   resetForm()
 }
 
 // 监听 props 变化，初始化表单（合并 visible 和 model 的监听）
 watch(
-  [() => visible, () => model],
+  [() => open, () => model],
   ([isVisible, currentModel]) => {
     if (isVisible && currentModel) {
       // 编辑模式
@@ -371,13 +362,11 @@ watch(
   margin-bottom: 1rem;
 }
 
-/** 校验失败时的边框颜色 */
-.field .p-invalid,
-.field :deep(.p-invalid) {
-  border-color: var(--color-danger-500);
-}
-
 .text-danger-500 {
   color: var(--color-danger-500);
+}
+
+:is(.dark .text-danger-500) {
+  color: var(--color-danger-400);
 }
 </style>

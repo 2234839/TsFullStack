@@ -27,7 +27,7 @@ function toggle() {
 
 /** 开关样式类 */
 const switchClasses = computed(() => {
-  const base = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2';
+  const base = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2 dark:focus:ring-offset-primary-900';
   const activeClass = modelValue
     ? 'bg-primary-600 dark:bg-primary-500'
     : 'bg-primary-200 dark:bg-primary-700';

@@ -1,11 +1,15 @@
 import { Effect } from 'effect';
+import { AuthContext, requireAdmin } from '../Context/Auth';
+import { AppConfigService } from '../Context/AppConfig';
+import { DbClientEffect, type DbClient } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
-import { MsgError } from './error';
+import { MsgError, extractErrorMessage, requireOrFail } from './error';
 
 /**
  * 封装数据库操作的 Effect.tryPromise，统一日志记录和错误处理
  *
- * 使用 Effect.flatMap 而非 Effect.gen 包裹，确保 yield* 时类型正确传递
+ * 如果原始错误是 MsgError（业务异常），直接传播以保留错误消息；
+ * 其他错误则包装为通用的操作失败消息。
  */
 export function dbTry<T>(
   label: string,
@@ -16,7 +20,8 @@ export function dbTry<T>(
     Effect.tryPromise({
       try: fn,
       catch: (error: unknown) => {
-        reqCtx.log(`${label} ${operation}失败:`, String(error));
+        reqCtx.log(`${label} ${operation}失败:`, extractErrorMessage(error));
+        if (error instanceof MsgError) return error;
         return MsgError.msg(`${operation}失败`);
       },
     }),
@@ -37,7 +42,7 @@ export function dbTryOrDefault<T>(
       Effect.tryPromise({
         try: fn,
         catch: (error: unknown) => {
-          reqCtx.log(`${label} ${operation}失败，使用默认值:`, String(error));
+          reqCtx.log(`${label} ${operation}失败，使用默认值:`, extractErrorMessage(error));
           return MsgError.msg(`${operation}失败（静默）`);
         },
       }),
@@ -56,9 +61,41 @@ export function dbPaginatedFindMany<T>(
   findManyFn: () => Promise<T[]>,
   countFn: () => Promise<number>,
   emptyValue?: T[],
-): Effect.Effect<{ items: T[]; total: number }, Error | never, ReqCtxService> {
-  return Effect.flatMap(Effect.all([
+): Effect.Effect<{ items: T[]; total: number }, Error, ReqCtxService> {
+  return Effect.map(Effect.all([
     dbTryOrDefault(label, '查询列表', findManyFn, emptyValue ?? ([] as unknown as T[])),
     dbTryOrDefault(label, '查询总数', countFn, 0),
-  ]), ([items, total]) => Effect.succeed({ items, total }));
+  ]), ([items, total]) => ({ items, total }));
+}
+
+/**
+ * dbTry + requireOrFail 的组合快捷方式
+ *
+ * 用于「查询数据库记录，不存在则报错」的常见模式，消除重复的两步调用：
+ * `yield* dbTryRequire('标签', '操作', fn, '未找到')` 替代
+ * `yield* requireOrFail(yield* dbTry('标签', '操作', fn), '未找到')`
+ */
+export function dbTryRequire<T>(
+  label: string,
+  operation: string,
+  fn: () => Promise<T | null | undefined>,
+  errorMsg: string,
+): Effect.Effect<T, Error | MsgError, ReqCtxService> {
+  return Effect.flatMap(dbTry<T | null | undefined>(label, operation, fn), result =>
+    requireOrFail(result, errorMsg),
+  );
+}
+
+/**
+ * 管理员 + 数据库操作的组合 Effect（requireAdmin → DbClientEffect → dbTry）
+ * 用于消除 API 层中重复的 `Effect.flatMap(requireAdmin(), () => Effect.flatMap(DbClientEffect, db => dbTry(...)))` 模式
+ */
+export function adminDbTry<T>(
+  label: string,
+  operation: string,
+  fn: (db: DbClient) => Promise<T>,
+): Effect.Effect<T, Error | MsgError, ReqCtxService | AppConfigService | AuthContext> {
+  return Effect.flatMap(requireAdmin(), () =>
+    Effect.flatMap(DbClientEffect, (db) => dbTry(label, operation, () => fn(db)))
+  );
 }

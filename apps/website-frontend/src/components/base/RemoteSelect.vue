@@ -23,7 +23,7 @@
                     'ml-1',
                     'text-xs',
                     'cursor-pointer',
-                    'hover:text-danger-500',
+                    'hover:text-danger-500 dark:hover:text-danger-400',
                     { 'hidden!': !isTagHovered(item) },
                   ]"
                   @mouseover="setTagHovered(item, true)"
@@ -120,8 +120,7 @@
 </script>
 <script setup lang="ts">
   import { Dropdown, ScrollArea } from '@tsfullstack/shared-frontend/components';
-  import { Checkbox, Input, Paginator, Tag } from '@/components/base';
-  import { computed, ref } from 'vue';
+  import { computed, ref, shallowRef } from 'vue';
   import { useDebounceFn } from '@vueuse/core';
   import { useI18n } from '@/composables/useI18n';
 
@@ -162,7 +161,7 @@
   });
   const searchText = ref('');
   const loading = ref(false);
-  const dataList = ref<RemoteSelectItem[]>([]);
+  const dataList = shallowRef<RemoteSelectItem[]>([]);
   const tagHovered = ref<Record<string, boolean>>({});
   const dropdownOpen = ref(false);
 
@@ -251,7 +250,7 @@
   };
 
   const isTagHovered = (item: RemoteSelectItem) => {
-    return tagHovered.value[item.value] || false;
+    return tagHovered.value[item.value] ?? false;
   };
 
   const setTagHovered = (item: RemoteSelectItem, hovered: boolean) => {

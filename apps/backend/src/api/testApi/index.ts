@@ -5,9 +5,8 @@ let testCounter = 0;
 export const testApi = {
   /** 并发控制测试 — 验证 RPC 系统的并发请求处理能力 */
   concurrencyTest() {
-    return Effect.gen(function* () {
-      yield* Effect.sleep('1 seconds');
-      return { status: 'completed', id: testCounter++, time: new Date().toISOString() };
-    });
+    return Effect.sleep('1 seconds').pipe(
+      Effect.map(() => ({ status: 'completed' as const, id: testCounter++, time: new Date().toISOString() })),
+    );
   },
 };

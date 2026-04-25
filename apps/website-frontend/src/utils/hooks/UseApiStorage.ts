@@ -12,6 +12,9 @@ import {
 } from '@vueuse/core';
 import { ref, watch } from 'vue';
 
+/** 递归 JSON 值类型，匹配 Prisma/ZenStack 的 JsonValue 约束 */
+type JsonValue = string | number | boolean | null | { [key: string]: JsonValue } | JsonValue[];
+
 /** 自定义存储适配器,当用户处于登录状态时使用API存储,否则使用本地存储 */
 export function useApiStorage<T>(
   key: string,
@@ -50,7 +53,7 @@ export function useApiStorage<T>(
         return;
       }
 
-      let parsed: unknown;
+      let parsed: JsonValue;
       try {
         parsed = JSON.parse(value);
       } catch {
@@ -74,11 +77,11 @@ export function useApiStorage<T>(
           key,
           appId,
           userId: authInfo.value.userId,
-          data: parsed,
+          data: parsed as Parameters<typeof API.db.userData.upsert>[0]['create']['data'],
           version: localVersion.value,
         },
         update: {
-          data: parsed,
+          data: parsed as Parameters<typeof API.db.userData.upsert>[0]['update']['data'],
           version: localVersion.value,
         },
       });

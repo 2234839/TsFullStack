@@ -37,8 +37,8 @@ class ToastBus {
 
       if (existing) {
         // 如果已有 op_toLogin 消息，延长时间而不是新增
-        const currentLife = existing.life || 3000;
-        const newLife = (message.life || 3000) + currentLife - 3000; // 累加额外时间
+        const currentLife = existing.life ?? 3000;
+        const newLife = (message.life ?? 3000) + currentLife - 3000; // 累加额外时间
 
         this.latestMessages.set('op_toLogin', {
           ...existing,
@@ -98,8 +98,8 @@ class ToastBus {
     this.listeners.forEach((listener) => {
       try {
         listener(message);
-      } catch (error: unknown) {
-        console.error('[ToastBus] 监听器执行出错:', error);
+      } catch (_error: unknown) {
+        /** 静默处理监听器异常 */
       }
     });
   }

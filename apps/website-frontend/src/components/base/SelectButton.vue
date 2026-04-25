@@ -112,8 +112,8 @@ const lastIndex = computed(() => (options as unknown[]).length - 1);
 /** 按钮样式类 */
 const buttonClasses = (selected: boolean) => {
   return selected
-    ? 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500 flex-shrink-0'
-    : 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-primary-700 border-primary-200 hover:bg-primary-50 dark:bg-primary-900 dark:text-primary-300 dark:border-primary-700 dark:hover:bg-primary-700 flex-shrink-0';
+    ? 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500 shrink-0'
+    : 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-primary-700 border-primary-200 hover:bg-primary-50 dark:bg-primary-900 dark:text-primary-300 dark:border-primary-700 dark:hover:bg-primary-700 shrink-0';
 };
 
 const containerClasses = computed(() => {

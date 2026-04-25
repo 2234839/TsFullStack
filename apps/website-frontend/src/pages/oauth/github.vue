@@ -3,8 +3,8 @@
     <div class="text-center p-8 bg-primary-900/80 rounded-xl shadow-2xl max-w-125 w-[90%]">
       <h1 class="text-2xl mb-4 text-primary-400">{{ t('GitHub 授权中...') }}</h1>
       <p class="text-base mb-6 text-white/80">{{ t('正在验证您的 GitHub 账号，请稍候') }}</p>
-      <div v-if="userInfo.state.value === undefined" class="w-12 h-12 rounded-full border-4 border-primary-400/30 border-t-primary-400 animate-spin mx-auto"></div>
-      <div v-else>
+      <div v-if="userInfo.state.value === undefined" key="loading" class="w-12 h-12 rounded-full border-4 border-primary-400/30 border-t-primary-400 animate-spin mx-auto"></div>
+      <div v-else key="success">
         <p>{{ t('授权成功！正在跳转...') }}</p>
       </div>
     </div>
@@ -25,12 +25,7 @@
     if (!code) return undefined;
     const res = await AppAPI.githubApi.authenticate(code);
     loginGoto(res, { r });
-    toast.add({
-      variant: 'success',
-      summary: t('登录成功'),
-      detail: t('欢迎回来，正在为您跳转...'),
-      life: 3000,
-    });
+    toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
     return res;
   }, undefined);
 </script>

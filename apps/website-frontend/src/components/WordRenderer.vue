@@ -42,7 +42,7 @@ const emit = defineEmits<{
   wordMouseDown: [e: MouseEvent | TouchEvent, index: number]
 }>()
 
-const color = computed(() => getMemoryColor(memoryLevel || 0))
+const color = computed(() => getMemoryColor(memoryLevel ?? 0))
 
 const className = computed(() => {
   let base = 'cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0'
@@ -50,9 +50,9 @@ const className = computed(() => {
   if (isHighlighted) {
     base += ' bg-white dark:bg-primary-900 font-bold text-primary-800 dark:text-primary-200 border-2 border-primary-200 dark:border-primary-700 word-highlight'
   } else if (isSelected) {
-    base += ' bg-primary-100 font-medium word-selected'
+    base += ' bg-primary-100 dark:bg-primary-800 font-medium word-selected'
   } else if (isClicked) {
-    base += ' bg-primary-50/40'
+    base += ' bg-primary-50/40 dark:bg-primary-800/40'
   }
 
   if (isKeyWord) {
@@ -63,7 +63,7 @@ const className = computed(() => {
 })
 
 const titleText = computed(() => {
-  const level = memoryLevel || 0
+  const level = memoryLevel ?? 0
   let text = `${word}: ${level}/10`
 
   if (isClicked) text += ` (${t('已操作')})`

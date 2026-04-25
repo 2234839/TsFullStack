@@ -1,5 +1,6 @@
 import type { DbClient } from '../Context/DbService';
-import { MS_PER_DAY } from '../util/constants';
+import { TokenType } from '../../.zenstack/models';
+import { MS_PER_DAY, DAYS_PER_MONTH_APPROX, DAYS_PER_YEAR, QUEUE_NAME_GRANT_TOKENS, MSG } from '../util/constants';
 
 /**
  * 代币发放队列任务的服务方法
@@ -11,16 +12,34 @@ import { MS_PER_DAY } from '../util/constants';
 
 /** 根据套餐类型计算发放间隔天数 */
 function getGrantIntervalDays(tokenType: string): number {
-  if (tokenType === 'MONTHLY') return 30;
-  if (tokenType === 'YEARLY' || tokenType === 'PERMANENT') return 365;
-  return 30; // 默认月度
+  if (tokenType === TokenType.MONTHLY) return DAYS_PER_MONTH_APPROX;
+  if (tokenType === TokenType.YEARLY || tokenType === TokenType.PERMANENT) return DAYS_PER_YEAR;
+  return DAYS_PER_MONTH_APPROX;
 }
 
+/** 代币发放队列默认优先级 */
+const TOKEN_GRANT_QUEUE_PRIORITY = 5;
+
+/** 代币发放队列最大重试次数 */
+const TOKEN_GRANT_MAX_ATTEMPTS = 3;
+
 /** 事务客户端所需的最小方法集（使用宽松类型以兼容 Prisma TransactionClient 和 DbClient） */
-interface GrantTxClient {
+export interface GrantTxClient {
   token: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> };
-  userTokenSubscription: { update: (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<unknown> };
+  userTokenSubscription: {
+    create: (args: { data: Record<string, unknown> }) => Promise<{ id: number; userId: string }>;
+    update: (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => Promise<unknown>;
+  };
   queue: { create: (args: { data: Record<string, unknown> }) => Promise<unknown> };
+}
+
+/** 订阅关联的套餐信息（发放代币时使用的子集） */
+export interface SubscriptionPackage {
+  type: string;
+  amount: number;
+  name: boolean | string;
+  /** 专用类型限制（JSON 字符串或 null） */
+  restrictedType?: string;
 }
 
 /** 将 $transaction 回调中的 tx 窄窄为 GrantTxClient（运行时保证有这 3 个方法） */
@@ -32,7 +51,7 @@ export function asGrantTx<T>(tx: T): T & GrantTxClient {
 async function grantOnce(tx: GrantTxClient, subscription: {
   id: number;
   userId: string;
-  package: { type: string; amount: number; name: boolean | string };
+  package: SubscriptionPackage;
 }, descriptionPrefix: string) {
   const grantIntervalDays = getGrantIntervalDays(subscription.package.type);
   const now = new Date();
@@ -42,13 +61,14 @@ async function grantOnce(tx: GrantTxClient, subscription: {
   await tx.token.create({
     data: {
       userId: subscription.userId,
-      type: subscription.package.type as 'MONTHLY' | 'YEARLY' | 'PERMANENT',
+      type: subscription.package.type,
       amount: subscription.package.amount,
       used: 0,
       expiresAt,
       source: 'subscription',
       sourceId: String(subscription.id),
       description: `${descriptionPrefix}${pkgName}`,
+      restrictedType: subscription.package.restrictedType ?? '[]',
     },
   });
 
@@ -61,12 +81,12 @@ async function grantOnce(tx: GrantTxClient, subscription: {
 
   await tx.queue.create({
     data: {
-      name: 'grantSubscriptionTokens',
+      name: QUEUE_NAME_GRANT_TOKENS,
       payload: { subscriptionId: subscription.id, userId: subscription.userId },
       status: 'PENDING',
-      priority: 5,
+      priority: TOKEN_GRANT_QUEUE_PRIORITY,
       runAt: nextGrantDate,
-      maxAttempts: 3,
+      maxAttempts: TOKEN_GRANT_MAX_ATTEMPTS,
     },
   });
 
@@ -97,10 +117,18 @@ export const TokenGrantService = {
       }
 
       if (!subscription.package.active) {
-        return { success: false, skipped: true, reason: '套餐已停用' };
+        return { success: false, skipped: true, reason: MSG.PACKAGE_DISABLED };
       }
 
-      const { nextGrantDate } = await grantOnce(asGrantTx(tx), subscription, '套餐自动发放：');
+      const { nextGrantDate } = await grantOnce(asGrantTx(tx), {
+        ...subscription,
+        package: {
+          ...subscription.package,
+          restrictedType: typeof subscription.package.restrictedType === 'string'
+            ? subscription.package.restrictedType
+            : undefined,
+        },
+      }, '套餐自动发放：');
 
       return {
         success: true,
@@ -112,6 +140,6 @@ export const TokenGrantService = {
     }),
 
   /** 首次订阅时立即发放一次代币（与 processSubscriptionGrant 共用 grantOnce 核心），调用方需自行通过 asGrantTx 窄化 tx */
-  grantFirstTime: (tx: GrantTxClient, subscription: { id: number; userId: string; package: { type: string; amount: number; name: boolean | string } }) =>
+  grantFirstTime: (tx: GrantTxClient, subscription: { id: number; userId: string; package: SubscriptionPackage }) =>
     grantOnce(tx, subscription, '订阅套餐：'),
 };

@@ -19,7 +19,7 @@ const { value = [] as unknown[], numVisible = 1, circular = false, autoplayInter
 
 const currentIndex = ref(0);
 
-const totalSlides = computed(() => Math.ceil((value?.length || 0) / numVisible));
+const totalSlides = computed(() => Math.ceil((value?.length ?? 0) / numVisible));
 
 const canGoPrev = computed(() => circular || currentIndex.value > 0);
 const canGoNext = computed(() => circular || currentIndex.value < totalSlides.value - 1);

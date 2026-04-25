@@ -1,9 +1,10 @@
 import { Context, Effect, Layer } from 'effect';
 import { FetchWithProxy } from '../util/github-proxy';
 import { AppConfigService } from '../Context/AppConfig';
-import { fail, neverReturn, MsgError } from '../util/error';
+import { fail } from '../util/error';
+import { MSG } from '../util/constants';
 
-// ===== 常量定义 =====
+/** ===== 常量定义 ===== */
 
 /** GitHub OAuth 默认权限范围 */
 const DEFAULT_SCOPES = ['read:user', 'user:email'] as const;
@@ -12,7 +13,7 @@ const DEFAULT_SCOPES = ['read:user', 'user:email'] as const;
 const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
 const GITHUB_API_URL = 'https://api.github.com';
 
-// ===== 接口定义 =====
+/** ===== 接口定义 ===== */
 
 /**
  * GitHub 用户信息
@@ -75,12 +76,12 @@ interface GitHubUserApiResponse {
   updated_at: string;
 }
 
-// ===== 错误处理 =====
+/** ===== 错误处理 ===== */
 
 /**
  * 认证错误类型
  */
-export enum GitHubAuthErrorCode {
+enum GitHubAuthErrorCode {
   INVALID_CONFIG = 'INVALID_CONFIG',
   INVALID_CODE = 'INVALID_CODE',
   INVALID_TOKEN = 'INVALID_TOKEN',
@@ -92,7 +93,7 @@ export enum GitHubAuthErrorCode {
 /**
  * 认证错误
  */
-export class GitHubAuthError extends Error {
+class GitHubAuthError extends Error {
   public readonly code: GitHubAuthErrorCode;
   public readonly statusCode?: number;
 
@@ -102,12 +103,24 @@ export class GitHubAuthError extends Error {
     this.code = code;
     this.statusCode = statusCode;
 
-    // 确保原型链正确设置
+    /** 确保原型链正确设置 */
     Object.setPrototypeOf(this, GitHubAuthError.prototype);
   }
 }
 
-// ===== 主要类实现 =====
+/** JSON 响应解析失败时统一构造错误（消除重复的 catch 回调） */
+const parseResponseError = () => new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR);
+
+/** 将未知错误统一映射为 NETWORK_ERROR（消除重复的 catchAll 管道） */
+const catchNetworkError = Effect.catchAll((error: unknown) =>
+  Effect.fail(
+    error instanceof GitHubAuthError
+      ? error
+      : new GitHubAuthError('Network request failed', GitHubAuthErrorCode.NETWORK_ERROR),
+  ),
+);
+
+/** ===== 主要类实现 ===== */
 export class GithubAuthService extends Context.Tag('GithubAuthService')<
   GithubAuthService,
   {
@@ -126,8 +139,7 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;
   const config = appConfig.OAuth_github;
   if (!config) {
-      yield* Effect.fail(new MsgError(MsgError.op_msgError, '未配置 OAuth_github'));
-      return neverReturn();
+      return yield* fail(MSG.OAUTH_GITHUB_NOT_CONFIGURED);
     }
   const { fetchProxy } = yield* FetchWithProxy;
   const getAccessToken = (code: string) => {
@@ -142,10 +154,9 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
 
     return Effect.gen(function* () {
       if (!code?.trim()) {
-        yield* Effect.fail(
+        return yield* Effect.fail(
           new GitHubAuthError('Authorization code is required', GitHubAuthErrorCode.INVALID_CODE),
         );
-        return neverReturn();
       }
 
       const response = yield* fetchProxy(`${GITHUB_OAUTH_URL}/access_token`, {
@@ -164,42 +175,32 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
 
       const data = yield* Effect.tryPromise({
         try: () => response.json() as Promise<GitHubTokenApiResponse>,
-        catch: () => { return new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR); },
+        catch: parseResponseError,
       });
 
       if (data.error) {
-        yield* Effect.fail(
+        return yield* Effect.fail(
           new GitHubAuthError(
             data.error_description || `Failed to get access token: ${data.error}`,
             GitHubAuthErrorCode.API_ERROR,
             response.status,
           ),
         );
-        return neverReturn();
       }
 
       return {
         accessToken: data.access_token,
-        tokenType: data.token_type || 'bearer',
-        scope: data.scope || '',
+        tokenType: data.token_type ?? 'bearer',
+        scope: data.scope ?? '',
       };
-    }).pipe(
-      Effect.catchAll((error) =>
-        Effect.fail(
-          error instanceof GitHubAuthError
-            ? error
-            : new GitHubAuthError('Network request failed', GitHubAuthErrorCode.NETWORK_ERROR),
-        ),
-      ),
-    );
+    }).pipe(catchNetworkError);
   };
   const getUser = (accessToken: string) =>
     Effect.gen(function* () {
       if (!accessToken?.trim()) {
-        yield* Effect.fail(
+        return yield* Effect.fail(
           new GitHubAuthError('Access token is required', GitHubAuthErrorCode.INVALID_TOKEN),
         );
-        return neverReturn();
       }
 
       const response = yield* fetchProxy(`${GITHUB_API_URL}/user`, {
@@ -210,19 +211,18 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
       });
 
       if (!response.ok) {
-        yield* Effect.fail(
+        return yield* Effect.fail(
           new GitHubAuthError(
             'Failed to get user information',
             GitHubAuthErrorCode.API_ERROR,
             response.status,
           ),
         );
-        return neverReturn();
       }
 
       const data = yield* Effect.tryPromise({
         try: () => response.json() as Promise<GitHubUserApiResponse>,
-        catch: () => { return new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR); },
+        catch: parseResponseError,
       });
 
       return {
@@ -241,30 +241,20 @@ export const GithubAuthLiveEffect = Effect.gen(function* () {
         createdAt: data.created_at,
         updatedAt: data.updated_at,
       } satisfies GitHubUser;
-    }).pipe(
-      Effect.catchAll((error) =>
-        Effect.fail(
-          error instanceof GitHubAuthError
-            ? error
-            : new GitHubAuthError('Network request failed', GitHubAuthErrorCode.NETWORK_ERROR),
-        ),
-      ),
-    );
+    }).pipe(catchNetworkError);
   return {
     authenticate(code: string) {
-      return getAccessToken(code).pipe(
-        Effect.andThen((tokenResponse) =>
-          getUser(tokenResponse.accessToken).pipe(
-            Effect.map((user) => ({ user, accessToken: tokenResponse.accessToken })),
-          ),
-        ),
-      );
+      return Effect.gen(function* () {
+        const tokenResponse = yield* getAccessToken(code);
+        const user = yield* getUser(tokenResponse.accessToken);
+        return { user, accessToken: tokenResponse.accessToken };
+      });
     },
     getAuthorizationUrl: (state?: string) => {
       const params = new URLSearchParams({
         client_id: config.clientId,
         redirect_uri: config.redirectUri,
-        scope: (config.scope || DEFAULT_SCOPES).join(' '),
+        scope: (config.scope ?? DEFAULT_SCOPES).join(' '),
       });
 
       if (state) {

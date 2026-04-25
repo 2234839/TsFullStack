@@ -1,12 +1,11 @@
 import { useOpenAIConfig } from '@/storage';
 import { useAPI } from '@/api';
-import { useI18n } from '@/composables/useI18n';
+import { t } from '@/i18n';
 import { type WordData } from './data';
 import type { AIAnalysis } from './types';
 import { getErrorMessage } from '@/utils/error';
+import { DEFAULT_OPENAI_BASE_URL, DEFAULT_MAX_TOKENS } from '@/utils/constants';
 export type { AIAnalysis };
-
-const { t } = useI18n();
 
 export interface WordAnalysis {
   translation: string;
@@ -22,16 +21,16 @@ export interface WordAnalysis {
 }
 const openAIConfig = useOpenAIConfig();
 const { API } = useAPI();
-// 获取动态AI配置
+/** 获取动态AI配置 */
 const getAIConfig = () => ({
   model: openAIConfig.value.model || 'gpt-3.5-turbo',
-  apiBase: openAIConfig.value.baseURL || 'https://api.openai.com/v1',
-  apiKey: openAIConfig.value.apiKey || import.meta.env.VITE_AI_API_KEY || '',
-  maxTokens: openAIConfig.value.maxTokens || 2000,
-  temperature: openAIConfig.value.temperature || 0.1,
+  apiBase: openAIConfig.value.baseURL || DEFAULT_OPENAI_BASE_URL,
+  apiKey: openAIConfig.value.apiKey ?? import.meta.env.VITE_AI_API_KEY ?? '',
+  maxTokens: openAIConfig.value.maxTokens ?? DEFAULT_MAX_TOKENS,
+  temperature: openAIConfig.value.temperature ?? 0.7,
 });
 
-// 统一的 AI 请求函数 - 支持混合模式（用户配置优先，后台代理兜底）
+/** 统一的 AI 请求函数 - 支持混合模式（用户配置优先，后台代理兜底） */
 export async function fetchAI(
   prompt: string,
   options?: {
@@ -94,7 +93,7 @@ export async function callAiResponseJSON<T = unknown>(prompt: string): Promise<T
   return JSON_parse_AIResponse<T>(content);
 }
 
-// 批量单词分析 - 使用 Function Calling
+/** 批量单词分析 - 使用 Function Calling */
 export const analyzeWordsBatch = async (
   words: { word: string; context?: string }[],
 ): Promise<Record<string, WordAnalysis>> => {
@@ -196,7 +195,7 @@ ${wordsList}
   return results;
 };
 
-// 单个单词分析（使用批量优化）
+/** 单个单词分析（使用批量优化） */
 export const translateWithAI = async (word: string, context?: string): Promise<WordAnalysis> => {
   const results = await analyzeWordsBatch([{ word, context }]);
   return (
@@ -210,7 +209,7 @@ export const translateWithAI = async (word: string, context?: string): Promise<W
   );
 };
 
-// 批量段落翻译 - 一次请求翻译多个段落
+/** 批量段落翻译 - 一次请求翻译多个段落 */
 export const translateParagraphsBatch = async (paragraphs: string[]): Promise<string[]> => {
   if (paragraphs.length === 0) return [];
 
@@ -246,12 +245,12 @@ ${paragraphs.map((text, index) => `段落${index + 1}: "${text}"`).join('\n\n')}
 
     // 确保返回所有段落的翻译
     return paragraphs.map((_, i) => translations[i] || t('翻译服务暂时不可用'));
-  } catch (e) { console.warn('[AiEnglish] translate error:', e);
+  } catch (_e: unknown) {
     return paragraphs.map(() => t('翻译服务暂时不可用'));
   }
 };
 
-// 单个段落翻译（使用批量优化）
+/** 单个段落翻译（使用批量优化） */
 export const translateParagraphWithAI = async (text: string): Promise<string> => {
   const results = await translateParagraphsBatch([text]);
   return results[0] || '';
@@ -357,13 +356,13 @@ export function useCreateMixedTranslation({
 
       const data = await fetchAI(prompt);
       return data.choices[0].message.content.trim();
-    } catch (e) { console.warn('[AiEnglish] translate error:', e);
+    } catch (_e: unknown) {
       return translatedText;
     }
   };
 }
 
-// 智能段落拆分接口定义
+/** 智能段落拆分接口定义 */
 export interface SmartParagraph {
   text: string;
   reason: string; // 拆分原因
@@ -379,7 +378,7 @@ export interface SmartSegmentationResult {
   segmentationStrategy: string; // 分段策略说明
 }
 
-// AI智能段落拆分功能
+/** AI智能段落拆分功能 */
 export const segmentArticleWithAI = async (text: string): Promise<SmartSegmentationResult> => {
   const prompt = `作为英语教学专家，请将以下英文文章智能拆分为适合学习的段落：
 
@@ -462,7 +461,7 @@ export const segmentArticleWithAI = async (text: string): Promise<SmartSegmentat
   };
 };
 
-// JSON 模式定义，用于生成 prompt 中的格式说明
+/** JSON 模式定义，用于生成 prompt 中的格式说明 */
 interface JsonSchemaField {
   type: 'string' | 'number' | 'boolean' | 'array' | 'object';
   description: string;
@@ -472,18 +471,18 @@ interface JsonSchemaField {
   properties?: Record<string, JsonSchemaField>;
 }
 
-// 生成 JSON 格式说明
+/** 生成 JSON 格式说明 */
 function generateJsonFormatExample(schema: Record<string, JsonSchemaField>): string {
   const generateExample = (field: JsonSchemaField): unknown => {
     switch (field.type) {
       case 'string':
-        return field.example || '';
+        return field.example ?? '';
       case 'number':
-        return field.example || 0;
+        return field.example ?? 0;
       case 'boolean':
-        return field.example || false;
+        return field.example ?? false;
       case 'array':
-        return field.example || [];
+        return field.example ?? [];
       case 'object':
         const obj: Record<string, unknown> = {};
         if (field.properties) {
@@ -505,7 +504,7 @@ function generateJsonFormatExample(schema: Record<string, JsonSchemaField>): str
   return JSON.stringify(example, null, 2);
 }
 
-// 生成严格的 JSON 格式 prompt
+/** 生成严格的 JSON 格式 prompt */
 function generateStrictJsonPrompt(
   schema: Record<string, JsonSchemaField>,
   additionalInstructions?: string,
@@ -532,7 +531,7 @@ ${additionalInstructions || ''}
 请直接返回 JSON，不要添加任何解释文字。`;
 }
 
-// 增强的 JSON 解析函数 - 支持多种容错机制
+/** 增强的 JSON 解析函数 - 支持多种容错机制 */
 export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
   // 尝试直接解析
   try {
@@ -574,7 +573,7 @@ export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
   }
 }
 
-// 使用 Function Calling 的结构化 AI 调用函数
+/** 使用 Function Calling 的结构化 AI 调用函数 */
 export async function callAiWithFunctionCalling<T = unknown>(
   prompt: string,
   functionName: string,
@@ -622,12 +621,12 @@ export async function callAiWithFunctionCalling<T = unknown>(
   const schemaProps = parametersSchema.properties as Record<string, unknown>;
   const schemaRequired = parametersSchema.required as string[] | undefined;
 
-  Object.entries(schemaProps || {}).forEach(([key, value]: [string, unknown]) => {
+  Object.entries(schemaProps ?? {}).forEach(([key, value]: [string, unknown]) => {
     const val = value as { type?: string; description?: string };
     fallbackSchema[key] = {
-      type: (val.type as JsonSchemaField['type']) || 'string',
-      description: (val.description as string) || '',
-      required: schemaRequired?.includes(key) || false,
+      type: (val.type as JsonSchemaField['type']) ?? 'string',
+      description: (val.description as string) ?? '',
+      required: schemaRequired?.includes(key) ?? false,
     };
   });
 

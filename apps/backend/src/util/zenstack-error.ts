@@ -4,10 +4,12 @@
  * 参考: https://zenstack.dev/docs/reference/error-handling
  */
 
+import { extractErrorMessage } from './error';
+
 /**
  * ZenStack 权限错误的拒绝原因
  */
-export type ZenStackRejectReason =
+type ZenStackRejectReason =
   | 'ACCESS_POLICY_VIOLATION' /** 访问策略违规 */
   | 'RESULT_NOT_READABLE' /** 结果不可读 */
   | 'DATA_VALIDATION_VIOLATION'; /** 数据验证错误 */
@@ -15,7 +17,7 @@ export type ZenStackRejectReason =
 /**
  * ZenStack P2004 错误的元数据
  */
-export interface ZenStackErrorMeta {
+interface ZenStackErrorMeta {
   reason: ZenStackRejectReason;
   zodErrors?: unknown;
 }
@@ -59,7 +61,7 @@ export function isZenStackValidationError(error: unknown): boolean {
 /**
  * 获取 ZenStack 错误的详细信息
  */
-export function getZenStackErrorDetails(error: unknown): {
+function getZenStackErrorDetails(error: unknown): {
   isPermissionError: boolean;
   isValidationError: boolean;
   isNotReadableError: boolean;
@@ -110,6 +112,6 @@ export function createDetailedErrorMessage(error: unknown, context: string): str
     return `[${context}] 记录不存在 (P2025)`;
   }
 
-  const errorMessage = error instanceof Error ? error.message : String(error) || '未知错误';
+  const errorMessage = extractErrorMessage(error);
   return `[${context}] ${errorMessage}`;
 }

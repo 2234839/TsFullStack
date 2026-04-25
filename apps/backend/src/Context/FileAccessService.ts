@@ -9,7 +9,7 @@ import { MSG } from '../util/constants';
 /**
  * 文件访问选项
  */
-export interface FileAccessOptions {
+interface FileAccessOptions {
   /** 是否检查所有权 */
   checkOwnership?: boolean;
   /** 用户ID（用于所有权检查） */
@@ -21,7 +21,7 @@ export interface FileAccessOptions {
 /**
  * 文件访问结果
  */
-export interface FileAccessResult {
+interface FileAccessResult {
   fileRow: FileModel;
   validatedPath: string;
 }
@@ -73,7 +73,7 @@ export class FileAccessService {
 
     // 检查文件状态
     if (publicOnly===true && fileRow.status !== 'public') {
-      throw MsgError.msg('文件不存在或无权访问');
+      throw MsgError.msg(MSG.FILE_NOT_FOUND_OR_NO_ACCESS);
     }
 
     // 检查所有权
@@ -82,7 +82,7 @@ export class FileAccessService {
     }
 
     // 如果没有提供 uploadDir，则使用默认值（但应该总是提供）
-    const finalUploadDir = uploadDir || process.env.UPLOAD_DIR || './uploads';
+    const finalUploadDir = uploadDir ?? process.env.UPLOAD_DIR ?? './uploads';
 
     const filePath = FilePathService.generateUserFilePath(
       fileRow.authorId,
@@ -159,8 +159,8 @@ export class FileAccessService {
   /** 通用 Effect 包装：获取 AppConfig 后执行回调 */
   private static withAppConfig<T>(fn: (uploadDir: string) => T) {
     return Effect.gen(function* () {
-      const appConfig = yield* AppConfigService;
-      return fn(appConfig.uploadDir);
+      const cfg = yield* AppConfigService;
+      return fn(cfg.uploadDir);
     });
   }
 }

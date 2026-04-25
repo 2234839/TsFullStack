@@ -12,8 +12,7 @@ type ProgressBarColor =
   | 'warning'
   | 'danger'
   | 'amber'
-  | 'orange'
-  | 'red';
+  | 'orange';
 
 /** 颜色 → Tailwind 类映射 */
 const COLOR_CLASSES: Record<ProgressBarColor, { fill: string; track: string }> = {
@@ -21,9 +20,8 @@ const COLOR_CLASSES: Record<ProgressBarColor, { fill: string; track: string }> =
   success: { fill: 'bg-success-600 dark:bg-success-400', track: 'bg-success-200 dark:bg-success-900' },
   warning: { fill: 'bg-warning-600 dark:bg-warning-400', track: 'bg-warning-200 dark:bg-warning-900' },
   danger: { fill: 'bg-danger-600 dark:bg-danger-400', track: 'bg-danger-200 dark:bg-danger-900' },
-  amber: { fill: 'bg-amber-500 dark:bg-amber-400', track: 'bg-amber-200 dark:bg-amber-900' },
-  orange: { fill: 'bg-orange-500 dark:bg-orange-400', track: 'bg-orange-200 dark:bg-orange-900' },
-  red: { fill: 'bg-red-500 dark:bg-red-400', track: 'bg-red-200 dark:bg-red-900' },
+  amber: { fill: 'bg-warning-500 dark:bg-warning-400', track: 'bg-warning-200 dark:bg-warning-900' },
+  orange: { fill: 'bg-warning-500 dark:bg-warning-400', track: 'bg-warning-200 dark:bg-warning-900' },
 };
 
 interface Props {

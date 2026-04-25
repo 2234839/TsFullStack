@@ -1,18 +1,15 @@
 <template>
   <div class="payment-order-list-page p-6 max-w-7xl mx-auto">
     <!-- 页面标题 -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-primary-900 dark:text-primary-50 flex items-center gap-2">
-        <i class="pi pi-list text-primary-600" />
-        {{ t('支付订单') }}
-      </h1>
-    </div>
+    <PageHeader icon="pi pi-list text-primary-600 dark:text-primary-400">
+      {{ t('支付订单') }}
+    </PageHeader>
 
     <!-- 筛选栏 -->
     <Card class="p-4 mb-4">
       <div class="flex items-center gap-4 flex-wrap">
         <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{{ t('状态') }}:</label>
+          <label class="text-sm text-primary-600 dark:text-primary-400 whitespace-nowrap">{{ t('状态') }}:</label>
           <Select
             v-model="statusFilter"
             :options="statusOptions"
@@ -21,7 +18,7 @@
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{{ t('用户') }}:</label>
+          <label class="text-sm text-primary-600 dark:text-primary-400 whitespace-nowrap">{{ t('用户') }}:</label>
           <Input
             v-model="userIdFilter"
             :placeholder="t('输入邮箱搜索')"
@@ -52,7 +49,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="!loading && orders.length === 0" class="text-center py-12 text-gray-500 dark:text-gray-400">
+    <div v-if="!loading && orders.length === 0" class="text-center py-12 text-primary-600 dark:text-primary-400">
       <i class="pi pi-inbox text-4xl mb-4 block"></i>
       <p>{{ t('暂无订单记录') }}</p>
     </div>
@@ -60,57 +57,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, h, type VNode } from 'vue';
+import { ref, shallowRef, computed, watch, h } from 'vue';
 import { useNow } from '@vueuse/core';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
-import { Card, ProgressSpinner, DataTable, Paginator, Tag, Input, Button } from '@/components/base';
+import { Tag, Button } from '@/components/base';
 import { Select } from '@tsfullstack/shared-frontend/components';
-import { formatDate } from '@/utils/format';
+import type { OrderStatus } from '@tsfullstack/backend';
+import type { ColumnDef } from '@/components/base/DataTable.vue';
+import type { PaymentApiResult } from '@/utils/apiType';
+import { formatDate, formatPriceWithCurrency } from '@/utils/format';
+import { getStatusVariant, getStatusLabel, getProviderName } from '@/utils/payment';
+import { getErrorMessage } from '@/utils/error';
+import { DEFAULT_PAGE_SIZE, ADMIN_TIME_REFRESH_MS } from '@/utils/constants';
 
-/** DataTable 列定义（从 DataTable.vue 内部复制，因为未导出） */
-interface ColumnDef<T = unknown> {
-  key: string;
-  title: string;
-  sortable?: boolean;
-  width?: string | number;
-  render?: (row: T, index: number) => VNode | string;
-}
-
-interface OrderRow {
-  id: number;
-  orderNo: string;
-  user?: { email?: string; nickname?: string } | null;
-  package?: { name?: string } | null;
-  amount: number;
-  provider: string | null;
-  status: string;
-  paidAt: string | null;
-  expireAt: string;
-  created: string;
-}
+/** 从 API 推导订单行类型 */
+type AdminOrdersResult = NonNullable<PaymentApiResult<'adminListOrders'>>;
+type OrderRow = AdminOrdersResult['items'][number];
 
 const { t } = useI18n();
 const toast = useToast();
 const confirm = useConfirm();
-/** 响应式当前时间（每秒更新） */
-const now = useNow({ interval: 1000 });
+/** 响应式当前时间（30秒更新，用于过期倒计时显示） */
+const now = useNow({ interval: ADMIN_TIME_REFRESH_MS });
 const { API } = useAPI();
 
 /** 订单列表 */
-const orders = ref<OrderRow[]>([]);
+const orders = shallowRef<OrderRow[]>([]);
 /** 总数 */
 const total = ref(0);
 /** 当前页（从0开始） */
 const currentPage = ref(0);
 /** 每页数量 */
-const pageSize = 20;
+const pageSize = DEFAULT_PAGE_SIZE;
 /** 加载状态 */
 const loading = ref(true);
 /** 状态筛选（空字符串表示"全部"） */
-const statusFilter = ref<string>('');
+const statusFilter = ref<OrderStatus | '' | typeof ALL_STATUS>('');
 /** 用户邮箱筛选 */
 const userIdFilter = ref<string>('');
 
@@ -123,43 +108,8 @@ const statusOptions = computed(() => [
   { label: t('已取消'), value: 'CANCELLED' },
 ]);
 
-/** 获取状态标签颜色（Tag 组件支持的 variant 值） */
-function getStatusVariant(status: string): 'warn' | 'success' | 'danger' | 'info' | 'secondary' {
-  const map: Record<string, 'warn' | 'success' | 'danger' | 'info' | 'secondary'> = {
-    PENDING: 'warn',
-    PAID: 'success',
-    CANCELLED: 'danger',
-    FAILED: 'danger',
-    REFUNDED: 'secondary',
-  };
-  return map[status] ?? 'info';
-}
-
-/** 获取状态文本 */
-function getStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    PENDING: t('待支付'),
-    PAID: t('已支付'),
-    FAILED: t('支付失败'),
-    CANCELLED: t('已取消'),
-    REFUNDED: t('已退款'),
-  };
-  return map[status] ?? status;
-}
-
-/** 获取支付渠道名称 */
-function getProviderName(provider: string | null): string {
-  if (!provider) return '--';
-  const map: Record<string, string> = {
-    MBD: t('面包多'),
-    AFDIAN: t('爱发电'),
-    WECHAT: t('微信好友'),
-  };
-  return map[provider] ?? provider;
-}
-
 /** 计算剩余时间文本 */
-function getRemainingText(expireAt: string, status: string, current: Date): string {
+function getRemainingText(expireAt: Date | string, status: string, current: Date): string {
   if (status !== 'PENDING') return '--';
   const diff = new Date(expireAt).getTime() - current.getTime();
   if (diff <= 0) return t('已过期');
@@ -170,7 +120,7 @@ function getRemainingText(expireAt: string, status: string, current: Date): stri
 }
 
 /** 是否已过期（用于标红） */
-function isExpired(expireAt: string, status: string, current: Date): boolean {
+function isExpired(expireAt: Date | string, status: string, current: Date): boolean {
   if (status !== 'PENDING') return false;
   return new Date(expireAt).getTime() - current.getTime() <= 0;
 }
@@ -194,17 +144,17 @@ const columns = computed<ColumnDef<OrderRow>[]>(() => [
   {
     key: 'amount',
     title: t('金额'),
-    render: (row) => h('span', {}, `${(row.amount / 100).toFixed(2)}${t('元')}`),
+    render: (row) => h('span', {}, formatPriceWithCurrency(row.amount)),
   },
   {
     key: 'provider',
     title: t('渠道'),
-    render: (row) => h('span', {}, getProviderName(row.provider)),
+    render: (row) => h('span', {}, getProviderName(row.provider, t)),
   },
   {
     key: 'status',
     title: t('状态'),
-    render: (row) => h(Tag, { value: getStatusLabel(row.status), variant: getStatusVariant(row.status) }),
+    render: (row) => h(Tag, { value: getStatusLabel(row.status, t), variant: getStatusVariant(row.status) }),
   },
   {
     key: 'remaining',
@@ -212,7 +162,7 @@ const columns = computed<ColumnDef<OrderRow>[]>(() => [
     render: (row) =>
       h(
         'span',
-        { class: isExpired(row.expireAt, row.status, now.value) ? 'text-danger-500 font-medium' : '' },
+        { class: isExpired(row.expireAt, row.status, now.value) ? 'text-danger-500 dark:text-danger-400 font-medium' : '' },
         getRemainingText(row.expireAt, row.status, now.value),
       ),
   },
@@ -255,19 +205,20 @@ async function loadOrders() {
       skip: currentPage.value * pageSize,
       take: pageSize,
     });
-    orders.value = result ?? [];
-    total.value = result?.length ?? 0;
-  } catch (e) {
-    console.error('[PaymentOrderList] 加载订单失败:', e);
+    orders.value = result?.items ?? [];
+    total.value = result?.total ?? 0;
+  } catch (_e: unknown) {
+    toast.error(t('加载订单列表失败'));
   } finally {
     loading.value = false;
   }
 }
 
+/** 监听筛选条件变化，immediate: true 同时替代 onMounted */
 watch([statusFilter, userIdFilter], () => {
   currentPage.value = 0;
   loadOrders();
-});
+}, { immediate: true });
 
 /** 正在确认中的订单 ID（防止重复点击） */
 const confirmingOrderId = ref<number | null>(null);
@@ -276,7 +227,7 @@ const confirmingOrderId = ref<number | null>(null);
  * 确认微信订单到账
  */
 async function handleConfirmPayment(row: OrderRow) {
-  const confirmed = await confirm({
+  const confirmed = await confirm.require({
     message: t(`确认订单 ${row.orderNo} 已通过微信转账到账？\n\n确认后将自动发放 ${row.package?.name ?? ''} 套餐的代币。`),
     header: t('确认到账'),
     acceptLabel: t('确认到账'),
@@ -291,15 +242,11 @@ async function handleConfirmPayment(row: OrderRow) {
     await API.paymentApi.confirmOrderPayment(row.id);
     toast.success(t('订单已确认为已支付，代币已发放'));
     await loadOrders();
-  } catch (e) {
-    console.error('[PaymentOrderList] 确认到账失败:', e);
-    toast.error(String(e));
+  } catch (error: unknown) {
+    toast.error(getErrorMessage(error));
   } finally {
     confirmingOrderId.value = null;
   }
 }
 
-onMounted(() => {
-  loadOrders();
-});
 </script>

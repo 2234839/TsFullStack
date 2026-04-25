@@ -33,7 +33,7 @@
 </template>
 
 <script setup lang="ts">
-  import { onMounted, onUnmounted, ref, watch, computed, shallowRef } from 'vue';
+  import { onMounted, onUnmounted, ref, watch, watchEffect, computed, shallowRef } from 'vue';
   import { EditorView, lineNumbers, drawSelection, dropCursor, keymap, Decoration, WidgetType } from '@codemirror/view';
   import { EditorState, Compartment, Range } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
@@ -46,7 +46,6 @@
 
   /** 语法高亮装饰器，与 Range<Decoration> 格式一致 */
   type HighlightRange = Range<Decoration>;
-  import ProgressSpinner from '@/components/base/ProgressSpinner.vue';
   import { theme_isDark } from '@/storage';
 
   interface Props {
@@ -718,14 +717,10 @@
   );
 
   /** 监听暗色模式变化 */
-  watch(theme_isDark, () => {
-    updateTheme();
-  });
+  watchEffect(updateTheme);
 
   // 初始化编辑器
-  onMounted(() => {
-    initEditor();
-  });
+  onMounted(initEditor);
 
   /** 组件卸载时销毁 EditorView 实例,防止内存泄漏 */
   onUnmounted(() => {

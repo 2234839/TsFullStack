@@ -36,7 +36,7 @@ export function findIdField(modelMeta: ModelMeta, modelName: string): FieldInfo 
  */
 export function findDisplayField(modelMeta: ModelMeta, refModelKey: ModelMetaNames) {
   const model = modelMeta.models[refModelKey as keyof typeof modelMeta.models];
-  const displayField = Object.values(model?.fields || {}).find(
+  const displayField = Object.values(model?.fields ?? {}).find(
     (f: FieldInfo) => f.type === 'String' && !isIdField(f),
   );
   return displayField;

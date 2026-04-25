@@ -1,5 +1,8 @@
 import crypto from 'node:crypto';
 import { Effect } from 'effect';
+import { fail, tryOrFail } from '../../../util/error';
+import { JSON_CONTENT_HEADERS, deepCloneToJson, MSG } from '../../../util/constants';
+import { withFetchTimeout, FETCH_TIMEOUTS } from '../../../util/http';
 import type {
   PaymentAdapter,
   CreatePaymentParams,
@@ -9,6 +12,8 @@ import type {
 import { PaymentProvider } from '../../../../.zenstack/models';
 import { PaymentConfigService } from '../../../Context/PaymentConfig';
 import { ReqCtxService } from '../../../Context/ReqCtx';
+
+const LOG_PREFIX = '[AfdianAdapter]';
 
 /**
  * 爱发电(AFDIAN)支付适配器
@@ -24,6 +29,24 @@ import { ReqCtxService } from '../../../Context/ReqCtx';
  */
 
 const AFDIAN_API_BASE = 'https://afdian.net/api/open';
+
+/** 爱发电 API 响应码 */
+const AFDIAN_EC_SUCCESS = 200;
+
+/** 爱发电订单状态：已支付 */
+const AFDIAN_STATUS_PAID = 2;
+
+/** 爱发电订单状态：已关闭 */
+const AFDIAN_STATUS_CLOSED = -1;
+
+/** 金额单位换算：元 → 分 */
+const YUAN_TO_FEN = 100;
+
+/** 爱发电订单状态 → 支付状态映射 */
+const AFDIAN_STATUS_MAP: Record<number, ParsedWebhookResult['paymentStatus']> = {
+  [AFDIAN_STATUS_PAID]: 'success',
+  [AFDIAN_STATUS_CLOSED]: 'closed',
+};
 
 /** 生成爱发电 API 签名 */
 function afdianSign(apiToken: string, params: string, ts: string, userId: string): string {
@@ -41,7 +64,7 @@ export const AfdianAdapter: PaymentAdapter = {
       const afdianConfig = config.afdian;
 
       if (!afdianConfig?.enabled || !afdianConfig.userId) {
-        throw Error('爱发电未启用或缺少配置(userId)');
+        return yield* fail(MSG.AFDIAN_NOT_ENABLED);
       }
 
       // 爱发电使用"赞助方案"模式，返回赞助页面 URL
@@ -49,7 +72,7 @@ export const AfdianAdapter: PaymentAdapter = {
       // 文档: https://guide.afdian.com/creator/developer
       const sponsorUrl = `https://afdian.com/a/${afdianConfig.userId}?custom_order_id=${encodeURIComponent(params.orderNo)}`;
 
-      reqCtx.log('[AfdianAdapter] 创建赞助链接:', params.orderNo);
+      reqCtx.log(LOG_PREFIX, '创建赞助链接:', params.orderNo);
 
       return {
         payUrl: sponsorUrl,
@@ -57,41 +80,41 @@ export const AfdianAdapter: PaymentAdapter = {
       } satisfies CreatePaymentResult;
     }),
 
-  parseWebhook: (payload, headers?) =>
+  parseWebhook: (payload, _headers?) =>
     Effect.gen(function* () {
       const config = yield* PaymentConfigService;
       const reqCtx = yield* ReqCtxService;
       const afdianConfig = config.afdian;
 
       if (!afdianConfig) {
-        throw Error('爱发电未配置');
+        return yield* fail(MSG.AFDIAN_NOT_CONFIGURED);
       }
 
       // 爱发电 Webhook 数据格式:
       // { ec: 200, em: "ok", data: { type: "order", order: { out_trade_no, total_amount, status, ... } } }
-      const ec = payload.ec as number;
-      if (ec !== 200) {
-        throw Error(`爱发电回调错误(ec=${ec}): ${(payload.em as string) ?? ''}`);
+      const ec = Number(payload.ec);
+      if (ec !== AFDIAN_EC_SUCCESS) {
+        return yield* fail(`爱发电回调错误(ec=${ec}): ${String(payload.em ?? '')}`);
       }
 
       const data = payload.data as { type?: string; order?: Record<string, unknown> } | undefined;
       if (!data?.order) {
-        throw Error('爱发电回调数据为空');
+        return yield* fail(MSG.AFDIAN_WEBHOOK_EMPTY);
       }
 
       const order = data.order;
-      const orderNo = (order.custom_order_id ?? order.out_trade_no ?? order.remark) as string;
-      const status = order.status as number;
+      const orderNo = String(order.custom_order_id ?? order.out_trade_no ?? order.remark ?? '');
+      const status = Number(order.status);
 
-      reqCtx.log('[AfdianAdapter] 收到回调:', orderNo, 'status:', status);
+      reqCtx.log(LOG_PREFIX, '收到回调:', orderNo, 'status:', status);
 
       return {
-        tradeNo: (order.order_id as string) ?? '',
+        tradeNo: String(order.order_id ?? ''),
         orderNo,
-        paidAmount: Math.round(Number(order.total_amount ?? 0) * 100), // 元转分
-        paymentStatus: status === 2 ? 'success' : status === -1 ? 'closed' : 'other',
+        paidAmount: Math.round(Number(order.total_amount ?? 0) * YUAN_TO_FEN),
+        paymentStatus: AFDIAN_STATUS_MAP[status] ?? 'other',
         paidAt: new Date(),
-        rawPayload: JSON.parse(JSON.stringify(payload)),
+        rawPayload: deepCloneToJson(payload),
       } satisfies ParsedWebhookResult;
     }),
 
@@ -106,26 +129,23 @@ export const AfdianAdapter: PaymentAdapter = {
       const params = JSON.stringify({ out_trade_no: orderNo });
       const sign = afdianSign(afdianConfig.apiKey, params, ts, afdianConfig.apiUserId);
 
-      const response = yield* Effect.tryPromise({
-        try: () =>
-          fetch(`${AFDIAN_API_BASE}/query-order`, {
+      const response = yield* tryOrFail('爱发电查询', () =>
+          fetch(`${AFDIAN_API_BASE}/query-order`, withFetchTimeout({
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: JSON_CONTENT_HEADERS,
             body: JSON.stringify({ user_id: afdianConfig.apiUserId, params, ts, sign }),
-          }).then((r) => r.json()),
-        catch: (e) => Error(`爱发电查询失败: ${String(e)}`),
-      });
+          }, FETCH_TIMEOUTS.payment)).then((r) => r.json()));
 
       const data = response as { ec?: number; data?: { list?: Array<{ out_trade_no?: string; total_amount?: string; status?: number }> } };
-      if (data.ec !== 200 || !data.data?.list?.length) return null;
+      if (data.ec !== AFDIAN_EC_SUCCESS || !data.data?.list?.length) return null;
 
       const found = data.data.list.find((o) => o.out_trade_no === orderNo);
       if (!found) return null;
 
       return {
         tradeNo: orderNo,
-        status: found.status === 2 ? 'success' : 'pending',
-        paidAmount: Math.round(Number(found.total_amount ?? 0) * 100),
+        status: found.status === AFDIAN_STATUS_PAID ? 'success' : 'pending',
+        paidAmount: Math.round(Number(found.total_amount ?? 0) * YUAN_TO_FEN),
       };
     }),
 };

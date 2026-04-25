@@ -51,8 +51,8 @@
           </InputGroup>
           <div v-if="!authInfo_isLogin" class="flex-1 flex items-center justify-center">
             <div class="text-center p-4">
-              <i class="pi pi-lock text-4xl mb-2 text-primary-400"></i>
-              <p class="text-primary-500">{{ ti18n('请登录后查看您的笔记') }}</p>
+              <i class="pi pi-lock text-4xl mb-2 text-primary-400 dark:text-primary-500"></i>
+              <p class="text-primary-500 dark:text-primary-400">{{ ti18n('请登录后查看您的笔记') }}</p>
               <Button @click="
                   routerUtil.push(routeMap.login, {}, { r: route.fullPath }),
                     (sidebarVisible = false)
@@ -67,8 +67,8 @@
 
           <div v-else-if="!notesState.state.value.length" class="flex-1 flex items-center justify-center">
             <div class="text-center p-4">
-              <i class="pi pi-file-o text-4xl mb-2 text-primary-400"></i>
-              <p class="text-primary-500">
+              <i class="pi pi-file-o text-4xl mb-2 text-primary-400 dark:text-primary-500"></i>
+              <p class="text-primary-500 dark:text-primary-400">
                 {{ searchQuery ? ti18n('未找到匹配的笔记') : ti18n('暂无笔记') }}
               </p>
             </div>
@@ -91,7 +91,7 @@
                         @click.stop="confirmDeleteNote(note, $event)" :title="ti18n('删除')" />
                     </div>
                   </div>
-                  <div class="text-xs text-primary-500 mt-1 flex justify-between">
+                  <div class="text-xs text-primary-500 dark:text-primary-400 mt-1 flex justify-between">
                     <span>{{ formatDate(note.updated) }}</span>
                     <span>{{ getContentPreview(note) }}</span>
                   </div>
@@ -118,14 +118,14 @@
             <span v-if="currentNote" class="font-medium truncate">
               {{ getNoteTitle(currentNote) }}
             </span>
-            <span v-else class="text-primary-500">{{ ti18n('未保存的笔记') }}</span>
+            <span v-else class="text-primary-500 dark:text-primary-400">{{ ti18n('未保存的笔记') }}</span>
 
-            <span v-if="unsavedChanges" class="ml-2 text-xs text-warning-500">
+            <span v-if="unsavedChanges" class="ml-2 text-xs text-warning-500 dark:text-warning-400">
               <i class="pi pi-exclamation-circle mr-1"></i>{{ ti18n('未保存') }}
             </span>
           </div>
 
-          <div v-if="config.autoSaveEnabled" class="text-xs text-primary-500 flex items-center">
+          <div v-if="config.autoSaveEnabled" class="text-xs text-primary-500 dark:text-primary-400 flex items-center">
             <i class="pi pi-clock mr-1"></i>
             <span v-if="lastSaved">{{ ti18n('上次保存') }}: {{ lastSaved_v }}</span>
             <span v-else>{{ ti18n('自动保存已启用') }}</span>
@@ -155,21 +155,21 @@
           <div class="flex items-center">
             <InputNumber v-model="config.autoSaveInterval" :min="5" :max="60" :disabled="!config.autoSaveEnabled"
               show-buttons />
-            <span class="ml-2 text-primary-500">{{ ti18n('秒') }}</span>
+            <span class="ml-2 text-primary-500 dark:text-primary-400">{{ ti18n('秒') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('结果显示精度') }}</label>
           <div class="flex items-center">
             <InputNumber v-model="config.showPrecision" :min="1" :max="100" show-buttons />
-            <span class="ml-2 text-primary-500">{{ ti18n('位') }}</span>
+            <span class="ml-2 text-primary-500 dark:text-primary-400">{{ ti18n('位') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('计算精度') }}</label>
           <div class="flex items-center">
             <InputNumber v-model="config.precision" :min="1" :max="100" show-buttons />
-            <span class="ml-2 text-primary-500">{{ ti18n('位') }}</span>
+            <span class="ml-2 text-primary-500 dark:text-primary-400">{{ ti18n('位') }}</span>
           </div>
         </div>
       </div>
@@ -202,15 +202,15 @@
   import CodeMirrorEditor from '@/pages/noteCalc/CodeMirrorEditor.vue';
   import { routeMap, router, routerUtil } from '@/router';
   import { authInfo, authInfo_isLogin } from '@/storage';
-  import { formatDate } from '@/utils/format';
+  import { formatDate, truncateText, parseJsonField } from '@/utils/format';
   import { userDataAppid } from '@/storage/userDataAppid';
   import { useSharePlus } from '@/utils/hooks/useSharePlus';
-  import { Button, Input, InputNumber, InputGroup, InputGroupAddon, ProgressSpinner, ToggleSwitch } from '@/components/base';
   import { Dialog, Drawer } from '@tsfullstack/shared-frontend/components';
   import { useConfirm } from '@/composables/useConfirm';
   import { useToast } from '@/composables/useToast';
   import { useRoute } from 'vue-router';
   import { useI18n } from '@/composables/useI18n';
+  import type { DbListItem } from '@/utils/apiType';
 
   const toast = useToast();
   const route = useRoute();
@@ -247,7 +247,7 @@
   const isLoadingMore = ref(false);
   const totalNotes = ref(0);
 
-  // WhereInput 类型 - 从 API 推断
+  /** WhereInput 类型 - 从 API 推断 */
   type UserDataWhereInput = NonNullable<Parameters<typeof API.db.userData.findMany>[0]>['where']
   type Note = NonNullable<Awaited<ReturnType<typeof API.db.userData.findMany>>>[number]
 
@@ -316,12 +316,7 @@
 
         return res;
       } catch (error: unknown) {
-        toast.add({
-          variant: 'error',
-          summary: ti18n('加载失败'),
-          detail: ti18n('获取笔记列表时出错'),
-          life: 3000,
-        });
+        toast.error(ti18n('加载失败'), ti18n('获取笔记列表时出错'));
         return [];
       }
     },
@@ -329,13 +324,8 @@
     { immediate: false },
   );
 
-  /** 简化的笔记类型，避免 Prisma 完整类型导致的 TS2589 深度实例化错误 */
-  interface SimpleNote {
-    id: number;
-    description: string | null;
-    data: unknown;
-    version: number;
-  }
+  /** 笔记类型（从 API 推导，JsonValue 截断已解决 TS2589） */
+  type SimpleNote = DbListItem<'userData'>;
 
   const currentNote = ref<SimpleNote | null>(null);
   const currentNoteId = computed(() => currentNote.value?.id);
@@ -363,7 +353,7 @@
   const noteToRename = ref<Note | null>(null);
   //#endregion
 
-  // 清除搜索
+  /** 清除搜索 */
   const clearSearch = () => {
     searchQuery.value = '';
     // 重新加载笔记列表
@@ -373,10 +363,10 @@
 
   /** 获取笔记标题 */
   const getNoteTitle = (note: { description: string | null } | null | undefined) => {
-    return note?.description || ti18n('未命名笔记');
+    return note?.description ?? ti18n('未命名笔记');
   };
 
-  // 获取笔记内容预览
+  /** 获取笔记内容预览 */
   const getContentPreview = (note: Note) => {
     const content = getContentFromData(note);
     if (!content) return '';
@@ -386,15 +376,15 @@
     if (!firstLine) return '';
 
     // 截取前20个字符
-    return firstLine.length > 20 ? firstLine.substring(0, 20) + '...' : firstLine;
+    return truncateText(firstLine, 20);
   };
 
-  // 从笔记数据中获取内容
+  /** 从笔记数据中获取内容 */
   const getContentFromData = (note: Note) => {
     try {
       if (!note.data) return '';
-      const data = typeof note.data === 'string' ? JSON.parse(note.data) : note.data;
-      return (data.content || '') as string;
+      const data = parseJsonField<{ content?: string }>(note.data);
+      return data.content ?? '';
     } catch {
       return '';
     }
@@ -404,20 +394,20 @@
   const getConfigFromData = (note: { data: unknown }): NoteConfig | null => {
     try {
       if (!note.data) return null;
-      const data = typeof note.data === 'string' ? JSON.parse(note.data) : note.data;
-      return (data.config as NoteConfig) || null;
+      const data = parseJsonField<{ config?: NoteConfig }>(note.data);
+      return data.config ?? null;
     } catch {
       return null;
     }
   };
 
-  // 加载笔记列表
+  /** 加载笔记列表 */
   const loadNotes = () => {
     if (!authInfo_isLogin.value) return;
     notesState.execute();
   };
 
-  // 加载更多笔记
+  /** 加载更多笔记 */
   const loadMoreNotes = async () => {
     if (
       isLoadingMore.value ||
@@ -455,24 +445,19 @@
         hasMoreNotes.value = false;
       }
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: ti18n('加载失败'),
-        detail: ti18n('获取更多笔记时出错'),
-        life: 3000,
-      });
+      toast.error(ti18n('加载失败'), ti18n('获取更多笔记时出错'));
     } finally {
       isLoadingMore.value = false;
     }
   };
 
-  // 刷新笔记列表
+  /** 刷新笔记列表 */
   const refreshNotes = () => {
     currentPage.value = 1;
     loadNotes();
   };
 
-  // 根据ID加载笔记
+  /** 根据ID加载笔记 */
   const loadNoteById = async (id: number) => {
     try {
       // 先查找本地列表中是否有该笔记
@@ -486,12 +471,7 @@
           })) || undefined;
 
         if (!note) {
-          toast.add({
-            variant: 'error',
-            summary: ti18n('加载失败'),
-            detail: ti18n('未找到指定笔记'),
-            life: 3000,
-          });
+          toast.error(ti18n('加载失败'), ti18n('未找到指定笔记'));
           return;
         }
       }
@@ -504,16 +484,11 @@
         query: { id: id.toString() },
       });
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: ti18n('加载失败'),
-        detail: ti18n('加载指定笔记时出错'),
-        life: 3000,
-      });
+      toast.error(ti18n('加载失败'), ti18n('加载指定笔记时出错'));
     }
   };
 
-  // 加载笔记内容
+  /** 加载笔记内容 */
   const loadNote = (note: Note) => {
     try {
       // 如果有未保存的更改，提示用户
@@ -532,16 +507,11 @@
         updateUrlWithNoteId(note.id);
       }
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: ti18n('加载失败'),
-        detail: ti18n('加载笔记内容时出错'),
-        life: 3000,
-      });
+      toast.error(ti18n('加载失败'), ti18n('加载笔记内容时出错'));
     }
   };
 
-  // 更新URL中的笔记ID
+  /** 更新URL中的笔记ID */
   const updateUrlWithNoteId = (id: number) => {
     router.replace({
       path: route.path,
@@ -549,7 +519,7 @@
     });
   };
 
-  // 实际加载笔记的函数
+  /** 实际加载笔记的函数 */
   const doLoadNote = (note: Note) => {
     const noteContent = getContentFromData(note);
     const noteConfig = getConfigFromData(note);
@@ -560,19 +530,14 @@
       Object.assign(config.value, noteConfig);
     }
 
-    currentNote.value = note as unknown as SimpleNote;
+    currentNote.value = note;
     lastSaved.value = new Date(note.updated);
   };
 
-  // 保存当前笔记
+  /** 保存当前笔记 */
   const saveCurrentNote = async () => {
     if (!authInfo_isLogin.value) {
-      toast.add({
-        variant: 'warn',
-        summary: ti18n('未登录'),
-        detail: ti18n('请先登录后再保存笔记'),
-        life: 3000,
-      });
+      toast.warn(ti18n('未登录'), ti18n('请先登录后再保存笔记'));
       return;
     }
 
@@ -609,30 +574,25 @@
           }
         }
 
-        currentNote.value = updatedNote as unknown as SimpleNote;
+        currentNote.value = updatedNote;
 
-        toast.add({
-          variant: 'success',
-          summary: ti18n('保存成功'),
-          detail: ti18n('笔记已更新'),
-          life: 2000,
-        });
+        toast.success(ti18n('保存成功'), ti18n('笔记已更新'));
       } else {
         // 创建新笔记
-        const title = content.value.split('\n')[0]?.trim() || ti18n('未命名笔记');
+        const title = content.value.split('\n')[0]?.trim() ?? ti18n('未命名笔记');
         const newNote = await API.db.userData.create({
           data: {
             appId: userDataAppid.NodeCalc,
             userId: authInfo.value?.userId,
-            key: 'note_' + Date.now(),
+            key: `note_${Date.now()}`,
             data: noteData,
-            description: title.length > 30 ? title.substring(0, 30) + '...' : title,
+            description: truncateText(title, 30),
           },
         });
 
         // 添加到本地笔记列表
         notesState.state.value.unshift(newNote);
-        currentNote.value = newNote as unknown as SimpleNote;
+        currentNote.value = newNote;
 
         // 更新URL
         updateUrlWithNoteId(newNote.id);
@@ -640,28 +600,18 @@
         // 更新总数
         totalNotes.value += 1;
 
-        toast.add({
-          variant: 'success',
-          summary: ti18n('保存成功'),
-          detail: ti18n('新笔记已创建'),
-          life: 2000,
-        });
+        toast.success(ti18n('保存成功'), ti18n('新笔记已创建'));
       }
 
       lastSaved.value = new Date();
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: ti18n('保存失败'),
-        detail: ti18n('保存笔记时出错'),
-        life: 3000,
-      });
+      toast.error(ti18n('保存失败'), ti18n('保存笔记时出错'));
     } finally {
       isSaving.value = false;
     }
   };
 
-  // 自动保存（useIntervalFn 自动在组件卸载时清理）
+  /** 自动保存（useIntervalFn 自动在组件卸载时清理） */
   const { pause: pauseAutoSave, resume: resumeAutoSave } = useIntervalFn(
     () => {
       if (unsavedChanges.value && currentNote.value) {
@@ -681,20 +631,22 @@
     }
   };
 
-  // 确认删除笔记
+  /** 确认删除笔记 */
   const confirmDeleteNote = (note: Note, event: MouseEvent) => {
     confirm.require({
       message: ti18n('确定要删除笔记"{title}"吗？', { title: getNoteTitle(note) }),
       icon: 'pi pi-exclamation-triangle',
       event,
-      acceptClass: 'p-button-danger',
+      acceptProps: {
+        variant: 'danger',
+      },
       accept: () => {
         deleteNote(note);
       },
     });
   };
 
-  // 删除笔记
+  /** 删除笔记 */
   const deleteNote = async (note: Note) => {
     try {
       await API.db.userData.delete({
@@ -714,30 +666,20 @@
         router.replace({ path: route.path });
       }
 
-      toast.add({
-        variant: 'success',
-        summary: ti18n('删除成功'),
-        detail: ti18n('笔记已删除'),
-        life: 2000,
-      });
+      toast.success(ti18n('删除成功'), ti18n('笔记已删除'));
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: ti18n('删除失败'),
-        detail: ti18n('删除笔记时出错'),
-        life: 3000,
-      });
+      toast.error(ti18n('删除失败'), ti18n('删除笔记时出错'));
     }
   };
 
-  // 显示重命名对话框
+  /** 显示重命名对话框 */
   const showRenameDialog = (note: Note) => {
     noteToRename.value = note;
     renameTitle.value = getNoteTitle(note);
     showRenameModal.value = true;
   };
 
-  // 保存重命名
+  /** 保存重命名 */
   const saveRename = async () => {
     if (!noteToRename.value || !renameTitle.value.trim()) return;
 
@@ -765,23 +707,13 @@
       }
 
       showRenameModal.value = false;
-      toast.add({
-        variant: 'success',
-        summary: ti18n('重命名成功'),
-        detail: ti18n('笔记已重命名'),
-        life: 2000,
-      });
+      toast.success(ti18n('重命名成功'), ti18n('笔记已重命名'));
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: ti18n('重命名失败'),
-        detail: ti18n('重命名笔记时出错'),
-        life: 3000,
-      });
+      toast.error(ti18n('重命名失败'), ti18n('重命名笔记时出错'));
     }
   };
 
-  // 处理新建文档
+  /** 处理新建文档 */
   const handleNewDocument = (event: MouseEvent) => {
     const confirmNewDocument = () => {
       content.value = '';
@@ -835,16 +767,11 @@
         url: shareUrl,
       });
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: ti18n('分享失败'),
-        detail: ti18n('生成分享链接时出错，请重试'),
-        life: 3000,
-      });
+      toast.error(ti18n('分享失败'), ti18n('生成分享链接时出错，请重试'));
     }
   };
 
-  // 从URL参数加载内容
+  /** 从URL参数加载内容 */
   const loadContentFromUrl = async () => {
     try {
       // 优先检查是否有笔记ID
@@ -866,16 +793,11 @@
       if (!decompressedContent) return;
       content.value = decompressedContent;
     } catch (error: unknown) {
-      toast.add({
-        variant: 'error',
-        summary: ti18n('加载失败'),
-        detail: ti18n('从分享链接加载内容时出错'),
-        life: 3000,
-      });
+      toast.error(ti18n('加载失败'), ti18n('从分享链接加载内容时出错'));
     }
   };
 
-  // 更新url参数 - 仅在未保存的笔记且没有当前笔记ID时使用
+  /** 更新url参数 - 仅在未保存的笔记且没有当前笔记ID时使用 */
   const throttleUpdateQuery = useThrottleFn(
     () => {
       // 如果有当前笔记ID，不更新c参数
