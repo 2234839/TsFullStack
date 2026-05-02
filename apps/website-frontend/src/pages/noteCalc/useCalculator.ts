@@ -1,6 +1,7 @@
 import { all, create } from 'mathjs';
 import { computed, reactive, ref } from 'vue';
 import type { CalculationResult, CalculatorConfig, TextDiff } from './types';
+import { parseMarkdownTable, detectTables, calculateTableCells, generateCellReference } from './tableCalculator';
 
 /**
  * 计算器 Hook
