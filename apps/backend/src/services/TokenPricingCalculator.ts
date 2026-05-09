@@ -71,6 +71,9 @@ export class TokenPricingCalculator {
    * @returns 代币消耗计算结果
    */
   static aiImageGeneration(options: AiImageOptions): TokenCostResult {
+    if (!Number.isFinite(options.count) || options.count <= 0) {
+      throw new Error('count 必须为正整数');
+    }
     const sizeMult = TokenPricingCalculator.SIZE_MULTIPLIER[options.size] ?? 1;
     const providerMult = TokenPricingCalculator.PROVIDER_MULTIPLIER[options.provider] ?? 1;
 

@@ -1,11 +1,7 @@
 import { TokenGrantService, type GrantTxClient } from '../TokenGrantService';
 import { MS_PER_DAY, DAYS_PER_MONTH_APPROX, DAYS_PER_YEAR } from '../../util/constants';
 
-/**
- * 套餐信息（发放代币所需的字段子集）
- *
- * 从 tokenPackage 模型中提取，避免依赖完整模型类型
- */
+/** 套餐信息（发放代币所需的字段子集） */
 interface PackageForGrant {
   id: number;
   type: string;
@@ -13,6 +9,11 @@ interface PackageForGrant {
   name: string;
   durationMonths: number;
   restrictedType: unknown;
+}
+
+/** 将 restrictedType 归一化为 string | undefined（数据库字段可能是 JSON 对象） */
+function normalizeRestrictedType(raw: unknown): string | undefined {
+  return typeof raw === 'string' ? raw : undefined;
 }
 
 /**
@@ -30,6 +31,8 @@ export async function grantTokensForPackage(
   sourceId: number,
   description: string,
 ): Promise<void> {
+  const normalizedRestrictedType = normalizeRestrictedType(pkg.restrictedType);
+
   if (pkg.durationMonths > 0) {
     const now = new Date();
     const endDate = new Date(now.getTime() + pkg.durationMonths * DAYS_PER_MONTH_APPROX * MS_PER_DAY);
@@ -53,7 +56,7 @@ export async function grantTokensForPackage(
         type: pkg.type,
         amount: pkg.amount,
         name: pkg.name,
-        restrictedType: typeof pkg.restrictedType === 'string' ? pkg.restrictedType : undefined,
+        restrictedType: normalizedRestrictedType,
       },
     });
   } else {
@@ -68,7 +71,7 @@ export async function grantTokensForPackage(
         source: 'payment',
         sourceId: String(sourceId),
         description,
-        restrictedType: typeof pkg.restrictedType === 'string' ? pkg.restrictedType : '[]',
+        restrictedType: normalizedRestrictedType ?? '[]',
         active: true,
       },
     });

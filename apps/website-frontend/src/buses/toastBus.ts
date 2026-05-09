@@ -17,8 +17,9 @@ interface ToastMessage {
 type ToastListener = (message: ToastMessage) => void;
 
 class ToastBus {
-  /** 已发布但还未被消费的消息队列 */
+  /** 已发布但还未被消费的消息队列（上限50条，防止内存泄漏） */
   private messageQueue: ToastMessage[] = [];
+  private static MAX_QUEUE_SIZE = 50;
 
   /** 当前活跃的监听器 */
   private listeners: Set<ToastListener> = new Set();
@@ -38,9 +39,9 @@ class ToastBus {
       if (existing) {
         // 如果已有 op_toLogin 消息，延长时间而不是新增
         const currentLife = existing.life ?? 3000;
-        const newLife = (message.life ?? 3000) + currentLife - 3000; // 累加额外时间
+        const newLife = Math.max(currentLife, message.life ?? 3000) + 2000; // 取较大值并额外延长
 
-        this.latestMessages.set('op_toLogin', {
+        this.latestMessages.set(MsgError.op_toLogin, {
           ...existing,
           life: newLife,
         });
@@ -77,6 +78,9 @@ class ToastBus {
    */
   private _addToQueue(message: ToastMessage): void {
     this.messageQueue.push(message);
+    if (this.messageQueue.length > ToastBus.MAX_QUEUE_SIZE) {
+      this.messageQueue.splice(0, this.messageQueue.length - ToastBus.MAX_QUEUE_SIZE);
+    }
 
     // 立即通知所有监听器
     this._notifyListeners(message);
@@ -98,8 +102,8 @@ class ToastBus {
     this.listeners.forEach((listener) => {
       try {
         listener(message);
-      } catch (_error: unknown) {
-        /** 静默处理监听器异常 */
+      } catch (error: unknown) {
+        console.warn('[toastBus] 监听器异常:', error);
       }
     });
   }

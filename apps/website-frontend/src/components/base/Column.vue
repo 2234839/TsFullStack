@@ -4,6 +4,8 @@
  * 用于 DataTable 的列定义
  * 兼容 PrimeVue Column API
  */
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 字段名 */
   field?: string;

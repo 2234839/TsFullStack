@@ -6,5 +6,8 @@ import { t } from '@/i18n';
  */
 export function getErrorMessage(error: unknown, fallback?: string): string {
   const defaultFallback = t('未知错误');
-  return error instanceof Error ? error.message : String(error) || (fallback ?? defaultFallback);
+  if (error instanceof Error) return error.message;
+  if (error == null) return fallback ?? defaultFallback;
+  const str = String(error);
+  return str || (fallback ?? defaultFallback);
 }

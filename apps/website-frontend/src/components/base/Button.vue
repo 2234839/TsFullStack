@@ -51,6 +51,7 @@ const DEFAULT_SIZE: Record<string, string> = {
 };
 
 const { variant = 'primary', size = 'md', disabled = false, type = 'button', loading = false, rounded = false, label, icon } = defineProps<Props>();
+defineOptions({ inheritAttrs: false });
 
 /** 按钮样式类 */
 const buttonClasses = computed(() => {
@@ -78,12 +79,13 @@ const buttonClasses = computed(() => {
 
 <template>
   <button
+    v-bind="$attrs"
     :type="type"
     :disabled="disabled || loading"
     :class="buttonClasses">
     <slot>
-      <i v-if="icon && !loading" :class="[icon, { 'mr-2': label }]"></i>
       <i v-if="loading" :class="['pi pi-spin pi-spinner', { 'mr-2': label }]"></i>
+      <i v-else-if="icon" :class="[icon, { 'mr-2': label }]"></i>
       {{ label }}
     </slot>
   </button>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h } from 'vue';
+import { ref, onMounted, computed, h , shallowRef } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useConfirm } from '@/composables/useConfirm';
@@ -73,7 +73,7 @@ const {
 });
 
 /** 显示订阅对话框 */
-const showSubscribeDialog = ref(false);
+const showSubscribeDialog = shallowRef(false);
 
 /** 订阅表单 */
 const subscribeForm = ref({
@@ -82,7 +82,7 @@ const subscribeForm = ref({
 });
 
 /** 提交中 */
-const isSubmitting = ref(false);
+const isSubmitting = shallowRef(false);
 
 /** 搜索套餐 */
 async function searchPackages(params: {
@@ -242,7 +242,7 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     key: 'user',
     title: t('用户'),
     width: '20%',
-    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user?.email ?? '--'),
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-title' }, row.user?.email ?? '--'),
   },
   {
     key: 'status',
@@ -258,8 +258,8 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     title: t('套餐'),
     width: '15%',
     render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'font-medium text-primary-900 dark:text-primary-100' }, row.package?.name ?? '--'),
-      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${row.package?.amount ?? '--'} ${t('代币')}`),
+      h('div', { class: 'font-medium text-primary-title' }, row.package?.name ?? '--'),
+      h('div', { class: 'text-xs text-primary-subtle' }, `${row.package?.amount ?? '--'} ${t('代币')}`),
     ]),
   },
   {
@@ -272,13 +272,13 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     key: 'startDate',
     title: t('订阅时间'),
     width: '10%',
-    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.startDate)),
+    render: (row) => h('div', { class: 'text-sm text-primary-theme' }, formatDate(row.startDate)),
   },
   {
     key: 'endDate',
     title: t('到期时间'),
     width: '10%',
-    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.endDate, { nullLabel: t('永久') })),
+    render: (row) => h('div', { class: 'text-sm text-primary-theme' }, formatDate(row.endDate, { nullLabel: t('永久') })),
   },
   {
     key: 'nextGrantDate',
@@ -290,9 +290,9 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
         h('div', {
           class: days <= 7
             ? 'text-warning-600 dark:text-warning-400'
-            : 'text-primary-600 dark:text-primary-400'
+            : 'text-primary-theme'
         }, formatDate(row.nextGrantDate)),
-        h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${days}${t('天后')}`),
+        h('div', { class: 'text-xs text-primary-subtle' }, `${days}${t('天后')}`),
       ]);
     },
   },
@@ -300,7 +300,7 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     key: 'grantsCount',
     title: t('已发放'),
     width: '8%',
-    render: (row) => h('div', { class: 'text-sm text-primary-900 dark:text-primary-100' }, `${row.grantsCount} ${t('次')}`),
+    render: (row) => h('div', { class: 'text-sm text-primary-title' }, `${row.grantsCount} ${t('次')}`),
   },
   {
     key: 'actions',
@@ -308,7 +308,7 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     width: '5%',
     render: (row) => {
       if (!row.active) {
-        return h('div', { class: 'text-sm text-primary-500 dark:text-primary-400' }, t('已取消'));
+        return h('div', { class: 'text-sm text-primary-subtle' }, t('已取消'));
       }
       return h(Button, {
         label: t('取消订阅'),
@@ -338,9 +338,9 @@ onMounted(loadSubscriptions);
     </div>
 
     <!-- 订阅列表 -->
-    <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
-      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
-        <h2 class="text-lg font-semibold text-primary-900 dark:text-primary-100">
+    <div class="bg-primary-panel rounded-lg shadow">
+      <div class="px-6 py-4 border-b border-primary-default">
+        <h2 class="text-lg font-semibold text-primary-title">
           {{ t('用户订阅列表') }}
         </h2>
       </div>
@@ -357,7 +357,7 @@ onMounted(loadSubscriptions);
       />
 
       <!-- 分页 -->
-      <div v-if="subscriptionsTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
+      <div v-if="subscriptionsTotal > 0" class="px-6 py-4 border-t border-primary-default">
         <Paginator
           :rows="subscriptionsTotal"
           :rows-per-page="subscriptionsPageSize"
@@ -373,7 +373,7 @@ onMounted(loadSubscriptions);
     <Dialog v-model:open="showSubscribeDialog" :title="t('添加订阅')">
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('选择用户 *') }}
           </label>
           <RemoteSelect
@@ -385,7 +385,7 @@ onMounted(loadSubscriptions);
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('选择套餐 *') }}
           </label>
           <RemoteSelect

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-primary-50 dark:bg-primary-950 py-8">
+  <div class="min-h-screen bg-primary-surface py-8">
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- 页面标题 -->
       <div class="mb-8 flex items-center justify-between">
@@ -73,7 +73,7 @@
       <div v-else-if="posts.length === 0" class="text-center">
         <div class="bg-white dark:bg-primary-900 rounded-lg shadow p-8">
           <i class="pi pi-comments text-4xl text-primary-400 mb-4"></i>
-          <p class="text-primary-600 dark:text-primary-400 mb-4">
+          <p class="text-primary-theme mb-4">
             {{ emptyMessage }}
           </p>
           <Button
@@ -112,7 +112,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, computed, watch } from 'vue';
+import { shallowRef, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { authInfo_isLogin, authInfo } from '@/storage';
 import { useAPI } from '@/api';
@@ -129,17 +129,17 @@ const { t } = useI18n();
 const { AppAPI } = useAPI();
 
 const posts = shallowRef<TreeholePostType[]>([]);
-const isLoading = ref(false);
-const isLoadingMore = ref(false);
-const error = ref('');
-const showCreateForm = ref(false);
-const searchKeyword = ref('');
-const currentFilter = ref<'PUBLIC' | 'MEMBERS' | 'MY'>('PUBLIC');
+const isLoading = shallowRef(false);
+const isLoadingMore = shallowRef(false);
+const error = shallowRef('');
+const showCreateForm = shallowRef(false);
+const searchKeyword = shallowRef('');
+const currentFilter = shallowRef<'PUBLIC' | 'MEMBERS' | 'MY'>('PUBLIC');
 
 /** 分页参数 */
-const skip = ref(0);
+const skip = shallowRef(0);
 const take = 10;
-const hasMore = ref(false);
+const hasMore = shallowRef(false);
 
 /** 可见性过滤器（使用 computed 确保切换语言后更新） */
 const visibilityFilters = computed(() => [
@@ -148,21 +148,21 @@ const visibilityFilters = computed(() => [
     label: t('公开'),
     icon: 'pi pi-globe',
     activeClass: 'bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300',
-    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
+    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-theme hover:bg-primary-50 dark:hover:bg-primary-700',
   },
   {
     value: 'MEMBERS' as const,
     label: t('登录可见'),
     icon: 'pi pi-users',
     activeClass: 'bg-info-100 text-info-700 dark:bg-info-900 dark:text-info-300',
-    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
+    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-theme hover:bg-primary-50 dark:hover:bg-primary-700',
   },
   {
     value: 'MY' as const,
     label: t('我的'),
     icon: 'pi pi-user',
     activeClass: 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300',
-    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-700',
+    inactiveClass: 'bg-white dark:bg-primary-900 text-primary-theme hover:bg-primary-50 dark:hover:bg-primary-700',
   },
 ]);
 

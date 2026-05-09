@@ -6,6 +6,8 @@
  */
 import { ref, provide } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 defineProps<{}>();
 
 /** 焦点状态 */
@@ -27,6 +29,7 @@ const handleBlur = () => {
 
 <template>
   <div
+    v-bind="$attrs"
     class="flex items-stretch w-full *:first:rounded-l-lg *:first:rounded-r-none *:last:rounded-r-lg *:last:rounded-l-none [&>:not(:last-child)]:border-r-0"
     @focusin="handleFocus"
     @focusout="handleBlur">

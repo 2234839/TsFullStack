@@ -50,6 +50,7 @@ export function createRPC<API_TYPE>(
       ]
 ) {
   const remoteCall = type === 'apiConsumer' ? options.remoteCall : undefined;
+  let cachedApiModule: API_TYPE | undefined;
 
   /** 默认的安全配置 */
   const securityOptions = options.securityOptions ?? {};
@@ -99,7 +100,8 @@ export function createRPC<API_TYPE>(
 
     async function executeCall(): Promise<unknown> {
         if (type === 'apiProvider') {
-          const apiModule = await options.genApiModule();
+          if (!cachedApiModule) cachedApiModule = await options.genApiModule();
+          const apiModule = cachedApiModule;
           const methodParts = method.split('.');
 
           // 安全检查：检查每个属性部分是否在黑名单中
@@ -116,17 +118,12 @@ export function createRPC<API_TYPE>(
               throw MsgError.msg(`方法 ${method} 未找到`);
             }
             currentObj = (currentObj as Record<string, unknown>)[part];
-            if (!currentObj) {
+            if (currentObj == null) {
               throw MsgError.msg(`方法 ${method} 未找到`);
             }
           }
 
           if (typeof currentObj === 'function') {
-            // 安全检查：确保调用的是普通函数，而不是绑定函数或其他特殊函数
-            if (currentObj.toString().includes('[native code]')) {
-              throw MsgError.msg(`禁止调用原生方法`);
-            }
-
             return await (currentObj as (...args: unknown[]) => unknown)(...data);
           } else {
             throw MsgError.msg(`${method} 不是一个函数`);
@@ -236,15 +233,12 @@ export function proxyCall<T extends object, R = [string, unknown[]]>(
   _obj: T,
   transform?: (result: [string, unknown[]]) => R,
 ): ChainedProxy<T, R> {
-  let path: string[] = [];
-
-  /** 递归代理工厂 — 返回 unknown 因为 Proxy 链式调用的静态类型无法精确表达 */
-  const createProxy = (): unknown => {
+  /** 递归代理工厂 — 每条链持有独立的 path 数组，避免并发调用互相污染 */
+  const createProxy = (path: string[]): unknown => {
     return new Proxy(function () {}, {
       // 拦截函数调用
       apply(_target, _thisArg, args: unknown[]) {
         const result: [string, unknown[]] = [path.join('.'), args];
-        path = [];
         // 如果提供了转换函数，则应用转换
         return transform ? transform(result) : result;
       },
@@ -252,8 +246,7 @@ export function proxyCall<T extends object, R = [string, unknown[]]>(
       get(_target, prop, _receiver) {
         if (typeof prop === 'string' && prop !== 'then') {
           // 避免与Promise冲突
-          path.push(prop);
-          return createProxy();
+          return createProxy([...path, prop]);
         }
         return undefined;
       },
@@ -264,8 +257,7 @@ export function proxyCall<T extends object, R = [string, unknown[]]>(
   const handler: ProxyHandler<Record<string, unknown>> = {
     get(_target, prop, _receiver) {
       if (typeof prop === 'string' && prop !== 'then') {
-        path.push(prop);
-        return createProxy();
+        return createProxy([prop]);
       }
       return undefined;
     },

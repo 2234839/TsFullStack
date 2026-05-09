@@ -16,15 +16,14 @@ import { dbTry, dbTryOrDefault } from '../../util/dbEffect';
 /** 日志前缀 */
 const LOG_PREFIX = '[FileApi]';
 
-/** 查询文件记录（统一 authApi/file.ts 中的重复查询模式） */
+/** 查询文件记录 */
 const fetchFileById = (id: FileModel['id']) =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* dbTryOrDefault(LOG_PREFIX, '查询文件', () =>
+  Effect.flatMap(AuthContext, (auth) =>
+    dbTryOrDefault(LOG_PREFIX, '查询文件', () =>
       auth.db.file.findUnique({ where: { id } }),
       null,
-    );
-  });
+    ),
+  );
 
 /**
  * 通用文件保存函数（Buffer 一次性写入 / ReadableStream 流式写入）
@@ -61,12 +60,16 @@ const saveFile = (options: {
       });
       const writeStream = createWriteStream(filePath);
       trackedStream.pipe(writeStream);
-      yield* tryOrFail('写入文件', () => new Promise<void>((resolve, reject) => {
-        writeStream.on('finish', resolve);
-        writeStream.on('error', reject);
-        trackedStream.on('error', reject);
+      const finalSize = yield* tryOrFail('写入文件', () => new Promise<number>((resolve, reject) => {
+        const cleanup = () => {
+          writeStream.removeAllListeners();
+          trackedStream.removeAllListeners();
+        };
+        writeStream.on('finish', () => { cleanup(); resolve(fileSize); });
+        writeStream.on('error', (e) => { cleanup(); reject(e); });
+        trackedStream.on('error', (e) => { cleanup(); reject(e); });
       }));
-      options.byteLength = fileSize;
+      options.byteLength = finalSize;
     } else {
       return yield* fail(MSG.SAVE_FILE_NO_DATA);
     }
@@ -199,10 +202,7 @@ export const fileApi = {
 
 /** 对超级管理员进行特殊处理，超管无视 checkOwnership 校验  */
 function checkOwnership(shouldCheck: boolean) {
-  return Effect.gen(function* () {
-    const isAdmin = yield* authUserIsAdmin();
-    return !isAdmin && shouldCheck;
-  });
+  return Effect.map(authUserIsAdmin(), (isAdmin) => !isAdmin && shouldCheck);
 }
 
 /** FileWrapItem 已提取到 util/file-types.ts，所有消费者已直接导入 */

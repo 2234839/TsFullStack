@@ -6,6 +6,8 @@
 import { onMounted, onUnmounted, ref, shallowRef, triggerRef, watch } from 'vue';
 import type { ChartType, ChartData, ChartOptions, Chart as ChartInstance } from 'chart.js';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 图表类型 */
   type?: ChartType;
@@ -67,17 +69,16 @@ function destroyChart() {
   }
 }
 
-// 监听数据变化
+// 监听 props 引用变化（不使用 deep，父组件替换 data/options 引用时触发更新）
 watch(
-  () => [data, options],
-  () => {
-    if (chartInstance.value && data) {
-      chartInstance.value.data = data;
-      if (options) chartInstance.value.options = options;
+  () => [data, options] as const,
+  ([newData, newOptions]) => {
+    if (chartInstance.value && newData) {
+      chartInstance.value.data = newData;
+      if (newOptions) chartInstance.value.options = newOptions;
       chartInstance.value.update();
     }
   },
-  { deep: true }
 );
 
 onMounted(initChart);
@@ -94,7 +95,7 @@ defineExpose({
 </script>
 
 <template>
-  <div class="chart-container relative h-100 w-full">
+  <div v-bind="$attrs" class="chart-container relative h-100 w-full">
     <canvas ref="canvasRef"></canvas>
   </div>
 </template>

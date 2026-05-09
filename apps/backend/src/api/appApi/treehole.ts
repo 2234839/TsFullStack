@@ -103,14 +103,11 @@ export const treeholeApi = {
         }
       }
 
-      // 是否只获取主题帖
-      if (params.onlyRoot) {
-        where.parentId = null;
-      }
-
-      // 父帖子过滤
+      // 父帖子过滤（onlyRoot 和 parentId 互斥：parentId 优先级更高）
       if (params.parentId !== undefined) {
         where.parentId = params.parentId;
+      } else if (params.onlyRoot) {
+        where.parentId = null;
       }
 
       // 作者过滤（"我的帖子"，IDOR 防护：仅允许查询自己的帖子）

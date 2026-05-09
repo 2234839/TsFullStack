@@ -4,7 +4,7 @@
  *
  * 安全增强：
  * - 限制最大entry数量防止内存泄漏
- * - 使用LRU淘汰策略
+ * - 使用LRU淘汰策略（O(1) 基于 Map 插入顺序）
  */
 import { MS_PER_MINUTE } from '../util/constants';
 
@@ -14,7 +14,6 @@ const DEFAULT_MAX_RATE_LIMIT_ENTRIES = 10_000;
 interface RateLimitEntry {
   count: number;
   resetTime: number;
-  lastAccess: number;
 }
 
 class RateLimiter {
@@ -25,10 +24,9 @@ class RateLimiter {
   constructor(
     private maxRequests: number,
     private windowMs: number,
-    maxEntries: number = DEFAULT_MAX_RATE_LIMIT_ENTRIES // 默认最多保存10000个用户的记录
+    maxEntries: number = DEFAULT_MAX_RATE_LIMIT_ENTRIES
   ) {
     this.maxEntries = maxEntries;
-    // 每分钟清理一次过期记录
     this.cleanupInterval = setInterval(() => {
       this.cleanup();
     }, MS_PER_MINUTE);
@@ -36,30 +34,27 @@ class RateLimiter {
 
   /**
    * 检查是否允许请求
-   * 注意：由于JavaScript单线程特性，不需要显式锁
+   * 利用 Map 插入顺序实现 LRU：每次访问时 delete + set 将 key 移到末尾
    */
   check(identifier: string): { allowed: boolean; remaining: number } {
     const now = Date.now();
     const entry = this.requests.get(identifier);
 
     if (!entry || now > entry.resetTime) {
-      // 创建新窗口
-      // 检查是否超过最大entry数量，使用LRU淘汰
       if (this.requests.size >= this.maxEntries) {
         this.evictLRU();
       }
 
-      const resetTime = now + this.windowMs;
       this.requests.set(identifier, {
         count: 1,
-        resetTime,
-        lastAccess: now,
+        resetTime: now + this.windowMs,
       });
       return { allowed: true, remaining: this.maxRequests - 1 };
     }
 
-    // 更新最后访问时间
-    entry.lastAccess = now;
+    // LRU: 将 key 移到 Map 末尾
+    this.requests.delete(identifier);
+    this.requests.set(identifier, entry);
 
     if (entry.count >= this.maxRequests) {
       return { allowed: false, remaining: 0 };
@@ -69,29 +64,15 @@ class RateLimiter {
     return { allowed: true, remaining: this.maxRequests - entry.count };
   }
 
-  /**
-   * 淘汰最近最少使用的entry
-   */
+  /** 淘汰最久未访问的 entry（Map 迭代顺序即 LRU 顺序，首位 = 最老） */
   private evictLRU() {
-    let oldestKey: string | null = null;
-    /** 使用 Infinity 确保第一个 entry 总是满足淘汰条件（防止同毫秒批量创建导致死循环） */
-    let oldestTime = Infinity;
-
-    for (const [key, entry] of this.requests.entries()) {
-      if (entry.lastAccess < oldestTime) {
-        oldestTime = entry.lastAccess;
-        oldestKey = key;
-      }
-    }
-
-    if (oldestKey) {
-      this.requests.delete(oldestKey);
+    const firstKey = this.requests.keys().next().value;
+    if (firstKey !== undefined) {
+      this.requests.delete(firstKey);
     }
   }
 
-  /**
-   * 清理过期记录
-   */
+  /** 清理过期记录 */
   private cleanup() {
     const now = Date.now();
     for (const [key, entry] of this.requests.entries()) {
@@ -100,23 +81,18 @@ class RateLimiter {
       }
     }
 
-    // 如果仍然超过最大数量，继续淘汰LRU
     while (this.requests.size > this.maxEntries) {
       this.evictLRU();
     }
   }
 
-  /**
-   * 销毁定时器
-   */
+  /** 销毁定时器 */
   destroy() {
     clearInterval(this.cleanupInterval);
     this.requests.clear();
   }
 
-  /**
-   * 获取统计信息（用于监控）
-   */
+  /** 获取统计信息 */
   getStats() {
     return {
       totalEntries: this.requests.size,
@@ -134,4 +110,9 @@ const TOKEN_CONSUME_WINDOW_MS = 60_000;
  * 每用户每分钟最多 10 次代币消耗
  */
 export const tokenConsumeRateLimiter = new RateLimiter(TOKEN_CONSUME_MAX_REQUESTS, TOKEN_CONSUME_WINDOW_MS);
+
+/** 销毁速率限制器定时器（用于优雅关闭） */
+export function destroyRateLimiter() {
+  tokenConsumeRateLimiter.destroy();
+}
 

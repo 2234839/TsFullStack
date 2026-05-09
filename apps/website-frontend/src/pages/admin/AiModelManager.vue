@@ -26,12 +26,12 @@
         class="bg-white dark:bg-secondary-800 rounded-lg shadow p-4 border border-primary-200 dark:border-secondary-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('总模型数') }}</p>
-            <p class="text-2xl font-bold text-primary-600 dark:text-primary-400">{{ totalModels }}</p>
+            <p class="text-sm text-primary-theme">{{ t('总模型数') }}</p>
+            <p class="text-2xl font-bold text-primary-theme">{{ totalModels }}</p>
           </div>
           <div
             class="w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-lg flex items-center justify-center">
-            <i class="pi pi-microchip text-primary-600 dark:text-primary-400 text-xl"></i>
+            <i class="pi pi-microchip text-primary-theme text-xl"></i>
           </div>
         </div>
       </div>
@@ -40,7 +40,7 @@
         class="bg-white dark:bg-secondary-800 rounded-lg shadow p-4 border border-primary-200 dark:border-secondary-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('启用模型') }}</p>
+            <p class="text-sm text-primary-theme">{{ t('启用模型') }}</p>
             <p class="text-2xl font-bold text-success-600 dark:text-success-400">{{ enabledModels }}</p>
           </div>
           <div
@@ -54,7 +54,7 @@
         class="bg-white dark:bg-secondary-800 rounded-lg shadow p-4 border border-primary-200 dark:border-secondary-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('禁用模型') }}</p>
+            <p class="text-sm text-primary-theme">{{ t('禁用模型') }}</p>
             <p class="text-2xl font-bold text-danger-600 dark:text-danger-400">{{ disabledModels }}</p>
           </div>
           <div
@@ -68,7 +68,7 @@
         class="bg-white dark:bg-secondary-800 rounded-lg shadow p-4 border border-primary-200 dark:border-secondary-700">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('总权重') }}</p>
+            <p class="text-sm text-primary-theme">{{ t('总权重') }}</p>
             <p class="text-2xl font-bold text-secondary-600 dark:text-secondary-400">{{ totalWeight }}</p>
           </div>
           <div
@@ -147,10 +147,10 @@
 
   // 响应式数据
   const models = shallowRef<AiModelVO[]>([]);
-  const isLoading = ref(false);
-  const modelFormVisible = ref(false);
+  const isLoading = shallowRef(false);
+  const modelFormVisible = shallowRef(false);
   const selectedModel = ref<AiModelVO | null>(null);
-  const isStatsLoading = ref(false);
+  const isStatsLoading = shallowRef(false);
   const modelStatsChartRef = ref<InstanceType<typeof ModelStatsChart> | null>(null);
 
   // 搜索和筛选
@@ -158,10 +158,9 @@
   const statusFilter = ref<boolean | null>(null);
   const sortBy = ref<string>('id-desc');
 
-  // 计算属性
   const totalModels = computed(() => models.value.length);
   const enabledModels = computed(() => models.value.filter(m => m?.enabled).length);
-  const disabledModels = computed(() => models.value.filter(m => !m?.enabled).length);
+  const disabledModels = computed(() => totalModels.value - enabledModels.value);
   const totalWeight = computed(() => models.value.reduce((sum, m) => sum + (m?.weight ?? 0), 0));
 
   /** 过滤和排序后的模型列表 */
@@ -233,7 +232,7 @@
       title: t('API地址'),
       width: '200px',
       render: (row: AiModelVO) =>
-        h('div', { class: 'text-sm text-primary-600 dark:text-primary-400 truncate', title: row.baseUrl ?? '' }, row.baseUrl ?? ''),
+        h('div', { class: 'text-sm text-primary-theme truncate', title: row.baseUrl ?? '' }, row.baseUrl ?? ''),
     },
     {
       key: 'enabled',

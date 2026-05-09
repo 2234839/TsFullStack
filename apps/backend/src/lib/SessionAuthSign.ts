@@ -1,17 +1,26 @@
+/** 复用无状态的 TextEncoder 实例 */
+const textEncoder = new TextEncoder();
+
 /**
  * 使用 Web Crypto API 的 HMAC-SHA256 签名（兼容浏览器和 Node.js）
+ * cryptoKey 按缓存 key 复用，避免重复 importKey 开销
  */
+const cryptoKeyCache = new Map<string, CryptoKey>();
+
 async function hmacSha256(key: string, data: string): Promise<string> {
-  const keyData = new TextEncoder().encode(key);
-  const dataBytes = new TextEncoder().encode(data);
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw',
-    keyData,
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, dataBytes);
+  let cryptoKey = cryptoKeyCache.get(key);
+  if (!cryptoKey) {
+    cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      textEncoder.encode(key),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    cryptoKeyCache.set(key, cryptoKey);
+  }
+
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, textEncoder.encode(data));
   return Array.from(new Uint8Array(signature))
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');

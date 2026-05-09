@@ -14,7 +14,8 @@ export function getResourceUrl(resource: ResourceItemLike): string {
   }
   if (resource.metadata && typeof resource.metadata === 'object' && !Array.isArray(resource.metadata)) {
     const metadata = resource.metadata as Record<string, unknown>;
-    return (metadata.externalUrl as string) || '';
+    const url = metadata.externalUrl;
+    return typeof url === 'string' ? url : '';
   }
   return '';
 }

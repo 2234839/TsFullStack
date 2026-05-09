@@ -7,9 +7,8 @@ const LOG_PREFIX = '[ShareApi]';
 
 export const shareApi = {
   detail(id: UserDataModel['id']) {
-    return Effect.gen(function* () {
-      const dbClient = yield* DbClientEffect;
-      return yield* dbTryOrDefault(LOG_PREFIX, '查询分享信息', () =>
+    return Effect.flatMap(DbClientEffect, (dbClient) =>
+      dbTryOrDefault(LOG_PREFIX, '查询分享信息', () =>
         dbClient.userData.findUnique({
           where: {
             id,
@@ -17,7 +16,7 @@ export const shareApi = {
           },
         }),
         null,
-      );
-    });
+      ),
+    );
   },
 };

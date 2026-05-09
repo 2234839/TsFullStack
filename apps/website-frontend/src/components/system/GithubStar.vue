@@ -16,7 +16,8 @@
         <span class="font-medium button-text"> {{ t('支持一下 | Star 这个项目') }} </span>
         <button
           @click.prevent.stop="toggleGithubStar()"
-          class="hidden group-hover:block absolute -top-2 -right-2 bg-white dark:bg-primary-800 text-primary-900 dark:text-primary-100 rounded-full p-1 leading-none shadow-md hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors">
+          :aria-label="t('关闭')"
+          class="hidden group-hover:block absolute -top-2 -right-2 bg-primary-panel text-primary-title rounded-full p-1 leading-none shadow-md hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors">
           <i class="pi pi-times text-sm" />
         </button>
       </a>
@@ -25,6 +26,7 @@
       <button
         v-show="githubStarShow === 'hide'"
         @click="toggleGithubStar()"
+        :aria-label="t('显示 GitHub Star')"
         class="small-button -rotate-12 fixed -bottom-3 -right-3 flex items-center justify-center w-12 h-12 bg-primary-950 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
         :class="{
           'button-show': githubStarShow === 'hide',

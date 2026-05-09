@@ -1,6 +1,6 @@
 <style scoped></style>
 <template>
-  <div class="text-nowrap p-1 min-h-8" @click="editMode = true" v-if="!editMode">
+  <div class="text-nowrap p-1 min-h-8" @click="editMode = true" v-if="!editMode" key="display">
     <template v-if="field.type === 'DateTime'">
       {{ cellData instanceof Date ? formatDate(cellData) : '-' }}
     </template>
@@ -20,6 +20,7 @@
     v-model="editValue"
     v-model:edit-mode="editMode"
     v-else
+    key="edit"
     :field="field"
     :row="row"
     :cellData="row[field.name]" />

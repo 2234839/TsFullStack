@@ -12,10 +12,10 @@
           class="inline-flex items-center justify-center w-16 h-16 bg-danger-100 dark:bg-danger-900/20 rounded-full mb-4">
           <i class="pi pi-exclamation-triangle text-2xl text-danger-600 dark:text-danger-400"></i>
         </div>
-        <h2 class="text-2xl font-semibold text-primary-900 dark:text-primary-100 mb-2">
+        <h2 class="text-2xl font-semibold text-primary-title mb-2">
           {{ t('加载失败，请重试') }}
         </h2>
-        <p class="text-primary-600 dark:text-primary-400 max-w-md mx-auto">
+        <p class="text-primary-theme max-w-md mx-auto">
           {{ t('无法加载分享内容，请检查网络连接') }}
         </p>
       </div>
@@ -24,11 +24,11 @@
       <div v-else-if="state" class="space-y-8">
         <!-- Header Section -->
         <div class="text-center space-y-4">
-          <h1 class="text-3xl md:text-4xl font-bold text-primary-900 dark:text-primary-100">
+          <h1 class="text-3xl md:text-4xl font-bold text-primary-title">
             <i class="pi pi-share-alt text-xl text-info-600 dark:text-info-400"></i>
             {{ state.data.title }}
           </h1>
-          <p v-if="state.description" class="text-lg text-primary-600 dark:text-primary-400 max-w-2xl mx-auto">
+          <p v-if="state.description" class="text-lg text-primary-theme max-w-2xl mx-auto">
             {{ state.description }}
           </p>
         </div>
@@ -36,7 +36,7 @@
         <!-- Files Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <div v-for="file in state.data.files" :key="file.id"
-            class="group bg-white dark:bg-primary-800 rounded-xl border border-primary-200 dark:border-primary-700 overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 min-w-0">
+            class="group bg-primary-panel rounded-xl border border-primary-default overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 min-w-0">
             <!-- File Preview -->
             <div
               class="h-48 flex items-center justify-center bg-linear-to-br from-primary-50 to-primary-100 dark:from-primary-700 dark:to-primary-800">
@@ -46,7 +46,7 @@
             <!-- File Info -->
             <div class="p-6 space-y-4">
               <div>
-                <div class="font-semibold text-primary-900 dark:text-primary-100 truncate" :title="file.filename">
+                <div class="font-semibold text-primary-title truncate" :title="file.filename">
                   {{ file.filename }}
                 </div>
 
@@ -55,7 +55,7 @@
                     :class="getFileTypeClass(file.mimetype)">
                     {{ getFileTypeLabel(file.mimetype, t) }}
                   </span>
-                  <span class="text-xs text-primary-500 dark:text-primary-400">
+                  <span class="text-xs text-primary-subtle">
                     {{ formatFileSize(file.size) }}
                   </span>
                 </div>

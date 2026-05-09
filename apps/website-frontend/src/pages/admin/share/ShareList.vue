@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-primary-50 dark:bg-primary-900 py-8">
+  <div class="min-h-screen bg-primary-card py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-8">
         <h1 class="text-3xl font-bold text-primary-900 dark:text-white">{{ t('分享管理') }}</h1>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">
+        <p class="mt-2 text-primary-theme">
           {{ t('浏览和管理您的分享') }}
         </p>
       </div>
@@ -27,7 +27,7 @@
             <h3 class="text-lg font-semibold text-primary-900 dark:text-white mb-2">
               {{ selectedQRItem?.data?.title }}
             </h3>
-            <p class="text-sm text-primary-600 dark:text-primary-400">
+            <p class="text-sm text-primary-theme">
               {{ t('扫描二维码访问分享') }}
             </p>
           </div>
@@ -35,12 +35,12 @@
           <div class="flex justify-center mb-4">
             <img v-if="qrCodeDataUrl" :src="qrCodeDataUrl" :alt="t('分享二维码')"
               class="border border-primary-300 dark:border-primary-600 rounded-lg" width="200" height="200" />
-            <div v-else class="w-52 h-52 flex items-center justify-center text-primary-500 dark:text-primary-400">
+            <div v-else class="w-52 h-52 flex items-center justify-center text-primary-subtle">
               {{ t('生成二维码中...') }}
             </div>
           </div>
 
-          <div class="text-xs text-primary-500 dark:text-primary-400 break-all">
+          <div class="text-xs text-primary-subtle break-all">
             {{ currentShareUrl }}
           </div>
 
@@ -64,9 +64,9 @@
 
       <!-- 空状态 -->
       <div v-else-if="shareList.state.value.total === 0" class="text-center">
-        <div class="bg-white dark:bg-primary-800 rounded-lg shadow p-8">
+        <div class="bg-primary-panel rounded-lg shadow p-8">
           <i class="pi pi-images text-4xl text-primary-400 mb-4" />
-          <p class="text-primary-600 dark:text-primary-400">
+          <p class="text-primary-theme">
             {{ t('暂无分享') }}
           </p>
         </div>
@@ -76,7 +76,7 @@
       <div v-else>
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mb-8">
           <div v-for="item in shareList.state.value.data" :key="item.id"
-            class="group relative bg-white dark:bg-primary-800 rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
+            class="group relative bg-primary-panel rounded-lg shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer overflow-hidden">
             <ShareCard :data="item" />
 
             <!-- 标题和文件信息 -->
@@ -90,7 +90,8 @@
 
                   <Button icon="pi pi-qrcode" variant="icon" @click.stop="handleShowQRCode(item)"
                     :aria-label="t('显示二维码')" />
-                  <Button icon="pi pi-link" variant="icon" @click.stop="handleGotoDetail(item)" />
+                  <Button icon="pi pi-link" variant="icon" @click.stop="handleGotoDetail(item)"
+                    :aria-label="t('查看详情')" />
                   <Button icon="pi pi-pencil" variant="icon" @click.stop="handleEdit(item)"
                     :aria-label="t('编辑')" />
                   <Button icon="pi pi-trash" variant="icon" @click.stop="handleDelete(item, $event)"
@@ -98,7 +99,7 @@
                 </div>
               </div>
 
-              <div class="flex items-center justify-between text-sm text-primary-500 dark:text-primary-400">
+              <div class="flex items-center justify-between text-sm text-primary-subtle">
                 <span>{{ item.data.files?.length ?? 0 }} {{ t('个文件') }}</span>
                 <span>{{
                   formatFileSize(getTotalFileSize(item.data))
@@ -137,7 +138,7 @@
   import { userDataAppid } from '@/storage/userDataAppid';
   import { useAsyncState, watchDebounced } from '@vueuse/core';
   import QRCode from 'qrcode';
-  import { reactive, ref } from 'vue';
+  import { reactive, ref , shallowRef } from 'vue';
   import { useConfirm } from '@/composables/useConfirm';
   import { useI18n } from '@/composables/useI18n';
   import { getErrorMessage } from '@/utils/error';
@@ -149,7 +150,7 @@
   const confirm = useConfirm();
 
   /** 搜索关键词 */
-  const searchTitle = ref('');
+  const searchTitle = shallowRef('');
 
   function useShareList() {
     const params = reactive({
@@ -192,6 +193,7 @@
         data: [] as ShareItemJSON[],
         total: 0,
       },
+      { resetOnExecute: false },
     );
 
     return {
@@ -207,22 +209,22 @@
   const shareList = useShareList();
 
   /** 对话框可见性 */
-  const dialogVisible = ref(false);
+  const dialogVisible = shallowRef(false);
 
   /** 正在编辑的分享项 */
   const editingItem = ref<ShareItemJSON | undefined>();
 
   /** QR码对话框可见性 */
-  const qrDialogVisible = ref(false);
+  const qrDialogVisible = shallowRef(false);
 
   /** 选中的分享项用于显示QR码 */
   const selectedQRItem = ref<ShareItemJSON | null>(null);
 
   /** 当前分享URL */
-  const currentShareUrl = ref('');
+  const currentShareUrl = shallowRef('');
 
   /** QR码数据URL */
-  const qrCodeDataUrl = ref('');
+  const qrCodeDataUrl = shallowRef('');
 
   /**
    * 打开创建对话框

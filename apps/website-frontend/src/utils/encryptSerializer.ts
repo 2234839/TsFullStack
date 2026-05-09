@@ -4,23 +4,18 @@
  * 抵抗非技术用户的好奇浏览，而非抵御有意攻击。生产环境应通过 VITE_SECRET_KEY 环境变量配置。
  */
 const SECRET_KEY = import.meta.env.VITE_SECRET_KEY || '__default_frontend_key__';
+if (!import.meta.env.VITE_SECRET_KEY && import.meta.env.PROD) {
+  console.error('[encryptSerializer] VITE_SECRET_KEY 未设置，localStorage 加密不安全');
+}
 const encoder = new TextEncoder();
-const keyData = encoder.encode(SECRET_KEY);
-const keyLength = Math.ceil(keyData.length / 16) * 16;
-const paddedKeyData = new Uint8Array(keyLength);
-paddedKeyData.set(keyData);
 
 /** AES-GCM IV 长度（12 字节为推荐值） */
 const IV_LENGTH = 12;
 
-
-const key = new Promise<CryptoKey>(async (r) => {
-  const k = await crypto.subtle.importKey('raw', paddedKeyData, { name: 'AES-GCM' }, false, [
-    'encrypt',
-    'decrypt',
-  ]);
-  r(k);
-});
+/** 使用 SHA-256 派生密钥，确保始终为 256-bit AES-GCM 密钥 */
+const key = crypto.subtle.digest('SHA-256', encoder.encode(SECRET_KEY)).then((hash) =>
+  crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']),
+);
 
 /** 自定义加密存储序列化器，使用随机 IV 防止相同明文产生相同密文 */
 export const encryptSerializer = {

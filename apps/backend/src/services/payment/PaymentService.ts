@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+import crypto from 'node:crypto';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { PaymentConfigService } from '../../Context/PaymentConfig';
@@ -10,10 +11,10 @@ import { PaymentAdapterRegistry } from './adapter-registry';
 import { grantTokensForPackage } from './grantTokensForPackage';
 import { asGrantTx } from '../TokenGrantService';
 
-/** 生成订单号: TS + 时间戳(36进制) + 随机6位 */
+/** 生成订单号: TS + 时间戳(36进制) + 加密安全随机6位 */
 function generateOrderNo(): string {
   const now = Date.now().toString(36).toUpperCase();
-  const rand = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const rand = crypto.randomBytes(4).toString('hex').toUpperCase().slice(0, 6);
   return `TS${now}${rand}`;
 }
 
@@ -108,15 +109,14 @@ export const PaymentService = {
    * 查询单个订单详情
    */
   getOrder: (orderId: number, userId: string) =>
-    Effect.gen(function* () {
-      const db = yield* DbClientEffect;
-      return yield* dbTry(LOG_PREFIX, '查询订单', () =>
+    Effect.flatMap(DbClientEffect, (db) =>
+      dbTry(LOG_PREFIX, '查询订单', () =>
         db.order.findFirst({
           where: { id: orderId, userId },
           include: { package: true },
         }),
-      );
-    }),
+      ),
+    ),
 
   /**
    * 查询用户的订单列表（分页）
@@ -171,13 +171,20 @@ export const PaymentService = {
 
       if (!order) {
         reqCtx.log(LOG_PREFIX, '订单不存在:', parsed.orderNo);
-        return { success: false, reason: 'ORDER_NOT_FOUND' as const };
+        return { success: false as const, reason: 'ORDER_NOT_FOUND' as const };
       }
 
       // 3. 幂等处理：已支付的订单不再处理
       if (order.status === OrderStatus.PAID) {
         reqCtx.log(LOG_PREFIX, '订单已支付，跳过幂等处理:', order.orderNo);
-        return { success: true, reason: 'ALREADY_PAID' as const, skipped: true };
+        return { success: true as const, reason: 'ALREADY_PAID' as const, skipped: true };
+      } else if (order.status === OrderStatus.CANCELLED) {
+        reqCtx.log(LOG_PREFIX, '订单已取消，拒绝支付回调:', order.orderNo);
+        return { success: false as const, reason: 'ORDER_CANCELLED' as const };
+      } else if (order.expireAt && new Date(order.expireAt) < new Date()) {
+        /** 已过期的订单不接受支付回调 */
+        reqCtx.log(LOG_PREFIX, '订单已过期，拒绝支付回调:', order.orderNo);
+        return { success: false as const, reason: 'ORDER_EXPIRED' as const };
       }
 
       // 4. 处理支付结果
@@ -236,21 +243,29 @@ export const PaymentService = {
 
   /**
    * 取消订单（仅限 PENDING 状态）
+   *
+   * 使用 updateMany + status 条件实现原子性取消，
+   * 防止与 webhook 回调的并发竞态条件。
    */
   cancelOrder: (orderId: number, userId: string) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
 
-      const order = yield* dbTryRequire(LOG_PREFIX, '查询订单', () =>
-        db.order.findFirst({ where: { id: orderId, userId } }),
-        MSG.ORDER_NOT_FOUND,
+      /** 原子操作：仅当订单属于该用户且状态为 PENDING 时才更新 */
+      const result = yield* dbTry(LOG_PREFIX, '取消订单', () =>
+        db.order.updateMany({
+          where: { id: orderId, userId, status: OrderStatus.PENDING },
+          data: { status: OrderStatus.CANCELLED },
+        }),
       );
-      if (order.status !== OrderStatus.PENDING) {
+
+      if (result.count === 0) {
+        /** 区分"订单不存在/不属于该用户"和"订单状态不允许取消" */
+        const order = yield* dbTryRequire(LOG_PREFIX, '查询订单', () =>
+          db.order.findFirst({ where: { id: orderId, userId }, select: { status: true } }),
+          MSG.ORDER_NOT_FOUND,
+        );
         return yield* fail(MSG.CANCEL_PENDING_ONLY);
       }
-
-      yield* dbTry(LOG_PREFIX, '取消订单', () =>
-        db.order.update({ where: { id: orderId }, data: { status: OrderStatus.CANCELLED } }),
-      );
     }),
 };

@@ -5,6 +5,8 @@
  */
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 /** 进度条颜色变体 */
 type ProgressBarColor =
   | 'primary'
@@ -47,7 +49,7 @@ const colorStyle = computed(() => COLOR_CLASSES[color]);
 </script>
 
 <template>
-  <div class="w-full">
+  <div v-bind="$attrs" class="w-full">
     <div :class="['relative w-full h-2 rounded-full overflow-hidden', colorStyle.track]">
       <template v-if="mode === 'determinate'">
         <div
@@ -58,7 +60,7 @@ const colorStyle = computed(() => COLOR_CLASSES[color]);
         <div :class="['absolute top-0 left-0 h-full animate-progress-indeterminate', colorStyle.fill]" />
       </template>
     </div>
-    <div v-if="showValue && mode === 'determinate'" class="mt-1 text-center text-sm text-primary-600 dark:text-primary-400">
+    <div v-if="showValue && mode === 'determinate'" class="mt-1 text-center text-sm text-primary-theme">
       {{ percentage }}%
     </div>
   </div>

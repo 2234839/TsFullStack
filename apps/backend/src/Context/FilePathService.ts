@@ -15,6 +15,9 @@ import { MSG, MAX_ID_LENGTH, MAX_FILENAME_LENGTH } from '../util/constants';
  */
 export class FilePathService {
   static readonly ALLOWED_CHARS = /^[a-zA-Z0-9._-]+$/;
+  /** 预编译文件名清理正则 */
+  private static readonly FILENAME_SANITIZE_RE = /[\/\\:*?"<>|]/g;
+  private static readonly HIDDEN_FILE_RE = /^\./;
   
   /**
    * 生成安全的用户文件路径
@@ -142,9 +145,9 @@ export class FilePathService {
 
     // 移除路径分隔符和危险字符
     const sanitized = originalFilename
-      .replace(/[\/\\:*?"<>|]/g, '_')
-      .replace(/^\./, '_') // 防止隐藏文件
-      .substring(0, MAX_FILENAME_LENGTH); // 限制长度
+      .replace(FilePathService.FILENAME_SANITIZE_RE, '_')
+      .replace(FilePathService.HIDDEN_FILE_RE, '_')
+      .substring(0, MAX_FILENAME_LENGTH);
 
     if (!sanitized) {
       throw MsgError.msg('Invalid filename after sanitization');

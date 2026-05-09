@@ -32,7 +32,7 @@ interface ProviderConfig {
   /** 解析响应为图片列表和任务 ID（可能返回 MsgError 表示业务错误） */
   parseResponse: (result: Record<string, unknown>) => { images: string[]; taskId: string } | MsgError;
   /** 可选的错误详情提取（用于非 ok 响应） */
-  extractErrorDetail?: (response: Response) => Effect.Effect<string, string>;
+  extractErrorDetail?: (response: Response) => Effect.Effect<string, MsgError>;
 }
 
 /**
@@ -167,6 +167,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
   dalle: {
     apiKeyField: 'dalleApiKey',
     missingKeyMsg: 'DALL-E API Key 未配置',
+    /** DALL-E 3 API 限制 n=1，忽略用户 count 参数 */
     buildRequest: (_prompt, options) => ({
       url: OPENAI_IMAGE_API_URL,
       headers: { ...JSON_CONTENT_HEADERS },
@@ -239,7 +240,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     extractErrorDetail: (response) =>
       Effect.tryPromise({
         try: () => response.text(),
-        catch: (_error) => `提取错误详情失败: ${String(_error)}`,
+        catch: (_error) => MsgError.msg(`提取错误详情失败: ${String(_error)}`),
       }),
   },
 };

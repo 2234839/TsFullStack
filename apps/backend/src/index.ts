@@ -9,8 +9,10 @@ import { PaymentConfigService } from './Context/PaymentConfig';
 import { DbClientEffect } from './Context/DbService';
 import { seedDB } from './db/seed';
 import { startServer } from './server';
+import { destroyAuthCache } from './server/authCache';
 import { PrismaQueue } from './util/dbQueue';
 import { TokenGrantService } from './services/TokenGrantService';
+import { destroyRateLimiter } from './middleware/rateLimit';
 import { TokenCleanupService } from './services/TokenCleanupService';
 import { OrderReconciliationService } from './services/payment/OrderReconciliationService';
 import { MS_PER_HOUR, MEMORY_LOG_INTERVAL_MS, QUEUE_STARTUP_DELAY_MS, RECONCILE_STARTUP_DELAY_MS, QUEUE_NAME_GRANT_TOKENS } from './util/constants';
@@ -20,6 +22,12 @@ const LOG_PREFIX_TOKEN_GRANT = '[TokenGrant]';
 const LOG_PREFIX_TOKEN_CLEANUP = '[TokenCleanup]';
 const LOG_PREFIX_RECONCILE = '[OrderReconciliation]';
 const LOG_PREFIX_FATAL = '[Fatal]';
+const LOG_PREFIX_SHUTDOWN = '[Shutdown]';
+
+/** 定时器句柄集合，用于优雅关闭时清理 */
+const shutdownTimers: (NodeJS.Timeout | NodeJS.Timeout[])[] = [];
+/** 队列引用，用于优雅关闭时停止 */
+let shutdownQueue: PrismaQueue<Record<string, { payload: unknown; result: unknown }>> | null = null;
 
 const main = Effect.gen(function* () {
   const config = yield* AppConfigService;
@@ -48,6 +56,7 @@ const main = Effect.gen(function* () {
   };
 
   const tokenQueue = new PrismaQueue<QueueTasks>({ dbClient });
+  shutdownQueue = tokenQueue;
 
   // 注册代币发放任务处理器（委托给 TokenGrantService）
   tokenQueue.register(QUEUE_NAME_GRANT_TOKENS, async (payload) => {
@@ -100,6 +109,7 @@ const main = Effect.gen(function* () {
 
   /** 存储定时器句柄以便 graceful shutdown 时清理 */
   const memoryLogTimer = setInterval(logMemoryUsage, MEMORY_LOG_INTERVAL_MS);
+  shutdownTimers.push(memoryLogTimer);
 
   // 定期清理过期代币（每小时一次，延迟5秒启动确保db已初始化）
   let cleanupIntervalTimer: NodeJS.Timeout;
@@ -114,7 +124,9 @@ const main = Effect.gen(function* () {
         console.error(`${LOG_PREFIX_TOKEN_CLEANUP} 清理任务失败:`, error);
       }
     }, MS_PER_HOUR);
+    shutdownTimers.push(cleanupIntervalTimer);
   }, QUEUE_STARTUP_DELAY_MS);
+  shutdownTimers.push(cleanupDelayTimer);
 
   /** 初始化对账服务的 Effect 查询运行器（在 PaymentConfigService 上下文中） */
   const paymentConfig = yield* PaymentConfigService;
@@ -142,7 +154,9 @@ const main = Effect.gen(function* () {
         console.error(`${LOG_PREFIX_RECONCILE} 对账任务失败:`, error);
       }
     }, intervalMs);
+    shutdownTimers.push(reconcileIntervalTimer);
   }, RECONCILE_STARTUP_DELAY_MS);
+  shutdownTimers.push(reconcileDelayTimer);
 
   // 启动服务器
   yield* startServer;
@@ -163,3 +177,31 @@ Effect.runPromise(program).catch((e) => {
   console.error(`${LOG_PREFIX_FATAL} 服务启动失败:`, e);
   process.exit(1);
 });
+
+/** 优雅关闭：清理所有定时器并停止队列 */
+function gracefulShutdown(signal: string) {
+  console.log(`${LOG_PREFIX_SHUTDOWN} 收到 ${signal}，开始优雅关闭...`);
+
+  for (const timer of shutdownTimers) {
+    if (Array.isArray(timer)) {
+      for (const t of timer) clearInterval(t);
+    } else {
+      clearInterval(timer);
+      clearTimeout(timer);
+    }
+  }
+
+  if (shutdownQueue) {
+    shutdownQueue.stop();
+    console.log(`${LOG_PREFIX_SHUTDOWN} 代币发放队列已停止`);
+  }
+
+  destroyAuthCache();
+  destroyRateLimiter();
+
+  console.log(`${LOG_PREFIX_SHUTDOWN} 所有定时器已清理`);
+  process.exit(0);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

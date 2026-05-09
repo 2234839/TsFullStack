@@ -10,7 +10,7 @@
     <Card class="p-4 mb-4">
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <label class="text-sm text-primary-600 dark:text-primary-400 whitespace-nowrap">{{ t('状态') }}:</label>
+          <label class="text-sm text-primary-theme whitespace-nowrap">{{ t('状态') }}:</label>
           <Select
             v-model="statusFilter"
             :options="statusOptions"
@@ -42,7 +42,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="!loading && orders.length === 0" class="text-center py-12 text-primary-600 dark:text-primary-400">
+    <div v-if="!loading && orders.length === 0" class="text-center py-12 text-primary-theme">
       <i class="pi pi-inbox text-4xl mb-4 block"></i>
       <p>{{ t('暂无订单记录') }}</p>
       <Button :label="t('去购买套餐')" icon="pi pi-shopping-cart" variant="secondary" class="mt-4" @click="goToPricing" />

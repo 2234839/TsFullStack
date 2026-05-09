@@ -36,7 +36,7 @@ export const TokenPackageService = {
         return yield* fail(MSG.PACKAGE_NAME_REQUIRED);
       }
 
-      if (request.amount <= 0) {
+      if (!Number.isFinite(request.amount) || request.amount <= 0) {
         return yield* fail(MSG.TOKEN_AMOUNT_POSITIVE);
       }
 
@@ -85,6 +85,12 @@ export const TokenPackageService = {
       );
 
       // 更新套餐
+      if (request.amount !== undefined && (!Number.isFinite(request.amount) || request.amount <= 0)) {
+        return yield* fail(MSG.TOKEN_AMOUNT_POSITIVE);
+      }
+      if (request.durationMonths !== undefined && request.durationMonths < 0) {
+        return yield* fail(MSG.PACKAGE_DURATION_INVALID);
+      }
       return yield* dbTry(LOG_PREFIX, '更新套餐', () =>
         db.tokenPackage.update({
           where: { id: packageId },
@@ -108,24 +114,15 @@ export const TokenPackageService = {
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
 
-      // 检查是否有用户订阅
-      const subscriptionsCount = yield* dbTry(LOG_PREFIX, '查询订阅记录', () =>
-        db.userTokenSubscription.count({
-          where: {
-            packageId,
-            active: true,
-          },
-        }),
-      );
-
-      if (subscriptionsCount > 0) {
-        return yield* fail(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
-      }
-
-      // 删除套餐
       yield* dbTry(LOG_PREFIX, '删除套餐', () =>
-        db.tokenPackage.delete({
-          where: { id: packageId },
+        db.$transaction(async (tx) => {
+          const subscriptionsCount = await tx.userTokenSubscription.count({
+            where: { packageId, active: true },
+          });
+          if (subscriptionsCount > 0) {
+            throw new Error(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
+          }
+          await tx.tokenPackage.delete({ where: { id: packageId } });
         }),
       );
     }),
@@ -138,50 +135,30 @@ export const TokenPackageService = {
     skip?: number;
     take?: number;
   }) =>
-    Effect.gen(function* () {
-      const db = yield* DbClientEffect;
-      return yield* dbTry(LOG_PREFIX, '获取套餐列表', () =>
+    Effect.flatMap(DbClientEffect, (db) =>
+      dbTry(LOG_PREFIX, '获取套餐列表', () =>
         db.tokenPackage.findMany({
           where: options?.active !== undefined ? { active: options.active } : undefined,
           orderBy: { sortOrder: 'asc' },
           skip: options?.skip ?? 0,
           take: options?.take ?? DEFAULT_PAGE_SIZE_LARGE,
         }),
-      );
-    }),
+      ),
+    ),
 
-  /**
-   * 更新订阅的下一次发放时间
-   */
-  updateSubscriptionNextGrant: (subscriptionId: number, nextGrantDate: Date, grantsCount: number) =>
-    Effect.gen(function* () {
-      const db = yield* DbClientEffect;
-      return yield* dbTry(LOG_PREFIX, '更新订阅', () =>
-        db.userTokenSubscription.update({
-          where: { id: subscriptionId },
-          data: {
-            nextGrantDate,
-            grantsCount,
-          },
-        }),
-      );
-    }),
 
   /**
    * 取消订阅
    */
   cancelSubscription: (subscriptionId: number) =>
-    Effect.gen(function* () {
-      const db = yield* DbClientEffect;
-      return yield* dbTry(LOG_PREFIX, '取消订阅', () =>
+    Effect.flatMap(DbClientEffect, (db) =>
+      dbTry(LOG_PREFIX, '取消订阅', () =>
         db.userTokenSubscription.update({
           where: { id: subscriptionId },
-          data: {
-            active: false,
-          },
+          data: { active: false },
         }),
-      );
-    }),
+      ),
+    ),
 
   /**
    * 获取用户订阅列表
@@ -192,9 +169,8 @@ export const TokenPackageService = {
     skip?: number;
     take?: number;
   }) =>
-    Effect.gen(function* () {
-      const db = yield* DbClientEffect;
-      return yield* dbTry(LOG_PREFIX, '获取订阅列表', () =>
+    Effect.flatMap(DbClientEffect, (db) =>
+      dbTry(LOG_PREFIX, '获取订阅列表', () =>
         db.userTokenSubscription.findMany({
           where: {
             ...(options?.userId && { userId: options.userId }),
@@ -213,6 +189,6 @@ export const TokenPackageService = {
           skip: options?.skip ?? 0,
           take: options?.take ?? DEFAULT_PAGE_SIZE_LARGE,
         }),
-      );
-    }),
+      ),
+    ),
 };

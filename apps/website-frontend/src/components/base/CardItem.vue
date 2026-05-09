@@ -1,5 +1,5 @@
 <template>
-  <RouterLink :to="routePath" class="group block">
+  <RouterLink v-bind="$attrs" :to="routePath" class="group block">
     <div class="relative overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 cursor-pointer h-64">
       <!-- 背景图片 -->
       <img
@@ -24,6 +24,8 @@
 
 <script setup lang="ts">
 import type { RouteLocationRaw } from 'vue-router';
+
+defineOptions({ inheritAttrs: false });
 
 interface Props {
   title: string;

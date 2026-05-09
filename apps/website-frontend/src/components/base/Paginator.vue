@@ -7,6 +7,8 @@ import { computed } from 'vue';
 import { Select } from '@tsfullstack/shared-frontend/components';
 import { useI18n } from '@/composables/useI18n';
 
+defineOptions({ inheritAttrs: false });
+
 const { t } = useI18n();
 
 interface Props {
@@ -41,11 +43,11 @@ const currentPage = computed({
 });
 
 /** 起始记录索引 */
-const firstRecord = computed(() => page * rowsPerPage + 1);
+const firstRecord = computed(() => rows === 0 ? 0 : page * rowsPerPage + 1);
 
 /** 结束记录索引 */
 const lastRecord = computed(() =>
-  Math.min((page + 1) * rowsPerPage, rows)
+  rows === 0 ? 0 : Math.min((page + 1) * rowsPerPage, rows)
 );
 
 /** 页码列表 */
@@ -138,9 +140,9 @@ const rowsPerPageSelectOptions = computed(() =>
 </script>
 
 <template>
-  <div class="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg">
+  <div v-bind="$attrs" class="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-lg">
     <!-- 信息显示和每页条数选择器 -->
-    <div class="flex items-center gap-4 text-sm text-primary-800 dark:text-primary-200">
+    <div class="flex items-center gap-4 text-sm text-primary-body">
       <div>
         {{ t('显示') }} {{ firstRecord }}-{{ lastRecord }} {{ t('条，共') }} {{ rows }} {{ t('条') }}
       </div>

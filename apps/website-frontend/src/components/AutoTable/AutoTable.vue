@@ -4,13 +4,13 @@
     <div class="flex items-center space-x-2">
       <Button icon="pi pi-plus" @click="openCreateForm" :tooltip="t('新增记录')" />
       <template v-if="editRows.length">
-        <Button @click="saveChanges">{{ t('保存修改结果') }}</Button>
-        <Button @click="discardChanges" variant="secondary">{{ t('丢弃修改') }}</Button>
+        <Button @click="saveChanges" :loading="isSaving">{{ t('保存修改结果') }}</Button>
+        <Button @click="discardChanges" variant="secondary" :disabled="isSaving">{{ t('丢弃修改') }}</Button>
         <span>
           {{ t('autoTable.affectedRows', { rows: editRows.length, cells: editCellCount }) }}
         </span>
       </template>
-      <Button v-if="selectRows.length" @click="deleteConfirm($event)" variant="danger">
+      <Button v-if="selectRows.length" @click="deleteConfirm($event)" variant="danger" :loading="isDeleting">
         {{ t('删除') }}( {{ selectRows.length }} )
       </Button>
     </div>
@@ -23,7 +23,7 @@
       }
     " />
   <DataTable :data="tableData.state.value.list" :loading="tableData.isLoading.value" :selectedRowKeys="selectRows"
-    @update:selectedRowKeys="selectRows = $event" rowKey="id" size="small" striped bordered selectable
+    @update:selectedRowKeys="(v) => selectRows = v" rowKey="id" size="small" striped bordered selectable
     :columns="tableColumns">
   </DataTable>
   <!-- 分页 -->
@@ -133,15 +133,14 @@
       });
     }
   };
-  watch(selectModelName, () => {
-    // 切换模型时重置
-    currentPage.value = 1;
-  });
   //#endregion 表格分页
 
   //#region 表格数据存储及加载
   /** 编辑数据的临时存储，用于保存每行的编辑结果  */
   const editData = ref<Array<Record<string, any>>>([]);
+  /** 防止保存/删除按钮重复点击 */
+  const isSaving = ref(false);
+  const isDeleting = ref(false);
   const tableData = useAsyncState(
     async (opt: { modelKey: string; page: number; pageSize: number }) => {
       const meta = modelMeta.state.value;
@@ -193,12 +192,13 @@
       pageSize: pageSize.value,
     });
   }
-  /** 切换模型时触发更新 */
+  /** 切换模型时重置分页并重新加载数据 */
   watch(
     selectModelName,
     async (val) => {
       if (!val) return;
-      await nextTick(); // 等待其他和 selectModelName 相关的逻辑执行完毕
+      currentPage.value = 1;
+      await nextTick();
       reloadTableData();
     },
     { immediate: true },
@@ -214,7 +214,8 @@
     return editRows.value.reduce((acc, row) => acc + Object.keys(row).length, 0);
   });
   async function saveChanges() {
-    if (!selectModelName.value) return;
+    if (!selectModelName.value || isSaving.value) return;
+    isSaving.value = true;
 
     try {
       const currentModelMeta = modelMeta.state.value;
@@ -222,6 +223,8 @@
       /** 查找一个可以用于更新指定记录的唯一主键字段  */
       const idField = findIdField(currentModelMeta, selectModelName.value);
       if (!idField) return;
+      /** 缓存字段映射，避免在循环中重复创建 */
+      const fieldsMap = fieldsToMap(selectModelMeta.value?.model.fields);
 
       for (const [index, editRowItem] of editData.value.entries()) {
         const rawRow = tableData.state.value.list[index];
@@ -231,9 +234,10 @@
 
       /** 修改关联字段不能直接修改字段值，需要使用 connect 关联字段的 ID  */
       editFields.forEach((editFieldName) => {
-        const field = fieldsToMap(selectModelMeta.value?.model.fields)[editFieldName]!;
+        const field = fieldsMap[editFieldName]!;
         /** 被引用的模型的 id 列定义 */
-        const refIdField = findIdField(currentModelMeta, field.type as string)!;
+        const refIdField = findIdField(currentModelMeta, field.type as string);
+        if (!refIdField) return;
 
         if (isDataModelField(field)) {
           const relationData = editRow[editFieldName] as RelationSelectData;
@@ -312,7 +316,7 @@
        * - 结果：`UserData.userId` 更新为 `'user-b'`，所有权从用户 A 转移到用户 B
        */
       for (const editFieldName of editFields) {
-        const field = fieldsToMap(selectModelMeta.value?.model.fields)[editFieldName]!;
+        const field = fieldsMap[editFieldName]!;
 
         if (isDataModelField(field) && isArrayField(field)) {
           const relationData = editRow[editFieldName] as RelationSelectData;
@@ -328,7 +332,8 @@
             if (!relatedModelKey) continue;
             const relatedModelName = exportGetModelDbName(relatedModelKey);
             const relatedAPI = getModelAPI(API, relatedModelName);
-            const relatedIdField = findIdField(currentModelMeta, field.type as string)!;
+            const relatedIdField = findIdField(currentModelMeta, field.type as string);
+            if (!relatedIdField) continue;
 
             // 获取反向字段名称（如 UserData.user）
             const backLinkFieldName = getBackLinkFieldName(field);
@@ -344,12 +349,9 @@
             // 更新每个要关联的记录，将它们的 user 关联指向当前记录
             for (const item of relationData.add) {
               try {
-                // 获取反向关系的外键字段名（如 UserData.user -> userId）
-                const relatedModelForLink = Object.values(currentModelMeta.models).find(
-                  (m) => m.name === (field.type as string),
-                );
-                const backLinkField = relatedModelForLink
-                  ? fieldsToMap(relatedModelForLink.fields)[backLinkFieldName]
+                // 使用已查找到的 relatedModel，避免重复 Object.values().find()
+                const backLinkField = relatedModel
+                  ? fieldsToMap(relatedModel.fields)[backLinkFieldName]
                   : undefined;
                 const foreignKeyField = backLinkField?.relation?.fields?.[0];
 
@@ -407,60 +409,64 @@
         } as DynamicQuery,
       });
     }
-    reloadTableData();
     } catch (error: unknown) {
       // 在 UI 上显示错误提示
       toast.error(
         t('保存失败'),
         getErrorMessage(error, t('保存更改时发生错误，请查看控制台了解详情')),
       );
+      return;
+    } finally {
+      isSaving.value = false;
     }
+    reloadTableData();
   }
   function discardChanges() {
-    editRows.value.forEach((row) => {
-      Object.keys(row).forEach((key) => {
+    /** 直接操作 editData 源数据，而非通过 computed 引用 */
+    for (const row of editData.value) {
+      for (const key of Object.keys(row)) {
         delete row[key];
-      });
-    });
+      }
+    }
   }
   async function deleteRows(rows: Array<Record<string, any> | string | number>) {
-    const deleteModelMeta = modelMeta.state.value;
-    if (!deleteModelMeta) return;
-    /** 查找一个可以用于更新指定记录的唯一主键字段  */
-    const idField = findIdField(deleteModelMeta, selectModelName.value);
-    if (!idField) return;
-    if (rows.length === 0)
-      return toast.info(t('警告'), t('未选中数据'));
-    const deleteMeta = selectModelMeta.value;
-    if (!deleteMeta?.modelKey) return;
-    const modelKey = deleteMeta.modelKey;
-    const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
-    const modelAPI = getModelAPI(API, modelName);
-
-    /**
-     * 提取 ID 值
-     * rows 可能是：ID 数组 [1, 2, 3] 或对象数组 [{id: 1}, {id: 2}, {id: 3}]
-     */
-    const ids = rows.map((row) => {
-      // 如果是对象，取 idField 对应的值
-      if (typeof row === 'object' && row !== null) {
-        return row[idField.name];
-      }
-      // 如果已经是 ID 值，直接返回
-      return row;
-    });
-
-    /**
-     * 过滤掉无效的 ID（null、undefined）
-     * 防止 { id: null } 导致删除全部数据
-     */
-    const validIds = ids.filter((id) => id != null);
-
-    if (validIds.length === 0) {
-      return toast.warn(t('删除失败'), t('选中的数据没有有效的 ID'));
-    }
-
+    if (isDeleting.value) return;
+    isDeleting.value = true;
     try {
+      const deleteModelMeta = modelMeta.state.value;
+      if (!deleteModelMeta) return;
+      /** 查找一个可以用于更新指定记录的唯一主键字段  */
+      const idField = findIdField(deleteModelMeta, selectModelName.value);
+      if (!idField) return;
+      if (rows.length === 0)
+        return toast.info(t('警告'), t('未选中数据'));
+      const deleteMeta = selectModelMeta.value;
+      if (!deleteMeta?.modelKey) return;
+      const modelKey = deleteMeta.modelKey;
+      const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
+      const modelAPI = getModelAPI(API, modelName);
+
+      /**
+       * 提取 ID 值
+       * rows 可能是：ID 数组 [1, 2, 3] 或对象数组 [{id: 1}, {id: 2}, {id: 3}]
+       */
+      const ids = rows.map((row) => {
+        if (typeof row === 'object' && row !== null) {
+          return row[idField.name];
+        }
+        return row;
+      });
+
+      /**
+       * 过滤掉无效的 ID（null、undefined）
+       * 防止 { id: null } 导致删除全部数据
+       */
+      const validIds = ids.filter((id) => id != null);
+
+      if (validIds.length === 0) {
+        return toast.warn(t('删除失败'), t('选中的数据没有有效的 ID'));
+      }
+
       await modelAPI.deleteMany({
         where: {
           OR: validIds.map((id) => ({
@@ -469,24 +475,23 @@
         } as DynamicQuery,
       });
 
-      // 删除成功后清空选中状态并刷新表格
+      /** 删除成功后清空选中状态并刷新表格 */
       selectRows.value = [];
       reloadTableData();
 
       toast.success(t('删除数据'), t(`成功删除 ${validIds.length} 条数据`));
     } catch (error: unknown) {
-      // 提取错误信息并显示给用户
       const errorMessage = getErrorMessage(error);
 
-      // 解析 FOREIGN KEY 约束错误，给出更友好的提示
+      /** 解析 FOREIGN KEY 约束错误，给出更友好的提示 */
       let userMessage = errorMessage;
       if (errorMessage.includes('FOREIGN KEY constraint failed')) {
         userMessage = t('无法删除：该数据被其他记录引用，请先删除关联数据');
-      } 
+      }
 
       toast.error(t('删除失败'), userMessage);
-
-      // 错误已通过 toast 通知用户
+    } finally {
+      isDeleting.value = false;
     }
   }
   function deleteConfirm(event: MouseEvent) {

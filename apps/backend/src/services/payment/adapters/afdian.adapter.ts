@@ -90,6 +90,20 @@ export const AfdianAdapter: PaymentAdapter = {
         return yield* fail(MSG.AFDIAN_NOT_CONFIGURED);
       }
 
+      /** 验证爱发电 webhook token，防止伪造回调 */
+      const webhookToken = String(payload.token ?? '');
+      if (!afdianConfig.webhookToken) {
+        return yield* fail('爱发电 Webhook token 未配置');
+      }
+      {
+        const expected = Buffer.from(afdianConfig.webhookToken);
+        const actual = Buffer.from(webhookToken);
+        if (expected.length !== actual.length || !crypto.timingSafeEqual(expected, actual)) {
+          reqCtx.log(LOG_PREFIX, 'Webhook token 验证失败');
+          return yield* fail('爱发电 Webhook token 验证失败');
+        }
+      }
+
       // 爱发电 Webhook 数据格式:
       // { ec: 200, em: "ok", data: { type: "order", order: { out_trade_no, total_amount, status, ... } } }
       const ec = Number(payload.ec);

@@ -192,12 +192,12 @@ async function startGeneration() {
     // 刷新真实余额（等待刷新完成）
     try {
       await tokenStore.refreshBalance(true);
-    } catch {
-      // 刷新失败不影响用户体验，下次操作时会重新尝试
+    } catch (e) {
+      console.warn('余额刷新失败:', e);
     }
   } catch (error: unknown) {
 
-    try { await tokenStore.resetBalance(); } catch { /* 恢复失败继续处理 */ }
+    try { await tokenStore.resetBalance(); } catch (e) { console.warn('余额恢复失败:', e); }
 
     showSafeError(toast, t('生成失败'), t('生成图片时发生错误'), error);
   } finally {
@@ -228,7 +228,7 @@ async function selectImage(imageUrl: string) {
   <div class="space-y-4">
     <!-- 提示词输入 -->
     <div>
-      <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+      <label class="block text-sm font-medium text-primary-label mb-2">
         {{ t('提示词') }}
       </label>
       <Textarea
@@ -241,7 +241,7 @@ async function selectImage(imageUrl: string) {
 
     <!-- 快捷模板 -->
     <div>
-      <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+      <label class="block text-sm font-medium text-primary-label mb-2">
         {{ t('快捷模板') }}
       </label>
       <div class="flex flex-wrap gap-2">
@@ -262,7 +262,7 @@ async function selectImage(imageUrl: string) {
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
       <!-- 服务提供商 -->
       <div>
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+        <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('服务商') }}
         </label>
         <Select
@@ -273,7 +273,7 @@ async function selectImage(imageUrl: string) {
         />
         <p
           v-if="availableProviders.length === 0"
-          class="mt-1 text-sm text-primary-500 dark:text-primary-400"
+          class="mt-1 text-sm text-primary-subtle"
         >
           {{ t('暂无可用的 AI 服务') }}
         </p>
@@ -281,7 +281,7 @@ async function selectImage(imageUrl: string) {
 
       <!-- 生成数量 -->
       <div>
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+        <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('数量') }}
         </label>
         <Select
@@ -294,7 +294,7 @@ async function selectImage(imageUrl: string) {
 
       <!-- 图片尺寸 -->
       <div>
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+        <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('尺寸') }}
         </label>
         <Select
@@ -346,7 +346,7 @@ async function selectImage(imageUrl: string) {
           <img
             :src="imageUrl"
             :alt="t('AI 生成的图片')"
-            class="w-full h-auto rounded-lg border border-primary-200 dark:border-primary-700"
+            class="w-full h-auto rounded-lg border border-primary-default"
           />
           <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
             <Button

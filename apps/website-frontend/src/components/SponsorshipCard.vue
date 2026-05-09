@@ -6,7 +6,7 @@
     <!-- 紧凑模式 - 小正方形 -->
     <div
       v-if="isCompact"
-      class="compact-layout relative w-full h-full min-h-[80px] flex flex-col items-center justify-center bg-white dark:bg-primary-900 border border-primary-200 dark:border-primary-700">
+      class="compact-layout relative w-full h-full min-h-[80px] flex flex-col items-center justify-center bg-white dark:bg-primary-900 border border-primary-default">
       <!-- 柔和的背景装饰 -->
       <div class="absolute inset-0 opacity-30">
         <div
@@ -19,7 +19,7 @@
         <div class="text-xl text-primary-600 dark:text-primary-300">☕</div>
       </div>
       <div
-        class="compact-text text-xs font-medium mb-2 z-10 text-center text-primary-700 dark:text-primary-300">
+        class="compact-text text-xs font-medium mb-2 z-10 text-center text-primary-label">
         {{ t('赞助支持') }}
       </div>
       <Button
@@ -48,11 +48,11 @@
             <div class="text-lg">☕</div>
           </div>
 
-          <h3 class="standard-title text-lg font-semibold mb-2 text-primary-800 dark:text-primary-200">
+          <h3 class="standard-title text-lg font-semibold mb-2 text-primary-body">
             {{ t('请我喝杯咖啡') }}
           </h3>
           <p
-            class="standard-subtitle text-sm text-primary-600 dark:text-primary-400 mb-4 leading-relaxed">
+            class="standard-subtitle text-sm text-primary-theme mb-4 leading-relaxed">
             {{ t('您的每一份支持都是创作路上最温暖的陪伴') }}
           </p>
         </div>
@@ -84,8 +84,8 @@
             class="function-btn! flex-col! items-center! p-2!"
             @click="shareContent"
           >
-            <i class="pi pi-share-alt text-sm text-primary-500 dark:text-primary-400 mb-1"></i>
-            <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('分享') }}</span>
+            <i class="pi pi-share-alt text-sm text-primary-subtle mb-1"></i>
+            <span class="text-xs text-primary-theme">{{ t('分享') }}</span>
           </Button>
           <Button
             variant="ghost"
@@ -93,7 +93,7 @@
             @click="followCreator"
           >
             <i class="pi pi-heart text-sm text-danger-500 dark:text-danger-400 mb-1"></i>
-            <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('关注') }}</span>
+            <span class="text-xs text-primary-theme">{{ t('关注') }}</span>
           </Button>
           <Button
             variant="ghost"
@@ -101,7 +101,7 @@
             @click="provideFeedback"
           >
             <i class="pi pi-comment text-sm text-success-500 dark:text-success-400 mb-1"></i>
-            <span class="text-xs text-primary-600 dark:text-primary-400">{{ t('反馈') }}</span>
+            <span class="text-xs text-primary-theme">{{ t('反馈') }}</span>
           </Button>
         </div>
       </div>
@@ -132,11 +132,11 @@
           </div>
 
           <div class="creator-info flex-1">
-            <h3 class="creator-title text-lg font-semibold mb-1 text-primary-800 dark:text-primary-200">
+            <h3 class="creator-title text-lg font-semibold mb-1 text-primary-body">
               {{ t('支持独立创作者') }}
             </h3>
             <p
-              class="creator-desc text-sm text-primary-600 dark:text-primary-400 mb-2 leading-relaxed max-w-md">
+              class="creator-desc text-sm text-primary-theme mb-2 leading-relaxed max-w-md">
               {{ t('每一份支持都是对原创内容最好的鼓励') }}
             </p>
 
@@ -155,7 +155,7 @@
                   +
                 </div>
               </div>
-              <span class="supporter-text text-sm text-primary-500 dark:text-primary-400">
+              <span class="supporter-text text-sm text-primary-subtle">
                 {{ sponsorCount }} {{ t('位朋友已支持') }}
               </span>
             </div>
@@ -184,7 +184,7 @@
               :title="t('分享推荐')"
               @click="shareContent"
             >
-              <i class="pi pi-share-alt text-sm text-primary-500 dark:text-primary-400"></i>
+              <i class="pi pi-share-alt text-sm text-primary-subtle"></i>
             </Button>
             <Button
               variant="ghost"
@@ -223,13 +223,13 @@
         <!-- 感谢信息 -->
         <div class="thank-you-section">
           <div
-            class="thank-you-message flex items-start space-x-3 p-4 bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700">
+            class="thank-you-message flex items-start space-x-3 p-4 bg-primary-card rounded-lg border border-primary-default">
             <div class="message-icon text-2xl">🙏</div>
             <div>
-              <p class="text-sm text-primary-700 dark:text-primary-300 leading-relaxed font-medium mb-1">
+              <p class="text-sm text-primary-label leading-relaxed font-medium mb-1">
                 {{ t('感谢您的慷慨支持！您的每一份心意都是我继续创作的动力源泉') }}
               </p>
-              <p class="text-xs text-primary-500 dark:text-primary-400">
+              <p class="text-xs text-primary-subtle">
                 {{ t('支持创作，让美好持续发生 ✨') }}
               </p>
             </div>
@@ -238,14 +238,14 @@
 
         <!-- QQ群引导 -->
         <div
-          class="community-invite bg-primary-50 dark:bg-primary-900/20 rounded-lg p-4 border border-primary-200 dark:border-primary-700">
+          class="community-invite bg-primary-card/20 rounded-lg p-4 border border-primary-default">
           <div class="flex items-center space-x-3">
             <div class="community-icon text-xl">👥</div>
             <div class="flex-1">
-              <h4 class="text-sm font-semibold text-primary-800 dark:text-primary-200 mb-1">
+              <h4 class="text-sm font-semibold text-primary-body mb-1">
                 {{ t('加入创作者社群') }}
               </h4>
-              <p class="text-xs text-primary-600 dark:text-primary-400 mb-2">
+              <p class="text-xs text-primary-theme mb-2">
                 {{ t('与其他支持者交流，获取最新创作动态') }}
               </p>
               <Button
@@ -279,8 +279,6 @@
     compactThreshold?: number;
     expandedThreshold?: number;
     sponsorCount?: number;
-    totalAmount?: number;
-    targetAmount?: number;
     qqGroupNumber?: string;
   }
 

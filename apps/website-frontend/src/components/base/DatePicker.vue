@@ -13,13 +13,10 @@ interface Props {
   showTime?: boolean;
   /** 是否禁用 */
   disabled?: boolean;
-  /** 日期格式 */
-  dateFormat?: string;
-  /** 小时格式 */
-  hourFormat?: '12' | '24';
 }
 
 const { showTime = true, disabled = false } = defineProps<Props>();
+defineOptions({ inheritAttrs: false });
 
 const emit = defineEmits<{
   'update:modelValue': [value: Date | string | null];
@@ -83,10 +80,10 @@ function handleBlur() {
 
 /** 输入框样式类 */
 const inputClasses = computed(() => {
-  const bgClass = 'bg-primary-50 dark:bg-primary-950';
+  const bgClass = 'bg-primary-surface';
   const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-secondary-500 dark:focus:ring-secondary-400';
 
-  const textClass = 'text-primary-900 dark:text-primary-100';
+  const textClass = 'text-primary-title';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${INPUT_BASE_CLASSES} ${bgClass} ${stateClasses} ${textClass} ${disabledClass}`;
@@ -95,6 +92,7 @@ const inputClasses = computed(() => {
 
 <template>
   <input
+    v-bind="$attrs"
     type="datetime-local"
     :disabled="disabled"
     :value="formatDateForInput(modelValue)"

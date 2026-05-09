@@ -84,6 +84,11 @@ export abstract class StorageStrategy {
       separator: '::',
     };
   }
+
+  /** 该策略是否启用了 bucket 支持 */
+  hasBucketSupport(): boolean {
+    return this.bucketConfig.enabled;
+  }
   protected withBucket(key: string, bucket?: string): string {
     if (!this.bucketConfig.enabled) return key;
     return bucket
@@ -421,8 +426,9 @@ export class WordDataStrategy extends StorageStrategy {
       ).map((item) => item.key);
 
       /** 分离需要创建和更新的数据 */
-      const toCreate = items.filter((item) => !existingKeys.includes(item.key));
-      const toUpdate = items.filter((item) => existingKeys.includes(item.key));
+      const existingKeySet = new Set(existingKeys);
+      const toCreate = items.filter((item) => !existingKeySet.has(item.key));
+      const toUpdate = items.filter((item) => existingKeySet.has(item.key));
 
       /** 批量创建 */
       if (toCreate.length > 0) {
@@ -606,12 +612,10 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       if (!this.store) throw new Error('IndexedDB未初始化');
       const store = this.store;
 
-      const result: Record<string, any> = {};
-      const promises = keys.map(async (key) => {
-        result[key] = await store.getItem(key);
-      });
-
-      await Promise.all(promises);
+      const entries = await Promise.all(
+        keys.map(async (key) => [key, await store.getItem(key)] as const),
+      );
+      const result = Object.fromEntries(entries);
       this.stats.readCount += keys.length;
       this.stats.readTime += performance.now() - start;
       return result;
@@ -791,18 +795,13 @@ export class StorageRepository {
     }
   }
 
-  private getAvailableStrategies(): StorageStrategy[] {
-    return this.strategies;
-  }
-
   /** 确保已初始化且有可用策略，否则抛出错误 */
   private async requireStrategies(): Promise<StorageStrategy[]> {
     if (!this.initialized) await this.initialize();
-    const strategies = this.getAvailableStrategies();
-    if (strategies.length === 0) {
+    if (this.strategies.length === 0) {
       throw new Error(t('没有可用的存储策略'));
     }
-    return strategies;
+    return this.strategies;
   }
 
   async save(key: string, data: any): Promise<void> {
@@ -962,8 +961,7 @@ export class StorageRepository {
   async getBucketKeys(bucket: string): Promise<string[]> {
     const strategies = await this.requireStrategies();
 
-    // 使用第一个支持bucket的策略
-    const strategy = strategies.find((s) => s.options.bucket !== undefined);
+    const strategy = strategies.find((s) => s.hasBucketSupport());
 
     if (!strategy) {
       throw new Error(t('没有支持bucket的存储策略'));
@@ -975,8 +973,7 @@ export class StorageRepository {
   async clearBucket(bucket: string): Promise<void> {
     const strategies = await this.requireStrategies();
 
-    // 使用第一个支持bucket的策略
-    const strategy = strategies.find((s) => s.options.bucket !== undefined);
+    const strategy = strategies.find((s) => s.hasBucketSupport());
 
     if (!strategy) {
       throw new Error(t('没有支持bucket的存储策略'));

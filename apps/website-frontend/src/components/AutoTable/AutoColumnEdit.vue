@@ -98,14 +98,12 @@
   }
   //#endregion
 
-  /** 实现如果值未修改，点击外部时关闭编辑模式 */
+  /** 点击外部关闭编辑模式（日期选择面板打开时除外） */
   onClickOutside(editEl, () => {
     if (field.type === 'DateTime' && datePickerShow.value) {
-      return /** 因为日期选择面板是在不在当前 div 中，所以当用户选择日期的时候先不管点击外部事件，等日期选择面板关闭后再处理点击外部事件 */;
+      return;
     }
     if (isDataModelField(field)) return;
-    if (editModel.value === undefined) {
-      editMode.value = false;
-    }
+    editMode.value = false;
   });
 </script>

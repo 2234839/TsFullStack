@@ -3,7 +3,7 @@
     <!-- 页面标题 -->
     <div class="mb-8 text-center">
       <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50 mb-2">{{ t('选择套餐') }}</h1>
-      <p class="text-primary-600 dark:text-primary-400">{{ t('选择适合您的代币套餐，立即开始使用') }}</p>
+      <p class="text-primary-theme">{{ t('选择适合您的代币套餐，立即开始使用') }}</p>
     </div>
 
     <!-- 支付状态轮询指示器 -->
@@ -49,7 +49,7 @@
           </div>
 
           <!-- 描述 -->
-          <p v-if="pkg.description" class="text-sm text-primary-600 dark:text-primary-400 mb-4 line-clamp-2">
+          <p v-if="pkg.description" class="text-sm text-primary-theme mb-4 line-clamp-2">
             {{ pkg.description }}
           </p>
 
@@ -65,7 +65,7 @@
             <span class="text-lg font-medium text-secondary-700 dark:text-secondary-300">
               {{ pkg.amount }} {{ t('代币') }}
             </span>
-            <span v-if="pkg.durationMonths > 0" class="text-sm text-primary-600 dark:text-primary-400">
+            <span v-if="pkg.durationMonths > 0" class="text-sm text-primary-theme">
               / {{ pkg.durationMonths }}{{ t('个月') }}
             </span>
           </div>
@@ -84,7 +84,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="!loading && packages.length === 0" class="text-center py-12 text-primary-600 dark:text-primary-400">
+    <div v-if="!loading && packages.length === 0" class="text-center py-12 text-primary-theme">
       <i class="pi pi-inbox text-4xl mb-4 block"></i>
       <p>{{ t('暂无可用套餐') }}</p>
     </div>
@@ -92,7 +92,7 @@
     <!-- 支付方式选择弹窗 -->
     <Dialog v-model:open="payDialogOpen" :title="t('选择支付方式')">
       <div class="space-y-4">
-        <p class="text-sm text-primary-600 dark:text-primary-400">
+        <p class="text-sm text-primary-theme">
           {{ t('套餐') }}: {{ selectedPackage?.name }} - {{ formatPriceWithCurrency(selectedPackage?.price) }}
         </p>
 
@@ -108,7 +108,7 @@
           />
         </div>
 
-        <div v-if="availableProviders.length === 0" class="text-center py-4 text-primary-600 dark:text-primary-400">
+        <div v-if="availableProviders.length === 0" class="text-center py-4 text-primary-theme">
           {{ t('暂无可用的支付渠道') }}
         </div>
       </div>
@@ -145,7 +145,7 @@ import { useAPI } from '@/api';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { Dialog } from '@tsfullstack/shared-frontend/components';
-import { useDocumentVisibility, useIntervalFn, tryOnUnmounted } from '@vueuse/core';
+import { useDocumentVisibility, useIntervalFn } from '@vueuse/core';
 import WechatPayGuide from './WechatPayGuide.vue';
 import type { PaymentProvider } from '@tsfullstack/backend';
 import { WECHAT_PAY_URL } from '@tsfullstack/backend';
@@ -164,20 +164,20 @@ type PackageItem = DbListItem<'tokenPackage'>;
 /** 套餐列表 */
 const packages = shallowRef<PackageItem[]>([]);
 /** 加载状态 */
-const loading = ref(true);
+const loading = shallowRef(true);
 /** 选中的套餐 */
 const selectedPackage = ref<PackageItem | null>(null);
 /** 支付弹窗是否打开 */
-const payDialogOpen = ref(false);
+const payDialogOpen = shallowRef(false);
 /** 可用的支付渠道 */
 const availableProviders = shallowRef<{ provider: string; name: string; enabled: boolean }[]>([]);
 /** 正在创建订单 */
-const creatingOrder = ref(false);
+const creatingOrder = shallowRef(false);
 /** 当前正在创建的支付渠道 */
 const creatingProvider = ref<string>('');
 
 /** 微信引导面板是否打开 */
-const wechatGuideOpen = ref(false);
+const wechatGuideOpen = shallowRef(false);
 /** 当前微信订单信息 */
 const wechatOrderInfo = ref<{
   orderId: number;
@@ -204,17 +204,20 @@ const POLL_TIMEOUT_MS = 5 * 60 * 1000;
 const MAX_POLL_COUNT = POLL_TIMEOUT_MS / POLL_INTERVAL_MS;
 /** 当前轮询次数 */
 let pollCount = 0;
-/** 轮询控制器 */
-let pollControls: { pause: () => void; resume: () => void; stopWatch: () => void } | null = null;
+/** 轮询控制器 — 在 setup 层级创建，自动绑定组件生命周期 */
+const { pause: pausePolling, resume: resumePolling } = useIntervalFn(pollOrderStatus, POLL_INTERVAL_MS, { immediate: false });
 
-/**
- * 轮询订单状态
- *
- * 参考 UseApiStorage.ts 模式:
- * - useIntervalFn 定期查询
- * - useDocumentVisibility 页面不可见时暂停
- * - tryOnUnmounted 卸载时清理
- */
+/** 页面可见性控制 */
+const visibility = useDocumentVisibility();
+watch(visibility, (vis) => {
+  if (vis === 'visible' && pollingOrderId.value) {
+    resumePolling();
+    pollOrderStatus();
+  } else if (vis === 'hidden') {
+    pausePolling();
+  }
+});
+
 async function pollOrderStatus() {
   if (!pollingOrderId.value) return;
 
@@ -249,39 +252,17 @@ async function pollOrderStatus() {
   }
 }
 
-/** 启动轮询（预留：非微信渠道支付后可启用） */
+/** 启动轮询 */
 function startPolling(orderId: number) {
   stopPolling();
-
   pollingOrderId.value = orderId;
   pollCount = 0;
-
-  const { pause, resume } = useIntervalFn(pollOrderStatus, POLL_INTERVAL_MS);
-
-  const visibility = useDocumentVisibility();
-  const stopWatch = watch(visibility, (vis) => {
-    if (vis === 'visible') {
-      resume();
-      pollOrderStatus();
-    } else if (vis === 'hidden') {
-      pause();
-    }
-  });
-
-  pollControls = { pause, resume, stopWatch };
-
-  tryOnUnmounted(() => {
-    stopPolling();
-  });
+  resumePolling();
 }
 
 /** 停止轮询 */
 function stopPolling() {
-  if (pollControls) {
-    pollControls.pause();
-    pollControls.stopWatch();
-    pollControls = null;
-  }
+  pausePolling();
   pollingOrderId.value = null;
 }
 

@@ -1,7 +1,7 @@
 <template>
   <div class="payment-order-list-page p-6 max-w-7xl mx-auto">
     <!-- 页面标题 -->
-    <PageHeader icon="pi pi-list text-primary-600 dark:text-primary-400">
+    <PageHeader icon="pi pi-list text-primary-theme">
       {{ t('支付订单') }}
     </PageHeader>
 
@@ -9,7 +9,7 @@
     <Card class="p-4 mb-4">
       <div class="flex items-center gap-4 flex-wrap">
         <div class="flex items-center gap-2">
-          <label class="text-sm text-primary-600 dark:text-primary-400 whitespace-nowrap">{{ t('状态') }}:</label>
+          <label class="text-sm text-primary-theme whitespace-nowrap">{{ t('状态') }}:</label>
           <Select
             v-model="statusFilter"
             :options="statusOptions"
@@ -18,7 +18,7 @@
           />
         </div>
         <div class="flex items-center gap-2">
-          <label class="text-sm text-primary-600 dark:text-primary-400 whitespace-nowrap">{{ t('用户') }}:</label>
+          <label class="text-sm text-primary-theme whitespace-nowrap">{{ t('用户') }}:</label>
           <Input
             v-model="userIdFilter"
             :placeholder="t('输入邮箱搜索')"
@@ -49,7 +49,7 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="!loading && orders.length === 0" class="text-center py-12 text-primary-600 dark:text-primary-400">
+    <div v-if="!loading && orders.length === 0" class="text-center py-12 text-primary-theme">
       <i class="pi pi-inbox text-4xl mb-4 block"></i>
       <p>{{ t('暂无订单记录') }}</p>
     </div>
@@ -87,13 +87,13 @@ const { API } = useAPI();
 /** 订单列表 */
 const orders = shallowRef<OrderRow[]>([]);
 /** 总数 */
-const total = ref(0);
+const total = shallowRef(0);
 /** 当前页（从0开始） */
-const currentPage = ref(0);
+const currentPage = shallowRef(0);
 /** 每页数量 */
 const pageSize = DEFAULT_PAGE_SIZE;
 /** 加载状态 */
-const loading = ref(true);
+const loading = shallowRef(true);
 /** 状态筛选（空字符串表示"全部"） */
 const statusFilter = ref<OrderStatus | '' | typeof ALL_STATUS>('');
 /** 用户邮箱筛选 */

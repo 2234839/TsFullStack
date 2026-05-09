@@ -63,9 +63,9 @@ async function handleWebhookRequest(
     reqCtx.log(`${LOG_PREFIX} ${provider} 处理失败 (${elapsed}ms):`, extractErrorMessage(error));
 
     if (provider === PaymentProvider.MBD) {
-      reply.send({ code: -1, msg: 'error' });
+      reply.code(500).send({ code: -1, msg: 'error' });
     } else {
-      reply.send({ ec: 500, em: 'error' });
+      reply.code(500).send({ ec: 500, em: 'error' });
     }
   }
 }

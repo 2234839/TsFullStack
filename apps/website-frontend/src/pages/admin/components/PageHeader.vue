@@ -1,13 +1,13 @@
 <template>
   <div :class="marginClass">
     <div :class="[
-      'flex items-center gap-2 font-bold text-primary-900 dark:text-primary-100',
+      'flex items-center gap-2 font-bold text-primary-title',
       size === 'large' ? 'text-3xl' : 'text-2xl',
     ]">
       <i v-if="icon" :class="icon" />
       <slot />
     </div>
-    <p v-if="subtitle" class="mt-2 text-primary-600 dark:text-primary-400">
+    <p v-if="subtitle" class="mt-2 text-primary-theme">
       {{ subtitle }}
     </p>
   </div>

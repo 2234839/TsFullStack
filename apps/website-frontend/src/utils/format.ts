@@ -1,6 +1,6 @@
-/** 一天的毫秒数 */
 import { t, i18n } from '@/i18n';
 
+/** 一天的毫秒数 */
 export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
 /** 日期格式化选项 */
@@ -42,7 +42,7 @@ export function formatDate(date: string | Date | null | undefined, options: Form
     const now = new Date();
     const diffMs = now.getTime() - d.getTime();
 
-    if (diffMs < 0) return t('刚刚');
+    if (diffMs < 0) return t('未来');
     if (diffMs < 60_000) return t('刚刚');
 
     const diffMins = Math.floor(diffMs / 60_000);
@@ -95,7 +95,18 @@ export function truncateText(text: string, maxLength: number): string {
 /**
  * 安全解析可能是字符串的 JSON 字段
  * ZenStack Json 字段在序列化传输时可能是 string 或已解析的对象
+ * 解析失败时返回 fallback 而非原始字符串，避免调用方在对象属性访问时崩溃
  */
-export function parseJsonField<T = unknown>(data: unknown): T {
-  return typeof data === 'string' ? JSON.parse(data) : data as T;
+export function parseJsonField<T = unknown>(data: unknown, fallback: T = {} as T): T {
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data) as T;
+    } catch {
+      return fallback;
+    }
+  }
+  if (typeof data === 'object' && data !== null) {
+    return data as T;
+  }
+  return fallback;
 }

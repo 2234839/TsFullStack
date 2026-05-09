@@ -96,10 +96,9 @@
 
   /** 重置表单 */
   function resetForm() {
-    Object.values(modelFields.value).forEach((field) => {
-      const f = field as FieldInfo;
-      delete formData[f.name];
-    });
+    for (const key of Object.keys(formData)) {
+      delete formData[key];
+    }
     fieldErrors.value = {};
   }
 
@@ -125,7 +124,7 @@
   }
 
   async function saveRecord() {
-    if (!validateForm() || !modelKey) return;
+    if (saving.value || !validateForm() || !modelKey) return;
 
     saving.value = true;
 

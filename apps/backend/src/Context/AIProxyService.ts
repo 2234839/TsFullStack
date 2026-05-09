@@ -1,4 +1,4 @@
-import { Context, Effect } from 'effect';
+import { Context, Effect, Exit } from 'effect';
 import { AuthContext } from '../Context/Auth';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { DbClientEffect } from './DbService';
@@ -16,6 +16,13 @@ const ANONYMOUS_RPD_LIMIT = 1000;
 
 /** API调用日志保留天数 */
 const AI_CALL_LOG_RETENTION_DAYS = 30;
+
+/** 模型列表缓存 TTL（5 分钟，模型变更频率极低） */
+const MODEL_CACHE_TTL_MS = 5 * MS_PER_MINUTE;
+
+/** 模型列表内存缓存 */
+let cachedModels: AIModelConfig[] | null = null;
+let cachedModelsAt = 0;
 
 /** 频率限制检查结果 */
 interface RateLimitCheck {
@@ -105,9 +112,8 @@ class AIProxyServiceUtils {
     outputTokens?: number;
     success?: boolean;
   }) =>
-    Effect.gen(function* () {
-      const dbClient = yield* DbClientEffect;
-      return yield* dbTry(LOG_PREFIX, '记录API调用', () =>
+    Effect.flatMap(DbClientEffect, (dbClient) =>
+      dbTry(LOG_PREFIX, '记录API调用', () =>
         dbClient.aiCallLog.create({
           data: {
             clientIp: params.clientIp,
@@ -120,12 +126,17 @@ class AIProxyServiceUtils {
             timestamp: new Date(),
           },
         }),
-      );
-    });
+      ),
+    );
 
-  /** 获取可用的AI模型列表 */
-  static getAvailableModels = () =>
-    Effect.gen(function* () {
+  /** 获取可用的AI模型列表（带 5 分钟内存缓存） */
+  static getAvailableModels = () => {
+    const now = Date.now();
+    if (cachedModels && now - cachedModelsAt < MODEL_CACHE_TTL_MS) {
+      return Effect.succeed(cachedModels);
+    }
+
+    return Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
       const models = yield* dbTry(LOG_PREFIX, '获取AI模型列表', () =>
         dbClient.aiModel.findMany({
@@ -133,7 +144,7 @@ class AIProxyServiceUtils {
           orderBy: { weight: 'desc' },
         }),
       );
-      return models.map(model => ({
+      cachedModels = models.map(model => ({
         id: model.id,
         name: model.name,
         model: model.model,
@@ -147,7 +158,10 @@ class AIProxyServiceUtils {
         rphLimit: model.rphLimit,
         rpdLimit: model.rpdLimit,
       }));
+      cachedModelsAt = now;
+      return cachedModels;
     });
+  };
 
   /** 选择AI模型（负载均衡，纯同步函数） */
   static selectModel = (
@@ -241,7 +255,7 @@ class AIProxyServiceUtils {
         return yield* fail(MSG.NO_AI_MODEL_AVAILABLE);
       }
 
-      // 选择模型（availableModels 已在上方校验非空，selectModel 对非空数组保证返回非 null）
+      // 选择模型
       const selectedModel = yield* requireOrFail(
         AIProxyServiceUtils.selectModel(availableModels),
         '模型选择失败',
@@ -254,7 +268,6 @@ class AIProxyServiceUtils {
         selectedModel.id,
       );
       if (!rateLimitCheck.allowed) {
-        // 记录失败的频率限制检查
         yield* AIProxyServiceUtils.recordApiCall({
           clientIp, userId: currentUserId,
           aiModelId: selectedModel.id, modelName: selectedModel.model,
@@ -263,30 +276,22 @@ class AIProxyServiceUtils {
         return yield* fail(rateLimitCheck.reason ?? '请求频率超限');
       }
 
-      // 调用 OpenAI API — 失败时记录调用并传播错误
+      // 调用 OpenAI API — onExit 统一记录成功/失败
       const response = yield* AIProxyServiceUtils.callOpenAI(request, selectedModel).pipe(
-        Effect.catchAll((error) =>
-          Effect.gen(function* () {
-            yield* AIProxyServiceUtils.recordApiCall({
-              clientIp, userId: currentUserId,
-              aiModelId: selectedModel.id, modelName: selectedModel.model,
-              success: false,
-            });
-            return yield* Effect.fail(error);
-          }),
-        ),
+        Effect.onExit((exit) => {
+          const base = { clientIp, userId: currentUserId, aiModelId: selectedModel.id, modelName: selectedModel.model };
+          if (Exit.isSuccess(exit)) {
+            const { usage } = exit.value;
+            return AIProxyServiceUtils.recordApiCall({
+              ...base,
+              inputTokens: usage?.prompt_tokens,
+              outputTokens: usage?.completion_tokens,
+              success: true,
+            }).pipe(Effect.ignore);
+          }
+          return AIProxyServiceUtils.recordApiCall({ ...base, success: false }).pipe(Effect.ignore);
+        }),
       );
-
-      // 提取Token使用量
-      const inputTokens = response.usage?.prompt_tokens;
-      const outputTokens = response.usage?.completion_tokens;
-
-      // 记录成功的API调用
-      yield* AIProxyServiceUtils.recordApiCall({
-        clientIp, userId: currentUserId,
-        aiModelId: selectedModel.id, modelName: selectedModel.model,
-        inputTokens, outputTokens, success: true,
-      });
 
       return response;
     });
@@ -302,7 +307,7 @@ class AIProxyServiceUtils {
         }),
       );
       return {
-        success: true,
+        success: true as const,
         deletedCount: result.count,
         message: `成功清理 ${result.count} 条过期记录`,
       };

@@ -1,15 +1,15 @@
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { dbPaginatedFindMany } from '../util/dbEffect';
-import type { ResourceType } from '../../.zenstack/models';
-import { DEFAULT_PAGE_SIZE } from '../util/constants';
+import { ResourceType } from '../../.zenstack/models';
+import { DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_LARGE } from '../util/constants';
 import type { ResourceWhereInput } from '../../.zenstack/input';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[ResourceService]';
 
-/** 合法的 ResourceType 枚举值集合，用于运行时校验 */
-const VALID_RESOURCE_TYPES = new Set<string>(['IMAGE', 'TEXT', 'VIDEO', 'AUDIO', 'FILE']);
+/** 合法的 ResourceType 枚举值集合，从 schema 自动派生 */
+const VALID_RESOURCE_TYPES = new Set<string>(Object.values(ResourceType));
 
 /** 合法的 Resource status 值集合，用于运行时校验 */
 const VALID_RESOURCE_STATUSES = new Set<string>(['pending', 'processing', 'completed', 'failed']);
@@ -83,7 +83,7 @@ export const ResourceService = {
             task: { select: { id: true, type: true, title: true } },
           },
           skip: options.skip ?? 0,
-          take: options.take ?? DEFAULT_PAGE_SIZE,
+          take: Math.min(options.take ?? DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_LARGE),
           orderBy: { created: 'desc' },
         }),
         () => db.resource.count({ where }),

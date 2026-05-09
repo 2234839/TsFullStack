@@ -5,6 +5,9 @@
  */
 import { ref, computed } from 'vue';
 import { INPUT_BASE_CLASSES } from './inputStyles';
+import { useI18n } from '@/composables/useI18n';
+
+const { t } = useI18n();
 
 interface Props {
   /** 模型值 */
@@ -15,8 +18,6 @@ interface Props {
   disabled?: boolean;
   /** 错误状态 */
   invalid?: boolean;
-  /** 是否显示强度指示器 */
-  feedback?: boolean;
   /** 传入 true 启用内置密码可见性切换，或传入外部切换函数 */
   toggleMask?: boolean | (() => void);
   /** input 元素 id */
@@ -24,6 +25,7 @@ interface Props {
 }
 
 const { disabled = false, invalid = false, toggleMask: externalToggle, inputId } = defineProps<Props>();
+defineOptions({ inheritAttrs: false });
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
@@ -49,8 +51,8 @@ const inputClasses = computed(() => {
     ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
     : 'border-primary-300 dark:border-primary-700 focus:ring-secondary-500 dark:focus:ring-secondary-400';
 
-  const bgClass = 'bg-primary-50 dark:bg-primary-950';
-  const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
+  const bgClass = 'bg-primary-surface';
+  const textClass = 'text-primary-title placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${INPUT_BASE_CLASSES} ${paddingRight} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
@@ -66,6 +68,7 @@ function handleInput(event: Event) {
 <template>
   <div class="relative">
     <input
+      v-bind="$attrs"
       :id="inputId"
       :type="visible ? 'text' : 'password'"
       :placeholder="placeholder"
@@ -77,7 +80,8 @@ function handleInput(event: Event) {
       type="button"
       @click="toggleVisibility"
       :disabled="disabled"
-      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+      :aria-label="visible ? t('隐藏密码') : t('显示密码')"
+      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-primary-subtle hover:text-primary-700 dark:hover:text-primary-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
       <i :class="visible ? 'pi pi-eye-slash' : 'pi pi-eye'" class="text-lg"></i>
     </button>
   </div>

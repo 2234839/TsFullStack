@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 import { Effect } from 'effect';
-import { fail, MsgError, tryOrFail, extractErrorMessage } from '../../../util/error';
+import { fail, MsgError, tryOrFail } from '../../../util/error';
 import { JSON_CONTENT_HEADERS, deepCloneToJson, MSG } from '../../../util/constants';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../../util/http';
 import type {
@@ -64,18 +64,15 @@ export const MbdAdapter: PaymentAdapter = {
       const sign = mbdSign(signParams, mbdConfig.appKey);
 
       // 使用支付宝接口（PC/H5通用，返回 HTML form 自动提交）
-      const result = yield* Effect.tryPromise({
-        try: async () => {
-          const response = await fetch(`${MBD_API_BASE}/release/alipay/pay`, withFetchTimeout({
-            method: 'POST',
-            headers: JSON_CONTENT_HEADERS,
-            body: JSON.stringify({ ...signParams, sign }),
-          }, FETCH_TIMEOUTS.payment));
-          const data = (await response.json()) as { error?: string; body?: string; h5_url?: string };
-          if (data.error) throw MsgError.msg(`面包多API错误: ${data.error}`);
-          return data;
-        },
-        catch: (e) => MsgError.msg(`面包多创建支付失败: ${extractErrorMessage(e)}`),
+      const result = yield* tryOrFail('面包多创建支付', async () => {
+        const response = await fetch(`${MBD_API_BASE}/release/alipay/pay`, withFetchTimeout({
+          method: 'POST',
+          headers: JSON_CONTENT_HEADERS,
+          body: JSON.stringify({ ...signParams, sign }),
+        }, FETCH_TIMEOUTS.payment));
+        const data = (await response.json()) as { error?: string; body?: string; h5_url?: string };
+        if (data.error) throw MsgError.msg(`面包多API错误: ${data.error}`);
+        return data;
       });
 
       reqCtx.log(LOG_PREFIX, '创建支付单:', params.orderNo);
@@ -91,7 +88,25 @@ export const MbdAdapter: PaymentAdapter = {
 
   parseWebhook: (payload) =>
     Effect.gen(function* () {
+      const config = yield* PaymentConfigService;
       const reqCtx = yield* ReqCtxService;
+      const mbdConfig = config.mbd;
+
+      /** 验证面包多 webhook 签名，防止伪造回调 */
+      if (!mbdConfig?.appKey) {
+        return yield* fail('面包多 Webhook 签名验证失败: appKey 未配置');
+      }
+      if (!payload.sign) {
+        return yield* fail('面包多 Webhook 签名验证失败: 缺少签名字段');
+      }
+      {
+        const { sign: _sign, ...params } = payload;
+        const expected = mbdSign(params, mbdConfig.appKey);
+        if (expected !== String(payload.sign)) {
+          reqCtx.log(LOG_PREFIX, 'Webhook 签名验证失败:', String(payload.out_trade_no ?? ''));
+          return yield* fail('面包多 Webhook 签名验证失败');
+        }
+      }
 
       // 面包多 Webhook 格式:
       // { type: "charge_succeeded" | "complaint", data: { out_trade_no, amount, charge_id, payway } }
@@ -128,11 +143,19 @@ export const MbdAdapter: PaymentAdapter = {
 
   queryOrderStatus: (orderNo) =>
     Effect.gen(function* () {
-      const response = yield* tryOrFail('面包多查询', () => fetch(`${MBD_API_BASE}/release/main/search_order`, {
+      const config = yield* PaymentConfigService;
+      const mbdConfig = config.mbd;
+
+      if (!mbdConfig?.appId || !mbdConfig?.appKey) return null;
+
+      const signParams = { app_id: mbdConfig.appId, out_trade_no: orderNo };
+      const sign = mbdSign(signParams, mbdConfig.appKey);
+
+      const response = yield* tryOrFail('面包多查询', () => fetch(`${MBD_API_BASE}/release/main/search_order`, withFetchTimeout({
         method: 'POST',
         headers: JSON_CONTENT_HEADERS,
-        body: JSON.stringify({ out_trade_no: orderNo }),
-      }).then((r) => r.json()));
+        body: JSON.stringify({ ...signParams, sign }),
+      }, FETCH_TIMEOUTS.payment)).then((r) => r.json()));
 
       const data = response as { error?: string; order_id?: string; state?: string; amount?: string };
       if (data.error || !data.order_id) return null;

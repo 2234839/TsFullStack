@@ -35,13 +35,13 @@ const resources = shallowRef<ResourceItem[]>([]);
 /** 任务列表 */
 
 /** 总数 */
-const total = ref(0);
+const total = shallowRef(0);
 
 /** 加载中 */
-const isLoading = ref(false);
+const isLoading = shallowRef(false);
 
 /** 当前页 */
-const currentPage = ref(0);
+const currentPage = shallowRef(0);
 
 /** 每页数量 */
 const pageSize = DEFAULT_PAGE_SIZE;
@@ -73,7 +73,7 @@ const typeOptions = computed<SelectOption[]>(() => [
 const selectedResource = ref<ResourceItem | null>(null);
 
 /** 显示详情对话框 */
-const showDetailDialog = ref(false);
+const showDetailDialog = shallowRef(false);
 
 /** 已加载所有数据 */
 const hasLoadedAll = computed(() => resources.value.length >= total.value);
@@ -185,7 +185,7 @@ onMounted(() => loadResources(true));
     <!-- 筛选器 -->
     <div class="mb-6 flex flex-wrap gap-4">
       <div>
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+        <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('状态') }}
         </label>
         <Select
@@ -196,7 +196,7 @@ onMounted(() => loadResources(true));
       </div>
 
       <div>
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+        <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('类型') }}
         </label>
         <Select
@@ -208,9 +208,9 @@ onMounted(() => loadResources(true));
     </div>
 
     <!-- 资源列表 -->
-    <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
+    <div class="bg-primary-panel rounded-lg shadow">
       <!-- 表格头部 -->
-      <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-primary-200 dark:border-primary-700 font-medium text-sm text-primary-700 dark:text-primary-300">
+      <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-primary-default font-medium text-sm text-primary-label">
         <div class="col-span-1">{{ t('预览') }}</div>
         <div class="col-span-3">{{ t('标题') }}</div>
         <div class="col-span-2">{{ t('类型') }}</div>
@@ -222,7 +222,7 @@ onMounted(() => loadResources(true));
       <!-- 加载中 -->
       <div v-if="isLoading && filteredResources.length === 0" class="text-center py-12">
         <ProgressSpinner />
-        <p class="mt-2 text-primary-600 dark:text-primary-400">{{ t('加载中...') }}</p>
+        <p class="mt-2 text-primary-theme">{{ t('加载中...') }}</p>
       </div>
 
       <!-- 空状态 -->
@@ -230,7 +230,7 @@ onMounted(() => loadResources(true));
         <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">{{ t('暂无资源') }}</p>
+        <p class="mt-2 text-primary-theme">{{ t('暂无资源') }}</p>
       </div>
 
       <!-- 资源列表 -->
@@ -238,7 +238,7 @@ onMounted(() => loadResources(true));
         <div
           v-for="resource in filteredResources"
           :key="resource.id"
-          class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-primary-200 dark:border-primary-700 hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors"
+          class="grid grid-cols-12 gap-4 px-6 py-4 border-b border-primary-default hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors"
         >
           <!-- 预览 -->
           <div class="col-span-1">
@@ -264,14 +264,14 @@ onMounted(() => loadResources(true));
 
           <!-- 标题 -->
           <div class="col-span-3 flex items-center">
-            <span class="text-primary-900 dark:text-primary-100 truncate">
+            <span class="text-primary-title truncate">
               {{ resource.title }}
             </span>
           </div>
 
           <!-- 类型 -->
           <div class="col-span-2 flex items-center">
-            <span class="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-700 text-primary-700 dark:text-primary-300 rounded">
+            <span class="px-2 py-1 text-xs bg-primary-100 dark:bg-primary-700 text-primary-label rounded">
               {{ getResourceTypeLabel(resource.type) }}
             </span>
           </div>
@@ -282,7 +282,7 @@ onMounted(() => loadResources(true));
           </div>
 
           <!-- 创建时间 -->
-          <div class="col-span-2 flex items-center text-sm text-primary-600 dark:text-primary-400">
+          <div class="col-span-2 flex items-center text-sm text-primary-theme">
             {{ formatDate(resource.created) }}
           </div>
 
@@ -300,7 +300,7 @@ onMounted(() => loadResources(true));
       </div>
 
       <!-- 加载更多 -->
-      <div v-if="!hasLoadedAll && filteredResources.length > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
+      <div v-if="!hasLoadedAll && filteredResources.length > 0" class="px-6 py-4 border-t border-primary-default">
         <Button
           variant="secondary"
           class="w-full"
@@ -324,57 +324,57 @@ onMounted(() => loadResources(true));
         <img
           :src="getImageUrl(selectedResource)"
           :alt="selectedResource.title"
-          class="w-3/4 mx-auto rounded-lg border border-primary-200 dark:border-primary-700"
+          class="w-3/4 mx-auto rounded-lg border border-primary-default"
         />
       </div>
 
       <!-- 信息 -->
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('标题') }}
           </label>
-          <p class="text-primary-900 dark:text-primary-100">
+          <p class="text-primary-title">
             {{ selectedResource.title }}
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('描述') }}
           </label>
-          <p class="text-primary-600 dark:text-primary-400">
+          <p class="text-primary-theme">
             {{ selectedResource.description ?? t('无') }}
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('类型') }}
           </label>
-          <p class="text-primary-900 dark:text-primary-100">
+          <p class="text-primary-title">
             {{ selectedResource.type }}
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('状态') }}
           </label>
           <Tag :value="getStatusLabel(selectedResource.status)" :variant="getStatusVariant(selectedResource.status)" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('创建时间') }}
           </label>
-          <p class="text-primary-600 dark:text-primary-400">
+          <p class="text-primary-theme">
             {{ formatDate(selectedResource.created) }}
           </p>
         </div>
 
         <div v-if="selectedResource.metadata">
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('元数据') }}
           </label>
           <pre class="bg-primary-100 dark:bg-primary-900 p-3 rounded text-xs overflow-auto max-h-40">{{ JSON.stringify(selectedResource.metadata, null, 2) }}</pre>

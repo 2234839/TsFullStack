@@ -13,6 +13,7 @@ interface Props {
 }
 
 const { variant = 'secondary' } = defineProps<Props>();
+defineOptions({ inheritAttrs: false });
 
 /** 徽章样式类 */
 const badgeClasses = computed(() => {
@@ -30,7 +31,7 @@ const badgeClasses = computed(() => {
 </script>
 
 <template>
-  <span :class="badgeClasses">
+  <span v-bind="$attrs" :class="badgeClasses">
     <slot>{{ value }}</slot>
   </span>
 </template>

@@ -1,6 +1,6 @@
 <template>
   <div
-    class="tabs-bar bg-primary-50 dark:bg-primary-800 border-b border-primary-200 dark:border-primary-700 h-10 px-4 relative overflow-x-auto overflow-y-hidden">
+    class="tabs-bar custom-scrollbar bg-primary-50 dark:bg-primary-800 border-b border-primary-default h-10 px-4 relative overflow-x-auto overflow-y-hidden">
     <div class="tabs-wrapper flex items-center h-full">
       <div
         v-for="tab of tabsStore.tabs"
@@ -8,7 +8,7 @@
         :class="[
           'tab-item flex items-center h-8 px-2.5 mr-1 rounded cursor-pointer select-none whitespace-nowrap',
           tab.value.fullPath === tabsStore.activeTab
-            ? 'bg-primary-50 dark:bg-primary-900 border border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-300'
+            ? 'bg-primary-card border border-primary-300 dark:border-primary-600 text-primary-600 dark:text-primary-300'
             : 'bg-white dark:bg-primary-700 border border-primary-200 dark:border-primary-600 hover:bg-primary-100 dark:hover:bg-primary-600',
         ]"
         @click="handleTabClick(tab.value)"
@@ -119,28 +119,8 @@
 </script>
 
 <style scoped>
-  .tabs-bar::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .tabs-bar::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .tabs-bar::-webkit-scrollbar-thumb {
-    background: var(--color-gray-300);
-    border-radius: 4px;
-  }
-
-  .tabs-bar::-webkit-scrollbar-thumb:hover {
-    background: var(--color-gray-400);
-  }
-
-  .dark .tabs-bar::-webkit-scrollbar-thumb {
-    background: var(--color-gray-600);
-  }
-
-  .dark .tabs-bar::-webkit-scrollbar-thumb:hover {
-    background: var(--color-gray-500);
+  .tabs-bar {
+    --scrollbar-size: 4px;
+    --scrollbar-radius: 4px;
   }
 </style>

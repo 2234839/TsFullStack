@@ -5,6 +5,8 @@
  */
 import { computed, inject } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 是否禁用 */
   disabled?: boolean;
@@ -23,7 +25,7 @@ const emit = defineEmits<{
 const inputGroupFocused = inject('inputGroupFocused', { value: false });
 
 const addonClasses = computed(() => {
-  const base = 'px-3 py-2 bg-primary-50 dark:bg-primary-900 border border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300 flex items-center justify-center min-w-[40px] transition-colors rounded-none';
+  const base = 'px-3 py-2 bg-primary-card border border-primary-300 dark:border-primary-700 text-primary-label flex items-center justify-center min-w-[40px] transition-colors rounded-none';
 
   // 当 InputGroup 中有元素获得焦点时，Addon 的边框也要高亮
   const focusClass = inputGroupFocused.value
@@ -39,7 +41,7 @@ const addonClasses = computed(() => {
 </script>
 
 <template>
-  <div :class="addonClasses" @click="emit('click', $event)">
+  <div v-bind="$attrs" :class="addonClasses" @click="emit('click', $event)">
     <slot />
   </div>
 </template>

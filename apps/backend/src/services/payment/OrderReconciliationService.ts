@@ -35,7 +35,7 @@ function pendingOrderWhere(now: Date) {
  *       开发环境自动使用更短的轮询间隔。
  */
 
-type QueryResult = { tradeNo: string; status: 'success' | 'pending'; paidAmount: number } | null;
+type QueryResult = { tradeNo: string; status: 'success' | 'pending' | 'closed' | 'failed'; paidAmount: number } | null;
 
 /** Effect 上下文查询函数（由 index.ts 启动时注入） */
 let queryRunner: (provider: PaymentProvider, orderNo: string) => Promise<QueryResult> = () =>
@@ -47,19 +47,16 @@ export const OrderReconciliationService = {
    */
   initQueryRunner(paymentConfig: PaymentConfig) {
     queryRunner = (provider: PaymentProvider, orderNo: string): Promise<QueryResult> => {
-      const program = Effect.gen(function* () {
-        const adapter = yield* PaymentAdapterRegistry.getAdapter(provider);
-        return yield* adapter.queryOrderStatus(orderNo);
-      }).pipe(
+      const program = Effect.flatMap(
+        PaymentAdapterRegistry.getAdapter(provider),
+        (adapter) => adapter.queryOrderStatus(orderNo),
+      ).pipe(
         Effect.provideService(PaymentConfigService, paymentConfig),
-        Effect.catchAll((error) =>
-          Effect.gen(function* () {
-            yield* Effect.logError(`${LOG_PREFIX} queryOrderStatus failed for ${provider}/${orderNo}: ${extractErrorMessage(error)}`);
-            return null;
-          })
+        Effect.tapError((error) =>
+          Effect.logError(`${LOG_PREFIX} queryOrderStatus failed for ${provider}/${orderNo}: ${extractErrorMessage(error)}`)
         ),
+        Effect.catchAll(() => Effect.succeed(null)),
       );
-      /** catchAll 保证错误通道为 never；provideService 满足所有依赖后 R=never */
       return Effect.runPromise(program as Effect.Effect<QueryResult, never, never>);
     };
   },
@@ -77,21 +74,12 @@ export const OrderReconciliationService = {
   /**
    * 执行一轮对账
    *
-   * 只有存在 PENDING 且未过期订单时才做实际查询。
    * 返回统计信息，无待处理订单时返回全零。
    */
   reconcile: async (db: DbClient): Promise<{ processed: number; paid: number; cancelled: number }> => {
     const now = new Date();
     const where = pendingOrderWhere(now);
 
-    // 先快速检查是否有待处理订单
-    const pendingCount = await db.order.count({ where });
-
-    if (pendingCount === 0) {
-      return { processed: 0, paid: 0, cancelled: 0 };
-    }
-
-    // 有订单，开始批量查询
     let processed = 0;
     let paid = 0;
     let cancelled = 0;
@@ -119,7 +107,12 @@ export const OrderReconciliationService = {
 
         if (result.status === 'success') {
           await db.$transaction(async (tx) => {
-            const pkg = await tx.tokenPackage.findUnique({ where: { id: order.packageId } });
+            /** 并行查询订单状态和套餐信息（两者无数据依赖） */
+            const [fresh, pkg] = await Promise.all([
+              tx.order.findUnique({ where: { id: order.id }, select: { status: true } }),
+              tx.tokenPackage.findUnique({ where: { id: order.packageId } }),
+            ]);
+            if (!fresh || fresh.status !== OrderStatus.PENDING) return;
             if (!pkg) return;
 
             await tx.order.update({
@@ -138,6 +131,16 @@ export const OrderReconciliationService = {
           paid++;
           console.log(
             `${LOG_PREFIX} 对账补偿成功: orderNo=${order.orderNo}, provider=${order.provider}`,
+          );
+        } else if (result.status === 'closed' || result.status === 'failed') {
+          /** 支付平台返回关闭/失败状态，标记为取消 */
+          await db.order.update({
+            where: { id: order.id },
+            data: { status: OrderStatus.CANCELLED, providerData: { source: 'reconciliation' } },
+          });
+          cancelled++;
+          console.log(
+            `${LOG_PREFIX} 对账关闭订单: orderNo=${order.orderNo}, provider=${order.provider}`,
           );
         }
       } catch (error: unknown) {

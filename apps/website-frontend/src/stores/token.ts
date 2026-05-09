@@ -1,4 +1,4 @@
-import { ref, computed } from 'vue';
+import { ref, computed, readonly } from 'vue';
 import { createSharedComposable } from '@vueuse/core';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
@@ -68,13 +68,6 @@ const useTokenStoreImpl = () => {
   }
 
   /**
-   * 检查代币是否足够
-   */
-  function checkBalance(required: number): boolean {
-    return balance.value.total >= required;
-  }
-
-  /**
    * 乐观扣减余额（用于 UI 实时反馈）
    * @throws 如果余额不足会抛出错误
    */
@@ -125,18 +118,17 @@ const useTokenStoreImpl = () => {
   /**
    * 重置余额（用于乐观更新失败后恢复）
    */
-  function resetBalance() {
-    refreshBalance(true);
+  async function resetBalance() {
+    await refreshBalance(true);
   }
 
   return {
-    balance,
-    isLoading,
-    lastUpdated,
+    balance: readonly(balance),
+    isLoading: readonly(isLoading),
+    lastUpdated: readonly(lastUpdated),
     hasBalance,
     isLowBalance,
     refreshBalance,
-    checkBalance,
     optimisticallyDeduct,
     resetBalance,
   };

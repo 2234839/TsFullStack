@@ -127,7 +127,7 @@ export const aiApi = {
       yield* adminDbTry(LOG_PREFIX, '删除AI模型', (dbClient) =>
         dbClient.aiModel.delete({ where: { id } }),
       );
-      return { success: true };
+      return { success: true as const };
     }),
 
   /** 清理过期的API调用记录 */

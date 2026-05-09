@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen w-full overflow-hidden bg-primary-50 dark:bg-primary-950">
+  <div class="flex h-screen w-full overflow-hidden bg-primary-surface">
     <!-- 侧边栏 -->
     <MenuSideBar class="h-screen shrink-0" />
 
@@ -10,7 +10,7 @@
 
       <!-- 内容区域 -->
       <div class="flex-1 overflow-hidden">
-        <div class="h-full w-full overflow-auto">
+        <div class="h-full w-full overflow-auto custom-scrollbar">
           <RouterView :key="$route.fullPath" v-slot="{ Component }">
             <keep-alive>
               <component :is="Component" v-if="$route.meta.keepAlive" />
@@ -28,36 +28,19 @@
   import TabsBar from '@/pages/admin/components/TabsBar.vue';
   import { provideTabsStore } from '@/pages/admin/stores/tabsStore';
   import { routeMap, routerUtil } from '@/router';
-  import { authInfo_isLogin } from '@/storage';
+  import { authInfo, authInfo_isLogin } from '@/storage';
   import { onMounted } from 'vue';
   provideTabsStore();
+
+  /** 检查当前用户是否拥有 admin 角色 */
+  const isAdmin = () => authInfo.value?.user?.role?.some((r: { name: string }) => r.name === 'admin') ?? false;
+
   onMounted(async () => {
-    // 未登录，跳转到登录页面
-    if (!authInfo_isLogin.value) {
+    /** 未登录或非管理员，跳转到首页 */
+    if (!authInfo_isLogin.value || !isAdmin()) {
       routerUtil.push(routeMap.login, {});
-    } else {
-      // 已登录，无需跳转
     }
   });
 </script>
 
-<style scoped>
-  /* 自定义滚动条样式 */
-  .overflow-auto::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
 
-  .overflow-auto::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  .overflow-auto::-webkit-scrollbar-thumb {
-    background-color: color-mix(in srgb, var(--color-slate-500) 30%, transparent);
-    border-radius: 3px;
-  }
-
-  .overflow-auto::-webkit-scrollbar-thumb:hover {
-    background-color: color-mix(in srgb, var(--color-slate-500) 50%, transparent);
-  }
-</style>

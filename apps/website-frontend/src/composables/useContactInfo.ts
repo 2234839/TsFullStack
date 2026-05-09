@@ -1,4 +1,4 @@
-import { shallowRef } from 'vue';
+import { shallowRef, readonly } from 'vue';
 import { useAPI } from '@/api';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -39,5 +39,5 @@ export function useContactInfo() {
     }
   }
 
-  return { contactInfo, loadContactInfo, copyContactId };
+  return { contactInfo: readonly(contactInfo), loadContactInfo, copyContactId };
 }

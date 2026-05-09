@@ -27,7 +27,13 @@ export function requireOrFail<T>(value: T | null | undefined, msg: string) {
 export function tryOrFail<T>(label: string, fn: () => Promise<T>) {
   return Effect.tryPromise({
     try: fn,
-    catch: (e) => MsgError.msg(`${label}失败: ${String(e)}`),
+    catch: (e) => {
+      /** 已是 MsgError 直接返回，避免重复包装 */
+      if (MsgError.isMsgError(e)) return e;
+      const wrapped = MsgError.msg(`${label}失败: ${String(e)}`);
+      wrapped.cause = e;
+      return wrapped;
+    },
   });
 }
 

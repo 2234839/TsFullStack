@@ -14,23 +14,17 @@ import { DEFAULT_PAGE_SIZE } from '../../util/constants';
 
 /** 获取当前用户的可用代币余额 */
 const getAvailableTokens = () =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* TokenService.getAvailableTokens(auth.user.id);
-  });
+  AuthContext.pipe(Effect.flatMap(auth => TokenService.getAvailableTokens(auth.user.id)));
 
 /** 获取当前用户的代币列表 */
 const getUserTokens = (options?: {
   skip?: number;
   take?: number;
 }) =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* TokenService.getUserTokens(auth.user.id, {
-      skip: options?.skip ?? 0,
-      take: options?.take ?? DEFAULT_PAGE_SIZE,
-    });
-  });
+  AuthContext.pipe(Effect.flatMap(auth => TokenService.getUserTokens(auth.user.id, {
+    skip: options?.skip ?? 0,
+    take: options?.take ?? DEFAULT_PAGE_SIZE,
+  })));
 
 /** 获取当前用户的代币使用历史 */
 const getTokenHistory = (options?: {
@@ -39,15 +33,12 @@ const getTokenHistory = (options?: {
   startDate?: Date;
   endDate?: Date;
 }) =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* TokenService.getTokenHistory(auth.user.id, {
-      skip: options?.skip ?? 0,
-      take: options?.take ?? DEFAULT_PAGE_SIZE,
-      startDate: options?.startDate,
-      endDate: options?.endDate,
-    });
-  });
+  AuthContext.pipe(Effect.flatMap(auth => TokenService.getTokenHistory(auth.user.id, {
+    skip: options?.skip ?? 0,
+    take: options?.take ?? DEFAULT_PAGE_SIZE,
+    startDate: options?.startDate,
+    endDate: options?.endDate,
+  })));
 
 /**
  * 导出代币 API

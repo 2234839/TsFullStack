@@ -58,7 +58,8 @@ export class FileAccessService {
   static validateFileAccess(
     fileRow: FileModel,
     options: FileAccessOptions = {},
-    uploadDir?: string
+    /** 应总是通过 withAppConfig 传入，fallback 仅作防御 */
+    uploadDir: string,
   ): FileAccessResult {
     const {
       checkOwnership = false,
@@ -81,19 +82,15 @@ export class FileAccessService {
       throw MsgError.msg(MSG.FILE_ACCESS_DENIED);
     }
 
-    // 如果没有提供 uploadDir，则使用默认值（但应该总是提供）
-    const finalUploadDir = uploadDir ?? process.env.UPLOAD_DIR ?? './uploads';
-
     const filePath = FilePathService.generateUserFilePath(
       fileRow.authorId,
       fileRow.path,
-      finalUploadDir
+      uploadDir
     );
 
-    // 验证文件访问权限
     const validatedPath = FilePathService.validateFileAccess(
       filePath,
-      finalUploadDir,
+      uploadDir,
       fileRow.authorId
     );
 
@@ -132,7 +129,8 @@ export class FileAccessService {
   static createFileWrapItem(
     fileRow: FileModel,
     options: FileAccessOptions = {},
-    uploadDir?: string
+    /** 应总是通过 withAppConfig 传入 */
+    uploadDir: string,
   ): FileWrapItem {
     const { validatedPath } = FileAccessService.validateFileAccess(fileRow, options, uploadDir);
 
@@ -158,9 +156,6 @@ export class FileAccessService {
 
   /** 通用 Effect 包装：获取 AppConfig 后执行回调 */
   private static withAppConfig<T>(fn: (uploadDir: string) => T) {
-    return Effect.gen(function* () {
-      const cfg = yield* AppConfigService;
-      return fn(cfg.uploadDir);
-    });
+    return Effect.map(AppConfigService, (cfg) => fn(cfg.uploadDir));
   }
 }

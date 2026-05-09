@@ -270,22 +270,9 @@ describe('AI 图片生成 API 测试', () => {
  */
 export async function runAITests() {
   console.log('\n========================================');
-  console.log('🧪 AI 图片生成 API 测试套件');
+  console.log('AI 图片生成 API 测试套件');
   console.log('========================================\n');
-
-  try {
-    // 运行所有测试
-    await runAITests();
-
-    console.log('\n========================================');
-    console.log('✅ 所有测试通过!');
-    console.log('========================================\n');
-  } catch (error) {
-    console.error('\n========================================');
-    console.error('❌ 测试失败:', error);
-    console.error('========================================\n');
-    process.exit(1);
-  }
+  console.log('注意: 此测试需要手动执行，不在 vitest 范围内');
 }
 
 // 如果直接运行此文件

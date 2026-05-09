@@ -121,7 +121,7 @@ function getTypeColor(type: string): string {
   const colors: Record<string, string> = {
     MONTHLY: 'text-info-600 dark:text-info-400',
     YEARLY: 'text-success-600 dark:text-success-400',
-    PERMANENT: 'text-primary-600 dark:text-primary-400',
+    PERMANENT: 'text-primary-theme',
   };
   return colors[type] ?? 'text-secondary-600 dark:text-secondary-400';
 }
@@ -131,7 +131,7 @@ function getTypeColor(type: string): string {
   <div class="space-y-4">
     <!-- 标题栏 -->
     <div class="flex justify-between items-center">
-      <h3 class="text-lg font-semibold text-primary-900 dark:text-primary-100">
+      <h3 class="text-lg font-semibold text-primary-title">
         {{ t('代币使用历史') }}
       </h3>
       <Button
@@ -150,13 +150,13 @@ function getTypeColor(type: string): string {
       <div
         v-for="record in history"
         :key="record.id"
-        class="p-4 bg-white dark:bg-primary-800 rounded-lg border border-primary-200 dark:border-primary-700"
+        class="p-4 bg-primary-panel rounded-lg border border-primary-default"
       >
         <div class="flex justify-between items-start">
           <!-- 左侧：任务信息 -->
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
-              <span class="font-medium text-primary-900 dark:text-primary-100">
+              <span class="font-medium text-primary-title">
                 {{ record.task?.title ?? t('未知任务') }}
               </span>
               <span

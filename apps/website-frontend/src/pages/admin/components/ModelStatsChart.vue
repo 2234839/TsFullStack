@@ -1,28 +1,28 @@
 <!-- ABOUTME: Model statistics chart component showing AI model usage trends and distribution -->
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <div class="bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+    <div class="bg-primary-panel p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('请求趋势') }}
       </h3>
       <Chart type="line" :data="lineChartData" :options="chartOptions" />
     </div>
 
-    <div class="bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+    <div class="bg-primary-panel p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('用户活跃度') }}
       </h3>
       <Chart type="bar" :data="userActivityData" :options="barOptions" />
     </div>
 
-    <div class="bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+    <div class="bg-primary-panel p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('模型分布') }}
       </h3>
       <Chart type="doughnut" :data="doughnutChartData" :options="doughnutOptions" />
     </div>
 
-    <div class="bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+    <div class="bg-primary-panel p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('用户排行') }}
       </h3>
@@ -39,7 +39,7 @@
       </div>
     </div>
 
-    <div class="lg:col-span-2 bg-white dark:bg-primary-800 p-4 rounded-lg shadow">
+    <div class="lg:col-span-2 bg-primary-panel p-4 rounded-lg shadow">
       <h3 class="text-lg font-semibold mb-4 text-primary-900 dark:text-white">
         {{ t('详细统计') }}
       </h3>

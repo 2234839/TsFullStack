@@ -2,6 +2,8 @@ import type { DbClient } from '../Context/DbService';
 
 /** 每批清理的代币数量 */
 const BATCH_SIZE = 1000;
+/** 安全限制：最多迭代次数，防止并发插入导致无限循环 */
+const MAX_ITERATIONS = 100;
 
 /**
  * 过期代币清理服务
@@ -16,23 +18,29 @@ export const TokenCleanupService = {
     const now = new Date();
     let totalDeleted = 0;
     let hasMore = true;
+    let iterations = 0;
 
-    while (hasMore) {
+    while (hasMore && iterations++ < MAX_ITERATIONS) {
       const tokensToCleanup = await db.token.findMany({
         where: {
           active: true,
           expiresAt: { lt: now },
         },
         select: { id: true, amount: true, used: true },
+        orderBy: { id: 'asc' },
         take: BATCH_SIZE,
       });
 
       if (tokensToCleanup.length === 0) break;
 
-      const fullyConsumed = tokensToCleanup.filter((t) => t.used >= t.amount);
-      const partiallyConsumed = tokensToCleanup.filter((t) => t.used > 0 && t.used < t.amount);
-      /** 从未使用的过期代币直接删除（无审计价值） */
-      const neverUsed = tokensToCleanup.filter((t) => t.used === 0);
+      const fullyConsumed: typeof tokensToCleanup = [];
+      const partiallyConsumed: typeof tokensToCleanup = [];
+      const neverUsed: typeof tokensToCleanup = [];
+      for (const t of tokensToCleanup) {
+        if (t.used >= t.amount) fullyConsumed.push(t);
+        else if (t.used > 0) partiallyConsumed.push(t);
+        else neverUsed.push(t);
+      }
 
       // 三类操作互不重叠 ID 集合，安全并行执行
       await Promise.all([

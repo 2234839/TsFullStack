@@ -19,7 +19,7 @@ interface ToastMessage {
 const VARIANT_CLASSES: Record<NonNullable<ToastMessage['variant']>, string> = {
   success: 'bg-success-50 dark:bg-success-900/20 border-success-200 dark:border-success-800 text-success-800 dark:text-success-200',
   error: 'bg-danger-50 dark:bg-danger-900/20 border-danger-200 dark:border-danger-800 text-danger-800 dark:text-danger-200',
-  info: 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800 text-primary-800 dark:text-primary-200',
+  info: 'bg-primary-card/20 border-primary-200 dark:border-primary-800 text-primary-body',
   warn: 'bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800 text-warning-800 dark:text-warning-200',
   /** warning 是 warn 的别名 */
   warning: 'bg-warning-50 dark:bg-warning-900/20 border-warning-200 dark:border-warning-800 text-warning-800 dark:text-warning-200',
@@ -41,7 +41,7 @@ const messageClasses = computed(() => (message: ToastMessage) =>
 const iconClasses = {
   success: 'pi pi-check-circle text-success-600 dark:text-success-400',
   error: 'pi pi-times-circle text-danger-600 dark:text-danger-400',
-  info: 'pi pi-info-circle text-primary-600 dark:text-primary-400',
+  info: 'pi pi-info-circle text-primary-theme',
   warn: 'pi pi-exclamation-triangle text-warning-600 dark:text-warning-400',
   /** warning 是 warn 的别名 */
   warning: 'pi pi-exclamation-triangle text-warning-600 dark:text-warning-400',
@@ -63,6 +63,7 @@ const iconClasses = {
       </div>
       <button
         @click="toast.remove(message.id)"
+        aria-label="Close"
         class="shrink-0 opacity-50 hover:opacity-100 transition-opacity">
         <i class="pi pi-times"></i>
       </button>

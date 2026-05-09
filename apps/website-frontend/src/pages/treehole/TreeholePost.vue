@@ -1,5 +1,5 @@
 <template>
-  <div class="treehole-post" :class="{ 'pl-4 sm:pl-8 border-l-2 border-primary-200 dark:border-primary-700': depth > 0 }">
+  <div class="treehole-post" :class="{ 'pl-4 sm:pl-8 border-l-2 border-primary-default': depth > 0 }">
     <div class="bg-white dark:bg-primary-900 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-4 mb-4">
       <!-- 帖子头部：作者信息和时间 -->
       <div class="flex items-center justify-between mb-3">
@@ -11,7 +11,7 @@
             <div class="font-semibold text-primary-900 dark:text-primary-50">
               {{ post.author.nickname ?? t('匿名用户') }}
             </div>
-            <div class="text-xs text-primary-500 dark:text-primary-400">
+            <div class="text-xs text-primary-subtle">
               {{ formatDate(post.updated, { relative: true }) }}
             </div>
           </div>
@@ -24,7 +24,7 @@
             <div class="font-semibold text-primary-900 dark:text-primary-50">
               {{ t('未知用户') }}
             </div>
-            <div class="text-xs text-primary-500 dark:text-primary-400">
+            <div class="text-xs text-primary-subtle">
               {{ formatDate(post.updated, { relative: true }) }}
             </div>
           </div>
@@ -58,7 +58,7 @@
             />
             <div
               v-if="showMenu"
-              class="absolute right-0 mt-2 w-48 bg-white dark:bg-primary-900 rounded-lg shadow-lg border border-primary-200 dark:border-primary-700 z-10"
+              class="absolute right-0 mt-2 w-48 bg-white dark:bg-primary-900 rounded-lg shadow-lg border border-primary-default z-10"
             >
               <Button
                 variant="ghost"
@@ -89,13 +89,13 @@
         </h3>
 
         <!-- 帖子内容 -->
-        <div class="text-primary-700 dark:text-primary-300 whitespace-pre-wrap mb-4">
+        <div class="text-primary-label whitespace-pre-wrap mb-4">
           {{ post.content }}
         </div>
       </template>
 
       <!-- 折叠状态下的摘要 -->
-      <div v-else class="text-primary-600 dark:text-primary-400 text-sm">
+      <div v-else class="text-primary-theme text-sm">
         {{ post.title ?? t('无标题') }} - {{ postSummary }}
       </div>
 
@@ -119,14 +119,14 @@
             @click="toggleExpand"
           />
         </div>
-        <div class="flex items-center gap-1 text-sm text-primary-500 dark:text-primary-400">
+        <div class="flex items-center gap-1 text-sm text-primary-subtle">
           <i class="pi pi-comments"></i>
           <span>{{ post._count?.replies ?? 0 }} {{ t('条回复') }}</span>
         </div>
       </div>
 
       <!-- 回复编辑器 -->
-      <div v-if="isReplying" class="mt-4 pt-4 border-t border-primary-200 dark:border-primary-700">
+      <div v-if="isReplying" class="mt-4 pt-4 border-t border-primary-default">
         <TreeholePostForm
           :parent-id="post.id"
           @submit="handleReplySubmit"
@@ -150,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, computed } from 'vue';
+import { shallowRef, computed } from 'vue';
 import { authInfo, authInfo_isLogin } from '@/storage';
 import { useAPI } from '@/api';
 import TreeholePostForm from './TreeholePostForm.vue';
@@ -159,7 +159,7 @@ import { useConfirm } from '@/composables/useConfirm';
 import type { TreeholePost } from '@tsfullstack/backend';
 import { getErrorMessage } from '@/utils/error';
 import { useI18n } from '@/composables/useI18n';
-import { truncateText } from '@/utils/format';
+import { truncateText, formatDate } from '@/utils/format';
 
 interface Props {
   post: TreeholePost;
@@ -179,12 +179,12 @@ const toast = useToast();
 const confirm = useConfirm();
 const { t } = useI18n();
 
-const showMenu = ref(false);
-const isReplying = ref(false);
-const isExpanded = ref(false);
-const isPostCollapsed = ref(false); /** 主贴内容是否折叠 */
+const showMenu = shallowRef(false);
+const isReplying = shallowRef(false);
+const isExpanded = shallowRef(false);
+const isPostCollapsed = shallowRef(false); /** 主贴内容是否折叠 */
 const replies = shallowRef<TreeholePost[]>([]);
-const repliesLoaded = ref(false);
+const repliesLoaded = shallowRef(false);
 
 /** 当前用户是否是帖子作者 */
 const isAuthor = computed(() =>
@@ -232,7 +232,6 @@ function getAuthorInitial(author: { nickname: string | null }): string {
  *
  * 解决方案：优先使用 created 字段，因为它是正确的 UTC 时间
  */
-import { formatDate } from '@/utils/format';
 
 /**
  * 获取可见性样式

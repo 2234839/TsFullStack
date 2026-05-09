@@ -23,11 +23,17 @@ const CACHE_CLEANUP_INTERVAL_MS = 30_000; // 清理间隔 30 秒
 /** 用户 LRU 缓存 */
 const userCache = new LRUCache<string, CacheEntry>(CACHE_MAX_SIZE);
 
-/** 定时清理过期缓存 — 存储句柄以便 shutdown 时清理 */
-let cleanupTimer: NodeJS.Timeout | null = setInterval(() => {
+/** 定时清理过期缓存 */
+const cleanupTimer = setInterval(() => {
   const now = Date.now();
   userCache.cleanUp((entry) => entry.expiresAt < now);
 }, CACHE_CLEANUP_INTERVAL_MS);
+
+/** 销毁缓存清理定时器（用于优雅关闭） */
+export function destroyAuthCache() {
+  clearInterval(cleanupTimer);
+  userCache.clear();
+}
 
 /**
  * 基于内存的用户鉴权缓存，避免每次请求都查询数据库中的用户信息

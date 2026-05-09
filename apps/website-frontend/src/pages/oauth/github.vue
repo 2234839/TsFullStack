@@ -1,12 +1,22 @@
 <template>
   <div class="flex flex-col items-center justify-center min-h-screen bg-linear-to-br from-primary-950 to-primary-900 text-white">
     <div class="text-center p-8 bg-primary-900/80 rounded-xl shadow-2xl max-w-125 w-[90%]">
-      <h1 class="text-2xl mb-4 text-primary-400">{{ t('GitHub 授权中...') }}</h1>
-      <p class="text-base mb-6 text-white/80">{{ t('正在验证您的 GitHub 账号，请稍候') }}</p>
-      <div v-if="userInfo.state.value === undefined" key="loading" class="w-12 h-12 rounded-full border-4 border-primary-400/30 border-t-primary-400 animate-spin mx-auto"></div>
-      <div v-else key="success">
+      <template v-if="userInfo.error.value">
+        <h1 class="text-2xl mb-4 text-danger-400">{{ t('授权失败') }}</h1>
+        <p class="text-base mb-6 text-white/80">{{ t('GitHub 授权验证失败，请重试') }}</p>
+        <button @click="userInfo.execute()" class="px-6 py-2 bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
+          {{ t('重试') }}
+        </button>
+      </template>
+      <template v-else-if="userInfo.isLoading.value">
+        <h1 class="text-2xl mb-4 text-primary-400">{{ t('GitHub 授权中...') }}</h1>
+        <p class="text-base mb-6 text-white/80">{{ t('正在验证您的 GitHub 账号，请稍候') }}</p>
+        <div class="w-12 h-12 rounded-full border-4 border-primary-400/30 border-t-primary-400 animate-spin mx-auto"></div>
+      </template>
+      <template v-else>
+        <h1 class="text-2xl mb-4 text-primary-400">{{ t('授权成功') }}</h1>
         <p>{{ t('授权成功！正在跳转...') }}</p>
-      </div>
+      </template>
     </div>
   </div>
 </template>

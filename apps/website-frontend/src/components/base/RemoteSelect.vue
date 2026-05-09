@@ -1,5 +1,5 @@
 <template>
-  <Dropdown v-model="dropdownOpen" @open="handleSearch">
+  <Dropdown v-bind="$attrs" v-model="dropdownOpen" @open="handleSearch">
     <template #trigger>
       <div
         class="flex gap-1 items-center p-2 rounded-md cursor-pointer transition-colors min-h-10">
@@ -32,7 +32,7 @@
               </template> </Tag
           ></template>
         </div>
-        <i class="pi pi-chevron-down ml-auto text-primary-600 dark:text-primary-400"></i>
+        <i class="pi pi-chevron-down ml-auto text-primary-theme"></i>
       </div>
     </template>
     <div class="remote-select-dropdown">
@@ -62,25 +62,25 @@
             class="p-3 cursor-pointer flex items-center transition-colors"
             :class="{
               'hover:bg-primary-100 dark:hover:bg-primary-900': !isItemDisabled(item),
-              'opacity-50 cursor-not-allowed bg-primary-50 dark:bg-primary-950': isItemDisabled(item)
+              'opacity-50 cursor-not-allowed bg-primary-surface': isItemDisabled(item)
             }"
             @click.capture.stop.prevent="handleSelect(item)">
             <Checkbox
               :model-value="modelValue.some((el) => itemEquals(el, item))"
               :binary="true"
               :disabled="isItemDisabled(item)" />
-            <span class="ml-2" :class="{ 'text-primary-600 dark:text-primary-400': isItemDisabled(item) }">
+            <span class="ml-2" :class="{ 'text-primary-theme': isItemDisabled(item) }">
               {{ item.label }}
             </span>
-            <span v-if="isItemDisabled(item)" class="ml-auto text-xs text-primary-500 dark:text-primary-400">
+            <span v-if="isItemDisabled(item)" class="ml-auto text-xs text-primary-subtle">
               {{ t('必需') }}
             </span>
           </div>
-          <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-primary-600 dark:text-primary-400">
+          <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-primary-theme">
             {{ t('无数据') }}
           </div>
       </ScrollArea>
-      <div class="p-3 border-t border-primary-200 dark:border-primary-700">
+      <div class="p-3 border-t border-primary-default">
         <Paginator
           :rows="pagination.total"
           :rowsPerPage="pagination.take"
@@ -97,16 +97,18 @@
     label: string;
   }
 
-  function addItem(items: RemoteSelectItem[], item: RemoteSelectItem) {
+  function addItem(items: RemoteSelectItem[], item: RemoteSelectItem): RemoteSelectItem[] {
     if (!items.some((el) => el.value === item.value)) {
-      items.push(item);
+      return [...items, item];
     }
+    return items;
   }
-  function removeItem(items: RemoteSelectItem[], item: RemoteSelectItem) {
+  function removeItem(items: RemoteSelectItem[], item: RemoteSelectItem): RemoteSelectItem[] {
     const index = items.findIndex((el) => itemEquals(el, item));
     if (index !== -1) {
-      items.splice(index, 1);
+      return [...items.slice(0, index), ...items.slice(index + 1)];
     }
+    return items;
   }
   /** 因为数据会分页加载，所以直接按引用判断不行。要按值判断 */
   function itemEquals(a: RemoteSelectItem, b: RemoteSelectItem) {
@@ -123,6 +125,8 @@
   import { computed, ref, shallowRef } from 'vue';
   import { useDebounceFn } from '@vueuse/core';
   import { useI18n } from '@/composables/useI18n';
+
+  defineOptions({ inheritAttrs: false });
 
   /** 获取 t 函数 */
   const { t } = useI18n();
@@ -241,12 +245,12 @@
 
   const remove = (item: RemoteSelectItem) => {
     emit('remove', item);
-    RemoteSelectUtils.removeItem(modelValue.value, item);
+    modelValue.value = RemoteSelectUtils.removeItem(modelValue.value, item);
     tagHovered.value[item.value] = false;
   };
   const add = (item: RemoteSelectItem) => {
     emit('add', item);
-    RemoteSelectUtils.addItem(modelValue.value, item);
+    modelValue.value = RemoteSelectUtils.addItem(modelValue.value, item);
   };
 
   const isTagHovered = (item: RemoteSelectItem) => {

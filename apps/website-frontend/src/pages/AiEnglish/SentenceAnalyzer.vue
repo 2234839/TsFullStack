@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-primary-50 dark:bg-primary-900 text-primary-900 dark:text-white p-6 md:p-8">
-    <div class="max-w-4xl mx-auto bg-white dark:bg-primary-800 shadow-lg rounded-lg p-6">
+  <div class="min-h-screen bg-primary-card text-primary-900 dark:text-white p-6 md:p-8">
+    <div class="max-w-4xl mx-auto bg-primary-panel shadow-lg rounded-lg p-6">
       <h1 class="text-3xl font-bold mb-6 text-center text-primary-800 dark:text-white">
         {{ t('英文句子结构分析器') }}
       </h1>
@@ -8,7 +8,7 @@
       <div class="mb-6">
         <label
           for="sentence-input"
-          class="block text-lg font-medium mb-2 text-primary-700 dark:text-primary-300">
+          class="block text-lg font-medium mb-2 text-primary-label">
           {{ t('输入英文句子：') }}
         </label>
         <Textarea
@@ -34,7 +34,7 @@
 
       <div
         v-if="analysisResult"
-        class="mt-8 p-4 bg-primary-50 dark:bg-primary-900 rounded-lg border border-primary-200 dark:border-primary-700 overflow-x-auto">
+        class="mt-8 p-4 bg-primary-card rounded-lg border border-primary-default overflow-x-auto">
         <h2 class="text-xl font-semibold mb-4 text-primary-800 dark:text-white">{{ t('分析结果：') }}</h2>
         <!-- 顶层容器也使用 items-end 来对齐所有顶层元素底部 -->
         <div class="flex flex-row items-end gap-x-8 p-4 min-w-max">
@@ -212,7 +212,7 @@
           {props.text}
         </div>
         {(props.role || props.pos) && (
-          <div class="text-xs text-primary-500 dark:text-primary-400 mt-1 text-center">
+          <div class="text-xs text-primary-subtle mt-1 text-center">
             {props.role && <span>{props.role}</span>}
             {props.role && props.pos && <span> / </span>}
             {props.pos && <span>{props.pos}</span>}

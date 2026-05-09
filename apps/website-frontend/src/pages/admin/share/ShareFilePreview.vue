@@ -43,13 +43,13 @@
     <!-- 其他文件类型 -->
     <div v-else class="file-preview ">
       <div class="file-icon flex items-center justify-center">
-        <i class="pi pi-file text-3xl! text-primary-500 dark:text-primary-400"></i>
+        <i class="pi pi-file text-3xl! text-primary-subtle"></i>
       </div>
       <div class="flex flex-col items-center">
         <div class="font-medium text-sm mb-2">
           {{ file.filename }}
         </div>
-        <div class="text-xs text-primary-600 dark:text-primary-400 mb-4 ">
+        <div class="text-xs text-primary-theme mb-4 ">
           {{ formatFileSize(file.size) }}
         </div>
         <a :href="url" :download="file.filename" class="download-link">

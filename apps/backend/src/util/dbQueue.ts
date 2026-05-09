@@ -54,6 +54,8 @@ export class PrismaQueue<T extends TaskMap> {
   private workers = new Map<string, (payload: unknown) => Promise<unknown>>();
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private stuckTaskTimer: NodeJS.Timeout | null = null;
+  /** 活跃 worker 的 Promise 集合，用于 stop() 时等待完成 */
+  private activePromises = new Set<Promise<void>>();
 
   constructor({ dbClient, pollingInterval = DEFAULT_POLLING_INTERVAL_MS, concurrency = DEFAULT_QUEUE_CONCURRENCY, instanceId, stuckTimeoutMs = STUCK_TIMEOUT_MS }: QueueOptions) {
     this.dbClient = dbClient;
@@ -104,7 +106,7 @@ export class PrismaQueue<T extends TaskMap> {
     return this;
   }
 
-  stop() {
+  async stop() {
     this.isRunning = false;
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
@@ -113,6 +115,11 @@ export class PrismaQueue<T extends TaskMap> {
     if (this.stuckTaskTimer) {
       clearTimeout(this.stuckTaskTimer);
       this.stuckTaskTimer = null;
+    }
+    /** 等待所有活跃 worker 完成 */
+    if (this.activePromises.size > 0) {
+      console.log(`${LOG_PREFIX} Waiting for ${this.activePromises.size} active workers...`);
+      await Promise.allSettled(this.activePromises);
     }
     console.log(`${LOG_PREFIX} Stopped: ${this.instanceId}`);
     return this;
@@ -138,9 +145,12 @@ export class PrismaQueue<T extends TaskMap> {
       return;
     }
 
+    /** 预占并发槽位，避免多个 poll 调用同时通过并发检查 */
+    this.activeWorkers++;
     try {
       const taskTypes = [...this.workers.keys()];
       if (taskTypes.length === 0) {
+        this.activeWorkers--;
         void setTimeout(() => this.poll(), this.pollingInterval);
         return;
       }
@@ -176,16 +186,21 @@ export class PrismaQueue<T extends TaskMap> {
       });
 
       if (task) {
-        this.activeWorkers++;
         /** Prisma 原始类型 → QueueModel: $transaction 内的 tx 类型因联合类型推导失败，运行时结构一致 */
-        this.processTask(task as unknown as QueueModel).finally(() => {
+        const taskPromise = this.processTask(task as unknown as QueueModel).finally(() => {
           this.activeWorkers--;
-          setImmediate(() => this.poll());
+          this.activePromises.delete(taskPromise);
+          if (this.isRunning) {
+            setImmediate(() => this.poll());
+          }
         });
+        this.activePromises.add(taskPromise);
       } else {
+        this.activeWorkers--;
         void setTimeout(() => this.poll(), this.pollingInterval);
       }
     } catch (error: unknown) {
+      this.activeWorkers--;
       console.error(`${LOG_PREFIX} Polling error:`, error);
       setTimeout(() => this.poll(), this.pollingInterval);
     }
@@ -243,7 +258,7 @@ export class PrismaQueue<T extends TaskMap> {
           },
         });
 
-        // 重试已调度，静默处理
+        console.warn(`${LOG_PREFIX} Task ${task.id} failed (attempt ${current.attempts}/${current.maxAttempts}), retry in ${backoff}ms: ${extractErrorMessage(error)}`);
       } else {
         await this.failTask(task.id, extractErrorMessage(error));
       }

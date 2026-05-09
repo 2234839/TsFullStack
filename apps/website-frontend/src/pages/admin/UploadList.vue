@@ -37,22 +37,22 @@ interface FileInfo {
 
 // 响应式数据
 const files = shallowRef<FileInfo[]>([]);
-const loading = ref(false);
-const totalRecords = ref(0);
-const previewDialogVisible = ref(false);
+const loading = shallowRef(false);
+const totalRecords = shallowRef(0);
+const previewDialogVisible = shallowRef(false);
 const currentFile = ref<FileInfo | null>(null);
-const previewUrl = ref('');
+const previewUrl = shallowRef('');
 
 // 上传相关
-const uploadDialogVisible = ref(false);
+const uploadDialogVisible = shallowRef(false);
 const selectedFiles = ref<File[]>([]);
-const isDragging = ref(false);
+const isDragging = shallowRef(false);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const uploadProgress = ref<{ [key: number]: number }>({});
-const isUploading = ref(false);
+const isUploading = shallowRef(false);
 
 // 搜索相关
-const searchTerm = ref('');
+const searchTerm = shallowRef('');
 
 /** 文件类型图标映射 */
 const getFileIcon = (fileType?: string) => {
@@ -374,7 +374,7 @@ onMounted(loadFiles);
     <div class="mb-4">
       <InputGroup>
         <Input v-model="searchTerm" :placeholder="t('搜索文件名...')" @keyup.enter="searchFiles" />
-        <Button icon="pi pi-search" @click="searchFiles" />
+        <Button icon="pi pi-search" :aria-label="t('搜索')" @click="searchFiles" />
       </InputGroup>
     </div>
 
@@ -387,7 +387,7 @@ onMounted(loadFiles);
         <div class="border-2 border-dashed border-neutral-400 dark:border-neutral-600 rounded-lg p-8 text-center cursor-pointer transition-all duration-300 hover:border-primary-600 hover:bg-neutral-50 dark:hover:border-primary-400 dark:hover:bg-neutral-800"
           :class="{ 'border-primary-600 bg-neutral-50 dark:border-primary-400 dark:bg-neutral-800': isDragging }"
           @dragover.prevent="onDragOver" @dragleave.prevent="onDragLeave" @drop.prevent="onDrop">
-          <i class="pi pi-cloud-upload text-3xl text-primary-600 dark:text-primary-400 mb-4"></i>
+          <i class="pi pi-cloud-upload text-3xl text-primary-theme mb-4"></i>
           <p>{{ t('拖拽文件到此处或点击选择文件') }}</p>
           <Button :label="t('选择文件')" icon="pi pi-folder" @click="triggerFileInput" class="mt-3" />
           <input ref="fileInputRef" type="file" @change="handleFileSelect" class="hidden" multiple />

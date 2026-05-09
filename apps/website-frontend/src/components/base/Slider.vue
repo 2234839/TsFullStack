@@ -3,8 +3,10 @@
  * 滑块组件
  * 使用 Tailwind CSS 样式
  */
-import { computed, ref } from 'vue';
+import { computed, ref , shallowRef } from 'vue';
 import { useEventListener } from '@vueuse/core';
+
+defineOptions({ inheritAttrs: false });
 
 interface Props {
   /** 模型值 */
@@ -26,7 +28,7 @@ const emit = defineEmits<{
 }>();
 
 /** 内部状态 */
-const isDragging = ref(false);
+const isDragging = shallowRef(false);
 const sliderRef = ref<HTMLElement | null>(null);
 
 /** 当前值的百分比 */
@@ -91,7 +93,7 @@ const fillStyle = computed(() => ({
 
 /** 滑块拇指样式类 */
 const thumbClasses = computed(() => {
-  const base = 'absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary-50 dark:bg-primary-950 border-2 border-primary-700 dark:border-primary-300 rounded-full shadow-md transition-transform duration-150';
+  const base = 'absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary-surface border-2 border-primary-700 dark:border-primary-300 rounded-full shadow-md transition-transform duration-150';
   const hoverClass = !disabled ? 'hover:scale-110 active:scale-95' : '';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
@@ -101,6 +103,7 @@ const thumbClasses = computed(() => {
 
 <template>
   <div
+    v-bind="$attrs"
     ref="sliderRef"
     :class="trackClasses"
     @click="handleClick">

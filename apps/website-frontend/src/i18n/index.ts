@@ -1,7 +1,6 @@
 import { i18nStore } from '@/storage';
 import { usePreferredLanguages } from '@vueuse/core';
-import { computed } from 'vue';
-import { createI18n, useI18n } from 'vue-i18n';
+import { createI18n } from 'vue-i18n';
 
 const modules = import.meta.glob('./*.json');
 
@@ -42,13 +41,4 @@ export async function initI18n() {
   if (!matched) {
     await loadLocaleMessages('en');
   }
-}
-
-export function useComputedI18n() {
-  const { t } = useI18n();
-
-  const computedI18n = (key: string) => {
-    return computed(() => t(key));
-  };
-  return computedI18n;
 }

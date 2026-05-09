@@ -28,6 +28,7 @@ interface Props {
 }
 
 const { modelValue, disabled = false, step = 1, min, max, minFractionDigits: _minFractionDigits = 0, maxFractionDigits: _maxFractionDigits = undefined, showButtons = false } = defineProps<Props>();
+defineOptions({ inheritAttrs: false });
 
 const emit = defineEmits<{
   'update:modelValue': [value: number | null];
@@ -37,7 +38,7 @@ const emit = defineEmits<{
 const inputClasses = computed(() => {
   const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-info-600 dark:focus:ring-info-500';
 
-  const bgClass = 'bg-primary-50 dark:bg-primary-900';
+  const bgClass = 'bg-primary-card';
   const textClass = 'text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
@@ -77,6 +78,7 @@ function increment() {
 <template>
   <div class="relative flex items-center">
     <input
+      v-bind="$attrs"
       type="number"
       :placeholder="placeholder"
       :disabled="disabled"
@@ -90,13 +92,15 @@ function increment() {
       <button
         @click="increment"
         :disabled="disabled"
-        class="w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-50 dark:bg-primary-900 hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed">
+        aria-label="Increase"
+        class="w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-card hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed">
         <i class="pi pi-chevron-up text-xs"></i>
       </button>
       <button
         @click="decrement"
         :disabled="disabled"
-        class="w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-50 dark:bg-primary-900 hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed">
+        aria-label="Decrease"
+        class="w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-card hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed">
         <i class="pi pi-chevron-down text-xs"></i>
       </button>
     </div>

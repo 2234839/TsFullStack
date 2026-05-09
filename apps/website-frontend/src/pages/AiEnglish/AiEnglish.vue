@@ -15,7 +15,7 @@
         </Tooltip>
         <div class="flex-1 text-center">
           <h1 class="text-3xl font-bold flex items-center justify-center gap-3">
-            <i class="pi pi-book text-primary-600 dark:text-primary-400 text-2xl" />
+            <i class="pi pi-book text-primary-theme text-2xl" />
             {{ t('在阅读中渐进式学习英语') }}
           </h1>
           <p class="text-sm mt-1">{{ t('AI驱动 • 智能分析 • 分段学习 • 划选段落翻译') }}</p>
@@ -82,7 +82,7 @@
                   </div>
 
                   <!-- 智能分段选项说明 -->
-                  <div class="flex items-center gap-2 text-xs text-primary-500 dark:text-primary-400">
+                  <div class="flex items-center gap-2 text-xs text-primary-subtle">
                     <i class="pi pi-sparkles text-secondary-500 dark:text-secondary-400"></i>
                     <span>{{ t('AI智能分段会根据内容逻辑和阅读体验进行优化，确保每个段落信息量适中') }}</span>
                   </div>
@@ -242,21 +242,21 @@
                 <div v-if="showTranslation">
                   <div v-if="translationType === 'word' && selectedWord">
                     <!-- 单词翻译内容 -->
-                    <div class="text-2xl font-bold text-primary-700 dark:text-primary-300">
+                    <div class="text-2xl font-bold text-primary-label">
                       {{ selectedWord.word }}
                     </div>
 
                     <div
                       v-if="selectedWord.pronunciation"
-                      class="text-lg text-primary-700 dark:text-primary-300">
-                      <span class="text-sm text-primary-500 dark:text-primary-400">{{ t('音标: ') }}</span>
+                      class="text-lg text-primary-label">
+                      <span class="text-sm text-primary-subtle">{{ t('音标: ') }}</span>
                       {{ selectedWord.pronunciation }}
                     </div>
 
                     <div class="space-y-3">
                       <div class="flex items-center gap-2">
                         <i class="pi pi-brain text-base" />
-                        <span class="text-sm text-primary-500 dark:text-primary-400">{{ t('熟练度') }}</span>
+                        <span class="text-sm text-primary-subtle">{{ t('熟练度') }}</span>
                         <Tag
                           :value="`${selectedWord.memoryLevel}/10`"
                           class="border-none"
@@ -266,7 +266,7 @@
                           }" />
                         <span
                           v-if="selectedWord.difficulty"
-                          class="text-sm text-primary-500 dark:text-primary-400"
+                          class="text-sm text-primary-subtle"
                           >{{ t('难度') }}</span
                         >
                         <Tag
@@ -292,10 +292,10 @@
                       :toggleOnClick="true"
                       :autoClear="selectedWord.memoryLevel <= 4"
                       overlayClass="bg-primary-100/80 dark:bg-primary-800/80 backdrop-blur-[1px]"
-                      overlayTextClass="text-primary-600 dark:text-primary-400 text-xs"
+                      overlayTextClass="text-primary-theme text-xs"
                       @click="handleTranslationClick">
                       <div class="space-y-2">
-                        <div v-if="isTranslating" key="word-translating" class="flex items-center gap-2 text-primary-500 dark:text-primary-400">
+                        <div v-if="isTranslating" key="word-translating" class="flex items-center gap-2 text-primary-subtle">
                           <i class="pi pi-refresh animate-spin" />
                           {{ t('AI翻译中...') }}
                         </div>
@@ -305,19 +305,19 @@
                       </div>
 
                       <div v-if="selectedWord.grammar" class="space-y-2">
-                        <div class="text-sm text-primary-500 dark:text-primary-400">{{ t('语法信息') }}</div>
+                        <div class="text-sm text-primary-subtle">{{ t('语法信息') }}</div>
                         <div class="text-sm bg-primary-50 dark:bg-primary-700 p-2 rounded">
                           {{ selectedWord.grammar }}
                         </div>
                       </div>
 
                       <div v-if="selectedWord.examples?.length" class="space-y-2">
-                        <div class="text-sm text-primary-500 dark:text-primary-400">{{ t('AI例句') }}</div>
+                        <div class="text-sm text-primary-subtle">{{ t('AI例句') }}</div>
                         <div class="space-y-1">
                           <div
                             v-for="(example, index) in selectedWord.examples"
                             :key="index"
-                            class="text-sm bg-primary-50 dark:bg-primary-900/30 p-2 rounded italic">
+                            class="text-sm bg-primary-card/30 p-2 rounded italic">
                             {{ example }}
                           </div>
                         </div>
@@ -325,11 +325,11 @@
 
                       <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <div class="text-primary-500 dark:text-primary-400">{{ t('查看次数') }}</div>
+                          <div class="text-primary-subtle">{{ t('查看次数') }}</div>
                           <div class="font-medium">{{ selectedWord.clickCount }} {{ t('次') }}</div>
                         </div>
                         <div>
-                          <div class="text-primary-500 dark:text-primary-400">{{ t('眼熟度') }}</div>
+                          <div class="text-primary-subtle">{{ t('眼熟度') }}</div>
                           <div class="font-medium">
                             <span :class="getFamiliarityColor(selectedWord.familiarity)">
                               {{ Math.round(selectedWord.familiarity) }}%
@@ -347,7 +347,7 @@
                     <!-- 段落翻译内容 -->
                     <div class="space-y-3">
                       <div class="space-y-2">
-                        <div v-if="isTranslating" key="translating" class="flex items-center gap-2 text-primary-500 dark:text-primary-400">
+                        <div v-if="isTranslating" key="translating" class="flex items-center gap-2 text-primary-subtle">
                           <i
                             class="pi pi-refresh text-base animate-spin" />
                           {{ t('AI翻译中...') }}
@@ -356,14 +356,14 @@
                           <div class="leading-relaxed">
                             {{ paragraphTranslation.mixedTranslation }}
                           </div>
-                          <div class="text-xs text-primary-600 dark:text-primary-400 mt-2">
+                          <div class="text-xs text-primary-theme mt-2">
                             {{ t('💡 熟悉的单词保持英文显示，帮助巩固记忆') }}
                           </div>
                         </div>
                       </div>
 
                       <div class="space-y-2" v-if="!isTranslating && paragraphTranslation">
-                        <div class="text-sm text-primary-500 dark:text-primary-400">{{ t('完整中文翻译') }}</div>
+                        <div class="text-sm text-primary-subtle">{{ t('完整中文翻译') }}</div>
                         <GlassBlur
                           :key="paragraphTranslation?.originalText"
                           :overlay-text="t('鼠标悬停或点击查看翻译')"
@@ -378,7 +378,7 @@
                     </div>
                   </div>
                 </div>
-                <div v-else class="text-center py-8 text-primary-500 dark:text-primary-400">
+                <div v-else class="text-center py-8 text-primary-subtle">
                   <i class="pi pi-sparkles w-12 h-12 mx-auto mb-4 text-primary-300 dark:text-primary-600" />
                   <p class="text-lg font-medium mb-2">{{ t('点击单词或拖拽选择段落') }}</p>
                   <p class="text-sm mb-4">{{ t('获取AI智能翻译和详细分析') }}</p>
@@ -433,22 +433,22 @@
                   <div class="font-medium text-secondary-700 dark:text-secondary-300 mb-2">{{ t('当前段落') }}</div>
                   <div class="space-y-2 text-sm">
                     <div v-if="currentParagraph.complexity" class="flex items-center gap-2">
-                      <span class="text-primary-600 dark:text-primary-400">{{ t('复杂度:') }}</span>
+                      <span class="text-primary-theme">{{ t('复杂度:') }}</span>
                       <Tag
                         :value="`${currentParagraph.complexity}/10`"
                         :class="getDifficultyColor(currentParagraph.complexity)" />
                     </div>
                     <div v-if="currentParagraph.estimatedReadingTime" class="flex items-center gap-2">
-                      <span class="text-primary-600 dark:text-primary-400">{{ t('预计阅读:') }}</span>
+                      <span class="text-primary-theme">{{ t('预计阅读:') }}</span>
                       <Tag :value="`${readingTimeMin}${t('分钟')}`" variant="info" />
                     </div>
                     <div v-if="currentParagraph.reason" class="flex items-start gap-2">
-                      <span class="text-primary-600 dark:text-primary-400">{{ t('分段理由:') }}</span>
+                      <span class="text-primary-theme">{{ t('分段理由:') }}</span>
                       <span class="text-secondary-600 dark:text-secondary-400 flex-1">{{ currentParagraph.reason }}</span>
                     </div>
                     <div v-if="currentParagraph.keyVocabulary && currentParagraph.keyVocabulary.length > 0"
                          class="flex items-start gap-2">
-                      <span class="text-primary-600 dark:text-primary-400">{{ t('关键词:') }}</span>
+                      <span class="text-primary-theme">{{ t('关键词:') }}</span>
                       <div class="flex flex-wrap gap-1">
                         <Tag
                           v-for="word in currentParagraph.keyVocabulary"
@@ -539,10 +539,10 @@
               <div class="space-y-4">
                 <div
                   class="text-center p-4 bg-linear-to-r from-info-50 to-secondary-50 dark:from-primary-700 dark:to-secondary-700 rounded-lg">
-                  <div class="text-3xl font-bold text-primary-600 dark:text-primary-400">
+                  <div class="text-3xl font-bold text-primary-theme">
                     {{ stats.averageLevel }}
                   </div>
-                  <div class="text-sm text-primary-500 dark:text-primary-400">{{ t('平均熟练度') }}</div>
+                  <div class="text-sm text-primary-subtle">{{ t('平均熟练度') }}</div>
                 </div>
 
                 <div class="space-y-3">
@@ -600,7 +600,7 @@
                     <div class="text-2xl font-bold text-success-600 dark:text-success-400">
                       {{ pct(stats.mastered + stats.familiar) }}%
                     </div>
-                    <div class="text-sm text-primary-500 dark:text-primary-400">{{ t('掌握率') }}</div>
+                    <div class="text-sm text-primary-subtle">{{ t('掌握率') }}</div>
                   </div>
                 </div>
               </div>
@@ -807,7 +807,7 @@ My mom reads me a story at night. I like the stories about animals. Then I go to
   const getFamiliarityColor = (familiarity: number): string => {
     const level = Math.round(familiarity);
     if (level >= 80) return 'text-success-600 dark:text-success-400';
-    if (level >= 60) return 'text-primary-600 dark:text-primary-400';
+    if (level >= 60) return 'text-primary-theme';
     if (level >= 40) return 'text-warning-600 dark:text-warning-400';
     if (level >= 20) return 'text-warning-600 dark:text-warning-400';
     return 'text-secondary-600 dark:text-secondary-400';

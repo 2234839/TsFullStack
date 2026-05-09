@@ -4,6 +4,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   variant?: 'success' | 'info' | 'warn' | 'error';
   closable?: boolean;
@@ -38,7 +40,7 @@ const iconClasses = computed(() => MESSAGE_ICON_MAP[variant]);
 </script>
 
 <template>
-  <div :class="messageClasses" class="flex items-start gap-3">
+  <div v-bind="$attrs" :class="messageClasses" class="flex items-start gap-3">
     <i :class="iconClasses" class="text-lg mt-0.5 shrink-0"></i>
     <div class="flex-1">
       <slot></slot>
@@ -46,6 +48,7 @@ const iconClasses = computed(() => MESSAGE_ICON_MAP[variant]);
     <button
       v-if="closable"
       @click="emit('close')"
+      aria-label="Close"
       class="shrink-0 opacity-70 hover:opacity-100 transition-opacity"
     >
       <i class="pi pi-times"></i>

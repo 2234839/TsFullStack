@@ -32,10 +32,7 @@ function generateFakeEmail(): string {
 /** 通过 Github 登录 */
 export const githubApi = {
   getAuthorizationUrl() {
-    return Effect.gen(function* () {
-      const auth = yield* githubAuth;
-      return yield* auth.getAuthorizationUrl();
-    });
+    return Effect.flatMap(githubAuth, (auth) => auth.getAuthorizationUrl());
   },
   authenticate(code: string) {
     return Effect.gen(function* () {

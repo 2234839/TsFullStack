@@ -12,6 +12,8 @@ import Button from './Button.vue';
 import { PopoverRoot, PopoverPortal, PopoverContent, PopoverArrow, PopoverAnchor } from 'reka-ui';
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 const { t } = useI18n();
 
 const { confirmState } = useConfirmState();
@@ -56,9 +58,10 @@ function handleOpenChange(open: boolean) {
       leave-to-class="opacity-0">
       <div
         v-if="confirmState.show && !confirmState.targetElement"
+        v-bind="$attrs"
         class="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/50">
         <div
-          class="bg-primary-50 dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+          class="bg-primary-card border border-primary-default rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
           @click.stop>
           <!-- 标题 -->
           <div v-if="confirmState.header" class="text-lg font-semibold text-primary-950 dark:text-primary-50 mb-4">
@@ -71,7 +74,7 @@ function handleOpenChange(open: boolean) {
               <i :class="confirmState.icon" class="text-2xl text-warning-600 dark:text-warning-400" />
             </div>
             <div class="flex-1">
-              <p class="text-primary-800 dark:text-primary-200">
+              <p class="text-primary-body">
                 {{ confirmState.message }}
               </p>
             </div>
@@ -113,10 +116,10 @@ function handleOpenChange(open: boolean) {
           :side-offset="8"
           :align="'center'"
           :avoid-collisions="true"
-          class="z-50 bg-primary-50 dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+          class="z-50 bg-primary-card border border-primary-default rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
           @click.stop>
           <!-- 箭头 -->
-          <PopoverArrow class="fill-primary-50 dark:fill-primary-900 border border-primary-200 dark:border-primary-700 border-b-0" />
+          <PopoverArrow class="fill-primary-50 dark:fill-primary-900 border border-primary-default border-b-0" />
 
           <!-- 标题 -->
           <div v-if="confirmState.header" class="text-lg font-semibold text-primary-950 dark:text-primary-50 mb-4">
@@ -129,7 +132,7 @@ function handleOpenChange(open: boolean) {
               <i :class="confirmState.icon" class="text-2xl text-warning-600 dark:text-warning-400" />
             </div>
             <div class="flex-1">
-              <p class="text-primary-800 dark:text-primary-200">
+              <p class="text-primary-body">
                 {{ confirmState.message }}
               </p>
             </div>

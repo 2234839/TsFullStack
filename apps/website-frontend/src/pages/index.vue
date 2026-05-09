@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-primary-50 dark:bg-primary-950">
+  <div class="min-h-screen bg-primary-surface">
     <!-- 顶部区域 -->
     <div class="flex justify-end pt-5 pr-3">
       <CommonSettingBtns class="bg-white dark:bg-primary-900 rounded-lg px-3 shadow-sm" />

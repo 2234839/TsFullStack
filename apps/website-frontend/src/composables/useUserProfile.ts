@@ -70,6 +70,9 @@ export const useUserProfile = createSharedComposable(() => {
     return userProfile.value?.avatar ?? null;
   });
 
+  /** 当前请求序号，用于丢弃过期的并发响应 */
+  let fetchSeq = 0;
+
   /**
    * 获取当前用户信息
    */
@@ -79,6 +82,8 @@ export const useUserProfile = createSharedComposable(() => {
       return;
     }
 
+    /** 递增序号，丢弃过期响应 */
+    const seq = ++fetchSeq;
     loading.value = true;
     error.value = null;
 
@@ -93,6 +98,9 @@ export const useUserProfile = createSharedComposable(() => {
         },
       });
 
+      /** 如果序号已过期，说明有更新的请求已完成，丢弃本次结果 */
+      if (seq !== fetchSeq) return;
+
       if (user) {
         userProfile.value = {
           id: user.id,
@@ -102,9 +110,12 @@ export const useUserProfile = createSharedComposable(() => {
         };
       }
     } catch (err: unknown) {
+      if (seq !== fetchSeq) return;
       error.value = getErrorMessage(err, t('获取用户信息失败'));
     } finally {
-      loading.value = false;
+      if (seq === fetchSeq) {
+        loading.value = false;
+      }
     }
   }
 
@@ -116,17 +127,21 @@ export const useUserProfile = createSharedComposable(() => {
       throw new Error(t('用户未登录'));
     }
 
-    await API.db.user.update({
-      where: { id: authInfo.value.userId },
-      data: { nickname },
-    });
+    try {
+      await API.db.user.update({
+        where: { id: authInfo.value.userId },
+        data: { nickname },
+      });
 
-    // 更新本地状态
-    if (userProfile.value) {
-      userProfile.value.nickname = nickname;
+      if (userProfile.value) {
+        userProfile.value.nickname = nickname;
+      }
+
+      return true;
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : String(e);
+      throw e;
     }
-
-    return true;
   }
 
   /**
@@ -137,14 +152,18 @@ export const useUserProfile = createSharedComposable(() => {
       throw new Error(t('用户未登录'));
     }
 
-    await API.db.user.update({
-      where: { id: authInfo.value.userId },
-      data: { avatar: avatarUrl },
-    });
+    try {
+      await API.db.user.update({
+        where: { id: authInfo.value.userId },
+        data: { avatar: avatarUrl },
+      });
 
-    // 更新本地状态
-    if (userProfile.value) {
-      userProfile.value.avatar = avatarUrl;
+      if (userProfile.value) {
+        userProfile.value.avatar = avatarUrl;
+      }
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : String(e);
+      throw e;
     }
   }
 

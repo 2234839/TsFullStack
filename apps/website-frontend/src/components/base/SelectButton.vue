@@ -4,8 +4,10 @@
  * 使用 Tailwind CSS 样式
  * 支持水平滚动和边缘提示
  */
-import { computed, watch, ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useElementBounding, useScroll } from '@vueuse/core';
+
+defineOptions({ inheritAttrs: false });
 
 /** 选项数据结构 */
 interface SelectOption<T = string> {
@@ -113,34 +115,19 @@ const lastIndex = computed(() => (options as unknown[]).length - 1);
 const buttonClasses = (selected: boolean) => {
   return selected
     ? 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500 shrink-0'
-    : 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-primary-700 border-primary-200 hover:bg-primary-50 dark:bg-primary-900 dark:text-primary-300 dark:border-primary-700 dark:hover:bg-primary-700 shrink-0';
+    : 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-primary-700 border-primary-200 hover:bg-primary-card dark:text-primary-300 dark:border-primary-700 dark:hover:bg-primary-700 shrink-0';
 };
 
 const containerClasses = computed(() => {
   const base = 'inline-flex rounded-md overflow-hidden border';
   return disabled
     ? `${base} border-primary-100 dark:border-primary-800 opacity-50`
-    : `${base} border-primary-200 dark:border-primary-700`;
+    : `${base} border-primary-default`;
 });
-
-/** 监听选项变化，触发滚动状态重新计算 */
-watch(
-  () => options,
-  () => {
-    // VueUse 的 useScroll 会自动响应 DOM 变化
-    // 这里只需要确保滚动容器存在
-    if (scrollContainer.value) {
-      // 触发一次重新计算
-      const { scrollLeft } = scrollContainer.value;
-      scrollContainer.value.scrollTo({ left: scrollLeft });
-    }
-  },
-  { deep: true }
-);
 </script>
 
 <template>
-  <div class="relative flex items-center">
+  <div v-bind="$attrs" class="relative flex items-center">
     <!-- 左侧渐变遮罩和箭头 -->
     <Transition name="fade">
       <div v-if="showLeftHint"
@@ -148,7 +135,7 @@ watch(
         @click="scrollToLeft">
         <div
           class="h-full w-8 bg-linear-to-r from-white via-white/80 to-transparent dark:from-primary-900 dark:via-primary-900/80 flex items-center justify-start pl-1">
-          <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-primary-theme" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </div>
@@ -171,7 +158,7 @@ watch(
         @click="scrollToRight">
         <div
           class="h-full w-8 bg-linear-to-l from-white via-white/80 to-transparent dark:from-primary-900 dark:via-primary-900/80 flex items-center justify-end pr-1">
-          <svg class="w-4 h-4 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 text-primary-theme" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
           </svg>
         </div>
@@ -189,14 +176,5 @@ watch(
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-.hide-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.hide-scrollbar::-webkit-scrollbar {
-  display: none;
 }
 </style>

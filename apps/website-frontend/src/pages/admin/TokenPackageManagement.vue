@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted , shallowRef } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useConfirm } from '@/composables/useConfirm';
@@ -80,10 +80,33 @@ const formData = ref({
 });
 
 /** 提交中 */
-const isSubmitting = ref(false);
+const isSubmitting = shallowRef(false);
 
 /** 代币类型选项（从后端导入） */
 const tokenTypeOptions = TokenOptions.TokenTypeOptions;
+
+/** 状态徽标样式 */
+const statusBadgeClass = (active: boolean) =>
+  active
+    ? 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200'
+    : 'bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-primary-300';
+
+/** 提交表单 */
+function handleSubmit() {
+  if (dialogMode.value === 'create') {
+    createPackage();
+  } else {
+    updatePackage();
+  }
+}
+
+/** 提交按钮文字 */
+const submitButtonText = computed(() => {
+  if (isSubmitting.value) {
+    return dialogMode.value === 'create' ? t('创建中...') : t('更新中...');
+  }
+  return dialogMode.value === 'create' ? t('创建') : t('更新');
+});
 
 /** 打开创建对话框 */
 function openCreateDialog() {
@@ -225,11 +248,11 @@ onMounted(loadPackages);
     </div>
 
     <!-- 套餐列表 -->
-    <div class="bg-white dark:bg-primary-800 rounded-lg shadow">
+    <div class="bg-primary-panel rounded-lg shadow">
       <!-- 加载中 -->
       <div v-if="isLoading" class="text-center py-12">
         <ProgressSpinner />
-        <p class="mt-2 text-primary-600 dark:text-primary-400">{{ t('加载中...') }}</p>
+        <p class="mt-2 text-primary-theme">{{ t('加载中...') }}</p>
       </div>
 
       <!-- 空状态 -->
@@ -237,7 +260,7 @@ onMounted(loadPackages);
         <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
         </svg>
-        <p class="mt-2 text-primary-600 dark:text-primary-400">{{ t('暂无套餐') }}</p>
+        <p class="mt-2 text-primary-theme">{{ t('暂无套餐') }}</p>
       </div>
 
       <!-- 套餐卡片 -->
@@ -246,17 +269,17 @@ onMounted(loadPackages);
           <div
             v-for="pkg in packages"
             :key="pkg.id"
-            class="border border-primary-200 dark:border-primary-700 rounded-lg p-6 hover:shadow-lg transition-shadow"
+            class="border border-primary-default rounded-lg p-6 hover:shadow-lg transition-shadow"
             :class="{ 'opacity-50': !pkg.active }"
           >
             <!-- 套餐头部 -->
             <div class="flex justify-between items-start mb-4">
-              <h3 class="text-xl font-semibold text-primary-900 dark:text-primary-100">
+              <h3 class="text-xl font-semibold text-primary-title">
                 {{ pkg.name }}
               </h3>
               <span
                 class="px-2 py-1 text-xs rounded"
-                :class="pkg.active ? 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200' : 'bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-primary-300'"
+                :class="statusBadgeClass(pkg.active)"
               >
                 {{ pkg.active ? t('已启用') : t('已停用') }}
               </span>
@@ -265,31 +288,31 @@ onMounted(loadPackages);
             <!-- 套餐信息 -->
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-primary-600 dark:text-primary-400">{{ t('类型:') }}</span>
-                <span class="font-medium text-primary-900 dark:text-primary-100">
+                <span class="text-primary-theme">{{ t('类型:') }}</span>
+                <span class="font-medium text-primary-title">
                   {{ getTypeLabel(pkg.type) }}
                 </span>
               </div>
               <div class="flex justify-between">
-                <span class="text-primary-600 dark:text-primary-400">{{ t('代币数量:') }}</span>
-                <span class="font-medium text-primary-900 dark:text-primary-100">{{ pkg.amount }} {{ t('枚') }}</span>
+                <span class="text-primary-theme">{{ t('代币数量:') }}</span>
+                <span class="font-medium text-primary-title">{{ pkg.amount }} {{ t('枚') }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-primary-600 dark:text-primary-400">{{ t('价格:') }}</span>
-                <span class="font-medium text-primary-900 dark:text-primary-100">
+                <span class="text-primary-theme">{{ t('价格:') }}</span>
+                <span class="font-medium text-primary-title">
                   {{ pkg.price === null ? t('免费') : formatPriceWithCurrency(pkg.price) }}
                 </span>
               </div>
               <div class="flex justify-between">
-                <span class="text-primary-600 dark:text-primary-400">{{ t('时长:') }}</span>
-                <span class="font-medium text-primary-900 dark:text-primary-100">
+                <span class="text-primary-theme">{{ t('时长:') }}</span>
+                <span class="font-medium text-primary-title">
                   {{ pkg.durationMonths > 0 ? `${pkg.durationMonths} ${t('个月')}` : t('永久') }}
                 </span>
               </div>
             </div>
 
             <!-- 描述 -->
-            <p v-if="pkg.description" class="mt-4 text-sm text-primary-600 dark:text-primary-400">
+            <p v-if="pkg.description" class="mt-4 text-sm text-primary-theme">
               {{ pkg.description }}
             </p>
 
@@ -322,7 +345,7 @@ onMounted(loadPackages);
         </div>
 
         <!-- 分页 -->
-        <div v-if="packagesTotal > 0" class="mt-6 pt-4 border-t border-primary-200 dark:border-primary-700">
+        <div v-if="packagesTotal > 0" class="mt-6 pt-4 border-t border-primary-default">
           <Paginator
             :rows="packagesTotal"
             :rows-per-page="packagesPageSize"
@@ -342,7 +365,7 @@ onMounted(loadPackages);
     >
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('套餐名称 *') }}
           </label>
           <Input
@@ -352,7 +375,7 @@ onMounted(loadPackages);
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('套餐描述') }}
           </label>
           <Textarea
@@ -364,7 +387,7 @@ onMounted(loadPackages);
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+            <label class="block text-sm font-medium text-primary-label mb-2">
               {{ t('代币类型 *') }}
             </label>
             <Select
@@ -375,7 +398,7 @@ onMounted(loadPackages);
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+            <label class="block text-sm font-medium text-primary-label mb-2">
               {{ t('代币数量 *') }}
             </label>
             <InputNumber
@@ -387,7 +410,7 @@ onMounted(loadPackages);
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+            <label class="block text-sm font-medium text-primary-label mb-2">
               {{ t('价格（分）') }}
             </label>
             <InputNumber
@@ -398,7 +421,7 @@ onMounted(loadPackages);
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+            <label class="block text-sm font-medium text-primary-label mb-2">
               {{ t('时长（月）') }}
             </label>
             <InputNumber
@@ -411,7 +434,7 @@ onMounted(loadPackages);
 
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+            <label class="block text-sm font-medium text-primary-label mb-2">
               {{ t('排序顺序') }}
             </label>
             <InputNumber
@@ -437,9 +460,9 @@ onMounted(loadPackages);
           <Button
             :disabled="isSubmitting || !formData.name"
             :loading="isSubmitting"
-            @click="dialogMode === 'create' ? createPackage() : updatePackage()"
+            @click="handleSubmit()"
           >
-            {{ isSubmitting ? (dialogMode === 'create' ? t('创建中...') : t('更新中...')) : (dialogMode === 'create' ? t('创建') : t('更新')) }}
+            {{ submitButtonText }}
           </Button>
         </div>
       </template>

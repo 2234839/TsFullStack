@@ -5,6 +5,8 @@
  */
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 大小 */
   size?: 'small' | 'normal' | 'large';
@@ -25,9 +27,9 @@ const sizeClasses = computed(() => {
 </script>
 
 <template>
-  <div :class="['inline-block', sizeClasses]">
+  <div v-bind="$attrs" :class="['inline-block', sizeClasses]">
     <svg
-      class="animate-spin text-primary-700 dark:text-primary-300"
+      class="animate-spin text-primary-label"
       xmlns="http://www.w3.org/2000/svg"
       fill="none"
       viewBox="0 0 24 24">

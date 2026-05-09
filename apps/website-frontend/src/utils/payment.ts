@@ -45,7 +45,6 @@ export function getPackageTypeLabel(type: string, t: (key: string) => string): s
     MONTHLY: t('月度订阅'),
     YEARLY: t('年度订阅'),
     PERMANENT: t('永久'),
-    ONCE: t('一次性'),
   };
   return map[type] ?? type;
 }
@@ -56,13 +55,13 @@ export function getPackageTypeVariant(type: string): 'secondary' | 'success' | '
     MONTHLY: 'info',
     YEARLY: 'secondary',
     PERMANENT: 'success',
-    ONCE: 'warn',
   };
   return map[type] ?? 'info';
 }
 
 /** 支付渠道 → 图标 */
-export function getProviderIcon(provider: string): string {
+export function getProviderIcon(provider: string | null): string {
+  if (!provider) return 'pi pi-credit-card';
   const map: Record<string, string> = {
     MBD: 'pi pi-wallet',
     AFDIAN: 'pi pi-heart',

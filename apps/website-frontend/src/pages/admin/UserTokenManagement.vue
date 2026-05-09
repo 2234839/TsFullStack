@@ -63,39 +63,39 @@ const activeTab = ref<'tokens' | 'transactions'>('tokens');
 const tokens = shallowRef<UserToken[]>([]);
 
 /** 代币总数 */
-const tokensTotal = ref(0);
+const tokensTotal = shallowRef(0);
 
 /** 代币当前页（从0开始，用于 Paginator 组件） */
-const tokensPage = ref(0);
+const tokensPage = shallowRef(0);
 
 /** 代币每页数量 */
 const tokensPageSize = ref(10);
 
 /** 代币搜索关键词 */
-const tokensSearchKeyword = ref('');
+const tokensSearchKeyword = shallowRef('');
 
 /** ========== 代币消耗记录相关 ========== */
 /** 消耗记录列表 */
 const transactions = shallowRef<TokenTransaction[]>([]);
 
 /** 消耗记录总数 */
-const transactionsTotal = ref(0);
+const transactionsTotal = shallowRef(0);
 
 /** 消耗记录当前页 */
-const transactionsPage = ref(0);
+const transactionsPage = shallowRef(0);
 
 /** 消耗记录每页数量 */
 const transactionsPageSize = ref(10);
 
 /** 消耗记录搜索关键词 */
-const transactionsSearchKeyword = ref('');
+const transactionsSearchKeyword = shallowRef('');
 
 /** ========== 通用状态 ========== */
 /** 加载中 */
-const isLoading = ref(false);
+const isLoading = shallowRef(false);
 
 /** 显示发放代币对话框 */
-const showGrantDialog = ref(false);
+const showGrantDialog = shallowRef(false);
 
 /** 发放代币表单 */
 const grantForm = ref({
@@ -107,7 +107,7 @@ const grantForm = ref({
 });
 
 /** 提交中 */
-const isSubmitting = ref(false);
+const isSubmitting = shallowRef(false);
 
 /** 代币类型选项（从后端导入） */
 const tokenTypeOptions = TokenOptions.TokenTypeOptions;
@@ -395,7 +395,7 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
     key: 'user',
     title: t('用户'),
     width: '25%',
-    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user?.email ?? '--'),
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-title' }, row.user?.email ?? '--'),
   },
   {
     key: 'type',
@@ -414,15 +414,15 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
     title: t('数量'),
     width: '15%',
     render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'text-primary-900 dark:text-primary-100' }, `${t('总量')}: ${row.amount}`),
-      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, `${t('已用')}: ${row.used} | ${t('可用')}: ${getAvailableAmount(row)}`),
+      h('div', { class: 'text-primary-title' }, `${t('总量')}: ${row.amount}`),
+      h('div', { class: 'text-xs text-primary-subtle' }, `${t('已用')}: ${row.used} | ${t('可用')}: ${getAvailableAmount(row)}`),
     ]),
   },
   {
     key: 'expiresAt',
     title: t('过期时间'),
     width: '15%',
-    render: (row) => h('div', { class: 'text-sm text-primary-600 dark:text-primary-400' }, formatDate(row.expiresAt, { nullLabel: t('永不过期') })),
+    render: (row) => h('div', { class: 'text-sm text-primary-theme' }, formatDate(row.expiresAt, { nullLabel: t('永不过期') })),
   },
   {
     key: 'description',
@@ -430,7 +430,7 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
     width: '20%',
     render: (row) => h('div', { class: 'text-sm' }, [
       h('div', {
-        class: 'text-primary-600 dark:text-primary-400 truncate',
+        class: 'text-primary-theme truncate',
         title: row.description || ''
       }, row.description || '-'),
       ...(parseRestrictedType(row.restrictedType).length > 0
@@ -446,7 +446,7 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
     key: 'created',
     title: t('创建时间'),
     width: '10%',
-    render: (row) => h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, formatDate(row.created)),
+    render: (row) => h('div', { class: 'text-xs text-primary-subtle' }, formatDate(row.created)),
   },
 ]);
 
@@ -456,15 +456,15 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     key: 'user',
     title: t('用户'),
     width: '25%',
-    render: (row) => h('div', { class: 'text-sm font-medium text-primary-900 dark:text-primary-100' }, row.user?.email ?? '--'),
+    render: (row) => h('div', { class: 'text-sm font-medium text-primary-title' }, row.user?.email ?? '--'),
   },
   {
     key: 'task',
     title: t('任务'),
     width: '17%',
     render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'text-primary-900 dark:text-primary-100' }, row.task?.title ?? '--'),
-      h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, getTaskTypeLabel(row.task?.type ?? '')),
+      h('div', { class: 'text-primary-title' }, row.task?.title ?? '--'),
+      h('div', { class: 'text-xs text-primary-subtle' }, getTaskTypeLabel(row.task?.type ?? '')),
     ]),
   },
   {
@@ -485,7 +485,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     width: '17%',
     render: (row) => {
       if (!row.balanceSnapshot) return '';
-      return h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' },
+      return h('div', { class: 'text-xs text-primary-subtle' },
         Object.entries(row.balanceSnapshot).map(([type, balance]) =>
           h('div', { key: type, class: 'truncate' }, `${getTypeLabel(type)}: ${balance}`)
         )
@@ -496,7 +496,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     key: 'created',
     title: t('时间'),
     width: '14%',
-    render: (row) => h('div', { class: 'text-xs text-primary-500 dark:text-primary-400' }, formatDate(row.created)),
+    render: (row) => h('div', { class: 'text-xs text-primary-subtle' }, formatDate(row.created)),
   },
 ]);
 </script>
@@ -509,14 +509,14 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     </PageHeader>
 
     <!-- 标签页导航 -->
-    <div class="mb-6 border-b border-primary-200 dark:border-primary-700">
+    <div class="mb-6 border-b border-primary-default">
       <nav class="flex gap-6 -mb-px">
         <Button
           :class="[
             'border-b-2',
             activeTab === 'tokens'
-              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
+              ? 'border-primary-500 text-primary-theme'
+              : 'border-transparent text-primary-subtle hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
           ]"
           variant="text"
           @click="activeTab = 'tokens'"
@@ -528,8 +528,8 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
           :class="[
             'border-b-2',
             activeTab === 'transactions'
-              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-              : 'border-transparent text-primary-500 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
+              ? 'border-primary-500 text-primary-theme'
+              : 'border-transparent text-primary-subtle hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
           ]"
           @click="activeTab = 'transactions'"
         >
@@ -546,9 +546,9 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     </div>
 
     <!-- ========== 代币列表 ========== -->
-    <div v-show="activeTab === 'tokens'" class="bg-white dark:bg-primary-800 rounded-lg shadow">
+    <div v-show="activeTab === 'tokens'" class="bg-primary-panel rounded-lg shadow">
       <!-- 搜索栏 -->
-      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
+      <div class="px-6 py-4 border-b border-primary-default">
         <div class="flex items-center gap-4">
           <div class="flex-1">
             <Input
@@ -582,7 +582,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
       />
 
       <!-- 分页 -->
-      <div v-if="tokensTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
+      <div v-if="tokensTotal > 0" class="px-6 py-4 border-t border-primary-default">
         <Paginator
           :rows="tokensTotal"
           :rows-per-page="tokensPageSize"
@@ -595,9 +595,9 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     </div>
 
     <!-- ========== 代币消耗记录 ========== -->
-    <div v-show="activeTab === 'transactions'" class="bg-white dark:bg-primary-800 rounded-lg shadow">
+    <div v-show="activeTab === 'transactions'" class="bg-primary-panel rounded-lg shadow">
       <!-- 搜索栏 -->
-      <div class="px-6 py-4 border-b border-primary-200 dark:border-primary-700">
+      <div class="px-6 py-4 border-b border-primary-default">
         <div class="flex items-center gap-4">
           <div class="flex-1">
             <Input
@@ -631,7 +631,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
       />
 
       <!-- 分页 -->
-      <div v-if="transactionsTotal > 0" class="px-6 py-4 border-t border-primary-200 dark:border-primary-700">
+      <div v-if="transactionsTotal > 0" class="px-6 py-4 border-t border-primary-default">
         <Paginator
           :rows="transactionsTotal"
           :rows-per-page="transactionsPageSize"
@@ -647,32 +647,32 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     <Dialog v-model:open="showGrantDialog" :title="t('发放代币')">
       <div class="space-y-4">
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('选择用户 *') }}
           </label>
           <RemoteSelect v-model="grantForm.selectedUsers" :query-method="searchUsers" :show-tag="true" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('代币类型 *') }}
           </label>
           <Select v-model="grantForm.type" :options="tokenTypeOptions" :placeholder="t('请选择代币类型')" />
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('专用类型') }}
           </label>
           <MultiSelect v-model="grantForm.restrictedType" :options="taskTypeOptions" :placeholder="t('请选择专用类型（可选）')"
             :selected-items-label="t('{0} 个类型已选择')" />
-          <p class="mt-1 text-xs text-primary-500 dark:text-primary-400">
+          <p class="mt-1 text-xs text-primary-subtle">
             {{ t('如果选择专用类型，代币只能用于指定类型的任务；不选择则可用于所有任务') }}
           </p>
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('数量 *') }}
           </label>
           <InputNumber
@@ -682,7 +682,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+          <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('备注') }}
           </label>
           <Textarea

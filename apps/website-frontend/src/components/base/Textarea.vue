@@ -24,6 +24,7 @@ interface Props {
 }
 
 const { disabled = false, readonly = false, invalid = false, rows = 3, autoResize = false } = defineProps<Props>();
+defineOptions({ inheritAttrs: false });
 
 const emit = defineEmits<{
   'update:modelValue': [value: string];
@@ -35,10 +36,10 @@ const textareaClasses = computed(() => {
 
   const stateClasses = invalid
     ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
-    : 'border-primary-200 dark:border-primary-700 focus:ring-primary-500 dark:focus:ring-primary-400';
+    : 'border-primary-default focus:ring-primary-500 dark:focus:ring-primary-400';
 
   const bgClass = 'bg-white dark:bg-primary-900';
-  const textClass = 'text-primary-900 dark:text-primary-100 placeholder-primary-400 dark:placeholder-primary-500';
+  const textClass = 'text-primary-title placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
   const overflowClass = autoResize ? 'overflow-hidden' : '';
 
@@ -54,6 +55,7 @@ function handleInput(event: Event) {
 
 <template>
   <textarea
+    v-bind="$attrs"
     :rows="rows"
     :placeholder="placeholder"
     :disabled="disabled"

@@ -1,5 +1,5 @@
 <template>
-  <div class="treehole-post-form bg-primary-50 dark:bg-primary-900 rounded-lg p-4">
+  <div class="treehole-post-form bg-primary-card rounded-lg p-4">
     <div class="space-y-4">
       <!-- 标题输入 - 回复时默认折叠 -->
       <div v-if="isReply">
@@ -15,7 +15,7 @@
 
       <!-- 发主题帖时标题必填 -->
       <div v-else>
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+        <label class="block text-sm font-medium text-primary-label mb-1">
           {{ t('标题') }}
         </label>
         <Input v-model="formData.title" :placeholder="t('请输入标题（1-256个字符）')" :maxlength="256" class="w-full" />
@@ -23,7 +23,7 @@
 
       <!-- 内容输入 -->
       <div>
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+        <label class="block text-sm font-medium text-primary-label mb-1">
           {{ t('内容') }}
         </label>
         <Textarea v-model="formData.content" :placeholder="isReply ? t('说点什么吧...') : t('说点什么吧...')" :rows="4" class="w-full" />
@@ -31,7 +31,7 @@
 
       <!-- 可见性选择 -->
       <div>
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-2">
+        <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('可见性') }}
         </label>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -44,7 +44,7 @@
             <span class="ml-1">{{ option.label }}</span>
           </Button>
         </div>
-        <p class="mt-2 text-xs text-primary-500 dark:text-primary-400">
+        <p class="mt-2 text-xs text-primary-subtle">
           {{ getVisibilityDescription() }}
         </p>
       </div>
@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed , shallowRef } from 'vue';
 import { useAPI } from '@/api';
 import { useToast } from '@/composables/useToast';
 import type { ContentVisibility } from '@tsfullstack/backend';
@@ -87,8 +87,8 @@ const { API } = useAPI();
 const toast = useToast();
 const { t } = useI18n();
 
-const isSubmitting = ref(false);
-const showTitle = ref(false);
+const isSubmitting = shallowRef(false);
+const showTitle = shallowRef(false);
 
 /** 是否为回复 */
 const isReply = computed(() => parentId !== null);
@@ -100,14 +100,14 @@ const formData = ref({
   visibility: $Enums.ContentVisibility.PUBLIC as ContentVisibility,
 });
 
-/** 可见性选项 */
-const visibilityOptions = [
+/** 可见性选项（computed 确保 i18n 切换时更新） */
+const visibilityOptions = computed(() => [
   {
     value: $Enums.ContentVisibility.DRAFT,
     label: t('草稿'),
     icon: 'pi pi-file',
     activeClass: 'border-primary-400 bg-primary-100 text-primary-700 dark:bg-primary-700 dark:text-primary-300',
-    inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
+    inactiveClass: 'border-primary-default text-primary-theme hover:bg-primary-50 dark:hover:bg-primary-800',
     description: t('仅您可见，可随时编辑或发布'),
   },
   {
@@ -115,7 +115,7 @@ const visibilityOptions = [
     label: t('私密'),
     icon: 'pi pi-eye-slash',
     activeClass: 'border-warning-500 bg-warning-50 text-warning-700 dark:bg-warning-900 dark:text-warning-300',
-    inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
+    inactiveClass: 'border-primary-default text-primary-theme hover:bg-primary-50 dark:hover:bg-primary-800',
     description: t('仅您可见，永久保密'),
   },
   {
@@ -123,7 +123,7 @@ const visibilityOptions = [
     label: t('登录用户'),
     icon: 'pi pi-user',
     activeClass: 'border-info-500 bg-info-50 text-info-700 dark:bg-info-900 dark:text-info-300',
-    inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
+    inactiveClass: 'border-primary-default text-primary-theme hover:bg-primary-50 dark:hover:bg-primary-800',
     description: t('所有登录用户可见'),
   },
   {
@@ -131,10 +131,10 @@ const visibilityOptions = [
     label: t('公开'),
     icon: 'pi pi-globe',
     activeClass: 'border-success-500 bg-success-50 text-success-700 dark:bg-success-900 dark:text-success-300',
-    inactiveClass: 'border-primary-200 dark:border-primary-700 text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-800',
+    inactiveClass: 'border-primary-default text-primary-theme hover:bg-primary-50 dark:hover:bg-primary-800',
     description: t('所有人可见，包括游客'),
   },
-];
+]);
 
 /** 表单是否有效 */
 const isValid = computed(() => {
@@ -149,7 +149,7 @@ const isValid = computed(() => {
  * 获取当前可见性的描述
  */
 function getVisibilityDescription(): string {
-  const option = visibilityOptions.find((opt) => opt.value === formData.value.visibility);
+  const option = visibilityOptions.value.find((opt) => opt.value === formData.value.visibility);
   return option?.description ?? '';
 }
 

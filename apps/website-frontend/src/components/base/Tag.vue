@@ -5,6 +5,8 @@
  */
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 标签值 */
   value?: string | number;
@@ -44,7 +46,7 @@ const tagClasses = computed(() => {
 </script>
 
 <template>
-  <span :class="tagClasses">
+  <span v-bind="$attrs" :class="tagClasses">
     <slot name="icon">
       <i v-if="icon" :class="icon" class="text-xs"></i>
     </slot>

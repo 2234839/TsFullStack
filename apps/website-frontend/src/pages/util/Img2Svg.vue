@@ -29,13 +29,13 @@
     </div>
 
     <ProgressBar v-if="loading" mode="indeterminate" />
-    <div v-if="previewData" class="preview-container p-4 border border-primary-200 dark:border-primary-700 rounded">
+    <div v-if="previewData" class="preview-container p-4 border border-primary-default rounded">
       <img :src="previewData" :alt="t('预览')" />
       <Button @click="generateSVG" class="mt-2">
         {{ t('生成SVG描边') }}
       </Button>
     </div>
-    <div v-if="svgContainer?.innerHTML" class="mt-4 p-4 border border-primary-200 dark:border-primary-700 rounded">
+    <div v-if="svgContainer?.innerHTML" class="mt-4 p-4 border border-primary-default rounded">
       <div ref="svgContainer"></div>
     </div>
     <canvas ref="canvas" class="hidden"></canvas>
@@ -174,11 +174,19 @@
     const imageData = ctx.getImageData(0, 0, width, height);
     const paths = traceImageToSVG(imageData);
 
-    svgContainer.value.innerHTML = `
-    <svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
-      <path d="${paths.join(' ')}" fill="#000000" stroke="none"/>
-    </svg>
-  `;
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svgEl = document.createElementNS(svgNS, 'svg');
+    svgEl.setAttribute('width', String(width));
+    svgEl.setAttribute('height', String(height));
+    svgEl.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svgEl.setAttribute('xmlns', svgNS);
+    const pathEl = document.createElementNS(svgNS, 'path');
+    pathEl.setAttribute('d', paths.join(' '));
+    pathEl.setAttribute('fill', '#000000');
+    pathEl.setAttribute('stroke', 'none');
+    svgEl.appendChild(pathEl);
+
+    svgContainer.value.replaceChildren(svgEl);
   };
 
 const traceImageToSVG = (imageData: ImageData): string[] => {

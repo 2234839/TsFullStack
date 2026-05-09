@@ -111,13 +111,11 @@ class GitHubAuthError extends Error {
 /** JSON 响应解析失败时统一构造错误（消除重复的 catch 回调） */
 const parseResponseError = () => new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR);
 
-/** 将未知错误统一映射为 NETWORK_ERROR（消除重复的 catchAll 管道） */
-const catchNetworkError = Effect.catchAll((error: unknown) =>
-  Effect.fail(
-    error instanceof GitHubAuthError
-      ? error
-      : new GitHubAuthError('Network request failed', GitHubAuthErrorCode.NETWORK_ERROR),
-  ),
+/** 将未知错误统一映射为 NETWORK_ERROR（消除重复的 mapError 管道） */
+const catchNetworkError = Effect.mapError((error: unknown) =>
+  error instanceof GitHubAuthError
+    ? error
+    : Object.assign(new GitHubAuthError('Network request failed', GitHubAuthErrorCode.NETWORK_ERROR), { cause: error }),
 );
 
 /** ===== 主要类实现 ===== */
@@ -135,7 +133,7 @@ export class GithubAuthService extends Context.Tag('GithubAuthService')<
   }
 >() {}
 
-export const GithubAuthLiveEffect = Effect.gen(function* () {
+const GithubAuthLiveEffect = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;
   const config = appConfig.OAuth_github;
   if (!config) {

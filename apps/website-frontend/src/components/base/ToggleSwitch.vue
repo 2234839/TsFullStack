@@ -5,6 +5,8 @@
  */
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 模型值 */
   modelValue?: boolean;
@@ -46,7 +48,7 @@ const sliderClasses = computed(() => {
 </script>
 
 <template>
-  <div :class="switchClasses" @click="toggle">
+  <div v-bind="$attrs" :class="switchClasses" @click="toggle">
     <span :class="sliderClasses" />
   </div>
 </template>

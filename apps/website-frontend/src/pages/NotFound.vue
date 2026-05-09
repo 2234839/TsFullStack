@@ -1,12 +1,12 @@
 /** ABOUTME: 404 Not Found page */
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-primary-50 dark:bg-primary-950">
+  <div class="min-h-screen flex items-center justify-center bg-primary-surface">
     <div class="text-center p-8">
       <div class="text-9xl font-bold text-primary-200 dark:text-primary-700 mb-4">404</div>
-      <h1 class="text-3xl font-semibold text-primary-900 dark:text-primary-100 mb-2">
+      <h1 class="text-3xl font-semibold text-primary-title mb-2">
         {{ t('页面不存在') }}
       </h1>
-      <p class="text-primary-600 dark:text-primary-400 mb-6">
+      <p class="text-primary-theme mb-6">
         {{ t('抱歉，您访问的页面不存在或已被移动。') }}
       </p>
       <div class="space-x-4">

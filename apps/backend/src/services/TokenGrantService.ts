@@ -34,10 +34,10 @@ export interface GrantTxClient {
 }
 
 /** 订阅关联的套餐信息（发放代币时使用的子集） */
-export interface SubscriptionPackage {
+interface SubscriptionPackage {
   type: string;
   amount: number;
-  name: boolean | string;
+  name: string;
   /** 专用类型限制（JSON 字符串或 null） */
   restrictedType?: string;
 }
@@ -56,7 +56,7 @@ async function grantOnce(tx: GrantTxClient, subscription: {
   const grantIntervalDays = getGrantIntervalDays(subscription.package.type);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + grantIntervalDays * MS_PER_DAY);
-  const pkgName = typeof subscription.package.name === 'boolean' ? '' : subscription.package.name;
+  const pkgName = subscription.package.name;
 
   await tx.token.create({
     data: {
@@ -72,7 +72,8 @@ async function grantOnce(tx: GrantTxClient, subscription: {
     },
   });
 
-  const nextGrantDate = new Date(now.getTime() + grantIntervalDays * MS_PER_DAY);
+  /** 提前1天发放下期代币，避免队列延迟导致用户代币空档 */
+  const nextGrantDate = new Date(now.getTime() + (grantIntervalDays - 1) * MS_PER_DAY);
 
   await tx.userTokenSubscription.update({
     where: { id: subscription.id },
@@ -102,18 +103,27 @@ export const TokenGrantService = {
     db: DbClient,
   ) =>
     db.$transaction(async (tx) => {
-      const subscription = await tx.userTokenSubscription.findFirst({
+      /** 原子占用：将 nextGrantDate 推后到远未来，防止并发 worker 重复发放 */
+      const claimed = await tx.userTokenSubscription.updateMany({
         where: { id: payload.subscriptionId, userId: payload.userId, active: true },
+        data: { nextGrantDate: new Date('2099-12-31') },
+      });
+      if (claimed.count === 0) {
+        return { success: false, skipped: true, reason: '订阅不存在或已取消' as const };
+      }
+
+      const subscription = await tx.userTokenSubscription.findFirst({
+        where: { id: payload.subscriptionId, userId: payload.userId },
         include: { package: true },
       });
 
       if (!subscription) {
-        return { success: false, skipped: true, reason: '订阅不存在或已取消' };
+        return { success: false, skipped: true, reason: '订阅不存在或已取消' as const };
       }
 
       if (subscription.endDate && new Date() > subscription.endDate) {
         await tx.userTokenSubscription.update({ where: { id: subscription.id }, data: { active: false } });
-        return { success: false, skipped: true, reason: '订阅已过期' };
+        return { success: false, skipped: true, reason: '订阅已过期' as const };
       }
 
       if (!subscription.package.active) {
@@ -131,7 +141,7 @@ export const TokenGrantService = {
       }, '套餐自动发放：');
 
       return {
-        success: true,
+        success: true as const,
         userId: subscription.userId,
         packageName: subscription.package.name,
         amount: subscription.package.amount,

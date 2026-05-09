@@ -2,7 +2,7 @@
  * 全局确认对话框系统
  * 替代 PrimeVue 的 useConfirm
  */
-import { ref } from 'vue';
+import { ref, readonly } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 
 interface ConfirmOptions {
@@ -20,8 +20,6 @@ interface ConfirmOptions {
   acceptClass?: string;
   /** 拒绝按钮的类名 */
   rejectClass?: string;
-  /** 是否默认聚焦接受按钮 */
-  defaultFocus?: 'accept' | 'reject';
   /** 触发事件（用于定位弹窗） */
   event?: Event;
   /** 接受按钮属性（兼容 PrimeVue） */
@@ -58,6 +56,9 @@ const confirmState = ref<ConfirmState>({
   show: false,
 });
 
+/** 当前未完成确认的 reject 回调，用于并发调用时自动拒绝前一个 */
+let pendingReject: ((value: false) => void) | null = null;
+
 /**
  * 确认对话框 composable
  */
@@ -69,6 +70,12 @@ export function useConfirm() {
    */
   const require = (options: ConfirmOptions) => {
     return new Promise<boolean>((resolve) => {
+      /** 如果有未完成的确认框，先拒绝它 */
+      if (pendingReject) {
+        pendingReject(false);
+        pendingReject = null;
+      }
+
       /** 获取触发元素 */
       let targetElement: HTMLElement | undefined;
 
@@ -84,15 +91,15 @@ export function useConfirm() {
         rejectLabel: options.rejectLabel || options.rejectProps?.label || t('取消'),
         acceptClass: options.acceptProps?.variant === 'danger' ? 'bg-danger-600 hover:bg-danger-700 text-white' : options.acceptClass,
         _accept: async () => {
+          pendingReject = null;
           confirmState.value.show = false;
           try {
             await options.accept?.();
             resolve(true);
-          } catch {
-            resolve(false);
-          }
+          } catch (e: unknown) { console.warn('[useConfirm] accept callback error:', e); resolve(false); }
         },
         _reject: async () => {
+          pendingReject = null;
           confirmState.value.show = false;
           try {
             await options.reject?.();
@@ -100,16 +107,18 @@ export function useConfirm() {
           resolve(false);
         },
       };
+
+      pendingReject = resolve;
     });
   };
 
   return {
     require,
-    confirmState,
+    confirmState: readonly(confirmState),
   };
 }
 
 /** 导出状态供 Confirm 组件使用 */
 export function useConfirmState() {
-  return { confirmState };
+  return { confirmState: readonly(confirmState) };
 }

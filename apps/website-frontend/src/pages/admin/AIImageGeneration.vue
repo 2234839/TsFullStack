@@ -60,7 +60,7 @@ function viewResourceGallery() {
     </div>
 
     <!-- AI 图片生成器 -->
-    <div class="bg-white dark:bg-primary-800 rounded-lg shadow p-6">
+    <div class="bg-primary-panel rounded-lg shadow p-6">
       <AIImageGenerator @complete="handleGenerationComplete" />
     </div>
 

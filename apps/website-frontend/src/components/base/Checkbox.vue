@@ -5,6 +5,8 @@
  */
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 模型值 */
   modelValue?: boolean;
@@ -28,7 +30,7 @@ const boxClasses = computed(() => {
 
   const checkedClasses = modelValue
     ? 'bg-primary-600 dark:bg-primary-500 border-primary-600 dark:border-primary-500'
-    : 'bg-white dark:bg-primary-900 border-primary-200 dark:border-primary-700 hover:border-primary-300 dark:hover:border-primary-600';
+    : 'bg-white dark:bg-primary-900 border-primary-default hover:border-primary-300 dark:hover:border-primary-600';
 
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
@@ -49,7 +51,7 @@ function handleClick() {
 </script>
 
 <template>
-  <div :class="containerClasses" @click="handleClick">
+  <div v-bind="$attrs" :class="containerClasses" @click="handleClick">
     <div :class="boxClasses">
       <i v-if="modelValue" class="pi pi-check text-white text-sm"></i>
     </div>

@@ -2,7 +2,7 @@
   <div
     class="filter-container p-3 border-b border-secondary-200 bg-secondary-50 dark:bg-secondary-800 dark:border-secondary-700">
     <div class="flex items-center justify-between mb-2">
-      <h3 class="text-sm font-medium text-primary-700 dark:text-primary-300">{{ t('筛选条件') }}</h3>
+      <h3 class="text-sm font-medium text-primary-label">{{ t('筛选条件') }}</h3>
       <div class="flex space-x-2">
         <Button
           v-if="filters.length > 0"
@@ -224,15 +224,20 @@
 
       const fieldName = field.name;
       const operator = filter.operator;
-      let value = filter.value;
+      let value: string | number | boolean | Date | Record<string, unknown> = filter.value;
 
       // Convert value to the correct type based on the field type
       if (field.type === 'Int' as string) {
         value = parseInt(String(value));
+        if (isNaN(value)) return;
       } else if (field.type === 'Float' as string || field.type === 'Decimal' as string) {
         value = parseFloat(String(value));
+        if (isNaN(value)) return;
       } else if (field.type === 'Boolean' as string) {
-        value = value === 'true' || value === true; // Handle string or boolean
+        value = value === 'true' || value === true;
+      } else if (field.type === 'DateTime' as string) {
+        value = new Date(String(value));
+        if (isNaN(value.getTime())) return;
       }
 
       // 处理特殊操作符
@@ -243,9 +248,9 @@
           arrayValue = value.split(',').map((v) => v.trim());
           // Convert array values to the correct type
           if (field.type === 'Int' as string) {
-            arrayValue = arrayValue.map((v) => parseInt(v));
+            arrayValue = arrayValue.map((v) => parseInt(v)).filter((v) => !isNaN(v));
           } else if (field.type === 'Float' as string || field.type === 'Decimal' as string) {
-            arrayValue = arrayValue.map((v) => parseFloat(v));
+            arrayValue = arrayValue.map((v) => parseFloat(v)).filter((v) => !isNaN(v));
           }
         } else if (Array.isArray(value)) {
           arrayValue = value;

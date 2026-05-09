@@ -48,7 +48,7 @@ const className = computed(() => {
   let base = 'cursor-pointer transition-colors duration-200 rounded relative group select-none inline-block px-1 py-0'
 
   if (isHighlighted) {
-    base += ' bg-white dark:bg-primary-900 font-bold text-primary-800 dark:text-primary-200 border-2 border-primary-200 dark:border-primary-700 word-highlight'
+    base += ' bg-white dark:bg-primary-900 font-bold text-primary-body border-2 border-primary-default word-highlight'
   } else if (isSelected) {
     base += ' bg-primary-100 dark:bg-primary-800 font-medium word-selected'
   } else if (isClicked) {

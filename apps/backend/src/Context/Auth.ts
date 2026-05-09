@@ -24,15 +24,11 @@ function userIsAdmin(user: Database['user']) {
 
 /** 检测当前登录的用户是否为超级管理员 */
 export function authUserIsAdmin() {
-  return Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return userIsAdmin(auth.user);
-  });
+  return Effect.map(AuthContext, (auth) => userIsAdmin(auth.user));
 }
 
 /** 要求当前用户必须是管理员，否则抛出权限错误 */
 export const requireAdmin = () =>
-  Effect.gen(function* () {
-    const isAdmin = yield* authUserIsAdmin();
-    if (!isAdmin) return yield* fail(MSG.REQUIRE_ADMIN);
-  });
+  Effect.flatMap(authUserIsAdmin(), (isAdmin) =>
+    isAdmin ? Effect.void : fail(MSG.REQUIRE_ADMIN),
+  );

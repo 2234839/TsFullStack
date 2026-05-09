@@ -9,7 +9,7 @@ import {
   SessionAuthSign,
 } from '@tsfullstack/backend';
 
-import superjson from 'superjson';
+import superjson, { type SuperJSONResult } from 'superjson';
 import { routeMap, routerUtil } from './router';
 import { t } from '@/i18n';
 
@@ -69,15 +69,15 @@ export function useAPI() {
         body = superjson.stringify(data);
         content_type = 'application/json';
       }
+      const headers: Record<string, string> = {
+        'x-token-id': authInfo.value?.token ?? '',
+      };
+      if (content_type) headers['Content-Type'] = content_type;
+
       return fetch(`${baseUrl}${method}`, {
         method: 'POST',
         body,
-        headers: content_type
-          ? {
-              'Content-Type': content_type,
-              'x-token-id': authInfo.value?.token ?? '',
-            }
-          : { 'x-token-id': authInfo.value?.token ?? '' },
+        headers,
       })
         .then(async (res) => {
           /** 检查 HTTP 状态码，处理服务器错误（502、503、504 等） */
@@ -105,10 +105,17 @@ export function useAPI() {
             /** 抛出错误，让调用方能够捕获 */
             throw new MsgError(MsgError.op_msgError, errorMessage);
           }
-          return res.json();
+          return res.text().then((text) => {
+            let parsed: SuperJSONResult;
+            try {
+              parsed = JSON.parse(text);
+            } catch {
+              throw new MsgError(MsgError.op_msgError, `服务器返回了非 JSON 响应 (${res.status})`);
+            }
+            return superjson.deserialize(parsed) as APIResponse;
+          });
         })
-        .then((r) => {
-          const res = superjson.deserialize(r) as APIResponse;
+        .then((res) => {
           if (!res.error) {
             return res.result;
           }
@@ -135,7 +142,7 @@ export function useAPI() {
           } else {
             publishErrorToast();
           }
-          throw res.error;
+          throw new MsgError(op ?? MsgError.op_msgError, res.error.message ?? t('未知错误'));
         });
     }
     return remoteCall;

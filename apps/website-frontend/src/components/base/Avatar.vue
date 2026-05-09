@@ -5,6 +5,8 @@
  */
 import { computed } from 'vue';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 图片地址 */
   image?: string;
@@ -39,7 +41,7 @@ const imageClasses = 'w-full h-full object-cover';
 </script>
 
 <template>
-  <div :class="avatarClasses">
+  <div v-bind="$attrs" :class="avatarClasses">
     <img
       v-if="image"
       :src="image"
@@ -47,7 +49,7 @@ const imageClasses = 'w-full h-full object-cover';
       :class="imageClasses" />
     <span
       v-else-if="label"
-      class="flex items-center justify-center w-full h-full text-sm font-medium text-primary-600 dark:text-primary-400">
+      class="flex items-center justify-center w-full h-full text-sm font-medium text-primary-theme">
       {{ label.charAt(0).toUpperCase() }}
     </span>
     <slot />

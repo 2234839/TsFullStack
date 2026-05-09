@@ -2,7 +2,7 @@ import { Effect } from 'effect';
 import { AuthContext } from '../../Context/Auth';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { AppConfigService, AppConfig } from '../../Context/AppConfig';
-import { MsgError, fail, extractErrorMessage } from '../../util/error';
+import { MsgError, fail, tryOrFail, extractErrorMessage } from '../../util/error';
 import { saveFileFromBuffer } from './file';
 import { dbTry } from '../../util/dbEffect';
 import { TokenService } from '../../services/TokenService';
@@ -26,6 +26,8 @@ const VALID_IMAGE_SIZES = new Set(['1024x1024', '1024x768', '768x1024', '512x512
 const MAX_TOKEN_COST = 1000;
 const PROMPT_TRUNCATE_LENGTH = 50;
 const DEFAULT_COMPRESS_QUALITY = 85;
+/** 下载图片的最大字节数（50MB），防止恶意 URL 导致内存耗尽 */
+const MAX_IMAGE_DOWNLOAD_BYTES = 50 * 1024 * 1024;
 
 /** 允许的图片 URL 协议 */
 const ALLOWED_URL_PROTOCOLS = ['https:', 'http:'];
@@ -37,9 +39,11 @@ const PRIVATE_IP_PATTERNS = [
   /^172\.(1[6-9]|2\d|3[01])\./, // RFC1918 Class B
   /^192\.168\./, // RFC1918 Class C
   /^169\.254\./, // link-local
+  /^0\.0\.0\.0$/, // all interfaces
   /^::1$/, // IPv6 loopback
-  /^fc00:/i, // IPv6 unique local
+  /^f[cd]\d{2}:/i, // IPv6 unique local (fc00::/7 覆盖 fc00:-fdff:)
   /^fe80:/i, // IPv6 link-local
+  /^::ffff:/i, // IPv4-mapped IPv6
 ];
 
 /** 校验图片 URL 是否安全（防止 SSRF） */
@@ -56,7 +60,7 @@ function validateImageUrl(url: string) {
   }
 
   const hostname = parsed.hostname.toLowerCase();
-  if (hostname === 'localhost' || hostname === '[::1]') {
+  if (hostname === 'localhost' || hostname === '[::1]' || hostname === '0.0.0.0') {
     return fail(MSG.LOCAL_ADDRESS_BLOCKED);
   }
   for (const pattern of PRIVATE_IP_PATTERNS) {
@@ -102,12 +106,12 @@ function isAiImageProvider(value: string): value is AiImageProvider {
 }
 
 /** Provider 显示名称映射 */
-const PROVIDER_LABELS: Record<AiImageProvider, string> = {
+const PROVIDER_LABELS = {
   qwen: '通义千问',
   dalle: 'DALL-E',
   stability: 'Stability AI',
   glm: '智谱 GLM',
-};
+} as const;
 
 /** Provider → API Key 配置字段名映射 */
 const PROVIDER_KEY_MAP: { readonly [K in AiImageProvider]: keyof NonNullable<AppConfig['aiImage']> } = {
@@ -140,6 +144,10 @@ const validateImageParams = (request: {
     const provider = rawProvider;
 
     const count = Math.floor(Math.max(1, Math.min(MAX_IMAGE_COUNT, request.count ?? 1)));
+    /** DALL-E 3 API 不支持批量生成，限制为 1 */
+    if (provider === 'dalle' && count > 1) {
+      return yield* fail('DALL-E 3 不支持批量生成，请将数量设为 1');
+    }
 
     const size = request.size ?? DEFAULT_IMAGE_SIZE;
     if (!VALID_IMAGE_SIZES.has(size)) {
@@ -240,12 +248,9 @@ const generateAIImage = (request: {
           return { taskId: task.id, imagesCount: generateResult.images.length, images: generateResult.images };
         }),
       ),
-      /** 失败时标记任务为 FAILED 并传播原始错误（yield* 确保 Effect 在正确上下文中执行） */
-      Effect.catchAll((error) =>
-        Effect.gen(function* () {
-          yield* TaskService.failTask(task.id, extractErrorMessage(error));
-          return yield* Effect.fail(error);
-        }),
+      /** 失败时标记任务为 FAILED 并传播原始错误 */
+      Effect.tapError((error) =>
+        TaskService.failTask(task.id, extractErrorMessage(error)).pipe(Effect.ignore),
       ),
     );
 
@@ -283,7 +288,7 @@ const selectAndDownloadImage = (request: {
 
     // 3. 下载图片
     const imageResponse = yield* Effect.tryPromise({
-      try: () => fetch(request.imageUrl, withFetchTimeout({}, FETCH_TIMEOUTS.imageDownload)),
+      try: () => fetch(request.imageUrl, withFetchTimeout({ redirect: 'error' }, FETCH_TIMEOUTS.imageDownload)),
       catch: (error) => {
         ctx.log(LOG_PREFIX, '下载图片失败:', extractErrorMessage(error));
         if (MsgError.isMsgError(error)) return error;
@@ -295,15 +300,20 @@ const selectAndDownloadImage = (request: {
       return yield* fail(`下载图片失败: ${imageResponse.statusText}`);
     }
 
-    // 3. 读取图片数据
-    const buffer = yield* Effect.tryPromise({
-      try: () => imageResponse.arrayBuffer(),
-      catch: () => {
-        return MsgError.msg(MSG.IMAGE_READ_FAILED);
-      },
-    });
+    // 检查 Content-Length 是否超出限制
+    const contentLength = imageResponse.headers.get('content-length');
+    if (contentLength && Number(contentLength) > MAX_IMAGE_DOWNLOAD_BYTES) {
+      return yield* fail(`图片文件过大 (${Math.round(Number(contentLength) / 1024 / 1024)}MB)，限制 ${MAX_IMAGE_DOWNLOAD_BYTES / 1024 / 1024}MB`);
+    }
 
-    // 4. 如果需要压缩，使用 sharp 压缩
+    // 4. 读取图片数据
+    const buffer = yield* tryOrFail('读取图片数据', () => imageResponse.arrayBuffer());
+
+    if (buffer.byteLength > MAX_IMAGE_DOWNLOAD_BYTES) {
+      return yield* fail(`图片文件过大 (${Math.round(buffer.byteLength / 1024 / 1024)}MB)，限制 ${MAX_IMAGE_DOWNLOAD_BYTES / 1024 / 1024}MB`);
+    }
+
+    // 4. 默认使用 sharp 压缩（节省存储空间），调用方可传 { enabled: false } 跳过
     let finalBuffer: Buffer = Buffer.from(buffer);
     const compressOpts = request.compressOptions;
     if (compressOpts?.enabled !== false) {
@@ -379,10 +389,7 @@ const listTasks = (options?: {
   skip?: number;
   take?: number;
 }) =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* TaskService.listTasks(auth.user.id, options);
-  });
+  AuthContext.pipe(Effect.flatMap(auth => TaskService.listTasks(auth.user.id, options)));
 
 /**
  * 获取任务详情
@@ -399,21 +406,16 @@ const listResources = (options?: {
   skip?: number;
   take?: number;
 }) =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* ResourceService.listResources(auth.user.id, options);
-  });
+  AuthContext.pipe(Effect.flatMap(auth => ResourceService.listResources(auth.user.id, options)));
 
 /**
  * 获取可用的 AI 图片生成服务商列表
  */
 const getAvailableProviders = () =>
-  Effect.gen(function* () {
-    const appConfig = yield* AppConfigService;
-    return AI_IMAGE_PROVIDERS
-      .filter(provider => appConfig.aiImage?.[PROVIDER_KEY_MAP[provider]])
-      .map(provider => ({ value: provider, label: PROVIDER_LABELS[provider] }));
-  });
+  Effect.map(AppConfigService, (appConfig) => AI_IMAGE_PROVIDERS
+    .filter(provider => appConfig.aiImage?.[PROVIDER_KEY_MAP[provider]])
+    .map(provider => ({ value: provider, label: PROVIDER_LABELS[provider] }))
+  );
 
 /**
  * 任务和资源 API

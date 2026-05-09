@@ -67,8 +67,16 @@ model User with NotIdBase {
     avatar       String?      
     nickname     String?
 
-    /// 允许用户读取和更新自己的完整信息
-    @@allow('read,update', auth() == this)
+    /** 允许用户读取自己的完整信息 */
+    @@allow('read', auth() == this)
+    /** 允许用户更新自己的信息（avatar, nickname 等），但管理员权限由全局策略覆盖 */
+    @@allow('update', auth() == this)
+    /**
+     * 禁止非管理员通过修改 role 关系提权
+     * post-update 检查：如果更新后用户拥有了之前没有的 admin 角色，则拒绝
+     * 管理员（由 BaseGlobalAuth @@allow('all') 授权）不受此限制
+     */
+    @@deny('post-update', auth().role?[name != 'admin'] && role?[name == 'admin'])
     userData     UserData[]
     oAuthAccount OAuthAccount[]
     word         Word[]
@@ -500,9 +508,9 @@ model Order with Base {
   @@index([orderNo])
   @@index([status, created])
 
-  /** 权限控制：用户可读自己的订单，登录用户可创建 */
+  /** 权限控制：用户可读自己的订单，登录用户可创建（但 userId 必须是本人） */
   @@allow('read', auth() == user)
-  @@allow('create', auth() != null)
+  @@allow('create', auth() != null && auth() == user)
 }
 
 /// ==================== 代币系统 ====================

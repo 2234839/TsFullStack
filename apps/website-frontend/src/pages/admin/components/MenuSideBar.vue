@@ -65,7 +65,7 @@
       </div>
 
       <!-- 菜单区域 -->
-      <div class="menu-container flex-1 overflow-y-auto custom-scrollbar px-3 py-2">
+      <div class="menu-container flex-1 overflow-y-auto custom-scrollbar px-3 py-2" style="--scrollbar-size: 4px; --scrollbar-radius: 20px">
         <div v-if="isCollapsed" class="collapsed-menu">
           <ul class="flex flex-col items-center space-y-1">
             <li v-for="item in collapsedMenuItems" :key="item.key" class="w-full relative">
@@ -294,7 +294,7 @@
               key: 'aiModelManager',
               label: t('AI模型管理'),
               icon: 'pi pi-microchip-ai',
-              to: '/admin/aiModelManager',
+              to: routerUtil.to(routeMap.admin.child.aiModelManager, {}),
             },
           ],
         },
@@ -506,24 +506,6 @@
   box-shadow: 0 0 20px color-mix(in srgb, var(--color-gray-900) 10%, transparent);
   position: relative;
   z-index: 50;
-}
-
-/* 自定义滚动条 */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: color-mix(in srgb, var(--color-slate-500) 30%, transparent);
-  border-radius: 20px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in srgb, var(--color-slate-500) 50%, transparent);
 }
 
 /* 有子菜单的菜单项样式 */

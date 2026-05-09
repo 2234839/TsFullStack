@@ -3,9 +3,11 @@
  * 多选组件
  * 使用 Tailwind CSS 样式
  */
-import { computed, ref } from 'vue';
+import { computed, shallowRef } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { INPUT_BASE_CLASSES } from './inputStyles';
+
+defineOptions({ inheritAttrs: false });
 
 const { t } = useI18n();
 
@@ -44,7 +46,7 @@ const emit = defineEmits<{
 }>();
 
 /** 下拉框打开状态 */
-const isOpen = ref(false);
+const isOpen = shallowRef(false);
 
 /** 切换下拉框 */
 function toggleDropdown() {
@@ -64,8 +66,7 @@ function handleOptionClick(option: Option) {
   if (index === -1) {
     emit('update:modelValue', [...currentValue, option.value]);
   } else {
-    currentValue.splice(index, 1);
-    emit('update:modelValue', currentValue);
+    emit('update:modelValue', [...currentValue.slice(0, index), ...currentValue.slice(index + 1)]);
   }
 }
 
@@ -102,7 +103,7 @@ const triggerClasses = computed(() => {
 
   const stateClasses = invalid
     ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
-    : 'border-primary-200 dark:border-primary-700 focus:ring-primary-500 dark:focus:ring-primary-400';
+    : 'border-primary-default focus:ring-primary-500 dark:focus:ring-primary-400';
 
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
@@ -113,12 +114,12 @@ const triggerClasses = computed(() => {
 </script>
 
 <template>
-  <div class="relative w-full">
+  <div v-bind="$attrs" class="relative w-full">
     <!-- 触发按钮 -->
     <div
       :class="triggerClasses"
       @click="toggleDropdown">
-      <span class="flex-1 truncate text-primary-900 dark:text-primary-100">
+      <span class="flex-1 truncate text-primary-title">
         {{ displayLabel }}
       </span>
       <span class="ml-2 text-primary-400">
@@ -147,7 +148,7 @@ const triggerClasses = computed(() => {
       leave-to-class="opacity-0 scale-95">
       <div
         v-if="isOpen"
-        :class="'absolute z-50 w-full mt-1 bg-white dark:bg-primary-900 border border-primary-200 dark:border-primary-700 rounded-lg shadow-lg max-h-60 overflow-y-auto'">
+        class="absolute z-50 w-full mt-1 bg-white dark:bg-primary-900 border border-primary-default rounded-lg shadow-lg max-h-60 overflow-y-auto">
         <div
           v-for="option in options"
           :key="option.value"
@@ -159,7 +160,7 @@ const triggerClasses = computed(() => {
             <div class="w-4 h-4 border rounded mr-3 flex items-center justify-center shrink-0"
                  :class="isSelected(option)
                    ? 'bg-primary-500 dark:bg-primary-600 border-primary-500 dark:border-primary-600'
-                   : 'border-primary-200 dark:border-primary-700'">
+                   : 'border-primary-default'">
               <svg v-if="isSelected(option)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
               </svg>
@@ -170,7 +171,7 @@ const triggerClasses = computed(() => {
         </div>
         <div
           v-if="options.length === 0"
-          class="px-3 py-2 text-sm text-primary-500 dark:text-primary-400 text-center">
+          class="px-3 py-2 text-sm text-primary-subtle text-center">
           {{ t('没有可用选项') }}
         </div>
       </div>

@@ -22,7 +22,7 @@ export const SERVER_PORT = 5209;
 export const SERVER_HOST = '0.0.0.0';
 export const MAX_WAIT_MS = 360_000;
 
-/** 内存监控日志间隔（5秒） */
+/** 内存监控日志间隔（50秒） */
 export const MEMORY_LOG_INTERVAL_MS = 50_000;
 
 /** 队列启动延迟（5秒，确保数据库已初始化） */
@@ -127,8 +127,6 @@ export const MSG = {
   SUBSCRIPTION_ALREADY_EXISTS: '用户已订阅此套餐，请勿重复订阅',
   /** 下载图片失败（taskApi selectAndDownloadImage） */
   IMAGE_DOWNLOAD_FAILED: '下载图片失败',
-  /** 读取图片数据失败（taskApi selectAndDownloadImage） */
-  IMAGE_READ_FAILED: '读取图片数据失败',
   /** sharp 模块未安装（taskApi selectAndDownloadImage） */
   SHARP_NOT_INSTALLED: 'sharp 模块未安装',
   /** 未找到支付平台适配器（adapter-registry，动态拼接 provider） */

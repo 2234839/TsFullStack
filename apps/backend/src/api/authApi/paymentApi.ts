@@ -5,7 +5,7 @@ import { ReqCtxService } from '../../Context/ReqCtx';
 import { PaymentConfigService } from '../../Context/PaymentConfig';
 import { PaymentService } from '../../services/payment/PaymentService';
 import { PaymentProvider, OrderStatus } from '../../../.zenstack/models';
-import { fail, requireOrFail, tryOrFail } from '../../util/error';
+import { MsgError, fail, requireOrFail, tryOrFail } from '../../util/error';
 import { adminDbTry, dbTry, dbTryRequire } from '../../util/dbEffect';
 import { DEFAULT_PAGE_SIZE, MSG, deepCloneToJson } from '../../util/constants';
 import { grantTokensForPackage } from '../../services/payment/grantTokensForPackage';
@@ -42,41 +42,29 @@ const createOrder = (request: { packageId: number; provider: PaymentProvider }) 
  * 查询单个订单详情
  */
 const queryOrder = (orderId: number) =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* PaymentService.getOrder(orderId, auth.user.id);
-  });
+  AuthContext.pipe(Effect.flatMap(auth => PaymentService.getOrder(orderId, auth.user.id)));
 
 /**
  * 查询当前用户的订单列表
  */
 const listMyOrders = (options?: { status?: OrderStatus; skip?: number; take?: number }) =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* PaymentService.listOrders({ userId: auth.user.id, ...options });
-  });
+  AuthContext.pipe(Effect.flatMap(auth => PaymentService.listOrders({ userId: auth.user.id, ...options })));
 
 /**
  * 取消订单
  */
 const cancelOrder = (orderId: number) =>
-  Effect.gen(function* () {
-    const auth = yield* AuthContext;
-    return yield* PaymentService.cancelOrder(orderId, auth.user.id);
-  });
+  AuthContext.pipe(Effect.flatMap(auth => PaymentService.cancelOrder(orderId, auth.user.id)));
 
 /**
  * 获取可用支付渠道列表
  */
 const getAvailableProviders = () =>
-  Effect.gen(function* () {
-    const config = yield* PaymentConfigService;
-    return [
-      { provider: PaymentProvider.MBD, name: '面包多', enabled: Boolean(config.mbd?.enabled) },
-      { provider: PaymentProvider.AFDIAN, name: '爱发电', enabled: Boolean(config.afdian?.enabled) },
-      { provider: PaymentProvider.WECHAT, name: '微信好友支付', enabled: Boolean(config.wechat?.enabled) },
-    ];
-  });
+  Effect.map(PaymentConfigService, (config) => [
+    { provider: PaymentProvider.MBD, name: '面包多', enabled: Boolean(config.mbd?.enabled) },
+    { provider: PaymentProvider.AFDIAN, name: '爱发电', enabled: Boolean(config.afdian?.enabled) },
+    { provider: PaymentProvider.WECHAT, name: '微信好友支付', enabled: Boolean(config.wechat?.enabled) },
+  ]);
 
 /**
  * 管理：查询所有订单
@@ -107,10 +95,7 @@ const adminListOrders = (options?: { userId?: string; status?: OrderStatus; skip
  * 管理：获取当前支付配置（只读）
  */
 const getPaymentConfig = () =>
-  Effect.gen(function* () {
-    yield* requireAdmin();
-    return yield* PaymentConfigService;
-  });
+  requireAdmin().pipe(Effect.andThen(() => PaymentConfigService));
 
 /**
  * 管理：保存支付配置（写入 config.json）
@@ -122,14 +107,16 @@ const savePaymentConfig = (config: Record<string, unknown>) =>
     const configPath = path.join(process.cwd(), 'config.json');
     const raw = yield* tryOrFail('读取配置文件', () => fs.readFile(configPath, 'utf-8'));
 
-    const current = JSON.parse(raw);
+    const current = yield* Effect.try({
+      try: () => JSON.parse(raw) as Record<string, unknown>,
+      catch: () => MsgError.msg('配置文件 JSON 格式无效'),
+    });
     current.payment = config;
 
     yield* tryOrFail('写入配置文件', () => fs.writeFile(configPath, JSON.stringify(current, null, 2), 'utf-8'));
 
-    return { success: true };
+    return { success: true as const };
   });
-
 /**
  * 管理：测试爱发电 Webhook 连通性
  *
@@ -178,7 +165,7 @@ const testAfdianWebhook = () =>
       testPayload as Record<string, unknown>,
     );
 
-    return { testPayload: true, result };
+    return { testPayload: true as const, result };
   });
 
 /**
@@ -241,7 +228,7 @@ const confirmOrderPayment = (orderId: number) =>
       'package=', pkg.name,
     );
 
-    return { success: true, orderId };
+    return { success: true as const, orderId };
   });
 
 /**
@@ -250,13 +237,10 @@ const confirmOrderPayment = (orderId: number) =>
  * 返回微信号等联系信息供前端公共页面展示（支付页兜底指引等）。
  */
 const getPublicContactInfo = () =>
-  Effect.gen(function* () {
-    const config = yield* PaymentConfigService;
-    return {
-      wechatAccountId: config.wechat?.accountId ?? null,
-      wechatAccountName: config.wechat?.accountName ?? null,
-    };
-  });
+  Effect.map(PaymentConfigService, (config) => ({
+    wechatAccountId: config.wechat?.accountId ?? null,
+    wechatAccountName: config.wechat?.accountName ?? null,
+  }));
 
 /**
  * 支付 API 导出

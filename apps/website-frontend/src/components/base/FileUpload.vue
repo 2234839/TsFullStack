@@ -6,6 +6,8 @@
 import { ref, computed } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 
+defineOptions({ inheritAttrs: false });
+
 interface Props {
   /** 接受的文件类型 */
   accept?: string;
@@ -13,8 +15,6 @@ interface Props {
   chooseLabel?: string;
   /** 是否禁用 */
   disabled?: boolean;
-  /** 模式 */
-  mode?: 'basic' | 'advanced';
 }
 
 const { t } = useI18n();
@@ -56,7 +56,7 @@ function handleFileSelect(event: Event) {
 </script>
 
 <template>
-  <div class="file-upload">
+  <div v-bind="$attrs" class="file-upload">
     <input
       ref="fileInputRef"
       type="file"

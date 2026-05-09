@@ -1,6 +1,6 @@
 <template>
   <div
-    class="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-500 bg-primary-50 dark:bg-primary-950">
+    class="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-500 bg-primary-surface">
     <!-- 炫酷背景 -->
     <div
       class="absolute inset-0 transition-all duration-500 bg-linear-to-br from-info-100 via-info-200 to-info-100 dark:from-primary-950 dark:via-secondary-900 dark:to-info-900">
@@ -33,7 +33,7 @@
     </div>
 
     <div
-      class="w-full max-w-md p-8 space-y-6 rounded-2xl shadow-2xl border transition-all duration-300 relative z-10 bg-white/90 dark:bg-primary-800/40 backdrop-blur-sm dark:backdrop-blur-xl border-primary-200 dark:border-primary-700/30 hover:shadow-success-500/10 dark:hover:shadow-success-500/20">
+      class="w-full max-w-md p-8 space-y-6 rounded-2xl shadow-2xl border transition-all duration-300 relative z-10 bg-white/90 dark:bg-primary-800/40 backdrop-blur-sm dark:backdrop-blur-xl border-primary-default/30 hover:shadow-success-500/10 dark:hover:shadow-success-500/20">
       <!-- 卡片内部光晕 -->
       <div
         class="absolute pointer-events-none -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200 bg-linear-to-r from-info-400 to-success-500 dark:from-success-500 dark:to-info-600"></div>

@@ -28,22 +28,24 @@ export function getTypeLabel(type: string): string {
 export async function searchUsers(params: QueryParams): Promise<QueryResult<{ value: string; label: string }>> {
   const { API } = useAPI();
   try {
-    const users = await API.db.user.findMany({
-      where: { email: { contains: params.keyword } },
-      select: { id: true, email: true },
-      skip: params.skip,
-      take: params.take,
-    });
-
-    const count = await API.db.user.count({
-      where: { email: { contains: params.keyword } },
-    });
+    const [users, count] = await Promise.all([
+      API.db.user.findMany({
+        where: { email: { contains: params.keyword } },
+        select: { id: true, email: true },
+        skip: params.skip,
+        take: params.take,
+      }),
+      API.db.user.count({
+        where: { email: { contains: params.keyword } },
+      }),
+    ]);
 
     return {
       data: users.map((u) => ({ value: u.id, label: u.email })),
       total: count,
     };
   } catch (error: unknown) {
+    console.error('[searchUsers] 查询失败:', error);
     return { data: [], total: 0 };
   }
 }

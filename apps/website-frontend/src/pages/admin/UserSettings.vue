@@ -1,7 +1,7 @@
 <template>
   <div class="user-settings-page p-6 max-w-4xl mx-auto">
     <!-- 页面标题 -->
-    <PageHeader icon="pi pi-user text-primary-600 dark:text-primary-400">
+    <PageHeader icon="pi pi-user text-primary-theme">
       {{ t('个人设置') }}
     </PageHeader>
 
@@ -103,10 +103,10 @@
     <Card class="p-6 mt-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <i class="pi pi-shopping-cart text-primary-600 dark:text-primary-400 text-xl"></i>
+          <i class="pi pi-shopping-cart text-primary-theme text-xl"></i>
           <div>
             <h3 class="font-medium text-primary-900 dark:text-primary-50">{{ t('购买代币套餐') }}</h3>
-            <p class="text-sm text-primary-600 dark:text-primary-400">{{ t('选择套餐购买代币，解锁更多功能') }}</p>
+            <p class="text-sm text-primary-theme">{{ t('选择套餐购买代币，解锁更多功能') }}</p>
           </div>
         </div>
         <Button :label="t('去购买')" icon="pi pi-arrow-right" variant="primary" @click="goToPricing" />
@@ -120,7 +120,7 @@
   import { API } from '@/api';
   import File2Url from '@/pages/admin/components/File2Url.vue';
   import { routerUtil, routeMap } from '@/router';
-  import { ref, computed, watch } from 'vue';
+  import { ref, computed, watch , shallowRef } from 'vue';
   import { useI18n } from '@/composables/useI18n';
   import { useToast } from '@/composables/useToast';
   import { useConfirm } from '@/composables/useConfirm';
@@ -141,16 +141,16 @@
   /** 文件输入引用 */
   const fileInputRef = ref<HTMLInputElement | null>(null);
   /** 上传状态 */
-  const uploading = ref(false);
+  const uploading = shallowRef(false);
   /** 删除头像状态 */
-  const removing = ref(false);
+  const removing = shallowRef(false);
   /** 保存昵称状态 */
 
   /** 跳转到购买页 */
   function goToPricing() {
     routerUtil.push(routeMap.pricing, {});
   }
-  const savingNickname = ref(false);
+  const savingNickname = shallowRef(false);
   /** 昵称输入 */
   const nicknameInput = ref(userProfile.value?.nickname ?? '');
 

@@ -1,6 +1,6 @@
 <template>
   <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="emit('close')">
-    <div class="bg-white dark:bg-primary-800 rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+    <div class="bg-primary-panel rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
       <!-- 头部 -->
       <div class="bg-success-600 dark:bg-success-700 px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -28,9 +28,9 @@
 
         <!-- 站长微信号 -->
         <div class="text-center space-y-2">
-          <p class="text-xs text-primary-600 dark:text-primary-400">{{ t('站长微信号') }}</p>
+          <p class="text-xs text-primary-theme">{{ t('站长微信号') }}</p>
           <div class="inline-flex items-center gap-2 bg-primary-100 dark:bg-primary-800 rounded-lg px-4 py-3">
-            <span class="text-lg font-mono font-bold text-primary-600 dark:text-primary-400">
+            <span class="text-lg font-mono font-bold text-primary-theme">
               {{ orderInfo.wechatAccountId }}
             </span>
             <Button
@@ -41,23 +41,23 @@
               @click="copyId"
             />
           </div>
-          <p v-if="orderInfo.wechatAccountName" class="text-sm text-primary-600 dark:text-primary-400">
+          <p v-if="orderInfo.wechatAccountName" class="text-sm text-primary-theme">
             {{ t('昵称') }}: {{ orderInfo.wechatAccountName }}
           </p>
         </div>
 
         <!-- 订单信息卡片 -->
-        <div class="border border-primary-200 dark:border-primary-700 rounded-lg p-4 space-y-2 bg-primary-50 dark:bg-primary-800/50">
+        <div class="border border-primary-default rounded-lg p-4 space-y-2 bg-primary-50 dark:bg-primary-800/50">
           <div class="flex justify-between text-sm">
-            <span class="text-primary-600 dark:text-primary-400">{{ t('订单号') }}</span>
+            <span class="text-primary-theme">{{ t('订单号') }}</span>
             <span class="font-mono font-medium dark:text-primary-100">{{ orderInfo.orderNo }}</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-primary-600 dark:text-primary-400">{{ t('套餐') }}</span>
+            <span class="text-primary-theme">{{ t('套餐') }}</span>
             <span class="font-medium dark:text-primary-100">{{ orderInfo.packageName }}</span>
           </div>
           <div class="flex justify-between text-sm">
-            <span class="text-primary-600 dark:text-primary-400">{{ t('金额') }}</span>
+            <span class="text-primary-theme">{{ t('金额') }}</span>
             <span class="font-bold text-danger-500 dark:text-danger-400">{{ formatPriceWithCurrency(orderInfo.amount) }}</span>
           </div>
         </div>
@@ -76,7 +76,7 @@
           <summary class="cursor-pointer text-xs text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 select-none">
             {{ t('查看发送给站长的消息格式') }} ▼
           </summary>
-          <pre class="mt-2 bg-primary-100 dark:bg-primary-800 rounded p-3 text-xs text-primary-600 dark:text-primary-400 whitespace-pre-wrap break-all">{{ formattedMessage }}</pre>
+          <pre class="mt-2 bg-primary-100 dark:bg-primary-800 rounded p-3 text-xs text-primary-theme whitespace-pre-wrap break-all">{{ formattedMessage }}</pre>
         </details>
 
         <!-- 底部提示 -->
@@ -90,7 +90,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { shallowRef, computed } from 'vue';
 import { useTimeoutFn } from '@vueuse/core';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -116,10 +116,10 @@ const { orderInfo } = defineProps<{
 const emit = defineEmits<{ close: [] }>();
 
 /** 复制反馈状态 + 自动重置定时器 */
-const copiedId = ref(false);
+const copiedId = shallowRef(false);
 const { start: resetCopiedId } = useTimeoutFn(() => { copiedId.value = false; }, 2000);
 
-const copiedMsg = ref(false);
+const copiedMsg = shallowRef(false);
 const { start: resetCopiedMsg } = useTimeoutFn(() => { copiedMsg.value = false; }, 2000);
 
 /** 生成要复制的格式化消息文本 */

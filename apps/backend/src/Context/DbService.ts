@@ -43,6 +43,10 @@ export type DbClient = ClientContract<SchemaType, {
 /** 模块级缓存的基础 ZenStackClient（无日志插件），整个应用生命周期只创建一次 */
 let _cachedDbRaw: DbClient | null = null;
 let _cachedDbPath: string | null = null;
+/** 无日志插件的客户端缓存（任务队列场景复用，避免重复 $use） */
+let _cachedDbNoLog: DbClient | null = null;
+/** 底层 better-sqlite3 连接实例，用于路径变化时正确关闭 */
+let _cachedDatabase: InstanceType<typeof Database> | null = null;
 
 /** 获取无权限检查的 dbClient，慎用！！ 使用时需要明确场景，避免权限系统被跳过 */
 export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService> = Effect.gen(function* () {
@@ -51,29 +55,41 @@ export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService>
 
   // 惰性初始化：只在首次或数据库路径变化时重建（正常情况下路径不变）
   if (!_cachedDbRaw || _cachedDbPath !== databasePath) {
+    /** 路径变化时关闭旧连接，释放文件描述符 */
+    if (_cachedDatabase) {
+      _cachedDatabase.close();
+      _cachedDatabase = null;
+    }
+    const db = new Database(databasePath);
+    _cachedDatabase = db;
     _cachedDbRaw = new ZenStackClient(schema, {
-      dialect: new SqliteDialect({
-        database: new Database(databasePath),
-      }),
+      dialect: new SqliteDialect({ database: db }),
     });
     _cachedDbPath = databasePath;
+    _cachedDbNoLog = null;
   }
 
-  const ctx = yield* Effect.serviceOption(ReqCtxService); // 可选依赖：有 ctx 时挂载日志插件
+  const ctx = yield* Effect.serviceOption(ReqCtxService);
+
+  /** 无 ctx 时复用缓存的客户端，避免每次调用都创建 $use 包装 */
+  if (Option.isNone(ctx)) {
+    if (!_cachedDbNoLog) {
+      _cachedDbNoLog = _cachedDbRaw.$use(definePlugin({
+        id: 'cost-logger',
+        onQuery: async ({ args, proceed }) => proceed(args),
+      }));
+    }
+    return _cachedDbNoLog;
+  }
+
   return _cachedDbRaw.$use(
     definePlugin({
       id: 'cost-logger',
       onQuery: async ({ model, operation, args, proceed }) => {
         const start = Date.now();
         const result = await proceed(args);
-        if (model === 'SystemLog') {
-          return result;
-        }
-        const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
-        /** 因为 getDbClient 这个方法的使用是可以不强制依赖 ctx 的，所以这里使用可选依赖，并当 ctx 存在的时候才 */
-        if (Option.isNone(ctx)) {
-          // 任务队列场景无 ctx，跳过日志避免刷屏
-        } else {
+        if (model !== 'SystemLog') {
+          const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
           ctx.value.log(logText);
         }
         return result;
@@ -96,10 +112,7 @@ export const createAuthDbClient = (
     | (User & { role: Role[]; userSession: UserSession[] })
     | (Omit<User, 'password'> & { role: Role[]; userSession: UserSession[] }),
 ) =>
-  Effect.gen(function* () {
-    const dbClient = yield* DbClientEffect;
-    return dbClient.$use(new PolicyPlugin()).$setAuth(user);
-  });
+  Effect.map(DbClientEffect, (dbClient) => dbClient.$use(new PolicyPlugin()).$setAuth(user));
 
 /** 根据入参获取有权限检查的 dbClinet，慎用！！只应该在登录鉴权等场景使用，避免入参直接由用户传入 */
 export const getDbAuthEffect = (opt: {
@@ -143,8 +156,8 @@ export const getDbAuthEffect = (opt: {
             userSession: {
               /** 只包含当前使用的 session，理论上只有一个，有多个返回结果时可能存在问题 */
               where: {
-                token: opt.sessionToken,
-                id: opt.sessionID,
+                ...((opt.sessionToken != null) && { token: opt.sessionToken }),
+                ...((opt.sessionID != null) && { id: opt.sessionID }),
                 expiresAt: { gt: now },
               },
               /** 兜底处理，当使用 user.userSession[0] 时能够获取最新的 */

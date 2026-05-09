@@ -1,5 +1,5 @@
 <template>
-  <RemoteSelect :modelValue="remoteSelectValue" @add="(el) => addItem(el)" @remove="(el) => removeItem(el)"
+  <RemoteSelect :modelValue="remoteSelectValue" @add="addItem" @remove="removeItem"
     :queryMethod="queryData" :showTag="false" :disabledItems="disabledItems" />
 </template>
 
@@ -257,7 +257,7 @@
       // 将当前所有已选项移到 remove 列表（如果它们在 includes 中）
       for (const includedItem of modelValue.includes) {
         if (!RemoteSelectUtils.itemEquals(includedItem, item)) {
-          RemoteSelectUtils.addItem(modelValue.remove, includedItem);
+          modelValue.remove = RemoteSelectUtils.addItem(modelValue.remove, includedItem);
         }
       }
       modelValue.add = [item];
@@ -265,15 +265,15 @@
       // ========== 数组关系（一对多或多对多）==========
       if (isBackLinkArray) {
         // 多对多关系：多选模式，可以自由添加和移除
-        RemoteSelectUtils.removeItem(modelValue.remove, item);
-        RemoteSelectUtils.addItem(modelValue.add, item);
+        modelValue.remove = RemoteSelectUtils.removeItem(modelValue.remove, item);
+        modelValue.add = RemoteSelectUtils.addItem(modelValue.add, item);
       } else {
         // 一对多关系：多选模式
         // 反向字段是单个对象（如 UserData.user），无论是否可选都可以多选
         // 如果必选，已选中的不能取消（由 removeItem 控制）
         // 但可以继续添加更多的
-        RemoteSelectUtils.removeItem(modelValue.remove, item);
-        RemoteSelectUtils.addItem(modelValue.add, item);
+        modelValue.remove = RemoteSelectUtils.removeItem(modelValue.remove, item);
+        modelValue.add = RemoteSelectUtils.addItem(modelValue.add, item);
       }
     }
 
@@ -331,8 +331,8 @@
 
     // 允许取消尚未保存到数据库的添加操作
     // 这些项在 modelValue.add 中，还未保存，可以安全移除
-    RemoteSelectUtils.removeItem(modelValue.add, item);
-    RemoteSelectUtils.addItem(modelValue.remove, item);
+    modelValue.add = RemoteSelectUtils.removeItem(modelValue.add, item);
+    modelValue.remove = RemoteSelectUtils.addItem(modelValue.remove, item);
     emit('change', modelValue);
   }
 

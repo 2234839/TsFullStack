@@ -1,6 +1,118 @@
 @import 'tailwindcss';
 
 @layer utilities {
+  /** 语义化颜色工具类 — 统一 light/dark 模式下的常见颜色组合 */
+  .text-primary-theme {
+    color: var(--color-primary-600);
+    &:where(.dark *) {
+      color: var(--color-primary-400);
+    }
+  }
+  .text-primary-heading {
+    color: var(--color-primary-700);
+    &:where(.dark *) {
+      color: var(--color-primary-300);
+    }
+  }
+  .text-primary-muted {
+    color: var(--color-primary-500);
+    &:where(.dark *) {
+      color: var(--color-primary-400);
+    }
+  }
+  .text-primary-body {
+    color: var(--color-primary-800);
+    &:where(.dark *) {
+      color: var(--color-primary-200);
+    }
+  }
+  .border-primary-default {
+    border-color: var(--color-primary-200);
+    &:where(.dark *) {
+      border-color: var(--color-primary-700);
+    }
+  }
+  .bg-primary-surface {
+    background-color: var(--color-primary-50);
+    &:where(.dark *) {
+      background-color: var(--color-primary-950);
+    }
+  }
+  .bg-primary-card {
+    background-color: var(--color-primary-50);
+    &:where(.dark *) {
+      background-color: var(--color-primary-900);
+    }
+  }
+
+  /** 表单标签/说明文字颜色（primary-700 / dark primary-300） */
+  .text-primary-label {
+    color: var(--color-primary-700);
+    &:where(.dark *) {
+      color: var(--color-primary-300);
+    }
+  }
+
+  /** 次要/辅助文字颜色（primary-500 / dark primary-400） */
+  .text-primary-subtle {
+    color: var(--color-primary-500);
+    &:where(.dark *) {
+      color: var(--color-primary-400);
+    }
+  }
+
+  /** 卡片/容器背景（white / dark primary-800） */
+  .bg-primary-panel {
+    background-color: white;
+    &:where(.dark *) {
+      background-color: var(--color-primary-800);
+    }
+  }
+
+  /** 标题/重点文字（primary-900 / dark primary-100） */
+  .text-primary-title {
+    color: var(--color-primary-900);
+    &:where(.dark *) {
+      color: var(--color-primary-100);
+    }
+  }
+
+  /** 隐藏滚动条但保留滚动功能（跨浏览器） */
+  .hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /** 美化滚动条 — 透明轨道 + 半透明滑块（通过 CSS 变量可自定义尺寸和颜色） */
+  .custom-scrollbar {
+    --scrollbar-size: 6px;
+    --scrollbar-radius: 3px;
+    --scrollbar-thumb: color-mix(in srgb, var(--color-slate-500) 30%, transparent);
+    --scrollbar-thumb-hover: color-mix(in srgb, var(--color-slate-500) 50%, transparent);
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: var(--scrollbar-radius);
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+  .dark .custom-scrollbar {
+    --scrollbar-thumb: color-mix(in srgb, var(--color-slate-400) 30%, transparent);
+    --scrollbar-thumb-hover: color-mix(in srgb, var(--color-slate-400) 50%, transparent);
+  }
 }
 @custom-variant dark (&:where(.dark, .dark *));
 @config '../tailwind.config.ts';

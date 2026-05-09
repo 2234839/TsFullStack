@@ -26,11 +26,13 @@ import { computed, ref, isVNode, h, type VNode } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import ProgressSpinner from './ProgressSpinner.vue';
 
+defineOptions({ inheritAttrs: false });
+
 const { t } = useI18n();
 
 interface Props<T> {
   /** 数据列表 */
-  data: T[];
+  data: readonly T[];
   /** 列定义 */
   columns: ColumnDef<T>[];
   /** 数据键（用于行选择和唯一标识） */
@@ -186,7 +188,7 @@ function normalizeRenderResult(result: VNode | string | null): VNode {
 </script>
 
 <template>
-  <div class="data-table-wrapper">
+  <div v-bind="$attrs" class="data-table-wrapper">
     <!-- 加载遮罩层 -->
     <div v-if="props.loading" class="data-table-loading-overlay">
       <ProgressSpinner />
@@ -195,7 +197,7 @@ function normalizeRenderResult(result: VNode | string | null): VNode {
     <!-- 数据表格 -->
     <div class="data-table-container" :class="{ 'opacity-50': props.loading }">
       <table class="border-collapse w-full">
-        <thead class="bg-primary-50 dark:bg-primary-900">
+        <thead class="bg-primary-card">
           <tr>
             <!-- 选择列 -->
             <th v-if="props.selectable" :class="[sizeConfig[props.size].header, 'w-12 text-center']">
@@ -213,24 +215,24 @@ function normalizeRenderResult(result: VNode | string | null): VNode {
               :key="column.key"
               :class="[
                 sizeConfig[props.size].header,
-                'text-left text-xs font-medium text-primary-600 dark:text-primary-400 uppercase tracking-wider',
+                'text-left text-xs font-medium text-primary-theme uppercase tracking-wider',
                 { 'cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800': column.sortable }
               ]"
               :style="{ width: typeof column.width === 'number' ? `${column.width}px` : column.width }"
-              @click="column.sortable ? handleSort(column) : null">
+              @click="column.sortable && handleSort(column)">
               <div class="flex items-center gap-2">
                 {{ column.title }}
-                <span v-if="column.sortable" class="text-primary-500 dark:text-primary-400">
+                <span v-if="column.sortable" class="text-primary-subtle">
                   {{ getSortIcon(column) }}
                 </span>
               </div>
             </th>
           </tr>
         </thead>
-        <tbody class="bg-primary-50 dark:bg-primary-950">
+        <tbody class="bg-primary-surface">
           <!-- 空数据 -->
           <tr v-if="sortedData.length === 0">
-            <td :colspan="props.columns.length + (props.selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-600 dark:text-primary-400">
+            <td :colspan="props.columns.length + (props.selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-theme">
               {{ emptyText }}
             </td>
           </tr>
@@ -240,7 +242,7 @@ function normalizeRenderResult(result: VNode | string | null): VNode {
             v-for="(row, rowIndex) in sortedData"
             :key="row[props.rowKey] || rowIndex"
             :class="[
-              'border-b border-primary-200 dark:border-primary-700 transition-colors',
+              'border-b border-primary-default transition-colors',
               {
                 'bg-primary-100 dark:bg-primary-900/50': props.striped && rowIndex % 2 === 0,
                 'hover:bg-primary-200 dark:hover:bg-primary-800': props.selectable,
