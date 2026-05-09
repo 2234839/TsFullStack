@@ -1,6 +1,6 @@
 ## 项目概述
 
-当前项目使用ts + vue3 + reka-ui（文档见 https://reka-ui.com/llms.txt） + tailwindcss 进行开发。帮用户解决问题时请考虑上述信息当用户要求你生成代码的时候，请尽量仅输出代码，不要包含额外的解释。注释应该采用 /\*\* \*/ 的形式，而不是 //,注意对于对象的字段，应该直接在字段上方加注释，而非在对象上使用 jsdoc 语法为属性加注释
+当前项目使用 ts + vue3 + reka-ui（文档见 https://reka-ui.com/llms.txt） + tailwindcss 进行开发。
 
 - Vite 作为构建工具
 - 自定义 RPC 系统用于后端通信
@@ -14,24 +14,19 @@ import { useI18n } from '@/composables/useI18n';
 const { t } = useI18n();
 ```
 
-## 夜间模式适配
-
-所有代码都应该要考虑到夜间适配可以直接使用 tailwindcs 的 dark 变体来适配
-
 ## 架构概述
 
 ### 核心组件
 
 1. **路由系统** (`src/router.ts`) - 基于树结构的自定义路由，支持自动名称生成
 2. **API 层** (`src/api.ts`) - 连接后端服务的自定义 RPC 系统
-3. **UI 组件** - 基于 PrimeVue 的 UI，在 `src/components/` 中有自定义组件
+3. **UI 组件** - 基于自定义组件库，在 `src/components/` 中有自定义组件
 4. **国际化** - 在 `src/i18n/` 中实现的自定义 i18n
 
 ### 关键模式
 
 1. **基于树的路由** - 路由在嵌套树结构中定义，并转换为 Vue Router 格式
 2. **自定义 RPC 系统** - 通过类型化的 API 调用和自动序列化与后端通信
-3. **组件自动导入** - 通过 unplugin-vue-components 自动导入 PrimeVue 组件
 
 ### 项目结构
 
@@ -78,7 +73,7 @@ const where: UserDataWhereInput = {};
 
 #### 可用组件列表
 
-当实现新的组件时需要考虑应该作为共享组件还是本地组件，新增和删除组件时更新这个apps/website-frontend/CLAUDE.md 文档中的可用组件列表
+当实现新的组件时需要考虑应该作为共享组件还是本地组件，新增和删除组件时更新这个文档中的可用组件列表
 
 **共享组件** (来自 `import { xxx } from '@tsfullstack/shared-frontend/components';`)：
 - Dialog
@@ -138,10 +133,58 @@ watchEffect(() => {
 });
 ```
 
-## 重要说明
+## 颜色系统使用规范
 
-- API 类型从后端包（backend）导入以实现完全的类型安全
-- 路由使用自定义的基于树的系统，而不是标准的 Vue Router 配置
+**本项目使用统一的语义化颜色系统，所有新代码必须遵循此规范。**
+
+### 颜色配置位置
+配置文件：[tailwind.config.ts](tailwind.config.ts)
+
+### 必须使用的语义化颜色
+
+tailwind 配置了 primary secondary success warning danger info 这几个语义化的 colors 取值范围均为 50 100 200 300 400 500 600 700 800 900 950
+
+```
+正确：使用语义化颜色
+class="bg-primary-600 hover:bg-primary-700"
+错误：不要使用硬编码颜色
+class="bg-blue-600"
+```
+
+### 明暗模式支持
+
+所有颜色必须支持明暗模式，直接使用 tailwindcss 的 dark 变体来适配：
+
+```html
+<!-- 文本色 -->
+<div class="text-gray-900 dark:text-gray-100">标题</div>
+<div class="text-gray-600 dark:text-gray-400">正文</div>
+
+<!-- 背景色 -->
+<div class="bg-white dark:bg-gray-800">卡片</div>
+<div class="bg-gray-50 dark:bg-gray-900">页面背景</div>
+
+<!-- 边框色 -->
+<div class="border-gray-200 dark:border-gray-700">边框</div>
+```
+
+### 组件开发要求
+
+**新开发的组件必须使用语义化颜色：**
+
+```vue
+<!-- 好的做法 -->
+<button
+  :class="{
+    'bg-primary-600 hover:bg-primary-700': variant === 'primary',
+    'bg-secondary-600 hover:bg-secondary-700': variant === 'secondary',
+    'bg-success-600 hover:bg-success-700': variant === 'success',
+    'bg-danger-600 hover:bg-danger-700': variant === 'danger',
+  }"
+>
+  <slot></slot>
+</button>
+```
 
 ## 调试前端代码（工作流程）
 
