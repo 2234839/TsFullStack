@@ -181,14 +181,14 @@ export const routeMap = reactive({
       title: t('计算笔记'),
       icon: 'pi pi-calculator',
     },
-    child: {
-      embed: {
-        path: 'embed',
-        component: () => import('@/pages/noteCalc/NoteCalcEmbed.vue'),
-        meta: {
-          title: 'NoteCalc Embed',
-        },
-      },
+  },
+  noteCalcEmbed: {
+    path: '/noteCalc/embed',
+    component: () => import('@/pages/noteCalc/NoteCalcEmbed.vue'),
+    meta: {
+      title: 'NoteCalc Embed',
+      hideTab: true,
+      bare: true,
     },
   },
   oauth: {

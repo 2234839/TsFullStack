@@ -194,7 +194,11 @@
     const hashContent = window.location.hash.slice(1);
     let initialContent = '';
     if (hashContent) {
-      try { initialContent = decodeURIComponent(hashContent); } catch { initialContent = hashContent; }
+      try {
+        initialContent = decodeURIComponent(hashContent);
+        /** 将字面量 \n 替换为实际换行符 */
+        initialContent = initialContent.replace(/\\n/g, '\n');
+      } catch { initialContent = hashContent.replace(/\\n/g, '\n'); }
     }
 
     const state = EditorState.create({
