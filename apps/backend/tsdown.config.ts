@@ -7,6 +7,7 @@ export default defineConfig({
   sourcemap: true,
   clean: true,
   deps: {
+    alwaysBundle: ['@tsfullstack/note-calc-engine'],
     neverBundle: [
       'better-sqlite3',
       'bindings',

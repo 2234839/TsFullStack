@@ -10,6 +10,7 @@ import { fileApi } from './appApi/file';
 import { githubApi } from './appApi/github';
 import { shareApi } from './appApi/share';
 import { treeholeApi } from './appApi/treehole';
+import { noteCalcApi } from './appApi/noteCalc';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[AppApi]';
@@ -28,9 +29,10 @@ function randomDelay(baseDelay = AUTH_DELAY_BASE_MS) {
   return Effect.sleep(`${(baseDelay + AUTH_DELAY_RANDOM_MS * Math.random()) / 1000} seconds`);
 }
 
-/** 邮箱格式校验 */
+/** 基本邮箱格式校验 */
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const validateEmail = (email: string) =>
-  (!email || typeof email !== 'string' || !email.includes('@'))
+  (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email))
     ? fail(MSG.EMAIL_FORMAT_INVALID)
     : Effect.void;
 
@@ -103,6 +105,7 @@ export const appApis = {
   fileApi,
   shareApi,
   treeholeApi,
+  noteCalcApi,
   /** 用于避免 Effect.isEffect 的判断之后得到 Effect<unknown, unknown, unknown> 导致类型系统失效*/
   __effect__() {
     return Effect.succeed('test');

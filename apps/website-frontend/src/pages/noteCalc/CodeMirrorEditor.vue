@@ -34,9 +34,10 @@
 
 <script setup lang="ts">
   import { onMounted, onUnmounted, ref, watch, watchEffect, computed, shallowRef } from 'vue';
-  import { EditorView, lineNumbers, drawSelection, dropCursor, keymap, Decoration, WidgetType } from '@codemirror/view';
+  import { EditorView, lineNumbers, dropCursor, keymap, Decoration, WidgetType, highlightActiveLine, highlightSpecialChars } from '@codemirror/view';
   import { EditorState, Compartment, Range } from '@codemirror/state';
   import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
+  import { crosshairCursor } from '@codemirror/view';
   import { useThrottleFn } from '@vueuse/core';
   import { useCalculator } from './useCalculator';
   import type { CalculationResult, CalculatorConfig } from './types';
@@ -634,8 +635,10 @@
       extensions: [
         lineNumbers(),
         history(),
-        drawSelection(),
+        highlightSpecialChars(),
+        highlightActiveLine(),
         dropCursor(),
+        crosshairCursor(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
         // 自定义基础主题（语法高亮）
         customBaseTheme,

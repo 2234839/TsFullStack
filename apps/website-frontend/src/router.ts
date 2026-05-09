@@ -37,7 +37,7 @@ export const routeMap = reactive({
     child: {
       index: {
         path: '',
-        component: () => import('@/pages/admin/index.vue'),
+        component: () => import('@/pages/admin/DataBaseStudio.vue'),
         meta: {
           title: t('仪表盘'),
           icon: 'pi pi-home',
@@ -181,6 +181,15 @@ export const routeMap = reactive({
       title: t('计算笔记'),
       icon: 'pi pi-calculator',
     },
+    child: {
+      embed: {
+        path: 'embed',
+        component: () => import('@/pages/noteCalc/NoteCalcEmbed.vue'),
+        meta: {
+          title: 'NoteCalc Embed',
+        },
+      },
+    },
   },
   oauth: {
     path: '/oauth',
@@ -212,7 +221,7 @@ export const routeMap = reactive({
   },
   tests: {
     path: '/tests',
-    redirect: defaultRoute,
+    redirect: '/',
     },
   util: {
     path: '/util',

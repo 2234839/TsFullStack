@@ -20,15 +20,6 @@ import { verifySignByToken } from '../lib/SessionAuthSign';
 import { createRPC } from '../rpc';
 import { MsgError, fail, tryOrFail, extractErrorMessage } from '../util/error';
 import { FetchWithProxy } from '../util/github-proxy';
-
-/** 通用 RPC 调用辅助（消除 app-api/api 两分支的重复 tryPromise+isEffect 模式） */
-const callRpc = <T>(rpc: ReturnType<typeof createRPC>, method: string, params: unknown[]) =>
-  Effect.gen(function* () {
-    const res = yield* tryOrFail('RPC 调用', () => rpc.RC(method, params));
-    if (Effect.isEffect(res)) return yield* res as Effect.Effect<T>;
-    return res as T;
-  });
-
 import {
   createDetailedErrorMessage,
   isRecordNotFoundError,
@@ -38,6 +29,14 @@ import {
 import { getAuthFromCache } from './authCache';
 import { registerWebhookRoutes } from './webhook';
 import { CORS_MAX_AGE_SECONDS, MAX_UPLOAD_BYTES, SERVER_PORT, SERVER_HOST, MAX_WAIT_MS, MSG } from '../util/constants';
+
+/** 通用 RPC 调用辅助（消除 app-api/api 两分支的重复 tryPromise+isEffect 模式） */
+const callRpc = <T>(rpc: ReturnType<typeof createRPC>, method: string, params: unknown[]) =>
+  Effect.gen(function* () {
+    const res = yield* tryOrFail('RPC 调用', () => rpc.RC(method, params));
+    if (Effect.isEffect(res)) return yield* res as Effect.Effect<T>;
+    return res as T;
+  });
 
 /** ESM 模块中获取 __dirname 的替代方案 */
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -86,7 +85,7 @@ function handleCause(cause: Cause.Cause<unknown>) {
     onDie: setErr,
     onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
     onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
-    onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right})`,
+    onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right}))`,
   });
 
   if (err) {
@@ -95,15 +94,31 @@ function handleCause(cause: Cause.Cause<unknown>) {
   return { message: causeMsg };
 }
 
+/**
+ * 判断请求体是否为 superjson 格式
+ * superjson 序列化后的结构为 { json: ..., meta?: ... }
+ */
+function isSuperJsonBody(body: unknown): body is SuperJSONResult {
+  return typeof body === 'object' && body !== null && 'json' in body;
+}
+
 /** 参数解析函数 */
 async function parseParams(req: FastifyRequest): Promise<unknown[]> {
   const contentType = req.headers['content-type'];
-  if (contentType === 'application/json') {
-    const parsed = superjson.deserialize(req.body as SuperJSONResult) as unknown;
-    if (!Array.isArray(parsed)) {
-      throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
+  if (contentType?.includes('application/json')) {
+    /** 兼容 superjson 和普通 JSON 两种格式 */
+    if (isSuperJsonBody(req.body)) {
+      const parsed = superjson.deserialize(req.body as SuperJSONResult) as unknown;
+      if (!Array.isArray(parsed)) {
+        throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
+      }
+      return parsed;
     }
-    return parsed;
+    /** 普通 JSON：直接当数组解析 */
+    if (Array.isArray(req.body)) {
+      return req.body;
+    }
+    throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
   } else if (contentType?.startsWith('multipart/form-data')) {
     // 在接口中使用 ReqCtx 获取值（为了文件流的优化）
     return [];
@@ -176,6 +191,7 @@ type ApiCtx = {
   onEnd: () => void;
   enqueueTime: number;
 };
+
 /** rpc 实例，提到外部可避免每次重新创建 */
 const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
 let reqId = 0;
@@ -190,7 +206,14 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
     req,
     reqId: ++reqId,
   };
-  const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
+  let method: string;
+  try {
+    method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
+  } catch {
+    reply.code(400).send({ error: 'Malformed URL encoding' });
+    onEnd();
+    return Effect.void;
+  }
 
   const program = buildReqProgram({ req, reply, pathPrefix, method, enqueueTime });
 
@@ -299,9 +322,15 @@ function sendFileResponse(reply: FastifyReply, fileItem: FileWrapItem) {
     if (rangeHeader) {
       const rangeStr = typeof rangeHeader === 'string' ? rangeHeader : (Array.isArray(rangeHeader) ? rangeHeader[0] : String(rangeHeader));
       const parts = rangeStr.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0] ?? '0', 10) || 0;
+      const start = Math.max(0, parseInt(parts[0] ?? '0', 10) || 0);
       const rawEnd = parseInt(parts[1] ?? '', 10);
-      const end = Number.isNaN(rawEnd) ? fileSize - 1 : rawEnd;
+      const end = Math.min(Number.isNaN(rawEnd) ? fileSize - 1 : rawEnd, fileSize - 1);
+
+      if (start >= fileSize || end < start) {
+        reply.code(416).header('Content-Range', `bytes */${fileSize}`).send();
+        return;
+      }
+
       const chunkSize = end - start + 1;
 
       reply
@@ -317,7 +346,7 @@ function sendFileResponse(reply: FastifyReply, fileItem: FileWrapItem) {
 }
 /** 服务器初始化 */
 export const startServer = Effect.gen(function* () {
-  const fastify = Fastify({ logger: false });
+  const fastify = Fastify({ logger: false, bodyLimit: 10 * 1024 * 1024 }); // 10MB JSON body limit
   const appConfig = yield* AppConfigService;
 
   //#region fastify 注册中间件:cors Multipart static
@@ -325,6 +354,9 @@ export const startServer = Effect.gen(function* () {
   const corsOrigin = appConfig.corsOrigins && appConfig.corsOrigins.length > 0
     ? appConfig.corsOrigins
     : true; // true 等效于 '*'
+  if (corsOrigin === true && process.env.NODE_ENV === 'production') {
+    console.warn('[Server] CORS 允许所有来源(*)，建议在 config.json 中配置 corsOrigins 白名单');
+  }
   fastify.register(fastifyCors, {
     origin: corsOrigin,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -415,7 +447,15 @@ export const startServer = Effect.gen(function* () {
     yield* Effect.forkDaemon(
       semaphore.withPermits(1)(
         handleReq(ctx).pipe(
-          Effect.catchAll((err) => Effect.logError(`[handleReq error] ${String(err)}`)),
+          Effect.catchAll((err) =>
+            Effect.gen(function* () {
+              yield* Effect.logError(`[handleReq error] ${String(err)}`);
+              /** 确保客户端收到响应，避免连接挂起 */
+              if (!ctx.reply.sent) {
+                ctx.reply.code(500).send({ error: 'Internal Server Error' });
+              }
+            }),
+          ),
           Effect.ensuring(Effect.sync(ctx.onEnd)),
         ),
       ),
