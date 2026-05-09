@@ -1,5 +1,9 @@
-import { all, create } from 'mathjs';
-import { computed, reactive, ref } from 'vue';
+import { reactive, ref } from 'vue';
+import {
+  tokenize, Parser, evalAST, formatEvalResult,
+  isUnitValue,
+  type EvalResult, type Scope,
+} from '@tsfullstack/note-calc-engine';
 import type { CalculationResult, CalculatorConfig, TextDiff } from './types';
 
 /**
@@ -14,26 +18,16 @@ export function useCalculator(initialConfig: CalculatorConfig) {
     showPrecision: initialConfig.showPrecision,
   });
 
-  const variables = reactive<Record<string, unknown>>({});
-  const varMap = reactive<Record<string, string>>({});
+  const variables = reactive<Scope>({});
   /** Vue reactive 不追踪 Set/Map 内部变更，必须整体赋值触发更新（= new Set()） */
   const dependencyGraph = reactive<Record<string, Set<number>>>({});
   const lineToVars = reactive<Record<number, Set<string>>>({});
   const lineResults = reactive<Record<number, CalculationResult>>({});
   const lineDefinedVars = reactive<Record<number, string>>({});
-  const varCounter = ref(0);
 
   // 添加任务队列和执行状态
   const calculationQueue = ref<Array<() => Promise<CalculationResult[]>>>([]);
   const isCalculating = ref(false);
-
-  // 计算属性
-  const mathInstance = computed(() => {
-    return create(all || {}, {
-      number: 'number',
-      precision: config.precision,
-    });
-  });
 
   /**
    * 更新配置
@@ -44,71 +38,10 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   }
 
   /**
-   * 格式化结果为可显示的字符串，处理精度问题
+   * 格式化结果为可显示的字符串
    */
-  function formatResult(result: unknown): string {
-    if (result === null || result === undefined) {
-      return 'undefined';
-    }
-
-    // 处理数字类型，解决浮点数精度问题
-    if (typeof result === 'number') {
-      try {
-        // 检查是否是整数
-        if (Number.isInteger(result)) {
-          return String(result);
-        }
-
-        // 对于小数，使用math.format格式化，避免显示过多小数位
-        return mathInstance.value.format(result, {
-          precision: config.showPrecision,
-          notation: 'auto',
-        });
-      } catch {
-        return String(result);
-      }
-    }
-
-    // 处理BigNumber类型
-    if (
-      result &&
-      typeof result === 'object' &&
-      result.constructor &&
-      result.constructor.name === 'BigNumber'
-    ) {
-      return result.toString();
-    }
-
-    // 处理Unit对象
-    if (typeof result === 'object' && result !== null) {
-      const obj = result as Record<string, unknown>;
-      if ('unit' in obj || 'value' in obj) {
-        try {
-          if (typeof obj.value === 'number') {
-            const formattedValue = mathInstance.value.format(obj.value, {
-              precision: 15,
-              notation: 'auto',
-            });
-            if (obj.unit && typeof obj.unit === 'object' && 'toString' in obj.unit) {
-              return `${formattedValue} ${(obj.unit as { toString(): string }).toString()}`;
-            }
-          }
-          return String(obj);
-        } catch (e: unknown) {
-          return JSON.stringify(result);
-        }
-      }
-
-      // 其他对象类型
-      try {
-        return JSON.stringify(obj);
-      } catch (e: unknown) {
-        return '[复杂对象]';
-      }
-    }
-
-    // 基本类型直接转换为字符串
-    return String(result);
+  function formatResult(result: EvalResult): string {
+    return formatEvalResult(result, config.showPrecision);
   }
 
   /**
@@ -180,86 +113,17 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   }
 
   /**
-   * 对变量名进行替换，避免中文变量名对 math.js 的影响
-   * 使用更简单直接的方法：直接替换完整的变量名
-   */
-  function paserSafeExpression(expression: string): string {
-    // 创建一个副本，避免修改原始表达式
-    let safeExpression = expression;
-
-    // 按照变量名长度降序排序，避免部分替换问题
-    const sortedVars = Object.keys(varMap)
-      .filter((name) => variables[name] !== undefined)
-      .sort((a, b) => b.length - a.length);
-
-    // 对每个变量，使用一个简单的方法替换所有实例
-    for (const varName of sortedVars) {
-      // 使用一个简单的方法：将表达式拆分为词元，然后替换匹配的词元
-      const tokens = [];
-      let currentToken = '';
-      let inVariable = false;
-
-      // 遍历表达式的每个字符
-      for (let i = 0; i <= safeExpression.length; i++) {
-        const char = i < safeExpression.length ? safeExpression[i] : '';
-
-        // 如果是字母、数字、下划线或中文，可能是变量名的一部分
-        if (/[a-zA-Z0-9_\u4e00-\u9fa5]/.test(char || '')) {
-          currentToken += char;
-          inVariable = true;
-        } else {
-          // 如果当前有词元，检查是否是变量名
-          if (currentToken) {
-            if (inVariable && currentToken === varName) {
-              // 如果是变量名，替换为安全变量名
-              tokens.push(varMap[varName]);
-            } else {
-              // 否则保持原样
-              tokens.push(currentToken);
-            }
-            currentToken = '';
-            inVariable = false;
-          }
-
-          // 添加非变量字符
-          if (char) {
-            tokens.push(char);
-          }
-        }
-      }
-
-      // 重新组合表达式
-      safeExpression = tokens.join('');
-    }
-
-    return safeExpression;
-  }
-
-  /**
-   * 获取安全的作用域对象
-   */
-  function getSafeScope(): Record<string, unknown> {
-    const scope: Record<string, unknown> = {};
-    for (const [name, safeVarName] of Object.entries(varMap)) {
-      if (variables[name] !== undefined) {
-        scope[safeVarName] = variables[name];
-      }
-    }
-    return scope;
-  }
-
-  /**
    * 计算表达式
    */
-  function evalExpression(expression: string): unknown {
-    const safeExpr = paserSafeExpression(expression);
-    const scope = getSafeScope();
-
-    return mathInstance.value.evaluate(safeExpr, scope);
+  function evalExpression(expression: string): EvalResult {
+    const tokens = tokenize(expression);
+    const ast = Parser.parse(tokens);
+    return evalAST(ast, variables);
   }
 
   /** 将 eval 结果安全转为数字，非数值返回 NaN */
-  function toNumber(result: unknown): number {
+  function toNumber(result: EvalResult): number {
+    if (isUnitValue(result)) return result.value;
     return typeof result === 'number' ? result : Number.NaN;
   }
 
@@ -269,7 +133,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
    */
   function extractVariables(expression: string): Set<string> {
     const vars = new Set<string>();
-    const varNameSet = new Set(Object.keys(varMap));
+    const varNameSet = new Set(Object.keys(variables));
 
     // 使用与paserSafeExpression相同的词元化方法
     let currentToken = '';
@@ -490,46 +354,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
       }
     }
 
-    // 处理单位转换 (如 "距离 to m")
-    const unitConvMatch = line.match(/^(.+)\s+to\s+([a-zA-Z]+)$/);
-    if (unitConvMatch) {
-      const varName = unitConvMatch[1]?.trim() ?? '';
-
-      try {
-        // 提取表达式中使用的变量
-        const usedVars = new Set<string>([varName]);
-        updateDependencyGraph(lineIndex, usedVars);
-
-        if (variables[varName] !== undefined) {
-          // 转换单位
-          const converted = evalExpression(line);
-          const resultDisplay = formatResult(converted);
-
-          return {
-            type: 'unitConversion',
-            content: line,
-            result: resultDisplay,
-            highlightedContent: highlightSyntax(line),
-          };
-        } else {
-          return {
-            type: 'error',
-            content: line,
-            error: `错误: 变量${varName}未定义`,
-            highlightedContent: highlightSyntax(line),
-          };
-        }
-      } catch (e: unknown) {
-        return {
-          type: 'error',
-          content: line,
-          error: String(e),
-          highlightedContent: highlightSyntax(line),
-        };
-      }
-    }
-
-    // 处理普通表达式
+    // 处理普通表达式（含 to 单位转换，parser 原生支持）
     try {
       // 提取表达式中使用的变量
       const usedVars = extractVariables(line);
@@ -540,8 +365,9 @@ export function useCalculator(initialConfig: CalculatorConfig) {
 
       // 格式化结果显示
       const resultDisplay = formatResult(result);
+      const isConversion = /\bto\b/i.test(line) && isUnitValue(result);
       return {
-        type: 'expression',
+        type: isConversion ? 'unitConversion' : 'expression',
         content: line,
         result: resultDisplay,
         highlightedContent: highlightSyntax(line),
@@ -558,27 +384,9 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   /**
    * 初始化变量映射
    */
-  function initializeVarMap(content: string): void {
-    const lines = content.split('\n');
-
-    // 保留已有的变量映射，只添加新变量
-    // 这样可以避免重新计算时变量映射发生变化
-
-    // 第一遍扫描：收集所有变量定义
-    lines.forEach((line) => {
-      // 使用与calculateLine中相同的正则表达式来识别变量赋值
-      const assignmentMatch = line.match(/^([a-zA-Z0-9_\u4e00-\u9fa5]+)\s*=\s*(.+)$/);
-      if (assignmentMatch) {
-        const varName = assignmentMatch[1]?.trim() ?? '';
-        const expression = assignmentMatch[2]?.trim() || '';
-
-        // 确保右侧不包含等号，是真正的变量赋值
-        if (!expression.includes('=') && !varMap[varName]) {
-          // 为每个变量创建一个唯一的安全名称，因为 math.js 不支持中文变量名
-          varMap[varName] = `v${varCounter.value++}`;
-        }
-      }
-    });
+  /** 自研 parser 直接支持中文变量名，无需预建映射，此函数保留以兼容调用点 */
+  function initializeVarMap(_content: string): void {
+    /** no-op */
   }
 
   /**
