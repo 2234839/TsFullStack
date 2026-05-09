@@ -26,6 +26,8 @@
         } else {
           fileUrl.value = await AppAPIGetUrl.fileApi.file(fileIdVal);
         }
+      } catch {
+        fileUrl.value = '';
       } finally {
         loading.value = false
       }

@@ -6,7 +6,7 @@
 
     <div class="space-y-4">
       <div class="field">
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+        <label class="block text-sm font-medium text-primary-label mb-1">
           {{ t('模型名称') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
@@ -18,7 +18,7 @@
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+        <label class="block text-sm font-medium text-primary-label mb-1">
           {{ t('模型标识') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
@@ -30,7 +30,7 @@
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+        <label class="block text-sm font-medium text-primary-label mb-1">
           {{ t('API基础URL') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
@@ -42,7 +42,7 @@
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+        <label class="block text-sm font-medium text-primary-label mb-1">
           {{ t('API密钥') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Password
@@ -57,7 +57,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('最大Token数') }}
           </label>
           <InputNumber
@@ -70,7 +70,7 @@
         </div>
 
         <div class="field">
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('温度参数') }}
           </label>
           <InputNumber
@@ -86,7 +86,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('权重') }}
           </label>
           <InputNumber
@@ -99,7 +99,7 @@
         </div>
 
         <div class="field">
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('每分钟限制') }}
           </label>
           <InputNumber
@@ -113,7 +113,7 @@
 
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('每小时限制') }}
           </label>
           <InputNumber
@@ -125,7 +125,7 @@
         </div>
 
         <div class="field">
-          <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+          <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('每日限制') }}
           </label>
           <InputNumber
@@ -138,7 +138,7 @@
       </div>
 
       <div class="field">
-        <label class="block text-sm font-medium text-primary-700 dark:text-primary-300 mb-1">
+        <label class="block text-sm font-medium text-primary-label mb-1">
           {{ t('描述信息') }}
         </label>
         <Textarea
@@ -154,7 +154,7 @@
             v-model="form.enabled"
             inputId="enabled"
             :binary="true" />
-          <label for="enabled" class="ml-2 text-sm font-medium text-primary-700 dark:text-primary-300">
+          <label for="enabled" class="ml-2 text-sm font-medium text-primary-label">
             {{ t('启用模型') }}
           </label>
         </div>
@@ -188,10 +188,28 @@ import { getErrorMessage } from '@/utils/error'
 import { DEFAULT_MAX_TOKENS } from '@/utils/constants'
 import { Dialog } from '@tsfullstack/shared-frontend/components'
 
+/** AiModel 数据结构 */
+interface AiModelData {
+  id?: number
+  name?: string | null
+  model?: string | null
+  provider?: string | null
+  baseUrl?: string | null
+  maxTokens?: number | null
+  temperature?: number | null
+  weight?: number | null
+  rpmLimit?: number | null
+  rphLimit?: number | null
+  rpdLimit?: number | null
+  description?: string | null
+  enabled?: boolean | null
+  [key: string]: unknown
+}
+
 /** AiModel 表单数据（与 AiModelVO 对齐，允许 null 表示新建模式） */
 interface Props {
   open: boolean
-  model?: Record<string, unknown> | null
+  model?: AiModelData | null
 }
 
 const { open, model } = defineProps<Props>()

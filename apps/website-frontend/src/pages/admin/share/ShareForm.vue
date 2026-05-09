@@ -13,26 +13,26 @@
         @drop.prevent="handleDrop">
         <input ref="fileInputRef" type="file" multiple @change="onFileSelect" class="hidden"
           :placeholder="t('请选择文件')" />
-        <div class="text-primary-500 dark:text-primary-400 mb-4 flex justify-center">
+        <div class="text-primary-subtle mb-4 flex justify-center">
           <i class="pi pi-cloud-upload text-5xl"></i>
         </div>
-        <div class="text-sm text-primary-600 dark:text-primary-400 mb-1">{{ t('点击或拖拽文件到此处上传') }}</div>
+        <div class="text-sm text-primary-theme mb-1">{{ t('点击或拖拽文件到此处上传') }}</div>
         <div class="text-xs text-primary-500 dark:text-primary-500">{{ t('支持多个文件同时上传') }}</div>
       </div>
 
       <!-- 已选择的文件列表 -->
       <div v-if="selectedFiles.length > 0">
-        <div class="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-3">{{ t('已选择的文件') }}</div>
+        <div class="text-sm font-semibold text-primary-label mb-3">{{ t('已选择的文件') }}</div>
         <div v-for="(file, index) in selectedFiles" :key="`${file.name}-${file.size}-${index}`"
-          class="flex items-center justify-between p-3 bg-primary-50 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 rounded-lg mb-2 last:mb-0 hover:bg-primary-100 dark:hover:bg-primary-750 hover:border-primary-300 dark:hover:border-primary-600 transition-all">
-          <div class="flex items-center gap-3 text-sm text-primary-700 dark:text-primary-300 min-w-0 flex-1">
-            <i class="pi pi-file text-xl shrink-0 text-primary-500 dark:text-primary-400"></i>
+          class="flex items-center justify-between p-3 bg-primary-50 dark:bg-primary-800 border border-primary-default rounded-lg mb-2 last:mb-0 hover:bg-primary-100 dark:hover:bg-primary-750 hover:border-primary-300 dark:hover:border-primary-600 transition-all">
+          <div class="flex items-center gap-3 text-sm text-primary-label min-w-0 flex-1">
+            <i class="pi pi-file text-xl shrink-0 text-primary-subtle"></i>
             <span class="truncate flex-1">{{ file.name }}</span>
-            <span class="text-xs text-primary-500 dark:text-primary-400 shrink-0 ml-2">{{ formatFileSize(file.size) }}</span>
+            <span class="text-xs text-primary-subtle shrink-0 ml-2">{{ formatFileSize(file.size) }}</span>
           </div>
           <Button
             variant="ghost" size="sm"
-            class="text-primary-500 dark:text-primary-400 hover:bg-danger-100 dark:hover:bg-danger-900/20 hover:text-danger-600! dark:hover:text-danger-400!"
+            class="text-primary-subtle hover:bg-danger-100 dark:hover:bg-danger-900/20 hover:text-danger-600! dark:hover:text-danger-400!"
             @click="removeSelectedFile(index)" :aria-label="t('移除文件')">
             <i class="pi pi-times"></i>
           </Button>
@@ -41,28 +41,28 @@
 
       <!-- 已上传的文件列表 -->
       <div v-if="uploadedFiles.length > 0">
-        <div class="text-sm font-semibold text-primary-700 dark:text-primary-300 mb-3">{{ t('已上传的文件') }}</div>
+        <div class="text-sm font-semibold text-primary-label mb-3">{{ t('已上传的文件') }}</div>
         <div v-for="file in uploadedFiles" :key="file.id"
           class="flex items-center justify-between p-3 rounded-lg mb-2 last:mb-0 transition-all"
           :class="isFileMarkedForDeletion(file.id)
             ? 'bg-primary-100 dark:bg-primary-900 border border-primary-300 dark:border-primary-600 opacity-60'
-            : 'bg-primary-50 dark:bg-primary-800 border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-700 hover:border-primary-300 dark:hover:border-primary-600'">
+            : 'bg-primary-50 dark:bg-primary-800 border border-primary-default hover:bg-primary-100 dark:hover:bg-primary-700 hover:border-primary-300 dark:hover:border-primary-600'">
           <div class="flex items-center gap-3 text-sm min-w-0 flex-1" :class="isFileMarkedForDeletion(file.id)
               ? 'text-primary-500 dark:text-primary-500 line-through'
-              : 'text-primary-700 dark:text-primary-300'">
+              : 'text-primary-label'">
             <i class="pi pi-file text-xl shrink-0" :class="isFileMarkedForDeletion(file.id)
                 ? 'text-primary-400 dark:text-primary-600'
-                : 'text-primary-500 dark:text-primary-400'"></i>
+                : 'text-primary-subtle'"></i>
             <span class="truncate flex-1">{{ file.filename }}</span>
             <span class="text-xs shrink-0 ml-2" :class="isFileMarkedForDeletion(file.id)
                 ? 'text-primary-400 dark:text-primary-600'
-                : 'text-primary-500 dark:text-primary-400'">{{ formatFileSize(file.size ?? 0) }}</span>
+                : 'text-primary-subtle'">{{ formatFileSize(file.size ?? 0) }}</span>
           </div>
           <Button type="button" variant="ghost" size="sm"
             :class="isFileMarkedForDeletion(file.id)
-              ? 'text-primary-600 dark:text-primary-400'
-              : 'text-primary-500 dark:text-primary-400'"
-            @click="isFileMarkedForDeletion(file.id) ? undoRemoveFile(file.id) : removeUploadedFile(file.id)"
+              ? 'text-primary-theme'
+              : 'text-primary-subtle'"
+            @click="toggleFileDeletion(file.id)"
             :aria-label="isFileMarkedForDeletion(file.id) ? t('撤销删除') : t('移除文件')">
             {{ isFileMarkedForDeletion(file.id) ? t('撤销') : '' }}
             <i :class="isFileMarkedForDeletion(file.id) ? 'pi pi-refresh' : 'pi pi-times'"></i>
@@ -143,7 +143,16 @@
   const deletedFileIds = ref<Set<number>>(new Set());
 
   /** 是否正在提交 */
-  const isSubmitting = ref(false);
+  const isSubmitting = shallowRef(false);
+
+  /** 切换文件删除状态 */
+  function toggleFileDeletion(fileId: number) {
+    if (isFileMarkedForDeletion(fileId)) {
+      undoRemoveFile(fileId);
+    } else {
+      removeUploadedFile(fileId);
+    }
+  }
 
   /** 文件输入框引用 */
   const fileInputRef = ref<HTMLInputElement>();
