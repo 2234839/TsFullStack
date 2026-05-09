@@ -3,7 +3,7 @@
     class="codemirror-editor"
     :class="editorClasses">
     <!-- 工具栏 -->
-    <div class="editor-toolbar">
+    <div v-if="!hideToolbar" class="editor-toolbar">
       <div class="toolbar-left">
         <button
           class="toolbar-button"
@@ -54,9 +54,11 @@
     modelValue: string;
     /** 配置 */
     config: CalculatorConfig & { isAutoCalculate: boolean };
+    /** 是否隐藏工具栏（嵌入模式） */
+    hideToolbar?: boolean;
   }
 
-  const { modelValue, config } = defineProps<Props>();
+  const { modelValue, config, hideToolbar = false } = defineProps<Props>();
 
   const emit = defineEmits<{
     'update:modelValue': [content: string];
