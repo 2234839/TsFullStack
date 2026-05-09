@@ -17,7 +17,7 @@
         <button
           @click.prevent.stop="toggleGithubStar()"
           :aria-label="t('关闭')"
-          class="hidden group-hover:block absolute -top-2 -right-2 bg-primary-panel text-primary-title rounded-full p-1 leading-none shadow-md hover:bg-primary-50 dark:hover:bg-primary-700 transition-colors">
+          class="hidden group-hover:block absolute -top-2 -right-2 bg-white text-gray-600 rounded-full p-1 leading-none shadow-md hover:bg-danger-50 hover:text-danger-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-danger-900 dark:hover:text-danger-400 transition-colors">
           <i class="pi pi-times text-sm" />
         </button>
       </a>
