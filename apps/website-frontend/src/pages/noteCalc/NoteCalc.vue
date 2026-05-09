@@ -1,8 +1,8 @@
 <template>
-  <div class="flex flex-col min-h-screen bg-primary-50 dark:bg-primary-900">
+  <div class="flex flex-col min-h-screen bg-primary-card">
     <!-- 头部导航栏 -->
     <header
-      class="flex items-center justify-between p-4 bg-white dark:bg-primary-800 border-b border-primary-200 dark:border-primary-700 shadow-sm">
+      class="flex items-center justify-between p-4 bg-primary-panel border-b border-primary-default shadow-sm">
       <div class="hidden md:flex items-center gap-2">
         <div class="w-8 h-8 text-secondary-600 dark:text-secondary-400">
           <i class="pi pi-calculator text-2xl!"></i>
@@ -18,6 +18,8 @@
           :disabled="!authInfo_isLogin || isSaving" :loading="isSaving" :title="ti18n('保存到云端,需要登录后才能使用')" />
         <Button icon="pi pi-share-alt" :label="ti18n('分享')" variant="text-button" @click="handleShare()"
           :title="ti18n('分享当前文档')" />
+        <Button icon="pi pi-code" variant="icon" rounded @click="showEmbedGuide = true"
+          :title="ti18n('嵌入/API 使用说明')" />
         <Button icon="pi pi-cog" variant="icon" rounded @click="showSettings = !showSettings"
           :title="ti18n('设置')" />
         <CommonSettingBtns />
@@ -52,10 +54,10 @@
           <div v-if="!authInfo_isLogin" class="flex-1 flex items-center justify-center">
             <div class="text-center p-4">
               <i class="pi pi-lock text-4xl mb-2 text-primary-400 dark:text-primary-500"></i>
-              <p class="text-primary-500 dark:text-primary-400">{{ ti18n('请登录后查看您的笔记') }}</p>
+              <p class="text-primary-subtle">{{ ti18n('请登录后查看您的笔记') }}</p>
               <Button @click="
-                  routerUtil.push(routeMap.login, {}, { r: route.fullPath }),
-                    (sidebarVisible = false)
+                  routerUtil.push(routeMap.login, {}, { r: route.fullPath });
+                  sidebarVisible = false;
                 ">{{ ti18n('登录') }}</Button>
             </div>
           </div>
@@ -68,7 +70,7 @@
           <div v-else-if="!notesState.state.value.length" class="flex-1 flex items-center justify-center">
             <div class="text-center p-4">
               <i class="pi pi-file-o text-4xl mb-2 text-primary-400 dark:text-primary-500"></i>
-              <p class="text-primary-500 dark:text-primary-400">
+              <p class="text-primary-subtle">
                 {{ searchQuery ? ti18n('未找到匹配的笔记') : ti18n('暂无笔记') }}
               </p>
             </div>
@@ -78,7 +80,7 @@
             <TransitionGroup name="list" tag="ul" class="p-0 m-0 list-none">
               <li v-for="note in notesState.state.value" :key="note.id" class="mb-2">
                 <div
-                  class="p-3 rounded-lg border border-primary-200 dark:border-primary-700 hover:bg-primary-100 dark:hover:bg-primary-800 cursor-pointer transition-colors"
+                  class="p-3 rounded-lg border border-primary-default hover:bg-primary-100 dark:hover:bg-primary-800 cursor-pointer transition-colors"
                   :class="{ 'bg-secondary-50 dark:bg-secondary-900/30': currentNoteId === note.id }" @click="loadNote(note)">
                   <div class="flex items-center justify-between">
                     <div class="truncate font-medium">
@@ -91,7 +93,7 @@
                         @click.stop="confirmDeleteNote(note, $event)" :title="ti18n('删除')" />
                     </div>
                   </div>
-                  <div class="text-xs text-primary-500 dark:text-primary-400 mt-1 flex justify-between">
+                  <div class="text-xs text-primary-subtle mt-1 flex justify-between">
                     <span>{{ formatDate(note.updated) }}</span>
                     <span>{{ getContentPreview(note) }}</span>
                   </div>
@@ -110,7 +112,7 @@
 
       <!-- 双栏编辑区 -->
       <div class="flex-1 flex flex-col overflow-hidden">
-        <div class="p-2 bg-white dark:bg-primary-800 border-b border-primary-200 dark:border-primary-700 flex items-center">
+        <div class="p-2 bg-primary-panel border-b border-primary-default flex items-center">
           <Button icon="pi pi-bars" variant="icon" rounded class="mr-2"
             @click="sidebarVisible = !sidebarVisible" :title="ti18n('显示/隐藏侧边栏')" />
 
@@ -118,14 +120,14 @@
             <span v-if="currentNote" class="font-medium truncate">
               {{ getNoteTitle(currentNote) }}
             </span>
-            <span v-else class="text-primary-500 dark:text-primary-400">{{ ti18n('未保存的笔记') }}</span>
+            <span v-else class="text-primary-subtle">{{ ti18n('未保存的笔记') }}</span>
 
             <span v-if="unsavedChanges" class="ml-2 text-xs text-warning-500 dark:text-warning-400">
               <i class="pi pi-exclamation-circle mr-1"></i>{{ ti18n('未保存') }}
             </span>
           </div>
 
-          <div v-if="config.autoSaveEnabled" class="text-xs text-primary-500 dark:text-primary-400 flex items-center">
+          <div v-if="config.autoSaveEnabled" class="text-xs text-primary-subtle flex items-center">
             <i class="pi pi-clock mr-1"></i>
             <span v-if="lastSaved">{{ ti18n('上次保存') }}: {{ lastSaved_v }}</span>
             <span v-else>{{ ti18n('自动保存已启用') }}</span>
@@ -155,21 +157,21 @@
           <div class="flex items-center">
             <InputNumber v-model="config.autoSaveInterval" :min="5" :max="60" :disabled="!config.autoSaveEnabled"
               show-buttons />
-            <span class="ml-2 text-primary-500 dark:text-primary-400">{{ ti18n('秒') }}</span>
+            <span class="ml-2 text-primary-subtle">{{ ti18n('秒') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('结果显示精度') }}</label>
           <div class="flex items-center">
             <InputNumber v-model="config.showPrecision" :min="1" :max="100" show-buttons />
-            <span class="ml-2 text-primary-500 dark:text-primary-400">{{ ti18n('位') }}</span>
+            <span class="ml-2 text-primary-subtle">{{ ti18n('位') }}</span>
           </div>
         </div>
         <div class="flex justify-between items-center">
           <label class="font-medium">{{ ti18n('计算精度') }}</label>
           <div class="flex items-center">
             <InputNumber v-model="config.precision" :min="1" :max="100" show-buttons />
-            <span class="ml-2 text-primary-500 dark:text-primary-400">{{ ti18n('位') }}</span>
+            <span class="ml-2 text-primary-subtle">{{ ti18n('位') }}</span>
           </div>
         </div>
       </div>
@@ -186,6 +188,48 @@
           <Button :label="ti18n('取消')" variant="text" @click="showRenameModal = false" />
           <Button :label="ti18n('保存')" @click="saveRename" :disabled="!renameTitle.trim()" />
         </div>
+      </div>
+    </Dialog>
+
+    <!-- 嵌入/API 使用说明 -->
+    <Dialog v-model:open="showEmbedGuide" :title="ti18n('嵌入 & API 使用说明')">
+      <div class="space-y-5 text-sm">
+        <section>
+          <h3 class="font-bold text-base mb-2 text-primary-heading">{{ ti18n('iframe 嵌入（可视化展示）') }}</h3>
+          <p class="text-primary-subtle mb-2">{{ ti18n('通过 URL hash 传入表达式，用 \\n 表示换行：') }}</p>
+          <div class="relative">
+            <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs overflow-x-auto whitespace-pre-wrap">{{ embedExample }}</pre>
+            <Button variant="text" size="sm" class="absolute top-1 right-1"
+              @click="copyToClipboard(embedExample)">
+              <i class="pi pi-copy" />
+            </Button>
+          </div>
+        </section>
+
+        <section>
+          <h3 class="font-bold text-base mb-2 text-primary-heading">{{ ti18n('HTTP API（获取计算结果）') }}</h3>
+          <p class="text-primary-subtle mb-2">{{ ti18n('POST 请求，普通 JSON 数组格式，无需认证：') }}</p>
+          <div class="relative">
+            <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs overflow-x-auto whitespace-pre-wrap">{{ apiExample }}</pre>
+            <Button variant="text" size="sm" class="absolute top-1 right-1"
+              @click="copyToClipboard(apiExample)">
+              <i class="pi pi-copy" />
+            </Button>
+          </div>
+          <p class="text-primary-subtle mt-2 mb-1">{{ ti18n('响应示例：') }}</p>
+          <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs overflow-x-auto whitespace-pre-wrap">{{ apiResponseExample }}</pre>
+        </section>
+
+        <section>
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base text-primary-heading">{{ ti18n('SKILL.md（Agent 技能描述）') }}</h3>
+            <Button size="sm" @click="copyToClipboard(skillMdContent)">
+              <i class="pi pi-copy mr-1" />
+              {{ ti18n('复制 SKILL.md') }}
+            </Button>
+          </div>
+          <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs overflow-x-auto max-h-64 whitespace-pre-wrap">{{ skillMdContent }}</pre>
+        </section>
       </div>
     </Dialog>
   </div>
@@ -235,6 +279,41 @@
     autoSaveInterval: 10,
   });
   const showSettings = ref(false);
+  const showEmbedGuide = ref(false);
+
+  const embedBaseUrl = window.location.origin;
+
+  import skillMdContent from './skill.md?raw';
+
+  /** iframe 嵌入示例 */
+  const embedExample = computed(() =>
+    `<iframe\n  src="${embedBaseUrl}/noteCalc/embed#1 + 2\\n价格 = 99.5\\n总价 = 价格 * 3"\n  width="100%" height="300"\n/>`
+  );
+
+  /** API 请求示例 */
+  const apiExample = computed(() =>
+    `POST ${embedBaseUrl}/app-api/noteCalcApi.evaluate\nContent-Type: application/json\n\n[{"content":"1 + 2\\n价格 = 99.5\\n总价 = 价格 * 3"}]`
+  );
+
+  /** API 响应示例 */
+  const apiResponseExample = `{
+  "json": {
+    "result": {
+      "results": [
+        {"line":"1 + 2","type":"expression","result":"3"},
+        {"line":"价格 = 99.5","type":"assignment","result":"99.5","variable":"价格"},
+        {"line":"总价 = 价格 * 3","type":"assignment","result":"298.5","variable":"总价"}
+      ]
+    }
+  }
+}`;
+
+  /** 复制到剪贴板 */
+  function copyToClipboard(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success(ti18n('已复制'), ti18n('内容已复制到剪贴板'));
+    });
+  }
 
   // 侧边栏状态
   const sidebarVisible = ref(false);
@@ -614,7 +693,7 @@
   /** 自动保存（useIntervalFn 自动在组件卸载时清理） */
   const { pause: pauseAutoSave, resume: resumeAutoSave } = useIntervalFn(
     () => {
-      if (unsavedChanges.value && currentNote.value) {
+      if (unsavedChanges.value && currentNote.value && !isSaving.value) {
         saveCurrentNote();
       }
     },
