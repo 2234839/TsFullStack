@@ -27,7 +27,7 @@ export const localUserPwd = useStorageAsync<{
   password: string;
   rememberMe: boolean;
 }>(
-  /** 故意使用 test 作为 key ，减少社工风险 */ appId + '__test__',
+  /** v2: 密钥派生方式变更（SHA-256），不兼容旧数据 */ appId + '__test_v2__',
   { username: '', password: '', rememberMe: false },
   undefined,
   {
@@ -37,7 +37,7 @@ export const localUserPwd = useStorageAsync<{
 
 /** 清除认证信息并跳转到登录页面  */
 export function authInfo_logout(/** 登录后重定向的页面地址   */ r?: string) {
-  authInfo.value = undefined;
+  authInfo.value = null;
   routerUtil.push(routeMap.login, {}, { r });
 }
 
