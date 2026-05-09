@@ -193,43 +193,14 @@
 
     <!-- 嵌入/API 使用说明 -->
     <Dialog v-model:open="showEmbedGuide" :title="ti18n('嵌入 & API 使用说明')">
-      <div class="space-y-5 text-sm">
-        <section>
-          <h3 class="font-bold text-base mb-2 text-primary-heading">{{ ti18n('iframe 嵌入（可视化展示）') }}</h3>
-          <p class="text-primary-subtle mb-2">{{ ti18n('通过 URL hash 传入表达式，用 \\n 表示换行：') }}</p>
-          <div class="relative">
-            <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs overflow-x-auto whitespace-pre-wrap">{{ embedExample }}</pre>
-            <Button variant="text" size="sm" class="absolute top-1 right-1"
-              @click="copyToClipboard(embedExample)">
-              <i class="pi pi-copy" />
-            </Button>
-          </div>
-        </section>
-
-        <section>
-          <h3 class="font-bold text-base mb-2 text-primary-heading">{{ ti18n('HTTP API（获取计算结果）') }}</h3>
-          <p class="text-primary-subtle mb-2">{{ ti18n('POST 请求，普通 JSON 数组格式，无需认证：') }}</p>
-          <div class="relative">
-            <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs overflow-x-auto whitespace-pre-wrap">{{ apiExample }}</pre>
-            <Button variant="text" size="sm" class="absolute top-1 right-1"
-              @click="copyToClipboard(apiExample)">
-              <i class="pi pi-copy" />
-            </Button>
-          </div>
-          <p class="text-primary-subtle mt-2 mb-1">{{ ti18n('响应示例：') }}</p>
-          <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs overflow-x-auto whitespace-pre-wrap">{{ apiResponseExample }}</pre>
-        </section>
-
-        <section>
-          <div class="flex items-center justify-between mb-2">
-            <h3 class="font-bold text-base text-primary-heading">{{ ti18n('SKILL.md（Agent 技能描述）') }}</h3>
-            <Button size="sm" @click="copyToClipboard(skillMdContent)">
-              <i class="pi pi-copy mr-1" />
-              {{ ti18n('复制 SKILL.md') }}
-            </Button>
-          </div>
-          <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 text-xs overflow-x-auto max-h-64 whitespace-pre-wrap">{{ skillMdContent }}</pre>
-        </section>
+      <div class="space-y-3 text-sm">
+        <div class="flex justify-end">
+          <Button size="sm" @click="copyToClipboard(skillMdContent)">
+            <i class="pi pi-copy mr-1" />
+            {{ ti18n('复制 SKILL.md') }}
+          </Button>
+        </div>
+        <pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 text-xs overflow-auto max-h-[70vh] whitespace-pre-wrap">{{ skillMdContent }}</pre>
       </div>
     </Dialog>
   </div>
@@ -281,32 +252,7 @@
   const showSettings = ref(false);
   const showEmbedGuide = ref(false);
 
-  const embedBaseUrl = window.location.origin;
-
   import skillMdContent from './skill.md?raw';
-
-  /** iframe 嵌入示例 */
-  const embedExample = computed(() =>
-    `<iframe\n  src="${embedBaseUrl}/noteCalc/embed#1 + 2\\n价格 = 99.5\\n总价 = 价格 * 3"\n  width="100%" height="300"\n/>`
-  );
-
-  /** API 请求示例 */
-  const apiExample = computed(() =>
-    `POST ${embedBaseUrl}/app-api/noteCalcApi.evaluate\nContent-Type: application/json\n\n[{"content":"1 + 2\\n价格 = 99.5\\n总价 = 价格 * 3"}]`
-  );
-
-  /** API 响应示例 */
-  const apiResponseExample = `{
-  "json": {
-    "result": {
-      "results": [
-        {"line":"1 + 2","type":"expression","result":"3"},
-        {"line":"价格 = 99.5","type":"assignment","result":"99.5","variable":"价格"},
-        {"line":"总价 = 价格 * 3","type":"assignment","result":"298.5","variable":"总价"}
-      ]
-    }
-  }
-}`;
 
   /** 复制到剪贴板 */
   function copyToClipboard(text: string) {
