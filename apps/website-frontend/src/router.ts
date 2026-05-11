@@ -152,7 +152,7 @@ export const routeMap = reactive({
   },
   ShareDetail: {
     path: '/ShareDetail/:id',
-    component: () => import('@/pages/share/ShareDetail.vue'),
+    component: () => import('@/pages/share/ShareEditor.vue'),
     meta: {
       title: t('分享详情'),
       icon: 'pi pi-share',

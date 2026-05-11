@@ -3,6 +3,15 @@ export type ShareJSON = {
   files: ShareFileJSON[];
 };
 
+/** ZenStack Json 字段返回为字符串，解析为 ShareItemJSON */
+export function parseShareItem(raw: Record<string, unknown> | null | undefined): ShareItemJSON | undefined {
+  if (!raw) return undefined;
+  if (typeof raw.data === 'string') {
+    raw.data = JSON.parse(raw.data);
+  }
+  return raw as unknown as ShareItemJSON;
+}
+
 export type ShareFileJSON = {
   path: string;
   id: number;
@@ -24,6 +33,43 @@ export type ShareItemJSON = {
   userId: string;
   tags: string | null;
   appId: string | null;
+};
+
+/** 文本文件 mimetype 列表 */
+const textMimetypes = [
+  'text/plain',
+  'text/markdown',
+  'text/csv',
+  'text/html',
+  'application/json',
+  'text/javascript',
+  'text/typescript',
+  'text/x-python',
+  'text/css',
+  'text/xml',
+  'application/xml',
+];
+
+/** 判断是否为文本文件 */
+export const isTextFile = (mimetype: string) =>
+  mimetype.startsWith('text/') || textMimetypes.includes(mimetype);
+
+/** 根据 filename 推断 mimetype */
+export const guessMimetype = (filename: string): string => {
+  const ext = filename.split('.').pop()?.toLowerCase();
+  const map: Record<string, string> = {
+    md: 'text/markdown',
+    txt: 'text/plain',
+    json: 'application/json',
+    js: 'text/javascript',
+    ts: 'text/typescript',
+    py: 'text/x-python',
+    css: 'text/css',
+    html: 'text/html',
+    xml: 'text/xml',
+    csv: 'text/csv',
+  };
+  return map[ext ?? ''] ?? 'text/plain';
 };
 
 /** 支持的文件类型 */

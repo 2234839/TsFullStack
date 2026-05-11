@@ -18,6 +18,9 @@
   },
   "dependencies": {
     "@codemirror/commands": "^6.10.3",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "@codemirror/lang-json": "^6.0.2",
+    "@codemirror/lang-markdown": "^6.5.0",
     "@codemirror/language": "^6.12.3",
     "@codemirror/search": "^6.7.0",
     "@codemirror/state": "^6.6.0",
@@ -51,7 +54,7 @@
     "typescript": "^6.0.3",
     "unplugin-vue-components": "^32.0.0",
     "vite": "npm:rolldown-vite@7.3.1",
-    "vite-plugin-pilot": "^1.0.25",
+    "vite-plugin-pilot": "^1.0.29",
     "vite-plugin-vue-devtools": "^8.1.2",
     "vue-tsc": "^3.2.8"
   }

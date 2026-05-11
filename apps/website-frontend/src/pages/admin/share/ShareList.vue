@@ -93,7 +93,9 @@
                   <Button icon="pi pi-link" variant="icon" @click.stop="handleGotoDetail(item)"
                     :aria-label="t('查看详情')" />
                   <Button icon="pi pi-pencil" variant="icon" @click.stop="handleEdit(item)"
-                    :aria-label="t('编辑')" />
+                    :aria-label="t('简单编辑')" />
+                  <Button icon="pi pi-cog" variant="icon" @click.stop="handleAdvancedEdit(item)"
+                    :aria-label="t('高级编辑')" />
                   <Button icon="pi pi-trash" variant="icon" @click.stop="handleDelete(item, $event)"
                     :aria-label="t('删除')" />
                 </div>
@@ -130,6 +132,7 @@
   import { useToast } from '@/composables/useToast';
   import {
     getTotalFileSize,
+    parseShareItem,
     type ShareItemJSON,
   } from '@/pages/admin/share/ShareDef';
   import { formatFileSize } from '@/utils/format';
@@ -178,11 +181,8 @@
         API.db.userData.count({ where }),
       ]);
       /** ZenStack JsonValue 字段存储为字符串，需要手动 parse */
-      const parsedData = rawData.map((item) => ({
-        ...item,
-        data: typeof item.data === 'string' ? JSON.parse(item.data) : item.data,
-      }));
-      return { data: parsedData as unknown as ShareItemJSON[], total };
+      const parsedData = rawData.map((item) => parseShareItem(item)!);
+      return { data: parsedData, total };
     }
 
     const { state, error, isLoading, execute } = useAsyncState(
@@ -306,6 +306,12 @@
       id: String(item.id),
     });
   };
+
+  /** 高级编辑（独立页面） */
+  const handleAdvancedEdit = (item: ShareItemJSON) => {
+    routerUtil.newBlank(routeMap.ShareDetail, { id: String(item.id) }, { mode: 'edit' });
+  };
+
   /** 删除处理 */
   const handleDelete = (item: ShareItemJSON, event: MouseEvent) => {
     confirm.require({

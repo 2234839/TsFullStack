@@ -29,9 +29,18 @@
 }
 </style>
 <template>
-  <File2Url v-if="file?.id !== undefined" :fileId="file.id" v-slot="{ url }">
+  <!-- 文本文件预览 -->
+  <div v-if="isTextFile(file.mimetype)" class="h-full w-full">
+    <div v-if="textContent === undefined" class="flex justify-center items-center h-full">
+      <ProgressSpinner />
+    </div>
+    <ShareCodeMirror v-else :content="textContent" :filename="file.filename" read-only />
+  </div>
+
+  <!-- 二进制文件预览 -->
+  <File2Url v-else-if="file?.id !== undefined" :fileId="file.id" v-slot="{ url }">
     <!-- 图片预览 -->
-    <img v-if="file.mimetype.startsWith('image/')" :src="url" class="h-full w-full object-cover" :alt="file.filename" />
+    <img v-if="file.mimetype.startsWith('image/')" :src="url" class="max-w-full max-h-full object-contain" :alt="file.filename" />
 
     <!-- 视频预览（浏览器自动用 Range 请求流式播放） -->
     <video v-else-if="file.mimetype.startsWith('video/')" :src="url" controls
@@ -62,15 +71,43 @@
 </template>
 <script setup lang="ts">
   import File2Url from '@/pages/admin/components/File2Url.vue';
-  import { type ShareFileJSON } from '@/pages/admin/share/ShareDef';
+  import { type ShareFileJSON, isTextFile } from '@/pages/admin/share/ShareDef';
+  import ShareCodeMirror from '@/pages/share/ShareCodeMirror.vue';
+  import { useAPI } from '@/api';
+  import { authInfo_isLogin } from '@/storage';
   import { useI18n } from '@/composables/useI18n';
   import { formatFileSize } from '@/utils/format';
+  import { ref, watch } from 'vue';
 
+  const { AppAPIGetUrl, APIGetUrl } = useAPI();
   const { t } = useI18n();
 
   interface ShareFilePreviewProps {
     file: ShareFileJSON;
   }
 
-  defineProps<ShareFilePreviewProps>();
+  const { file } = defineProps<ShareFilePreviewProps>();
+
+  /** 文本文件内容 */
+  const textContent = ref<string | undefined>(undefined);
+
+  watch(
+    () => file.id,
+    async (fileId) => {
+      if (!isTextFile(file.mimetype) || fileId === undefined) {
+        textContent.value = undefined;
+        return;
+      }
+      try {
+        const url = authInfo_isLogin.value
+          ? await APIGetUrl.fileApi.file(fileId)
+          : await AppAPIGetUrl.fileApi.file(fileId);
+        const response = await fetch(url);
+        textContent.value = await response.text();
+      } catch {
+        textContent.value = '';
+      }
+    },
+    { immediate: true },
+  );
 </script>
