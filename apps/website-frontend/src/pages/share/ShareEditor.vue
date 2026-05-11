@@ -157,7 +157,7 @@
 
 <script setup lang="ts">
   import { useAPI } from '@/api';
-  import type { ShareFileJSON, ShareItemJSON } from '@/pages/admin/share/ShareDef';
+  import type { ShareFileJSON } from '@/pages/admin/share/ShareDef';
   import { isTextFile, getFileTypeIcon, guessMimetype, parseShareItem } from '@/pages/admin/share/ShareDef';
   import ShareFileList from '@/pages/share/ShareFileList.vue';
   import ShareCodeMirror from '@/pages/share/ShareCodeMirror.vue';
@@ -316,8 +316,8 @@
     editState.renamedFileIds.clear();
     editState.pendingUploads.length = 0;
     editState.newTextFiles.clear();
-    Object.keys(originalTexts).forEach(k => delete originalTexts[k]);
-    Object.keys(currentTexts).forEach(k => delete currentTexts[k]);
+    Object.keys(originalTexts).forEach(k => delete originalTexts[Number(k)]);
+    Object.keys(currentTexts).forEach(k => delete currentTexts[Number(k)]);
   }
 
   /** 是否有未保存的修改 */
@@ -509,7 +509,7 @@
       const targetId = replaceTargetId.value;
       const existingFile = targetId ? files.find((f) => f.id === targetId) : undefined;
 
-      if (existingFile) {
+      if (existingFile && targetId !== undefined) {
         // 覆盖式上传：保留原文件名，替换内容
         uploadPromises.push(overwriteUpload(targetId, file, existingFile.filename));
         const idx = files.findIndex((f) => f.id === targetId);

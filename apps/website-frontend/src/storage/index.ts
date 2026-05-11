@@ -38,7 +38,7 @@ export const localUserPwd = useStorageAsync<{
 /** 清除认证信息并跳转到登录页面  */
 export function authInfo_logout(/** 登录后重定向的页面地址   */ r?: string) {
   authInfo.value = null;
-  routerUtil.push(routeMap.login, {}, { r });
+  routerUtil.push(routeMap.login, {}, r ? { r } : undefined);
 }
 
 //#region 主题功能

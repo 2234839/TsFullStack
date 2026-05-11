@@ -12,15 +12,6 @@
   import { highlightActiveLineGutter } from '@codemirror/view';
   import { theme_isDark } from '@/storage';
 
-  interface Props {
-    /** 文本内容 */
-    content: string;
-    /** 文件名，用于判断语言模式 */
-    filename: string;
-    /** 是否只读 */
-    readOnly?: boolean;
-  }
-
   const { content, filename, readOnly = false } = defineProps<{
     content: string;
     filename: string;

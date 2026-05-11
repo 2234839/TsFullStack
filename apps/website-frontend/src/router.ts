@@ -284,7 +284,7 @@ export function createRouteUtil(router: Router) {
     push<T extends RouteNode>(
       obj: T,
       props: T extends { component: any } ? RouteObjProps<T> : undefined,
-      query?: T extends { component: any } ? Partial<RouteObjProps<T>> : undefined,
+      query?: Record<string, string | number>,
     ) {
       const targetRouter = getTargetRouter(obj);
       router.push({ name: targetRouter.name, params: props, query: query });
@@ -292,7 +292,7 @@ export function createRouteUtil(router: Router) {
     replace<T extends RouteNode>(
       obj: T,
       props: T extends { component: any } ? RouteObjProps<T> : undefined,
-      query?: T extends { component: any } ? Partial<RouteObjProps<T>> : undefined,
+      query?: Record<string, string | number>,
     ) {
       const targetRouter = getTargetRouter(obj);
       router.replace({ name: targetRouter.name, params: props, query: query });
@@ -300,7 +300,7 @@ export function createRouteUtil(router: Router) {
     to<T extends RouteNode>(
       obj: T,
       props: T extends { component: any } ? RouteObjProps<T> : undefined,
-      query?: T extends { component: any } ? Partial<RouteObjProps<T>> : undefined,
+      query?: Record<string, string | number>,
     ) {
       const targetRouter = getTargetRouter(obj);
       return { name: targetRouter.name, params: props, query: query } as RouteLocationRaw;
@@ -308,7 +308,7 @@ export function createRouteUtil(router: Router) {
     newBlank<T extends RouteNode>(
       obj: T,
       props: T extends { component: any } ? RouteObjProps<T> : undefined,
-      query?: T extends { component: any } ? Partial<RouteObjProps<T>> : undefined,
+      query?: Record<string, string | number>,
     ) {
       const targetRouter = getTargetRouter(obj);
       window.open(
