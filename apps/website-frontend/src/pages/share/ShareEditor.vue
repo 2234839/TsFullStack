@@ -467,49 +467,54 @@
     isSaving.value = true;
 
     const files = shareData.value.data.files;
-    /** 上传来源跟踪：负 tempId 表示新建文件，undefined 表示其他 */
+    const selectedOldId = selectedFile.value?.id;
+
+    // ── 拍快照：记录保存时刻的文本内容 ──
+    const snapshot = { ...currentTexts };
+    const snapshotNewTextFiles = new Map(editState.newTextFiles);
+    const snapshotModifiedIds = new Set(getModifiedTextFileIds());
+    const snapshotDeletedIds = new Set(editState.deletedFileIds);
+    const snapshotPendingUploads = [...editState.pendingUploads];
+    const snapshotReplaceTargetId = replaceTargetId.value;
+    const snapshotTitle = title.value;
+
+    // ── 收集上传任务 ──
+    /** 每个 promise 对应的旧 ID（临时负数 = 新建，正数 = 覆盖，undefined = 新增二进制） */
     const uploadSources: (number | undefined)[] = [];
     const uploadPromises: Promise<ShareFileJSON>[] = [];
 
-    // 1. 上传新建的文本文件（内容从 currentTexts 取）
-    for (const [tempId, { filename: fname }] of editState.newTextFiles) {
+    // 1. 新建的文本文件
+    for (const [tempId, { filename: fname }] of snapshotNewTextFiles) {
       const mimetype = guessMimetype(fname);
-      const content = currentTexts[tempId] ?? '';
+      const content = snapshot[tempId] ?? '';
       const blob = new Blob([content], { type: mimetype });
       uploadPromises.push(uploadPublic(blob, fname));
       uploadSources.push(tempId);
-
-      // 从 files 中移除临时条目
       const idx = files.findIndex((f) => f.id === tempId);
       if (idx !== -1) files.splice(idx, 1);
     }
 
-    // 2. 覆盖式上传修改过的文本文件（排除新建文件的临时 ID）
-    for (const fileId of getModifiedTextFileIds()) {
-      if (editState.newTextFiles.has(fileId)) continue;
+    // 2. 修改过的已有文本文件
+    for (const fileId of snapshotModifiedIds) {
+      if (snapshotNewTextFiles.has(fileId)) continue;
       const existingFile = files.find((f) => f.id === fileId);
       if (!existingFile) continue;
-
-      const content = currentTexts[fileId] ?? '';
+      const content = snapshot[fileId] ?? '';
       const blob = new Blob([content], { type: existingFile.mimetype });
       uploadPromises.push(overwriteUpload(fileId, blob, existingFile.filename));
-      uploadSources.push(undefined);
-
-      // 从列表中移除旧条目
+      uploadSources.push(fileId);
       const idx = files.findIndex((f) => f.id === fileId);
       if (idx !== -1) files.splice(idx, 1);
     }
 
-    // 3. 处理待上传的二进制文件（区分替换和新增）
-    for (const file of editState.pendingUploads) {
-      const targetId = replaceTargetId.value;
+    // 3. 待上传的二进制文件
+    for (const file of snapshotPendingUploads) {
+      const targetId = snapshotReplaceTargetId;
       const existingFile = targetId ? files.find((f) => f.id === targetId) : undefined;
-
       if (existingFile && targetId !== undefined) {
         uploadPromises.push(overwriteUpload(targetId, file, existingFile.filename));
         const idx = files.findIndex((f) => f.id === targetId);
         if (idx !== -1) files.splice(idx, 1);
-        replaceTargetId.value = undefined;
       } else {
         uploadPromises.push(uploadPublic(file));
       }
@@ -517,70 +522,88 @@
     }
 
     // 4. 删除标记的文件
-    const deletePromises = Array.from(editState.deletedFileIds).map((fileId) =>
+    const deletePromises = Array.from(snapshotDeletedIds).map((fileId) =>
       API.fileApi.delete(fileId),
     );
 
+    // ── 执行上传和删除 ──
     const [uploadedResults] = await Promise.all([
       Promise.all(uploadPromises),
       Promise.all(deletePromises),
     ]);
 
-    // 5. 合并文件列表
+    // ── 合并最终文件列表 ──
     files.push(...uploadedResults);
+    const finalFiles = files.filter((f) => !snapshotDeletedIds.has(f.id));
 
-    // 6. 移除已删除的文件
-    const finalFiles = files.filter((f) => !editState.deletedFileIds.has(f.id));
-
-    // 7. 更新 UserData
+    // ── 更新服务端 ──
     await API.db.userData.update({
       where: { id: shareData.value.id },
       data: {
-        description: title.value,
+        description: snapshotTitle,
         data: toJsonValue(JSON.stringify({
-          title: title.value,
+          title: snapshotTitle,
           files: finalFiles,
         })),
       },
     });
 
-    // 8. 更新文本缓存：新建文件临时 ID → 真实 ID
+    // ── 更新本地状态 ──
+    /** 旧 ID → 新 ID 映射 */
+    const idMapping = new Map<number, number>();
     for (let i = 0; i < uploadedResults.length; i++) {
-      const tempId = uploadSources[i];
-      if (tempId !== undefined && tempId < 0 && editState.newTextFiles.has(tempId)) {
-        const content = currentTexts[tempId] ?? '';
-        const realId = uploadedResults[i].id;
-        currentTexts[realId] = content;
-        originalTexts[realId] = content;
-        delete currentTexts[tempId];
-        delete originalTexts[tempId];
+      const sourceId = uploadSources[i];
+      if (sourceId !== undefined) {
+        idMapping.set(sourceId, uploadedResults[i].id);
       }
     }
-    /** 已修改的已有文件：同步 originalTexts */
-    for (const fileId of getModifiedTextFileIds()) {
-      originalTexts[fileId] = currentTexts[fileId] ?? '';
+
+    /** 用快照内容重建 originalTexts（代表已保存到服务端的内容） */
+    const newOriginals: Record<number, string> = {};
+    for (const [sourceId, realId] of idMapping) {
+      newOriginals[realId] = snapshot[sourceId] ?? '';
+    }
+    /** 未被上传但之前已加载的文件，保留其 originalTexts（key 可能被覆盖上传改了 ID） */
+    for (const [fid, content] of Object.entries(originalTexts)) {
+      const numId = Number(fid);
+      if (!idMapping.has(numId) && !snapshotDeletedIds.has(numId)) {
+        newOriginals[numId] = content;
+      }
+    }
+    /** 清空并重建 originalTexts */
+    Object.keys(originalTexts).forEach(k => delete originalTexts[Number(k)]);
+    Object.assign(originalTexts, newOriginals);
+
+    /** 迁移 currentTexts：把旧 key 的值移到新 key */
+    for (const [sourceId, realId] of idMapping) {
+      if (sourceId !== realId && sourceId in currentTexts) {
+        currentTexts[realId] = currentTexts[sourceId];
+        delete currentTexts[sourceId];
+      }
     }
     /** 清理已删除文件的缓存 */
-    for (const fileId of editState.deletedFileIds) {
+    for (const fileId of snapshotDeletedIds) {
       delete currentTexts[fileId];
       delete originalTexts[fileId];
     }
 
-    // 9. 重置编辑状态（保留文本缓存）
+    /** 重置编辑状态 */
     editState.deletedFileIds.clear();
     editState.renamedFileIds.clear();
     editState.pendingUploads.length = 0;
     editState.newTextFiles.clear();
+    replaceTargetId.value = undefined;
 
-    // 10. 刷新数据并更新 selectedFile 指向
+    /** 刷新 shareData */
     shareData.value = {
       ...shareData.value,
-      data: { title: title.value, files: finalFiles },
+      data: { title: snapshotTitle, files: finalFiles },
     };
-    /** 重新选中当前文件（指向新对象，同时可能有了新 ID） */
-    if (selectedFile.value) {
-      const currentFilename = selectedFile.value.filename;
-      const updated = finalFiles.find((f) => f.filename === currentFilename);
+
+    /** 重新定位 selectedFile */
+    if (selectedOldId !== undefined) {
+      const newId = idMapping.get(selectedOldId) ?? selectedOldId;
+      const updated = finalFiles.find((f) => f.id === newId);
       if (updated) selectedFile.value = updated;
     }
 
