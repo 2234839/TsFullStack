@@ -310,16 +310,6 @@
     newTextFiles: new Map<number, { filename: string; content: string }>(),
   });
 
-  /** 重置编辑状态 */
-  function resetEditState() {
-    editState.deletedFileIds.clear();
-    editState.renamedFileIds.clear();
-    editState.pendingUploads.length = 0;
-    editState.newTextFiles.clear();
-    Object.keys(originalTexts).forEach(k => delete originalTexts[Number(k)]);
-    Object.keys(currentTexts).forEach(k => delete currentTexts[Number(k)]);
-  }
-
   /** 是否有未保存的修改 */
   const hasUnsavedChanges = computed(() => {
     if (!isEditMode.value || !shareData.value) return false;
@@ -477,48 +467,53 @@
     isSaving.value = true;
 
     const files = shareData.value.data.files;
+    /** 上传来源跟踪：负 tempId 表示新建文件，undefined 表示其他 */
+    const uploadSources: (number | undefined)[] = [];
     const uploadPromises: Promise<ShareFileJSON>[] = [];
 
-    // 1. 上传新建的文本文件
-    for (const [tempId, { filename: fname, content: fcontent }] of editState.newTextFiles) {
+    // 1. 上传新建的文本文件（内容从 currentTexts 取）
+    for (const [tempId, { filename: fname }] of editState.newTextFiles) {
       const mimetype = guessMimetype(fname);
-      const blob = new Blob([fcontent], { type: mimetype });
+      const content = currentTexts[tempId] ?? '';
+      const blob = new Blob([content], { type: mimetype });
       uploadPromises.push(uploadPublic(blob, fname));
+      uploadSources.push(tempId);
 
       // 从 files 中移除临时条目
       const idx = files.findIndex((f) => f.id === tempId);
       if (idx !== -1) files.splice(idx, 1);
     }
 
-    // 2. 覆盖式上传修改过的文本文件
+    // 2. 覆盖式上传修改过的文本文件（排除新建文件的临时 ID）
     for (const fileId of getModifiedTextFileIds()) {
+      if (editState.newTextFiles.has(fileId)) continue;
       const existingFile = files.find((f) => f.id === fileId);
       if (!existingFile) continue;
 
       const content = currentTexts[fileId] ?? '';
       const blob = new Blob([content], { type: existingFile.mimetype });
       uploadPromises.push(overwriteUpload(fileId, blob, existingFile.filename));
+      uploadSources.push(undefined);
 
       // 从列表中移除旧条目
       const idx = files.findIndex((f) => f.id === fileId);
       if (idx !== -1) files.splice(idx, 1);
     }
 
-    // 3. 处理待上传的文件（区分替换和新增）
+    // 3. 处理待上传的二进制文件（区分替换和新增）
     for (const file of editState.pendingUploads) {
       const targetId = replaceTargetId.value;
       const existingFile = targetId ? files.find((f) => f.id === targetId) : undefined;
 
       if (existingFile && targetId !== undefined) {
-        // 覆盖式上传：保留原文件名，替换内容
         uploadPromises.push(overwriteUpload(targetId, file, existingFile.filename));
         const idx = files.findIndex((f) => f.id === targetId);
         if (idx !== -1) files.splice(idx, 1);
         replaceTargetId.value = undefined;
       } else {
-        // 新增文件
         uploadPromises.push(uploadPublic(file));
       }
+      uploadSources.push(undefined);
     }
 
     // 4. 删除标记的文件
@@ -549,14 +544,45 @@
       },
     });
 
-    // 8. 重置编辑状态
-    resetEditState();
+    // 8. 更新文本缓存：新建文件临时 ID → 真实 ID
+    for (let i = 0; i < uploadedResults.length; i++) {
+      const tempId = uploadSources[i];
+      if (tempId !== undefined && tempId < 0 && editState.newTextFiles.has(tempId)) {
+        const content = currentTexts[tempId] ?? '';
+        const realId = uploadedResults[i].id;
+        currentTexts[realId] = content;
+        originalTexts[realId] = content;
+        delete currentTexts[tempId];
+        delete originalTexts[tempId];
+      }
+    }
+    /** 已修改的已有文件：同步 originalTexts */
+    for (const fileId of getModifiedTextFileIds()) {
+      originalTexts[fileId] = currentTexts[fileId] ?? '';
+    }
+    /** 清理已删除文件的缓存 */
+    for (const fileId of editState.deletedFileIds) {
+      delete currentTexts[fileId];
+      delete originalTexts[fileId];
+    }
 
-    // 9. 刷新数据
+    // 9. 重置编辑状态（保留文本缓存）
+    editState.deletedFileIds.clear();
+    editState.renamedFileIds.clear();
+    editState.pendingUploads.length = 0;
+    editState.newTextFiles.clear();
+
+    // 10. 刷新数据并更新 selectedFile 指向
     shareData.value = {
       ...shareData.value,
       data: { title: title.value, files: finalFiles },
     };
+    /** 重新选中当前文件（指向新对象，同时可能有了新 ID） */
+    if (selectedFile.value) {
+      const currentFilename = selectedFile.value.filename;
+      const updated = finalFiles.find((f) => f.filename === currentFilename);
+      if (updated) selectedFile.value = updated;
+    }
 
     toast.success(t('保存成功'));
     isSaving.value = false;
