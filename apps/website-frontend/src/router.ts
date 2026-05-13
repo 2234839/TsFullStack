@@ -203,6 +203,14 @@ export const routeMap = reactive({
           icon: 'pi pi-github',
         },
       },
+      linuxdo: {
+        path: 'linuxdo',
+        component: () => import('@/pages/oauth/linuxdo.vue'),
+        meta: {
+          title: t('LINUX DO授权'),
+          icon: 'pi pi-globe',
+        },
+      },
     },
   },
   AiEnglish: {

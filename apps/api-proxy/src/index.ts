@@ -426,8 +426,8 @@ function isValidUrl(url: string): boolean {
     const parsedUrl = new URL(url);
     console.log('[api-proxy] validating url:', url);
 
-    // 只允许 GitHub 相关域名用于 OAuth 认证
-    const allowedHostnames = ['github.com', 'api.github.com', 'raw.githubusercontent.com'];
+    // 允许的域名白名单
+    const allowedHostnames = ['github.com', 'api.github.com', 'raw.githubusercontent.com', 'connect.linuxdo.org'];
 
     if (!allowedHostnames.includes(parsedUrl.hostname)) {
       return false;
@@ -467,6 +467,15 @@ function isValidUrl(url: string): boolean {
       const isAllowedApiPath = allowedApiPaths.some((path) => parsedUrl.pathname.startsWith(path));
 
       if (!isAllowedApiPath) {
+        return false;
+      }
+    }
+
+    // 对 connect.linuxdo.org 限制为 OAuth2 相关端点
+    if (parsedUrl.hostname === 'connect.linuxdo.org') {
+      const allowedPaths = ['/oauth2/token', '/api/user'];
+      const isAllowedPath = allowedPaths.some((path) => parsedUrl.pathname.startsWith(path));
+      if (!isAllowedPath) {
         return false;
       }
     }

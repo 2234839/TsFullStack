@@ -13,6 +13,7 @@ import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
 import { AppConfigService } from '../Context/AppConfig';
 import { systemLog } from '../Context/SystemLog';
 import { GithubAuthLive } from '../OAuth/github';
+import { LinuxDoAuthLive } from '../OAuth/linuxdo';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
 import { FileWrapItem } from '../util/file-types';
@@ -219,10 +220,12 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
 
   /** 合成层，避免其他 service 还在依赖 FetchWithProxy */
   const unFetchProxyLayer = Layer.provide(GithubAuthLive, FetchWithProxy.Default);
+  const unLinuxDoLayer = Layer.provide(LinuxDoAuthLive, FetchWithProxy.Default);
+  const allOAuthLayers = Layer.merge(unFetchProxyLayer, unLinuxDoLayer);
 
   const reqLayer = Layer.succeed(ReqCtxService, reqCtx);
   /** 合成层，避免其他 service 还在依赖 ReqCtxService  */
-  const unReqLayer = Layer.provide(unFetchProxyLayer, reqLayer);
+  const unReqLayer = Layer.provide(allOAuthLayers, reqLayer);
 
   const apiLayer = unReqLayer;
   const runnable = Effect.provide(program, [

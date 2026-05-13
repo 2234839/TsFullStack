@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
+import { AppConfigService } from '../Context/AppConfig';
 import { fail } from '../util/error';
 import { dbTry, dbTryOrDefault } from '../util/dbEffect';
 import { hashPassword, comparePassword } from '../util/crypto';
@@ -8,6 +9,7 @@ import { MSG } from '../util/constants';
 import { genUserSession } from './appApi/_genUserSession';
 import { fileApi } from './appApi/file';
 import { githubApi } from './appApi/github';
+import { linuxdoApi } from './appApi/linuxdo';
 import { shareApi } from './appApi/share';
 import { treeholeApi } from './appApi/treehole';
 import { noteCalcApi } from './appApi/noteCalc';
@@ -102,6 +104,17 @@ export const appApis = {
     },
   },
   githubApi,
+  linuxdoApi,
+  /** 获取已配置的 OAuth 提供者列表（供前端判断显示哪些登录按钮） */
+  oauthProviders() {
+    return Effect.gen(function* () {
+      const appConfig = yield* AppConfigService;
+      const providers: string[] = [];
+      if (appConfig.OAuth_github) providers.push('github');
+      if (appConfig.OAuth_linuxdo) providers.push('linuxdo');
+      return providers;
+    });
+  },
   fileApi,
   shareApi,
   treeholeApi,

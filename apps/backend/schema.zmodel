@@ -166,6 +166,7 @@ model UserSession with Base {
 
 enum OauthProvider {
     GITHUB
+    LINUXDO
 }
 /// 第三方账号关联
 model OAuthAccount with Base {

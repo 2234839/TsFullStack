@@ -23,6 +23,12 @@ export type AppConfig = {
     redirectUri: string;
     scope?: string[];
   };
+  /** LINUX DO OAuth 登录 */
+  OAuth_linuxdo?: {
+    clientId: string;
+    clientSecret: string;
+    redirectUri: string;
+  };
   /** 用于代理一些api的请求，例如github oauth 认证，在国内服务器上就有可能无法访问对应的接口
    * 这里通过填写 api-proxy 来通过能够访问对应服务的 cloudflare works 代理请求*/
   ApiProxy: {

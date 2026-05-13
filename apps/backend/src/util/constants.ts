@@ -169,6 +169,8 @@ export const MSG = {
   NO_AI_MODEL_AVAILABLE: '没有可用的AI模型',
   /** OAuth GitHub 未配置（github.ts） */
   OAUTH_GITHUB_NOT_CONFIGURED: '未配置 OAuth_github',
+  /** OAuth LINUX DO 未配置（linuxdo.ts） */
+  OAUTH_LINUXDO_NOT_CONFIGURED: '未配置 OAuth_linuxdo',
   /** 生产环境缺少配置文件（config/loader.ts） */
   CONFIG_NOT_FOUND: '生产环境缺少配置文件，请创建 config.json',
   /** 查询用户参数无效（DbService） */

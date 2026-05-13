@@ -175,14 +175,25 @@
               :label="isLogin ? t('登录') : t('注册')" />
           </div>
           <!-- OAuth 登录按钮  -->
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between gap-2" v-if="configuredProviders.length > 0">
             <!-- github 登录 -->
             <Button
+              v-if="configuredProviders.includes('github')"
               :label="t('GitHub 登录')"
               icon="pi pi-github"
               :loading="oauthLogin.isLoading.value"
               @click="oauthLogin.execute(0, 'github')"
-              variant="secondary" />
+              variant="secondary"
+              class="flex-1" />
+            <!-- LINUX DO 登录 -->
+            <Button
+              v-if="configuredProviders.includes('linuxdo')"
+              :label="t('LINUX DO 登录')"
+              icon="pi pi-globe"
+              :loading="oauthLogin.isLoading.value"
+              @click="oauthLogin.execute(0, 'linuxdo')"
+              variant="secondary"
+              class="flex-1" />
           </div>
         </form>
 
@@ -242,9 +253,12 @@
   });
 
   const oauthLogin = useAsyncState(
-    async (provider: 'github') => {
+    async (provider: 'github' | 'linuxdo') => {
       if (provider === 'github') {
         const url = await AppAPI.githubApi.getAuthorizationUrl();
+        location.href = url;
+      } else if (provider === 'linuxdo') {
+        const url = await AppAPI.linuxdoApi.getAuthorizationUrl();
         location.href = url;
       } else {
         provider satisfies never;
@@ -253,6 +267,22 @@
     undefined,
     { immediate: false },
   );
+
+  /** 已配置的 OAuth 提供者列表 */
+  const configuredProviders = ref<string[]>([]);
+
+  onMounted(async () => {
+    useEventListener(document, 'mousemove', handleMouseMove);
+    if (localUserPwd.value.rememberMe) {
+      form.value.username = localUserPwd.value.username;
+      form.value.password = localUserPwd.value.password;
+    }
+    try {
+      configuredProviders.value = await AppAPI.oauthProviders();
+    } catch {
+      configuredProviders.value = [];
+    }
+  });
 
   /** 表单验证 */
   const isFormValid = computed(() => {
@@ -341,13 +371,6 @@
     }
   };
 
-  onMounted(() => {
-    useEventListener(document, 'mousemove', handleMouseMove);
-    if (localUserPwd.value.rememberMe) {
-      form.value.username = localUserPwd.value.username;
-      form.value.password = localUserPwd.value.password;
-    }
-  });
 </script>
 
 <style scoped>

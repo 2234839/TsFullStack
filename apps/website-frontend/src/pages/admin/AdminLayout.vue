@@ -28,16 +28,13 @@
   import TabsBar from '@/pages/admin/components/TabsBar.vue';
   import { provideTabsStore } from '@/pages/admin/stores/tabsStore';
   import { routeMap, routerUtil } from '@/router';
-  import { authInfo, authInfo_isLogin } from '@/storage';
+  import { authInfo_isLogin } from '@/storage';
   import { onMounted } from 'vue';
   provideTabsStore();
 
-  /** 检查当前用户是否拥有 admin 角色 */
-  const isAdmin = () => authInfo.value?.user?.role?.some((r: { name: string }) => r.name === 'admin') ?? false;
-
   onMounted(async () => {
-    /** 未登录或非管理员，跳转到首页 */
-    if (!authInfo_isLogin.value || !isAdmin()) {
+    /** 未登录则跳转到登录页 */
+    if (!authInfo_isLogin.value) {
       routerUtil.push(routeMap.login, {});
     }
   });

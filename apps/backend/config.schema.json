@@ -93,6 +93,27 @@
       "required": ["clientId", "clientSecret", "redirectUri"],
       "additionalProperties": false
     },
+    "OAuth_linuxdo": {
+      "type": "object",
+      "description": "LINUX DO OAuth 登录配置",
+      "properties": {
+        "clientId": {
+          "type": "string",
+          "description": "LINUX DO OAuth 应用的 Client ID"
+        },
+        "clientSecret": {
+          "type": "string",
+          "description": "LINUX DO OAuth 应用的 Client Secret"
+        },
+        "redirectUri": {
+          "type": "string",
+          "format": "uri",
+          "description": "OAuth 回调地址"
+        }
+      },
+      "required": ["clientId", "clientSecret", "redirectUri"],
+      "additionalProperties": false
+    },
     "aiImage": {
       "type": "object",
       "description": "AI 图片生成服务配置",
