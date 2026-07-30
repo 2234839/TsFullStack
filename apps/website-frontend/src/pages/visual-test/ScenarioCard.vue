@@ -46,7 +46,8 @@
             v-if="images.baseline"
             :src="`data:image/png;base64,${images.baseline}`"
             :alt="t('基准截图')"
-            class="w-full"
+            class="w-full cursor-zoom-in"
+            @click="previewImage = { src: images.baseline, title: t('基准截图') }"
           />
           <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">
             {{ t("无基准") }}
@@ -60,7 +61,8 @@
             v-if="images.current"
             :src="`data:image/png;base64,${images.current}`"
             :alt="t('当前截图')"
-            class="w-full"
+            class="w-full cursor-zoom-in"
+            @click="previewImage = { src: images.current, title: t('当前截图') }"
           />
           <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">-</div>
         </div>
@@ -72,11 +74,23 @@
             v-if="images.diff"
             :src="`data:image/png;base64,${images.diff}`"
             :alt="t('差异图')"
-            class="w-full"
+            class="w-full cursor-zoom-in"
+            @click="previewImage = { src: images.diff, title: t('差异图') }"
           />
           <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">-</div>
         </div>
       </div>
+
+      <!-- 图片预览对话框 -->
+      <Dialog v-if="previewImage" v-model:open="showPreview" :title="previewImage.title">
+        <div class="max-h-[80vh] overflow-auto">
+          <img
+            :src="`data:image/png;base64,${previewImage.src}`"
+            :alt="previewImage.title"
+            class="w-full"
+          />
+        </div>
+      </Dialog>
 
       <!-- 操作按钮 -->
       <div class="mt-3 flex gap-2">
@@ -114,6 +128,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { Button, Card, Tag } from "@/components/base";
+import { Dialog } from "@tsfullstack/shared-frontend/components";
 import { useI18n } from "@/composables/useI18n";
 import type { ScenarioResult, VisualTestAPI } from "@tsfullstack/visual-test";
 
@@ -140,6 +155,15 @@ const images = ref<{ baseline: string | null; current: string | null; diff: stri
 const approving = ref(false);
 const rejecting = ref(false);
 const rerunning = ref(false);
+
+/** 图片预览 */
+const previewImage = ref<{ src: string; title: string } | null>(null);
+const showPreview = computed({
+  get: () => previewImage.value !== null,
+  set: (val: boolean) => {
+    if (!val) previewImage.value = null;
+  },
+});
 
 /** 状态标签 */
 const statusLabel = computed(() => {
