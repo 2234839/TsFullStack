@@ -1,0 +1,98 @@
+{
+  "scenarios": [
+    {
+      "name": "home-desktop",
+      "path": "/",
+      "description": "首页 - 桌面端（1280px 宽度，功能卡片网格布局）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "home-mobile",
+      "path": "/",
+      "description": "首页 - 移动端（375px 宽度，测试响应式布局断点）",
+      "viewportWidth": 375,
+      "viewportHeight": 812,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "login-desktop",
+      "path": "/login",
+      "description": "登录页 - 桌面端（居中卡片布局）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "login-mobile",
+      "path": "/login",
+      "description": "登录页 - 移动端（全宽布局）",
+      "viewportWidth": 375,
+      "viewportHeight": 812,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "noteCalc-desktop",
+      "path": "/noteCalc",
+      "description": "计算笔记本 - 桌面端（编辑器+行号布局，冻结编辑器内容防止动态变化）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "freezeSelectors": [".cm-content"],
+      "waitBeforeScreenshot": 5000,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "pricing-desktop",
+      "path": "/pricing",
+      "description": "购买套餐页 - 桌面端（套餐卡片列表布局）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "hideSelectors": [".sponsorship-card"],
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "treehole-desktop",
+      "path": "/treehole",
+      "description": "树洞页 - 桌面端（内容列表布局）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "notFound-desktop",
+      "path": "/nonexistent-page-visual-test",
+      "description": "404 页面 - 桌面端（错误提示布局）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "noteCalcEmbed-desktop",
+      "path": "/noteCalc/embed",
+      "description": "计算笔记嵌入页 - 桌面端（精简无导航栏布局）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "freezeSelectors": [".cm-content"],
+      "waitBeforeScreenshot": 5000,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "util-Img2Svg-desktop",
+      "path": "/util/Img2Svg",
+      "description": "图片转 SVG 工具页 - 桌面端（工具型布局）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "envs": ["local", "production"]
+    },
+    {
+      "name": "admin-login-required",
+      "path": "/admin",
+      "description": "管理后台 - 未登录访问（应跳转到登录页）",
+      "viewportWidth": 1280,
+      "viewportHeight": 800,
+      "skipPixel": true,
+      "envs": ["local", "production"]
+    }
+  ]
+}
