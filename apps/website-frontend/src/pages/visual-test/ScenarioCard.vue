@@ -114,14 +114,12 @@
             {{ Math.round(zoom * 100) }}%
           </div>
 
-          <!-- 图片容器 -->
+          <!-- 图片容器：不限制尺寸，让图片完整显示，超出部分通过拖拽查看 -->
           <div
             class="overflow-hidden"
             :style="{
               transform: `translate(${dragX}px, ${dragY}px) scale(${zoom})`,
               cursor: isDragging ? 'grabbing' : 'grab',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
             }"
           >
             <img
