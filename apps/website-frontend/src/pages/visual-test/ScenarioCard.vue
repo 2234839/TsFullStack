@@ -114,7 +114,7 @@
             {{ Math.round(zoom * 100) }}%
           </div>
 
-          <!-- 图片容器：不限制尺寸，让图片完整显示，超出部分通过拖拽查看 -->
+          <!-- 图片容器：图片自适应视口，缩放由 transform 控制 -->
           <div
             class="overflow-hidden"
             :style="{
@@ -125,8 +125,8 @@
             <img
               :src="`data:image/png;base64,${previewImage.src}`"
               :alt="previewImage.title"
-              class="block max-w-none"
-              :style="{ width: imgNaturalWidth + 'px' }"
+              class="block"
+              style="max-width: 90vw; max-height: 90vh; object-fit: contain"
               draggable="false"
             />
           </div>
@@ -207,20 +207,13 @@ const dragY = ref(0);
 const isDragging = ref(false);
 const dragStartX = ref(0);
 const dragStartY = ref(0);
-/** 图片原始宽度（从 base64 加载后获取） */
-const imgNaturalWidth = ref(800);
 
-/** 打开预览时加载图片获取原始尺寸 */
+/** 打开预览时重置状态 */
 watch(previewImage, (val) => {
   if (val) {
     zoom.value = 1;
     dragX.value = 0;
     dragY.value = 0;
-    const img = new Image();
-    img.onload = () => {
-      imgNaturalWidth.value = img.naturalWidth;
-    };
-    img.src = `data:image/png;base64,${val.src}`;
   }
 });
 
