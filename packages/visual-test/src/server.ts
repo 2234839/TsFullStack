@@ -69,6 +69,11 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
         runConfig.env,
         scenario.skipPixel ?? false,
       );
+      /** 同步更新 latestReport 中的场景状态 */
+      if (latestReport) {
+        const r = latestReport.results.find((it) => it.name === name);
+        if (r) r.status = "approved";
+      }
       return { success: true };
     },
 
@@ -87,6 +92,7 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
             runConfig.env,
             scenario.skipPixel ?? false,
           );
+          result.status = "approved";
           approved.push(result.name);
         }
       }
@@ -95,6 +101,11 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
 
     async reject(name: string) {
       rejectScenario(runConfig.baselineDir, name, runConfig.env);
+      /** 同步更新 latestReport 中的场景状态 */
+      if (latestReport) {
+        const r = latestReport.results.find((it) => it.name === name);
+        if (r) r.status = "rejected";
+      }
       return { success: true };
     },
 
