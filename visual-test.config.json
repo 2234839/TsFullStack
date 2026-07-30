@@ -6,6 +6,7 @@
       "description": "首页 - 桌面端（1280px 宽度，功能卡片网格布局）",
       "viewportWidth": 1280,
       "viewportHeight": 800,
+      "waitBeforeScreenshot": 6000,
       "envs": ["local", "production"]
     },
     {
@@ -14,6 +15,7 @@
       "description": "首页 - 移动端（375px 宽度，测试响应式布局断点）",
       "viewportWidth": 375,
       "viewportHeight": 812,
+      "waitBeforeScreenshot": 6000,
       "envs": ["local", "production"]
     },
     {

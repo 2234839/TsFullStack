@@ -73,7 +73,15 @@ export async function runTests(config: RunConfig): Promise<RunReport> {
     (s) => !s.envs || s.envs.includes(config.env),
   );
 
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      "--disable-gpu",
+      "--disable-software-rasterizer",
+      "--no-sandbox",
+      "--disable-dev-shm-usage",
+    ],
+  });
   const results: ScenarioResult[] = [];
 
   // 如果需要登录，先登录
@@ -194,7 +202,7 @@ async function runScenario(
         if (scenario.clipSelector) {
           const element = await page.$(scenario.clipSelector);
           if (element) {
-            await element.screenshot({ path: currentPaths.image, timeout: 10000 });
+            await element.screenshot({ path: currentPaths.image, timeout: 20000 });
           } else {
             throw new Error(`clipSelector "${scenario.clipSelector}" 未找到元素`);
           }
@@ -202,7 +210,7 @@ async function runScenario(
           await page.screenshot({
             path: currentPaths.image,
             fullPage: true,
-            timeout: 10000,
+            timeout: 20000,
             animations: "disabled",
           });
         }
