@@ -42,7 +42,11 @@
         <!-- 基准截图 -->
         <div class="overflow-hidden rounded border">
           <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("基准") }}</p>
-          <div class="max-h-64 overflow-y-auto">
+          <div
+            ref="baselineScrollRef"
+            class="max-h-64 overflow-y-auto"
+            @scroll="syncScroll('baseline')"
+          >
             <img
               v-if="images.baseline"
               :src="`data:image/png;base64,${images.baseline}`"
@@ -59,7 +63,11 @@
         <!-- 当前截图 -->
         <div class="overflow-hidden rounded border">
           <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("当前") }}</p>
-          <div class="max-h-64 overflow-y-auto">
+          <div
+            ref="currentScrollRef"
+            class="max-h-64 overflow-y-auto"
+            @scroll="syncScroll('current')"
+          >
             <img
               v-if="images.current"
               :src="`data:image/png;base64,${images.current}`"
@@ -74,7 +82,7 @@
         <!-- diff 图 -->
         <div class="overflow-hidden rounded border">
           <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("差异") }}</p>
-          <div class="max-h-64 overflow-y-auto">
+          <div ref="diffScrollRef" class="max-h-64 overflow-y-auto" @scroll="syncScroll('diff')">
             <img
               v-if="images.diff"
               :src="`data:image/png;base64,${images.diff}`"
@@ -196,6 +204,36 @@ const images = ref<{ baseline: string | null; current: string | null; diff: stri
   current: null,
   diff: null,
 });
+
+/** 三个截图容器的 ref */
+const baselineScrollRef = ref<HTMLElement>();
+const currentScrollRef = ref<HTMLElement>();
+const diffScrollRef = ref<HTMLElement>();
+
+/** 同步滚动：防止循环触发 */
+let syncing = false;
+function syncScroll(source: "baseline" | "current" | "diff") {
+  if (syncing) return;
+  syncing = true;
+  const sourceEl =
+    source === "baseline"
+      ? baselineScrollRef.value
+      : source === "current"
+        ? currentScrollRef.value
+        : diffScrollRef.value;
+  if (sourceEl) {
+    const { scrollTop, scrollHeight, clientHeight } = sourceEl;
+    const ratio = scrollTop / (scrollHeight - clientHeight || 1);
+    for (const el of [baselineScrollRef.value, currentScrollRef.value, diffScrollRef.value]) {
+      if (el && el !== sourceEl) {
+        el.scrollTop = ratio * (el.scrollHeight - el.clientHeight);
+      }
+    }
+  }
+  requestAnimationFrame(() => {
+    syncing = false;
+  });
+}
 
 /** 按钮加载状态 */
 const approving = ref(false);
