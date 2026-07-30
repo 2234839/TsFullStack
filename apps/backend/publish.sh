@@ -9,10 +9,14 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# 配置变量
-SSH_USER="root"
-SSH_HOST="shenzilong.cn"
-DEPLOY_PATH="/root/app/TsFullStack"
+# 配置变量（从 .deploy-env 读取，不存在则报错）
+DEPLOY_ENV_FILE="$(cd "$(dirname "$0")/../.." && pwd)/.deploy-env"
+if [ -f "$DEPLOY_ENV_FILE" ]; then
+    source "$DEPLOY_ENV_FILE"
+fi
+: "${SSH_USER:?请设置 SSH_USER，可写入项目根目录 .deploy-env 文件}"
+: "${SSH_HOST:?请设置 SSH_HOST，可写入项目根目录 .deploy-env 文件}"
+: "${DEPLOY_PATH:?请设置 DEPLOY_PATH，可写入项目根目录 .deploy-env 文件}"
 
 # 构建目标地址
 SSH_TARGET="$SSH_USER@$SSH_HOST"

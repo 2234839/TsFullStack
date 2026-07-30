@@ -23,6 +23,7 @@ dist-lib/
 
 # Configuration files
 config.json
+.deploy-env
 
 # IDE
 .vscode/

@@ -1,0 +1,17 @@
+# TsFullStack 部署/巡检环境变量
+# 复制此文件为 .deploy-env 并填入实际值（.deploy-env 已被 gitignore）
+
+# ── publish.sh（部署）──
+SSH_USER="root"
+SSH_HOST="your-server.com"
+DEPLOY_PATH="/root/app/TsFullStack"
+
+# ── inspect.sh（巡检）──
+BASE_URL="https://your-domain.com"
+# SSH_TARGET 由 SSH_USER 和 SSH_HOST 组合
+SSH_TARGET="root@your-server.com"
+
+# ── e2e-check.ts（端到端测试）──
+E2E_BASE_URL="https://your-domain.com"
+E2E_EMAIL="admin@example.com"
+E2E_PASSWORD="your-password"
