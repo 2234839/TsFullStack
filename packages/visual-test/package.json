@@ -1,0 +1,32 @@
+{
+  "name": "@tsfullstack/visual-test",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "visual-test": "./src/cli.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "type": "module",
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "pixelmatch": "^6.0.0",
+    "playwright": "^1.49.0",
+    "pngjs": "^7.0.0",
+    "superjson": "^2.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.2",
+    "@types/pixelmatch": "^5.2.6",
+    "@types/pngjs": "^6.0.5"
+  }
+}

@@ -14,18 +14,20 @@
 ## 开发命令
 
 ```bash
-pnpm dev       # 开发模式
-pnpm build:lib # 构建前端库
-pnpm build     # 构建后端
-pnpm tsc:b     # 类型检查,修改代码后可自行按需运行此命令检查修改是否正确
+vp run dev       # 开发模式
+vp run build:lib # 构建前端库
+vp run build     # 构建后端
+vp run tsc:b     # 类型检查,修改代码后可自行按需运行此命令检查修改是否正确
 ```
+
+> **本项目使用 Vite+ (`vp`)**，依赖安装用 `vp install`，禁止直接使用 pnpm。
 
 ## 开发规范
 
-- **绝对禁止执行 migrate reset清空数据库** 
+- **绝对禁止执行 migrate reset清空数据库**
 - **类型安全**: 严格模式，禁用 `any`，优先使用 Effect
 - **代码质量**: 函数式编程，充分利用类型推导
-- **构建要求**: API/schema 修改 api 下的代码，或者 projects 下的代码后必须执行 `pnpm build:lib`
+- **构建要求**: API/schema 修改 api 下的代码，或者 projects 下的代码后必须执行 `vp run build:lib`
 
-- 使用 pnpm zen 来替代本来的 pnpm prisma 命令
+- 使用 `vp run zen` 来替代本来的 prisma 命令
 - 当前项目默认端口是 5209

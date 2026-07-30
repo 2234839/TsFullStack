@@ -28,6 +28,10 @@ config.json
 # IDE
 .vscode/
 .idea/
+
+# Visual test baselines and output
+visual-test-baselines/
+visual-test-output/
 *.swp
 *.swo
 *~

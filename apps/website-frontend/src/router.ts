@@ -4,284 +4,297 @@ import {
   type RouteLocationRaw,
   type RouteRecordRaw,
   type Router,
-} from 'vue-router';
-import { t as i18n_t } from './i18n';
-import { computed, reactive } from 'vue';
-import { buildNestedTree, transformRoutes, getTargetRouter, type RouteNode, type RouteTree } from '@tsfullstack/shared-frontend/utils';
-import { routeModels } from './routes';
+} from "vue-router";
+import { t as i18n_t } from "./i18n";
+import { computed, reactive } from "vue";
+import {
+  buildNestedTree,
+  transformRoutes,
+  getTargetRouter,
+  type RouteNode,
+  type RouteTree,
+} from "@tsfullstack/shared-frontend/utils";
+import { routeModels } from "./routes";
 /** path 为 "" 的子路由会自动渲染在父路由中 */
-export const defaultRoute = '';
+export const defaultRoute = "";
 
 const t = (key: string) => computed(() => i18n_t(key));
 
 const routeModelTree = buildNestedTree(routeModels);
 
-
 export const routeMap = reactive({
   ...routeModelTree,
   index: {
-    path: '/',
-    component: () => import('@/pages/index.vue'),
+    path: "/",
+    component: () => import("@/pages/index.vue"),
     meta: {
-      title: t('首页'),
+      title: t("首页"),
       hidden: true,
     },
   },
   admin: {
-    path: '/admin',
-    component: () => import('@/pages/admin/AdminLayout.vue'),
+    path: "/admin",
+    component: () => import("@/pages/admin/AdminLayout.vue"),
     meta: {
-      title: t('管理后台'),
-      icon: 'pi pi-cog',
+      title: t("管理后台"),
+      icon: "pi pi-cog",
     },
     child: {
       index: {
-        path: '',
-        component: () => import('@/pages/admin/DataBaseStudio.vue'),
+        path: "",
+        component: () => import("@/pages/admin/DataBaseStudio.vue"),
         meta: {
-          title: t('仪表盘'),
-          icon: 'pi pi-home',
+          title: t("仪表盘"),
+          icon: "pi pi-home",
         },
       },
       studio: {
-        path: 'studio',
+        path: "studio",
         meta: {
-          title: t('数据工作室'),
-          icon: 'pi pi-desktop',
+          title: t("数据工作室"),
+          icon: "pi pi-desktop",
           keepAlive: true,
         },
-        component: () => import('@/pages/admin/DataBaseStudio.vue'),
+        component: () => import("@/pages/admin/DataBaseStudio.vue"),
       },
       systemLog: {
-        path: 'systemLog',
-        component: () => import('@/pages/admin/SystemLog.vue'),
+        path: "systemLog",
+        component: () => import("@/pages/admin/SystemLog.vue"),
         meta: {
-          title: t('系统日志'),
-          icon: 'pi pi-file',
+          title: t("系统日志"),
+          icon: "pi pi-file",
         },
       },
       UploadList: {
-        path: 'UploadList',
-        component: () => import('@/pages/admin/UploadList.vue'),
+        path: "UploadList",
+        component: () => import("@/pages/admin/UploadList.vue"),
         meta: {
-          title: t('上传列表'),
-          icon: 'pi pi-upload',
+          title: t("上传列表"),
+          icon: "pi pi-upload",
         },
       },
       ShareList: {
-        path: 'ShareList',
-        component: () => import('@/pages/admin/share/ShareList.vue'),
+        path: "ShareList",
+        component: () => import("@/pages/admin/share/ShareList.vue"),
         meta: {
-          title: t('分享列表'),
-          icon: 'pi pi-share-alt',
+          title: t("分享列表"),
+          icon: "pi pi-share-alt",
         },
       },
       aiModelManager: {
-        path: 'aiModelManager',
-        component: () => import('@/pages/admin/AiModelManager.vue'),
+        path: "aiModelManager",
+        component: () => import("@/pages/admin/AiModelManager.vue"),
         meta: {
-          title: t('AI模型管理'),
-          icon: 'pi pi-microchip-ai',
+          title: t("AI模型管理"),
+          icon: "pi pi-microchip-ai",
         },
       },
       aiImageGeneration: {
-        path: 'aiImageGeneration',
-        component: () => import('@/pages/admin/AIImageGeneration.vue'),
+        path: "aiImageGeneration",
+        component: () => import("@/pages/admin/AIImageGeneration.vue"),
         meta: {
-          title: t('AI图片生成'),
-          icon: 'pi pi-sparkles',
+          title: t("AI图片生成"),
+          icon: "pi pi-sparkles",
         },
       },
       tokenPackageManagement: {
-        path: 'tokenPackageManagement',
-        component: () => import('@/pages/admin/TokenPackageManagement.vue'),
+        path: "tokenPackageManagement",
+        component: () => import("@/pages/admin/TokenPackageManagement.vue"),
         meta: {
-          title: t('代币套餐管理'),
-          icon: 'pi pi-box',
+          title: t("代币套餐管理"),
+          icon: "pi pi-box",
         },
       },
       userTokenManagement: {
-        path: 'userTokenManagement',
-        component: () => import('@/pages/admin/UserTokenManagement.vue'),
+        path: "userTokenManagement",
+        component: () => import("@/pages/admin/UserTokenManagement.vue"),
         meta: {
-          title: t('用户代币管理'),
-          icon: 'pi pi-users',
+          title: t("用户代币管理"),
+          icon: "pi pi-users",
         },
       },
       userSubscriptionManagement: {
-        path: 'userSubscriptionManagement',
-        component: () => import('@/pages/admin/UserSubscriptionManagement.vue'),
+        path: "userSubscriptionManagement",
+        component: () => import("@/pages/admin/UserSubscriptionManagement.vue"),
         meta: {
-          title: t('用户订阅管理'),
-          icon: 'pi pi-bookmark',
+          title: t("用户订阅管理"),
+          icon: "pi pi-bookmark",
         },
       },
       resourceGallery: {
-        path: 'resourceGallery',
-        component: () => import('@/pages/admin/ResourceGallery.vue'),
+        path: "resourceGallery",
+        component: () => import("@/pages/admin/ResourceGallery.vue"),
         meta: {
-          title: t('资源库'),
-          icon: 'pi pi-images',
+          title: t("资源库"),
+          icon: "pi pi-images",
         },
       },
       userSettings: {
-        path: 'userSettings',
-        component: () => import('@/pages/admin/UserSettings.vue'),
+        path: "userSettings",
+        component: () => import("@/pages/admin/UserSettings.vue"),
         meta: {
-          title: t('个人设置'),
-          icon: 'pi pi-user-cog',
+          title: t("个人设置"),
+          icon: "pi pi-user-cog",
         },
       },
       paymentConfig: {
-        path: 'paymentConfig',
-        component: () => import('@/pages/admin/PaymentConfig.vue'),
+        path: "paymentConfig",
+        component: () => import("@/pages/admin/PaymentConfig.vue"),
         meta: {
-          title: t('支付配置'),
-          icon: 'pi pi-wallet',
+          title: t("支付配置"),
+          icon: "pi pi-wallet",
         },
       },
       paymentOrderList: {
-        path: 'paymentOrderList',
-        component: () => import('@/pages/admin/PaymentOrderList.vue'),
+        path: "paymentOrderList",
+        component: () => import("@/pages/admin/PaymentOrderList.vue"),
         meta: {
-          title: t('支付订单'),
-          icon: 'pi pi-list',
+          title: t("支付订单"),
+          icon: "pi pi-list",
         },
       },
     },
   },
   ShareDetail: {
-    path: '/ShareDetail/:id',
-    component: () => import('@/pages/share/ShareEditor.vue'),
+    path: "/ShareDetail/:id",
+    component: () => import("@/pages/share/ShareEditor.vue"),
     meta: {
-      title: t('分享详情'),
-      icon: 'pi pi-share',
+      title: t("分享详情"),
+      icon: "pi pi-share",
     },
   },
   treehole: {
-    path: '/treehole',
-    component: () => import('@/pages/treehole/Treehole.vue'),
+    path: "/treehole",
+    component: () => import("@/pages/treehole/Treehole.vue"),
     meta: {
-      title: t('树洞'),
-      icon: 'pi pi-comments',
+      title: t("树洞"),
+      icon: "pi pi-comments",
     },
   },
   pricing: {
-    path: '/pricing',
-    component: () => import('@/pages/pricing/PricingPage.vue'),
+    path: "/pricing",
+    component: () => import("@/pages/pricing/PricingPage.vue"),
     meta: {
-      title: t('购买套餐'),
-      icon: 'pi pi-shopping-cart',
+      title: t("购买套餐"),
+      icon: "pi pi-shopping-cart",
     },
   },
   noteCalc: {
-    path: '/noteCalc',
-    component: () => import('@/pages/noteCalc/NoteCalc.vue'),
+    path: "/noteCalc",
+    component: () => import("@/pages/noteCalc/NoteCalc.vue"),
     meta: {
-      title: t('计算笔记'),
-      icon: 'pi pi-calculator',
+      title: t("计算笔记"),
+      icon: "pi pi-calculator",
     },
   },
   noteCalcEmbed: {
-    path: '/noteCalc/embed',
-    component: () => import('@/pages/noteCalc/NoteCalcEmbed.vue'),
+    path: "/noteCalc/embed",
+    component: () => import("@/pages/noteCalc/NoteCalcEmbed.vue"),
     meta: {
-      title: 'NoteCalc Embed',
+      title: "NoteCalc Embed",
       hideTab: true,
       bare: true,
     },
   },
   oauth: {
-    path: '/oauth',
+    path: "/oauth",
     redirect: defaultRoute,
     child: {
       github: {
-        path: 'github',
-        component: () => import('@/pages/oauth/github.vue'),
+        path: "github",
+        component: () => import("@/pages/oauth/github.vue"),
         meta: {
-          title: t('GitHub授权'),
-          icon: 'pi pi-github',
+          title: t("GitHub授权"),
+          icon: "pi pi-github",
         },
       },
       linuxdo: {
-        path: 'linuxdo',
-        component: () => import('@/pages/oauth/linuxdo.vue'),
+        path: "linuxdo",
+        component: () => import("@/pages/oauth/linuxdo.vue"),
         meta: {
-          title: t('LINUX DO授权'),
-          icon: 'pi pi-globe',
+          title: t("LINUX DO授权"),
+          icon: "pi pi-globe",
         },
       },
     },
   },
   AiEnglish: {
-    path: '/AiEnglish',
+    path: "/AiEnglish",
     redirect: defaultRoute,
     child: {
       index: {
         path: defaultRoute,
-        component: () => import('@/pages/AiEnglish/AiEnglish.vue'),
+        component: () => import("@/pages/AiEnglish/AiEnglish.vue"),
         meta: {
-          title: t('AI英语学习'),
-          icon: 'pi pi-book',
+          title: t("AI英语学习"),
+          icon: "pi pi-book",
         },
       },
     },
   },
   tests: {
-    path: '/tests',
-    redirect: '/',
+    path: "/tests",
+    redirect: "/",
+  },
+  visualTest: {
+    path: "/visual-test",
+    component: () => import("@/pages/visual-test/VisualTestApproval.vue"),
+    meta: {
+      title: t("视觉回归测试"),
+      icon: "pi pi-images",
+      hideTab: true,
     },
+  },
   util: {
-    path: '/util',
+    path: "/util",
     redirect: defaultRoute,
     child: {
       Img2Svg: {
-        path: 'Img2Svg',
-        component: () => import('@/pages/util/Img2Svg.vue'),
+        path: "Img2Svg",
+        component: () => import("@/pages/util/Img2Svg.vue"),
         meta: {
-          title: t('图片转SVG'),
-          icon: 'pi pi-image',
+          title: t("图片转SVG"),
+          icon: "pi pi-image",
         },
       },
     },
   },
   login: {
-    path: '/login',
-    component: () => import('@/pages/login.vue'),
+    path: "/login",
+    component: () => import("@/pages/login.vue"),
     meta: {
-      title: t('登录'),
+      title: t("登录"),
       hideTab: true,
     },
   },
   redirect: {
-    path: '/redirect',
-    component: () => import('@/pages/Redirect.vue'),
+    path: "/redirect",
+    component: () => import("@/pages/Redirect.vue"),
     meta: {
-      title: t('重定向'),
+      title: t("重定向"),
       hideTab: true,
     },
   },
   notFound: {
-    path: '/:pathMatch(.*)*',
-    component: () => import('@/pages/NotFound.vue'),
+    path: "/:pathMatch(.*)*",
+    component: () => import("@/pages/NotFound.vue"),
     meta: {
-      title: t('页面不存在'),
+      title: t("页面不存在"),
       hideTab: true,
     },
   },
 }) satisfies RouteTree;
 
-
 export const allRoutes: RouteNode[] = transformRoutes(routeMap);
-export { findRouteNode } from '@tsfullstack/shared-frontend/utils';
+export { findRouteNode } from "@tsfullstack/shared-frontend/utils";
 export const router = createRouter({
   history: createWebHistory(),
   routes: allRoutes as RouteRecordRaw[],
 });
 
 export type RouteObjProps<T extends { component?: ((...args: any) => any) | null | undefined }> =
-  T['component'] extends (...args: any) => any
-    ? InstanceType<Awaited<ReturnType<NonNullable<T['component']>>>['default']>['$props']
+  T["component"] extends (...args: any) => any
+    ? InstanceType<Awaited<ReturnType<NonNullable<T["component"]>>>["default"]>["$props"]
     : never;
 
 export const routerUtil = createRouteUtil(router);
@@ -322,8 +335,8 @@ export function createRouteUtil(router: Router) {
       window.open(
         router.resolve({ name: targetRouter.name, params: props, query: query } as RouteLocationRaw)
           .href,
-        '_blank',
-        'noopener,noreferrer',
+        "_blank",
+        "noopener,noreferrer",
       );
     },
 
