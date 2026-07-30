@@ -1,27 +1,24 @@
 <template>
   <div
-    class="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-500 bg-primary-surface">
+    class="min-h-screen flex items-center justify-center relative overflow-hidden transition-colors duration-500 bg-primary-surface"
+  >
     <!-- 炫酷背景 -->
     <div
-      class="absolute inset-0 transition-all duration-500 bg-linear-to-br from-info-100 via-info-200 to-info-100 dark:from-primary-950 dark:via-secondary-900 dark:to-info-900">
+      class="absolute inset-0 transition-all duration-500 bg-linear-to-br from-info-100 via-info-200 to-info-100 dark:from-primary-950 dark:via-secondary-900 dark:to-info-900"
+    >
       <!-- 动态背景元素 -->
       <div class="stars-container" v-if="theme_isDark">
         <div v-for="n in 20" :key="`star-${n}`" class="star" :style="getRandomStarStyle()"></div>
       </div>
 
       <!-- 光效元素 -->
-      <div
-        class="glow-effect glow-1 bg-success-300/40 dark:bg-success-500/30"></div>
-      <div
-        class="glow-effect glow-2 bg-info-300/40 dark:bg-info-500/30"></div>
-      <div
-        class="glow-effect glow-3 bg-info-300/30 dark:bg-info-500/20"></div>
+      <div class="glow-effect glow-1 bg-success-300/40 dark:bg-success-500/30"></div>
+      <div class="glow-effect glow-2 bg-info-300/40 dark:bg-info-500/30"></div>
+      <div class="glow-effect glow-3 bg-info-300/30 dark:bg-info-500/20"></div>
 
       <!-- 动态光线 -->
-      <div
-        class="light-beam light-beam-1 bg-linear-beam"></div>
-      <div
-        class="light-beam light-beam-2 bg-linear-beam"></div>
+      <div class="light-beam light-beam-1 bg-linear-beam"></div>
+      <div class="light-beam light-beam-2 bg-linear-beam"></div>
 
       <!-- 网格效果 -->
       <div class="grid-overlay grid-pattern"></div>
@@ -33,25 +30,29 @@
     </div>
 
     <div
-      class="w-full max-w-md p-8 space-y-6 rounded-2xl shadow-2xl border transition-all duration-300 relative z-10 bg-white/90 dark:bg-primary-800/40 backdrop-blur-sm dark:backdrop-blur-xl border-primary-default/30 hover:shadow-success-500/10 dark:hover:shadow-success-500/20">
+      class="w-full max-w-md p-8 space-y-6 rounded-2xl shadow-2xl transition-all duration-300 relative z-10 bg-white/90 dark:bg-primary-800/40 backdrop-blur-sm dark:backdrop-blur-xl border-primary-default/30 hover:shadow-success-500/10 dark:hover:shadow-success-500/20 sm:border"
+    >
       <!-- 卡片内部光晕 -->
       <div
-        class="absolute pointer-events-none -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200 bg-linear-to-r from-info-400 to-success-500 dark:from-success-500 dark:to-info-600"></div>
+        class="absolute pointer-events-none -inset-0.5 rounded-2xl blur opacity-20 group-hover:opacity-30 transition duration-1000 group-hover:duration-200 bg-linear-to-r from-info-400 to-success-500 dark:from-success-500 dark:to-info-600"
+      ></div>
       <div class="relative z-10">
         <!-- 顶部Logo和标题 -->
         <div class="text-center">
           <div class="flex justify-center mb-4">
             <div
-              class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow bg-linear-to-r from-info-500 to-success-600 dark:from-success-500 dark:to-info-600 shadow-success-500/20 dark:shadow-success-500/30">
+              class="w-16 h-16 rounded-xl flex items-center justify-center shadow-lg animate-pulse-slow bg-linear-to-r from-info-500 to-success-600 dark:from-success-500 dark:to-info-600 shadow-success-500/20 dark:shadow-success-500/30"
+            >
               <i class="pi pi-shield text-white text-3xl"></i>
             </div>
           </div>
           <h2
-            class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient bg-linear-to-r from-success-600 via-info-600 to-info-600 dark:from-success-400 dark:via-info-400 dark:to-info-400">
-            {{ isLogin ? t('系统登录') : t('用户注册') }}
+            class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient bg-linear-to-r from-success-600 via-info-600 to-info-600 dark:from-success-400 dark:via-info-400 dark:to-info-400"
+          >
+            {{ isLogin ? t("系统登录") : t("用户注册") }}
           </h2>
           <p class="mt-2 text-sm text-primary-600 dark:text-primary-300">
-            {{ isLogin ? t('欢迎回来，请输入您的账号和密码') : t('创建一个新账号，开始您的旅程') }}
+            {{ isLogin ? t("欢迎回来，请输入您的账号和密码") : t("创建一个新账号，开始您的旅程") }}
           </p>
         </div>
 
@@ -61,10 +62,10 @@
             <div class="group">
               <label
                 for="username"
-                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
-                <i
-                  class="pi pi-user mr-2 text-primary-500 dark:text-primary-300" />{{
-                  isLogin ? t('用户名') : t('邮箱')
+                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200"
+              >
+                <i class="pi pi-user mr-2 text-primary-500 dark:text-primary-300" />{{
+                  isLogin ? t("用户名") : t("邮箱")
                 }}
               </label>
 
@@ -73,45 +74,51 @@
                 v-model="form.username"
                 :type="isLogin ? 'text' : 'email'"
                 required
-                :placeholder="isLogin ? t('请输入用户名') : t('请输入邮箱')" />
+                :placeholder="isLogin ? t('请输入用户名') : t('请输入邮箱')"
+              />
             </div>
 
             <!-- 密码输入框 -->
             <div class="group">
               <label
                 for="password"
-                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
-                <i
-                  class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{ t('密码') }}
+                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200"
+              >
+                <i class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{ t("密码") }}
               </label>
               <Password
                 id="password"
                 v-model="form.password"
                 required
                 :feedback="!isLogin"
-                :placeholder="isLogin ? t('请输入密码') : t('请设置密码')" />
+                :placeholder="isLogin ? t('请输入密码') : t('请设置密码')"
+              />
             </div>
 
             <!-- 确认密码输入框 (仅注册时显示) -->
             <div v-if="!isLogin" class="group">
               <label
                 for="confirmPassword"
-                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
-                <i
-                  class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{ t('确认密码') }}
+                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200"
+              >
+                <i class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{
+                  t("确认密码")
+                }}
               </label>
               <Password
                 id="confirmPassword"
                 v-model="form.confirmPassword"
                 required
                 :feedback="false"
-                :placeholder="t('请再次输入密码')" />
+                :placeholder="t('请再次输入密码')"
+              />
               <small
                 v-if="
                   form.password && form.confirmPassword && form.password !== form.confirmPassword
                 "
-                class="text-danger-500 dark:text-danger-400 mt-1 block">
-                {{ t('两次输入的密码不一致') }}
+                class="text-danger-500 dark:text-danger-400 mt-1 block"
+              >
+                {{ t("两次输入的密码不一致") }}
               </small>
             </div>
           </div>
@@ -122,16 +129,18 @@
               <Checkbox v-model="localUserPwd.rememberMe" id="remember" binary />
               <label
                 for="remember"
-                class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
-                {{ t('记住我') }}
+                class="ml-2 block text-sm text-primary-700 dark:text-primary-200"
+              >
+                {{ t("记住我") }}
               </label>
             </div>
 
             <div class="text-sm">
               <a
                 href="#"
-                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300">
-                {{ t('忘记密码?') }}
+                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300"
+              >
+                {{ t("忘记密码?") }}
               </a>
             </div>
           </div>
@@ -139,20 +148,20 @@
           <!-- 用户协议 (仅注册时显示) -->
           <div v-if="!isLogin" class="flex items-center">
             <Checkbox v-model="agreeTerms" id="terms" binary />
-            <label
-              for="terms"
-              class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
-              {{ t('我已阅读并同意') }}
+            <label for="terms" class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
+              {{ t("我已阅读并同意") }}
               <a
                 href="#"
-                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300">
-                {{ t('用户协议') }}
+                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300"
+              >
+                {{ t("用户协议") }}
               </a>
-              {{ t('和') }}
+              {{ t("和") }}
               <a
                 href="#"
-                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300">
-                {{ t('隐私政策') }}
+                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300"
+              >
+                {{ t("隐私政策") }}
               </a>
             </label>
           </div>
@@ -165,17 +174,22 @@
               icon="pi pi-home"
               @click="routerUtil.push(routeMap.admin, {})"
               variant="secondary"
-              class="w-full" />
+              class="w-full"
+            />
             <Button
               type="submit"
               class="w-full"
               :loading="loading"
               :icon="isLogin ? 'pi pi-sign-in' : 'pi pi-user-plus'"
               :disabled="!isFormValid || loading"
-              :label="isLogin ? t('登录') : t('注册')" />
+              :label="isLogin ? t('登录') : t('注册')"
+            />
           </div>
           <!-- OAuth 登录按钮  -->
-          <div class="flex items-center justify-between gap-2" v-if="configuredProviders.length > 0">
+          <div
+            class="flex items-center justify-between gap-2"
+            v-if="configuredProviders.length > 0"
+          >
             <!-- github 登录 -->
             <Button
               v-if="configuredProviders.includes('github')"
@@ -184,7 +198,8 @@
               :loading="oauthLogin.isLoading.value"
               @click="oauthLogin.execute(0, 'github')"
               variant="secondary"
-              class="flex-1" />
+              class="flex-1"
+            />
             <!-- LINUX DO 登录 -->
             <Button
               v-if="configuredProviders.includes('linuxdo')"
@@ -193,20 +208,23 @@
               :loading="oauthLogin.isLoading.value"
               @click="oauthLogin.execute(0, 'linuxdo')"
               variant="secondary"
-              class="flex-1" />
+              class="flex-1"
+            />
           </div>
         </form>
 
         <!-- 底部切换登录/注册 -->
         <div
-          class="pt-4 text-center text-xs border-t text-primary-500 border-primary-200 dark:text-primary-400 dark:border-primary-700/30">
+          class="pt-4 text-center text-xs border-t text-primary-500 border-primary-200 dark:text-primary-400 dark:border-primary-700/30"
+        >
           <p>
-            {{ isLogin ? t('还没有账号?') : t('已有账号?') }}
+            {{ isLogin ? t("还没有账号?") : t("已有账号?") }}
             <a
               href="#"
               @click.prevent="toggleMode"
-              class="hover:underline text-info-600 dark:text-info-400">
-              {{ isLogin ? t('立即注册') : t('立即登录') }}
+              class="hover:underline text-info-600 dark:text-info-400"
+            >
+              {{ isLogin ? t("立即注册") : t("立即登录") }}
             </a>
           </p>
         </div>
@@ -214,370 +232,377 @@
     </div>
 
     <!-- 动态光圈效果 - 跟随鼠标 -->
-    <div
-      ref="cursorLight"
-      class="cursor-light cursor-light-glow"></div>
+    <div ref="cursorLight" class="cursor-light cursor-light-glow"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { useAPI } from '@/api';
-  import ThemeSwitcher from '@/components/system/ThemeToggle.vue';
-  import { loginGoto } from '@/pages/loginUtil';
-  import { routeMap, routerUtil } from '@/router';
-  import { authInfo_isLogin, localUserPwd, theme_isDark } from '@/storage';
-  import { useAsyncState, useEventListener } from '@vueuse/core';
-  import { useToast } from '@/composables/useToast';
-  import { useI18n } from '@/composables/useI18n';
-  import { getErrorMessage } from '@/utils/error';
-  import { computed, onMounted, ref } from 'vue';
+import { useAPI } from "@/api";
+import ThemeSwitcher from "@/components/system/ThemeToggle.vue";
+import { loginGoto } from "@/pages/loginUtil";
+import { routeMap, routerUtil } from "@/router";
+import { authInfo_isLogin, localUserPwd, theme_isDark } from "@/storage";
+import { useAsyncState, useEventListener } from "@vueuse/core";
+import { useToast } from "@/composables/useToast";
+import { useI18n } from "@/composables/useI18n";
+import { getErrorMessage } from "@/utils/error";
+import { computed, onMounted, ref } from "vue";
 
-  const { t } = useI18n();
+const { t } = useI18n();
 
-  const { r } = defineProps<{
-    r?: string;
-  }>();
+const { r } = defineProps<{
+  r?: string;
+}>();
 
-  const { AppAPI } = useAPI();
+const { AppAPI } = useAPI();
 
-  const toast = useToast();
-  const cursorLight = ref<HTMLElement | null>(null);
-  const loading = ref(false);
-  const isLogin = ref(true); // 默认为登录模式
-  const agreeTerms = ref(false); // 用户协议勾选
+const toast = useToast();
+const cursorLight = ref<HTMLElement | null>(null);
+const loading = ref(false);
+const isLogin = ref(true); // 默认为登录模式
+const agreeTerms = ref(false); // 用户协议勾选
 
-  const form = ref({
-    username: '',
-    password: '',
-    confirmPassword: '',
-  });
+const form = ref({
+  username: "",
+  password: "",
+  confirmPassword: "",
+});
 
-  const oauthLogin = useAsyncState(
-    async (provider: 'github' | 'linuxdo') => {
-      if (provider === 'github') {
-        const url = await AppAPI.githubApi.getAuthorizationUrl();
-        location.href = url;
-      } else if (provider === 'linuxdo') {
-        const url = await AppAPI.linuxdoApi.getAuthorizationUrl();
-        location.href = url;
-      } else {
-        provider satisfies never;
-      }
-    },
-    undefined,
-    { immediate: false },
-  );
-
-  /** 已配置的 OAuth 提供者列表 */
-  const configuredProviders = ref<string[]>([]);
-
-  onMounted(async () => {
-    useEventListener(document, 'mousemove', handleMouseMove);
-    if (localUserPwd.value.rememberMe) {
-      form.value.username = localUserPwd.value.username;
-      form.value.password = localUserPwd.value.password;
-    }
-    try {
-      configuredProviders.value = await AppAPI.oauthProviders();
-    } catch {
-      configuredProviders.value = [];
-    }
-  });
-
-  /** 表单验证 */
-  const isFormValid = computed(() => {
-    if (isLogin.value) {
-      // 登录模式验证
-      return form.value.username && form.value.password;
+const oauthLogin = useAsyncState(
+  async (provider: "github" | "linuxdo") => {
+    if (provider === "github") {
+      const url = await AppAPI.githubApi.getAuthorizationUrl();
+      location.href = url;
+    } else if (provider === "linuxdo") {
+      const url = await AppAPI.linuxdoApi.getAuthorizationUrl();
+      location.href = url;
     } else {
-      // 注册模式验证
-      return (
-        form.value.username &&
-        form.value.password &&
-        form.value.confirmPassword &&
-        form.value.password === form.value.confirmPassword &&
-        agreeTerms.value
-      );
+      provider satisfies never;
     }
-  });
+  },
+  undefined,
+  { immediate: false },
+);
 
-  /** 切换登录/注册模式 */
-  const toggleMode = () => {
-    isLogin.value = !isLogin.value;
-    // 清空表单
-    form.value = {
-      username: '',
-      password: '',
-      confirmPassword: '',
-    };
-    localUserPwd.value.rememberMe = false;
-    agreeTerms.value = false;
+/** 已配置的 OAuth 提供者列表 */
+const configuredProviders = ref<string[]>([]);
+
+onMounted(async () => {
+  useEventListener(document, "mousemove", handleMouseMove);
+  if (localUserPwd.value.rememberMe) {
+    form.value.username = localUserPwd.value.username;
+    form.value.password = localUserPwd.value.password;
+  }
+  try {
+    configuredProviders.value = await AppAPI.oauthProviders();
+  } catch {
+    configuredProviders.value = [];
+  }
+});
+
+/** 表单验证 */
+const isFormValid = computed(() => {
+  if (isLogin.value) {
+    // 登录模式验证
+    return form.value.username && form.value.password;
+  } else {
+    // 注册模式验证
+    return (
+      form.value.username &&
+      form.value.password &&
+      form.value.confirmPassword &&
+      form.value.password === form.value.confirmPassword &&
+      agreeTerms.value
+    );
+  }
+});
+
+/** 切换登录/注册模式 */
+const toggleMode = () => {
+  isLogin.value = !isLogin.value;
+  // 清空表单
+  form.value = {
+    username: "",
+    password: "",
+    confirmPassword: "",
   };
+  localUserPwd.value.rememberMe = false;
+  agreeTerms.value = false;
+};
 
-  /** 生成随机星星样式 */
-  const getRandomStarStyle = () => {
-    const size = Math.random() * 4 + 1;
-    const top = Math.random() * 100;
-    const left = Math.random() * 100;
-    const animationDuration = Math.random() * 3 + 2;
-    const delay = Math.random() * 5;
+/** 生成随机星星样式 */
+const getRandomStarStyle = () => {
+  const size = Math.random() * 4 + 1;
+  const top = Math.random() * 100;
+  const left = Math.random() * 100;
+  const animationDuration = Math.random() * 3 + 2;
+  const delay = Math.random() * 5;
 
-    return {
-      width: `${size}px`,
-      height: `${size}px`,
-      top: `${top}%`,
-      left: `${left}%`,
-      animationDuration: `${animationDuration}s`,
-      animationDelay: `${delay}s`,
-    };
+  return {
+    width: `${size}px`,
+    height: `${size}px`,
+    top: `${top}%`,
+    left: `${left}%`,
+    animationDuration: `${animationDuration}s`,
+    animationDelay: `${delay}s`,
   };
+};
 
-  /** 鼠标跟随效果 */
-  const handleMouseMove = (e: MouseEvent) => {
-    if (cursorLight.value) {
-      cursorLight.value.style.left = `${e.clientX}px`;
-      cursorLight.value.style.top = `${e.clientY}px`;
-    }
-  };
+/** 鼠标跟随效果 */
+const handleMouseMove = (e: MouseEvent) => {
+  if (cursorLight.value) {
+    cursorLight.value.style.left = `${e.clientX}px`;
+    cursorLight.value.style.top = `${e.clientY}px`;
+  }
+};
 
-  /** 处理表单提交 */
-  const handleSubmit = async () => {
-    if (!isFormValid.value) return;
+/** 处理表单提交 */
+const handleSubmit = async () => {
+  if (!isFormValid.value) return;
 
-    loading.value = true;
-    try {
-      if (isLogin.value) {
-        // 登录逻辑
-        const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
-        loginGoto(res, { r });
-        if (localUserPwd.value.rememberMe) {
-          localUserPwd.value.username = form.value.username;
-          localUserPwd.value.password = form.value.password;
-        }
-        toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
-      } else {
-        // 注册逻辑
-        await AppAPI.system.register(form.value.username, form.value.password);
-
-        toast.success(t('注册成功'), t('账号创建成功，请登录'));
-
-        // 注册成功后切换到登录页
-        isLogin.value = true;
+  loading.value = true;
+  try {
+    if (isLogin.value) {
+      // 登录逻辑
+      const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
+      loginGoto(res, { r });
+      if (localUserPwd.value.rememberMe) {
+        localUserPwd.value.username = form.value.username;
+        localUserPwd.value.password = form.value.password;
       }
-    } catch (error: unknown) {
-      toast.error(t(isLogin.value ? '登录失败' : '注册失败'), getErrorMessage(error));
-    } finally {
-      loading.value = false;
-    }
-  };
+      toast.success(t("登录成功"), t("欢迎回来，正在为您跳转..."));
+    } else {
+      // 注册逻辑
+      await AppAPI.system.register(form.value.username, form.value.password);
 
+      toast.success(t("注册成功"), t("账号创建成功，请登录"));
+
+      // 注册成功后切换到登录页
+      isLogin.value = true;
+    }
+  } catch (error: unknown) {
+    toast.error(t(isLogin.value ? "登录失败" : "注册失败"), getErrorMessage(error));
+  } finally {
+    loading.value = false;
+  }
+};
 </script>
 
 <style scoped>
-  :root {
-    /** 登录页光效主色，对应 success-500 (#22c55e) */
-    --login-glow-color: 34, 197, 94;
-  }
+:root {
+  /** 登录页光效主色，对应 success-500 (#22c55e) */
+  --login-glow-color: 34, 197, 94;
+}
 
-  /* 动画效果 */
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
-  @keyframes float {
-    0% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-20px);
-    }
-    100% {
-      transform: translateY(0px);
-    }
+@keyframes float {
+  0% {
+    transform: translateY(0px);
   }
+  50% {
+    transform: translateY(-20px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
 
-  @keyframes pulse-slow {
-    0% {
-      box-shadow: 0 0 0 0 rgba(var(--login-glow-color), 0.7);
-    }
-    70% {
-      box-shadow: 0 0 0 15px rgba(var(--login-glow-color), 0);
-    }
-    100% {
-      box-shadow: 0 0 0 0 rgba(var(--login-glow-color), 0);
-    }
+@keyframes pulse-slow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--login-glow-color), 0.7);
   }
+  70% {
+    box-shadow: 0 0 0 15px rgba(var(--login-glow-color), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--login-glow-color), 0);
+  }
+}
 
-  @keyframes gradient-shift {
-    0% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
   }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
 
-  @keyframes twinkle {
-    0% {
-      opacity: 0.2;
-    }
-    50% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0.2;
-    }
+@keyframes twinkle {
+  0% {
+    opacity: 0.2;
   }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
 
-  @keyframes beam-move {
-    0% {
-      transform: translateX(-100%) rotate(45deg);
-      opacity: 0;
-    }
-    20% {
-      opacity: 0.7;
-    }
-    80% {
-      opacity: 0.7;
-    }
-    100% {
-      transform: translateX(100%) rotate(45deg);
-      opacity: 0;
-    }
+@keyframes beam-move {
+  0% {
+    transform: translateX(-100%) rotate(45deg);
+    opacity: 0;
   }
+  20% {
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translateX(100%) rotate(45deg);
+    opacity: 0;
+  }
+}
 
-  /* 应用动画 */
-  form {
-    animation: fadeIn 0.5s ease-out;
-  }
+/* 应用动画 */
+form {
+  animation: fadeIn 0.5s ease-out;
+}
 
-  .animate-pulse-slow {
-    animation: pulse-slow 2s infinite;
-  }
+.animate-pulse-slow {
+  animation: pulse-slow 2s infinite;
+}
 
-  .animate-gradient {
-    background-size: 200% 200%;
-    animation: gradient-shift 3s ease infinite;
-  }
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
 
-  /* 星星效果 */
-  .stars-container {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-  }
+/* 星星效果 */
+.stars-container {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
 
-  .star {
-    position: absolute;
-    background-color: white;
-    border-radius: 50%;
-    animation: twinkle 3s infinite;
-  }
+.star {
+  position: absolute;
+  background-color: white;
+  border-radius: 50%;
+  animation: twinkle 3s infinite;
+}
 
-  /* 炫酷背景元素 */
-  .glow-effect {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(60px);
-  }
+/* 炫酷背景元素 */
+.glow-effect {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+}
 
-  .glow-1 {
-    top: 20%;
-    left: 15%;
-    width: 300px;
-    height: 300px;
-    animation: float 8s ease-in-out infinite;
-  }
+.glow-1 {
+  top: 20%;
+  left: 15%;
+  width: 300px;
+  height: 300px;
+  animation: float 8s ease-in-out infinite;
+}
 
-  .glow-2 {
-    bottom: 10%;
-    right: 15%;
-    width: 250px;
-    height: 250px;
-    animation: float 10s ease-in-out infinite;
-  }
+.glow-2 {
+  bottom: 10%;
+  right: 15%;
+  width: 250px;
+  height: 250px;
+  animation: float 10s ease-in-out infinite;
+}
 
-  .glow-3 {
-    top: 50%;
-    left: 50%;
-    width: 350px;
-    height: 350px;
-    animation: float 12s ease-in-out infinite;
-  }
+.glow-3 {
+  top: 50%;
+  left: 50%;
+  width: 350px;
+  height: 350px;
+  animation: float 12s ease-in-out infinite;
+}
 
-  /* 光束效果 */
-  .light-beam {
-    position: absolute;
-    height: 150px;
-    width: 100%;
-    transform: rotate(45deg);
-  }
+/* 光束效果 */
+.light-beam {
+  position: absolute;
+  height: 150px;
+  width: 100%;
+  transform: rotate(45deg);
+}
 
-  .bg-linear-beam {
-    background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
-  }
+.bg-linear-beam {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.05), transparent);
+}
 
-  .dark .bg-linear-beam {
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-  }
+.dark .bg-linear-beam {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+}
 
-  .light-beam-1 {
-    top: 20%;
-    animation: beam-move 8s linear infinite;
-  }
+.light-beam-1 {
+  top: 20%;
+  animation: beam-move 8s linear infinite;
+}
 
-  .light-beam-2 {
-    top: 60%;
-    animation: beam-move 12s linear infinite;
-  }
+.light-beam-2 {
+  top: 60%;
+  animation: beam-move 12s linear infinite;
+}
 
-  /* 网格效果 */
-  .grid-overlay {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-  }
+/* 网格效果 */
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
 
-  .grid-pattern {
-    background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-    background-size: 40px 40px;
-  }
+.grid-pattern {
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
 
-  .dark .grid-pattern {
-    background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  }
+.dark .grid-pattern {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
 
-  /* 鼠标跟随光效 */
-  .cursor-light {
-    position: fixed;
-    width: 300px;
-    height: 300px;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    z-index: 2;
-    mix-blend-mode: screen;
-  }
+/* 鼠标跟随光效 */
+.cursor-light {
+  position: fixed;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2;
+  mix-blend-mode: screen;
+}
 
-  .cursor-light-glow {
-    background: radial-gradient(circle, rgba(var(--login-glow-color), 0.15) 0%, rgba(var(--login-glow-color), 0) 70%);
-    mix-blend-mode: multiply;
-  }
+.cursor-light-glow {
+  background: radial-gradient(
+    circle,
+    rgba(var(--login-glow-color), 0.15) 0%,
+    rgba(var(--login-glow-color), 0) 70%
+  );
+  mix-blend-mode: multiply;
+}
 
-  .dark .cursor-light-glow {
-    background: radial-gradient(circle, rgba(var(--login-glow-color), 0.2) 0%, rgba(var(--login-glow-color), 0) 70%);
-    mix-blend-mode: screen;
-  }
+.dark .cursor-light-glow {
+  background: radial-gradient(
+    circle,
+    rgba(var(--login-glow-color), 0.2) 0%,
+    rgba(var(--login-glow-color), 0) 70%
+  );
+  mix-blend-mode: screen;
+}
 </style>
