@@ -79,8 +79,8 @@
         :key="scenario.name"
         :scenario="scenario"
         :rpc="vt"
-        @approved="refresh"
-        @rejected="refresh"
+        @approved="silentRefresh"
+        @rejected="silentRefresh"
       />
     </div>
 
@@ -177,6 +177,18 @@ async function refresh() {
     scenarios.value = report?.results ?? [];
   } finally {
     loading.value = false;
+  }
+}
+
+/** 静默刷新：不触发 loading 状态，避免滚动条跳动 */
+async function silentRefresh() {
+  if (!serverOnline.value) return;
+  try {
+    const data = await vt.value.getResults();
+    const report = data.report as RunReport | null;
+    scenarios.value = report?.results ?? [];
+  } catch {
+    // 静默失败
   }
 }
 

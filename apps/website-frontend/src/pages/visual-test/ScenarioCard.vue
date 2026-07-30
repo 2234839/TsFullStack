@@ -42,42 +42,48 @@
         <!-- 基准截图 -->
         <div class="overflow-hidden rounded border">
           <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("基准") }}</p>
-          <img
-            v-if="images.baseline"
-            :src="`data:image/png;base64,${images.baseline}`"
-            :alt="t('基准截图')"
-            class="w-full cursor-zoom-in"
-            @click="previewImage = { src: images.baseline, title: t('基准截图') }"
-          />
-          <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">
-            {{ t("无基准") }}
+          <div class="max-h-64 overflow-y-auto">
+            <img
+              v-if="images.baseline"
+              :src="`data:image/png;base64,${images.baseline}`"
+              :alt="t('基准截图')"
+              class="w-full cursor-zoom-in"
+              @click="previewImage = { src: images.baseline, title: t('基准截图') }"
+            />
+            <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">
+              {{ t("无基准") }}
+            </div>
           </div>
         </div>
 
         <!-- 当前截图 -->
         <div class="overflow-hidden rounded border">
           <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("当前") }}</p>
-          <img
-            v-if="images.current"
-            :src="`data:image/png;base64,${images.current}`"
-            :alt="t('当前截图')"
-            class="w-full cursor-zoom-in"
-            @click="previewImage = { src: images.current, title: t('当前截图') }"
-          />
-          <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">-</div>
+          <div class="max-h-64 overflow-y-auto">
+            <img
+              v-if="images.current"
+              :src="`data:image/png;base64,${images.current}`"
+              :alt="t('当前截图')"
+              class="w-full cursor-zoom-in"
+              @click="previewImage = { src: images.current, title: t('当前截图') }"
+            />
+            <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">-</div>
+          </div>
         </div>
 
         <!-- diff 图 -->
         <div class="overflow-hidden rounded border">
           <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("差异") }}</p>
-          <img
-            v-if="images.diff"
-            :src="`data:image/png;base64,${images.diff}`"
-            :alt="t('差异图')"
-            class="w-full cursor-zoom-in"
-            @click="previewImage = { src: images.diff, title: t('差异图') }"
-          />
-          <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">-</div>
+          <div class="max-h-64 overflow-y-auto">
+            <img
+              v-if="images.diff"
+              :src="`data:image/png;base64,${images.diff}`"
+              :alt="t('差异图')"
+              class="w-full cursor-zoom-in"
+              @click="previewImage = { src: images.diff, title: t('差异图') }"
+            />
+            <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">-</div>
+          </div>
         </div>
       </div>
 
@@ -114,9 +120,9 @@
             {{ Math.round(zoom * 100) }}%
           </div>
 
-          <!-- 图片容器：图片自适应视口，缩放由 transform 控制 -->
+          <!-- 图片容器：限制最大高度，超出可滚动，缩放由 transform 控制 -->
           <div
-            class="overflow-hidden"
+            class="max-h-[90vh] max-w-[90vw] overflow-auto"
             :style="{
               transform: `translate(${dragX}px, ${dragY}px) scale(${zoom})`,
               cursor: isDragging ? 'grabbing' : 'grab',
