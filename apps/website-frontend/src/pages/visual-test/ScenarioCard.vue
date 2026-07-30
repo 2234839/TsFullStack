@@ -81,16 +81,59 @@
         </div>
       </div>
 
-      <!-- 图片预览对话框 -->
-      <Dialog v-if="previewImage" v-model:open="showPreview" :title="previewImage.title">
-        <div class="max-h-[80vh] overflow-auto">
-          <img
-            :src="`data:image/png;base64,${previewImage.src}`"
-            :alt="previewImage.title"
-            class="w-full"
-          />
+      <!-- 图片预览：全屏遮罩 + 滚轮缩放 + 拖拽平移 -->
+      <Teleport to="body">
+        <div
+          v-if="previewImage"
+          class="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          @wheel.prevent="handleWheel"
+          @mousedown="startDrag"
+          @mousemove="onDrag"
+          @mouseup="endDrag"
+          @mouseleave="endDrag"
+          @click.self="previewImage = null"
+        >
+          <!-- 工具栏 -->
+          <div class="absolute top-4 right-4 flex items-center gap-2 z-10">
+            <button
+              class="rounded bg-white/20 px-3 py-1 text-sm text-white hover:bg-white/30"
+              @click="resetZoom"
+            >
+              {{ t("重置") }}
+            </button>
+            <button
+              class="rounded bg-white/20 px-3 py-1 text-sm text-white hover:bg-white/30"
+              @click="previewImage = null"
+            >
+              ✕ {{ t("关闭") }}
+            </button>
+          </div>
+
+          <!-- 缩放比例提示 -->
+          <div class="absolute bottom-4 left-4 rounded bg-black/50 px-2 py-1 text-xs text-white">
+            {{ Math.round(zoom * 100) }}%
+          </div>
+
+          <!-- 图片容器 -->
+          <div
+            class="overflow-hidden"
+            :style="{
+              transform: `translate(${dragX}px, ${dragY}px) scale(${zoom})`,
+              cursor: isDragging ? 'grabbing' : 'grab',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+            }"
+          >
+            <img
+              :src="`data:image/png;base64,${previewImage.src}`"
+              :alt="previewImage.title"
+              class="block max-w-none"
+              :style="{ width: imgNaturalWidth + 'px' }"
+              draggable="false"
+            />
+          </div>
         </div>
-      </Dialog>
+      </Teleport>
 
       <!-- 操作按钮 -->
       <div class="mt-3 flex gap-2">
@@ -128,7 +171,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { Button, Card, Tag } from "@/components/base";
-import { Dialog } from "@tsfullstack/shared-frontend/components";
 import { useI18n } from "@/composables/useI18n";
 import type { ScenarioResult, VisualTestAPI } from "@tsfullstack/visual-test";
 
@@ -158,12 +200,63 @@ const rerunning = ref(false);
 
 /** 图片预览 */
 const previewImage = ref<{ src: string; title: string } | null>(null);
-const showPreview = computed({
-  get: () => previewImage.value !== null,
-  set: (val: boolean) => {
-    if (!val) previewImage.value = null;
-  },
+
+/** 缩放级别（1 = 原始尺寸） */
+const zoom = ref(1);
+/** 拖拽偏移 */
+const dragX = ref(0);
+const dragY = ref(0);
+const isDragging = ref(false);
+const dragStartX = ref(0);
+const dragStartY = ref(0);
+/** 图片原始宽度（从 base64 加载后获取） */
+const imgNaturalWidth = ref(800);
+
+/** 打开预览时加载图片获取原始尺寸 */
+watch(previewImage, (val) => {
+  if (val) {
+    zoom.value = 1;
+    dragX.value = 0;
+    dragY.value = 0;
+    const img = new Image();
+    img.onload = () => {
+      imgNaturalWidth.value = img.naturalWidth;
+    };
+    img.src = `data:image/png;base64,${val.src}`;
+  }
 });
+
+/** 滚轮缩放 */
+function handleWheel(e: WheelEvent) {
+  const delta = e.deltaY > 0 ? -0.15 : 0.15;
+  zoom.value = Math.min(Math.max(zoom.value + delta, 0.2), 5);
+}
+
+/** 开始拖拽 */
+function startDrag(e: MouseEvent) {
+  isDragging.value = true;
+  dragStartX.value = e.clientX - dragX.value;
+  dragStartY.value = e.clientY - dragY.value;
+}
+
+/** 拖拽中 */
+function onDrag(e: MouseEvent) {
+  if (!isDragging.value) return;
+  dragX.value = e.clientX - dragStartX.value;
+  dragY.value = e.clientY - dragStartY.value;
+}
+
+/** 结束拖拽 */
+function endDrag() {
+  isDragging.value = false;
+}
+
+/** 重置缩放和位置 */
+function resetZoom() {
+  zoom.value = 1;
+  dragX.value = 0;
+  dragY.value = 0;
+}
 
 /** 状态标签 */
 const statusLabel = computed(() => {
