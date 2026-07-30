@@ -2,6 +2,16 @@
   "name": "api-proxy",
   "version": "1.0.0",
   "description": "Cloudflare Workers API proxy for solving external API access issues",
+  "keywords": [
+    "api",
+    "cloudflare",
+    "github",
+    "npm",
+    "proxy",
+    "workers"
+  ],
+  "license": "MIT",
+  "author": "",
   "main": "src/index.ts",
   "scripts": {
     "dev": "wrangler dev",
@@ -13,15 +23,5 @@
     "@cloudflare/workers-types": "^4.0.0",
     "typescript": "^5.9.2",
     "wrangler": "^4.28.1"
-  },
-  "keywords": [
-    "api",
-    "proxy",
-    "cloudflare",
-    "workers",
-    "github",
-    "npm"
-  ],
-  "author": "",
-  "license": "MIT"
+  }
 }

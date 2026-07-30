@@ -2,6 +2,20 @@
   "name": "@tsagent/core",
   "version": "1.0.0",
   "description": "A lightweight TypeScript Agent system",
+  "keywords": [
+    "agent",
+    "ai",
+    "automation",
+    "tools",
+    "typescript"
+  ],
+  "license": "MIT",
+  "author": "TsAgent Team",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -20,15 +34,9 @@
     "example:quick": "pnpm tsx examples/quick-start.ts",
     "example:all": "pnpm example:basic && pnpm example:files && pnpm example:http && pnpm example:multimedia && pnpm example:interactive && pnpm example:quick"
   },
-  "keywords": [
-    "typescript",
-    "agent",
-    "automation",
-    "ai",
-    "tools"
-  ],
-  "author": "TsAgent Team",
-  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.0.0"
+  },
   "devDependencies": {
     "@types/jest": "^29.0.0",
     "@types/node": "^25.3.3",
@@ -37,14 +45,6 @@
     "tsx": "^4.21.0",
     "typescript": "^5.0.0"
   },
-  "dependencies": {
-    "dotenv": "^16.0.0"
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
   "engines": {
     "node": ">=18.0.0"
   }

@@ -5,18 +5,36 @@ packages:
   - examples/*
 
 catalog:
-  '@types/node': ^20.10.0
-  '@vitejs/plugin-vue': ^5.2.1
+  "@types/node": ^25.6.2
+  "@vitejs/plugin-vue": ^6.0.8
   primeicons: ^7.0.0
   primevue: ^4.3.9
-  reka-ui: ^2.9.7
-  typescript: ~5.9.3
-  vite: ^7.1.7
-  vue: ^3.5.34
-  vue-router: ^5.0.6
+  reka-ui: ^2.10.1
+  typescript: ^6.0.3
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.6
+  vue: ^3.5.40
+  vue-router: ^5.2.0
+  vitest: 4.1.10
+  vite-plus: 0.2.6
+  "@vitest/coverage-v8": 4.1.10
 
 settings:
   autoInstallPeers: true
   dedupe-peer-dependents: true
   excludeLinksFromLockfile: false
   prefer-workspace-packages: true
+ignoredBuiltDependencies:
+  - "@prisma/engines"
+  - better-sqlite3
+  - prisma
+  - vue-demi
+overrides:
+  vite: "catalog:"
+  vitest: "catalog:"
+peerDependencyRules:
+  allowAny:
+    - vite
+    - vitest
+  allowedVersions:
+    vite: "*"
+    vitest: "*"

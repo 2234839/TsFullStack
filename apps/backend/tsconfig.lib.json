@@ -1,27 +1,16 @@
 {
-    "extends": "./tsconfig.json",
-    "compilerOptions": {
-        "emitDeclarationOnly": true,
-        "declaration": true,
-        "declarationMap": true,
-        "outDir": "./dist-lib",
-        "composite": true,
-        "skipLibCheck": true,
-        "baseUrl": ".",
-        "paths": {
-            "@/*": ["./src/*"]
-        }
-    },
-    "include": [
-        "src/**/*",
-        ".zenstack/**/*",
-        "projects/**/*"
-    ],
-    "exclude": [
-        "node_modules",
-        "dist",
-        "dist-lib",
-        "**/*.test.ts",
-        "**/*.spec.ts"
-    ]
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "./dist-lib",
+    "composite": true,
+    "skipLibCheck": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["src/**/*", ".zenstack/**/*", "projects/**/*"],
+  "exclude": ["node_modules", "dist", "dist-lib", "**/*.test.ts", "**/*.spec.ts"]
 }

@@ -1,40 +1,47 @@
-import fastifyCors from '@fastify/cors';
-import fastifyMultipart from '@fastify/multipart';
-import fastifyStatic from '@fastify/static';
-import { ORMError, ORMErrorReason } from '@zenstackhq/orm';
-import { Cause, Effect, Exit, Layer, Queue } from 'effect';
-import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
-import os from 'os';
-import path from 'path';
-import superjson, { type SuperJSONResult } from 'superjson';
-import { fileURLToPath } from 'url';
-import { AuthContext } from '../Context/Auth';
-import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
-import { AppConfigService } from '../Context/AppConfig';
-import { systemLog } from '../Context/SystemLog';
-import { GithubAuthLive } from '../OAuth/github';
-import { LinuxDoAuthLive } from '../OAuth/linuxdo';
-import { apis, type APIRaw } from '../api';
-import { appApis } from '../api/appApi';
-import { FileWrapItem } from '../util/file-types';
-import { verifySignByToken } from '../lib/SessionAuthSign';
-import { createRPC } from '../rpc';
-import { MsgError, fail, tryOrFail, extractErrorMessage } from '../util/error';
-import { FetchWithProxy } from '../util/github-proxy';
+import fastifyCors from "@fastify/cors";
+import fastifyMultipart from "@fastify/multipart";
+import fastifyStatic from "@fastify/static";
+import { ORMError, ORMErrorReason } from "@zenstackhq/orm";
+import { Cause, Effect, Exit, Layer, Queue } from "effect";
+import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
+import os from "os";
+import path from "path";
+import superjson, { type SuperJSONResult } from "superjson";
+import { fileURLToPath } from "url";
+import { AuthContext } from "../Context/Auth";
+import { ReqCtxService, type ReqCtx } from "../Context/ReqCtx";
+import { AppConfigService } from "../Context/AppConfig";
+import { systemLog } from "../Context/SystemLog";
+import { GithubAuthLive } from "../OAuth/github";
+import { LinuxDoAuthLive } from "../OAuth/linuxdo";
+import { apis, type APIRaw } from "../api";
+import { appApis } from "../api/appApi";
+import { FileWrapItem } from "../util/file-types";
+import { verifySignByToken } from "../lib/SessionAuthSign";
+import { createRPC } from "../rpc";
+import { MsgError, fail, tryOrFail, extractErrorMessage } from "../util/error";
+import { FetchWithProxy } from "../util/github-proxy";
 import {
   createDetailedErrorMessage,
   isRecordNotFoundError,
   isZenStackPermissionError,
   isZenStackValidationError,
-} from '../util/zenstack-error';
-import { getAuthFromCache } from './authCache';
-import { registerWebhookRoutes } from './webhook';
-import { CORS_MAX_AGE_SECONDS, MAX_UPLOAD_BYTES, SERVER_PORT, SERVER_HOST, MAX_WAIT_MS, MSG } from '../util/constants';
+} from "../util/zenstack-error";
+import { getAuthFromCache } from "./authCache";
+import { registerWebhookRoutes } from "./webhook";
+import {
+  CORS_MAX_AGE_SECONDS,
+  MAX_UPLOAD_BYTES,
+  SERVER_PORT,
+  SERVER_HOST,
+  MAX_WAIT_MS,
+  MSG,
+} from "../util/constants";
 
 /** 通用 RPC 调用辅助（消除 app-api/api 两分支的重复 tryPromise+isEffect 模式） */
 const callRpc = <T>(rpc: ReturnType<typeof createRPC>, method: string, params: unknown[]) =>
   Effect.gen(function* () {
-    const res = yield* tryOrFail('RPC 调用', () => rpc.RC(method, params));
+    const res = yield* tryOrFail("RPC 调用", () => rpc.RC(method, params));
     if (Effect.isEffect(res)) return yield* res as Effect.Effect<T>;
     return res as T;
   });
@@ -43,7 +50,11 @@ const callRpc = <T>(rpc: ReturnType<typeof createRPC>, method: string, params: u
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /** 日志前缀 */
-const LOG_PREFIX = '[Server]';
+const LOG_PREFIX = "[Server]";
+
+/** 构建时由 vite define 注入的版本信息 */
+declare const __GIT_COMMIT__: string;
+declare const __BUILD_TIME__: string;
 
 /** 每个 CPU 核心分配的请求并发数 */
 const REQUESTS_PER_CPU_CORE = 10;
@@ -73,7 +84,7 @@ function handleCause(cause: Cause.Cause<unknown>) {
         err = { message: MSG.VALIDATION_FAILED };
       } else {
         // 其他错误，使用第一行错误消息
-        err = { message: error.message.split('\n')[0] };
+        err = { message: error.message.split("\n")[0] };
       }
     } else {
       err = { message: String(error) };
@@ -81,7 +92,7 @@ function handleCause(cause: Cause.Cause<unknown>) {
     return String(error); // Cause.match 回调要求返回 string，值虽不被使用但类型必须匹配
   }
   const causeMsg = Cause.match(cause, {
-    onEmpty: '(empty)',
+    onEmpty: "(empty)",
     onFail: setErr,
     onDie: setErr,
     onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
@@ -100,13 +111,13 @@ function handleCause(cause: Cause.Cause<unknown>) {
  * superjson 序列化后的结构为 { json: ..., meta?: ... }
  */
 function isSuperJsonBody(body: unknown): body is SuperJSONResult {
-  return typeof body === 'object' && body !== null && 'json' in body;
+  return typeof body === "object" && body !== null && "json" in body;
 }
 
 /** 参数解析函数 */
 async function parseParams(req: FastifyRequest): Promise<unknown[]> {
-  const contentType = req.headers['content-type'];
-  if (contentType?.includes('application/json')) {
+  const contentType = req.headers["content-type"];
+  if (contentType?.includes("application/json")) {
     /** 兼容 superjson 和普通 JSON 两种格式 */
     if (isSuperJsonBody(req.body)) {
       const parsed = superjson.deserialize(req.body as SuperJSONResult) as unknown;
@@ -120,10 +131,10 @@ async function parseParams(req: FastifyRequest): Promise<unknown[]> {
       return req.body;
     }
     throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
-  } else if (contentType?.startsWith('multipart/form-data')) {
+  } else if (contentType?.startsWith("multipart/form-data")) {
     // 在接口中使用 ReqCtx 获取值（为了文件流的优化）
     return [];
-  } else if (req.method === 'GET') {
+  } else if (req.method === "GET") {
     const query = req.query as {
       args?: string;
       sign?: string;
@@ -148,7 +159,7 @@ function parseParamsAndAuth(req: FastifyRequest) {
       session?: string;
     };
 
-    const querySignMode = req.method === 'GET';
+    const querySignMode = req.method === "GET";
     const opt: {
       userId?: string;
       email?: string;
@@ -161,7 +172,7 @@ function parseParamsAndAuth(req: FastifyRequest) {
       opt.sessionID = Number(query.session);
     } else {
       // 使用请求头进行认证
-      const rawToken = req.headers['x-token-id'];
+      const rawToken = req.headers["x-token-id"];
       opt.sessionToken = Array.isArray(rawToken) ? rawToken[0] : rawToken;
     }
 
@@ -170,17 +181,17 @@ function parseParamsAndAuth(req: FastifyRequest) {
     if (querySignMode) {
       const session = user.userSession[0];
       if (!session) {
-        return yield* Effect.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 session'));
+        return yield* Effect.fail(new MsgError(MsgError.op_toLogin, "请提供有效的 session"));
       }
       const verify = yield* Effect.try({
-        try: () => verifySignByToken(query.args ?? '', session.token, query.sign ?? ''),
+        try: () => verifySignByToken(query.args ?? "", session.token, query.sign ?? ""),
         catch: (e) => MsgError.msg(`签名验证失败: ${extractErrorMessage(e)}`),
       });
       if (!verify) {
         return yield* fail(MSG.SIGNATURE_INVALID);
       }
     }
-    const params = yield* tryOrFail('参数解析', () => parseParams(req));
+    const params = yield* tryOrFail("参数解析", () => parseParams(req));
     return { params, db, user };
   });
 }
@@ -194,7 +205,7 @@ type ApiCtx = {
 };
 
 /** rpc 实例，提到外部可避免每次重新创建 */
-const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
+const appApisRpc = createRPC("apiProvider", { genApiModule: async () => appApis });
 let reqId = 0;
 /** 注意，这里必须要等待发送数据完毕，否则 onEnd 之后数据将无法发送 */
 function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
@@ -209,9 +220,9 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
   };
   let method: string;
   try {
-    method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
+    method = decodeURIComponent(req.url.split("?")[0]?.slice(pathPrefix.length) ?? "");
   } catch {
-    reply.code(400).send({ error: 'Malformed URL encoding' });
+    reply.code(400).send({ error: "Malformed URL encoding" });
     onEnd();
     return Effect.void;
   }
@@ -246,24 +257,25 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
       /** 记录详细的错误信息 */
       if (Cause.isDieType(cause)) {
         const defect = cause.defect;
-        const defectStack = defect instanceof Error
-          ? defect.stack?.split('at Generator.next (<anonymous>)')?.[0]
-          : String(defect);
+        const defectStack =
+          defect instanceof Error
+            ? defect.stack?.split("at Generator.next (<anonymous>)")?.[0]
+            : String(defect);
         reqCtx.log(
-          '[error Cause]',
+          "[error Cause]",
           /** 裁剪掉 Effect 内部的调用堆栈 */
-          defectStack ?? 'unknown',
+          defectStack ?? "unknown",
         );
 
         // 额外记录 ZenStack/Prisma 错误的详细信息
         if (defect) {
           const detailedMsg = createDetailedErrorMessage(defect, method);
-          if (detailedMsg.includes('ZenStack') || detailedMsg.includes('P2025')) {
-            reqCtx.log('[error details]', detailedMsg);
+          if (detailedMsg.includes("ZenStack") || detailedMsg.includes("P2025")) {
+            reqCtx.log("[error details]", detailedMsg);
           }
         }
       } else {
-        reqCtx.log('[error noCause]', `${cause}`);
+        reqCtx.log("[error noCause]", `${cause}`);
       }
 
       reply.send(superjson.serialize({ error: handleCause(cause) }));
@@ -272,14 +284,20 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
     onEnd();
     const endTime = Date.now();
     return yield* systemLog(
-      { level: 'info', message: `${endTime - startTime}ms ${method}` },
+      { level: "info", message: `${endTime - startTime}ms ${method}` },
       reqCtx,
     );
   });
 }
 
 /** 构建请求核心业务逻辑 Effect（等待检查 → 路由分发 → RPC 调用 → 响应序列化） */
-function buildReqProgram(opts: { req: FastifyRequest; reply: FastifyReply; pathPrefix: string; method: string; enqueueTime: number }) {
+function buildReqProgram(opts: {
+  req: FastifyRequest;
+  reply: FastifyReply;
+  pathPrefix: string;
+  method: string;
+  enqueueTime: number;
+}) {
   return Effect.gen(function* () {
     const waitTime = Date.now() - opts.enqueueTime;
     if (waitTime > MAX_WAIT_MS) {
@@ -287,13 +305,13 @@ function buildReqProgram(opts: { req: FastifyRequest; reply: FastifyReply; pathP
     }
 
     let result: unknown;
-    if (opts.pathPrefix === '/app-api/') {
-      const params = yield* tryOrFail('参数解析', () => parseParams(opts.req));
+    if (opts.pathPrefix === "/app-api/") {
+      const params = yield* tryOrFail("参数解析", () => parseParams(opts.req));
       result = yield* callRpc(appApisRpc, opts.method, params);
-    } else if (opts.pathPrefix === '/api/') {
+    } else if (opts.pathPrefix === "/api/") {
       /** 处理需要鉴权的 API */
       const { params, db, user } = yield* parseParamsAndAuth(opts.req);
-      const apisRpc = createRPC('apiProvider', {
+      const apisRpc = createRPC("apiProvider", {
         /** apis + db → APIRaw: 动态合并的模块对象无法在编译期精确匹配 APIRaw 接口，运行时结构一致 */
         genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
       });
@@ -313,24 +331,32 @@ function buildReqProgram(opts: { req: FastifyRequest; reply: FastifyReply; pathP
 function sendFileResponse(reply: FastifyReply, fileItem: FileWrapItem) {
   return Effect.gen(function* () {
     const fileSize = fileItem.model.size;
-    const rangeHeader = reply.request.headers['range'];
+    const rangeHeader = reply.request.headers["range"];
 
     // 设置公共文件响应头
     reply
-      .type(fileItem.model.mimetype ?? 'application/octet-stream')
-      .header('Accept-Ranges', 'bytes')
-      .header('Content-Disposition', `inline; filename="${encodeURIComponent(fileItem.model.filename ?? 'file')}"`);
+      .type(fileItem.model.mimetype ?? "application/octet-stream")
+      .header("Accept-Ranges", "bytes")
+      .header(
+        "Content-Disposition",
+        `inline; filename="${encodeURIComponent(fileItem.model.filename ?? "file")}"`,
+      );
 
     // 支持 HTTP Range requests（视频分段加载、断点续传）
     if (rangeHeader) {
-      const rangeStr = typeof rangeHeader === 'string' ? rangeHeader : (Array.isArray(rangeHeader) ? rangeHeader[0] : String(rangeHeader));
-      const parts = rangeStr.replace(/bytes=/, '').split('-');
-      const start = Math.max(0, parseInt(parts[0] ?? '0', 10) || 0);
-      const rawEnd = parseInt(parts[1] ?? '', 10);
+      const rangeStr =
+        typeof rangeHeader === "string"
+          ? rangeHeader
+          : Array.isArray(rangeHeader)
+            ? rangeHeader[0]
+            : String(rangeHeader);
+      const parts = rangeStr.replace(/bytes=/, "").split("-");
+      const start = Math.max(0, parseInt(parts[0] ?? "0", 10) || 0);
+      const rawEnd = parseInt(parts[1] ?? "", 10);
       const end = Math.min(Number.isNaN(rawEnd) ? fileSize - 1 : rawEnd, fileSize - 1);
 
       if (start >= fileSize || end < start) {
-        reply.code(416).header('Content-Range', `bytes */${fileSize}`).send();
+        reply.code(416).header("Content-Range", `bytes */${fileSize}`).send();
         return;
       }
 
@@ -338,11 +364,11 @@ function sendFileResponse(reply: FastifyReply, fileItem: FileWrapItem) {
 
       reply
         .code(206)
-        .header('Content-Range', `bytes ${start}-${end}/${fileSize}`)
-        .header('Content-Length', chunkSize);
+        .header("Content-Range", `bytes ${start}-${end}/${fileSize}`)
+        .header("Content-Length", chunkSize);
       yield* Effect.promise(async () => reply.send(fileItem.getFileStreamRange(start, end)));
     } else {
-      reply.header('Content-Length', fileSize);
+      reply.header("Content-Length", fileSize);
       yield* Effect.promise(async () => reply.send(fileItem.getFileStream()));
     }
   });
@@ -354,27 +380,26 @@ export const startServer = Effect.gen(function* () {
 
   //#region fastify 注册中间件:cors Multipart static
   /** CORS origin 配置：优先使用配置白名单，未配置或空数组则允许所有来源 */
-  const corsOrigin = appConfig.corsOrigins && appConfig.corsOrigins.length > 0
-    ? appConfig.corsOrigins
-    : true; // true 等效于 '*'
-  if (corsOrigin === true && process.env.NODE_ENV === 'production') {
-    console.warn('[Server] CORS 允许所有来源(*)，建议在 config.json 中配置 corsOrigins 白名单');
+  const corsOrigin =
+    appConfig.corsOrigins && appConfig.corsOrigins.length > 0 ? appConfig.corsOrigins : true; // true 等效于 '*'
+  if (corsOrigin === true && process.env.NODE_ENV === "production") {
+    console.warn("[Server] CORS 允许所有来源(*)，建议在 config.json 中配置 corsOrigins 白名单");
   }
   fastify.register(fastifyCors, {
     origin: corsOrigin,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'x-token-id'],
-    exposedHeaders: ['Content-Length', 'Content-Range', 'Accept-Ranges'],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-token-id"],
+    exposedHeaders: ["Content-Length", "Content-Range", "Accept-Ranges"],
     credentials: false,
     maxAge: CORS_MAX_AGE_SECONDS, // 预检请求结果缓存24小时
   });
   fastify.register(fastifyMultipart, {
     limits: { fileSize: MAX_UPLOAD_BYTES }, // 1GB
   });
-  console.log(`${LOG_PREFIX} static files:`, path.join(__dirname, 'frontend'));
+  console.log(`${LOG_PREFIX} static files:`, path.join(__dirname, "frontend"));
   fastify.register(fastifyStatic, {
-    root: path.join(__dirname, 'frontend'),
-    prefix: '/',
+    root: path.join(__dirname, "frontend"),
+    prefix: "/",
   });
   //#endregion
 
@@ -415,23 +440,31 @@ export const startServer = Effect.gen(function* () {
     };
   }
 
-  fastify.all('/api/*', registerRoute('/api/'));
-  fastify.all('/app-api/*', registerRoute('/app-api/'));
+  fastify.all("/api/*", registerRoute("/api/"));
+  fastify.all("/app-api/*", registerRoute("/app-api/"));
+
+  /** 版本信息端点（无需认证，用于验证线上部署版本） */
+  fastify.get("/version", () => ({
+    commit: typeof __GIT_COMMIT__ !== "undefined" ? __GIT_COMMIT__ : "unknown",
+    buildTime: typeof __BUILD_TIME__ !== "undefined" ? __BUILD_TIME__ : "unknown",
+  }));
 
   /** 注册支付 Webhook 回调路由（不走 RPC 系统，由第三方平台直接调用） */
   registerWebhookRoutes(fastify);
 
   /** 处理 SPA 路由回退 */
   fastify.setNotFoundHandler((request, reply) => {
-    if (!request.url.startsWith('/api') && !request.url.startsWith('/app-api')) {
-      reply.sendFile('index.html');
+    if (!request.url.startsWith("/api") && !request.url.startsWith("/app-api")) {
+      reply.sendFile("index.html");
     } else {
-      reply.code(404).send({ error: 'Not Found' });
+      reply.code(404).send({ error: "Not Found" });
     }
   });
 
   //#region 启动服务器
-  const address = yield* tryOrFail('服务器启动', () => fastify.listen({ port: SERVER_PORT, host: SERVER_HOST }));
+  const address = yield* tryOrFail("服务器启动", () =>
+    fastify.listen({ port: SERVER_PORT, host: SERVER_HOST }),
+  );
   console.log(`${LOG_PREFIX} listening on ${address}`);
   //#endregion
 
@@ -455,7 +488,7 @@ export const startServer = Effect.gen(function* () {
               yield* Effect.logError(`[handleReq error] ${String(err)}`);
               /** 确保客户端收到响应，避免连接挂起 */
               if (!ctx.reply.sent) {
-                ctx.reply.code(500).send({ error: 'Internal Server Error' });
+                ctx.reply.code(500).send({ error: "Internal Server Error" });
               }
             }),
           ),

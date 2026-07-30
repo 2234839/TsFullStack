@@ -1,8 +1,12 @@
 {
   "name": "@tsfullstack/shared-frontend",
   "version": "0.1.0",
-  "type": "module",
   "private": true,
+  "files": [
+    "dist",
+    "src"
+  ],
+  "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
@@ -28,20 +32,11 @@
       "types": "./src/types/index.ts"
     }
   },
-  "files": [
-    "dist",
-    "src"
-  ],
   "scripts": {
-    "build": "vite build && tsc --emitDeclarationOnly",
+    "build": "vp build && tsc --emitDeclarationOnly",
     "build:types": "tsc --emitDeclarationOnly",
     "typecheck": "tsc --noEmit",
-    "dev": "vite build --watch"
-  },
-  "peerDependencies": {
-    "reka-ui": "^2.8.0",
-    "vue": "catalog:",
-    "vue-router": "catalog:"
+    "dev": "vp build --watch"
   },
   "devDependencies": {
     "@types/node": "^25.3.3",
@@ -49,6 +44,12 @@
     "reka-ui": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vue": "catalog:",
+    "vue-router": "catalog:"
+  },
+  "peerDependencies": {
+    "reka-ui": "^2.8.0",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },
