@@ -1,7 +1,15 @@
-@import 'tailwindcss';
+@import "tailwindcss";
 
+/**
+ * 语义化颜色工具类 — 统一 light/dark 模式下的常见颜色组合
+ *
+ * ⚠️ 注意：以下自定义工具类（bg-primary-card、text-primary-theme 等）
+ * 不支持 Tailwind 的透明度修饰符（如 bg-primary-card/20）。
+ * 原因：这些类在 @layer utilities 中硬编码了 background-color/color，
+ * Tailwind 的 /alpha 机制只对其原生颜色系统生效。
+ * 如需半透明背景，请直接使用 Tailwind 原生色阶（如 bg-primary-100/20）。
+ */
 @layer utilities {
-  /** 语义化颜色工具类 — 统一 light/dark 模式下的常见颜色组合 */
   .text-primary-theme {
     color: var(--color-primary-600);
     &:where(.dark *) {

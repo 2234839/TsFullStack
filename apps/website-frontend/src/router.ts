@@ -292,6 +292,26 @@ export const router = createRouter({
   routes: allRoutes as RouteRecordRaw[],
 });
 
+/**
+ * 路由错误兜底：当懒加载 chunk 因部署更新而 404 时，自动检测并刷新。
+ * 这是主动轮询（useUpdateChecker）的补充——覆盖用户在两次轮询之间导航的场景。
+ */
+router.onError(async (error) => {
+  const isChunkLoadError =
+    error?.message?.includes("Failed to fetch dynamically imported module") ||
+    error?.message?.includes("Importing a module script failed") ||
+    error?.message?.includes("error loading dynamically imported module");
+  if (!isChunkLoadError) return;
+
+  const { handleChunkLoadError } = await import("@/composables/useUpdateChecker");
+  const handled = await handleChunkLoadError();
+  if (!handled) {
+    /** 不是更新导致的 chunk 加载失败（可能是网络问题），跳首页避免白屏 */
+    console.error("[Router] chunk 加载失败且非更新导致", error);
+    window.location.href = "/";
+  }
+});
+
 export type RouteObjProps<T extends { component?: ((...args: any) => any) | null | undefined }> =
   T["component"] extends (...args: any) => any
     ? InstanceType<Awaited<ReturnType<NonNullable<T["component"]>>>["default"]>["$props"]

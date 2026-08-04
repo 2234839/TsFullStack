@@ -1,6 +1,7 @@
 <template>
   <div
-    class="min-h-screen bg-linear-to-br from-primary-50 to-secondary-50 dark:from-primary-900 dark:to-secondary-900 p-4">
+    class="min-h-screen bg-linear-to-br from-primary-50 to-secondary-50 dark:from-primary-900 dark:to-secondary-900 p-4"
+  >
     <div class="max-w-7xl mx-auto space-y-6">
       <!-- 标题区域 -->
       <div class="flex items-center gap-4">
@@ -9,16 +10,17 @@
             icon="pi pi-arrow-left"
             variant="secondary"
             @click="routerUtil.push(routeMap.index, undefined as never)"
-            class="text-base! px-4! py-2!">
-            {{ t('返回首页') }}
+            class="text-base! px-4! py-2!"
+          >
+            {{ t("返回首页") }}
           </Button>
         </Tooltip>
         <div class="flex-1 text-center">
           <h1 class="text-3xl font-bold flex items-center justify-center gap-3">
             <i class="pi pi-book text-primary-theme text-2xl" />
-            {{ t('在阅读中渐进式学习英语') }}
+            {{ t("在阅读中渐进式学习英语") }}
           </h1>
-          <p class="text-sm mt-1">{{ t('AI驱动 • 智能分析 • 分段学习 • 划选段落翻译') }}</p>
+          <p class="text-sm mt-1">{{ t("AI驱动 • 智能分析 • 分段学习 • 划选段落翻译") }}</p>
         </div>
       </div>
 
@@ -30,15 +32,11 @@
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-book" />
-                {{ t('文章输入') }}
-                <Tag v-if="isStudying" variant="info" class="ml-auto"> {{ t('学习中...') }} </Tag>
+                {{ t("文章输入") }}
+                <Tag v-if="isStudying" variant="info" class="ml-auto"> {{ t("学习中...") }} </Tag>
                 <CommonSettingBtns class="ml-auto" />
                 <Tooltip :content="t('AI配置')" side="left">
-                  <Button
-                    icon="pi pi-cog"
-                    variant="icon"
-                    rounded
-                    @click="showConfigPanel = true" />
+                  <Button icon="pi pi-cog" variant="icon" rounded @click="showConfigPanel = true" />
                 </Tooltip>
               </div>
             </template>
@@ -49,7 +47,8 @@
                     v-model="syncData.article"
                     :placeholder="t('请粘贴你想学习的英文文章...')"
                     :rows="5"
-                    class="flex-1 resize-none" />
+                    class="flex-1 resize-none"
+                  />
                 </div>
                 <div class="space-y-3">
                   <div class="flex gap-2 flex-wrap">
@@ -58,33 +57,45 @@
                       icon="pi pi-times"
                       variant="secondary"
                       @click="syncData.article = ''"
-                      :label="t('清空')" />
+                      :label="t('清空')"
+                    />
                     <div class="flex-1 flex gap-1">
                       <Button
                         @click="handleArticleSubmit(true)"
                         class="flex-1"
                         :disabled="isAnalyzing || isSegmenting"
                         variant="primary"
-                        :label="isSegmenting ? t('AI分段中...') : isAnalyzing ? t('AI分析中...') : t('AI智能分段')" />
+                        :label="
+                          isSegmenting
+                            ? t('AI分段中...')
+                            : isAnalyzing
+                              ? t('AI分析中...')
+                              : t('AI智能分段')
+                        "
+                      />
                       <Tooltip :content="t('使用传统分段方式（基于空行和句号）')" side="top">
                         <Button
                           @click="handleArticleSubmit(false)"
                           variant="secondary"
                           :disabled="isAnalyzing || isSegmenting"
-                          :label="t('传统分段')" />
+                          :label="t('传统分段')"
+                        />
                       </Tooltip>
                     </div>
                     <Button
                       variant="secondary"
                       @click="loadSampleArticle()"
                       :disabled="isAnalyzing || isSegmenting"
-                      :label="t('示例分段')" />
+                      :label="t('示例分段')"
+                    />
                   </div>
 
                   <!-- 智能分段选项说明 -->
                   <div class="flex items-center gap-2 text-xs text-primary-subtle">
                     <i class="pi pi-sparkles text-secondary-500 dark:text-secondary-400"></i>
-                    <span>{{ t('AI智能分段会根据内容逻辑和阅读体验进行优化，确保每个段落信息量适中') }}</span>
+                    <span>{{
+                      t("AI智能分段会根据内容逻辑和阅读体验进行优化，确保每个段落信息量适中")
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -98,8 +109,11 @@
               <div class="space-y-2">
                 <div class="flex items-center gap-2">
                   <i class="pi pi-book text-xl" />
-                  <span class="text-sm text-secondary-600 dark:text-secondary-400" :title="t('段落进度')">
-                    {{ completedParagraphs }}/{{ syncData.paragraphs.length }} {{ t('已完成') }}
+                  <span
+                    class="text-sm text-secondary-600 dark:text-secondary-400"
+                    :title="t('段落进度')"
+                  >
+                    {{ completedParagraphs }}/{{ syncData.paragraphs.length }} {{ t("已完成") }}
                   </span>
                   <Tooltip :content="t('智能分段信息')" side="top">
                     <Button
@@ -108,17 +122,22 @@
                       size="small"
                       rounded
                       @click="showSegmentationInfo = !showSegmentationInfo"
-                      icon="pi pi-sparkles" />
+                      icon="pi pi-sparkles"
+                    />
                   </Tooltip>
                 </div>
 
                 <!-- 智能分段信息条 -->
-                <div v-if="showSegmentationInfo && smartSegmentation"
-                     class="p-2 bg-secondary-50 dark:bg-secondary-900/20 rounded-lg text-xs">
+                <div
+                  v-if="showSegmentationInfo && smartSegmentation"
+                  class="p-2 bg-secondary-50 dark:bg-secondary-900/20 rounded-lg text-xs"
+                >
                   <div class="flex items-center gap-1 text-secondary-700 dark:text-secondary-300">
                     <i class="pi pi-sparkles"></i>
-                    <span class="font-medium">{{ t('AI智能分段') }}</span>
-                    <span class="ml-auto">{{ smartSegmentation.estimatedTotalTime }}{{ t('分钟预计') }}</span>
+                    <span class="font-medium">{{ t("AI智能分段") }}</span>
+                    <span class="ml-auto"
+                      >{{ smartSegmentation.estimatedTotalTime }}{{ t("分钟预计") }}</span
+                    >
                   </div>
                   <div class="text-secondary-600 dark:text-secondary-400 mt-1">
                     {{ smartSegmentation.segmentationStrategy }}
@@ -132,25 +151,36 @@
                       size="small"
                       @click="goToParagraph(syncData.currentParagraphIndex - 1)"
                       :disabled="syncData.currentParagraphIndex === 0"
-                      icon="pi pi-angle-left" />
+                      icon="pi pi-angle-left"
+                    />
                   </Tooltip>
                   <div class="flex-1 flex gap-1 overflow-x-auto">
                     <Tooltip
                       v-for="(paragraph, index) in syncData.paragraphs"
                       :key="index"
                       :content="getParagraphTooltip(paragraph, index)"
-                      side="top">
+                      side="top"
+                    >
                       <Button
-                        :variant="index === syncData.currentParagraphIndex ? 'primary' : 'secondary'"
+                        :variant="
+                          index === syncData.currentParagraphIndex ? 'primary' : 'secondary'
+                        "
                         size="small"
                         :class="[
                           'flex-1',
-                          { 'bg-success-100 dark:bg-success-900/30 border-success-300 dark:border-success-700': paragraph.isCompleted },
-                          { 'bg-secondary-100 dark:bg-secondary-900/30 border-secondary-300 dark:border-secondary-700': paragraph.complexity && paragraph.complexity > 7 },
+                          {
+                            'bg-success-100 dark:bg-success-900/30 border-success-300 dark:border-success-700':
+                              paragraph.isCompleted,
+                          },
+                          {
+                            'bg-secondary-100 dark:bg-secondary-900/30 border-secondary-300 dark:border-secondary-700':
+                              paragraph.complexity && paragraph.complexity > 7,
+                          },
                         ]"
                         @click="goToParagraph(index)"
                         :label="String(index + 1)"
-                        :icon="paragraph.isCompleted ? 'pi pi-check-circle' : ''" />
+                        :icon="paragraph.isCompleted ? 'pi pi-check-circle' : ''"
+                      />
                     </Tooltip>
                   </div>
                   <Button
@@ -159,7 +189,8 @@
                     icon="pi pi-check"
                     class="bg-primary-600 hover:bg-primary-700 text-white"
                     :disabled="syncData.paragraphs[syncData.currentParagraphIndex]?.isCompleted"
-                    :label="t('OK')" />
+                    :label="t('OK')"
+                  />
                 </div>
               </div>
             </template>
@@ -167,7 +198,12 @@
               <AiEnglishTips
                 :title="t('使用提示：')"
                 icon="pi-pencil"
-                :tips="t('点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译，下方英文学习完毕后点击右上角的OK按钮')" />
+                :tips="
+                  t(
+                    '点击单词查看详细翻译，或拖拽选择多个单词获取段落翻译，下方英文学习完毕后点击右上角的OK按钮',
+                  )
+                "
+              />
               <div
                 id="article-container"
                 class="text-lg leading-relaxed max-h-96 overflow-y-auto select-none p-4"
@@ -175,7 +211,12 @@
                 @mouseup="handleMouseUp"
                 @touchmove="handleMouseMove"
                 @touchend="handleMouseUp"
-                @touchstart="(e) => { if (selectionState.isSelecting) e.preventDefault(); }">
+                @touchstart="
+                  (e) => {
+                    if (selectionState.isSelecting) e.preventDefault();
+                  }
+                "
+              >
                 <ParagraphRenderer
                   v-if="currentText"
                   :text="currentText"
@@ -197,10 +238,11 @@
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-sparkles text-secondary-600 dark:text-secondary-400 text-xl" />
-                {{ t('AI智能翻译') }}
+                {{ t("AI智能翻译") }}
                 <div
                   class="ml-auto flex items-center space-x-0.5"
-                  v-if="selectedWord || paragraphTranslation">
+                  v-if="selectedWord || paragraphTranslation"
+                >
                   <span class="">{{ ttsConfig.rate }}x</span>
                   <Slider
                     v-model="ttsConfig.rate"
@@ -208,7 +250,8 @@
                     :max="1.5"
                     :step="0.1"
                     class="w-32"
-                    :title="t(`调整发音速度，当前${ttsConfig.rate}倍速`)" />
+                    :title="t(`调整发音速度，当前${ttsConfig.rate}倍速`)"
+                  />
                   <Button
                     text
                     rounded
@@ -216,7 +259,8 @@
                       translationType === 'word'
                         ? speakText(selectedWord?.word ?? '')
                         : speakText(paragraphTranslation?.originalText ?? '')
-                    ">
+                    "
+                  >
                     <i class="pi pi-volume-up text-base" />
                   </Button>
                   <Button
@@ -230,7 +274,8 @@
                           )
                     "
                     class="ml-auto"
-                    :title="t('重新使用ai翻译')">
+                    :title="t('重新使用ai翻译')"
+                  >
                     <i class="pi pi-refresh text-base" />
                   </Button>
                 </div>
@@ -246,78 +291,93 @@
                       {{ selectedWord.word }}
                     </div>
 
-                    <div
-                      v-if="selectedWord.pronunciation"
-                      class="text-lg text-primary-label">
-                      <span class="text-sm text-primary-subtle">{{ t('音标: ') }}</span>
+                    <div v-if="selectedWord.pronunciation" class="text-lg text-primary-label">
+                      <span class="text-sm text-primary-subtle">{{ t("音标: ") }}</span>
                       {{ selectedWord.pronunciation }}
                     </div>
 
                     <div class="space-y-3">
                       <div class="flex items-center gap-2">
                         <i class="pi pi-brain text-base" />
-                        <span class="text-sm text-primary-subtle">{{ t('熟练度') }}</span>
+                        <span class="text-sm text-primary-subtle">{{ t("熟练度") }}</span>
                         <Tag
                           :value="`${selectedWord.memoryLevel}/10`"
                           class="border-none"
                           :style="{
                             backgroundColor: getMemoryColor(selectedWord.memoryLevel),
-                            color: selectedWord.memoryLevel > 5 ? 'var(--color-gray-900)' : 'var(--color-white)',
-                          }" />
-                        <span
-                          v-if="selectedWord.difficulty"
-                          class="text-sm text-primary-subtle"
-                          >{{ t('难度') }}</span
-                        >
+                            color:
+                              selectedWord.memoryLevel > 5
+                                ? 'var(--color-gray-900)'
+                                : 'var(--color-white)',
+                          }"
+                        />
+                        <span v-if="selectedWord.difficulty" class="text-sm text-primary-subtle">{{
+                          t("难度")
+                        }}</span>
                         <Tag
                           v-if="selectedWord.difficulty"
                           :class="getDifficultyColor(selectedWord.difficulty)"
-                          :value="`${selectedWord.difficulty}/10`" />
+                          :value="`${selectedWord.difficulty}/10`"
+                        />
                       </div>
 
                       <Slider
                         v-model="selectedWord.memoryLevel"
-                        @change="adjustMemoryLevel(selectedWord.word, Array.isArray($event) ? ($event[0] ?? 0) : ($event ?? 0))"
+                        @change="
+                          adjustMemoryLevel(
+                            selectedWord.word,
+                            Array.isArray($event) ? ($event[0] ?? 0) : ($event ?? 0),
+                          )
+                        "
                         :min="0"
                         :max="10"
                         :step="1"
-                        class="w-full" />
+                        class="w-full"
+                      />
                     </div>
 
                     <!-- 使用GlassBlur组件控制翻译内容的显示 -->
                     <GlassBlur
                       :key="selectedWord.word"
                       :initialBlurred="shouldUseBlur"
-                      :overlayText="selectedWord.memoryLevel > 4 ? t('悬停查看翻译') : t('点击查看翻译')"
+                      :overlayText="
+                        selectedWord.memoryLevel > 4 ? t('悬停查看翻译') : t('点击查看翻译')
+                      "
                       :toggleOnClick="true"
                       :autoClear="selectedWord.memoryLevel <= 4"
                       overlayClass="bg-primary-100/80 dark:bg-primary-800/80 backdrop-blur-[1px]"
                       overlayTextClass="text-primary-theme text-xs"
-                      @click="handleTranslationClick">
+                      @click="handleTranslationClick"
+                    >
                       <div class="space-y-2">
-                        <div v-if="isTranslating" key="word-translating" class="flex items-center gap-2 text-primary-subtle">
+                        <div
+                          v-if="isTranslating"
+                          key="word-translating"
+                          class="flex items-center gap-2 text-primary-subtle"
+                        >
                           <i class="pi pi-refresh animate-spin" />
-                          {{ t('AI翻译中...') }}
+                          {{ t("AI翻译中...") }}
                         </div>
                         <div v-else key="word-result" class="text-lg">
-                          {{ selectedWord.aiTranslation ?? t('获取翻译中...') }}
+                          {{ selectedWord.aiTranslation ?? t("获取翻译中...") }}
                         </div>
                       </div>
 
                       <div v-if="selectedWord.grammar" class="space-y-2">
-                        <div class="text-sm text-primary-subtle">{{ t('语法信息') }}</div>
+                        <div class="text-sm text-primary-subtle">{{ t("语法信息") }}</div>
                         <div class="text-sm bg-primary-50 dark:bg-primary-700 p-2 rounded">
                           {{ selectedWord.grammar }}
                         </div>
                       </div>
 
                       <div v-if="selectedWord.examples?.length" class="space-y-2">
-                        <div class="text-sm text-primary-subtle">{{ t('AI例句') }}</div>
+                        <div class="text-sm text-primary-subtle">{{ t("AI例句") }}</div>
                         <div class="space-y-1">
                           <div
                             v-for="(example, index) in selectedWord.examples"
                             :key="index"
-                            class="text-sm bg-primary-card/30 p-2 rounded italic">
+                            class="text-sm bg-primary-100 dark:bg-primary-800 p-2 rounded italic"
+                          >
                             {{ example }}
                           </div>
                         </div>
@@ -325,11 +385,11 @@
 
                       <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
-                          <div class="text-primary-subtle">{{ t('查看次数') }}</div>
-                          <div class="font-medium">{{ selectedWord.clickCount }} {{ t('次') }}</div>
+                          <div class="text-primary-subtle">{{ t("查看次数") }}</div>
+                          <div class="font-medium">{{ selectedWord.clickCount }} {{ t("次") }}</div>
                         </div>
                         <div>
-                          <div class="text-primary-subtle">{{ t('眼熟度') }}</div>
+                          <div class="text-primary-subtle">{{ t("眼熟度") }}</div>
                           <div class="font-medium">
                             <span :class="getFamiliarityColor(selectedWord.familiarity)">
                               {{ Math.round(selectedWord.familiarity) }}%
@@ -347,29 +407,37 @@
                     <!-- 段落翻译内容 -->
                     <div class="space-y-3">
                       <div class="space-y-2">
-                        <div v-if="isTranslating" key="translating" class="flex items-center gap-2 text-primary-subtle">
-                          <i
-                            class="pi pi-refresh text-base animate-spin" />
-                          {{ t('AI翻译中...') }}
+                        <div
+                          v-if="isTranslating"
+                          key="translating"
+                          class="flex items-center gap-2 text-primary-subtle"
+                        >
+                          <i class="pi pi-refresh text-base animate-spin" />
+                          {{ t("AI翻译中...") }}
                         </div>
-                        <div v-else key="result" class="p-3 bg-primary-50 dark:bg-primary-800/50 rounded-lg">
+                        <div
+                          v-else
+                          key="result"
+                          class="p-3 bg-primary-50 dark:bg-primary-800/50 rounded-lg"
+                        >
                           <div class="leading-relaxed">
                             {{ paragraphTranslation.mixedTranslation }}
                           </div>
                           <div class="text-xs text-primary-theme mt-2">
-                            {{ t('💡 熟悉的单词保持英文显示，帮助巩固记忆') }}
+                            {{ t("💡 熟悉的单词保持英文显示，帮助巩固记忆") }}
                           </div>
                         </div>
                       </div>
 
                       <div class="space-y-2" v-if="!isTranslating && paragraphTranslation">
-                        <div class="text-sm text-primary-subtle">{{ t('完整中文翻译') }}</div>
+                        <div class="text-sm text-primary-subtle">{{ t("完整中文翻译") }}</div>
                         <GlassBlur
                           :key="paragraphTranslation?.originalText"
                           :overlay-text="t('鼠标悬停或点击查看翻译')"
                           :container-class="'p-3 bg-success-50/80 dark:bg-success-900/20 rounded-lg border border-success-100/50 dark:border-success-700/50 hover:bg-success-50/95 dark:hover:bg-success-900/30'"
                           :overlay-class="'bg-success-50/60 dark:bg-success-950/60 backdrop-blur-[1px]'"
-                          :overlay-text-class="'text-success-700/80 dark:text-success-300/80'">
+                          :overlay-text-class="'text-success-700/80 dark:text-success-300/80'"
+                        >
                           <div class="text-base leading-relaxed">
                             {{ paragraphTranslation.translatedText }}
                           </div>
@@ -379,14 +447,19 @@
                   </div>
                 </div>
                 <div v-else class="text-center py-8 text-primary-subtle">
-                  <i class="pi pi-sparkles w-12 h-12 mx-auto mb-4 text-primary-300 dark:text-primary-600" />
-                  <p class="text-lg font-medium mb-2">{{ t('点击单词或拖拽选择段落') }}</p>
-                  <p class="text-sm mb-4">{{ t('获取AI智能翻译和详细分析') }}</p>
+                  <i
+                    class="pi pi-sparkles w-12 h-12 mx-auto mb-4 text-primary-300 dark:text-primary-600"
+                  />
+                  <p class="text-lg font-medium mb-2">{{ t("点击单词或拖拽选择段落") }}</p>
+                  <p class="text-sm mb-4">{{ t("获取AI智能翻译和详细分析") }}</p>
                   <AiEnglishTips
                     v-if="isStudying"
                     :title="t('💡 提示：')"
                     icon=""
-                    :tips="t('点击单词查看翻译会降低熟练度，完成段落时未操作的单词会提升熟练度(+1)')" />
+                    :tips="
+                      t('点击单词查看翻译会降低熟练度，完成段落时未操作的单词会提升熟练度(+1)')
+                    "
+                  />
                 </div>
               </div>
             </template>
@@ -396,65 +469,86 @@
         <!-- 右侧：翻译和统计 -->
         <div class="space-y-4 top-4 h-fit">
           <!-- 智能分段信息 -->
-          <Card v-if="smartSegmentation" class="border-secondary-200 dark:border-secondary-700 bg-secondary-50 dark:bg-secondary-900/20">
+          <Card
+            v-if="smartSegmentation"
+            class="border-secondary-200 dark:border-secondary-700 bg-secondary-50 dark:bg-secondary-900/20"
+          >
             <template #title>
               <div
                 class="flex items-center gap-2 cursor-pointer"
-                @click="showSegmentationInfo = !showSegmentationInfo">
+                @click="showSegmentationInfo = !showSegmentationInfo"
+              >
                 <i class="pi pi-sparkles text-xl text-secondary-600 dark:text-secondary-400" />
-                {{ t('智能分段信息') }}
+                {{ t("智能分段信息") }}
                 <span class="ml-auto text-sm text-secondary-600 dark:text-secondary-400">{{
-                  showSegmentationInfo ? t('收起') : t('展开')
+                  showSegmentationInfo ? t("收起") : t("展开")
                 }}</span>
               </div>
             </template>
             <template v-if="showSegmentationInfo" #content>
               <div class="space-y-4">
                 <div class="text-sm">
-                  <div class="font-medium text-secondary-700 dark:text-secondary-300 mb-2">{{ t('分段策略') }}</div>
-                  <div class="text-secondary-600 dark:text-secondary-400">{{ smartSegmentation.segmentationStrategy }}</div>
+                  <div class="font-medium text-secondary-700 dark:text-secondary-300 mb-2">
+                    {{ t("分段策略") }}
+                  </div>
+                  <div class="text-secondary-600 dark:text-secondary-400">
+                    {{ smartSegmentation.segmentationStrategy }}
+                  </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-4 text-sm">
                   <div class="flex items-center gap-2">
                     <i class="pi pi-bookmark text-secondary-600 dark:text-secondary-400" />
-                    <span>{{ t('总段落数:') }}</span>
+                    <span>{{ t("总段落数:") }}</span>
                     <Tag :value="smartSegmentation.totalSegments.toString()" variant="info" />
                   </div>
                   <div class="flex items-center gap-2">
                     <i class="pi pi-clock text-secondary-600 dark:text-secondary-400" />
-                    <span>{{ t('预计时间:') }}</span>
+                    <span>{{ t("预计时间:") }}</span>
                     <Tag :value="`${smartSegmentation.estimatedTotalTime}${t('分钟')}`" />
                   </div>
                 </div>
 
                 <!-- 当前段落详细信息 -->
                 <div v-if="currentParagraph" class="border-t pt-3">
-                  <div class="font-medium text-secondary-700 dark:text-secondary-300 mb-2">{{ t('当前段落') }}</div>
+                  <div class="font-medium text-secondary-700 dark:text-secondary-300 mb-2">
+                    {{ t("当前段落") }}
+                  </div>
                   <div class="space-y-2 text-sm">
                     <div v-if="currentParagraph.complexity" class="flex items-center gap-2">
-                      <span class="text-primary-theme">{{ t('复杂度:') }}</span>
+                      <span class="text-primary-theme">{{ t("复杂度:") }}</span>
                       <Tag
                         :value="`${currentParagraph.complexity}/10`"
-                        :class="getDifficultyColor(currentParagraph.complexity)" />
+                        :class="getDifficultyColor(currentParagraph.complexity)"
+                      />
                     </div>
-                    <div v-if="currentParagraph.estimatedReadingTime" class="flex items-center gap-2">
-                      <span class="text-primary-theme">{{ t('预计阅读:') }}</span>
+                    <div
+                      v-if="currentParagraph.estimatedReadingTime"
+                      class="flex items-center gap-2"
+                    >
+                      <span class="text-primary-theme">{{ t("预计阅读:") }}</span>
                       <Tag :value="`${readingTimeMin}${t('分钟')}`" variant="info" />
                     </div>
                     <div v-if="currentParagraph.reason" class="flex items-start gap-2">
-                      <span class="text-primary-theme">{{ t('分段理由:') }}</span>
-                      <span class="text-secondary-600 dark:text-secondary-400 flex-1">{{ currentParagraph.reason }}</span>
+                      <span class="text-primary-theme">{{ t("分段理由:") }}</span>
+                      <span class="text-secondary-600 dark:text-secondary-400 flex-1">{{
+                        currentParagraph.reason
+                      }}</span>
                     </div>
-                    <div v-if="currentParagraph.keyVocabulary && currentParagraph.keyVocabulary.length > 0"
-                         class="flex items-start gap-2">
-                      <span class="text-primary-theme">{{ t('关键词:') }}</span>
+                    <div
+                      v-if="
+                        currentParagraph.keyVocabulary && currentParagraph.keyVocabulary.length > 0
+                      "
+                      class="flex items-start gap-2"
+                    >
+                      <span class="text-primary-theme">{{ t("关键词:") }}</span>
                       <div class="flex flex-wrap gap-1">
                         <Tag
                           v-for="word in currentParagraph.keyVocabulary"
                           :key="word"
                           variant="secondary"
-                          class="text-xs">
+                          class="text-xs"
+                        >
                           {{ word }}
                         </Tag>
                       </div>
@@ -466,15 +560,19 @@
           </Card>
 
           <!-- AI分析结果 -->
-          <Card v-if="aiAnalysis" class="border-secondary-200 dark:border-secondary-700 bg-secondary-50 dark:bg-secondary-900/20">
+          <Card
+            v-if="aiAnalysis"
+            class="border-secondary-200 dark:border-secondary-700 bg-secondary-50 dark:bg-secondary-900/20"
+          >
             <template #title>
               <div
                 class="flex items-center gap-2 cursor-pointer"
-                @click="showAiAnalysis = !showAiAnalysis">
+                @click="showAiAnalysis = !showAiAnalysis"
+              >
                 <i class="pi pi-star-fill text-xl text-secondary-600 dark:text-secondary-400" />
-                {{ t('AI智能分析') }}
+                {{ t("AI智能分析") }}
                 <span class="ml-auto text-sm text-secondary-600 dark:text-secondary-400">{{
-                  showAiAnalysis ? t('收起') : t('展开')
+                  showAiAnalysis ? t("收起") : t("展开")
                 }}</span>
               </div>
             </template>
@@ -482,27 +580,33 @@
               <div class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
                   <div class="flex items-center gap-2">
-                    <i class="pi pi-bullseye text-secondary-600 dark:text-secondary-400 text-base" />
-                    <span class="text-sm">{{ t('文章难度:') }}</span>
+                    <i
+                      class="pi pi-bullseye text-secondary-600 dark:text-secondary-400 text-base"
+                    />
+                    <span class="text-sm">{{ t("文章难度:") }}</span>
                     <Tag
                       :class="getDifficultyColor(aiAnalysis.articleDifficulty)"
-                      :value="`${aiAnalysis.articleDifficulty}/10`" />
+                      :value="`${aiAnalysis.articleDifficulty}/10`"
+                    />
                   </div>
                   <div class="flex items-center gap-2">
                     <i class="pi pi-brain text-secondary-600 dark:text-secondary-400 text-base" />
-                    <span class="text-sm">{{ t('建议学习时间:') }}</span>
+                    <span class="text-sm">{{ t("建议学习时间:") }}</span>
                     <Tag :value="`${aiAnalysis.suggestedStudyTime}${t('分钟')}`" />
                   </div>
                 </div>
 
                 <div v-if="aiAnalysis.keyWords.length > 0">
-                  <div class="text-sm text-primary-600 dark:text-primary-300 mb-2">{{ t('关键词汇 ⭐:') }}</div>
+                  <div class="text-sm text-primary-600 dark:text-primary-300 mb-2">
+                    {{ t("关键词汇 ⭐:") }}
+                  </div>
                   <div class="flex flex-wrap gap-1">
                     <Tag
                       v-for="word in aiAnalysis.keyWords"
                       :key="word"
                       variant="info"
-                      class="text-xs">
+                      class="text-xs"
+                    >
                       {{ word }}
                     </Tag>
                   </div>
@@ -510,15 +614,17 @@
 
                 <div v-if="aiAnalysis.learningTips.length > 0">
                   <div
-                    class="text-sm text-primary-600 dark:text-primary-300 mb-2 flex items-center gap-1">
+                    class="text-sm text-primary-600 dark:text-primary-300 mb-2 flex items-center gap-1"
+                  >
                     <i class="pi pi-lightbulb text-base" />
-                    {{ t('学习建议:') }}
+                    {{ t("学习建议:") }}
                   </div>
                   <ul class="text-sm space-y-1">
                     <li
                       v-for="(tip, index) in aiAnalysis.learningTips"
                       :key="index"
-                      class="flex items-start gap-2">
+                      class="flex items-start gap-2"
+                    >
                       <span class="text-secondary-600 dark:text-secondary-400">•</span>
                       <span>{{ tip }}</span>
                     </li>
@@ -532,66 +638,56 @@
             <template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-chart-bar text-xl" />
-                {{ t('当前片段学习统计') }}
+                {{ t("当前片段学习统计") }}
               </div>
             </template>
             <template #content>
               <div class="space-y-4">
                 <div
-                  class="text-center p-4 bg-linear-to-r from-info-50 to-secondary-50 dark:from-primary-700 dark:to-secondary-700 rounded-lg">
+                  class="text-center p-4 bg-linear-to-r from-info-50 to-secondary-50 dark:from-primary-700 dark:to-secondary-700 rounded-lg"
+                >
                   <div class="text-3xl font-bold text-primary-theme">
                     {{ stats.averageLevel }}
                   </div>
-                  <div class="text-sm text-primary-subtle">{{ t('平均熟练度') }}</div>
+                  <div class="text-sm text-primary-subtle">{{ t("平均熟练度") }}</div>
                 </div>
 
                 <div class="space-y-3">
                   <div class="flex justify-between items-center">
-                    <span class="text-sm">{{ t('总词汇量') }}</span>
+                    <span class="text-sm">{{ t("总词汇量") }}</span>
                     <Tag :value="stats.total.toString()" variant="info" />
                   </div>
 
                   <div class="space-y-2">
                     <div class="flex justify-between text-sm">
-                      <span>{{ t('完全掌握 (8-10)') }}</span>
+                      <span>{{ t("完全掌握 (8-10)") }}</span>
                       <span>{{ stats.mastered }}</span>
                     </div>
-                    <ProgressBar
-                      :value="pct(stats.mastered)"
-                      class="h-2" />
+                    <ProgressBar :value="pct(stats.mastered)" class="h-2" />
                   </div>
 
                   <div class="space-y-2">
                     <div class="flex justify-between text-sm">
-                      <span>{{ t('比较熟悉 (6-7)') }}</span>
+                      <span>{{ t("比较熟悉 (6-7)") }}</span>
                       <span>{{ stats.familiar }}</span>
                     </div>
-                    <ProgressBar
-                      :value="pct(stats.familiar)"
-                      class="h-2"
-                      color="amber" />
+                    <ProgressBar :value="pct(stats.familiar)" class="h-2" color="amber" />
                   </div>
 
                   <div class="space-y-2">
                     <div class="flex justify-between text-sm">
-                      <span>{{ t('学习中 (3-5)') }}</span>
+                      <span>{{ t("学习中 (3-5)") }}</span>
                       <span>{{ stats.learning }}</span>
                     </div>
-                    <ProgressBar
-                      :value="pct(stats.learning)"
-                      class="h-2"
-                      color="orange" />
+                    <ProgressBar :value="pct(stats.learning)" class="h-2" color="orange" />
                   </div>
 
                   <div class="space-y-2">
                     <div class="flex justify-between text-sm">
-                      <span>{{ t('需加强 (0-2)') }}</span>
+                      <span>{{ t("需加强 (0-2)") }}</span>
                       <span>{{ stats.unknown }}</span>
                     </div>
-                    <ProgressBar
-                      :value="pct(stats.unknown)"
-                      class="h-2"
-                      color="danger" />
+                    <ProgressBar :value="pct(stats.unknown)" class="h-2" color="danger" />
                   </div>
                 </div>
 
@@ -600,7 +696,7 @@
                     <div class="text-2xl font-bold text-success-600 dark:text-success-400">
                       {{ pct(stats.mastered + stats.familiar) }}%
                     </div>
-                    <div class="text-sm text-primary-subtle">{{ t('掌握率') }}</div>
+                    <div class="text-sm text-primary-subtle">{{ t("掌握率") }}</div>
                   </div>
                 </div>
               </div>
@@ -612,43 +708,47 @@
     </div>
 
     <!-- AI配置对话框 -->
-    <Dialog
-      v-model:open="showConfigPanel"
-      :title="t('AI配置')">
+    <Dialog v-model:open="showConfigPanel" :title="t('AI配置')">
       <AiEnglishConfigPanel @save="showConfigPanel = false" />
     </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import {
-    analyzeArticleWithAI,
-    translateParagraphWithAI,
-    translateWithAI,
-    useCreateMixedTranslation,
-    segmentArticleWithAI,
-    type SmartSegmentationResult,
-  } from '@/pages/AiEnglish/ai';
-  import { useAiEnglishData } from '@/pages/AiEnglish/data';
-  import { useTTS } from '@/pages/AiEnglish/util';
-  import { useApiStorage } from '@/utils/hooks/UseApiStorage';
-  import { getMemoryColor, ONE_DAY_MS } from '@/utils/format';
-  import { useToast } from '@/composables/useToast';
-  import { getErrorMessage } from '@/utils/error';
-  import { computed, reactive, ref, watch } from 'vue';
-  import { Dialog, Tooltip } from '@tsfullstack/shared-frontend/components';
-  import AiEnglishConfigPanel from '@/components/AiEnglishConfigPanel.vue';
-  import ParagraphRenderer from '@/components/ParagraphRenderer.vue';
-  import AiEnglishTips from '@/components/AiEnglishTips.vue';
-  import GlassBlur from '@/components/GlassBlur.vue';
-  import { useI18n } from '@/composables/useI18n';
-  import { routerUtil, routeMap } from '@/router';
-  import type { StudySession, ParagraphTranslation, SelectionState, ParagraphData, AIAnalysis } from './types';
+import {
+  analyzeArticleWithAI,
+  translateParagraphWithAI,
+  translateWithAI,
+  useCreateMixedTranslation,
+  segmentArticleWithAI,
+  type SmartSegmentationResult,
+} from "@/pages/AiEnglish/ai";
+import { useAiEnglishData } from "@/pages/AiEnglish/data";
+import { useTTS } from "@/pages/AiEnglish/util";
+import { useApiStorage } from "@/utils/hooks/UseApiStorage";
+import { getMemoryColor, ONE_DAY_MS } from "@/utils/format";
+import { useToast } from "@/composables/useToast";
+import { getErrorMessage } from "@/utils/error";
+import { computed, reactive, ref, watch } from "vue";
+import { Dialog, Tooltip } from "@tsfullstack/shared-frontend/components";
+import AiEnglishConfigPanel from "@/components/AiEnglishConfigPanel.vue";
+import ParagraphRenderer from "@/components/ParagraphRenderer.vue";
+import AiEnglishTips from "@/components/AiEnglishTips.vue";
+import GlassBlur from "@/components/GlassBlur.vue";
+import { useI18n } from "@/composables/useI18n";
+import { routerUtil, routeMap } from "@/router";
+import type {
+  StudySession,
+  ParagraphTranslation,
+  SelectionState,
+  ParagraphData,
+  AIAnalysis,
+} from "./types";
 
-  const { t } = useI18n();
+const { t } = useI18n();
 
-  /** 示例文章 */
-  const sampleArticle = `I like to play with my friends. We run and jump in the park. The sun is bright and the sky is blue.
+/** 示例文章 */
+const sampleArticle = `I like to play with my friends. We run and jump in the park. The sun is bright and the sky is blue.
 
 My dog is happy. He wags his tail when he sees me. We play fetch with a ball.
 
@@ -656,624 +756,634 @@ I eat an apple every day. Apples are good for you. They make you strong and heal
 
 My mom reads me a story at night. I like the stories about animals. Then I go to sleep.`;
 
-  const { speakText, ttsConfig } = useTTS();
+const { speakText, ttsConfig } = useTTS();
 
-  const showConfigPanel = ref(false);
+const showConfigPanel = ref(false);
 
-  /** 需要存储同步的响应式状态 */
-  const syncData = useApiStorage<{
-    article: string;
-    currentParagraphIndex: number;
-    paragraphs: ParagraphData[];
-  }>(
-    'aiEnglish_syncData_v0',
+/** 需要存储同步的响应式状态 */
+const syncData = useApiStorage<{
+  article: string;
+  currentParagraphIndex: number;
+  paragraphs: ParagraphData[];
+}>(
+  "aiEnglish_syncData_v0",
+  {
+    article: "",
+    paragraphs: [] as ParagraphData[],
+    currentParagraphIndex: 0,
+  },
+  {
+    mergeDefaults: true,
+    pollingInterval: 25_500,
+  },
+);
+
+const { words, getWordData, updateWordDatas, getWordsData } = useAiEnglishData();
+const selectedWordKey = ref<string>();
+const selectedWord = computed(() => {
+  if (!selectedWordKey.value) return undefined;
+  return getWordData(selectedWordKey.value);
+});
+const paragraphTranslation = ref<ParagraphTranslation | null>(null);
+const showTranslation = ref(false);
+const translationType = ref<"word" | "paragraph">("word");
+const currentSession = reactive<StudySession>({
+  clickedWords: new Set(),
+  startTime: Date.now(),
+});
+const isStudying = computed(() => syncData.value.paragraphs.length > 0);
+const isTranslating = ref(false);
+const aiAnalysis = ref<AIAnalysis | null>(null);
+const isAnalyzing = ref(false);
+const showAiAnalysis = ref(false);
+const smartSegmentation = ref<SmartSegmentationResult | null>(null);
+const isSegmenting = ref(false);
+const showSegmentationInfo = ref(false);
+
+/** 当前段落计算属性，避免重复的模板表达式 */
+const currentParagraph = computed(
+  () => syncData.value.paragraphs[syncData.value.currentParagraphIndex],
+);
+const selectionState = reactive<SelectionState>({
+  isSelecting: false,
+  startWordIndex: -1,
+  endWordIndex: -1,
+  selectedWords: new Set(),
+});
+// wordElements 已移除，改为直接通过单词索引获取
+const highlightedWordIndex = ref(-1);
+const toast = useToast();
+
+/** 判断是否应该使用模糊效果的计算属性 */
+const shouldUseBlur = computed(() => {
+  return (selectedWord.value?.memoryLevel ?? 0) > 4;
+});
+
+/** 更新单词的点击计数和熟练度（O(1) 查找） */
+const updateWordClickData = (word: string, newMemoryLevel: number) => {
+  const wordData = getWordData(word);
+  if (!wordData) return;
+  const newClickCount = wordData.clickCount + 1;
+  updateWordDatas([
     {
-      article: '',
-      paragraphs: [] as ParagraphData[],
-      currentParagraphIndex: 0,
+      ...wordData,
+      memoryLevel: newMemoryLevel,
+      clickCount: newClickCount,
+      lastClickTime: new Date(),
+      familiarity: calculateFamiliarity(newClickCount, new Date()),
     },
-    {
-      mergeDefaults: true,
-      pollingInterval: 25_500,
-    },
-  );
+  ]);
+};
 
-  const { words, getWordData, updateWordDatas, getWordsData } = useAiEnglishData();
-  const selectedWordKey = ref<string>();
-  const selectedWord = computed(() => {
-    if (!selectedWordKey.value) return undefined;
-    return getWordData(selectedWordKey.value);
-  });
-  const paragraphTranslation = ref<ParagraphTranslation | null>(null);
-  const showTranslation = ref(false);
-  const translationType = ref<'word' | 'paragraph'>('word');
-  const currentSession = reactive<StudySession>({
-    clickedWords: new Set(),
-    startTime: Date.now(),
-  });
-  const isStudying = computed(() => syncData.value.paragraphs.length > 0);
-  const isTranslating = ref(false);
-  const aiAnalysis = ref<AIAnalysis | null>(null);
-  const isAnalyzing = ref(false);
-  const showAiAnalysis = ref(false);
-  const smartSegmentation = ref<SmartSegmentationResult | null>(null);
-  const isSegmenting = ref(false);
-  const showSegmentationInfo = ref(false);
+const handleTranslationClick = () => {
+  if (!selectedWord.value) return;
 
-  /** 当前段落计算属性，避免重复的模板表达式 */
-  const currentParagraph = computed(() => syncData.value.paragraphs[syncData.value.currentParagraphIndex]);
-  const selectionState = reactive<SelectionState>({
-    isSelecting: false,
-    startWordIndex: -1,
-    endWordIndex: -1,
-    selectedWords: new Set(),
-  });
-  // wordElements 已移除，改为直接通过单词索引获取
-  const highlightedWordIndex = ref(-1);
-  const toast = useToast();
+  if (selectedWord.value.memoryLevel > 4) {
+    const newMemoryLevel = Math.max(0, selectedWord.value.memoryLevel - 1);
+    updateWordClickData(selectedWord.value.word, newMemoryLevel);
+  }
+};
 
-  /** 判断是否应该使用模糊效果的计算属性 */
-  const shouldUseBlur = computed(() => {
-    return (selectedWord.value?.memoryLevel ?? 0) > 4;
-  });
+/** 计算属性（单次遍历优化） */
+const stats = computed(() => {
+  let mastered = 0;
+  let familiar = 0;
+  let learning = 0;
+  let unknown = 0;
+  let sum = 0;
+  const total = words.value.length;
 
-  /** 更新单词的点击计数和熟练度（O(1) 查找） */
-  const updateWordClickData = (word: string, newMemoryLevel: number) => {
-    const wordData = getWordData(word);
-    if (!wordData) return;
-    const newClickCount = wordData.clickCount + 1;
-    updateWordDatas([
-      {
-        ...wordData,
-        memoryLevel: newMemoryLevel,
-        clickCount: newClickCount,
-        lastClickTime: new Date(),
-        familiarity: calculateFamiliarity(newClickCount, new Date()),
-      },
-    ]);
+  for (const w of words.value) {
+    sum += w.memoryLevel;
+    if (w.memoryLevel >= 8) mastered++;
+    else if (w.memoryLevel >= 6) familiar++;
+    else if (w.memoryLevel >= 3) learning++;
+    else unknown++;
+  }
+
+  const averageLevel = total > 0 ? parseFloat((sum / total).toFixed(1)) : 0;
+  const clickedInSession = currentSession.clickedWords.size;
+  const notClickedInSession = total - clickedInSession;
+
+  return {
+    total,
+    mastered,
+    familiar,
+    learning,
+    unknown,
+    averageLevel,
+    clickedInSession,
+    notClickedInSession,
   };
+});
 
-  const handleTranslationClick = () => {
-    if (!selectedWord.value) return;
+/** 计算百分比（避免模板中重复 Math.round） */
+const pct = (count: number) => Math.round((count / stats.value.total) * 100);
 
-    if (selectedWord.value.memoryLevel > 4) {
-      const newMemoryLevel = Math.max(0, selectedWord.value.memoryLevel - 1);
-      updateWordClickData(selectedWord.value.word, newMemoryLevel);
-    }
-  };
+/** 当前段落预计阅读分钟数 */
+const readingTimeMin = computed(() =>
+  Math.ceil((currentParagraph.value?.estimatedReadingTime ?? 0) / 60),
+);
 
-  /** 计算属性（单次遍历优化） */
-  const stats = computed(() => {
-    let mastered = 0;
-    let familiar = 0;
-    let learning = 0;
-    let unknown = 0;
-    let sum = 0;
-    const total = words.value.length;
+const currentText = computed(() => {
+  if (syncData.value.paragraphs.length > 0) {
+    return syncData.value.paragraphs[syncData.value.currentParagraphIndex]?.text ?? "";
+  }
+  return syncData.value.article;
+});
 
-    for (const w of words.value) {
-      sum += w.memoryLevel;
-      if (w.memoryLevel >= 8) mastered++;
-      else if (w.memoryLevel >= 6) familiar++;
-      else if (w.memoryLevel >= 3) learning++;
-      else unknown++;
-    }
+const completedParagraphs = computed(
+  () => syncData.value.paragraphs.filter((p) => p.isCompleted).length,
+);
 
-    const averageLevel = total > 0 ? parseFloat((sum / total).toFixed(1)) : 0;
-    const clickedInSession = currentSession.clickedWords.size;
-    const notClickedInSession = total - clickedInSession;
+/** 计算眼熟度标签 */
+const getFamiliarityLabel = (familiarity: number): string => {
+  const level = Math.round(familiarity);
+  if (level >= 80) return t("非常眼熟");
+  if (level >= 60) return t("比较眼熟");
+  if (level >= 40) return t("有点印象");
+  if (level >= 20) return t("似曾相识");
+  return t("完全陌生");
+};
 
-    return {
-      total,
-      mastered,
-      familiar,
-      learning,
-      unknown,
-      averageLevel,
-      clickedInSession,
-      notClickedInSession,
-    };
-  });
+/** 计算眼熟度颜色 */
+const getFamiliarityColor = (familiarity: number): string => {
+  const level = Math.round(familiarity);
+  if (level >= 80) return "text-success-600 dark:text-success-400";
+  if (level >= 60) return "text-primary-theme";
+  if (level >= 40) return "text-warning-600 dark:text-warning-400";
+  if (level >= 20) return "text-warning-600 dark:text-warning-400";
+  return "text-secondary-600 dark:text-secondary-400";
+};
 
-  /** 计算百分比（避免模板中重复 Math.round） */
-  const pct = (count: number) => Math.round((count / stats.value.total) * 100);
+const getDifficultyColor = (difficulty: number): string => {
+  if (difficulty <= 3) return "text-success-600 dark:text-success-400";
+  if (difficulty <= 6) return "text-warning-600 dark:text-warning-400";
+  return "text-danger-600 dark:text-danger-400";
+};
 
-  /** 当前段落预计阅读分钟数 */
-  const readingTimeMin = computed(() => Math.ceil((currentParagraph.value?.estimatedReadingTime ?? 0) / 60));
+/** 计算眼熟度 (0-100) */
+const calculateFamiliarity = (clickCount: number, lastClickTime: Date): number => {
+  const now = new Date();
+  const lastClick = new Date(lastClickTime);
+  const daysSinceLastClick = Math.max(0, (now.getTime() - lastClick.getTime()) / ONE_DAY_MS);
 
-  const currentText = computed(() => {
-    if (syncData.value.paragraphs.length > 0) {
-      return syncData.value.paragraphs[syncData.value.currentParagraphIndex]?.text ?? '';
-    }
-    return syncData.value.article;
-  });
+  // 基础眼熟度：每次点击增加10分
+  const baseFamiliarity = Math.min(100, clickCount * 10);
 
-  const completedParagraphs = computed(
-    () => syncData.value.paragraphs.filter((p) => p.isCompleted).length,
-  );
+  // 时间衰减：30天衰减20分
+  const timeDecay = Math.min(20, (daysSinceLastClick / 30) * 20);
 
+  // 最终眼熟度
+  const familiarity = Math.max(0, Math.min(100, baseFamiliarity - timeDecay));
+  return familiarity;
+};
 
-  /** 计算眼熟度标签 */
-  const getFamiliarityLabel = (familiarity: number): string => {
-    const level = Math.round(familiarity);
-    if (level >= 80) return t('非常眼熟');
-    if (level >= 60) return t('比较眼熟');
-    if (level >= 40) return t('有点印象');
-    if (level >= 20) return t('似曾相识');
-    return t('完全陌生');
-  };
+/** 文本处理 */
+const tokenizeText = (text: string): string[] => {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, " ")
+    .split(/\s+/)
+    .filter((word) => word.length > 0);
+};
 
-  /** 计算眼熟度颜色 */
-  const getFamiliarityColor = (familiarity: number): string => {
-    const level = Math.round(familiarity);
-    if (level >= 80) return 'text-success-600 dark:text-success-400';
-    if (level >= 60) return 'text-primary-theme';
-    if (level >= 40) return 'text-warning-600 dark:text-warning-400';
-    if (level >= 20) return 'text-warning-600 dark:text-warning-400';
-    return 'text-secondary-600 dark:text-secondary-400';
-  };
+/** 获取单词数据 - 精确监听段落变化，避免 watchEffect 的过度追踪 */
+watch(
+  () => syncData.value.paragraphs[syncData.value.currentParagraphIndex]?.text,
+  async (text) => {
+    if (!text) return;
+    const tokens = tokenizeText(text);
+    await getWordsData(tokens);
+  },
+  { immediate: true },
+);
 
-  const getDifficultyColor = (difficulty: number): string => {
-    if (difficulty <= 3) return 'text-success-600 dark:text-success-400';
-    if (difficulty <= 6) return 'text-warning-600 dark:text-warning-400';
-    return 'text-danger-600 dark:text-danger-400';
-  };
+const splitArticleIntoParagraphs = (text: string): ParagraphData[] => {
+  // 改进分段逻辑：保持原始换行，同时处理段落分隔
+  const paragraphs: string[] = [];
 
-  /** 计算眼熟度 (0-100) */
-  const calculateFamiliarity = (clickCount: number, lastClickTime: Date): number => {
-    const now = new Date();
-    const lastClick = new Date(lastClickTime);
-    const daysSinceLastClick = Math.max(0, (now.getTime() - lastClick.getTime()) / ONE_DAY_MS);
+  // 首先按双换行分割段落
+  const majorParagraphs = text.split(/\n\s*\n/);
 
-    // 基础眼熟度：每次点击增加10分
-    const baseFamiliarity = Math.min(100, clickCount * 10);
+  for (const majorParagraph of majorParagraphs) {
+    const trimmed = majorParagraph.trim();
+    if (trimmed.length > 0) {
+      // 如果段落太长，按句子进一步分割
+      const sentences = trimmed.match(/[^.!?]+[.!?]+/g) ?? [trimmed];
 
-    // 时间衰减：30天衰减20分
-    const timeDecay = Math.min(20, (daysSinceLastClick / 30) * 20);
+      let currentParagraph = "";
+      for (const sentence of sentences) {
+        const testParagraph = currentParagraph + (currentParagraph ? " " : "") + sentence.trim();
 
-    // 最终眼熟度
-    const familiarity = Math.max(0, Math.min(100, baseFamiliarity - timeDecay));
-    return familiarity;
-  };
-
-  /** 文本处理 */
-  const tokenizeText = (text: string): string[] => {
-    return text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, ' ')
-      .split(/\s+/)
-      .filter((word) => word.length > 0);
-  };
-
-  /** 获取单词数据 - 精确监听段落变化，避免 watchEffect 的过度追踪 */
-  watch(
-    () => syncData.value.paragraphs[syncData.value.currentParagraphIndex]?.text,
-    async (text) => {
-      if (!text) return;
-      const tokens = tokenizeText(text);
-      await getWordsData(tokens);
-    },
-    { immediate: true },
-  );
-
-  const splitArticleIntoParagraphs = (text: string): ParagraphData[] => {
-    // 改进分段逻辑：保持原始换行，同时处理段落分隔
-    const paragraphs: string[] = [];
-
-    // 首先按双换行分割段落
-    const majorParagraphs = text.split(/\n\s*\n/);
-
-    for (const majorParagraph of majorParagraphs) {
-      const trimmed = majorParagraph.trim();
-      if (trimmed.length > 0) {
-        // 如果段落太长，按句子进一步分割
-        const sentences = trimmed.match(/[^.!?]+[.!?]+/g) ?? [trimmed];
-
-        let currentParagraph = '';
-        for (const sentence of sentences) {
-          const testParagraph = currentParagraph + (currentParagraph ? ' ' : '') + sentence.trim();
-
-          // 如果当前段落超过150词，或者有明确的主题转换，则分段
-          if (currentParagraph && (tokenizeText(testParagraph).length > 150 || sentence.match(/^\s*(However|Therefore|Moreover|Furthermore|In conclusion|On the other hand)\s/i))) {
-            paragraphs.push(currentParagraph.trim());
-            currentParagraph = sentence.trim();
-          } else {
-            currentParagraph = testParagraph;
-          }
-        }
-
-        if (currentParagraph.trim()) {
+        // 如果当前段落超过150词，或者有明确的主题转换，则分段
+        if (
+          currentParagraph &&
+          (tokenizeText(testParagraph).length > 150 ||
+            sentence.match(
+              /^\s*(However|Therefore|Moreover|Furthermore|In conclusion|On the other hand)\s/i,
+            ))
+        ) {
           paragraphs.push(currentParagraph.trim());
+          currentParagraph = sentence.trim();
+        } else {
+          currentParagraph = testParagraph;
         }
       }
-    }
 
-    return paragraphs.map((text, index) => ({
+      if (currentParagraph.trim()) {
+        paragraphs.push(currentParagraph.trim());
+      }
+    }
+  }
+
+  return paragraphs.map((text, index) => ({
+    id: index,
+    text: text.endsWith(".") || text.endsWith("!") || text.endsWith("?") ? text : text + ".",
+    words: tokenizeText(text),
+    isCompleted: false,
+    reason: t("传统分段（基于换行和句子结构）"),
+    complexity: 5, // 默认复杂度
+    estimatedReadingTime: Math.ceil(tokenizeText(text).length * 0.3),
+    keyVocabulary: [],
+  }));
+};
+
+/** AI智能分段函数 */
+const segmentArticleIntelligently = async (text: string): Promise<ParagraphData[]> => {
+  isSegmenting.value = true;
+  try {
+    const result = await segmentArticleWithAI(text);
+    smartSegmentation.value = result;
+
+    return result.paragraphs.map((paragraph, index) => ({
       id: index,
-      text: text.endsWith('.') || text.endsWith('!') || text.endsWith('?') ? text : text + '.',
-      words: tokenizeText(text),
+      text: paragraph.text,
+      words: tokenizeText(paragraph.text),
       isCompleted: false,
-      reason: t('传统分段（基于换行和句子结构）'),
-      complexity: 5, // 默认复杂度
-      estimatedReadingTime: Math.ceil(tokenizeText(text).length * 0.3),
-      keyVocabulary: []
+      reason: paragraph.reason,
+      complexity: paragraph.complexity,
+      estimatedReadingTime: paragraph.estimatedReadingTime,
+      keyVocabulary: paragraph.keyVocabulary,
     }));
-  };
+  } catch (error: unknown) {
+    toast.warn(t("智能分段失败"), t("回退到传统分段方式"));
+    return splitArticleIntoParagraphs(text);
+  } finally {
+    isSegmenting.value = false;
+  }
+};
 
-  /** AI智能分段函数 */
-  const segmentArticleIntelligently = async (text: string): Promise<ParagraphData[]> => {
-    isSegmenting.value = true;
-    try {
-      const result = await segmentArticleWithAI(text);
-      smartSegmentation.value = result;
+/** 核心功能 */
+const initializeWords = async (text: string, useSmartSegmentation = true) => {
+  currentSession.clickedWords = new Set();
+  currentSession.startTime = Date.now();
 
-      return result.paragraphs.map((paragraph, index) => ({
-        id: index,
-        text: paragraph.text,
-        words: tokenizeText(paragraph.text),
-        isCompleted: false,
-        reason: paragraph.reason,
-        complexity: paragraph.complexity,
-        estimatedReadingTime: paragraph.estimatedReadingTime,
-        keyVocabulary: paragraph.keyVocabulary,
-      }));
-    } catch (error: unknown) {
-      toast.warn(t('智能分段失败'), t('回退到传统分段方式'));
-      return splitArticleIntoParagraphs(text);
-    } finally {
-      isSegmenting.value = false;
-    }
-  };
+  // 使用智能分段或传统分段
+  syncData.value.paragraphs = useSmartSegmentation
+    ? await segmentArticleIntelligently(text)
+    : splitArticleIntoParagraphs(text);
+  syncData.value.currentParagraphIndex = 0;
 
-  /** 核心功能 */
-  const initializeWords = async (text: string, useSmartSegmentation = true) => {
-    currentSession.clickedWords = new Set();
-    currentSession.startTime = Date.now();
+  // AI分析（并行执行以提高性能）
+  isAnalyzing.value = true;
+  try {
+    const [analysisResult] = await Promise.all([
+      analyzeArticleWithAI(text),
+      // 如果使用智能分段，可以在这里添加其他并行任务
+    ]);
+    aiAnalysis.value = analysisResult;
+    showAiAnalysis.value = true;
+  } catch (error: unknown) {
+    toast.error(t("AI分析失败"), getErrorMessage(error));
+  } finally {
+    isAnalyzing.value = false;
+  }
 
-    // 使用智能分段或传统分段
-    syncData.value.paragraphs = useSmartSegmentation
-      ? await segmentArticleIntelligently(text)
-      : splitArticleIntoParagraphs(text);
-    syncData.value.currentParagraphIndex = 0;
+  const segmentInfo = smartSegmentation.value
+    ? `${t("AI智能分段完成！")}${smartSegmentation.value.segmentationStrategy}`
+    : `${t("已分割为")} ${syncData.value.paragraphs.length} ${t("个段落")}`;
 
-    // AI分析（并行执行以提高性能）
-    isAnalyzing.value = true;
-    try {
-      const [analysisResult] = await Promise.all([
-        analyzeArticleWithAI(text),
-        // 如果使用智能分段，可以在这里添加其他并行任务
-      ]);
-      aiAnalysis.value = analysisResult;
-      showAiAnalysis.value = true;
-    } catch (error: unknown) {
-      toast.error(t('AI分析失败'), getErrorMessage(error));
-    } finally {
-      isAnalyzing.value = false;
-    }
+  toast.success(t("开始学习"), `${segmentInfo}，${t("开始第一段学习！")}`);
+};
 
-    const segmentInfo = smartSegmentation.value
-      ? `${t('AI智能分段完成！')}${smartSegmentation.value.segmentationStrategy}`
-      : `${t('已分割为')} ${syncData.value.paragraphs.length} ${t('个段落')}`;
+const handleArticleSubmit = (useSmartSegmentation = true) => {
+  if (syncData.value.article.trim()) initializeWords(syncData.value.article, useSmartSegmentation);
+};
 
-    toast.success(t('开始学习'), `${segmentInfo}，${t('开始第一段学习！')}`);
-  };
+const loadSampleArticle = () => {
+  syncData.value.article = sampleArticle;
+  initializeWords(sampleArticle, true);
+};
 
-  const handleArticleSubmit = (useSmartSegmentation = true) => {
-    if (syncData.value.article.trim()) initializeWords(syncData.value.article, useSmartSegmentation);
-  };
+/** 获取段落工具提示 */
+const getParagraphTooltip = (paragraph: ParagraphData, index: number): string => {
+  let tooltip = `${t("段落")} ${index + 1}`;
 
-  const loadSampleArticle = () => {
-    syncData.value.article = sampleArticle;
-    initializeWords(sampleArticle, true);
-  };
+  if (paragraph.complexity) {
+    tooltip += ` • ${t("复杂度:")}${paragraph.complexity}/10`;
+  }
 
-  /** 获取段落工具提示 */
-  const getParagraphTooltip = (paragraph: ParagraphData, index: number): string => {
-    let tooltip = `${t('段落')} ${index + 1}`;
+  if (paragraph.estimatedReadingTime) {
+    tooltip += ` • ${t("预计:")}${Math.ceil(paragraph.estimatedReadingTime / 60)}${t("分钟")}`;
+  }
 
-    if (paragraph.complexity) {
-      tooltip += ` • ${t('复杂度:')}${paragraph.complexity}/10`;
-    }
+  if (paragraph.keyVocabulary && paragraph.keyVocabulary.length > 0) {
+    tooltip += ` • ${t("关键词:")}${paragraph.keyVocabulary.slice(0, 3).join(", ")}`;
+  }
 
-    if (paragraph.estimatedReadingTime) {
-      tooltip += ` • ${t('预计:')}${Math.ceil(paragraph.estimatedReadingTime / 60)}${t('分钟')}`;
-    }
+  if (paragraph.reason && paragraph.reason.length > 0) {
+    tooltip += `\n${t("分段理由:")}${paragraph.reason}`;
+  }
 
-    if (paragraph.keyVocabulary && paragraph.keyVocabulary.length > 0) {
-      tooltip += ` • ${t('关键词:')}${paragraph.keyVocabulary.slice(0, 3).join(', ')}`;
-    }
+  return tooltip;
+};
 
-    if (paragraph.reason && paragraph.reason.length > 0) {
-      tooltip += `\n${t('分段理由:')}${paragraph.reason}`;
-    }
+const getWordIndexFromPoint = (x: number, y: number): number => {
+  const element = document.elementFromPoint(x, y);
+  if (!element) return -1;
 
-    return tooltip;
-  };
+  const wordElement = element.closest("[data-word-index]");
+  return wordElement ? parseInt(wordElement.getAttribute("data-word-index") || "-1") : -1;
+};
 
-  const getWordIndexFromPoint = (x: number, y: number): number => {
-    const element = document.elementFromPoint(x, y);
-    if (!element) return -1;
+/** 通过单词索引直接获取对应的单词 - 使用当前段落的 words 数组 */
+const getWordByIndex = (wordIndex: number): string => {
+  const paragraphWords = currentParagraph.value?.words ?? [];
+  if (wordIndex >= 0 && wordIndex < paragraphWords.length) {
+    return paragraphWords[wordIndex] || "";
+  }
+  return "";
+};
 
-    const wordElement = element.closest('[data-word-index]');
-    return wordElement ? parseInt(wordElement.getAttribute('data-word-index') || '-1') : -1;
-  };
+const updateSelection = (startIndex: number, endIndex: number) => {
+  const start = Math.min(startIndex, endIndex);
+  const end = Math.max(startIndex, endIndex);
+  const selectedWords = new Set<number>();
 
-  /** 通过单词索引直接获取对应的单词 - 使用当前段落的 words 数组 */
-  const getWordByIndex = (wordIndex: number): string => {
-    const paragraphWords = currentParagraph.value?.words ?? [];
-    if (wordIndex >= 0 && wordIndex < paragraphWords.length) {
-      return paragraphWords[wordIndex] || '';
-    }
-    return '';
-  };
+  for (let i = start; i <= end; i++) selectedWords.add(i);
 
-  const updateSelection = (startIndex: number, endIndex: number) => {
-    const start = Math.min(startIndex, endIndex);
-    const end = Math.max(startIndex, endIndex);
-    const selectedWords = new Set<number>();
+  selectionState.startWordIndex = startIndex;
+  selectionState.endWordIndex = endIndex;
+  selectionState.selectedWords = selectedWords;
+};
 
-    for (let i = start; i <= end; i++) selectedWords.add(i);
+const handleMouseDown = (e: { preventDefault: () => void }, wordIndex: number) => {
+  if (!isStudying.value) return;
+  if (e instanceof MouseEvent) {
+    e.preventDefault();
+  }
 
-    selectionState.startWordIndex = startIndex;
-    selectionState.endWordIndex = endIndex;
-    selectionState.selectedWords = selectedWords;
-  };
+  selectionState.isSelecting = true;
+  selectionState.startWordIndex = wordIndex;
+  selectionState.endWordIndex = wordIndex;
+  selectionState.selectedWords = new Set([wordIndex]);
+};
 
-  const handleMouseDown = (e: { preventDefault: () => void }, wordIndex: number) => {
-    if (!isStudying.value) return;
-    if (e instanceof MouseEvent) {
-      e.preventDefault();
-    }
+const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+  if (!selectionState.isSelecting || !isStudying.value) return;
 
-    selectionState.isSelecting = true;
-    selectionState.startWordIndex = wordIndex;
-    selectionState.endWordIndex = wordIndex;
-    selectionState.selectedWords = new Set([wordIndex]);
-  };
+  const clientX = "touches" in e ? e.touches[0]?.clientX : e.clientX;
+  const clientY = "touches" in e ? e.touches[0]?.clientY : e.clientY;
+  const wordIndex = getWordIndexFromPoint(clientX ?? 0, clientY ?? 0);
+  if (wordIndex !== -1 && wordIndex !== selectionState.endWordIndex) {
+    updateSelection(selectionState.startWordIndex, wordIndex);
+  }
+};
 
-  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
-    if (!selectionState.isSelecting || !isStudying.value) return;
+const handleMouseUp = async () => {
+  if (!selectionState.isSelecting || !isStudying.value) return;
 
-    const clientX = 'touches' in e ? e.touches[0]?.clientX : e.clientX;
-    const clientY = 'touches' in e ? e.touches[0]?.clientY : e.clientY;
-    const wordIndex = getWordIndexFromPoint(clientX ?? 0, clientY ?? 0);
-    if (wordIndex !== -1 && wordIndex !== selectionState.endWordIndex) {
-      updateSelection(selectionState.startWordIndex, wordIndex);
-    }
-  };
+  const selectedWordIndices = Array.from(selectionState.selectedWords).sort((a, b) => a - b);
+  selectionState.isSelecting = false;
+  selectionState.startWordIndex = -1;
+  selectionState.endWordIndex = -1;
 
-  const handleMouseUp = async () => {
-    if (!selectionState.isSelecting || !isStudying.value) return;
+  if (selectedWordIndices.length === 0) return;
 
-    const selectedWordIndices = Array.from(selectionState.selectedWords).sort((a, b) => a - b);
-    selectionState.isSelecting = false;
-    selectionState.startWordIndex = -1;
-    selectionState.endWordIndex = -1;
+  // 获取选中的单词 - 直接通过索引获取，无需DOM查询
+  const selectedWordsData = selectedWordIndices
+    .map((index) => getWordByIndex(index))
+    .filter(Boolean) as string[];
 
-    if (selectedWordIndices.length === 0) return;
+  if (selectedWordsData.length === 1) {
+    /** 因为触摸设备上的事件判定机制会导致 onClick 中的逻辑无法触发，所以需要在这里处理单个单词的点击事件  */
+    handleWordClick(selectedWordsData[0] || "");
+    selectionState.selectedWords = new Set();
+  } else if (selectedWordsData.length > 1) {
+    await handleParagraphSelection(selectedWordsData);
+  }
+};
 
-    // 获取选中的单词 - 直接通过索引获取，无需DOM查询
-    const selectedWordsData = selectedWordIndices
-      .map((index) => getWordByIndex(index))
-      .filter(Boolean) as string[];
+const createMixedTranslation = useCreateMixedTranslation({ getWordData });
 
-    if (selectedWordsData.length === 1) {
-      /** 因为触摸设备上的事件判定机制会导致 onClick 中的逻辑无法触发，所以需要在这里处理单个单词的点击事件  */
-      handleWordClick(selectedWordsData[0] || '');
-      selectionState.selectedWords = new Set();
-    } else if (selectedWordsData.length > 1) {
-      await handleParagraphSelection(selectedWordsData);
-    }
-  };
+const handleParagraphSelection = async (selectedWordsKey: string[]) => {
+  highlightedWordIndex.value = -1;
+  const newClickedWords = new Set(currentSession.clickedWords);
 
-  const createMixedTranslation = useCreateMixedTranslation({ getWordData });
+  selectedWordsKey.forEach((word) => newClickedWords.add(word.toLowerCase()));
+  currentSession.clickedWords = newClickedWords;
 
-  const handleParagraphSelection = async (selectedWordsKey: string[]) => {
-    highlightedWordIndex.value = -1;
-    const newClickedWords = new Set(currentSession.clickedWords);
+  // 获取段落翻译
+  const selectedText = selectedWordsKey.join(" ");
+  isTranslating.value = true;
+  translationType.value = "paragraph";
+  showTranslation.value = true;
+  selectedWordKey.value = undefined;
 
-    selectedWordsKey.forEach((word) => newClickedWords.add(word.toLowerCase()));
-    currentSession.clickedWords = newClickedWords;
+  try {
+    const translatedText = await translateParagraphWithAI(selectedText);
+    const mixedTranslation = await createMixedTranslation(
+      selectedText,
+      translatedText,
+      selectedWordsKey,
+    );
 
-    // 获取段落翻译
-    const selectedText = selectedWordsKey.join(' ');
+    paragraphTranslation.value = {
+      originalText: selectedText,
+      translatedText,
+      mixedTranslation,
+      wordsInSelection: selectedWordsKey,
+    };
+  } catch (error: unknown) {
+    toast.error(t("翻译失败"), t("段落翻译服务暂时不可用:") + getErrorMessage(error));
+  } finally {
+    isTranslating.value = false;
+  }
+
+  speakText(selectedText);
+};
+
+const handleWordClick = async (word: string, options?: { forceAi: boolean }) => {
+  selectionState.isSelecting = false;
+  selectionState.selectedWords = new Set();
+  highlightedWordIndex.value = -1;
+
+  const cleanWord = word.toLowerCase().replace(/[^\w]/g, "");
+
+  const paragraphWords = currentParagraph.value?.words ?? [];
+  const wordIndex = paragraphWords.indexOf(cleanWord);
+  if (wordIndex !== -1) {
+    highlightedWordIndex.value = wordIndex;
+  }
+
+  const wordData = getWordData(word);
+  if (!wordData) return;
+
+  currentSession.clickedWords.add(cleanWord);
+
+  selectedWordKey.value = word;
+  showTranslation.value = true;
+  translationType.value = "word";
+  paragraphTranslation.value = null;
+
+  const shouldDecreaseNow = wordData.memoryLevel <= 4;
+  const newMemoryLevel = shouldDecreaseNow
+    ? Math.max(0, wordData.memoryLevel - 1)
+    : wordData.memoryLevel;
+
+  if (!wordData.aiTranslation || options?.forceAi) {
     isTranslating.value = true;
-    translationType.value = 'paragraph';
-    showTranslation.value = true;
-    selectedWordKey.value = undefined;
-
     try {
-      const translatedText = await translateParagraphWithAI(selectedText);
-      const mixedTranslation = await createMixedTranslation(
-        selectedText,
-        translatedText,
-        selectedWordsKey,
-      );
-
-      paragraphTranslation.value = {
-        originalText: selectedText,
-        translatedText,
-        mixedTranslation,
-        wordsInSelection: selectedWordsKey,
-      };
+      const aiResult = await translateWithAI(word, currentText.value);
+      const updatedData = getWordData(word);
+      if (updatedData) {
+        const newClickCount = updatedData.clickCount + 1;
+        updateWordDatas([
+          {
+            ...updatedData,
+            memoryLevel: newMemoryLevel,
+            clickCount: newClickCount,
+            lastClickTime: new Date(),
+            familiarity: calculateFamiliarity(newClickCount, new Date()),
+            aiTranslation: aiResult.translation,
+            difficulty: aiResult.difficulty,
+            examples: aiResult.examples,
+            grammar: aiResult.grammar,
+            pronunciation: aiResult.pronunciation,
+          },
+        ]);
+      }
     } catch (error: unknown) {
-      toast.error(t('翻译失败'), t('段落翻译服务暂时不可用:') + getErrorMessage(error));
+      toast.error(t("AI翻译失败"), getErrorMessage(error));
     } finally {
       isTranslating.value = false;
     }
+  } else {
+    updateWordClickData(word, newMemoryLevel);
+  }
 
-    speakText(selectedText);
-  };
-
-  const handleWordClick = async (word: string, options?: { forceAi: boolean }) => {
-    selectionState.isSelecting = false;
-    selectionState.selectedWords = new Set();
-    highlightedWordIndex.value = -1;
-
-    const cleanWord = word.toLowerCase().replace(/[^\w]/g, '');
-
-    const paragraphWords = currentParagraph.value?.words ?? [];
-    const wordIndex = paragraphWords.indexOf(cleanWord);
-    if (wordIndex !== -1) {
-      highlightedWordIndex.value = wordIndex;
-    }
-
+  if (shouldDecreaseNow) {
+    // 低熟练度单词查看翻译时适度降低记忆等级（避免一次查看就完全掌握）
     const wordData = getWordData(word);
-    if (!wordData) return;
-
-    currentSession.clickedWords.add(cleanWord);
-
-    selectedWordKey.value = word;
-    showTranslation.value = true;
-    translationType.value = 'word';
-    paragraphTranslation.value = null;
-
-    const shouldDecreaseNow = wordData.memoryLevel <= 4;
-    const newMemoryLevel = shouldDecreaseNow ? Math.max(0, wordData.memoryLevel - 1) : wordData.memoryLevel;
-
-    if (!wordData.aiTranslation || options?.forceAi) {
-      isTranslating.value = true;
-      try {
-        const aiResult = await translateWithAI(word, currentText.value);
-        const updatedData = getWordData(word);
-        if (updatedData) {
-          const newClickCount = updatedData.clickCount + 1;
-          updateWordDatas([
-            {
-              ...updatedData,
-              memoryLevel: newMemoryLevel,
-              clickCount: newClickCount,
-              lastClickTime: new Date(),
-              familiarity: calculateFamiliarity(newClickCount, new Date()),
-              aiTranslation: aiResult.translation,
-              difficulty: aiResult.difficulty,
-              examples: aiResult.examples,
-              grammar: aiResult.grammar,
-              pronunciation: aiResult.pronunciation,
-            },
-          ]);
-        }
-      } catch (error: unknown) {
-        toast.error(t('AI翻译失败'), getErrorMessage(error));
-      } finally {
-        isTranslating.value = false;
-      }
-    } else {
-      updateWordClickData(word, newMemoryLevel);
+    if (wordData && wordData.memoryLevel > 1) {
+      updateWordDatas([{ ...wordData, memoryLevel: Math.max(0, wordData.memoryLevel - 1) }]);
     }
+  }
 
-    if (shouldDecreaseNow) {
-      // 低熟练度单词查看翻译时适度降低记忆等级（避免一次查看就完全掌握）
-      const wordData = getWordData(word);
-      if (wordData && wordData.memoryLevel > 1) {
-        updateWordDatas([{ ...wordData, memoryLevel: Math.max(0, wordData.memoryLevel - 1) }]);
-      }
-    }
+  speakText(word);
+};
 
-    speakText(word);
-  };
+const handleParagraphComplete = () => {
+  if (!isStudying.value) return;
 
-  const handleParagraphComplete = () => {
-    if (!isStudying.value) return;
+  const currentParagraph = syncData.value.paragraphs[syncData.value.currentParagraphIndex];
+  if (!currentParagraph) return;
 
-    const currentParagraph = syncData.value.paragraphs[syncData.value.currentParagraphIndex];
-    if (!currentParagraph) return;
-
-    /** 使用 Set 优化 O(n*m) → O(n+m) 查找 */
-    const paragraphWordSet = new Set(currentParagraph.words);
-    let improvedCount = 0;
-    /** 当前片段内的单词，如果未被点击（划选），则熟练度 +1  */
-    const updatedWords = words.value
-      .map((word) => {
-        if (paragraphWordSet.has(word.word)) {
-          if (!currentSession.clickedWords.has(word.word)) {
-            improvedCount++;
-            return { ...word, memoryLevel: Math.min(10, word.memoryLevel + 1) };
-          }
+  /** 使用 Set 优化 O(n*m) → O(n+m) 查找 */
+  const paragraphWordSet = new Set(currentParagraph.words);
+  let improvedCount = 0;
+  /** 当前片段内的单词，如果未被点击（划选），则熟练度 +1  */
+  const updatedWords = words.value
+    .map((word) => {
+      if (paragraphWordSet.has(word.word)) {
+        if (!currentSession.clickedWords.has(word.word)) {
+          improvedCount++;
+          return { ...word, memoryLevel: Math.min(10, word.memoryLevel + 1) };
         }
-        return undefined;
-      })
-      .filter((word): word is NonNullable<typeof word> => word !== undefined);
+      }
+      return undefined;
+    })
+    .filter((word): word is NonNullable<typeof word> => word !== undefined);
 
-    updateWordDatas(updatedWords);
-    // 标记段落完成
-    syncData.value.paragraphs = syncData.value.paragraphs.map((p, index) =>
-      index === syncData.value.currentParagraphIndex ? { ...p, isCompleted: true } : p,
-    );
-    syncData.value.currentParagraphIndex += 1;
-    // 重置会话
+  updateWordDatas(updatedWords);
+  // 标记段落完成
+  syncData.value.paragraphs = syncData.value.paragraphs.map((p, index) =>
+    index === syncData.value.currentParagraphIndex ? { ...p, isCompleted: true } : p,
+  );
+  syncData.value.currentParagraphIndex += 1;
+  // 重置会话
+  currentSession.clickedWords = new Set();
+  showTranslation.value = false;
+  highlightedWordIndex.value = -1;
+  selectionState.selectedWords = new Set();
+
+  toast.success(
+    t("段落学习完成！"),
+    `${t("第")}${syncData.value.currentParagraphIndex + 1}${t("段完成！")}${improvedCount} ${t("个单词熟练度提升了 +1")}`,
+  );
+};
+
+const goToParagraph = (index: number) => {
+  if (index >= 0 && index < syncData.value.paragraphs.length) {
+    syncData.value.currentParagraphIndex = index;
     currentSession.clickedWords = new Set();
     showTranslation.value = false;
-    highlightedWordIndex.value = -1;
     selectionState.selectedWords = new Set();
+    highlightedWordIndex.value = -1;
+  }
+};
 
-    toast.success(
-      t('段落学习完成！'),
-      `${t('第')}${syncData.value.currentParagraphIndex + 1}${t('段完成！')}${improvedCount} ${t('个单词熟练度提升了 +1')}`,
-    );
-  };
-
-  const goToParagraph = (index: number) => {
-    if (index >= 0 && index < syncData.value.paragraphs.length) {
-      syncData.value.currentParagraphIndex = index;
-      currentSession.clickedWords = new Set();
-      showTranslation.value = false;
-      selectionState.selectedWords = new Set();
-      highlightedWordIndex.value = -1;
-    }
-  };
-
-  const adjustMemoryLevel = (word: string, newLevel: number) => {
-    const wordData = getWordData(word);
-    if (wordData) {
-      updateWordDatas([{ ...wordData, memoryLevel: newLevel }]);
-    }
-  };
-
-  </script>
+const adjustMemoryLevel = (word: string, newLevel: number) => {
+  const wordData = getWordData(word);
+  if (wordData) {
+    updateWordDatas([{ ...wordData, memoryLevel: newLevel }]);
+  }
+};
+</script>
 
 <style scoped>
-  .custom-highlight-pulse {
-    animation: custom-pulse 2s infinite;
-  }
+.custom-highlight-pulse {
+  animation: custom-pulse 2s infinite;
+}
 
-  @keyframes custom-pulse {
-    0%,
-    100% {
-      box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-warning-500) 70%, transparent);
-    }
-    50% {
-      box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-warning-500) 0%, transparent);
-    }
+@keyframes custom-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-warning-500) 70%, transparent);
   }
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-warning-500) 0%, transparent);
+  }
+}
 
-  /* 段落排版优化 */
+/* 段落排版优化 */
+#article-container {
+  background: linear-gradient(135deg, var(--color-slate-50) 0%, var(--color-slate-100) 100%);
+  border-radius: 0.5rem;
+  box-shadow: inset 0 1px 3px color-mix(in srgb, var(--color-gray-900) 10%, transparent);
+}
+
+#article-container .leading-relaxed {
+  line-height: 1.8;
+  text-align: justify;
+  hyphens: auto;
+}
+
+/* 暗色模式适配 */
+:root.dark #article-container {
+  background: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
+}
+
+/* 响应式排版 */
+@media (max-width: 640px) {
   #article-container {
-    background: linear-gradient(135deg, var(--color-slate-50) 0%, var(--color-slate-100) 100%);
-    border-radius: 0.5rem;
-    box-shadow: inset 0 1px 3px color-mix(in srgb, var(--color-gray-900) 10%, transparent);
+    padding: 0.75rem;
+    font-size: 1rem;
   }
 
-  #article-container .leading-relaxed {
-    line-height: 1.8;
-    text-align: justify;
-    hyphens: auto;
+  .text-lg {
+    font-size: 1.125rem;
   }
-
-  /* 暗色模式适配 */
-  :root.dark #article-container {
-    background: linear-gradient(135deg, var(--color-slate-800) 0%, var(--color-slate-900) 100%);
-  }
-
-  /* 响应式排版 */
-  @media (max-width: 640px) {
-    #article-container {
-      padding: 0.75rem;
-      font-size: 1rem;
-    }
-
-    .text-lg {
-      font-size: 1.125rem;
-    }
-  }
+}
 </style>

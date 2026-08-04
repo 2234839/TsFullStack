@@ -10,7 +10,7 @@
                 <div class="flex items-center justify-center min-h-screen">
                   <div class="text-center">
                     <ProgressSpinner />
-                    <p class="mt-4 text-primary-theme">{{ t('正在加载...') }}</p>
+                    <p class="mt-4 text-primary-theme">{{ t("正在加载...") }}</p>
                   </div>
                 </div>
               </template>
@@ -22,7 +22,7 @@
               <div class="flex items-center justify-center min-h-screen">
                 <div class="text-center">
                   <ProgressSpinner />
-                  <p class="mt-4 text-primary-theme">{{ t('正在加载...') }}</p>
+                  <p class="mt-4 text-primary-theme">{{ t("正在加载...") }}</p>
                 </div>
               </div>
             </template>
@@ -39,27 +39,29 @@
 </template>
 
 <script setup lang="ts">
-import GithubStar from '@/components/system/GithubStar.vue';
-import TestWarningBanner from '@/components/system/TestWarningBanner.vue';
-import { allRoutes, findRouteNode } from '@/router';
-import { useTitle } from '@vueuse/core';
-import Toast from '@/components/system/Toast.vue';
-import { computed, onUnmounted, onErrorCaptured } from 'vue';
-import { useRoute } from 'vue-router';
-import { useToast } from '@/composables/useToast';
-import { useI18n } from '@/composables/useI18n';
+import GithubStar from "@/components/system/GithubStar.vue";
+import TestWarningBanner from "@/components/system/TestWarningBanner.vue";
+import { allRoutes, findRouteNode } from "@/router";
+import { useTitle } from "@vueuse/core";
+import Toast from "@/components/system/Toast.vue";
+import { computed, onUnmounted, onErrorCaptured } from "vue";
+import { useRoute } from "vue-router";
+import { useToast } from "@/composables/useToast";
+import { useI18n } from "@/composables/useI18n";
+import { startUpdatePolling } from "@/composables/useUpdateChecker";
 
 const { t } = useI18n();
-import { toastBus, authBus } from '@/buses';
-import { authInfo_logout } from '@/storage';
-import { MsgError } from '@tsfullstack/backend';
-
+import { toastBus, authBus } from "@/buses";
+import { authInfo_logout } from "@/storage";
+import { MsgError } from "@tsfullstack/backend";
 
 //#region 设置页面标题
 const route = useRoute();
 const routeNode = computed(() => findRouteNode(allRoutes, (el) => el.name === route.name));
 const title = computed(() => {
-  return routeNode.value?.meta?.title ? `${routeNode.value.meta.title} - TSFullStack` : 'TSFullStack';
+  return routeNode.value?.meta?.title
+    ? `${routeNode.value.meta.title} - TSFullStack`
+    : "TSFullStack";
 });
 useTitle(title);
 //#endregion
@@ -82,14 +84,33 @@ onUnmounted(() => {
   unsubscribeAuth();
 });
 
+//#region 更新检测
+/** 启动轮询，检测到新版本时弹 toast 提示用户刷新（不自动刷新，让用户自己决定时机） */
+startUpdatePolling(() => {
+  toast.add({
+    variant: "info",
+    summary: t("发现新版本"),
+    detail: t("系统已更新，建议刷新页面以获取最新版本。"),
+    action: {
+      label: t("立即刷新"),
+      handler: () => window.location.reload(),
+    },
+  });
+});
+//#endregion
+
 /** 全局错误边界：捕获子组件中未处理的异步错误，通过 toast 通知用户而非白屏 */
 onErrorCaptured((_instance, error) => {
-  const errMsg = error instanceof Error ? error.message
-    : (typeof error === 'string' ? error : JSON.stringify(error)?.slice(0, 200) ?? String(error));
-  console.error('[ErrorBoundary]', errMsg, error);
+  const errMsg =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : (JSON.stringify(error)?.slice(0, 200) ?? String(error));
+  console.error("[ErrorBoundary]", errMsg, error);
   toast.add({
-    variant: 'danger',
-    summary: t('运行时错误'),
+    variant: "danger",
+    summary: t("运行时错误"),
     detail: errMsg.slice(0, 200),
     life: 5000,
   });
