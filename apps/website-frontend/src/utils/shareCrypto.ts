@@ -56,10 +56,13 @@ async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey>
   const baseKey = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, [
     "deriveKey",
   ]);
+  /** 拷贝到新 ArrayBuffer，确保类型为 ArrayBuffer 而非 SharedArrayBuffer（TS 5.7+ 严格类型） */
+  const saltBuffer = new ArrayBuffer(salt.byteLength);
+  new Uint8Array(saltBuffer).set(salt);
   return crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt,
+      salt: saltBuffer,
       iterations: PBKDF2_ITERATIONS,
       hash: "SHA-256",
     },

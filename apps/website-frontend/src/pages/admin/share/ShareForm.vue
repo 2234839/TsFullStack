@@ -208,7 +208,7 @@ import { formatFileSize } from "@/utils/format";
 import { toJsonValue } from "@/utils/apiType";
 import { ShareCrypto, generateRandomPassword, base64UrlEncode } from "@/utils/shareCrypto";
 import { useFileUpload } from "@/composables/useFileUpload";
-import { isEncryptedData, getPlaintextShare, type ShareData } from "@/pages/admin/share/ShareDef";
+import { isEncryptedData, getPlaintextShare } from "@/pages/admin/share/ShareDef";
 import { copyToClipboard } from "@/utils/clipboard";
 
 const { API } = useAPI();

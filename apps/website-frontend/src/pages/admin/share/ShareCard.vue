@@ -9,7 +9,7 @@
       </div>
     </div>
     <!-- 非加密分享：文件预览轮播 -->
-    <Carousel v-else :value="data.data.files ?? []" :numVisible="1" :numScroll="1" :circular="true">
+    <Carousel v-else :value="plaintextFiles" :numVisible="1" :numScroll="1" :circular="true">
       <template #item="{ data: fileData }">
         <div class="h-48 w-full">
           <ShareFilePreview :file="fileData as ShareFileJSON" />
@@ -23,6 +23,7 @@ import {
   type ShareFileJSON,
   type ShareItemJSON,
   isEncryptedData,
+  getPlaintextShare,
 } from "@/pages/admin/share/ShareDef";
 import ShareFilePreview from "@/pages/admin/share/ShareFilePreview.vue";
 import { useI18n } from "@/composables/useI18n";
@@ -37,4 +38,7 @@ const { t } = useI18n();
 
 /** 是否为加密分享 */
 const isEncrypted = computed(() => isEncryptedData(props.data.data));
+
+/** 非加密分享的文件列表 */
+const plaintextFiles = computed(() => getPlaintextShare(props.data)?.files ?? []);
 </script>
