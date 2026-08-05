@@ -15,8 +15,6 @@ import {
   getBaselinePaths,
   getCurrentPaths,
 } from "./comparator";
-import { diffDomJson } from "./dom-serializer";
-
 /**
  * 浏览器上下文中执行的 DOM 序列化代码（IIFE 字符串，避免 tsx __name 污染）
  *

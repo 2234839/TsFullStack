@@ -28,7 +28,7 @@ export function setServerUrl(url: string): void {
 /**
  * RPC 响应结构（与 visual-test server.ts 的 sendJson 对齐）
  */
-interface RPCResponse<T = unknown> {
+interface RPCResponse {
   result?: string;
   error?: { message: string };
 }

@@ -4,8 +4,8 @@
  * 使用 Tailwind CSS 样式
  * 支持水平滚动和边缘提示
  */
-import { computed, ref } from 'vue';
-import { useElementBounding, useScroll } from '@vueuse/core';
+import { computed, ref } from "vue";
+import { useElementBounding, useScroll } from "@vueuse/core";
 
 defineOptions({ inheritAttrs: false });
 
@@ -19,7 +19,7 @@ interface Props<T = string> {
   /** 模型值 */
   modelValue?: T | T[];
   /** 选项列表 */
-  options?: SelectOption<T> | T[];
+  options?: SelectOption<T>[] | T[];
   /** 选项显示文本的键名 */
   optionLabel?: string;
   /** 选项值的键名 */
@@ -30,10 +30,17 @@ interface Props<T = string> {
   multiple?: boolean;
 }
 
-const { modelValue, disabled = false, multiple = false, options = [] as unknown[], optionLabel = 'label', optionValue = 'value' } = defineProps<Props>();
+const {
+  modelValue,
+  disabled = false,
+  multiple = false,
+  options = [] as unknown[],
+  optionLabel = "label",
+  optionValue = "value",
+} = defineProps<Props>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: unknown];
+  "update:modelValue": [value: unknown];
 }>();
 
 /** 滚动容器引用 */
@@ -43,10 +50,8 @@ const scrollContainer = ref<HTMLElement | null>(null);
 const { width: containerWidth } = useElementBounding(scrollContainer);
 
 /** 使用 VueUse 获取滚动状态 */
-const {
-  arrivedState
-} = useScroll(scrollContainer, {
-  behavior: 'smooth'
+const { arrivedState } = useScroll(scrollContainer, {
+  behavior: "smooth",
 });
 
 /** 是否显示左侧提示 - 当没有到达左侧时显示 */
@@ -59,7 +64,7 @@ const showRightHint = computed(() => !arrivedState.right);
 function scrollToLeft() {
   scrollContainer.value?.scrollTo({
     left: 0,
-    behavior: 'smooth',
+    behavior: "smooth",
   });
 }
 
@@ -67,7 +72,7 @@ function scrollToLeft() {
 function scrollToRight() {
   scrollContainer.value?.scrollBy({
     left: containerWidth.value,
-    behavior: 'smooth',
+    behavior: "smooth",
   });
 }
 
@@ -76,25 +81,28 @@ function handleSelect(value: unknown) {
   if (multiple) {
     const currentArray = Array.isArray(modelValue) ? [...modelValue] : [];
     if (currentArray.some((v) => v === value)) {
-      emit('update:modelValue', currentArray.filter((v) => v !== value));
+      emit(
+        "update:modelValue",
+        currentArray.filter((v) => v !== value),
+      );
     } else {
-      emit('update:modelValue', [...currentArray, value]);
+      emit("update:modelValue", [...currentArray, value]);
     }
   } else {
-    emit('update:modelValue', value);
+    emit("update:modelValue", value);
   }
 }
 
 /** 获取选项的显示值 */
 function getOptionLabel(option: unknown): string {
-  return typeof option === 'object' && option !== null
-    ? String((option as Record<string, unknown>)[optionLabel] ?? '')
-    : String(option ?? '');
+  return typeof option === "object" && option !== null
+    ? String((option as Record<string, unknown>)[optionLabel] ?? "")
+    : String(option ?? "");
 }
 
 /** 获取选项的值 */
 function getOptionValue(option: unknown): unknown {
-  return typeof option === 'object' && option !== null
+  return typeof option === "object" && option !== null
     ? (option as Record<string, unknown>)[optionValue]
     : option;
 }
@@ -114,12 +122,12 @@ const lastIndex = computed(() => (options as unknown[]).length - 1);
 /** 按钮样式类 */
 const buttonClasses = (selected: boolean) => {
   return selected
-    ? 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500 shrink-0'
-    : 'px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-primary-700 border-primary-200 hover:bg-primary-card dark:text-primary-300 dark:border-primary-700 dark:hover:bg-primary-700 shrink-0';
+    ? "px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500 shrink-0"
+    : "px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-primary-700 border-primary-200 hover:bg-primary-card dark:text-primary-300 dark:border-primary-700 dark:hover:bg-primary-700 shrink-0";
 };
 
 const containerClasses = computed(() => {
-  const base = 'inline-flex rounded-md overflow-hidden border';
+  const base = "inline-flex rounded-md overflow-hidden border";
   return disabled
     ? `${base} border-primary-100 dark:border-primary-800 opacity-50`
     : `${base} border-primary-default`;
@@ -130,13 +138,26 @@ const containerClasses = computed(() => {
   <div v-bind="$attrs" class="relative flex items-center">
     <!-- 左侧渐变遮罩和箭头 -->
     <Transition name="fade">
-      <div v-if="showLeftHint"
+      <div
+        v-if="showLeftHint"
         class="absolute left-0 top-0 bottom-0 z-10 flex items-center cursor-pointer pointer-events-auto"
-        @click="scrollToLeft">
+        @click="scrollToLeft"
+      >
         <div
-          class="h-full w-8 bg-linear-to-r from-white via-white/80 to-transparent dark:from-primary-900 dark:via-primary-900/80 flex items-center justify-start pl-1">
-          <svg class="w-4 h-4 text-primary-theme" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          class="h-full w-8 bg-linear-to-r from-white via-white/80 to-transparent dark:from-primary-900 dark:via-primary-900/80 flex items-center justify-start pl-1"
+        >
+          <svg
+            class="w-4 h-4 text-primary-theme"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </div>
       </div>
@@ -144,22 +165,39 @@ const containerClasses = computed(() => {
 
     <!-- 滚动容器 -->
     <div ref="scrollContainer" :class="[containerClasses]" class="overflow-x-auto hide-scrollbar">
-      <button v-for="(option, index) in options" :key="String(getOptionValue(option))" :disabled="disabled"
+      <button
+        v-for="(option, index) in options"
+        :key="String(getOptionValue(option))"
+        :disabled="disabled"
         :class="[buttonClasses(isSelected(option)), { 'border-r-0': Number(index) < lastIndex }]"
-        @click="handleSelect(getOptionValue(option))">
+        @click="handleSelect(getOptionValue(option))"
+      >
         {{ getOptionLabel(option) }}
       </button>
     </div>
 
     <!-- 右侧渐变遮罩和箭头 -->
     <Transition name="fade">
-      <div v-if="showRightHint"
+      <div
+        v-if="showRightHint"
         class="absolute right-0 top-0 bottom-0 z-10 flex items-center cursor-pointer pointer-events-auto"
-        @click="scrollToRight">
+        @click="scrollToRight"
+      >
         <div
-          class="h-full w-8 bg-linear-to-l from-white via-white/80 to-transparent dark:from-primary-900 dark:via-primary-900/80 flex items-center justify-end pr-1">
-          <svg class="w-4 h-4 text-primary-theme" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          class="h-full w-8 bg-linear-to-l from-white via-white/80 to-transparent dark:from-primary-900 dark:via-primary-900/80 flex items-center justify-end pr-1"
+        >
+          <svg
+            class="w-4 h-4 text-primary-theme"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </div>
       </div>

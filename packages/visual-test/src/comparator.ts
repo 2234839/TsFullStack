@@ -4,7 +4,7 @@
 import { createHash } from "crypto";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
-import { PNG, type PNGWithMetadata } from "pngjs";
+import { PNG } from "pngjs";
 import pixelmatch from "pixelmatch";
 import type { Manifest, ManifestEntry, ScenarioResult, TestEnv } from "./types";
 import { diffDomJson } from "./dom-serializer";

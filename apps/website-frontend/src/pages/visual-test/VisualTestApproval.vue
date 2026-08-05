@@ -94,12 +94,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
-import superjson from "superjson";
 import { Button, Input, ProgressSpinner, SelectButton, Tag } from "@/components/base";
 import { useI18n } from "@/composables/useI18n";
 import { createVisualTestRPC, getServerUrl, setServerUrl } from "./rpc";
 import ScenarioCard from "./ScenarioCard.vue";
-import type { RunReport, Manifest, ScenarioResult, TestEnv } from "@tsfullstack/visual-test";
+import type { RunReport, ScenarioResult, TestEnv } from "@tsfullstack/visual-test";
 
 const { t } = useI18n();
 
@@ -209,8 +208,17 @@ async function approveAll() {
   await refresh();
 }
 
+/** 可法的环境值 */
+const VALID_ENVS: readonly TestEnv[] = ["local", "production"];
+
+/** 类型守卫：检查字符串是否为合法的 TestEnv */
+function isTestEnv(value: unknown): value is TestEnv {
+  return typeof value === "string" && (VALID_ENVS as readonly string[]).includes(value);
+}
+
 /** 环境切换 */
-async function onEnvChange(env: TestEnv) {
+async function onEnvChange(env: unknown) {
+  if (!isTestEnv(env)) return;
   await vt.value.setEnv(env);
   currentEnv.value = env;
   await refresh();

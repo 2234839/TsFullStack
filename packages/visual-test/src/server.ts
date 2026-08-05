@@ -8,7 +8,6 @@
  */
 import { createServer, type IncomingMessage, type ServerResponse } from "http";
 import { readFileSync, existsSync } from "fs";
-import { join, extname } from "path";
 import superjson from "superjson";
 import type { RunConfig, RunReport, TestEnv } from "./types";
 import { runTests, approveScenario, rejectScenario } from "./runner";
@@ -31,6 +30,10 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
   let latestReport: RunReport | null = null;
 
   return {
+    async health() {
+      return { status: "ok", env: runConfig.env };
+    },
+
     async getResults() {
       const manifest = loadManifest(runConfig.baselineDir, runConfig.env);
       return { report: latestReport, manifest };

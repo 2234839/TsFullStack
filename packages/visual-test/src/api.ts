@@ -16,6 +16,9 @@ import type { RunReport, ScenarioResult, Manifest, TestEnv } from "./types";
  * 前端通过 RPC 代理调用这些方法
  */
 export interface VisualTestAPI {
+  /** 健康检查，返回服务状态和当前环境 */
+  health(): Promise<{ status: string; env: string } | null>;
+
   /** 获取所有场景的当前运行结果 */
   getResults(): Promise<{ report: RunReport | null; manifest: Manifest | null }>;
 
