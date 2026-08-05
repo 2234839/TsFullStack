@@ -23,8 +23,9 @@ export function useFileUpload() {
     if (cryptoInstance) {
       const arrayBuffer = await uploadFile.arrayBuffer();
       const encryptedBuffer = await cryptoInstance.encryptBytes(arrayBuffer);
+      /** 保留原始 mimetype，这样前端可以根据 mimetype 判断文件类型（文本/图片/视频等） */
       uploadFile = new File([encryptedBuffer], uploadFile.name, {
-        type: "application/octet-stream",
+        type: uploadFile.type,
       });
     }
 
