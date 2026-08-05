@@ -538,8 +538,24 @@ function beforeUnloadHandler(e: BeforeUnloadEvent) {
   if (hasUnsavedChanges.value) e.preventDefault();
 }
 
-onMounted(() => window.addEventListener("beforeunload", beforeUnloadHandler));
-onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnloadHandler));
+/** Ctrl+S 快捷保存 */
+function handleKeyDown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+    e.preventDefault();
+    if (isEditMode.value && !isSaving.value) {
+      save();
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener("beforeunload", beforeUnloadHandler);
+  window.addEventListener("keydown", handleKeyDown);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("beforeunload", beforeUnloadHandler);
+  window.removeEventListener("keydown", handleKeyDown);
+});
 
 /** 重命名文件（标签栏） */
 function handleRenameFile(newName: string) {
