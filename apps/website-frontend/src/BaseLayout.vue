@@ -101,12 +101,19 @@ startUpdatePolling(() => {
 
 /** 全局错误边界：捕获子组件中未处理的异步错误，通过 toast 通知用户而非白屏 */
 onErrorCaptured((_instance, error) => {
-  const errMsg =
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
-        : (JSON.stringify(error)?.slice(0, 200) ?? String(error));
+  /** 安全地提取错误信息，避免循环引用导致 JSON.stringify 崩溃 */
+  let errMsg: string;
+  if (error instanceof Error) {
+    errMsg = error.message;
+  } else if (typeof error === "string") {
+    errMsg = error;
+  } else {
+    try {
+      errMsg = JSON.stringify(error)?.slice(0, 200) ?? String(error);
+    } catch {
+      errMsg = String(error);
+    }
+  }
   console.error("[ErrorBoundary]", errMsg, error);
   toast.add({
     variant: "danger",
