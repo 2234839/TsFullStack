@@ -359,10 +359,17 @@ async function tryDecryptWithManualPassword() {
     const salt = isEncryptedData(encryptedData) ? encryptedData.salt : "";
     const decrypted = await decryptShareData(rawShareData.value.data, manualPassword.value, salt);
     if (decrypted) {
-      const { ShareCrypto: SC } = await import("@/utils/shareCrypto");
+      const { ShareCrypto: SC, base64UrlEncode } = await import("@/utils/shareCrypto");
       activeCrypto.value = await SC.fromPassword(manualPassword.value, salt);
       decryptedShare.value = decrypted;
       needsPassword.value = false;
+      /** 解锁成功后将密码写回 URL hash，使分享链接/二维码自动包含密码 */
+      const encodedP = base64UrlEncode(new TextEncoder().encode(manualPassword.value));
+      const newHash = `#k=${salt}&p=${encodedP}`;
+      if (window.location.hash !== newHash) {
+        window.history.replaceState(null, "", `${window.location.pathname}${newHash}`);
+        currentHash.value = newHash;
+      }
     } else {
       passwordError.value = t("密码错误");
     }
@@ -385,12 +392,13 @@ const shareData = computed(() => {
   };
 });
 
+/** 当前 URL hash（响应式，手动解锁后也会更新） */
+const currentHash = ref(window.location.hash);
+
 /** 分享链接（加密分享包含密码 hash） */
 const shareUrl = computed(() => {
   const baseUrl = window.location.origin;
-  /** 如果 URL 中有 hash（加密分享的密码），保留在分享链接中 */
-  const hash = window.location.hash;
-  return `${baseUrl}/ShareDetail/${id}${hash}`;
+  return `${baseUrl}/ShareDetail/${id}${currentHash.value}`;
 });
 
 /** 是否为分享所有者 */
