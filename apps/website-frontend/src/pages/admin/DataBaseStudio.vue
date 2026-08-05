@@ -2,52 +2,69 @@
   <div class="p-2">
     <div v-if="hideSwitch !== 'true'" class="flex gap-1 items-center">
       <div class="flex-1 overflow-x-auto min-h-0 hide-scrollbar" @wheel.prevent="handleWheel">
-        <SelectButton v-model="selectModelName"
-          :options="Object.values(modelMeta?.state.value?.models ?? {}).map((el) => el.name)" />
+        <SelectButton
+          v-model="selectModelName"
+          :options="Object.values(modelMeta?.state.value?.models ?? {}).map((el) => el.name)"
+        />
       </div>
-      <Button icon="pi pi-refresh" @click="modelMeta?.execute()" :loading="modelMeta?.isLoading.value" :title="t('更新表格元数据')" />
+      <Button
+        icon="pi pi-refresh"
+        @click="modelMeta?.execute()"
+        :loading="modelMeta?.isLoading.value"
+        :title="t('更新表格元数据')"
+      />
     </div>
     <AutoTable v-if="selectModelName" v-bind:model-name="selectModelName" />
   </div>
 </template>
 <script setup lang="ts">
-  import AutoTable from '@/components/AutoTable/AutoTable.vue';
-  import { useModelMeta } from '@/components/AutoTable/util';
-  import { ref, watch } from 'vue';
-  import { useRouter, useRoute } from 'vue-router';
-  import { useI18n } from '@/composables/useI18n';
+import AutoTable from "@/components/AutoTable/AutoTable.vue";
+import { useModelMeta } from "@/components/AutoTable/util";
+import { ref, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { useI18n } from "@/composables/useI18n";
 
-  const { t } = useI18n();
+const { t } = useI18n();
 
-  const router = useRouter();
-  const route = useRoute();
+const router = useRouter();
+const route = useRoute();
 
-  /** 将垂直滚轮转换为水平滚动 */
-  function handleWheel(e: WheelEvent) {
-    const target = e.target as HTMLElement;
-    if (e.deltaY !== 0) {
-      const parent = target.parentElement;
-      if (parent) parent.scrollLeft += e.deltaY;
-    }
+/** 将垂直滚轮转换为水平滚动 */
+function handleWheel(e: WheelEvent) {
+  const target = e.target as HTMLElement;
+  if (e.deltaY !== 0) {
+    const parent = target.parentElement;
+    if (parent) parent.scrollLeft += e.deltaY;
   }
+}
 
-  const modelMeta = await useModelMeta().catch(() => null);
+const modelMeta = await useModelMeta().catch(() => null);
 
-  const { hideSwitch, modelName } = defineProps<{
-    hideSwitch?: 'true' | 'false';
-    modelName?: string;
-  }>();
+const { hideSwitch, modelName } = defineProps<{
+  hideSwitch?: "true" | "false";
+  modelName?: string;
+}>();
 
-  /** 从路由 query 或 props 中初始化选中的模型名称 */
-  const selectModelName = ref<string>((route.query.model as string) || modelName || 'User');
+/** 从路由 query 或 props 中初始化选中的模型名称 */
+const selectModelName = ref<string>((route.query.model as string) || modelName || "User");
 
-  /** 监听模型选择变化，使用 replace 更新路由 query（不生成历史记录） */
-  watch(selectModelName, (newValue) => {
-    router.replace({
-      query: {
-        ...route.query,
-        model: newValue,
-      },
-    });
+/** 监听模型选择变化，使用 replace 更新路由 query（不生成历史记录） */
+watch(selectModelName, (newValue) => {
+  router.replace({
+    query: {
+      ...route.query,
+      model: newValue,
+    },
   });
+});
+
+/** keepAlive 下路由 query 变化时同步选中模型（如从侧边栏点击"用户列表"） */
+watch(
+  () => route.query.model,
+  (newModel) => {
+    if (newModel && newModel !== selectModelName.value) {
+      selectModelName.value = newModel as string;
+    }
+  },
+);
 </script>
