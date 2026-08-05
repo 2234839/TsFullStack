@@ -16,6 +16,39 @@
       <p class="text-primary-subtle">{{ t("无法加载分享内容") }}</p>
     </div>
 
+    <!-- 加密分享：需要密码解锁 -->
+    <div v-else-if="needsPassword" class="flex items-center justify-center min-h-screen px-4">
+      <div class="w-full max-w-sm">
+        <div class="text-center mb-6">
+          <div
+            class="inline-flex items-center justify-center w-16 h-16 bg-primary-100 dark:bg-primary-800 rounded-full mb-4"
+          >
+            <i class="pi pi-lock text-2xl text-primary-500" />
+          </div>
+          <h2 class="text-xl font-semibold text-primary-title mb-2">{{ t("加密分享") }}</h2>
+          <p class="text-sm text-primary-subtle">{{ t("请输入密码以查看分享内容") }}</p>
+        </div>
+        <div class="flex flex-col gap-3">
+          <Password
+            v-model="manualPassword"
+            :placeholder="t('密码')"
+            :feedback="false"
+            toggleMask
+            class="w-full"
+            :inputClass="'w-full'"
+            @keyup.enter="tryDecryptWithManualPassword"
+          />
+          <p v-if="passwordError" class="text-sm text-danger-600 dark:text-danger-400 text-center">
+            {{ passwordError }}
+          </p>
+          <Button :loading="isDecrypting" @click="tryDecryptWithManualPassword">
+            <i class="pi pi-unlock mr-1" />
+            {{ t("解锁") }}
+          </Button>
+        </div>
+      </div>
+    </div>
+
     <!-- 主内容 -->
     <template v-else-if="shareData">
       <!-- 顶部栏 -->
@@ -197,7 +230,7 @@
             </template>
 
             <!-- 二进制文件：预览 -->
-            <ShareFilePreview v-else :file="selectedFile" />
+            <ShareFilePreview v-else :file="selectedFile" :crypto-instance="activeCrypto" />
           </div>
         </main>
 
@@ -229,11 +262,18 @@ import ShareFilePreview from "@/pages/admin/share/ShareFilePreview.vue";
 import { authInfo, authInfo_isLogin } from "@/storage";
 import { useAsyncState } from "@vueuse/core";
 import { useFileUpload } from "@/composables/useFileUpload";
-import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
 import { onBeforeRouteLeave, useRoute } from "vue-router";
 import { useI18n } from "@/composables/useI18n";
 import { useToast } from "@/composables/useToast";
 import { toJsonValue } from "@/utils/apiType";
+import {
+  isEncryptedData,
+  parseShareHashParams,
+  decryptShareData,
+  type ShareJSON,
+} from "@/pages/admin/share/ShareDef";
+import type { ShareCrypto } from "@/utils/shareCrypto";
 
 const { API, AppAPI, AppAPIGetUrl, APIGetUrl } = useAPI();
 const route = useRoute();
@@ -245,25 +285,117 @@ const { id } = defineProps<{ id: string }>();
 /** 二维码对话框 */
 const qrDialogVisible = ref(false);
 
-/** 分享链接 */
-const shareUrl = computed(() => {
-  const baseUrl = window.location.origin;
-  return `${baseUrl}/ShareDetail/${id}`;
-});
+// ──────────────── 加密相关状态 ────────────────
 
-// ──────────────── 模式判断 ────────────────
+/** 从后端加载的原始数据（可能是加密的） */
+const rawShareData = shallowRef<ReturnType<typeof parseShareItem>>();
+
+/** 解密后的明文 ShareJSON */
+const decryptedShare = ref<ShareJSON>();
+
+/** 是否需要密码解锁 */
+const needsPassword = ref(false);
+
+/** 手动输入的密码 */
+const manualPassword = ref("");
+
+/** 密码错误信息 */
+const passwordError = ref("");
+
+/** 是否正在解密 */
+const isDecrypting = ref(false);
+
+/** 当前加密实例（用于文件解密） */
+const activeCrypto = shallowRef<ShareCrypto | undefined>();
+
+// ──────────────── 数据加载 ────────────────
 
 /** 加载分享数据 */
 const loadShareDetail = async () => {
   const raw = await AppAPI.shareApi.detail(Number(id));
-  return parseShareItem(raw);
+  const parsed = parseShareItem(raw);
+  rawShareData.value = parsed;
+
+  if (parsed && isEncryptedData(parsed.data)) {
+    /** 加密分享：尝试从 URL hash 获取密码自动解密 */
+    const hashParams = parseShareHashParams(window.location.hash);
+    if (hashParams) {
+      const decrypted = await decryptShareData(parsed.data, hashParams.password, hashParams.salt);
+      if (decrypted) {
+        const { ShareCrypto: SC } = await import("@/utils/shareCrypto");
+        activeCrypto.value = await SC.fromPassword(hashParams.password, hashParams.salt);
+        decryptedShare.value = decrypted;
+        return parsed;
+      }
+    }
+    /** 没有密码或密码错误，显示密码输入界面 */
+    needsPassword.value = true;
+    return parsed;
+  }
+
+  /** 非加密分享：直接使用明文数据 */
+  if (parsed) {
+    decryptedShare.value = parsed.data as ShareJSON;
+  }
+  return parsed;
 };
 
-const { state: shareData, isLoading, error } = useAsyncState(loadShareDetail, undefined);
+const { state: _shareDataState, isLoading, error } = useAsyncState(loadShareDetail, undefined);
+
+/** 手动输入密码解密 */
+async function tryDecryptWithManualPassword() {
+  if (!rawShareData.value || !isEncryptedData(rawShareData.value.data)) return;
+  if (!manualPassword.value) {
+    passwordError.value = t("请输入密码");
+    return;
+  }
+
+  isDecrypting.value = true;
+  passwordError.value = "";
+
+  try {
+    /** 加密数据中存储了 salt（明文），直接使用 */
+    const encryptedData = rawShareData.value.data;
+    const salt = isEncryptedData(encryptedData) ? encryptedData.salt : "";
+    const decrypted = await decryptShareData(rawShareData.value.data, manualPassword.value, salt);
+    if (decrypted) {
+      const { ShareCrypto: SC } = await import("@/utils/shareCrypto");
+      activeCrypto.value = await SC.fromPassword(manualPassword.value, salt);
+      decryptedShare.value = decrypted;
+      needsPassword.value = false;
+    } else {
+      passwordError.value = t("密码错误");
+    }
+  } catch {
+    passwordError.value = t("解密失败");
+  } finally {
+    isDecrypting.value = false;
+  }
+}
+
+/** 统一的 shareData 计算属性（兼容加密和非加密） */
+const shareData = computed(() => {
+  if (!rawShareData.value) return undefined;
+  if (needsPassword.value) return undefined;
+  if (!decryptedShare.value) return undefined;
+  /** 将解密后的明文 ShareJSON 包装回 ShareItemJSON 格式 */
+  return {
+    ...rawShareData.value,
+    data: decryptedShare.value,
+  };
+});
+
+/** 分享链接（加密分享包含密码 hash） */
+const shareUrl = computed(() => {
+  const baseUrl = window.location.origin;
+  /** 如果 URL 中有 hash（加密分享的密码），保留在分享链接中 */
+  const hash = window.location.hash;
+  return `${baseUrl}/ShareDetail/${id}${hash}`;
+});
 
 /** 是否为分享所有者 */
 const isOwner = computed(
-  () => authInfo_isLogin.value && shareData.value?.userId === authInfo.value?.userId,
+  () => authInfo_isLogin.value && rawShareData.value?.userId === authInfo.value?.userId,
 );
 
 /** 是否编辑模式 */
@@ -315,7 +447,7 @@ function getModifiedTextFileIds(): number[] {
     .filter((id) => isTextModified(id));
 }
 
-/** 从服务器加载文本文件内容 */
+/** 从服务器加载文本文件内容（加密分享需要解密） */
 async function loadTextContent(fileId: number) {
   if (fileId in originalTexts) return;
   textContentLoading.value = true;
@@ -324,9 +456,18 @@ async function loadTextContent(fileId: number) {
       ? await APIGetUrl.fileApi.file(fileId)
       : await AppAPIGetUrl.fileApi.file(fileId);
     const response = await fetch(url);
-    const text = await response.text();
-    originalTexts[fileId] = text;
-    currentTexts[fileId] = text;
+    /** 加密分享：文件内容是密文，需要解密 */
+    if (activeCrypto.value) {
+      const encryptedBuffer = await response.arrayBuffer();
+      const decryptedBuffer = await activeCrypto.value.decryptBytes(encryptedBuffer);
+      const text = new TextDecoder().decode(decryptedBuffer);
+      originalTexts[fileId] = text;
+      currentTexts[fileId] = text;
+    } else {
+      const text = await response.text();
+      originalTexts[fileId] = text;
+      currentTexts[fileId] = text;
+    }
   } catch {
     toast.error(t("加载失败"), t("无法加载文件内容"));
   } finally {
@@ -434,10 +575,10 @@ const modifiedFileIds = computed(() => {
 
 /** 强制触发文件列表响应式更新 */
 function triggerFilesUpdate() {
-  if (!shareData.value) return;
-  shareData.value = {
-    ...shareData.value,
-    data: { ...shareData.value.data, files: [...shareData.value.data.files] },
+  if (!decryptedShare.value) return;
+  decryptedShare.value = {
+    ...decryptedShare.value,
+    files: [...decryptedShare.value.files],
   };
 }
 
@@ -549,7 +690,7 @@ async function save() {
     const mimetype = guessMimetype(fname);
     const content = snapshot[tempId] ?? "";
     const blob = new Blob([content], { type: mimetype });
-    uploadPromises.push(uploadPublic(blob, fname));
+    uploadPromises.push(uploadPublic(blob, fname, activeCrypto.value));
     uploadSources.push(tempId);
     const idx = files.findIndex((f) => f.id === tempId);
     if (idx !== -1) files.splice(idx, 1);
@@ -562,7 +703,7 @@ async function save() {
     if (!existingFile) continue;
     const content = snapshot[fileId] ?? "";
     const blob = new Blob([content], { type: existingFile.mimetype });
-    uploadPromises.push(overwriteUpload(fileId, blob, existingFile.filename));
+    uploadPromises.push(overwriteUpload(fileId, blob, existingFile.filename, activeCrypto.value));
     uploadSources.push(fileId);
     const idx = files.findIndex((f) => f.id === fileId);
     if (idx !== -1) files.splice(idx, 1);
@@ -573,11 +714,13 @@ async function save() {
     const targetId = snapshotReplaceTargetId;
     const existingFile = targetId ? files.find((f) => f.id === targetId) : undefined;
     if (existingFile && targetId !== undefined) {
-      uploadPromises.push(overwriteUpload(targetId, file, existingFile.filename));
+      uploadPromises.push(
+        overwriteUpload(targetId, file, existingFile.filename, activeCrypto.value),
+      );
       const idx = files.findIndex((f) => f.id === targetId);
       if (idx !== -1) files.splice(idx, 1);
     } else {
-      uploadPromises.push(uploadPublic(file));
+      uploadPromises.push(uploadPublic(file, undefined, activeCrypto.value));
     }
     uploadSources.push(undefined);
   }
@@ -596,16 +739,24 @@ async function save() {
   const finalFiles = files.filter((f) => !snapshotDeletedIds.has(f.id));
 
   // ── 更新服务端 ──
+  const shareJsonToStore = { title: snapshotTitle, files: finalFiles };
+  let dataToStore: unknown;
+  if (activeCrypto.value) {
+    /** 加密分享：加密 ShareJSON 后存储，同时保存 salt */
+    dataToStore = {
+      encrypted: true as const,
+      payload: await activeCrypto.value.encryptString(JSON.stringify(shareJsonToStore)),
+      salt: activeCrypto.value.saltB64,
+    };
+  } else {
+    dataToStore = shareJsonToStore;
+  }
+
   await API.db.userData.update({
     where: { id: shareData.value.id },
     data: {
       description: snapshotTitle,
-      data: toJsonValue(
-        JSON.stringify({
-          title: snapshotTitle,
-          files: finalFiles,
-        }),
-      ),
+      data: toJsonValue(JSON.stringify(dataToStore)),
     },
   });
 
@@ -655,11 +806,8 @@ async function save() {
   editState.newTextFiles.clear();
   replaceTargetId.value = undefined;
 
-  /** 刷新 shareData */
-  shareData.value = {
-    ...shareData.value,
-    data: { title: snapshotTitle, files: finalFiles },
-  };
+  /** 刷新 decryptedShare（驱动 shareData computed 更新） */
+  decryptedShare.value = { title: snapshotTitle, files: finalFiles };
 
   /** 重新定位 selectedFile */
   if (selectedOldId !== undefined) {
@@ -674,29 +822,57 @@ async function save() {
 
 // ──────────────── 查看模式操作 ────────────────
 
-async function downloadFile(file: ShareFileJSON) {
-  let url = "";
+/** 获取文件 URL（区分登录态） */
+async function getFileUrl(fileId: number): Promise<string> {
   if (authInfo_isLogin.value) {
-    url = await APIGetUrl.fileApi.file(file.id);
-  } else {
-    url = await AppAPIGetUrl.fileApi.file(file.id);
+    return APIGetUrl.fileApi.file(fileId);
   }
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = file.filename;
-  link.style.display = "none";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  return AppAPIGetUrl.fileApi.file(fileId);
+}
+
+/** 加密分享：fetch 密文 → 解密 → 返回 Blob URL */
+async function fetchAndDecryptFileUrl(file: ShareFileJSON): Promise<string> {
+  const url = await getFileUrl(file.id);
+  const response = await fetch(url);
+  const encryptedBuffer = await response.arrayBuffer();
+  const decryptedBuffer = await activeCrypto.value!.decryptBytes(encryptedBuffer);
+  const blob = new Blob([decryptedBuffer], { type: file.mimetype });
+  return URL.createObjectURL(blob);
+}
+
+async function downloadFile(file: ShareFileJSON) {
+  try {
+    let blobUrl: string;
+    if (activeCrypto.value) {
+      blobUrl = await fetchAndDecryptFileUrl(file);
+    } else {
+      blobUrl = await getFileUrl(file.id);
+    }
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = file.filename;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    /** 加密分享使用 Blob URL，需要延迟释放 */
+    if (activeCrypto.value) setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  } catch {
+    toast.error(t("下载失败"));
+  }
 }
 
 async function openInNewTab(file: ShareFileJSON) {
-  let url = "";
-  if (authInfo_isLogin.value) {
-    url = await APIGetUrl.fileApi.file(file.id);
-  } else {
-    url = await AppAPIGetUrl.fileApi.file(file.id);
+  try {
+    let url: string;
+    if (activeCrypto.value) {
+      url = await fetchAndDecryptFileUrl(file);
+    } else {
+      url = await getFileUrl(file.id);
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  } catch {
+    toast.error(t("打开失败"));
   }
-  window.open(url, "_blank", "noopener,noreferrer");
 }
 </script>
