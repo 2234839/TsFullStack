@@ -56,6 +56,7 @@ declare module 'vue' {
     ProgressSpinner: typeof import('./src/components/base/ProgressSpinner.vue')['default']
     RelationSelect: typeof import('./src/components/AutoTable/RelationSelect.vue')['default']
     RemoteSelect: typeof import('./src/components/base/RemoteSelect.vue')['default']
+    RouteProgressBar: typeof import('./src/components/system/RouteProgressBar.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     SelectButton: typeof import('./src/components/base/SelectButton.vue')['default']
@@ -121,6 +122,7 @@ declare global {
   const ProgressSpinner: (typeof import("./src/components/base/ProgressSpinner.vue"))["default"];
   const RelationSelect: (typeof import("./src/components/AutoTable/RelationSelect.vue"))["default"];
   const RemoteSelect: (typeof import("./src/components/base/RemoteSelect.vue"))["default"];
+  const RouteProgressBar: (typeof import("./src/components/system/RouteProgressBar.vue"))["default"];
   const RouterLink: (typeof import("vue-router"))["RouterLink"];
   const RouterView: (typeof import("vue-router"))["RouterView"];
   const SelectButton: (typeof import("./src/components/base/SelectButton.vue"))["default"];

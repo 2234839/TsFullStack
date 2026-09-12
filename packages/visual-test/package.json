@@ -19,14 +19,13 @@
     }
   },
   "dependencies": {
-    "pixelmatch": "^6.0.0",
-    "playwright": "^1.49.0",
+    "pixelmatch": "^7.2.0",
+    "playwright": "^1.63.0",
     "pngjs": "^7.0.0",
-    "superjson": "^2.2.1"
+    "superjson": "^2.2.6"
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
-    "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5"
   }
 }

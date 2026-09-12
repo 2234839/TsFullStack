@@ -68,6 +68,10 @@ coverage/
 *.temp
 tmp/
 
+# 防止 tsc 误落盘的编译产物被提交（源码均为 .ts/.vue，src 与 projects 下不应出现 .js）
+apps/website-frontend/src/**/*.js
+apps/website-frontend/projects/**/*.js
+
 .turbo
 /任务计划.md
 .claude/scheduled_tasks.lock

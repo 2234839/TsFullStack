@@ -7,29 +7,14 @@
     "tsconfig.json",
     "**/tsconfig*.json"
   ],
-  "globalEnv": [
-    "NODE_ENV",
-    "CI",
-    "TURBO_REMOTE_CACHE_SIGNATURE_KEY"
-  ],
+  "globalEnv": ["NODE_ENV", "CI", "TURBO_REMOTE_CACHE_SIGNATURE_KEY"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [
-        "dist/**",
-        "!.next/cache/**",
-        "!.next/**/build/**",
-        "**/.turbo"
-      ],
+      "outputs": ["dist/**", "!.next/cache/**", "!.next/**/build/**", "**/.turbo"],
       "cache": true,
       "env": ["NODE_ENV"],
-      "inputs": [
-        "src/**",
-        "package.json",
-        "tsconfig.json",
-        "vite.config.*",
-        "tsup.config.*"
-      ]
+      "inputs": ["src/**", "package.json", "tsconfig.json", "vite.config.*", "tsup.config.*"]
     },
     "build:frontend": {
       "dependsOn": ["^build"],
@@ -48,76 +33,51 @@
       "outputs": ["dist/api/**"],
       "cache": true,
       "env": ["NODE_ENV"],
-      "inputs": [
-        "src/**/*.{ts,js}",
-        "api/**/*",
-        "vite.config.*"
-      ]
+      "inputs": ["src/**/*.{ts,js}", "api/**/*", "vite.config.*"]
     },
     "build:backend": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": true,
       "env": ["NODE_ENV"],
-      "inputs": [
-        "src/**/*.{ts,js}",
-        "prisma/schema.prisma",
-        "schema.zmodel"
-      ]
+      "inputs": ["src/**/*.{ts,js}", "prisma/schema.prisma", "schema.zmodel"]
     },
     "build:extension": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": true,
       "env": ["NODE_ENV"],
-      "inputs": [
-        "src/**/*.{vue,ts,js,css}",
-        "wxt.config.*"
-      ]
+      "inputs": ["src/**/*.{vue,ts,js,css}", "wxt.config.*"]
     },
     "build:lib": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": true,
       "env": ["NODE_ENV"],
-      "inputs": [
-        "src/**/*.{ts,js}",
-        "tsup.config.*"
-      ]
+      "inputs": ["src/**/*.{ts,js}", "tsup.config.*"]
     },
     "build:autoload": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": true,
       "env": ["NODE_ENV"],
-      "inputs": [
-        "src/**/*.{ts,js}",
-        "automate-build.ts",
-        "generate.ts"
-      ]
+      "inputs": ["src/**/*.{ts,js}", "automate-build.ts", "generate.ts"]
     },
     "typecheck": {
       "cache": true,
-      "inputs": [
-        "src/**/*.{ts,tsx}",
-        "tsconfig.json",
-        "**/tsconfig*.json"
-      ]
+      "inputs": ["src/**/*.{ts,tsx}", "tsconfig.json", "**/tsconfig*.json"]
     },
     "tsc": {
       "cache": true,
-      "inputs": [
-        "src/**/*.{ts,tsx}",
-        "tsconfig.json",
-        "**/tsconfig*.json"
-      ]
+      "inputs": ["src/**/*.{ts,tsx}", "tsconfig.json", "**/tsconfig*.json"]
     },
     "dev": {
       "cache": false,
-      "persistent": true
+      "persistent": true,
+      "dependsOn": ["^build"]
     },
     "clean": {
       "cache": false
-    },
+    }
   }
 }

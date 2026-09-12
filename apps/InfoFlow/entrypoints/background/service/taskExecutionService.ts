@@ -1,35 +1,35 @@
-import { defineProxyService } from '@webext-core/proxy-service';
-import { getDbService, type TaskExecutionsTable } from './dbService';
+import { createProxyService, registerService } from "@webext-core/proxy-service";
+import { getDbService, type TaskExecutionsTable } from "./dbService";
 
 // 重新导出类型，保持兼容性
-export type { TaskExecutionRecord } from './dbService';
-export type { TaskExecutionQueryOptions, PaginatedTaskExecutions } from './dbService';
+export type { TaskExecutionRecord } from "./dbService";
+export type { TaskExecutionQueryOptions, PaginatedTaskExecutions } from "./dbService";
 
 // 任务执行服务 - 基于统一的数据库服务
 function createTaskExecutionService() {
   return {
     // 基础 CRUD 操作
     async create(
-      record: Omit<import('./dbService').TaskExecutionsTable, 'id' | 'createdAt' | 'updatedAt'>,
-    ): Promise<import('./dbService').TaskExecutionsTable> {
+      record: Omit<import("./dbService").TaskExecutionsTable, "id" | "createdAt" | "updatedAt">,
+    ): Promise<import("./dbService").TaskExecutionsTable> {
       const dbService = getDbService();
       return await dbService.taskExecutions.create(record);
     },
 
     async update(
       id: string,
-      updates: Partial<import('./dbService').TaskExecutionsTable>,
-    ): Promise<import('./dbService').TaskExecutionsTable | null> {
+      updates: Partial<import("./dbService").TaskExecutionsTable>,
+    ): Promise<import("./dbService").TaskExecutionsTable | null> {
       const dbService = getDbService();
       return await dbService.taskExecutions.update(id, updates);
     },
 
-    async markAsRead(id: string): Promise<import('./dbService').TaskExecutionsTable | null> {
+    async markAsRead(id: string): Promise<import("./dbService").TaskExecutionsTable | null> {
       const dbService = getDbService();
       return await dbService.taskExecutions.markAsRead(id);
     },
 
-    async markAsUnread(id: string): Promise<import('./dbService').TaskExecutionsTable | null> {
+    async markAsUnread(id: string): Promise<import("./dbService").TaskExecutionsTable | null> {
       const dbService = getDbService();
       return await dbService.taskExecutions.markAsUnread(id);
     },
@@ -44,13 +44,13 @@ function createTaskExecutionService() {
       return await dbService.taskExecutions.delete(id);
     },
 
-    async getById(id: string): Promise<import('./dbService').TaskExecutionsTable | null> {
+    async getById(id: string): Promise<import("./dbService").TaskExecutionsTable | null> {
       const dbService = getDbService();
       return await dbService.taskExecutions.getById(id);
     },
 
     async query(options: any = {}): Promise<{
-      executions: import('./dbService').TaskExecutionsTable[];
+      executions: import("./dbService").TaskExecutionsTable[];
       total: number;
       page: number;
       limit: number;
@@ -65,7 +65,7 @@ function createTaskExecutionService() {
       options?: {
         page?: number;
         limit?: number;
-        status?: TaskExecutionsTable['status'];
+        status?: TaskExecutionsTable["status"];
         isRead?: 0 | 1;
       },
     ): Promise<{
@@ -92,19 +92,27 @@ function createTaskExecutionService() {
     async getRecentExecutions(
       ruleId?: string,
       limit: number = 10,
-    ): Promise<import('./dbService').TaskExecutionsTable[]> {
+    ): Promise<import("./dbService").TaskExecutionsTable[]> {
       const dbService = getDbService();
       return await dbService.taskExecutions.getRecentExecutions(ruleId, limit);
     },
 
-    async getLastSuccessfulExecution(ruleId: string): Promise<import('./dbService').TaskExecutionsTable | null> {
+    async getLastSuccessfulExecution(
+      ruleId: string,
+    ): Promise<import("./dbService").TaskExecutionsTable | null> {
       const dbService = getDbService();
       return await dbService.taskExecutions.getLastSuccessfulExecution(ruleId);
     },
 
-    async getPreviousSuccessfulExecution(ruleId: string, excludeExecutionId: string): Promise<import('./dbService').TaskExecutionsTable | null> {
+    async getPreviousSuccessfulExecution(
+      ruleId: string,
+      excludeExecutionId: string,
+    ): Promise<import("./dbService").TaskExecutionsTable | null> {
       const dbService = getDbService();
-      return await dbService.taskExecutions.getPreviousSuccessfulExecution(ruleId, excludeExecutionId);
+      return await dbService.taskExecutions.getPreviousSuccessfulExecution(
+        ruleId,
+        excludeExecutionId,
+      );
     },
 
     async getExecutionStats(ruleId?: string): Promise<{
@@ -160,17 +168,17 @@ function createTaskExecutionService() {
       return await dbService.taskExecutions.getRulesWithUnreadExecutions();
     },
 
-    async getRulesWithUnreadExecutionsWithDetails(): Promise<Array<{id: string, name: string}>> {
+    async getRulesWithUnreadExecutionsWithDetails(): Promise<Array<{ id: string; name: string }>> {
       const dbService = getDbService();
       const ruleIds = await dbService.taskExecutions.getRulesWithUnreadExecutions();
       const rulesWithDetails = [];
-      console.log('[ruleIds]',ruleIds);
+      console.log("[ruleIds]", ruleIds);
       for (const ruleId of ruleIds) {
         const rule = await dbService.rules.getById(ruleId);
         if (rule) {
           rulesWithDetails.push({
             id: rule.id,
-            name: rule.name
+            name: rule.name,
           });
         }
       }
@@ -187,13 +195,13 @@ function createTaskExecutionService() {
     async createExecutionRecord(
       ruleId: string,
       ruleName: string,
-      executionType: import('./dbService').TaskExecutionsTable['executionType'] = 'manual',
+      executionType: import("./dbService").TaskExecutionsTable["executionType"] = "manual",
       triggerInfo?: string,
-    ): Promise<import('./dbService').TaskExecutionsTable> {
+    ): Promise<import("./dbService").TaskExecutionsTable> {
       return await this.create({
         ruleId,
         ruleName,
-        status: 'pending',
+        status: "pending",
         matched: 0,
         executionType,
         triggerInfo,
@@ -227,19 +235,19 @@ function createTaskExecutionService() {
       // Initialize timeline
       for (let i = 0; i < days; i++) {
         const date = new Date(startDate.getTime() + i * 24 * 60 * 60 * 1000);
-        const dateStr = date.toISOString().split('T')[0];
+        const dateStr = date.toISOString().split("T")[0];
         timeline.set(dateStr, { executions: 0, completed: 0, failed: 0 });
       }
 
       // Aggregate data
-      executions.executions.forEach((execution: import('./dbService').TaskExecutionsTable) => {
-        const dateStr = execution.createdAt.toISOString().split('T')[0];
+      executions.executions.forEach((execution: import("./dbService").TaskExecutionsTable) => {
+        const dateStr = execution.createdAt.toISOString().split("T")[0];
         const dayData = timeline.get(dateStr);
         if (dayData) {
           dayData.executions++;
-          if (execution.status === 'completed') {
+          if (execution.status === "completed") {
             dayData.completed++;
-          } else if (execution.status === 'failed') {
+          } else if (execution.status === "failed") {
             dayData.failed++;
           }
         }
@@ -253,7 +261,17 @@ function createTaskExecutionService() {
   };
 }
 
-export const [registerTaskExecutionService, getTaskExecutionService] = defineProxyService(
-  'task-execution-service',
-  createTaskExecutionService,
-);
+/** 把服务类型所有方法转成 async 的工具类型 */
+type DeepAsync<T> = T extends (...args: any[]) => any
+  ? (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>
+  : T extends object
+    ? { [K in keyof T]: DeepAsync<T[K]> }
+    : T;
+
+/** TaskExecutionService 的代理类型 */
+export type TaskExecutionService = DeepAsync<ReturnType<typeof createTaskExecutionService>>;
+
+export const getTaskExecutionService = () =>
+  createProxyService<TaskExecutionService>("task-execution-service");
+export const registerTaskExecutionService = () =>
+  registerService("task-execution-service", createTaskExecutionService());

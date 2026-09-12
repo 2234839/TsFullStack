@@ -293,6 +293,11 @@ onMounted(async () => {
     form.value.username = localUserPwd.value.username;
     form.value.password = localUserPwd.value.password;
   }
+  // 开发环境下默认填充本地测试账号（来自 apps/backend/config.json 的 systemAdminUser），方便调试
+  if (import.meta.env.DEV && !form.value.username) {
+    form.value.username = import.meta.env.VITE_DEV_TEST_USERNAME ?? "";
+    form.value.password = import.meta.env.VITE_DEV_TEST_PASSWORD ?? "";
+  }
   try {
     configuredProviders.value = await AppAPI.oauthProviders();
   } catch {

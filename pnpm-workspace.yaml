@@ -8,15 +8,14 @@ catalog:
   "@types/node": ^25.6.2
   "@vitejs/plugin-vue": ^6.0.8
   primeicons: ^7.0.0
-  primevue: ^4.3.9
-  reka-ui: ^2.10.1
+  reka-ui: ^2.10.4
   typescript: ^6.0.3
-  vite: npm:@voidzero-dev/vite-plus-core@0.2.6
-  vue: ^3.5.40
-  vue-router: ^5.2.0
-  vitest: 4.1.10
-  vite-plus: 0.2.6
-  "@vitest/coverage-v8": 4.1.10
+  vite: npm:@voidzero-dev/vite-plus-core@0.3.0
+  vue: ^3.5.42
+  vue-router: ^5.3.1
+  vitest: 4.1.11
+  vite-plus: 0.3.0
+  "@vitest/coverage-v8": 4.1.11
 
 settings:
   autoInstallPeers: true

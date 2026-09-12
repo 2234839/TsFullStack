@@ -8,6 +8,7 @@
   "main": "index.js",
   "scripts": {
     "translate-md": "tsx scripts/translate-md.ts",
+    "dev": "turbo run dev --filter=@tsfullstack/backend --filter=@tsfullstack/website-frontend",
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "turbo run build",
     "build:autoload": "cd modules/module-autoload && pnpm automate",
@@ -34,8 +35,8 @@
   },
   "devDependencies": {
     "@types/node": "^25.6.2",
-    "tsx": "^4.23.1",
-    "turbo": "^2.10.7",
+    "tsx": "^4.23.13",
+    "turbo": "^2.10.12",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },

@@ -2,6 +2,16 @@
   "name": "@tsfullstack/module-loader",
   "version": "1.0.0",
   "description": "Automatic module discovery and aggregation for TsFullStack",
+  "keywords": [
+    "auto-discovery",
+    "module-loader",
+    "tsfullstack"
+  ],
+  "license": "ISC",
+  "author": "",
+  "bin": {
+    "tsfullstack-modules": "./dist/cli.js"
+  },
   "type": "module",
   "exports": {
     "./generated/backend.ts": "./generated/backend.ts",
@@ -14,21 +24,11 @@
     "clean": "rm -rf dist",
     "prebuild": "pnpm clean"
   },
-  "bin": {
-    "tsfullstack-modules": "./dist/cli.js"
-  },
-  "keywords": [
-    "module-loader",
-    "auto-discovery",
-    "tsfullstack"
-  ],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "chokidar": "^4.0.0",
-    "commander": "^12.0.0",
+    "chokidar": "^4.0.3",
+    "commander": "^15.0.0",
     "fast-glob": "^3.3.3",
-    "fs-extra": "^11.2.0"
+    "fs-extra": "^11.4.0"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

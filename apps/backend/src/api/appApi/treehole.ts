@@ -47,6 +47,8 @@ export interface TreeholePostsQuery {
 export interface TreeholeAuthor {
   id: string;
   nickname: string | null;
+  /** 用户头像文件 ID，用于 File2Url 组件解析为可访问 URL */
+  avatar: string | null;
 }
 
 /**
@@ -168,7 +170,7 @@ export const treeholeApi = {
               authorId: true,
               parentId: true,
               author: {
-                select: { id: true, nickname: true },
+                select: { id: true, nickname: true, avatar: true },
               },
             },
           }),
@@ -243,7 +245,7 @@ export const treeholeApi = {
                 authorId: true,
                 parentId: true,
                 author: {
-                  select: { id: true, nickname: true },
+                  select: { id: true, nickname: true, avatar: true },
                 },
               },
             }),

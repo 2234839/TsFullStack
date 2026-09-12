@@ -1,7 +1,7 @@
-import { defineProxyService } from '@webext-core/proxy-service';
-import { getRulesService, type Rule } from './rulesService';
-import { executeRuleLogic } from '@/utils/ruleTaskGenerator';
-import { calculateNextExecution, getCronInterval } from '@/utils/cronUtils';
+import { createProxyService, registerService } from "@webext-core/proxy-service";
+import { getRulesService, type Rule } from "./rulesService";
+import { executeRuleLogic } from "@/utils/ruleTaskGenerator";
+import { calculateNextExecution, getCronInterval } from "@/utils/cronUtils";
 
 interface ScheduledJob {
   id: string;
@@ -16,7 +16,7 @@ function createCronService() {
 
   const scheduleRuleExecution = async (ruleId: string, timeBase?: Date): Promise<void> => {
     const rule = await getRulesService().getById(ruleId);
-    if (!rule || rule.status !== 'active') return;
+    if (!rule || rule.status !== "active") return;
 
     // 检查是否已经存在相同时间基点的调度
     const existingJob = scheduledJobs.get(ruleId);
@@ -110,7 +110,7 @@ function createCronService() {
 
       await executeRuleLogic(
         rule,
-        'scheduled',
+        "scheduled",
         `Scheduled execution at ${executionStartTime.toISOString()}`,
       );
 
@@ -122,7 +122,7 @@ function createCronService() {
         `[CronService] 重新调度规则 ${
           rule.name
         } (${ruleId})，时间基点: ${timeBase.toISOString()}，${
-          isCompensation ? '补偿执行模式' : '正常执行模式'
+          isCompensation ? "补偿执行模式" : "正常执行模式"
         }`,
       );
 
@@ -159,7 +159,7 @@ function createCronService() {
   };
 
   const startAllActiveRules = async (): Promise<void> => {
-    console.log('[CronService] 启动所有活跃规则...');
+    console.log("[CronService] 启动所有活跃规则...");
     const activeRules = await getRulesService().getActiveRules();
 
     // 执行补偿机制
@@ -178,13 +178,13 @@ function createCronService() {
   };
 
   const executeCompensationTasks = async (rules: Rule[]): Promise<void> => {
-    console.log('[CronService] 检查补偿任务...');
+    console.log("[CronService] 检查补偿任务...");
 
     const currentTime = new Date();
     let compensationCount = 0;
 
     for (const rule of rules) {
-      if (rule.status !== 'active') continue;
+      if (rule.status !== "active") continue;
 
       // 检查是否需要补偿
       const shouldCompensate = shouldCompensateForRule(rule, currentTime);
@@ -194,7 +194,7 @@ function createCronService() {
           console.log(`[CronService] 执行补偿任务 ${rule.name} (${rule.id})`);
           await executeRuleLogic(
             rule,
-            'scheduled',
+            "scheduled",
             `Compensation execution at ${currentTime.toISOString()}`,
           );
 
@@ -208,7 +208,7 @@ function createCronService() {
     if (compensationCount > 0) {
       console.log(`[CronService] 已执行 ${compensationCount} 个补偿任务`);
     } else {
-      console.log('[CronService] 无需执行补偿任务');
+      console.log("[CronService] 无需执行补偿任务");
     }
   };
 
@@ -232,7 +232,7 @@ function createCronService() {
   };
 
   const reinitializeCrons = async (): Promise<void> => {
-    console.log('[CronService] 重新初始化所有 cron 任务...');
+    console.log("[CronService] 重新初始化所有 cron 任务...");
 
     // 获取当前所有活跃规则
     const activeRules = await getRulesService().getActiveRules();
@@ -257,13 +257,13 @@ function createCronService() {
   };
 
   const stopAllScheduledRules = async (): Promise<void> => {
-    console.log('[CronService] 停止所有已调度的规则...');
+    console.log("[CronService] 停止所有已调度的规则...");
     for (const [ruleId, job] of scheduledJobs) {
       clearTimeout(job.timeoutId);
       console.log(`[CronService] 已停止规则 ${ruleId}`);
     }
     scheduledJobs.clear();
-    console.log('[CronService] 所有已调度的规则已停止');
+    console.log("[CronService] 所有已调度的规则已停止");
   };
 
   const getScheduledJobs = (): Array<{
@@ -297,18 +297,18 @@ function createCronService() {
 
   const validateCronExpression = (cronExpression: string): boolean => {
     try {
-      const [minute, hour] = cronExpression.split(' ');
+      const [minute, hour] = cronExpression.split(" ");
 
       // Validate minute
       if (
-        minute !== '*' &&
+        minute !== "*" &&
         (isNaN(parseInt(minute)) || parseInt(minute) < 0 || parseInt(minute) > 59)
       ) {
         return false;
       }
 
       // Validate hour
-      if (hour !== '*' && (isNaN(parseInt(hour)) || parseInt(hour) < 0 || parseInt(hour) > 23)) {
+      if (hour !== "*" && (isNaN(parseInt(hour)) || parseInt(hour) < 0 || parseInt(hour) > 23)) {
         return false;
       }
 
@@ -350,9 +350,14 @@ function createCronService() {
   };
 }
 
-export const [registerCronService, getCronService] = defineProxyService(
-  'cron-service',
-  createCronService,
-);
+/** 把服务类型所有方法转成 async 的工具类型 */
+type DeepAsync<T> = T extends (...args: any[]) => any
+  ? (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>
+  : T extends object
+    ? { [K in keyof T]: DeepAsync<T[K]> }
+    : T;
+
+export const getCronService = () => createProxyService<CronService>("cron-service");
+export const registerCronService = () => registerService("cron-service", createCronService());
 
 export type CronService = ReturnType<typeof createCronService>;

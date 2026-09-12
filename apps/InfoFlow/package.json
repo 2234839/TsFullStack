@@ -1,8 +1,8 @@
 {
   "name": "info-flow",
-  "description": "manifest.json description",
-  "private": true,
   "version": "0.0.4",
+  "private": true,
+  "description": "manifest.json description",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -19,30 +19,29 @@
     "release:prepare": "pnpm install && pnpm tsc && pnpm release"
   },
   "dependencies": {
-    "@primeuix/themes": "^1.2.3",
-    "@tailwindcss/vite": "^4.2.1",
+    "@primeuix/themes": "^1.2.5",
+    "@tailwindcss/vite": "^4.3.3",
     "@tsfullstack/backend": "workspace:*",
     "@tsfullstack/shared-frontend": "workspace:*",
-    "@vueuse/core": "^13.8.0",
-    "@webext-core/proxy-service": "^1.2.1",
-    "date-fns": "^4.1.0",
-    "dexie": "^4.2.0",
-    "fast-equals": "^5.2.2",
-    "html-to-text": "^9.0.5",
+    "@vueuse/core": "^14.4.0",
+    "@webext-core/messaging": "^4.0.0",
+    "@webext-core/proxy-service": "^3.0.2",
+    "date-fns": "^4.4.0",
+    "dexie": "^4.4.5",
+    "html-to-text": "^10.0.1",
     "primeicons": "^7.0.0",
-    "primevue": "^4.3.7",
+    "primevue": "^4.5.5",
     "reka-ui": "catalog:",
-    "superjson": "^2.2.2",
-    "tailwindcss": "^4.2.1",
+    "superjson": "^2.2.6",
+    "tailwindcss": "^4.3.3",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },
   "devDependencies": {
-    "@types/html-to-text": "^9.0.4",
-    "@wxt-dev/module-vue": "^1.0.2",
+    "@wxt-dev/module-vue": "^1.0.3",
     "typescript": "5.9.2",
-    "vite-plugin-vue-devtools": "^8.0.6",
-    "vue-tsc": "^3.2.5",
-    "wxt": "^0.20.8"
+    "vite-plugin-vue-devtools": "^8.2.1",
+    "vue-tsc": "^3.3.11",
+    "wxt": "^0.21.4"
   }
 }

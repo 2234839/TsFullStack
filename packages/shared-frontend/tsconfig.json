@@ -9,7 +9,8 @@
     "declarationMap": true,
     "target": "ES2020",
     "module": "ESNext",
-    "moduleResolution": "node",
+    /** TS6 已废弃 node10 解析；本包由 Vite 打包，应使用 bundler 解析 */
+    "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,

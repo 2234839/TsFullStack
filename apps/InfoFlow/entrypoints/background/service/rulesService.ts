@@ -1,18 +1,18 @@
-import { defineProxyService } from '@webext-core/proxy-service';
-import { getDbService, type RulesTable } from './dbService';
-import { executeRuleLogic } from '@/utils/ruleTaskGenerator';
-import { getCronService } from './cronService';
+import { createProxyService, registerService } from "@webext-core/proxy-service";
+import { getDbService, type RulesTable } from "./dbService";
+import { executeRuleLogic } from "@/utils/ruleTaskGenerator";
+import { getCronService } from "./cronService";
 
 // 重新导出类型，保持兼容性
-export type { Rule } from './dbService';
-export type { RuleQueryOptions, PaginatedRules } from './dbService';
+export type { Rule } from "./dbService";
+export type { RuleQueryOptions, PaginatedRules } from "./dbService";
 
 // 规则服务 - 基于统一的数据库服务
 function createRulesService() {
   return {
     // 基础 CRUD 操作
     async create(
-      rule: Omit<RulesTable, 'id' | 'createdAt' | 'updatedAt' | 'executionCount'>,
+      rule: Omit<RulesTable, "id" | "createdAt" | "updatedAt" | "executionCount">,
     ): Promise<RulesTable> {
       const dbService = getDbService();
       const newRule = await dbService.rules.create(rule);
@@ -30,9 +30,11 @@ function createRulesService() {
 
       if (rule) {
         // Only reinitialize crons if the update affects scheduling
-        const schedulingFields = ['cron', 'status', 'name', 'taskConfig'];
-        const affectsScheduling = Object.keys(updates).some(key => schedulingFields.includes(key));
-        
+        const schedulingFields = ["cron", "status", "name", "taskConfig"];
+        const affectsScheduling = Object.keys(updates).some((key) =>
+          schedulingFields.includes(key),
+        );
+
         if (affectsScheduling) {
           const cronService = getCronService();
           await cronService.reinitializeCrons();
@@ -100,12 +102,12 @@ function createRulesService() {
       name: string;
       description: string;
       cron: string;
-      taskConfig: import('./dbService').TaskConfig;
+      taskConfig: import("./dbService").TaskConfig;
       priority?: number;
     }): Promise<RulesTable> {
       return await this.create({
         ...ruleData,
-        status: 'active',
+        status: "active",
       });
     },
 
@@ -118,16 +120,16 @@ function createRulesService() {
     },
 
     async activateRule(id: string): Promise<RulesTable | null> {
-      return await this.update(id, { status: 'active' });
+      return await this.update(id, { status: "active" });
     },
 
     async pauseRule(id: string): Promise<RulesTable | null> {
-      console.log('[id]',id);
-      return await this.update(id, { status: 'paused' });
+      console.log("[id]", id);
+      return await this.update(id, { status: "paused" });
     },
 
     async deactivateRule(id: string): Promise<RulesTable | null> {
-      return await this.update(id, { status: 'inactive' });
+      return await this.update(id, { status: "inactive" });
     },
 
     async getRuleStats(): Promise<{
@@ -141,9 +143,9 @@ function createRulesService() {
 
       return {
         total: allRules.length,
-        active: allRules.filter((r) => r.status === 'active').length,
-        inactive: allRules.filter((r) => r.status === 'inactive').length,
-        paused: allRules.filter((r) => r.status === 'paused').length,
+        active: allRules.filter((r) => r.status === "active").length,
+        inactive: allRules.filter((r) => r.status === "inactive").length,
+        paused: allRules.filter((r) => r.status === "paused").length,
         totalExecutions: allRules.reduce((sum, r) => sum + r.executionCount, 0),
       };
     },
@@ -156,15 +158,23 @@ function createRulesService() {
     }> {
       const rule = await this.getById(ruleId);
       if (!rule) {
-        return { success: false, message: '规则不存在' };
+        return { success: false, message: "规则不存在" };
       }
 
-      return await executeRuleLogic(rule, 'manual');
+      return await executeRuleLogic(rule, "manual");
     },
   };
 }
 
-export const [registerRulesService, getRulesService] = defineProxyService(
-  'rules-service',
-  createRulesService,
-);
+/** 把服务类型所有方法转成 async 的工具类型 */
+type DeepAsync<T> = T extends (...args: any[]) => any
+  ? (...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>
+  : T extends object
+    ? { [K in keyof T]: DeepAsync<T[K]> }
+    : T;
+
+/** RulesService 的代理类型 */
+export type RulesService = DeepAsync<ReturnType<typeof createRulesService>>;
+
+export const getRulesService = () => createProxyService<RulesService>("rules-service");
+export const registerRulesService = () => registerService("rules-service", createRulesService());
