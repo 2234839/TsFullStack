@@ -135,8 +135,15 @@
   "该文件类型不支持预览": "This file type is not supported for preview",
   "您可以下载文件以查看内容": "You can download the file to view its content",
   "关闭": "Close",
-  "切换主题": "Switch Theme",
   "明亮模式": "Light Mode",
   "暗夜模式": "Dark Mode",
-  "随机主题（每次刷新随机切换）": "Random theme (switch randomly on each refresh)"
+  "随机主题（每次刷新随机切换）": "Random theme (switch randomly on each refresh)",
+  "刚刚": "just now",
+  "未来": "in the future",
+  "{n}分钟前": "{n} min ago",
+  "{n}小时前": "{n} h ago",
+  "{n}天前": "{n} d ago",
+  "未知时间": "unknown time",
+  "匿名用户": "Anonymous",
+  "未知用户": "Unknown user"
 }
