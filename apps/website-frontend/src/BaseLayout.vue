@@ -33,6 +33,7 @@
 
     <Toast />
     <Confirm />
+    <RouteProgressBar />
     <GithubStar v-if="!route.meta.bare" />
     <TestWarningBanner v-if="!route.meta.bare" />
   </div>
@@ -41,6 +42,7 @@
 <script setup lang="ts">
 import GithubStar from "@/components/system/GithubStar.vue";
 import TestWarningBanner from "@/components/system/TestWarningBanner.vue";
+import RouteProgressBar from "@/components/system/RouteProgressBar.vue";
 import { allRoutes, findRouteNode } from "@/router";
 import { useTitle } from "@vueuse/core";
 import Toast from "@/components/system/Toast.vue";
