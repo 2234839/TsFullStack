@@ -1,6 +1,105 @@
 @import "tailwindcss";
 
 /**
+ * Tailwind v4 官方主题定义（@theme）—— 颜色的唯一权威来源。
+ *
+ * v4 中只有 @theme 块定义的变量会被注册到 :root（内置行为，无需 plugin）；
+ * 旧 JS config（@config 指向的 tailwind.config.ts）不会生成 CSS 变量，
+ * 曾导致 var(--color-primary-*) 全部解析失败、语义化类背景透明的事故。
+ * 迁移后 var() 引用与 bg-primary-500/20 这类 /alpha 修饰符均原生可用。
+ */
+@theme {
+  /* 主色调 - 中性灰黑白系 (Noir 风格) */
+  --color-primary-50: oklch(0.985 0 0);
+  --color-primary-100: oklch(0.967 0.001 286.375);
+  --color-primary-200: oklch(0.92 0.004 286.32);
+  --color-primary-300: oklch(0.871 0.006 286.286);
+  --color-primary-400: oklch(0.705 0.015 286.067);
+  --color-primary-500: oklch(0.552 0.016 285.938);
+  --color-primary-600: oklch(0.442 0.017 285.786);
+  --color-primary-700: oklch(0.37 0.013 285.805);
+  --color-primary-800: oklch(0.274 0.006 286.033);
+  --color-primary-900: oklch(0.21 0.006 285.885);
+  --color-primary-950: oklch(0.141 0.005 285.823);
+
+  /* 辅助色 - 蓝灰系 (Slate) */
+  --color-secondary-50: oklch(0.984 0.003 247.858);
+  --color-secondary-100: oklch(0.968 0.007 247.896);
+  --color-secondary-200: oklch(0.929 0.013 255.508);
+  --color-secondary-300: oklch(0.869 0.022 252.894);
+  --color-secondary-400: oklch(0.704 0.04 256.788);
+  --color-secondary-500: oklch(0.554 0.046 257.417);
+  --color-secondary-600: oklch(0.446 0.043 257.281);
+  --color-secondary-700: oklch(0.372 0.044 257.287);
+  --color-secondary-800: oklch(0.279 0.041 260.031);
+  --color-secondary-900: oklch(0.208 0.042 265.755);
+  --color-secondary-950: oklch(0.129 0.042 264.695);
+
+  /* 成功色 - 绿色系 */
+  --color-success-50: oklch(0.982 0.018 155.826);
+  --color-success-100: oklch(0.962 0.044 156.743);
+  --color-success-200: oklch(0.925 0.084 155.995);
+  --color-success-300: oklch(0.871 0.15 154.449);
+  --color-success-400: oklch(0.792 0.209 151.711);
+  --color-success-500: oklch(0.723 0.219 149.579);
+  --color-success-600: oklch(0.627 0.194 149.214);
+  --color-success-700: oklch(0.527 0.154 150.069);
+  --color-success-800: oklch(0.448 0.119 151.328);
+  --color-success-900: oklch(0.393 0.095 152.535);
+  --color-success-950: oklch(0.266 0.065 152.934);
+
+  /* 警告色 - 琥珀色系 */
+  --color-warning-50: oklch(0.987 0.022 95.277);
+  --color-warning-100: oklch(0.962 0.059 95.617);
+  --color-warning-200: oklch(0.924 0.12 95.746);
+  --color-warning-300: oklch(0.879 0.169 91.605);
+  --color-warning-400: oklch(0.828 0.189 84.429);
+  --color-warning-500: oklch(0.769 0.188 70.08);
+  --color-warning-600: oklch(0.666 0.179 58.318);
+  --color-warning-700: oklch(0.555 0.163 48.998);
+  --color-warning-800: oklch(0.473 0.137 46.201);
+  --color-warning-900: oklch(0.414 0.112 45.904);
+  --color-warning-950: oklch(0.279 0.077 45.635);
+
+  /* 危险色 - 红色系 */
+  --color-danger-50: oklch(0.971 0.013 17.38);
+  --color-danger-100: oklch(0.936 0.032 17.717);
+  --color-danger-200: oklch(0.885 0.062 18.334);
+  --color-danger-300: oklch(0.808 0.114 19.571);
+  --color-danger-400: oklch(0.704 0.191 22.216);
+  --color-danger-500: oklch(0.637 0.237 25.331);
+  --color-danger-600: oklch(0.577 0.245 27.325);
+  --color-danger-700: oklch(0.505 0.213 27.518);
+  --color-danger-800: oklch(0.444 0.177 26.899);
+  --color-danger-900: oklch(0.396 0.141 25.723);
+  --color-danger-950: oklch(0.258 0.092 26.042);
+
+  /* 信息色 - 蓝色系 */
+  --color-info-50: oklch(0.97 0.014 254.604);
+  --color-info-100: oklch(0.932 0.032 255.585);
+  --color-info-200: oklch(0.882 0.059 254.128);
+  --color-info-300: oklch(0.809 0.105 251.813);
+  --color-info-400: oklch(0.707 0.165 254.624);
+  --color-info-500: oklch(0.623 0.214 259.815);
+  --color-info-600: oklch(0.546 0.245 262.881);
+  --color-info-700: oklch(0.488 0.243 264.376);
+  --color-info-800: oklch(0.424 0.199 265.638);
+  --color-info-900: oklch(0.379 0.146 265.522);
+  --color-info-950: oklch(0.282 0.091 267.935);
+
+  /* slate 系：custom-scrollbar 引用到的 Tailwind 内置色（@theme 定义后覆盖默认值，显式声明防漂移） */
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+
+  /* 字号（沿用原 config 的紧凑风格） */
+  --text-xs: 0.75rem;
+  --text-sm: 0.79rem;
+  --text-base: 0.8rem;
+  --text-lg: 1.25rem;
+  --text-xl: 1.5rem;
+}
+
+/**
  * 语义化颜色工具类 — 统一 light/dark 模式下的常见颜色组合
  *
  * ⚠️ 注意：以下自定义工具类（bg-primary-card、text-primary-theme 等）

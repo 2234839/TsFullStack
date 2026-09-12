@@ -1,9 +1,14 @@
 <script setup lang="ts">
 /**
  * 切换开关组件
- * 使用 Tailwind CSS 样式
+ * 基于 reka-ui SwitchRoot/SwitchThumb primitives，无头行为 + Tailwind 样式
+ *
+ * @example
+ * ```vue
+ * <ToggleSwitch v-model="on" />
+ * ```
  */
-import { computed } from 'vue';
+import { SwitchRoot, SwitchThumb } from "reka-ui";
 
 defineOptions({ inheritAttrs: false });
 
@@ -14,41 +19,30 @@ interface Props {
   disabled?: boolean;
 }
 
-const { modelValue, disabled = false } = defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  modelValue: false,
+  disabled: false,
+});
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean];
+  "update:modelValue": [value: boolean];
 }>();
-
-/** 处理切换 */
-function toggle() {
-  if (!disabled) {
-    emit('update:modelValue', !modelValue);
-  }
-}
-
-/** 开关样式类 */
-const switchClasses = computed(() => {
-  const base = 'relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:focus:ring-primary-400 focus:ring-offset-2 dark:focus:ring-offset-primary-900';
-  const activeClass = modelValue
-    ? 'bg-primary-600 dark:bg-primary-500'
-    : 'bg-primary-200 dark:bg-primary-700';
-  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
-
-  return `${base} ${activeClass} ${disabledClass}`;
-});
-
-/** 滑块样式类 */
-const sliderClasses = computed(() => {
-  const base = 'inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ease-in-out';
-  const translateClass = modelValue ? 'translate-x-6' : 'translate-x-1';
-
-  return `${base} ${translateClass}`;
-});
 </script>
 
 <template>
-  <div v-bind="$attrs" :class="switchClasses" @click="toggle">
-    <span :class="sliderClasses" />
-  </div>
+  <SwitchRoot
+    v-bind="$attrs"
+    :model-value="modelValue"
+    :disabled="disabled"
+    class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-primary-900"
+    :class="
+      modelValue ? 'bg-primary-600 dark:bg-primary-500' : 'bg-primary-200 dark:bg-primary-700'
+    "
+    @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+  >
+    <SwitchThumb
+      class="inline-block h-4 w-4 rounded-full bg-white shadow transition-transform duration-200 ease-in-out"
+      :class="modelValue ? 'translate-x-6' : 'translate-x-1'"
+    />
+  </SwitchRoot>
 </template>

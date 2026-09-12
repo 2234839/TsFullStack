@@ -1,10 +1,15 @@
 <script setup lang="ts">
 /**
  * 滑块组件
- * 使用 Tailwind CSS 样式
+ * 基于 reka-ui SliderRoot primitives，无头行为 + Tailwind 样式
+ *
+ * @example
+ * ```vue
+ * <Slider v-model="value" :min="0" :max="100" :step="1" />
+ * ```
  */
-import { computed, ref , shallowRef } from 'vue';
-import { useEventListener } from '@vueuse/core';
+import { computed } from "vue";
+import { SliderRoot, SliderTrack, SliderRange, SliderThumb } from "reka-ui";
 
 defineOptions({ inheritAttrs: false });
 
@@ -21,98 +26,41 @@ interface Props {
   disabled?: boolean;
 }
 
-const { modelValue, min = 0, max = 100, step = 1, disabled = false } = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  modelValue: 0,
+  min: 0,
+  max: 100,
+  step: 1,
+  disabled: false,
+});
 
 const emit = defineEmits<{
-  'update:modelValue': [value: number];
+  "update:modelValue": [value: number];
 }>();
 
-/** 内部状态 */
-const isDragging = shallowRef(false);
-const sliderRef = ref<HTMLElement | null>(null);
-
-/** 当前值的百分比 */
-const percentage = computed(() => {
-  const rangeVal = max - min;
-  const val = Math.max(min, Math.min(max, modelValue ?? min));
-  return ((val - min) / rangeVal) * 100;
-});
-
-/** 处理滑块拖动 */
-function handleDrag(event: MouseEvent) {
-  if (!sliderRef.value || disabled) return;
-
-  const rect = sliderRef.value.getBoundingClientRect();
-  const x = event.clientX - rect.left;
-  const width = rect.width;
-
-  let rawPercentage = (x / width) * 100;
-  rawPercentage = Math.max(0, Math.min(100, rawPercentage));
-
-  const rangeVal = max - min;
-  let val = min + (rawPercentage / 100) * rangeVal;
-
-  // 对齐到步长
-  val = Math.round(val / step) * step;
-  val = Math.max(min, Math.min(max, val));
-
-  emit('update:modelValue', val);
-}
-
-/** 处理滑块轨道点击 */
-function handleClick(event: MouseEvent) {
-  if (disabled) return;
-  handleDrag(event);
-}
-
-/** 开始拖动 */
-function startDrag(event: MouseEvent) {
-  if (disabled) return;
-  isDragging.value = true;
-  event.preventDefault();
-
-  const handleMouseMove = (e: MouseEvent) => handleDrag(e);
-  const handleMouseUp = () => { isDragging.value = false; };
-
-  useEventListener(document, 'mousemove', handleMouseMove);
-  useEventListener(document, 'mouseup', handleMouseUp);
-}
-
-/** 滑块轨道样式类 */
-const trackClasses = computed(() => {
-  const base = 'relative h-2 bg-primary-200 dark:bg-primary-800 rounded-full cursor-pointer';
-  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
-
-  return `${base} ${disabledClass}`;
-});
-
-/** 滑块填充样式 */
-const fillStyle = computed(() => ({
-  width: `${percentage.value}%`,
-}));
-
-/** 滑块拇指样式类 */
-const thumbClasses = computed(() => {
-  const base = 'absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary-surface border-2 border-primary-700 dark:border-primary-300 rounded-full shadow-md transition-transform duration-150';
-  const hoverClass = !disabled ? 'hover:scale-110 active:scale-95' : '';
-  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
-
-  return `${base} ${hoverClass} ${disabledClass}`;
+/** 双向绑定的模型值（reka-ui Slider 使用数组模型） */
+const model = computed({
+  get: () => [props.modelValue],
+  set: (val: number[]) => emit("update:modelValue", val[0] ?? props.min),
 });
 </script>
 
 <template>
-  <div
+  <SliderRoot
     v-bind="$attrs"
-    ref="sliderRef"
-    :class="trackClasses"
-    @click="handleClick">
-    <div
-      class="absolute h-full bg-primary-700 dark:bg-primary-300 rounded-full"
-      :style="fillStyle" />
-    <div
-      :class="thumbClasses"
-      :style="{ left: `calc(${percentage}% - 8px)` }"
-      @mousedown="startDrag" />
-  </div>
+    v-model="model"
+    class="relative flex h-5 w-full touch-none select-none items-center"
+    :min="min"
+    :max="max"
+    :step="step"
+    :disabled="disabled"
+  >
+    <SliderTrack class="bg-primary-200 dark:bg-primary-800 relative h-2 w-full grow rounded-full">
+      <SliderRange class="bg-primary-700 dark:bg-primary-300 absolute h-full rounded-full" />
+    </SliderTrack>
+    <SliderThumb
+      class="border-primary-700 dark:border-primary-300 bg-primary-surface block h-4 w-4 rounded-full border-2 shadow-md transition-transform duration-150 hover:scale-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+      :aria-label="`值 ${modelValue}`"
+    />
+  </SliderRoot>
 </template>

@@ -1,9 +1,11 @@
 <template>
-  <div ref="rootRef" class="scroll-area-container" :style="containerStyle">
-    <ScrollAreaRoot
-      :type="type"
-      :scroll-hide-delay="scrollHideDelay"
-      class="scroll-area-root">
+  <div
+    ref="rootRef"
+    class="scroll-area-container"
+    :class="props.class"
+    :style="[containerStyle, props.style]"
+  >
+    <ScrollAreaRoot :type="type" :scroll-hide-delay="scrollHideDelay" class="scroll-area-root">
       <ScrollAreaViewport class="scroll-area-viewport">
         <div class="scroll-area-content">
           <slot />
@@ -12,18 +14,21 @@
       <ScrollAreaScrollbar
         v-if="showHorizontalScrollbar()"
         class="scroll-area-scrollbar scroll-area-scrollbar-horizontal"
-        orientation="horizontal">
+        orientation="horizontal"
+      >
         <ScrollAreaThumb class="scroll-area-thumb" />
       </ScrollAreaScrollbar>
       <ScrollAreaScrollbar
         v-if="showVerticalScrollbar()"
         class="scroll-area-scrollbar scroll-area-scrollbar-vertical"
-        orientation="vertical">
+        orientation="vertical"
+      >
         <ScrollAreaThumb class="scroll-area-thumb" />
       </ScrollAreaScrollbar>
       <ScrollAreaCorner
         v-if="showHorizontalScrollbar() && showVerticalScrollbar()"
-        class="scroll-area-corner" />
+        class="scroll-area-corner"
+      />
     </ScrollAreaRoot>
   </div>
 </template>
@@ -36,8 +41,8 @@ import {
   ScrollAreaThumb,
   ScrollAreaViewport,
   type ScrollAreaRootProps,
-} from 'reka-ui';
-import { computed, type HTMLAttributes, type CSSProperties } from 'vue';
+} from "reka-ui";
+import { computed, type HTMLAttributes, type CSSProperties } from "vue";
 
 /**
  * ScrollArea - 基于 reka-ui 的精致滚动条组件
@@ -57,38 +62,39 @@ import { computed, type HTMLAttributes, type CSSProperties } from 'vue';
  */
 
 /** 滚动方向类型 */
-type ScrollbarOrientation = 'auto' | 'vertical' | 'horizontal' | 'both';
+type ScrollbarOrientation = "auto" | "vertical" | "horizontal" | "both";
 
 /** 组件属性扩展 */
 interface ScrollAreaProps extends ScrollAreaRootProps {
-  /** 额外的 CSS 类名 */
-  class?: HTMLAttributes['class'];
+  /** 额外的 CSS 类名（应用到根容器，使 h-32 等尺寸约束生效） */
+  class?: HTMLAttributes["class"];
+  /** 内联样式（应用到根容器） */
+  style?: HTMLAttributes["style"];
   /** 滚动条方向（auto=自动检测, vertical=仅垂直, horizontal=仅水平, both=双向） */
   orientation?: ScrollbarOrientation;
 }
 
 /** 组件属性 */
-const props = withDefaults(
-  defineProps<ScrollAreaProps>(),
-  {
-    type: 'hover',
-    scrollHideDelay: 600,
-    orientation: 'auto',
-  }
-);
+const props = withDefaults(defineProps<ScrollAreaProps>(), {
+  type: "hover",
+  scrollHideDelay: 600,
+  orientation: "auto",
+});
 
 /** 计算是否显示水平滚动条 */
 const showHorizontalScrollbar = () => {
-  return props.orientation === 'auto' ||
-         props.orientation === 'horizontal' ||
-         props.orientation === 'both';
+  return (
+    props.orientation === "auto" ||
+    props.orientation === "horizontal" ||
+    props.orientation === "both"
+  );
 };
 
 /** 计算是否显示垂直滚动条 */
 const showVerticalScrollbar = () => {
-  return props.orientation === 'auto' ||
-         props.orientation === 'vertical' ||
-         props.orientation === 'both';
+  return (
+    props.orientation === "auto" || props.orientation === "vertical" || props.orientation === "both"
+  );
 };
 
 /** 容器样式 - 确保有明确的尺寸 */
@@ -140,7 +146,9 @@ const containerStyle = computed<CSSProperties>(() => {
 
 /** 滚动条通用样式 */
 .scroll-area-scrollbar {
-  transition: background-color 150ms ease-out, opacity 150ms ease-out;
+  transition:
+    background-color 150ms ease-out,
+    opacity 150ms ease-out;
   border-radius: 4px;
   z-index: 10;
   flex-shrink: 0;
@@ -203,25 +211,25 @@ const containerStyle = computed<CSSProperties>(() => {
 }
 
 /** 滚动条显示状态 */
-.scroll-area-scrollbar[data-state='visible'] {
+.scroll-area-scrollbar[data-state="visible"] {
   opacity: 1;
 }
 
-.scroll-area-scrollbar[data-state='hidden'] {
+.scroll-area-scrollbar[data-state="hidden"] {
   opacity: 0;
 }
 
 /** type="always" 时始终显示滚动条 */
-.scroll-area-root[data-type='always'] .scroll-area-scrollbar {
+.scroll-area-root[data-type="always"] .scroll-area-scrollbar {
   opacity: 1;
 }
 
 /** type="hover" 和 type="scroll" 时的动画 */
-.scroll-area-root:not([data-type='always']) .scroll-area-scrollbar {
+.scroll-area-root:not([data-type="always"]) .scroll-area-scrollbar {
   animation: fade-in 150ms ease-out;
 }
 
-.scroll-area-root:not([data-type='always']) .scroll-area-scrollbar[data-state='hidden'] {
+.scroll-area-root:not([data-type="always"]) .scroll-area-scrollbar[data-state="hidden"] {
   animation: fade-out 150ms ease-out;
 }
 

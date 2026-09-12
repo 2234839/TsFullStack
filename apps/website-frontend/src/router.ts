@@ -236,6 +236,15 @@ export const routeMap = reactive({
     path: "/tests",
     redirect: "/",
   },
+  componentShowcase: {
+    path: "/components",
+    component: () => import("@/pages/components/ComponentShowcase.vue"),
+    meta: {
+      title: t("组件展示"),
+      icon: "pi pi-palette",
+      hideTab: true,
+    },
+  },
   visualTest: {
     path: "/visual-test",
     component: () => import("@/pages/visual-test/VisualTestApproval.vue"),

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * 基于 reka-ui Dialog 的 Drawer 组件
- * 提供侧边抽屉功能
+ * 基于 reka-ui Drawer primitives 的侧边抽屉组件
+ * 支持四侧停靠、swipe 手势关闭、点击遮罩关闭（reka 原生能力）
  *
  * @example
  * ```vue
@@ -10,182 +10,73 @@
  * </Drawer>
  * ```
  */
-import { computed, ref, watch } from 'vue';
-import { DialogRoot, DialogPortal } from 'reka-ui';
-import type { UiDrawerEmits, UiDrawerProps } from './types';
+import { computed } from "vue";
+import { DrawerClose, DrawerContent, DrawerOverlay, DrawerPortal, DrawerRoot } from "reka-ui";
+import type { UiDrawerProps } from "./types";
 
-/** 定义 props */
+/** 组件属性 */
 const props = withDefaults(defineProps<UiDrawerProps>(), {
-  side: () => 'right' as const,
-  width: '400px',
-  height: '300px',
-  showClose: false,
-  closeOnClickOutside: true,
+  side: () => "right" as const,
+  width: "400px",
+  showClose: true,
 });
 
-/** 定义 model - 用于 v-model:open 双向绑定 */
-const openModel = defineModel<boolean>('open', { default: false });
+/** v-model:open 双向绑定 */
+const openModel = defineModel<boolean>("open", { default: false });
 
-/** 定义 emits */
-const emit = defineEmits<UiDrawerEmits>();
-
-/** 内部状态 */
-const openState = ref(openModel.value || false);
-
-/** 同步外部 openModel 到内部状态 */
-watch(openModel, (value) => {
-  openState.value = value;
-});
-
-/** 处理打开状态变化 */
-const handleUpdateOpen = (value: boolean) => {
-  openState.value = value;
-  openModel.value = value;
-  if (!value) {
-    emit('close');
-  }
-};
-
-/** 关闭 Drawer */
-const close = () => handleUpdateOpen(false);
-
-/** 打开 Drawer */
-const open = () => handleUpdateOpen(true);
-
-/** 暴露方法供外部调用 */
-defineExpose({ open, close });
-
-/** 动画类 */
-const animationClasses = computed(() => {
-  if (props.side === 'left') {
-    return {
-      enterActive: 'transition-transform ease-out duration-300',
-      enterFrom: '-translate-x-full',
-      enterTo: 'translate-x-0',
-      leaveActive: 'transition-transform ease-in duration-200',
-      leaveFrom: 'translate-x-0',
-      leaveTo: '-translate-x-full',
-    };
-  } else if (props.side === 'right') {
-    return {
-      enterActive: 'transition-transform ease-out duration-300',
-      enterFrom: 'translate-x-full',
-      enterTo: 'translate-x-0',
-      leaveActive: 'transition-transform ease-in duration-200',
-      leaveFrom: 'translate-x-0',
-      leaveTo: 'translate-x-full',
-    };
-  } else if (props.side === 'top') {
-    return {
-      enterActive: 'transition-transform ease-out duration-300',
-      enterFrom: '-translate-y-full',
-      enterTo: 'translate-y-0',
-      leaveActive: 'transition-transform ease-in duration-200',
-      leaveFrom: 'translate-y-0',
-      leaveTo: '-translate-y-full',
-    };
-  } else {
-    // bottom
-    return {
-      enterActive: 'transition-transform ease-out duration-300',
-      enterFrom: 'translate-y-full',
-      enterTo: 'translate-y-0',
-      leaveActive: 'transition-transform ease-in duration-200',
-      leaveFrom: 'translate-y-0',
-      leaveTo: 'translate-y-full',
-    };
-  }
-});
-
-/** 抽屉样式 */
-const drawerStyle = computed(() => {
-  const base: Record<string, string> = {
-    zIndex: '10001',
-  };
-
-  if (props.side === 'left' || props.side === 'right') {
-    base.width = props.width;
-    base.height = '100vh';
-  } else {
-    base.width = '100vw';
-    base.height = props.height;
-  }
-
-  return base;
-});
-
-/** 抽屉容器样式类 */
-const drawerClasses = computed(() => {
-  const base = 'fixed bg-primary-50 dark:bg-primary-950 shadow-xl';
-
-  const sideClasses = {
-    left: 'left-0 top-0 h-full border-r border-primary-200 dark:border-primary-800',
-    right: 'right-0 top-0 h-full border-l border-primary-200 dark:border-primary-800',
-    top: 'top-0 left-0 w-full border-b border-primary-200 dark:border-primary-800',
-    bottom: 'bottom-0 left-0 w-full border-t border-primary-200 dark:border-primary-800',
-  };
-
-  return `${base} ${sideClasses[props.side]}`;
-});
+/** swipe 关闭方向：朝停靠侧滑出 */
+const swipeDirection = computed(() =>
+  props.side === "left"
+    ? "left"
+    : props.side === "right"
+      ? "right"
+      : props.side === "top"
+        ? "up"
+        : "down",
+);
 </script>
 
 <template>
-  <DialogRoot
-    :open="openState"
-    @update:open="handleUpdateOpen">
-    <DialogPortal>
-      <!-- 遮罩层 -->
-      <Transition
-        enter-active-class="transition-opacity ease-out duration-200"
-        enter-from-class="opacity-0"
-        enter-to-class="opacity-100"
-        leave-active-class="transition-opacity ease-in duration-150"
-        leave-from-class="opacity-100"
-        leave-to-class="opacity-0">
-        <div
-          v-if="openState"
-          class="fixed inset-0 bg-black/50 z-[10000]"
-          @click="closeOnClickOutside ? close() : null">
-        </div>
-      </Transition>
-
-      <!-- 抽屉内容 -->
-      <Transition
-        :enter-active-class="animationClasses.enterActive"
-        :enter-from-class="animationClasses.enterFrom"
-        :enter-to-class="animationClasses.enterTo"
-        :leave-active-class="animationClasses.leaveActive"
-        :leave-from-class="animationClasses.leaveFrom"
-        :leave-to-class="animationClasses.leaveTo">
-        <div
-          v-if="openState"
-          :class="drawerClasses"
-          :style="drawerStyle">
-          <!-- 头部 -->
+  <DrawerRoot v-model:open="openModel" :swipe-direction="swipeDirection">
+    <DrawerPortal>
+      <DrawerOverlay class="fixed inset-0 z-[10000] bg-black/50" />
+      <DrawerContent
+        class="fixed z-[10001] bg-primary-50 shadow-xl outline-none dark:bg-primary-950"
+        :class="{
+          'left-0 top-0 h-full border-r border-primary-200 dark:border-primary-800':
+            side === 'left',
+          'right-0 top-0 h-full border-l border-primary-200 dark:border-primary-800':
+            side === 'right',
+          'top-0 left-0 w-full border-b border-primary-200 dark:border-primary-800': side === 'top',
+          'bottom-0 left-0 w-full border-t border-primary-200 dark:border-primary-800':
+            side === 'bottom',
+        }"
+        :style="side === 'left' || side === 'right' ? { width } : undefined"
+      >
+        <div class="flex h-full flex-col">
+          <!-- 头部（header 插槽优先，否则用 title + 关闭按钮） -->
           <div
-            v-if="title || showClose"
-            class="flex items-center justify-between p-4 border-b border-primary-200 dark:border-primary-800">
-            <h3 v-if="title" class="text-lg font-semibold text-primary-900 dark:text-primary-50">
-              {{ title }}
-            </h3>
-            <button
+            v-if="$slots.header || title || showClose"
+            class="flex items-center justify-between border-b border-primary-200 p-4 dark:border-primary-800"
+          >
+            <slot name="header">
+              <h3 class="text-primary-900 text-lg font-semibold dark:text-primary-50">
+                {{ title }}
+              </h3>
+            </slot>
+            <DrawerClose
               v-if="showClose"
-              @click="close"
-              class="p-1 rounded-md hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors">
+              class="rounded-md p-1 transition-colors hover:bg-primary-100 dark:hover:bg-primary-800"
+            >
               <i class="pi pi-times text-primary-700"></i>
-            </button>
+            </DrawerClose>
           </div>
-
           <!-- 内容区域 -->
           <div class="flex-1 overflow-y-auto">
             <slot />
           </div>
         </div>
-      </Transition>
-    </DialogPortal>
-  </DialogRoot>
+      </DrawerContent>
+    </DrawerPortal>
+  </DrawerRoot>
 </template>
-
-<style>
-/* 不再需要自定义样式，全部使用 Tailwind CSS */
-</style>

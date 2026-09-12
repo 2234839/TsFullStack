@@ -36,6 +36,21 @@ vp run build              # 构建扩展
 
 这个子包提供在多个前端模块间共享的工具和组件
 
+### 组件库规范（强制）
+
+所有 UI 组件分两层：
+
+- **无头层**：基于 `reka-ui` primitives（Dialog/Dropdown/Popover/Select 等），负责行为与无障碍，不写死样式。相关文档:https://reka-ui.com/llms.txt
+- **样式层**：`packages/shared-frontend/src/components/` 与 `apps/website-frontend/src/components/base/` 的成品组件，只做 Tailwind 类的组合
+
+颜色一律使用 `src/style.css` 的 `@theme` 变量（OKLCH，如 `var(--color-primary-500)`），禁止硬编码 hex。
+
+**新建或修改任何 UI 组件时，必须：**
+
+1. 在组件展示页 `apps/website-frontend/src/pages/components/ComponentShowcase.vue`（路由 `/components`）添加对应的展示区块，无展示 = 组件不存在
+2. 在浏览器中实际打开展示页验证：渲染正常、交互可用、控制台无 Vue 警告/报错、dark 模式正常
+3. 遵守封装规则：不要在 props 里声明 `class`（交给 attrs 自动透传，声明了就必须手动绑定）；响应式数据禁止写入非响应式结构；禁止提交空实现（空目录/空文件不得进入导出清单）
+
 ### 重要说明
 
 **数据库管理**

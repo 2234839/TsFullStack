@@ -1,9 +1,14 @@
 <script setup lang="ts">
 /**
  * 复选框组件
- * 使用 Tailwind CSS 样式
+ * 基于 reka-ui CheckboxRoot/CheckboxIndicator primitives，无头行为 + Tailwind 样式
+ *
+ * @example
+ * ```vue
+ * <Checkbox v-model="checked">复选框文字</Checkbox>
+ * ```
  */
-import { computed } from 'vue';
+import { CheckboxRoot, CheckboxIndicator } from "reka-ui";
 
 defineOptions({ inheritAttrs: false });
 
@@ -12,49 +17,40 @@ interface Props {
   modelValue?: boolean;
   /** 是否禁用 */
   disabled?: boolean;
-  /** 二进制框样式 */
-  binary?: boolean;
-  /** 复选框值 */
+  /** 复选框值（保留兼容字段） */
   value?: string | number | boolean;
 }
 
-const { modelValue, disabled = false, binary: _binary = true } = defineProps<Props>();
+withDefaults(defineProps<Props>(), {
+  modelValue: false,
+  disabled: false,
+});
 
 const emit = defineEmits<{
-  'update:modelValue': [value: boolean];
+  "update:modelValue": [value: boolean];
 }>();
-
-/** 盒子样式类 */
-const boxClasses = computed(() => {
-  const base = 'flex items-center justify-center w-5 h-5 border rounded transition-all duration-200 cursor-pointer';
-
-  const checkedClasses = modelValue
-    ? 'bg-primary-600 dark:bg-primary-500 border-primary-600 dark:border-primary-500'
-    : 'bg-white dark:bg-primary-900 border-primary-default hover:border-primary-300 dark:hover:border-primary-600';
-
-  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
-
-  return `${base} ${checkedClasses} ${disabledClass}`;
-});
-
-/** 容器样式类 */
-const containerClasses = computed(() => {
-  return disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer';
-});
-
-/** 处理点击事件 */
-function handleClick() {
-  if (!disabled) {
-    emit('update:modelValue', !modelValue);
-  }
-}
 </script>
 
 <template>
-  <div v-bind="$attrs" :class="containerClasses" @click="handleClick">
-    <div :class="boxClasses">
-      <i v-if="modelValue" class="pi pi-check text-white text-sm"></i>
-    </div>
+  <CheckboxRoot
+    v-bind="$attrs"
+    :model-value="modelValue"
+    :disabled="disabled"
+    class="flex items-center gap-2"
+    @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+  >
+    <span
+      class="h-5 w-5 shrink-0 rounded border transition-all duration-200"
+      :class="
+        modelValue
+          ? 'border-primary-600 bg-primary-600 dark:border-primary-500 dark:bg-primary-500'
+          : 'border-primary-default bg-white hover:border-primary-300 dark:bg-primary-900 dark:hover:border-primary-600'
+      "
+    >
+      <CheckboxIndicator>
+        <i class="pi pi-check text-sm text-white"></i>
+      </CheckboxIndicator>
+    </span>
     <slot />
-  </div>
+  </CheckboxRoot>
 </template>
