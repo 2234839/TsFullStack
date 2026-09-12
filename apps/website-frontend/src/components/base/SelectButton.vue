@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * 选择按钮组组件
- * 使用 Tailwind CSS 样式
- * 支持水平滚动和边缘提示
+ * 选择按钮组组件（基于 reka-ui ToggleGroup 无头 primitives）
+ * 支持水平滚动和边缘提示，保留原 props/emits API
  */
 import { computed, ref } from "vue";
+import { ToggleGroupItem, ToggleGroupRoot } from "reka-ui";
 import { useElementBounding, useScroll } from "@vueuse/core";
 
 defineOptions({ inheritAttrs: false });
@@ -68,29 +68,12 @@ function scrollToLeft() {
   });
 }
 
-/** 滚动到右侧 */
+/** 向右滚动一屏 */
 function scrollToRight() {
   scrollContainer.value?.scrollBy({
     left: containerWidth.value,
     behavior: "smooth",
   });
-}
-
-/** 处理选择 */
-function handleSelect(value: unknown) {
-  if (multiple) {
-    const currentArray = Array.isArray(modelValue) ? [...modelValue] : [];
-    if (currentArray.some((v) => v === value)) {
-      emit(
-        "update:modelValue",
-        currentArray.filter((v) => v !== value),
-      );
-    } else {
-      emit("update:modelValue", [...currentArray, value]);
-    }
-  } else {
-    emit("update:modelValue", value);
-  }
 }
 
 /** 获取选项的显示值 */
@@ -107,25 +90,31 @@ function getOptionValue(option: unknown): unknown {
     : option;
 }
 
-/** 检查选项是否被选中 */
-function isSelected(option: unknown): boolean {
-  const val = getOptionValue(option);
+/** ToggleGroup 的受控值（单选为值本身，多选为数组） */
+const groupValue = computed(() => {
+  if (multiple) return Array.isArray(modelValue) ? modelValue : [];
+  return modelValue;
+});
+
+/** ToggleGroup 值变化 → 转换回原 API 的 emit */
+function handleUpdate(value: unknown) {
   if (multiple) {
-    return Array.isArray(modelValue) && modelValue.some((v) => v === val);
+    emit("update:modelValue", Array.isArray(value) ? value : []);
+  } else {
+    // 单选模式下 ToggleGroup 点击已选中项会返回空数组/undefined，此时保持原值
+    if (Array.isArray(value) || value === undefined) return;
+    emit("update:modelValue", value);
   }
-  return modelValue === val;
 }
 
 /** 最后一个选项的索引 */
 const lastIndex = computed(() => (options as unknown[]).length - 1);
 
-/** 按钮样式类 */
-const buttonClasses = (selected: boolean) => {
-  return selected
-    ? "px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-primary-600 text-white border-primary-600 dark:bg-primary-500 dark:border-primary-500 shrink-0"
-    : "px-4 py-2 text-sm font-medium transition-colors duration-200 border bg-white text-primary-700 border-primary-200 hover:bg-primary-card dark:text-primary-300 dark:border-primary-700 dark:hover:bg-primary-700 shrink-0";
-};
+/** 选项按钮公共样式类（选中态由 reka 的 data-state 驱动） */
+const buttonClasses =
+  "px-4 py-2 text-sm font-medium transition-colors duration-200 border shrink-0 data-[state=on]:bg-primary-600 data-[state=on]:text-white data-[state=on]:border-primary-600 dark:data-[state=on]:bg-primary-500 dark:data-[state=on]:border-primary-500 data-[state=off]:bg-white data-[state=off]:text-primary-700 data-[state=off]:border-primary-200 hover:data-[state=off]:bg-primary-card dark:data-[state=off]:text-primary-300 dark:data-[state=off]:border-primary-700 dark:hover:data-[state=off]:bg-primary-700";
 
+/** 容器样式类 */
 const containerClasses = computed(() => {
   const base = "inline-flex rounded-md overflow-hidden border";
   return disabled
@@ -163,17 +152,26 @@ const containerClasses = computed(() => {
       </div>
     </Transition>
 
-    <!-- 滚动容器 -->
-    <div ref="scrollContainer" :class="[containerClasses]" class="overflow-x-auto hide-scrollbar">
-      <button
-        v-for="(option, index) in options"
-        :key="String(getOptionValue(option))"
+    <!-- 滚动容器（内嵌 ToggleGroup 无头组件） -->
+    <div ref="scrollContainer" class="overflow-x-auto hide-scrollbar">
+      <ToggleGroupRoot
+        :type="multiple ? 'multiple' : 'single'"
+        :model-value="groupValue"
         :disabled="disabled"
-        :class="[buttonClasses(isSelected(option)), { 'border-r-0': Number(index) < lastIndex }]"
-        @click="handleSelect(getOptionValue(option))"
+        :class="containerClasses"
+        class="w-max"
+        @update:model-value="handleUpdate"
       >
-        {{ getOptionLabel(option) }}
-      </button>
+        <ToggleGroupItem
+          v-for="(option, index) in options"
+          :key="String(getOptionValue(option))"
+          :value="(getOptionValue(option) ?? '') as string"
+          :disabled="disabled"
+          :class="[buttonClasses, { 'border-r-0': Number(index) < Number(lastIndex) }]"
+        >
+          {{ getOptionLabel(option) }}
+        </ToggleGroupItem>
+      </ToggleGroupRoot>
     </div>
 
     <!-- 右侧渐变遮罩和箭头 -->

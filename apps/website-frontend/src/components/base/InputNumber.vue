@@ -1,10 +1,17 @@
 <script setup lang="ts">
 /**
- * 数字输入框组件
- * 使用 Tailwind CSS 样式
+ * 数字输入框组件（基于 reka-ui NumberField 无头 primitives）
+ * 输入解析/上下限/步进由 NumberField 处理，保留原 props/emits API
  */
-import { computed } from 'vue';
-import { INPUT_BASE_CLASSES } from './inputStyles';
+import { computed } from "vue";
+import {
+  NumberFieldContent,
+  NumberFieldDecrement,
+  NumberFieldIncrement,
+  NumberFieldInput,
+  NumberFieldRoot,
+} from "reka-ui";
+import { INPUT_BASE_CLASSES } from "./inputStyles";
 
 interface Props {
   /** 模型值 */
@@ -27,82 +34,63 @@ interface Props {
   showButtons?: boolean;
 }
 
-const { modelValue, disabled = false, step = 1, min, max, minFractionDigits: _minFractionDigits = 0, maxFractionDigits: _maxFractionDigits = undefined, showButtons = false } = defineProps<Props>();
+const {
+  disabled = false,
+  step = 1,
+  min,
+  max,
+  minFractionDigits = 0,
+  maxFractionDigits,
+  showButtons = false,
+} = defineProps<Props>();
 defineOptions({ inheritAttrs: false });
 
 const emit = defineEmits<{
-  'update:modelValue': [value: number | null];
+  "update:modelValue": [value: number | null];
 }>();
 
 /** 输入框样式类 */
 const inputClasses = computed(() => {
-  const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-info-600 dark:focus:ring-info-500';
+  const stateClasses =
+    "border-primary-300 dark:border-primary-700 focus:ring-info-600 dark:focus:ring-info-500";
 
-  const bgClass = 'bg-primary-card';
-  const textClass = 'text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400';
-  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const bgClass = "bg-primary-card";
+  const textClass =
+    "text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400";
+  const disabledClass = disabled ? "opacity-50 cursor-not-allowed" : "";
 
   return `${INPUT_BASE_CLASSES} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });
 
-/** 处理输入事件 */
-function handleInput(event: Event) {
-  const target = event.target as HTMLInputElement;
-  const value = target.value === '' ? null : parseFloat(target.value);
-  if (!isNaN(value ?? NaN)) {
-    emit('update:modelValue', value);
-  }
-}
+/** 步进按钮样式类 */
+const buttonClasses =
+  "w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-card hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed";
 
-/** 减少值 */
-function decrement() {
-  if (disabled) return;
-  const current = modelValue ?? min ?? 0;
-  const newValue = current - step;
-  if (min === undefined || newValue >= min) {
-    emit('update:modelValue', newValue);
-  }
-}
-
-/** 增加值 */
-function increment() {
-  if (disabled) return;
-  const current = modelValue ?? min ?? 0;
-  const newValue = current + step;
-  if (max === undefined || newValue <= max) {
-    emit('update:modelValue', newValue);
-  }
-}
+/** 数值格式化选项（控制允许输入与显示的小数位） */
+const formatOptions = computed(() => ({
+  minimumFractionDigits: minFractionDigits,
+  maximumFractionDigits: maxFractionDigits ?? Math.max(minFractionDigits, 2),
+}));
 </script>
 
 <template>
-  <div class="relative flex items-center">
-    <input
-      v-bind="$attrs"
-      type="number"
-      :placeholder="placeholder"
-      :disabled="disabled"
-      :value="modelValue"
-      @input="handleInput"
-      :min="min"
-      :max="max"
-      :step="step"
-      :class="inputClasses" />
-    <div v-if="showButtons" class="flex flex-col ml-2 gap-1">
-      <button
-        @click="increment"
-        :disabled="disabled"
-        aria-label="Increase"
-        class="w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-card hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed">
+  <NumberFieldRoot
+    :model-value="modelValue"
+    :min="min"
+    :max="max"
+    :step="step"
+    :disabled="disabled"
+    :format-options="formatOptions"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
+    <NumberFieldInput v-bind="$attrs" :placeholder="placeholder" :class="inputClasses" />
+    <NumberFieldContent v-if="showButtons" class="flex flex-col ml-2 gap-1">
+      <NumberFieldIncrement :class="buttonClasses" aria-label="Increase">
         <i class="pi pi-chevron-up text-xs"></i>
-      </button>
-      <button
-        @click="decrement"
-        :disabled="disabled"
-        aria-label="Decrease"
-        class="w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-card hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed">
+      </NumberFieldIncrement>
+      <NumberFieldDecrement :class="buttonClasses" aria-label="Decrease">
         <i class="pi pi-chevron-down text-xs"></i>
-      </button>
-    </div>
-  </div>
+      </NumberFieldDecrement>
+    </NumberFieldContent>
+  </NumberFieldRoot>
 </template>

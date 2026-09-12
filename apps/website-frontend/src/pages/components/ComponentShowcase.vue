@@ -12,6 +12,8 @@ import {
   Tooltip,
 } from "@tsfullstack/shared-frontend/components";
 import { useConfirm } from "@/composables/useConfirm";
+import Toast from "@/components/system/Toast.vue";
+import { useToast } from "@/composables/useToast";
 
 // ---------- base 组件演示状态 ----------
 const confirmService = useConfirm();
@@ -25,6 +27,8 @@ const slider = ref(50);
 const selectValue = ref<string | undefined>();
 const multiValue = ref<string[]>([]);
 const selectButton = ref("A");
+const selectButtonMulti = ref<string[]>([]);
+const toastService = useToast();
 const date = ref<Date | undefined>();
 const progress = ref(66);
 const tagOpen = ref(true);
@@ -156,6 +160,12 @@ const messages = [
         <div>
           <label class="text-primary-label mb-1 block text-sm">SelectButton</label>
           <SelectButton v-model="selectButton" :options="['A', 'B', 'C']" />
+          <SelectButton
+            v-model="selectButtonMulti"
+            :options="['X', 'Y', 'Z']"
+            multiple
+            class="mt-2"
+          />
         </div>
         <div class="sm:col-span-2">
           <label class="text-primary-label mb-1 block text-sm">Slider（{{ slider }}）</label>
@@ -202,6 +212,47 @@ const messages = [
       <h2 class="text-primary-heading mb-4 text-lg font-semibold">数据类</h2>
       <DataTable :data="tableData" :columns="tableColumns" row-key="id" />
       <Paginator class="mt-4" :rows="10" :totalRecords="45" />
+    </section>
+
+    <!-- ==================== 反馈类 ==================== -->
+    <section class="bg-primary-card border-primary-default mb-6 rounded-lg border p-6">
+      <h2 class="text-primary-heading mb-4 text-lg font-semibold">反馈类</h2>
+      <div class="flex flex-wrap items-center gap-3">
+        <Button
+          label="成功 Toast"
+          variant="primary"
+          @click="toastService.success('保存成功', '数据已写入')"
+        />
+        <Button
+          label="错误 Toast"
+          variant="danger"
+          @click="toastService.error('操作失败', '请稍后重试')"
+        />
+        <Button
+          label="信息 Toast"
+          variant="secondary"
+          @click="toastService.info('提示', '这是一条信息', 3000)"
+        />
+        <Button
+          label="警告 Toast"
+          variant="secondary"
+          @click="toastService.warn('注意', '存在潜在风险')"
+        />
+        <Button
+          label="带操作 Toast"
+          variant="secondary"
+          @click="
+            toastService.add({
+              variant: 'info',
+              summary: '有新数据',
+              detail: '点击刷新查看',
+              action: { label: '立即刷新', handler: () => toastService.success('已刷新') },
+            })
+          "
+        />
+      </div>
+      <!-- Toast 渲染容器（全局在 BaseLayout 已挂载，此处供独立验证） -->
+      <Toast />
     </section>
 
     <!-- ==================== 浮层类 ==================== -->

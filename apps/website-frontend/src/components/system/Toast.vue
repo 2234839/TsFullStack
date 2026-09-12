@@ -1,9 +1,16 @@
 <script setup lang="ts">
 /**
- * Toast 通知组件
- * 简单的内联通知，替代 PrimeVue Toast
+ * Toast 通知组件（基于 reka-ui Toast 无头 primitives）
+ * 数据源仍是全局 useToast composable，对外调用方 API 完全不变
  */
-import { computed } from "vue";
+import {
+  ToastClose,
+  ToastDescription,
+  ToastProvider,
+  ToastRoot,
+  ToastTitle,
+  ToastViewport,
+} from "reka-ui";
 import { useToastMessages, useToast } from "@/composables/useToast";
 
 interface ToastAction {
@@ -41,15 +48,14 @@ const VARIANT_CLASSES: Record<NonNullable<ToastMessage["variant"]>, string> = {
 };
 
 const MESSAGE_BASE =
-  "mb-3 p-4 rounded-lg shadow-lg flex items-start gap-3 animate-in slide-in-from-right transition-all duration-300";
+  "p-4 rounded-lg shadow-lg flex items-start gap-3 border data-[state=open]:animate-in data-[state=open]:slide-in-from-right";
 
 const { messages } = useToastMessages();
 const toast = useToast();
 
 /** 消息样式类 */
-const messageClasses = computed(
-  () => (message: ToastMessage) => `${MESSAGE_BASE} ${VARIANT_CLASSES[message.variant ?? "info"]}`,
-);
+const messageClasses = (message: ToastMessage) =>
+  `${MESSAGE_BASE} ${VARIANT_CLASSES[message.variant ?? "info"]}`;
 
 /** 图标类 */
 const iconClasses = {
@@ -65,44 +71,44 @@ const iconClasses = {
 </script>
 
 <template>
-  <div class="fixed top-4 right-4 z-9999 w-full max-w-md space-y-2">
-    <div v-for="message in messages" :key="message.id" :class="messageClasses(message)">
+  <ToastProvider>
+    <ToastRoot
+      v-for="message in messages"
+      :key="message.id"
+      :open="true"
+      :duration="message.life ?? Infinity"
+      :class="messageClasses(message)"
+      @update:open="
+        (open: boolean) => {
+          if (!open) toast.remove(message.id);
+        }
+      "
+    >
       <i :class="iconClasses[message.variant ?? 'info']" class="text-xl shrink-0 mt-0.5"></i>
       <div class="flex-1">
-        <div class="font-medium">{{ message.summary }}</div>
-        <div v-if="message.detail" class="text-sm mt-1 opacity-80">{{ message.detail }}</div>
+        <ToastTitle class="font-medium">{{ message.summary }}</ToastTitle>
+        <ToastDescription v-if="message.detail" class="text-sm mt-1 opacity-80">
+          {{ message.detail }}
+        </ToastDescription>
         <button
           v-if="message.action"
-          @click="message.action.handler()"
+          type="button"
           class="mt-2 px-3 py-1 text-sm rounded-md bg-primary-600 text-white hover:bg-primary-700 dark:bg-primary-500 dark:hover:bg-primary-600 transition-colors"
+          @click="message.action.handler()"
         >
           {{ message.action.label }}
         </button>
       </div>
-      <button
-        @click="toast.remove(message.id)"
+      <ToastClose
         aria-label="Close"
         class="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
       >
         <i class="pi pi-times"></i>
-      </button>
-    </div>
-  </div>
+      </ToastClose>
+    </ToastRoot>
+
+    <ToastViewport
+      class="fixed top-4 right-4 z-9999 w-full max-w-md flex flex-col gap-2 outline-none"
+    />
+  </ToastProvider>
 </template>
-
-<style scoped>
-@keyframes slide-in-from-right {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-.animate-in.slide-in-from-right {
-  animation: slide-in-from-right 0.3s ease-out;
-}
-</style>

@@ -1,11 +1,20 @@
 <script setup lang="ts">
 /**
- * 多选组件
- * 使用 Tailwind CSS 样式
+ * 多选组件（基于 reka-ui Combobox 无头 primitives，multiple 模式）
+ * 浮层定位/键盘导航/焦点管理交给 reka，保留原 props/emits API
  */
-import { computed, shallowRef } from 'vue';
-import { useI18n } from '@/composables/useI18n';
-import { INPUT_BASE_CLASSES } from './inputStyles';
+import { computed } from "vue";
+import {
+  ComboboxAnchor,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxItemIndicator,
+  ComboboxRoot,
+  ComboboxTrigger,
+} from "reka-ui";
+import { useI18n } from "@/composables/useI18n";
+import { INPUT_BASE_CLASSES } from "./inputStyles";
 
 defineOptions({ inheritAttrs: false });
 
@@ -39,52 +48,48 @@ interface Props<T extends PropertyKey = PropertyKey> {
   selectedItemsLabel?: string;
 }
 
-const { modelValue, disabled = false, invalid = false, options = [] as Option[], placeholder, maxSelectedLabels = 3, selectedItemsLabel = '{0} items selected' } = defineProps<Props>();
+const {
+  modelValue,
+  disabled = false,
+  invalid = false,
+  options = [] as Option[],
+  placeholder,
+  maxSelectedLabels = 3,
+  selectedItemsLabel = "{0} items selected",
+} = defineProps<Props>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: unknown[]];
+  "update:modelValue": [value: unknown[]];
 }>();
 
-/** 下拉框打开状态 */
-const isOpen = shallowRef(false);
+/** Combobox 的受控值（规范化为数组） */
+const selectedValues = computed(() => normalizeToArray(modelValue));
 
-/** 切换下拉框 */
-function toggleDropdown() {
-  if (!disabled) {
-    isOpen.value = !isOpen.value;
+/** 选中值的字符串形式（reka 值为字符串化 key，避免对象/符号比较问题） */
+const selectedKeys = computed(() => selectedValues.value.map((v) => String(v)));
+
+/** 字符串 key → 原始值映射 */
+const valueByKey = computed(() => {
+  const map = new Map<string, unknown>();
+  for (const opt of options ?? []) {
+    map.set(String(opt.value), opt.value);
   }
+  return map;
+});
+
+/** 处理 reka 多选值变化 → 转换回原始值数组 */
+function handleUpdate(keys: unknown) {
+  const keyArray = Array.isArray(keys) ? keys : keys != null ? [keys] : [];
+  const rawValues = keyArray
+    .map((k) => valueByKey.value.get(String(k)))
+    .filter((v): v is unknown => v !== undefined);
+  emit("update:modelValue", rawValues);
 }
-
-/** 处理选项点击 */
-function handleOptionClick(option: Option) {
-  if (option.disabled) return;
-
-  const rawValue = modelValue;
-  const currentValue = normalizeToArray(rawValue);
-  const index = currentValue.indexOf(option.value);
-
-  if (index === -1) {
-    emit('update:modelValue', [...currentValue, option.value]);
-  } else {
-    emit('update:modelValue', [...currentValue.slice(0, index), ...currentValue.slice(index + 1)]);
-  }
-}
-
-/** 检查选项是否被选中 */
-const isSelected = (option: Option) => {
-  const rawValue = modelValue;
-  const valueArray = Array.isArray(rawValue) ? rawValue : rawValue != null ? [rawValue] : [];
-  return valueArray.some((v) => v === option.value);
-};
 
 /** 获取选中的选项标签 */
 const selectedLabels = computed(() => {
-  const rawValue = modelValue;
-  const valueArray = Array.isArray(rawValue) ? rawValue : rawValue != null ? [rawValue] : [];
-  const selected = (options ?? []).filter(opt =>
-    valueArray.includes(opt.value)
-  );
-  return selected.map(opt => opt.label);
+  const keys = new Set(selectedKeys.value);
+  return (options ?? []).filter((opt) => keys.has(String(opt.value))).map((opt) => opt.label);
 });
 
 /** 显示的标签文本 */
@@ -92,98 +97,88 @@ const displayLabel = computed(() => {
   const labels = selectedLabels.value;
   if (labels.length === 0) return placeholder;
   if (labels.length <= maxSelectedLabels) {
-    return labels.join(', ');
+    return labels.join(", ");
   }
-  return selectedItemsLabel.replace('{0}', String(labels.length));
+  return selectedItemsLabel.replace("{0}", String(labels.length));
 });
 
 /** 触发按钮样式类 */
 const triggerClasses = computed(() => {
-  const extraClasses = 'bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer';
+  const extraClasses =
+    "bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer w-full text-left";
 
   const stateClasses = invalid
-    ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
-    : 'border-primary-default focus:ring-primary-500 dark:focus:ring-primary-400';
+    ? "border-danger-500 focus:ring-danger-500 dark:border-danger-400"
+    : "border-primary-default focus:ring-primary-500 dark:focus:ring-primary-400";
 
-  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const disabledClass = disabled ? "opacity-50 cursor-not-allowed" : "";
 
   return `${INPUT_BASE_CLASSES} ${extraClasses} ${stateClasses} ${disabledClass}`;
 });
-
-/** 下拉面板样式 */
 </script>
 
 <template>
-  <div v-bind="$attrs" class="relative w-full">
-    <!-- 触发按钮 -->
-    <div
-      :class="triggerClasses"
-      @click="toggleDropdown">
-      <span class="flex-1 truncate text-primary-title">
-        {{ displayLabel }}
-      </span>
-      <span class="ml-2 text-primary-400">
-        <svg
-          class="w-4 h-4 transition-transform duration-200"
-          :class="{ 'rotate-180': isOpen }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M19 9l-7 7-7-7" />
-        </svg>
-      </span>
-    </div>
+  <ComboboxRoot
+    v-bind="$attrs"
+    multiple
+    :model-value="selectedKeys"
+    :disabled="disabled"
+    class="relative w-full"
+    @update:model-value="handleUpdate"
+  >
+    <ComboboxAnchor class="w-full" as-child>
+      <ComboboxTrigger :class="triggerClasses">
+        <span class="flex-1 truncate text-primary-title">
+          {{ displayLabel }}
+        </span>
+        <span class="ml-2 text-primary-400">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </span>
+      </ComboboxTrigger>
+    </ComboboxAnchor>
 
-    <!-- 下拉面板 -->
-    <Transition
-      enter-active-class="transition ease-out duration-200"
-      enter-from-class="opacity-0 scale-95"
-      enter-to-class="opacity-100 scale-100"
-      leave-active-class="transition ease-in duration-150"
-      leave-from-class="opacity-100 scale-100"
-      leave-to-class="opacity-0 scale-95">
-      <div
-        v-if="isOpen"
-        class="absolute z-50 w-full mt-1 bg-white dark:bg-primary-900 border border-primary-default rounded-lg shadow-lg max-h-60 overflow-y-auto">
-        <div
-          v-for="option in options"
-          :key="option.value"
-          class="flex items-center px-3 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-700 transition-colors"
-          :class="{ 'opacity-50 cursor-not-allowed': option.disabled }"
-          @click="handleOptionClick(option)">
-          <div class="flex items-center flex-1">
-            <!-- 复选框 -->
-            <div class="w-4 h-4 border rounded mr-3 flex items-center justify-center shrink-0"
-                 :class="isSelected(option)
-                   ? 'bg-primary-500 dark:bg-primary-600 border-primary-500 dark:border-primary-600'
-                   : 'border-primary-default'">
-              <svg v-if="isSelected(option)" class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+    <ComboboxContent
+      position="popper"
+      :side-offset="4"
+      class="z-50 w-[var(--reka-combobox-trigger-width)] bg-white dark:bg-primary-900 border border-primary-default rounded-lg shadow-lg max-h-60 overflow-y-auto"
+    >
+      <ComboboxEmpty class="px-3 py-2 text-sm text-primary-subtle text-center">
+        {{ t("没有可用选项") }}
+      </ComboboxEmpty>
+      <ComboboxItem
+        v-for="option in options"
+        :key="String(option.value)"
+        :value="String(option.value)"
+        :disabled="option.disabled"
+        class="flex items-center px-3 py-2 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-700 transition-colors data-[highlighted]:bg-primary-100 dark:data-[highlighted]:bg-primary-700 outline-none"
+      >
+        <div class="flex items-center flex-1">
+          <!-- 复选框指示 -->
+          <div
+            class="w-4 h-4 border rounded mr-3 flex items-center justify-center shrink-0 data-[state=checked]:bg-primary-500 dark:data-[state=checked]:bg-primary-600 data-[state=checked]:border-primary-500 dark:data-[state=checked]:border-primary-600 border-primary-default"
+          >
+            <ComboboxItemIndicator>
+              <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="3"
+                  d="M5 13l4 4L19 7"
+                />
               </svg>
-            </div>
-            <!-- 标签 -->
-            <span class="text-sm text-primary-700 dark:text-primary-200">{{ option.label }}</span>
+            </ComboboxItemIndicator>
           </div>
+          <!-- 标签 -->
+          <span class="text-sm text-primary-700 dark:text-primary-200">{{ option.label }}</span>
         </div>
-        <div
-          v-if="options.length === 0"
-          class="px-3 py-2 text-sm text-primary-subtle text-center">
-          {{ t('没有可用选项') }}
-        </div>
-      </div>
-    </Transition>
-
-    <!-- 点击外部关闭 -->
-    <Teleport to="body">
-      <div
-        v-if="isOpen"
-        class="fixed inset-0 z-40"
-        @click="isOpen = false">
-      </div>
-    </Teleport>
-  </div>
+      </ComboboxItem>
+    </ComboboxContent>
+  </ComboboxRoot>
 </template>
