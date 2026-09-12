@@ -77,3 +77,29 @@ export interface LineRenderProps {
   isFocused: boolean;
   showResult: boolean;
 }
+
+/** 表格单元格位置 */
+export interface TableCellPosition {
+  row: number;      // 行号（0-based）
+  col: number;      // 列号（0-based）
+  tableId: string;  // 表格 ID
+}
+
+/** 表格单元格 */
+export interface TableCell {
+  position: TableCellPosition;
+  rawContent: string;      // 原始内容
+  formula?: string;        // 公式（如果有）
+  value?: any;            // 计算结果
+  references?: string[];  // 引用的其他单元格（如 A1, B2）
+}
+
+/** 表格 */
+export interface Table {
+  id: string;
+  rows: number;
+  cols: number;
+  cells: TableCell[][];
+  startLine: number;  // 表格在文档中的起始行号
+  endLine: number;    // 表格在文档中的结束行号
+}
