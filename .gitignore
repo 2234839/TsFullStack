@@ -76,3 +76,6 @@ apps/website-frontend/projects/**/*.js
 /任务计划.md
 .claude/scheduled_tasks.lock
 .pilot
+
+# unplugin-vue-components 自动生成，dev/build 时会重写，不提交
+apps/website-frontend/components.d.ts
