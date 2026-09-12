@@ -1,31 +1,31 @@
-import { OauthProvider } from '../../../.zenstack/models';
-import type { JsonValue } from '@zenstackhq/orm';
-import { Effect } from 'effect';
-import { requireOrFail } from '../../util/error';
-import { DbClientEffect } from '../../Context/DbService';
-import { ReqCtxService } from '../../Context/ReqCtx';
-import { dbTry } from '../../util/dbEffect';
-import { hashPassword } from '../../util/crypto';
-import { LinuxDoAuthService } from '../../OAuth/linuxdo';
-import { genUserSession } from './_genUserSession';
-import { generateSecureRandomPassword, generateFakeEmail } from './_oauthUtil';
+import { OauthProvider } from "../../../.zenstack/models";
+import type { JsonValue } from "@zenstackhq/orm";
+import { Effect } from "effect";
+import { requireOrFail } from "../../util/error";
+import { DbClientEffect } from "../../Context/DbService";
+import { ReqCtxService } from "../../Context/ReqCtx";
+import { dbTry } from "../../util/dbEffect";
+import { hashPassword } from "../../util/crypto";
+import { LinuxDoAuthService } from "../../OAuth/linuxdo";
+import { genUserSession } from "./_genUserSession";
+import { generateSecureRandomPassword, generateFakeEmail } from "./_oauthUtil";
 
 /** 日志前缀 */
-const LOG_PREFIX = '[LinuxDoApi]';
+const LOG_PREFIX = "[LinuxDoApi]";
 
 /** 通过 LINUX DO 登录 */
 export const linuxdoApi = {
   getAuthorizationUrl() {
     return Effect.flatMap(LinuxDoAuthService, (auth) => auth.getAuthorizationUrl());
   },
-  authenticate(code: string) {
+  authenticate(code: string, state?: string) {
     return Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
       const reqCtx = yield* ReqCtxService;
       const auth = yield* LinuxDoAuthService;
-      const { user: linuxdoUser } = yield* auth.authenticate(code);
+      const { user: linuxdoUser } = yield* auth.authenticate(code, state);
 
-      let user = yield* dbTry(LOG_PREFIX, '查询用户', () =>
+      let user = yield* dbTry(LOG_PREFIX, "查询用户", () =>
         dbClient.user.findFirst({
           where: {
             oAuthAccount: {
@@ -43,7 +43,7 @@ export const linuxdoApi = {
         const randomPassword = generateSecureRandomPassword();
         const hashedPassword = yield* hashPassword(randomPassword);
 
-        user = yield* dbTry(LOG_PREFIX, '创建用户', () =>
+        user = yield* dbTry(LOG_PREFIX, "创建用户", () =>
           dbClient.user.create({
             data: {
               email: generateFakeEmail(),
@@ -63,7 +63,7 @@ export const linuxdoApi = {
         );
       }
 
-      user = yield* requireOrFail(user, '用户创建失败');
+      user = yield* requireOrFail(user, "用户创建失败");
 
       const userId = user.id;
       const userSession = yield* genUserSession(userId);

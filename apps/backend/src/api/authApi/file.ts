@@ -1,28 +1,38 @@
-import { File as FileModel, StorageType, FileStatusEnum } from '../../../.zenstack/models';
-import { Effect } from 'effect';
-import { fail, MsgError, requireOrFail, tryOrFail, extractErrorMessage } from '../../util/error';
-import { createWriteStream } from 'fs';
-import { mkdir, unlink, writeFile } from 'fs/promises';
-import { join } from 'path/posix';
-import { v7 as uuidv7 } from 'uuid';
-import { AppConfigService } from '../../Context/AppConfig';
-import { MSG } from '../../util/constants';
-import { AuthContext, authUserIsAdmin } from '../../Context/Auth';
-import { FileAccessService } from '../../Context/FileAccessService';
-import { FilePathService } from '../../Context/FilePathService';
-import { ReqCtxService } from '../../Context/ReqCtx';
-import { dbTry, dbTryOrDefault } from '../../util/dbEffect';
+import { File as FileModel, StorageType, FileStatusEnum } from "../../../.zenstack/models";
+import { Effect } from "effect";
+import { fail, MsgError, requireOrFail, tryOrFail, extractErrorMessage } from "../../util/error";
+import { createWriteStream } from "fs";
+import { mkdir, unlink, writeFile } from "fs/promises";
+import { join } from "path/posix";
+import { v7 as uuidv7 } from "uuid";
+import { AppConfigService } from "../../Context/AppConfig";
+import { MSG } from "../../util/constants";
+import { AuthContext, authUserIsAdmin } from "../../Context/Auth";
+import { FileAccessService } from "../../Context/FileAccessService";
+import { FilePathService } from "../../Context/FilePathService";
+import { ReqCtxService } from "../../Context/ReqCtx";
+import { dbTry, dbTryOrDefault } from "../../util/dbEffect";
 
 /** 日志前缀 */
-const LOG_PREFIX = '[FileApi]';
+const LOG_PREFIX = "[FileApi]";
+
+/**
+ * 禁止上传的扩展名（active content，浏览器直接打开会执行代码 → 存储型 XSS）
+ * 即使有 nosniff 头，防御也不应依赖单层：在入口直接拒绝最可靠。
+ * 用户报告的 mimetype 不可信，因此按文件名扩展名判断。
+ */
+const FORBIDDEN_UPLOAD_EXTENSIONS = new Set(["html", "htm", "xhtml", "svg", "xml", "swf"]);
+
+/** 提取小写的文件扩展名 */
+function getFileExtension(filename: string): string {
+  const idx = filename.lastIndexOf(".");
+  return idx === -1 ? "" : filename.slice(idx + 1).toLowerCase();
+}
 
 /** 查询文件记录 */
-const fetchFileById = (id: FileModel['id']) =>
+const fetchFileById = (id: FileModel["id"]) =>
   Effect.flatMap(AuthContext, (auth) =>
-    dbTryOrDefault(LOG_PREFIX, '查询文件', () =>
-      auth.db.file.findUnique({ where: { id } }),
-      null,
-    ),
+    dbTryOrDefault(LOG_PREFIX, "查询文件", () => auth.db.file.findUnique({ where: { id } }), null),
   );
 
 /**
@@ -45,36 +55,55 @@ const saveFile = (options: {
     const appConfig = yield* AppConfigService;
     const fileId = uuidv7();
 
-    const filePath = FilePathService.generateUserFilePath(auth.user.id, fileId, appConfig.uploadDir);
+    const filePath = FilePathService.generateUserFilePath(
+      auth.user.id,
+      fileId,
+      appConfig.uploadDir,
+    );
 
-    yield* tryOrFail('创建目录', () => mkdir(join(appConfig.uploadDir, auth.user.id), { recursive: true }));
+    yield* tryOrFail("创建目录", () =>
+      mkdir(join(appConfig.uploadDir, auth.user.id), { recursive: true }),
+    );
 
     if (options.buffer) {
       /** Buffer 模式：一次性写入（适合已在内存的数据，如 AI 图片下载） */
-      yield* tryOrFail('写入文件', () => writeFile(filePath, options.buffer!));
+      yield* tryOrFail("写入文件", () => writeFile(filePath, options.buffer!));
     } else if (options.stream) {
       /** 流式模式：pipe 写入（适合大文件上传，避免内存暴涨） */
       let fileSize = options.byteLength ?? 0;
-      const trackedStream = options.stream.on('data', (chunk: Buffer) => {
+      const trackedStream = options.stream.on("data", (chunk: Buffer) => {
         if (!options.byteLength) fileSize += chunk.length;
       });
       const writeStream = createWriteStream(filePath);
       trackedStream.pipe(writeStream);
-      const finalSize = yield* tryOrFail('写入文件', () => new Promise<number>((resolve, reject) => {
-        const cleanup = () => {
-          writeStream.removeAllListeners();
-          trackedStream.removeAllListeners();
-        };
-        writeStream.on('finish', () => { cleanup(); resolve(fileSize); });
-        writeStream.on('error', (e) => { cleanup(); reject(e); });
-        trackedStream.on('error', (e) => { cleanup(); reject(e); });
-      }));
+      const finalSize = yield* tryOrFail(
+        "写入文件",
+        () =>
+          new Promise<number>((resolve, reject) => {
+            const cleanup = () => {
+              writeStream.removeAllListeners();
+              trackedStream.removeAllListeners();
+            };
+            writeStream.on("finish", () => {
+              cleanup();
+              resolve(fileSize);
+            });
+            writeStream.on("error", (e) => {
+              cleanup();
+              reject(e);
+            });
+            trackedStream.on("error", (e) => {
+              cleanup();
+              reject(e);
+            });
+          }),
+      );
       options.byteLength = finalSize;
     } else {
       return yield* fail(MSG.SAVE_FILE_NO_DATA);
     }
 
-    return yield* dbTry(LOG_PREFIX, '创建文件记录', () =>
+    return yield* dbTry(LOG_PREFIX, "创建文件记录", () =>
       auth.db.file.create({
         data: {
           filename: FilePathService.sanitizeFilename(options.filename),
@@ -89,8 +118,9 @@ const saveFile = (options: {
   });
 
 /** 向后兼容别名：Buffer 模式的快捷方式 */
-export const saveFileFromBuffer = (opts: Omit<Parameters<typeof saveFile>[0], 'stream' | 'byteLength'> & { buffer: Buffer }) =>
-  saveFile(opts);
+export const saveFileFromBuffer = (
+  opts: Omit<Parameters<typeof saveFile>[0], "stream" | "byteLength"> & { buffer: Buffer },
+) => saveFile(opts);
 
 export const fileApi = {
   /** file 这种二进制对象传递比较特殊，使用 superJSON 的话会大幅增加请求大小，并且如果不是流式读写的话也会导致内存占用过高
@@ -102,11 +132,25 @@ export const fileApi = {
 
       /** 获取上传文件 */
       const reqFile = yield* requireOrFail(
-        yield* tryOrFail('获取上传文件', () => reqCtx.req.file() as Promise<{ file: NodeJS.ReadableStream; filename: string; mimetype: string } | null>),
-        'No file uploaded',
+        yield* tryOrFail(
+          "获取上传文件",
+          () =>
+            reqCtx.req.file() as Promise<{
+              file: NodeJS.ReadableStream;
+              filename: string;
+              mimetype: string;
+            } | null>,
+        ),
+        "No file uploaded",
       );
 
       reqCtx.log(`${LOG_PREFIX} 用户上传文件: ${reqFile.filename}, mimetype=${reqFile.mimetype}`);
+
+      /** 安全：拒绝 active content 文件（防存储型 XSS，详见 FORBIDDEN_UPLOAD_EXTENSIONS 注释） */
+      const ext = getFileExtension(reqFile.filename);
+      if (FORBIDDEN_UPLOAD_EXTENSIONS.has(ext)) {
+        return yield* fail(`不允许上传 .${ext} 文件（存在脚本执行风险）`);
+      }
 
       /** 复用 saveFile 的流式写入模式（统一路径生成、目录创建、DB 记录） */
       return yield* saveFile({
@@ -116,7 +160,7 @@ export const fileApi = {
       });
     });
   },
-  updateFileStatus(id: FileModel['id'], status: FileStatusEnum) {
+  updateFileStatus(id: FileModel["id"], status: FileStatusEnum) {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
 
@@ -131,7 +175,7 @@ export const fileApi = {
       const reqCtx = yield* ReqCtxService;
       reqCtx.log(`${LOG_PREFIX} 更新文件状态: id=${id}, status=${status}`);
 
-      return yield* dbTry(LOG_PREFIX, '更新文件状态', () =>
+      return yield* dbTry(LOG_PREFIX, "更新文件状态", () =>
         auth.db.file.update({
           where: { id },
           data: { status },
@@ -143,7 +187,7 @@ export const fileApi = {
    * 通过 FileWrapItem 包装文件路径，http server 层再直接通过路径将文件流式传输给客户端
    * 这样可以避免将整个文件加载到内存中
    */
-  file(id: FileModel['id']) {
+  file(id: FileModel["id"]) {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
 
@@ -160,7 +204,7 @@ export const fileApi = {
     });
   },
   /** 移除本地文件以及数据库记录 */
-  delete(id: FileModel['id']) {
+  delete(id: FileModel["id"]) {
     return Effect.gen(function* () {
       const auth = yield* AuthContext;
       const reqCtx = yield* ReqCtxService;
@@ -183,13 +227,13 @@ export const fileApi = {
       yield* Effect.tryPromise({
         try: () => unlink(validatedPath),
         catch: (e) => {
-          if ((e as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+          if ((e as NodeJS.ErrnoException).code === "ENOENT") return undefined;
           return MsgError.msg(`删除物理文件失败: ${extractErrorMessage(e)}`);
         },
       });
 
       // 删除数据库记录
-      yield* dbTry(LOG_PREFIX, '删除文件记录', () =>
+      yield* dbTry(LOG_PREFIX, "删除文件记录", () =>
         auth.db.file.delete({
           where: { id },
         }),

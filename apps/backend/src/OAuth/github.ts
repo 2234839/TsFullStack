@@ -1,17 +1,61 @@
-import { Context, Effect, Layer } from 'effect';
-import { FetchWithProxy } from '../util/github-proxy';
-import { AppConfigService } from '../Context/AppConfig';
-import { fail } from '../util/error';
-import { MSG } from '../util/constants';
+import { Context, Effect, Layer } from "effect";
+import { randomBytes } from "node:crypto";
+import { FetchWithProxy } from "../util/github-proxy";
+import { AppConfigService } from "../Context/AppConfig";
+import { fail } from "../util/error";
+import { MSG } from "../util/constants";
+
+/** ===== OAuth state CSRF 防护 ===== */
+
+/** state 有效期（10 分钟，覆盖正常 OAuth 往返时间） */
+const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+/** state 存储上限（防内存膨胀；单实例部署下 10 分钟内不可能积累这么多登录） */
+const OAUTH_STATE_MAX_ENTRIES = 10_000;
+
+/** state 登记表：state → 过期时间 */
+const oauthStates = new Map<string, number>();
+
+/**
+ * 登记 state（getAuthorizationUrl 时调用）
+ * 超限时淘汰最旧条目；过期条目在读写时顺手清理
+ */
+export function registerOAuthState(state: string): void {
+  const now = Date.now();
+  if (oauthStates.size >= OAUTH_STATE_MAX_ENTRIES) {
+    /** 淘汰全部已过期项；若仍超限则删除最早插入项 */
+    for (const [k, exp] of oauthStates) {
+      if (exp < now) oauthStates.delete(k);
+    }
+    while (oauthStates.size >= OAUTH_STATE_MAX_ENTRIES) {
+      const oldest = oauthStates.keys().next().value;
+      if (oldest === undefined) break;
+      oauthStates.delete(oldest);
+    }
+  }
+  oauthStates.set(state, now + OAUTH_STATE_TTL_MS);
+}
+
+/**
+ * 消费 state（authenticate 时调用，一次性防重放）
+ * @returns true = state 有效且未过期；false = 未知/过期/重放
+ */
+export function consumeOAuthState(state: string | undefined): boolean {
+  if (!state) return false;
+  const expiresAt = oauthStates.get(state);
+  oauthStates.delete(state);
+  if (expiresAt === undefined) return false;
+  return Date.now() <= expiresAt;
+}
 
 /** ===== 常量定义 ===== */
 
 /** GitHub OAuth 默认权限范围 */
-const DEFAULT_SCOPES = ['read:user', 'user:email'] as const;
+const DEFAULT_SCOPES = ["read:user", "user:email"] as const;
 
 /** GitHub OAuth / API 端点 URL */
-const GITHUB_OAUTH_URL = 'https://github.com/login/oauth';
-const GITHUB_API_URL = 'https://api.github.com';
+const GITHUB_OAUTH_URL = "https://github.com/login/oauth";
+const GITHUB_API_URL = "https://api.github.com";
 
 /** ===== 接口定义 ===== */
 
@@ -82,12 +126,14 @@ interface GitHubUserApiResponse {
  * 认证错误类型
  */
 enum GitHubAuthErrorCode {
-  INVALID_CONFIG = 'INVALID_CONFIG',
-  INVALID_CODE = 'INVALID_CODE',
-  INVALID_TOKEN = 'INVALID_TOKEN',
-  NETWORK_ERROR = 'NETWORK_ERROR',
-  API_ERROR = 'API_ERROR',
-  REVOKE_ERROR = 'REVOKE_ERROR',
+  INVALID_CONFIG = "INVALID_CONFIG",
+  INVALID_CODE = "INVALID_CODE",
+  INVALID_TOKEN = "INVALID_TOKEN",
+  NETWORK_ERROR = "NETWORK_ERROR",
+  API_ERROR = "API_ERROR",
+  REVOKE_ERROR = "REVOKE_ERROR",
+  /** OAuth state 校验失败（CSRF） */
+  INVALID_STATE = "INVALID_STATE",
 }
 
 /**
@@ -99,7 +145,7 @@ class GitHubAuthError extends Error {
 
   constructor(message: string, code: GitHubAuthErrorCode, statusCode?: number) {
     super(message);
-    this.name = 'GitHubAuthError';
+    this.name = "GitHubAuthError";
     this.code = code;
     this.statusCode = statusCode;
 
@@ -109,27 +155,34 @@ class GitHubAuthError extends Error {
 }
 
 /** JSON 响应解析失败时统一构造错误（消除重复的 catch 回调） */
-const parseResponseError = () => new GitHubAuthError('Failed to parse response', GitHubAuthErrorCode.API_ERROR);
+const parseResponseError = () =>
+  new GitHubAuthError("Failed to parse response", GitHubAuthErrorCode.API_ERROR);
 
 /** 将未知错误统一映射为 NETWORK_ERROR（消除重复的 mapError 管道） */
 const catchNetworkError = Effect.mapError((error: unknown) =>
   error instanceof GitHubAuthError
     ? error
-    : Object.assign(new GitHubAuthError('Network request failed', GitHubAuthErrorCode.NETWORK_ERROR), { cause: error }),
+    : Object.assign(
+        new GitHubAuthError("Network request failed", GitHubAuthErrorCode.NETWORK_ERROR),
+        { cause: error },
+      ),
 );
 
 /** ===== 主要类实现 ===== */
-export class GithubAuthService extends Context.Tag('GithubAuthService')<
+export class GithubAuthService extends Context.Tag("GithubAuthService")<
   GithubAuthService,
   {
-    readonly authenticate: (code: string) => Effect.Effect<
+    readonly authenticate: (
+      code: string,
+      state?: string,
+    ) => Effect.Effect<
       {
         user: GitHubUser;
         accessToken: string;
       },
       GitHubAuthError
     >;
-    readonly getAuthorizationUrl: (state?: string | undefined) => Effect.Effect<string>;
+    readonly getAuthorizationUrl: () => Effect.Effect<string>;
   }
 >() {}
 
@@ -137,14 +190,14 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;
   const config = appConfig.OAuth_github;
   if (!config) {
-      return yield* fail(MSG.OAUTH_GITHUB_NOT_CONFIGURED);
-    }
+    return yield* fail(MSG.OAUTH_GITHUB_NOT_CONFIGURED);
+  }
   const { fetchProxy } = yield* FetchWithProxy;
   const getAccessToken = (code: string) => {
     if (!config.clientSecret) {
       return Effect.fail(
         new GitHubAuthError(
-          'Client secret is required for token exchange',
+          "Client secret is required for token exchange",
           GitHubAuthErrorCode.INVALID_CONFIG,
         ),
       );
@@ -153,15 +206,15 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
     return Effect.gen(function* () {
       if (!code?.trim()) {
         return yield* Effect.fail(
-          new GitHubAuthError('Authorization code is required', GitHubAuthErrorCode.INVALID_CODE),
+          new GitHubAuthError("Authorization code is required", GitHubAuthErrorCode.INVALID_CODE),
         );
       }
 
       const response = yield* fetchProxy(`${GITHUB_OAUTH_URL}/access_token`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
+          Accept: "application/json",
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           client_id: config.clientId,
@@ -188,8 +241,8 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
 
       return {
         accessToken: data.access_token,
-        tokenType: data.token_type ?? 'bearer',
-        scope: data.scope ?? '',
+        tokenType: data.token_type ?? "bearer",
+        scope: data.scope ?? "",
       };
     }).pipe(catchNetworkError);
   };
@@ -197,21 +250,21 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
     Effect.gen(function* () {
       if (!accessToken?.trim()) {
         return yield* Effect.fail(
-          new GitHubAuthError('Access token is required', GitHubAuthErrorCode.INVALID_TOKEN),
+          new GitHubAuthError("Access token is required", GitHubAuthErrorCode.INVALID_TOKEN),
         );
       }
 
       const response = yield* fetchProxy(`${GITHUB_API_URL}/user`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          Accept: 'application/vnd.github.v3+json',
+          Accept: "application/vnd.github.v3+json",
         },
       });
 
       if (!response.ok) {
         return yield* Effect.fail(
           new GitHubAuthError(
-            'Failed to get user information',
+            "Failed to get user information",
             GitHubAuthErrorCode.API_ERROR,
             response.status,
           ),
@@ -241,23 +294,32 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
       } satisfies GitHubUser;
     }).pipe(catchNetworkError);
   return {
-    authenticate(code: string) {
+    authenticate(code: string, state?: string) {
       return Effect.gen(function* () {
+        /** CSRF 防护：state 必须是本服务签发且未被使用过的（一次性消费防重放） */
+        if (!consumeOAuthState(state)) {
+          return yield* Effect.fail(
+            new GitHubAuthError(
+              "Invalid or expired OAuth state",
+              GitHubAuthErrorCode.INVALID_STATE,
+            ),
+          );
+        }
         const tokenResponse = yield* getAccessToken(code);
         const user = yield* getUser(tokenResponse.accessToken);
         return { user, accessToken: tokenResponse.accessToken };
       });
     },
-    getAuthorizationUrl: (state?: string) => {
+    getAuthorizationUrl: () => {
+      /** 服务端签发随机 state 并登记，回调时验证（防 CSRF 登录劫持） */
+      const state = randomBytes(16).toString("hex");
+      registerOAuthState(state);
       const params = new URLSearchParams({
         client_id: config.clientId,
         redirect_uri: config.redirectUri,
-        scope: (config.scope ?? DEFAULT_SCOPES).join(' '),
+        scope: (config.scope ?? DEFAULT_SCOPES).join(" "),
+        state,
       });
-
-      if (state) {
-        params.append('state', state);
-      }
 
       return Effect.succeed(`${GITHUB_OAUTH_URL}/authorize?${params.toString()}`);
     },

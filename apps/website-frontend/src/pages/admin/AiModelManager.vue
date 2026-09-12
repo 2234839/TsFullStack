@@ -338,6 +338,23 @@ const loadModels = async () => {
   try {
     const result = await API.db.aiModel.findMany({
       orderBy: { id: "desc" },
+      select: {
+        id: true,
+        name: true,
+        model: true,
+        modelType: true,
+        baseUrl: true,
+        maxTokens: true,
+        temperature: true,
+        enabled: true,
+        weight: true,
+        rpmLimit: true,
+        rphLimit: true,
+        rpdLimit: true,
+        description: true,
+        created: true,
+        updated: true,
+      },
     });
     models.value = result;
   } catch (error: unknown) {

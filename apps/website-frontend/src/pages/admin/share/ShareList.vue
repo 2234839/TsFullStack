@@ -332,13 +332,17 @@ const handleEdit = (item: ShareItemJSON) => {
 };
 
 /**
- * 显示分享二维码
+ * 复制分享链接处理
  * @param item 分享项
  */
 const handleShowQRCode = async (item: ShareItemJSON) => {
   selectedQRItem.value = item;
   const baseUrl = window.location.origin;
-  currentShareUrl.value = `${baseUrl}${routeMap.ShareDetail.path.replace(":id", String(item.id))}`;
+  /** 安全：链接用不可预测的 UUID key，避免自增 id 被枚举遍历所有分享 */
+  currentShareUrl.value = `${baseUrl}${routeMap.ShareDetail.path.replace(
+    ":id",
+    encodeURIComponent(item.key),
+  )}`;
 
   try {
     qrCodeDataUrl.value = await QRCode.toDataURL(currentShareUrl.value, {
@@ -369,15 +373,19 @@ const handleCopyLink = async () => {
   }
 };
 
+/**
+ * 跳转到分享详情页
+ * @param item 分享项
+ */
 const handleGotoDetail = (item: ShareItemJSON) => {
   routerUtil.newBlank(routeMap.ShareDetail, {
-    id: String(item.id),
+    id: item.key,
   });
 };
 
 /** 高级编辑（独立页面） */
 const handleAdvancedEdit = (item: ShareItemJSON) => {
-  routerUtil.newBlank(routeMap.ShareDetail, { id: String(item.id) }, { mode: "edit" });
+  routerUtil.newBlank(routeMap.ShareDetail, { id: item.key }, { mode: "edit" });
 };
 
 /** 删除处理 */

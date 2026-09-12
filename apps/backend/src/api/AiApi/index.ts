@@ -1,19 +1,17 @@
-import { Effect } from 'effect';
-import { AIProxyService } from '../../Context/AIProxyService';
-import { requireAdmin } from '../../Context/Auth';
-import { reqClientIpEffect } from '../../Context/ClientIPService';
-import { ReqCtxService } from '../../Context/ReqCtx';
-import { adminDbTry } from '../../util/dbEffect';
-import {
-  OpenAIRequest as OpenAIProxyRequest,
-} from '../../types/ai';
-import { evaluateInfoQuality } from './infoQuality';
+import { Effect } from "effect";
+import { AIProxyService } from "../../Context/AIProxyService";
+import { requireAdmin } from "../../Context/Auth";
+import { reqClientIpEffect } from "../../Context/ClientIPService";
+import { ReqCtxService } from "../../Context/ReqCtx";
+import { adminDbTry } from "../../util/dbEffect";
+import { OpenAIRequest as OpenAIProxyRequest } from "../../types/ai";
+import { evaluateInfoQuality } from "./infoQuality";
 
 /** 日志前缀 */
-const LOG_PREFIX = '[AiApi]';
+const LOG_PREFIX = "[AiApi]";
 
 /** 默认 AI 模型 */
-const DEFAULT_AI_MODEL = 'gpt-3.5-turbo';
+const DEFAULT_AI_MODEL = "gpt-3.5-turbo";
 
 /** AI 模型默认参数 */
 const DEFAULT_AI_CONFIG = {
@@ -72,15 +70,36 @@ export const aiApi = {
       );
     }),
 
-  /** 获取所有AI模型（管理员） */
+  /** 获取所有AI模型（管理员）
+   * 安全：select 白名单排除 apiKey，密钥不出后端进程（前端编辑时留空表示不修改） */
   getAIModels: () =>
-    adminDbTry(LOG_PREFIX, '获取AI模型', (dbClient) =>
-      dbClient.aiModel.findMany({ orderBy: { id: 'asc' } }),
+    adminDbTry(LOG_PREFIX, "获取AI模型", (dbClient) =>
+      dbClient.aiModel.findMany({
+        orderBy: { id: "asc" },
+        select: {
+          id: true,
+          name: true,
+          model: true,
+          modelType: true,
+          baseUrl: true,
+          maxTokens: true,
+          temperature: true,
+          enabled: true,
+          weight: true,
+          rpmLimit: true,
+          rphLimit: true,
+          rpdLimit: true,
+          description: true,
+          config: true,
+          created: true,
+          updated: true,
+        },
+      }),
     ),
 
   /** 创建AI模型（管理员） */
   createAIModel: (request: CreateAIModelRequest) =>
-    adminDbTry(LOG_PREFIX, '创建AI模型', (dbClient) =>
+    adminDbTry(LOG_PREFIX, "创建AI模型", (dbClient) =>
       dbClient.aiModel.create({
         data: {
           name: request.name,
@@ -101,7 +120,7 @@ export const aiApi = {
 
   /** 更新AI模型（管理员） */
   updateAIModel: (request: UpdateAIModelRequest) =>
-    adminDbTry(LOG_PREFIX, '更新AI模型', (dbClient) =>
+    adminDbTry(LOG_PREFIX, "更新AI模型", (dbClient) =>
       dbClient.aiModel.update({
         where: { id: request.id },
         data: {
@@ -124,7 +143,7 @@ export const aiApi = {
   /** 删除AI模型（管理员） */
   deleteAIModel: (id: number) =>
     Effect.gen(function* () {
-      yield* adminDbTry(LOG_PREFIX, '删除AI模型', (dbClient) =>
+      yield* adminDbTry(LOG_PREFIX, "删除AI模型", (dbClient) =>
         dbClient.aiModel.delete({ where: { id } }),
       );
       return { success: true as const };

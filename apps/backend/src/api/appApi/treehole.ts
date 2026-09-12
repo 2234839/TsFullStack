@@ -1,13 +1,22 @@
-import { Effect } from 'effect';
-import { DbClientEffect } from '../../Context/DbService';
-import { ReqCtxService } from '../../Context/ReqCtx';
-import { AuthContext } from '../../Context/Auth';
-import { dbTryOrDefault, dbPaginatedFindMany } from '../../util/dbEffect';
-import type { ContentVisibility } from '../../../.zenstack/models';
-import type { PostWhereInput } from '../../../.zenstack/input';
+import { Effect, Option } from "effect";
+import { DbClientEffect } from "../../Context/DbService";
+import { ReqCtxService } from "../../Context/ReqCtx";
+import { AuthContext } from "../../Context/Auth";
+import { dbTryOrDefault, dbPaginatedFindMany } from "../../util/dbEffect";
+import type { ContentVisibility } from "../../../.zenstack/models";
+import type { PostWhereInput } from "../../../.zenstack/input";
+
+/**
+ * 可选读取当前登录用户 ID（app-api 无鉴权分支不提供 AuthContext，需用 serviceOption 安全读取）
+ * 返回 null 表示匿名访问
+ */
+const currentUserId = () =>
+  Effect.map(Effect.serviceOption(AuthContext), (opt) =>
+    Option.isSome(opt) ? opt.value.user.id : null,
+  );
 
 /** 日志前缀 */
-const LOG_PREFIX = '[Treehole]';
+const LOG_PREFIX = "[Treehole]";
 
 /** 单次查询最大返回条数 */
 const MAX_TAKE = 100;
@@ -84,23 +93,39 @@ export const treeholeApi = {
     return Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
       const ctx = yield* ReqCtxService;
+      const userId = yield* currentUserId();
 
       /** 分页参数边界校验 */
       const skip = Math.max(0, Math.floor(params.skip) ?? 0);
       const take = Math.min(MAX_TAKE, Math.max(1, Math.floor(params.take) ?? 10));
 
-      ctx.log(`${LOG_PREFIX} queryPosts, skip=${skip}, take=${take}, hasKeyword=${!!params.keyword}`);
+      ctx.log(
+        `${LOG_PREFIX} queryPosts, skip=${skip}, take=${take}, hasKeyword=${!!params.keyword}`,
+      );
 
       // 构建查询条件
       const where: PostWhereInput = {};
 
-      // 可见性过滤
+      // 可见性过滤（IDOR 防护：用户传入的可见性只能收窄公开范围，不能越权查看他人私密帖）
       if (params.visibility) {
         if (Array.isArray(params.visibility)) {
           where.visibility = { in: params.visibility };
         } else {
           where.visibility = params.visibility;
         }
+        /** 私密可见性（PRIVATE/DRAFT）只允许命中自己的帖子：其他帖子强制仅 PUBLIC/MEMBERS */
+        const visList = Array.isArray(params.visibility) ? params.visibility : [params.visibility];
+        const hasPrivate = visList.some((v) => v === "PRIVATE" || v === "DRAFT");
+        if (hasPrivate) {
+          where.AND = [
+            userId
+              ? { OR: [{ visibility: { in: ["PUBLIC", "MEMBERS"] } }, { authorId: userId }] }
+              : { visibility: { in: ["PUBLIC", "MEMBERS"] } },
+          ];
+        }
+      } else {
+        /** 未指定可见性时默认只看公开/成员内容，未登录用户仅 PUBLIC */
+        where.visibility = userId ? { in: ["PUBLIC", "MEMBERS"] } : "PUBLIC";
       }
 
       // 父帖子过滤（onlyRoot 和 parentId 互斥：parentId 优先级更高）
@@ -112,52 +137,55 @@ export const treeholeApi = {
 
       // 作者过滤（"我的帖子"，IDOR 防护：仅允许查询自己的帖子）
       if (params.authorId) {
-        const auth = yield* AuthContext;
-        /** 强制 authorId 只能是当前登录用户，防止枚举他人帖子 */
-        where.authorId = auth.user.id;
+        /** 强制 authorId 只能是当前登录用户，防止枚举他人帖子（匿名时忽略该过滤） */
+        if (userId) {
+          where.authorId = userId;
+        }
       }
 
       // 搜索关键词
       const keyword = params.keyword?.trim();
       if (keyword) {
-        where.OR = [
-          { title: { contains: keyword } },
-          { content: { contains: keyword } },
-        ];
+        where.OR = [{ title: { contains: keyword } }, { content: { contains: keyword } }];
       }
 
       // 使用分页查询辅助函数并行执行 findMany + count
-      const { items: posts, total } = yield* dbPaginatedFindMany(LOG_PREFIX,
-        () => dbClient.post.findMany({
-          where,
-          orderBy: [{ created: 'desc' }],
-          skip: skip,
-          take: take,
-          select: {
-            id: true,
-            title: true,
-            content: true,
-            visibility: true,
-            created: true,
-            updated: true,
-            authorId: true,
-            parentId: true,
-            author: {
-              select: { id: true, nickname: true },
+      const { items: posts, total } = yield* dbPaginatedFindMany(
+        LOG_PREFIX,
+        () =>
+          dbClient.post.findMany({
+            where,
+            orderBy: [{ created: "desc" }],
+            skip: skip,
+            take: take,
+            select: {
+              id: true,
+              title: true,
+              content: true,
+              visibility: true,
+              created: true,
+              updated: true,
+              authorId: true,
+              parentId: true,
+              author: {
+                select: { id: true, nickname: true },
+              },
             },
-          },
-        }),
+          }),
         () => dbClient.post.count({ where }),
       );
 
       // 提取当前帖子列表的 ID，一次性查询这些帖子的回复数统计
       const postIds = posts.map((post) => post.id);
-      const replyCounts = yield* dbTryOrDefault(LOG_PREFIX, '查询回复统计', () =>
-        dbClient.post.groupBy({
-          by: ['parentId'],
-          where: { parentId: { in: postIds } },
-          _count: { parentId: true },
-        }),
+      const replyCounts = yield* dbTryOrDefault(
+        LOG_PREFIX,
+        "查询回复统计",
+        () =>
+          dbClient.post.groupBy({
+            by: ["parentId"],
+            where: { parentId: { in: postIds } },
+            _count: { parentId: true },
+          }),
         [],
       );
 
@@ -193,37 +221,55 @@ export const treeholeApi = {
     return Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
       const ctx = yield* ReqCtxService;
+      const userId = yield* currentUserId();
 
-      ctx.log(LOG_PREFIX, 'getPostTree', postId);
+      ctx.log(LOG_PREFIX, "getPostTree", postId);
 
       // 并行执行查询：帖子和回复数统计
       const [post, replyCount] = yield* Effect.all([
-        dbTryOrDefault(LOG_PREFIX, '查询帖子详情', () =>
-          dbClient.post.findUnique({
-            where: { id: postId },
-            select: {
-              id: true,
-              title: true,
-              content: true,
-              visibility: true,
-              created: true,
-              updated: true,
-              authorId: true,
-              parentId: true,
-              author: {
-                select: { id: true, nickname: true },
+        dbTryOrDefault(
+          LOG_PREFIX,
+          "查询帖子详情",
+          () =>
+            dbClient.post.findUnique({
+              where: { id: postId },
+              select: {
+                id: true,
+                title: true,
+                content: true,
+                visibility: true,
+                created: true,
+                updated: true,
+                authorId: true,
+                parentId: true,
+                author: {
+                  select: { id: true, nickname: true },
+                },
               },
-            },
-          }),
+            }),
           null,
         ),
-        dbTryOrDefault(LOG_PREFIX, '查询帖子回复数', () =>
-          dbClient.post.count({
-            where: { parentId: postId },
-          }), 0),
+        dbTryOrDefault(
+          LOG_PREFIX,
+          "查询帖子回复数",
+          () =>
+            dbClient.post.count({
+              where: { parentId: postId },
+            }),
+          0,
+        ),
       ] as const);
 
       if (!post) {
+        return null;
+      }
+
+      /** IDOR 防护：私密帖仅作者本人可见（未登录用户仅能看 PUBLIC） */
+      const canView =
+        post.visibility === "PUBLIC" ||
+        (post.visibility === "MEMBERS" && !!userId) ||
+        (!!userId && post.authorId === userId);
+      if (!canView) {
         return null;
       }
 

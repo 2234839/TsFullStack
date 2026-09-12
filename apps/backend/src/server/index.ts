@@ -339,6 +339,7 @@ function sendFileResponse(reply: FastifyReply, fileItem: FileWrapItem) {
       .header("Accept-Ranges", "bytes")
       .header(
         "Content-Disposition",
+        /** filename 已在 FilePathService.sanitizeFilename 中移除 " \r \n 等危险字符，此处仅编码防止头部注入 */
         `inline; filename="${encodeURIComponent(fileItem.model.filename ?? "file")}"`,
       );
 
@@ -400,6 +401,36 @@ export const startServer = Effect.gen(function* () {
   fastify.register(fastifyStatic, {
     root: path.join(__dirname, "frontend"),
     prefix: "/",
+  });
+
+  /**
+   * 全局安全响应头（最小权限，不影响现有功能）：
+   * - X-Content-Type-Options: 阻止 MIME 嗅探（上传的 HTML/SVG 被当页面执行是存储型 XSS 主通道）
+   * - X-Frame-Options / frame-ancestors: 防点击劫持（NoteCalc iframe 嵌入走同源，不受影响）
+   * - Referrer-Policy: URL query 可能携带签名参数，避免外泄给第三方
+   * - CSP: script-src 仅同源（防注入外链脚本）；img/media 允许外部源（头像 ui-avatars.com、
+   *   AI 生图 pollinations.ai 等业务依赖）；connect-src 允许任意 https（用户可自定义 OpenAI 兼容端点）
+   */
+  fastify.addHook("onSend", async (request, reply) => {
+    reply.header("X-Content-Type-Options", "nosniff");
+    reply.header("X-Frame-Options", "SAMEORIGIN");
+    reply.header("Referrer-Policy", "no-referrer");
+    reply.header(
+      "Content-Security-Policy",
+      [
+        "default-src 'self'",
+        "script-src 'self'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: blob: https:",
+        "media-src 'self' blob: https:",
+        "font-src 'self' data:",
+        "connect-src 'self' https: http://localhost:* http://127.0.0.1:*",
+        "frame-src 'self'",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'",
+      ].join("; "),
+    );
   });
   //#endregion
 

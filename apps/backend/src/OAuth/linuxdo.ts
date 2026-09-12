@@ -1,20 +1,22 @@
-import { Context, Effect, Layer } from 'effect';
-import { AppConfigService } from '../Context/AppConfig';
-import { fail, tryOrFail } from '../util/error';
-import { MSG } from '../util/constants';
-import { FetchWithProxy } from '../util/github-proxy';
-import { withFetchTimeout, FETCH_TIMEOUTS } from '../util/http';
-import { JSON_CONTENT_HEADERS } from '../util/constants';
+import { Context, Effect, Layer } from "effect";
+import { randomBytes } from "node:crypto";
+import { AppConfigService } from "../Context/AppConfig";
+import { fail, tryOrFail } from "../util/error";
+import { MSG } from "../util/constants";
+import { FetchWithProxy } from "../util/github-proxy";
+import { withFetchTimeout, FETCH_TIMEOUTS } from "../util/http";
+import { JSON_CONTENT_HEADERS } from "../util/constants";
+import { registerOAuthState, consumeOAuthState } from "./github";
 
 /** ===== 常量定义 ===== */
 
 /** 浏览器端授权跳转用 connect.linux.do（用户浏览器可以正常访问） */
-const LINUXDO_OAUTH_URL = 'https://connect.linux.do/oauth2';
+const LINUXDO_OAUTH_URL = "https://connect.linux.do/oauth2";
 /**
  * 服务端 API 请求用 connect.linuxdo.org（备用域名，避免 Cloudflare 拦截）
  * 参考: https://linux.do/t/topic/1144530
  */
-const LINUXDO_API_BASE = 'https://connect.linuxdo.org';
+const LINUXDO_API_BASE = "https://connect.linuxdo.org";
 
 /** ===== 接口定义 ===== */
 
@@ -45,13 +47,13 @@ interface LinuxDoTokenResponse {
 }
 
 /** ===== 主要类实现 ===== */
-export class LinuxDoAuthService extends Context.Tag('LinuxDoAuthService')<
+export class LinuxDoAuthService extends Context.Tag("LinuxDoAuthService")<
   LinuxDoAuthService,
   {
-    readonly authenticate: (code: string) => Effect.Effect<
-      { user: LinuxDoUser; accessToken: string },
-      Error
-    >;
+    readonly authenticate: (
+      code: string,
+      state?: string,
+    ) => Effect.Effect<{ user: LinuxDoUser; accessToken: string }, Error>;
     readonly getAuthorizationUrl: () => Effect.Effect<string>;
   }
 >() {}
@@ -68,24 +70,32 @@ const LinuxDoAuthLiveEffect = Effect.gen(function* () {
   const proxyFetch = (url: string, options: RequestInit) => {
     const proxyUrl = appConfig.ApiProxy.github;
     if (!proxyUrl) {
-      return tryOrFail('LINUX DO fetch', () => fetch(url, withFetchTimeout(options, FETCH_TIMEOUTS.github)));
+      return tryOrFail("LINUX DO fetch", () =>
+        fetch(url, withFetchTimeout(options, FETCH_TIMEOUTS.github)),
+      );
     }
     return Effect.gen(function* () {
       const target = new URL(proxyUrl);
-      target.pathname = '/proxy';
-      const response = yield* tryOrFail('LINUX DO 代理请求', () =>
-        fetch(target, withFetchTimeout({
-          method: 'POST',
-          headers: JSON_CONTENT_HEADERS,
-          body: JSON.stringify({
-            url,
-            method: options.method ?? 'GET',
-            headers: Object.fromEntries(
-              Object.entries(options.headers ?? {}).filter(([_, v]) => v !== undefined),
-            ),
-            body: typeof options.body === 'string' ? options.body : undefined,
-          }),
-        }, FETCH_TIMEOUTS.github)),
+      target.pathname = "/proxy";
+      const response = yield* tryOrFail("LINUX DO 代理请求", () =>
+        fetch(
+          target,
+          withFetchTimeout(
+            {
+              method: "POST",
+              headers: JSON_CONTENT_HEADERS,
+              body: JSON.stringify({
+                url,
+                method: options.method ?? "GET",
+                headers: Object.fromEntries(
+                  Object.entries(options.headers ?? {}).filter(([_, v]) => v !== undefined),
+                ),
+                body: typeof options.body === "string" ? options.body : undefined,
+              }),
+            },
+            FETCH_TIMEOUTS.github,
+          ),
+        ),
       );
       return response;
     });
@@ -94,7 +104,7 @@ const LinuxDoAuthLiveEffect = Effect.gen(function* () {
   const getAccessToken = (code: string) =>
     Effect.gen(function* () {
       if (!code?.trim()) {
-        return yield* Effect.fail(new Error('Authorization code is required'));
+        return yield* Effect.fail(new Error("Authorization code is required"));
       }
 
       const body = new URLSearchParams({
@@ -102,20 +112,21 @@ const LinuxDoAuthLiveEffect = Effect.gen(function* () {
         client_secret: config.clientSecret,
         code,
         redirect_uri: config.redirectUri,
-        grant_type: 'authorization_code',
+        grant_type: "authorization_code",
       });
 
       const response = yield* proxyFetch(`${LINUXDO_API_BASE}/oauth2/token`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Accept: 'application/json',
+          "Content-Type": "application/x-www-form-urlencoded",
+          Accept: "application/json",
         },
         body: body.toString(),
       });
 
-      const data = yield* tryOrFail('解析 LINUX DO token 响应', () =>
-        response.json() as Promise<LinuxDoTokenResponse>,
+      const data = yield* tryOrFail(
+        "解析 LINUX DO token 响应",
+        () => response.json() as Promise<LinuxDoTokenResponse>,
       );
 
       if (data.error) {
@@ -139,25 +150,34 @@ const LinuxDoAuthLiveEffect = Effect.gen(function* () {
         return yield* Effect.fail(new Error(`获取用户信息失败: ${response.status}`));
       }
 
-      return yield* tryOrFail('解析 LINUX DO 用户信息', () =>
-        response.json() as Promise<LinuxDoUser>,
+      return yield* tryOrFail(
+        "解析 LINUX DO 用户信息",
+        () => response.json() as Promise<LinuxDoUser>,
       );
     });
 
   return {
-    authenticate(code: string) {
+    authenticate(code: string, state?: string) {
       return Effect.gen(function* () {
+        /** CSRF 防护：state 必须是本服务签发且未被使用过的（一次性消费防重放） */
+        if (!consumeOAuthState(state)) {
+          return yield* Effect.fail(new Error("Invalid or expired OAuth state"));
+        }
         const accessToken = yield* getAccessToken(code);
         const user = yield* getUser(accessToken);
         return { user, accessToken };
       });
     },
     getAuthorizationUrl() {
+      /** 服务端签发随机 state 并登记，回调时验证（防 CSRF 登录劫持） */
+      const state = randomBytes(16).toString("hex");
+      registerOAuthState(state);
       const params = new URLSearchParams({
         client_id: config.clientId,
         redirect_uri: config.redirectUri,
-        response_type: 'code',
-        scope: 'openid profile email',
+        response_type: "code",
+        scope: "openid profile email",
+        state,
       });
 
       return Effect.succeed(`${LINUXDO_OAUTH_URL}/authorize?${params.toString()}`);

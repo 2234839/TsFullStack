@@ -312,7 +312,8 @@ const activeCrypto = shallowRef<ShareCrypto | undefined>();
 
 /** 加载分享数据 */
 const loadShareDetail = async () => {
-  const raw = await AppAPI.shareApi.detail(Number(id));
+  /** id 可能是新版 UUID key 或旧版纯数字 id（后端兼容两种） */
+  const raw = await AppAPI.shareApi.detail(id);
   const parsed = parseShareItem(raw);
   rawShareData.value = parsed;
 

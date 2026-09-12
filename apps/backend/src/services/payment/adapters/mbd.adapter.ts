@@ -1,18 +1,14 @@
-import crypto from 'node:crypto';
-import { Effect } from 'effect';
-import { fail, MsgError, tryOrFail } from '../../../util/error';
-import { JSON_CONTENT_HEADERS, deepCloneToJson, MSG } from '../../../util/constants';
-import { withFetchTimeout, FETCH_TIMEOUTS } from '../../../util/http';
-import type {
-  PaymentAdapter,
-  CreatePaymentParams,
-  CreatePaymentResult,
-} from './types';
-import { PaymentProvider } from '../../../../.zenstack/models';
-import { PaymentConfigService } from '../../../Context/PaymentConfig';
-import { ReqCtxService } from '../../../Context/ReqCtx';
+import crypto from "node:crypto";
+import { Effect } from "effect";
+import { fail, MsgError, tryOrFail } from "../../../util/error";
+import { JSON_CONTENT_HEADERS, deepCloneToJson, MSG } from "../../../util/constants";
+import { withFetchTimeout, FETCH_TIMEOUTS } from "../../../util/http";
+import type { PaymentAdapter, CreatePaymentParams, CreatePaymentResult } from "./types";
+import { PaymentProvider } from "../../../../.zenstack/models";
+import { PaymentConfigService } from "../../../Context/PaymentConfig";
+import { ReqCtxService } from "../../../Context/ReqCtx";
 
-const LOG_PREFIX = '[MbdAdapter]';
+const LOG_PREFIX = "[MbdAdapter]";
 
 /**
  * 面包多(MBD)支付适配器
@@ -25,19 +21,19 @@ const LOG_PREFIX = '[MbdAdapter]';
  * - 订单查询: POST https://newapi.mbd.pub/release/main/search_order
  */
 
-const MBD_API_BASE = 'https://newapi.mbd.pub';
+const MBD_API_BASE = "https://newapi.mbd.pub";
 
 /** 面包多订单状态：支付成功 */
-const MBD_STATE_SUCCESS = '1';
+const MBD_STATE_SUCCESS = "1";
 
 /** 生成面包多签名 */
 function mbdSign(params: Record<string, unknown>, appKey: string): string {
   const sorted = Object.keys(params)
-    .filter((k) => params[k] !== undefined && params[k] !== '')
+    .filter((k) => params[k] !== undefined && params[k] !== "")
     .sort()
     .map((k) => `${k}=${params[k]}`)
-    .join('&');
-  return crypto.createHash('md5').update(`${sorted}&key=${appKey}`).digest('hex');
+    .join("&");
+  return crypto.createHash("md5").update(`${sorted}&key=${appKey}`).digest("hex");
 }
 
 export const MbdAdapter: PaymentAdapter = {
@@ -58,27 +54,35 @@ export const MbdAdapter: PaymentAdapter = {
         amount_total: params.amount,
         out_trade_no: params.orderNo,
         description: params.subject,
-        url: params.returnUrl ?? '',
+        url: params.returnUrl ?? "",
         callback_url: params.notifyUrl,
       };
       const sign = mbdSign(signParams, mbdConfig.appKey);
 
       // 使用支付宝接口（PC/H5通用，返回 HTML form 自动提交）
-      const result = yield* tryOrFail('面包多创建支付', async () => {
-        const response = await fetch(`${MBD_API_BASE}/release/alipay/pay`, withFetchTimeout({
-          method: 'POST',
-          headers: JSON_CONTENT_HEADERS,
-          body: JSON.stringify({ ...signParams, sign }),
-        }, FETCH_TIMEOUTS.payment));
+      const result = yield* tryOrFail("面包多创建支付", async () => {
+        const response = await fetch(
+          `${MBD_API_BASE}/release/alipay/pay`,
+          withFetchTimeout(
+            {
+              method: "POST",
+              headers: JSON_CONTENT_HEADERS,
+              body: JSON.stringify({ ...signParams, sign }),
+            },
+            FETCH_TIMEOUTS.payment,
+          ),
+        );
         const data = (await response.json()) as { error?: string; body?: string; h5_url?: string };
         if (data.error) throw MsgError.msg(`面包多API错误: ${data.error}`);
         return data;
       });
 
-      reqCtx.log(LOG_PREFIX, '创建支付单:', params.orderNo);
+      reqCtx.log(LOG_PREFIX, "创建支付单:", params.orderNo);
 
       // 返回 payUrl：优先使用 h5_url，否则返回 form HTML 用 data URI
-      const payUrl = result.h5_url ?? `data:text/html;base64,${Buffer.from(result.body ?? '').toString('base64')}`;
+      const payUrl =
+        result.h5_url ??
+        `data:text/html;base64,${Buffer.from(result.body ?? "").toString("base64")}`;
 
       return {
         payUrl,
@@ -94,17 +98,23 @@ export const MbdAdapter: PaymentAdapter = {
 
       /** 验证面包多 webhook 签名，防止伪造回调 */
       if (!mbdConfig?.appKey) {
-        return yield* fail('面包多 Webhook 签名验证失败: appKey 未配置');
+        return yield* fail("面包多 Webhook 签名验证失败: appKey 未配置");
       }
       if (!payload.sign) {
-        return yield* fail('面包多 Webhook 签名验证失败: 缺少签名字段');
+        return yield* fail("面包多 Webhook 签名验证失败: 缺少签名字段");
       }
       {
         const { sign: _sign, ...params } = payload;
         const expected = mbdSign(params, mbdConfig.appKey);
-        if (expected !== String(payload.sign)) {
-          reqCtx.log(LOG_PREFIX, 'Webhook 签名验证失败:', String(payload.out_trade_no ?? ''));
-          return yield* fail('面包多 Webhook 签名验证失败');
+        /** 恒定时间比较（防时序攻击），与爱发电适配器的验证方式保持一致 */
+        const expectedBuf = Buffer.from(expected);
+        const actualBuf = Buffer.from(String(payload.sign));
+        if (
+          expectedBuf.length !== actualBuf.length ||
+          !crypto.timingSafeEqual(expectedBuf, actualBuf)
+        ) {
+          reqCtx.log(LOG_PREFIX, "Webhook 签名验证失败:", String(payload.out_trade_no ?? ""));
+          return yield* fail("面包多 Webhook 签名验证失败");
         }
       }
 
@@ -113,29 +123,29 @@ export const MbdAdapter: PaymentAdapter = {
       const type = String(payload.type);
       const data = payload.data as Record<string, unknown> | undefined;
 
-      if (type === 'complaint') {
-        reqCtx.log(LOG_PREFIX, '收到投诉通知:', String(data?.out_trade_no ?? ''));
+      if (type === "complaint") {
+        reqCtx.log(LOG_PREFIX, "收到投诉通知:", String(data?.out_trade_no ?? ""));
         return {
-          tradeNo: '',
-          orderNo: String(data?.out_trade_no ?? ''),
+          tradeNo: "",
+          orderNo: String(data?.out_trade_no ?? ""),
           paidAmount: Number(data?.amount ?? 0),
-          paymentStatus: 'other' as const,
+          paymentStatus: "other" as const,
           paidAt: new Date(),
           rawPayload: deepCloneToJson(payload),
         };
       }
 
-      if (type !== 'charge_succeeded') {
+      if (type !== "charge_succeeded") {
         return yield* fail(`未知的通知类型: ${type}`);
       }
 
-      reqCtx.log(LOG_PREFIX, '收到支付成功回调:', String(data?.out_trade_no ?? ''));
+      reqCtx.log(LOG_PREFIX, "收到支付成功回调:", String(data?.out_trade_no ?? ""));
 
       return {
-        tradeNo: String(data?.charge_id ?? ''),
-        orderNo: String(data?.out_trade_no ?? ''),
+        tradeNo: String(data?.charge_id ?? ""),
+        orderNo: String(data?.out_trade_no ?? ""),
         paidAmount: Number(data?.amount ?? 0),
-        paymentStatus: 'success',
+        paymentStatus: "success",
         paidAt: new Date(),
         rawPayload: deepCloneToJson(payload),
       };
@@ -151,18 +161,31 @@ export const MbdAdapter: PaymentAdapter = {
       const signParams = { app_id: mbdConfig.appId, out_trade_no: orderNo };
       const sign = mbdSign(signParams, mbdConfig.appKey);
 
-      const response = yield* tryOrFail('面包多查询', () => fetch(`${MBD_API_BASE}/release/main/search_order`, withFetchTimeout({
-        method: 'POST',
-        headers: JSON_CONTENT_HEADERS,
-        body: JSON.stringify({ ...signParams, sign }),
-      }, FETCH_TIMEOUTS.payment)).then((r) => r.json()));
+      const response = yield* tryOrFail("面包多查询", () =>
+        fetch(
+          `${MBD_API_BASE}/release/main/search_order`,
+          withFetchTimeout(
+            {
+              method: "POST",
+              headers: JSON_CONTENT_HEADERS,
+              body: JSON.stringify({ ...signParams, sign }),
+            },
+            FETCH_TIMEOUTS.payment,
+          ),
+        ).then((r) => r.json()),
+      );
 
-      const data = response as { error?: string; order_id?: string; state?: string; amount?: string };
+      const data = response as {
+        error?: string;
+        order_id?: string;
+        state?: string;
+        amount?: string;
+      };
       if (data.error || !data.order_id) return null;
 
       return {
         tradeNo: data.order_id,
-        status: data.state === MBD_STATE_SUCCESS ? 'success' : 'pending',
+        status: data.state === MBD_STATE_SUCCESS ? "success" : "pending",
         paidAmount: Number(data.amount ?? 0),
       };
     }),
