@@ -57,6 +57,7 @@ vp run build              # 构建扩展
 
 - 修改模型: `schema.zmodel`
 - 修改 schema 后必须运行 `vp run zen` 生成 ZenStack 客户端
+- **操作线上数据库前，必须先用 scp 把线上 SQLite 库拉到本地备份，再动手**（迁移、修数据、删除均不例外）：`scp "$SSH_TARGET:/root/app/TsFullStack/prisma/dev.db" ./backup/dev-$(date +%Y%m%d-%H%M%S).db`（SSH_TARGET 见 `.deploy-env`），备份成功后才允许执行后续操作
 
 **架构特性**
 

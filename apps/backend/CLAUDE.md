@@ -25,6 +25,7 @@ vp run tsc:b     # 类型检查,修改代码后可自行按需运行此命令检
 ## 开发规范
 
 - **绝对禁止执行 migrate reset清空数据库**
+- **操作线上数据库前，必须先备份到本地再动手**：`scp "$SSH_TARGET:/root/app/TsFullStack/prisma/dev.db" ./backup/dev-$(date +%Y%m%d-%H%M%S).db`（SSH_TARGET 见 `.deploy-env`）。适用于 `zenstack migrate deploy`、修数据、删数据等一切写操作
 - **类型安全**: 严格模式，禁用 `any`，优先使用 Effect
 - **代码质量**: 函数式编程，充分利用类型推导
 - **构建要求**: API/schema 修改 api 下的代码，或者 projects 下的代码后必须执行 `vp run build:lib`

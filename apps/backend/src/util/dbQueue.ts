@@ -1,10 +1,8 @@
-import * as os from 'os';
-import * as crypto from 'crypto';
-import type { ClientContract } from '@zenstackhq/orm';
-import type { Queue as QueueModel } from '../../.zenstack/models';
-import { schema } from '../../.zenstack/schema';
-import type { DbClient } from '../Context/DbService';
-import { extractErrorMessage } from './error';
+import * as os from "os";
+import * as crypto from "crypto";
+import type { Queue as QueueModel } from "../../.zenstack/models";
+import type { DbClient } from "../Context/DbService";
+import { extractErrorMessage } from "./error";
 
 export type TaskMap = Record<string, { payload: unknown; result: unknown }>;
 
@@ -20,7 +18,7 @@ const DEFAULT_POLLING_INTERVAL_MS = 1000;
 const BACKOFF_BASE_MS = 1000;
 
 /** 日志前缀 */
-const LOG_PREFIX = '[Queue]';
+const LOG_PREFIX = "[Queue]";
 /** 默认最大重试次数 */
 const DEFAULT_MAX_ATTEMPTS = 3;
 /** 默认队列并发数 */
@@ -33,17 +31,15 @@ export interface AddTaskOptions {
 }
 
 export interface QueueOptions {
-  dbClient: DbClient | ClientContract<typeof schema>;
+  dbClient: DbClient;
   pollingInterval?: number;
   concurrency?: number;
   instanceId?: string;
   stuckTimeoutMs?: number;
 }
 
-
-
 export class PrismaQueue<T extends TaskMap> {
-  public readonly dbClient: DbClient | ClientContract<typeof schema>;
+  public readonly dbClient: DbClient;
   private readonly pollingInterval: number;
   private readonly concurrency: number;
   private readonly instanceId: string;
@@ -57,7 +53,13 @@ export class PrismaQueue<T extends TaskMap> {
   /** 活跃 worker 的 Promise 集合，用于 stop() 时等待完成 */
   private activePromises = new Set<Promise<void>>();
 
-  constructor({ dbClient, pollingInterval = DEFAULT_POLLING_INTERVAL_MS, concurrency = DEFAULT_QUEUE_CONCURRENCY, instanceId, stuckTimeoutMs = STUCK_TIMEOUT_MS }: QueueOptions) {
+  constructor({
+    dbClient,
+    pollingInterval = DEFAULT_POLLING_INTERVAL_MS,
+    concurrency = DEFAULT_QUEUE_CONCURRENCY,
+    instanceId,
+    stuckTimeoutMs = STUCK_TIMEOUT_MS,
+  }: QueueOptions) {
     this.dbClient = dbClient;
     this.pollingInterval = pollingInterval;
     this.concurrency = concurrency;
@@ -72,24 +74,24 @@ export class PrismaQueue<T extends TaskMap> {
   }
 
   private generateInstanceId(): string {
-    return `${os.hostname()}-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
+    return `${os.hostname()}-${process.pid}-${crypto.randomBytes(4).toString("hex")}`;
   }
 
   register<K extends keyof T>(
     name: K,
-    handler: (payload: T[K]['payload']) => Promise<T[K]['result']>,
+    handler: (payload: T[K]["payload"]) => Promise<T[K]["result"]>,
   ) {
     this.workers.set(name as string, handler as (payload: unknown) => Promise<unknown>);
     console.log(`${LOG_PREFIX} Registered handler: ${name as string}`);
     return this;
   }
 
-  async add<K extends keyof T>(name: K, payload: T[K]['payload'], options: AddTaskOptions = {}) {
+  async add<K extends keyof T>(name: K, payload: T[K]["payload"], options: AddTaskOptions = {}) {
     return this.dbClient.queue.create({
       data: {
         name: name as string,
         payload: payload as never, // ZenStack payload 字段要求严格类型，动态队列通过注册时泛型保证类型安全
-        status: 'PENDING',
+        status: "PENDING",
         priority: options.priority ?? 0,
         runAt: options.runAt ?? new Date(),
         maxAttempts: options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
@@ -129,7 +131,7 @@ export class PrismaQueue<T extends TaskMap> {
     this.heartbeatTimer = setInterval(async () => {
       try {
         await this.dbClient.queue.updateMany({
-          where: { status: 'PROCESSING', workerId: this.instanceId },
+          where: { status: "PROCESSING", workerId: this.instanceId },
           data: { updated: new Date() },
         });
       } catch (error: unknown) {
@@ -155,23 +157,22 @@ export class PrismaQueue<T extends TaskMap> {
         return;
       }
 
-      // @ts-expect-error -- tx 类型因 DbClient | ClientContract 联合类型导致推导失败，但运行时类型正确
       const task = await this.dbClient.$transaction(async (tx) => {
         const candidate = await tx.queue.findFirst({
           where: {
             name: { in: taskTypes },
-            status: 'PENDING',
+            status: "PENDING",
             runAt: { lte: new Date() },
           },
-          orderBy: [{ priority: 'desc' }, { created: 'asc' }],
+          orderBy: [{ priority: "desc" }, { created: "asc" }],
         });
 
         if (!candidate) return null;
 
         const updated = await tx.queue.updateMany({
-          where: { id: candidate.id, status: 'PENDING' },
+          where: { id: candidate.id, status: "PENDING" },
           data: {
-            status: 'PROCESSING',
+            status: "PROCESSING",
             workerId: this.instanceId,
             startedAt: new Date(),
             attempts: { increment: 1 },
@@ -186,8 +187,7 @@ export class PrismaQueue<T extends TaskMap> {
       });
 
       if (task) {
-        /** Prisma 原始类型 → QueueModel: $transaction 内的 tx 类型因联合类型推导失败，运行时结构一致 */
-        const taskPromise = this.processTask(task as unknown as QueueModel).finally(() => {
+        const taskPromise = this.processTask(task).finally(() => {
           this.activeWorkers--;
           this.activePromises.delete(taskPromise);
           if (this.isRunning) {
@@ -214,17 +214,17 @@ export class PrismaQueue<T extends TaskMap> {
     }
 
     try {
-      const payload = task.payload as T[keyof T]['payload'];
+      const payload = task.payload as T[keyof T]["payload"];
       const result = await handler(payload);
 
       const updated = await this.dbClient.queue.updateMany({
         where: {
           id: task.id,
           workerId: this.instanceId,
-          status: 'PROCESSING',
+          status: "PROCESSING",
         },
         data: {
-          status: 'COMPLETED',
+          status: "COMPLETED",
           result: result as never, // ZenStack result 字段要求严格类型，动态队列通过注册时泛型保证类型安全
           completedAt: new Date(),
           updated: new Date(),
@@ -247,10 +247,10 @@ export class PrismaQueue<T extends TaskMap> {
           where: {
             id: task.id,
             workerId: this.instanceId,
-            status: 'PROCESSING',
+            status: "PROCESSING",
           },
           data: {
-            status: 'PENDING',
+            status: "PENDING",
             workerId: null,
             runAt,
             error: `Retry ${current.attempts}/${current.maxAttempts}: ${extractErrorMessage(error)}`,
@@ -258,7 +258,9 @@ export class PrismaQueue<T extends TaskMap> {
           },
         });
 
-        console.warn(`${LOG_PREFIX} Task ${task.id} failed (attempt ${current.attempts}/${current.maxAttempts}), retry in ${backoff}ms: ${extractErrorMessage(error)}`);
+        console.warn(
+          `${LOG_PREFIX} Task ${task.id} failed (attempt ${current.attempts}/${current.maxAttempts}), retry in ${backoff}ms: ${extractErrorMessage(error)}`,
+        );
       } else {
         await this.failTask(task.id, extractErrorMessage(error));
       }
@@ -267,9 +269,9 @@ export class PrismaQueue<T extends TaskMap> {
 
   private async failTask(id: number, reason: string) {
     await this.dbClient.queue.updateMany({
-      where: { id, status: 'PROCESSING' },
+      where: { id, status: "PROCESSING" },
       data: {
-        status: 'FAILED',
+        status: "FAILED",
         error: reason,
         completedAt: new Date(),
         updated: new Date(),
@@ -290,7 +292,7 @@ export class PrismaQueue<T extends TaskMap> {
     try {
       const stuckTasks = await this.dbClient.queue.findMany({
         where: {
-          status: 'PROCESSING',
+          status: "PROCESSING",
           updated: { lt: stuckBefore },
         },
       });
@@ -315,10 +317,10 @@ export class PrismaQueue<T extends TaskMap> {
         await this.dbClient.queue.updateMany({
           where: {
             id: { in: retryIds },
-            status: 'PROCESSING',
+            status: "PROCESSING",
           },
           data: {
-            status: 'PENDING',
+            status: "PENDING",
             workerId: null,
             runAt: batchRunAt,
             error: `Batch recovered ${toRetry.length} stuck tasks`,
@@ -332,9 +334,9 @@ export class PrismaQueue<T extends TaskMap> {
       if (toFail.length > 0) {
         const failIds = toFail.map((t) => t.id);
         await this.dbClient.queue.updateMany({
-          where: { id: { in: failIds }, status: 'PROCESSING' },
+          where: { id: { in: failIds }, status: "PROCESSING" },
           data: {
-            status: 'FAILED',
+            status: "FAILED",
             error: `Max attempts reached after stuck timeout (${toFail.length} tasks)`,
             completedAt: new Date(),
             updated: new Date(),

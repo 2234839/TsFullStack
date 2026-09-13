@@ -177,13 +177,13 @@ importers:
         specifier: workspace:*
         version: link:../../packages/note-calc-engine
       '@zenstackhq/orm':
-        specifier: ^3.9.3
+        specifier: ^3.9.4
         version: 3.9.4(better-sqlite3@12.9.0)(zod@4.4.3)
       '@zenstackhq/plugin-policy':
-        specifier: ^3.9.3
+        specifier: ^3.9.4
         version: 3.9.4(better-sqlite3@12.9.0)(kysely@0.29.4)(zod@4.4.3)
       '@zenstackhq/schema':
-        specifier: ^3.9.3
+        specifier: ^3.9.4
         version: 3.9.4
       bcryptjs:
         specifier: ^3.0.3
@@ -214,7 +214,7 @@ importers:
         specifier: 'catalog:'
         version: 4.1.11(@vitest/browser@4.1.11)(vitest@4.1.11)
       '@zenstackhq/cli':
-        specifier: ^3.9.3
+        specifier: ^3.9.4
         version: 3.9.4(better-sqlite3@12.9.0)(express@5.2.1)(fastify-plugin@5.1.0)(fastify@5.12.4)(kysely@0.29.4)(magicast@0.3.5)(typescript@6.0.3)
       tsx:
         specifier: ^4.23.13
@@ -8892,7 +8892,7 @@ snapshots:
       ora: 5.4.1
       package-manager-detector: 1.6.0
       prisma: 6.19.3(magicast@0.3.5)(typescript@6.0.3)
-      semver: 7.8.0
+      semver: 7.8.5
       terminal-link: 5.0.0
       ts-pattern: 5.9.0
       zod: 4.4.3
