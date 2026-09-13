@@ -79,3 +79,5 @@ apps/website-frontend/projects/**/*.js
 
 # unplugin-vue-components 自动生成，dev/build 时会重写，不提交
 apps/website-frontend/components.d.ts
+backup/
+backup/

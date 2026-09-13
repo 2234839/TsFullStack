@@ -5,6 +5,11 @@ plugin policy {
     provider = '@zenstackhq/plugin-policy'
 }
 
+/// Soft-delete plugin - 删除改写为打时间戳墓碑，读取自动过滤（v3.8.0+，仅对标记 @deletedAt 的模型生效）
+plugin softDelete {
+    provider = '@zenstackhq/plugin-soft-delete'
+}
+
 /// TypeScript plugin for code generation
 plugin typescript {
     provider = '@core/typescript'
@@ -406,6 +411,8 @@ model AiModel with Base {
     description String?
     /// 模型配置（JSON存储，用于存储不同类型模型的特定配置）
     config      Json?
+    /// 软删除墓碑时间（null=未删除）；delete 被改写为设置此字段，读取自动过滤
+    deletedAt   DateTime? @deletedAt
 }
 
 /// AI 模型类型枚举

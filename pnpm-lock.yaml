@@ -182,6 +182,9 @@ importers:
       '@zenstackhq/plugin-policy':
         specifier: ^3.9.4
         version: 3.9.4(better-sqlite3@12.9.0)(kysely@0.29.4)(zod@4.4.3)
+      '@zenstackhq/plugin-soft-delete':
+        specifier: ^3.9.4
+        version: 3.9.4(better-sqlite3@12.9.0)(kysely@0.29.4)(zod@4.4.3)
       '@zenstackhq/schema':
         specifier: ^3.9.4
         version: 3.9.4
@@ -3090,6 +3093,11 @@ packages:
 
   '@zenstackhq/plugin-policy@3.9.4':
     resolution: {integrity: sha512-D0MLbpx9smj+4HiQh0smUVYGDqNNaygaVRGGuHU+SBNe1oDKENbMGYMReM9lPl6CzmCY4V4UWtgfnv3+8PO+fg==}
+    peerDependencies:
+      kysely: ~0.29.0
+
+  '@zenstackhq/plugin-soft-delete@3.9.4':
+    resolution: {integrity: sha512-nPaeGdbw4tAO+XnomkDVJMTjVqz2F/qHbOw2SbB9HGU1xQ54c2UNcRaUd1qWNLr4J4OkUQAavzEIbjS70foCeA==}
     peerDependencies:
       kysely: ~0.29.0
 
@@ -8945,6 +8953,19 @@ snapshots:
       better-sqlite3: 12.9.0
 
   '@zenstackhq/plugin-policy@3.9.4(better-sqlite3@12.9.0)(kysely@0.29.4)(zod@4.4.3)':
+    dependencies:
+      '@zenstackhq/common-helpers': 3.9.4
+      '@zenstackhq/orm': 3.9.4(better-sqlite3@12.9.0)(zod@4.4.3)
+      kysely: 0.29.4
+      ts-pattern: 5.9.0
+    transitivePeerDependencies:
+      - better-sqlite3
+      - mysql2
+      - pg
+      - sql.js
+      - zod
+
+  '@zenstackhq/plugin-soft-delete@3.9.4(better-sqlite3@12.9.0)(kysely@0.29.4)(zod@4.4.3)':
     dependencies:
       '@zenstackhq/common-helpers': 3.9.4
       '@zenstackhq/orm': 3.9.4(better-sqlite3@12.9.0)(zod@4.4.3)

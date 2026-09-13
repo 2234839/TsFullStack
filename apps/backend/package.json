@@ -36,6 +36,7 @@
     "@tsfullstack/note-calc-engine": "workspace:*",
     "@zenstackhq/orm": "^3.9.4",
     "@zenstackhq/plugin-policy": "^3.9.4",
+    "@zenstackhq/plugin-soft-delete": "^3.9.4",
     "@zenstackhq/schema": "^3.9.4",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.9.0",

@@ -1,33 +1,34 @@
-import { definePlugin, ZenStackClient, type ClientContract } from '@zenstackhq/orm';
-import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
-import { PolicyPlugin } from '@zenstackhq/plugin-policy';
-import Database from 'better-sqlite3';
-import { Effect, Option } from 'effect';
-import type { UserFindFirstArgs } from '../../.zenstack/input';
-import type { Role, User, UserSession } from '../../.zenstack/models';
-import { schema, type SchemaType } from '../../.zenstack/schema';
-import { fail, MsgError, tryOrFail } from '../util/error';
-import { MSG } from '../util/constants';
-import { AppConfigService } from './AppConfig';
-import { ReqCtxService } from './ReqCtx';
+import { definePlugin, ZenStackClient, type ClientContract } from "@zenstackhq/orm";
+import { SqliteDialect } from "@zenstackhq/orm/dialects/sqlite";
+import { PolicyPlugin } from "@zenstackhq/plugin-policy";
+import { SoftDeletePlugin } from "@zenstackhq/plugin-soft-delete";
+import Database from "better-sqlite3";
+import { Effect, Option } from "effect";
+import type { UserFindFirstArgs } from "../../.zenstack/input";
+import type { Role, User, UserSession } from "../../.zenstack/models";
+import { schema, type SchemaType } from "../../.zenstack/schema";
+import { fail, MsgError, tryOrFail } from "../util/error";
+import { MSG } from "../util/constants";
+import { AppConfigService } from "./AppConfig";
+import { ReqCtxService } from "./ReqCtx";
 
 /** 日志前缀 */
-const LOG_PREFIX = '[DbService]';
+const LOG_PREFIX = "[DbService]";
 
 /** 需要脱敏的敏感字段名 */
-const SENSITIVE_FIELDS = ['apiKey', 'password', 'token', 'clientSecret', 'sessionToken'] as const;
+const SENSITIVE_FIELDS = ["apiKey", "password", "token", "clientSecret", "sessionToken"] as const;
 
 /** 对数据库操作参数进行脱敏，防止日志泄露 apiKey、password、token 等敏感信息 */
 function sanitizeArgsForLog(args: Record<string, unknown> | undefined): string {
-  if (!args) return '{}';
+  if (!args) return "{}";
   /** 递归克隆并脱敏敏感字段，一次遍历完成深拷贝+脱敏 */
   const cloneAndRedact = (src: unknown): unknown => {
-    if (src == null || typeof src !== 'object') return src;
+    if (src == null || typeof src !== "object") return src;
     if (Array.isArray(src)) return src.map(cloneAndRedact);
     const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(src)) {
       result[key] = SENSITIVE_FIELDS.some((f) => key.toLowerCase().includes(f.toLowerCase()))
-        ? '[REDACTED]'
+        ? "[REDACTED]"
         : cloneAndRedact(value);
     }
     return result;
@@ -36,9 +37,14 @@ function sanitizeArgsForLog(args: Record<string, unknown> | undefined): string {
 }
 
 /** 完整的数据库客户端类型 */
-export type DbClient = ClientContract<SchemaType, {
+export type DbClient = ClientContract<
+  SchemaType,
+  {
     dialect: SqliteDialect;
-}, {}, {}>
+  },
+  {},
+  {}
+>;
 
 /** 模块级缓存的基础 ZenStackClient（无日志插件），整个应用生命周期只创建一次 */
 let _cachedDbRaw: DbClient | null = null;
@@ -49,54 +55,60 @@ let _cachedDbNoLog: DbClient | null = null;
 let _cachedDatabase: InstanceType<typeof Database> | null = null;
 
 /** 获取无权限检查的 dbClient，慎用！！ 使用时需要明确场景，避免权限系统被跳过 */
-export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService> = Effect.gen(function* () {
-  const appConfig = yield* AppConfigService;
-  const databasePath = appConfig.databasePath;
+export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService> = Effect.gen(
+  function* () {
+    const appConfig = yield* AppConfigService;
+    const databasePath = appConfig.databasePath;
 
-  // 惰性初始化：只在首次或数据库路径变化时重建（正常情况下路径不变）
-  if (!_cachedDbRaw || _cachedDbPath !== databasePath) {
-    /** 路径变化时关闭旧连接，释放文件描述符 */
-    if (_cachedDatabase) {
-      _cachedDatabase.close();
-      _cachedDatabase = null;
+    // 惰性初始化：只在首次或数据库路径变化时重建（正常情况下路径不变）
+    if (!_cachedDbRaw || _cachedDbPath !== databasePath) {
+      /** 路径变化时关闭旧连接，释放文件描述符 */
+      if (_cachedDatabase) {
+        _cachedDatabase.close();
+        _cachedDatabase = null;
+      }
+      const db = new Database(databasePath);
+      _cachedDatabase = db;
+      _cachedDbRaw = new ZenStackClient(schema, {
+        dialect: new SqliteDialect({ database: db }),
+      })
+        /** 软删除：拦截 Kysely 查询，delete→墓碑时间戳，读取自动过滤，只对 @deletedAt 模型生效 */
+        .$use(new SoftDeletePlugin());
+      _cachedDbPath = databasePath;
+      _cachedDbNoLog = null;
     }
-    const db = new Database(databasePath);
-    _cachedDatabase = db;
-    _cachedDbRaw = new ZenStackClient(schema, {
-      dialect: new SqliteDialect({ database: db }),
-    });
-    _cachedDbPath = databasePath;
-    _cachedDbNoLog = null;
-  }
 
-  const ctx = yield* Effect.serviceOption(ReqCtxService);
+    const ctx = yield* Effect.serviceOption(ReqCtxService);
 
-  /** 无 ctx 时复用缓存的客户端，避免每次调用都创建 $use 包装 */
-  if (Option.isNone(ctx)) {
-    if (!_cachedDbNoLog) {
-      _cachedDbNoLog = _cachedDbRaw.$use(definePlugin({
-        id: 'cost-logger',
-        onQuery: async ({ args, proceed }) => proceed(args),
-      }));
+    /** 无 ctx 时复用缓存的客户端，避免每次调用都创建 $use 包装 */
+    if (Option.isNone(ctx)) {
+      if (!_cachedDbNoLog) {
+        _cachedDbNoLog = _cachedDbRaw.$use(
+          definePlugin({
+            id: "cost-logger",
+            onQuery: async ({ args, proceed }) => proceed(args),
+          }),
+        );
+      }
+      return _cachedDbNoLog;
     }
-    return _cachedDbNoLog;
-  }
 
-  return _cachedDbRaw.$use(
-    definePlugin({
-      id: 'cost-logger',
-      onQuery: async ({ model, operation, args, proceed }) => {
-        const start = Date.now();
-        const result = await proceed(args);
-        if (model !== 'SystemLog') {
-          const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
-          ctx.value.log(logText);
-        }
-        return result;
-      },
-    }),
-  );
-});
+    return _cachedDbRaw.$use(
+      definePlugin({
+        id: "cost-logger",
+        onQuery: async ({ model, operation, args, proceed }) => {
+          const start = Date.now();
+          const result = await proceed(args);
+          if (model !== "SystemLog") {
+            const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
+            ctx.value.log(logText);
+          }
+          return result;
+        },
+      }),
+    );
+  },
+);
 
 /**
  * 根据用户对象创建带权限检查的 db 客户端
@@ -110,9 +122,8 @@ export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService>
 export const createAuthDbClient = (
   user:
     | (User & { role: Role[]; userSession: UserSession[] })
-    | (Omit<User, 'password'> & { role: Role[]; userSession: UserSession[] }),
-) =>
-  Effect.map(DbClientEffect, (dbClient) => dbClient.$use(new PolicyPlugin()).$setAuth(user));
+    | (Omit<User, "password"> & { role: Role[]; userSession: UserSession[] }),
+) => Effect.map(DbClientEffect, (dbClient) => dbClient.$use(new PolicyPlugin()).$setAuth(user));
 
 /** 根据入参获取有权限检查的 dbClinet，慎用！！只应该在登录鉴权等场景使用，避免入参直接由用户传入 */
 export const getDbAuthEffect = (opt: {
@@ -123,14 +134,18 @@ export const getDbAuthEffect = (opt: {
 }) =>
   Effect.gen(function* () {
     if (!Object.values(opt).some(Boolean)) {
-      return yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
+      return yield* Effect.fail(
+        new MsgError(MsgError.op_toLogin, "Invalid options: 需要提供认证信息"),
+      );
     }
     const ctx = yield* ReqCtxService;
-    ctx.log(`${LOG_PREFIX} getDbAuth: userId=${opt.userId ?? "null"}, hasSession=${!!opt.sessionToken}`);
+    ctx.log(
+      `${LOG_PREFIX} getDbAuth: userId=${opt.userId ?? "null"}, hasSession=${!!opt.sessionToken}`,
+    );
     /** 统一时间基准，避免多次 new Date() 导致边界条件不一致 */
     const now = new Date();
     // 构建 where 条件 - v3 中使用生成的 input 类型
-    let where: UserFindFirstArgs['where'] = {};
+    let where: UserFindFirstArgs["where"] = {};
     if (opt.sessionToken) {
       where = {
         userSession: { some: { token: opt.sessionToken, expiresAt: { gt: now } } },
@@ -148,7 +163,9 @@ export const getDbAuthEffect = (opt: {
     }
 
     const dbClient = yield* DbClientEffect;
-    const user = yield* tryOrFail('查询用户', () =>
+    const user = yield* tryOrFail(
+      "查询用户",
+      () =>
         dbClient.user.findFirst({
           where,
           include: {
@@ -156,19 +173,19 @@ export const getDbAuthEffect = (opt: {
             userSession: {
               /** 只包含当前使用的 session，理论上只有一个，有多个返回结果时可能存在问题 */
               where: {
-                ...((opt.sessionToken != null) && { token: opt.sessionToken }),
-                ...((opt.sessionID != null) && { id: opt.sessionID }),
+                ...(opt.sessionToken != null && { token: opt.sessionToken }),
+                ...(opt.sessionID != null && { id: opt.sessionID }),
                 expiresAt: { gt: now },
               },
               /** 兜底处理，当使用 user.userSession[0] 时能够获取最新的 */
-              orderBy: { expiresAt: 'desc' },
+              orderBy: { expiresAt: "desc" },
             },
           },
         }) as Promise<(User & { role: Role[]; userSession: UserSession[] }) | null>,
     );
 
     if (!user) {
-      return yield* Effect.fail(new MsgError(MsgError.op_logout, '用户登录状态失效'));
+      return yield* Effect.fail(new MsgError(MsgError.op_logout, "用户登录状态失效"));
     }
 
     /** 使用统一的函数创建带权限的 db 客户端 */
