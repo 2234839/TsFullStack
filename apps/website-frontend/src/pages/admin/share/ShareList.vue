@@ -164,7 +164,7 @@
 
         <!-- 分页 -->
         <Paginator
-          :rows="shareList.params.take"
+          :totalRecords="shareList.state.value.total"
           :rowsPerPage="shareList.params.take"
           :page="Math.floor(shareList.params.skip / shareList.params.take)"
           :show-rows-per-page-options="true"

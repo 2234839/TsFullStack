@@ -165,7 +165,7 @@
 
       <div class="field">
         <div class="flex items-center">
-          <Checkbox v-model="form.enabled" inputId="enabled" :binary="true" />
+          <Checkbox v-model="form.enabled" />
           <label for="enabled" class="ml-2 text-sm font-medium text-primary-label">
             {{ t("启用模型") }}
           </label>

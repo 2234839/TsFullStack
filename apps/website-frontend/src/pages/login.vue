@@ -126,7 +126,7 @@
           <!-- 记住我和忘记密码 (仅登录时显示) -->
           <div v-if="isLogin" class="flex items-center justify-between">
             <div class="flex items-center">
-              <Checkbox v-model="localUserPwd.rememberMe" id="remember" binary />
+              <Checkbox v-model="localUserPwd.rememberMe" />
               <label
                 for="remember"
                 class="ml-2 block text-sm text-primary-700 dark:text-primary-200"
@@ -147,7 +147,7 @@
 
           <!-- 用户协议 (仅注册时显示) -->
           <div v-if="!isLogin" class="flex items-center">
-            <Checkbox v-model="agreeTerms" id="terms" binary />
+            <Checkbox v-model="agreeTerms" />
             <label for="terms" class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
               {{ t("我已阅读并同意") }}
               <a

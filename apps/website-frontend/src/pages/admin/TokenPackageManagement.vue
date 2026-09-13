@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, onMounted , shallowRef } from 'vue';
-import { useToast } from '@/composables/useToast';
-import { useI18n } from '@/composables/useI18n';
-import { useConfirm } from '@/composables/useConfirm';
-import { usePaginatedQuery } from '@/composables/usePaginatedQuery';
-import { useAPI } from '@/api';
-import { Dialog, Select } from '@tsfullstack/shared-frontend/components';
-import { TokenOptions, type TokenType } from '@tsfullstack/backend';
-import { getTypeLabel } from '@/utils/admin';
-import { getErrorMessage } from '@/utils/error';
-import { formatPriceWithCurrency } from '@/utils/format';
+import { ref, computed, onMounted, shallowRef } from "vue";
+import { useToast } from "@/composables/useToast";
+import { useI18n } from "@/composables/useI18n";
+import { useConfirm } from "@/composables/useConfirm";
+import { usePaginatedQuery } from "@/composables/usePaginatedQuery";
+import { useAPI } from "@/api";
+import { Dialog, Select } from "@tsfullstack/shared-frontend/components";
+import { TokenOptions, type TokenType } from "@tsfullstack/backend";
+import { getTypeLabel } from "@/utils/admin";
+import { getErrorMessage } from "@/utils/error";
+import { formatPriceWithCurrency } from "@/utils/format";
 const { t } = useI18n();
 const toast = useToast();
 const confirm = useConfirm();
@@ -42,11 +42,11 @@ const {
   updatePageSize,
 } = usePaginatedQuery<TokenPackage>({
   pageSize: 9,
-  errorMessage: '加载套餐列表失败',
+  errorMessage: "加载套餐列表失败",
   fetchFn: async ({ skip, take }) => {
     const [data, total] = await Promise.all([
       API.db.tokenPackage.findMany({
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { sortOrder: "asc" },
         skip,
         take,
       }),
@@ -57,11 +57,13 @@ const {
 });
 
 /** 对话框模式 */
-type DialogMode = 'create' | 'edit' | null;
+type DialogMode = "create" | "edit" | null;
 const dialogMode = ref<DialogMode>(null);
 const showDialog = computed({
   get: () => dialogMode.value !== null,
-  set: (v: boolean) => { if (!v) dialogMode.value = null; },
+  set: (v: boolean) => {
+    if (!v) dialogMode.value = null;
+  },
 });
 
 /** 当前编辑的套餐 */
@@ -69,9 +71,9 @@ const editingPackage = ref<TokenPackage | null>(null);
 
 /** 表单数据 */
 const formData = ref({
-  name: '',
-  description: '',
-  type: 'MONTHLY' as TokenType,
+  name: "",
+  description: "",
+  type: "MONTHLY" as TokenType,
   amount: 100,
   price: 0,
   durationMonths: 1,
@@ -88,12 +90,12 @@ const tokenTypeOptions = TokenOptions.TokenTypeOptions;
 /** 状态徽标样式 */
 const statusBadgeClass = (active: boolean) =>
   active
-    ? 'bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200'
-    : 'bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-primary-300';
+    ? "bg-success-100 text-success-800 dark:bg-success-900 dark:text-success-200"
+    : "bg-primary-100 text-primary-800 dark:bg-primary-700 dark:text-primary-300";
 
 /** 提交表单 */
 function handleSubmit() {
-  if (dialogMode.value === 'create') {
+  if (dialogMode.value === "create") {
     createPackage();
   } else {
     updatePackage();
@@ -103,24 +105,24 @@ function handleSubmit() {
 /** 提交按钮文字 */
 const submitButtonText = computed(() => {
   if (isSubmitting.value) {
-    return dialogMode.value === 'create' ? t('创建中...') : t('更新中...');
+    return dialogMode.value === "create" ? t("创建中...") : t("更新中...");
   }
-  return dialogMode.value === 'create' ? t('创建') : t('更新');
+  return dialogMode.value === "create" ? t("创建") : t("更新");
 });
 
 /** 打开创建对话框 */
 function openCreateDialog() {
   formData.value = {
-    name: '',
-    description: '',
-    type: 'MONTHLY',
+    name: "",
+    description: "",
+    type: "MONTHLY",
     amount: 100,
     price: 0,
     durationMonths: 1,
     sortOrder: 0,
     active: true,
   };
-  dialogMode.value = 'create';
+  dialogMode.value = "create";
 }
 
 /** 打开编辑对话框 */
@@ -128,7 +130,7 @@ function openEditDialog(pkg: TokenPackage) {
   editingPackage.value = pkg;
   formData.value = {
     name: pkg.name,
-    description: pkg.description || '',
+    description: pkg.description || "",
     type: pkg.type,
     amount: pkg.amount,
     price: pkg.price ?? 0,
@@ -136,7 +138,7 @@ function openEditDialog(pkg: TokenPackage) {
     sortOrder: pkg.sortOrder,
     active: pkg.active,
   };
-  dialogMode.value = 'edit';
+  dialogMode.value = "edit";
 }
 
 /** 创建套餐 */
@@ -155,13 +157,13 @@ async function createPackage() {
       sortOrder: formData.value.sortOrder,
     });
 
-    toast.success(t('创建成功'), t('套餐创建成功'));
+    toast.success(t("创建成功"), t("套餐创建成功"));
 
     dialogMode.value = null;
     await loadPackages();
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error, t('创建套餐失败'));
-    toast.error(t('创建失败'), errorMessage);
+    const errorMessage = getErrorMessage(error, t("创建套餐失败"));
+    toast.error(t("创建失败"), errorMessage);
   } finally {
     isSubmitting.value = false;
   }
@@ -183,13 +185,13 @@ async function updatePackage() {
       active: formData.value.active,
     });
 
-    toast.success(t('更新成功'), t('套餐更新成功'));
+    toast.success(t("更新成功"), t("套餐更新成功"));
 
     dialogMode.value = null;
     await loadPackages();
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error, t('更新套餐失败'));
-    toast.error(t('更新失败'), errorMessage);
+    const errorMessage = getErrorMessage(error, t("更新套餐失败"));
+    toast.error(t("更新失败"), errorMessage);
   } finally {
     isSubmitting.value = false;
   }
@@ -202,31 +204,31 @@ async function togglePackageActive(pkg: TokenPackage) {
       active: !pkg.active,
     });
 
-    toast.success(t('操作成功'), pkg.active ? t('套餐已停用') : t('套餐已启用'));
+    toast.success(t("操作成功"), pkg.active ? t("套餐已停用") : t("套餐已启用"));
 
     await loadPackages();
   } catch (error: unknown) {
-    toast.error(t('操作失败'), t('切换套餐状态失败'));
+    toast.error(t("操作失败"), t("切换套餐状态失败"));
   }
 }
 
 /** 删除套餐 */
 async function deletePackage(pkg: TokenPackage) {
   const accepted = await confirm.require({
-    message: `${t('确定要删除套餐')}"${pkg.name}"${t('吗？')}`,
-    acceptProps: { variant: 'danger' },
+    message: `${t("确定要删除套餐")}"${pkg.name}"${t("吗？")}`,
+    acceptProps: { variant: "danger" },
   });
   if (!accepted) return;
 
   try {
     await API.tokenPackageApi.deleteTokenPackage(pkg.id);
 
-    toast.success(t('删除成功'), t('套餐删除成功'));
+    toast.success(t("删除成功"), t("套餐删除成功"));
 
     await loadPackages();
   } catch (error: unknown) {
-    const errorMessage = getErrorMessage(error, t('删除套餐失败'));
-    toast.error(t('删除失败'), errorMessage);
+    const errorMessage = getErrorMessage(error, t("删除套餐失败"));
+    toast.error(t("删除失败"), errorMessage);
   }
 }
 
@@ -240,10 +242,10 @@ onMounted(loadPackages);
     <!-- 页面头部 -->
     <div class="mb-8 flex justify-between items-center">
       <PageHeader size="large" no-margin :subtitle="t('管理用户的代币套餐和订阅')">
-        {{ t('代币套餐管理') }}
+        {{ t("代币套餐管理") }}
       </PageHeader>
       <Button @click="openCreateDialog">
-        {{ t('创建套餐') }}
+        {{ t("创建套餐") }}
       </Button>
     </div>
 
@@ -252,15 +254,25 @@ onMounted(loadPackages);
       <!-- 加载中 -->
       <div v-if="isLoading" class="text-center py-12">
         <ProgressSpinner />
-        <p class="mt-2 text-primary-theme">{{ t('加载中...') }}</p>
+        <p class="mt-2 text-primary-theme">{{ t("加载中...") }}</p>
       </div>
 
       <!-- 空状态 -->
       <div v-else-if="packages.length === 0" class="text-center py-12">
-        <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        <svg
+          class="mx-auto h-12 w-12 text-primary-400"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+          />
         </svg>
-        <p class="mt-2 text-primary-theme">{{ t('暂无套餐') }}</p>
+        <p class="mt-2 text-primary-theme">{{ t("暂无套餐") }}</p>
       </div>
 
       <!-- 套餐卡片 -->
@@ -277,36 +289,33 @@ onMounted(loadPackages);
               <h3 class="text-xl font-semibold text-primary-title">
                 {{ pkg.name }}
               </h3>
-              <span
-                class="px-2 py-1 text-xs rounded"
-                :class="statusBadgeClass(pkg.active)"
-              >
-                {{ pkg.active ? t('已启用') : t('已停用') }}
+              <span class="px-2 py-1 text-xs rounded" :class="statusBadgeClass(pkg.active)">
+                {{ pkg.active ? t("已启用") : t("已停用") }}
               </span>
             </div>
 
             <!-- 套餐信息 -->
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-primary-theme">{{ t('类型:') }}</span>
+                <span class="text-primary-theme">{{ t("类型:") }}</span>
                 <span class="font-medium text-primary-title">
                   {{ getTypeLabel(pkg.type) }}
                 </span>
               </div>
               <div class="flex justify-between">
-                <span class="text-primary-theme">{{ t('代币数量:') }}</span>
-                <span class="font-medium text-primary-title">{{ pkg.amount }} {{ t('枚') }}</span>
+                <span class="text-primary-theme">{{ t("代币数量:") }}</span>
+                <span class="font-medium text-primary-title">{{ pkg.amount }} {{ t("枚") }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-primary-theme">{{ t('价格:') }}</span>
+                <span class="text-primary-theme">{{ t("价格:") }}</span>
                 <span class="font-medium text-primary-title">
-                  {{ pkg.price === null ? t('免费') : formatPriceWithCurrency(pkg.price) }}
+                  {{ pkg.price === null ? t("免费") : formatPriceWithCurrency(pkg.price) }}
                 </span>
               </div>
               <div class="flex justify-between">
-                <span class="text-primary-theme">{{ t('时长:') }}</span>
+                <span class="text-primary-theme">{{ t("时长:") }}</span>
                 <span class="font-medium text-primary-title">
-                  {{ pkg.durationMonths > 0 ? `${pkg.durationMonths} ${t('个月')}` : t('永久') }}
+                  {{ pkg.durationMonths > 0 ? `${pkg.durationMonths} ${t("个月")}` : t("永久") }}
                 </span>
               </div>
             </div>
@@ -318,27 +327,18 @@ onMounted(loadPackages);
 
             <!-- 操作按钮 -->
             <div class="mt-6 flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                class="flex-1"
-                @click="openEditDialog(pkg)"
-              >
-                {{ t('编辑') }}
+              <Button variant="secondary" size="sm" class="flex-1" @click="openEditDialog(pkg)">
+                {{ t("编辑") }}
               </Button>
               <Button
                 :variant="pkg.active ? 'secondary' : 'ghost'"
                 size="sm"
                 @click="togglePackageActive(pkg)"
               >
-                {{ pkg.active ? t('停用') : t('启用') }}
+                {{ pkg.active ? t("停用") : t("启用") }}
               </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                @click="deletePackage(pkg)"
-              >
-                {{ t('删除') }}
+              <Button variant="danger" size="sm" @click="deletePackage(pkg)">
+                {{ t("删除") }}
               </Button>
             </div>
           </div>
@@ -366,7 +366,7 @@ onMounted(loadPackages);
       <div class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-primary-label mb-2">
-            {{ t('套餐名称 *') }}
+            {{ t("套餐名称 *") }}
           </label>
           <Input
             v-model="formData.name"
@@ -376,7 +376,7 @@ onMounted(loadPackages);
 
         <div>
           <label class="block text-sm font-medium text-primary-label mb-2">
-            {{ t('套餐描述') }}
+            {{ t("套餐描述") }}
           </label>
           <Textarea
             v-model="formData.description"
@@ -388,7 +388,7 @@ onMounted(loadPackages);
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-primary-label mb-2">
-              {{ t('代币类型 *') }}
+              {{ t("代币类型 *") }}
             </label>
             <Select
               v-model="formData.type"
@@ -399,19 +399,16 @@ onMounted(loadPackages);
 
           <div>
             <label class="block text-sm font-medium text-primary-label mb-2">
-              {{ t('代币数量 *') }}
+              {{ t("代币数量 *") }}
             </label>
-            <InputNumber
-              v-model="formData.amount"
-              :min="1"
-            />
+            <InputNumber v-model="formData.amount" :min="1" />
           </div>
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-primary-label mb-2">
-              {{ t('价格（分）') }}
+              {{ t("价格（分）") }}
             </label>
             <InputNumber
               v-model="formData.price"
@@ -422,7 +419,7 @@ onMounted(loadPackages);
 
           <div>
             <label class="block text-sm font-medium text-primary-label mb-2">
-              {{ t('时长（月）') }}
+              {{ t("时长（月）") }}
             </label>
             <InputNumber
               v-model="formData.durationMonths"
@@ -435,27 +432,21 @@ onMounted(loadPackages);
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-primary-label mb-2">
-              {{ t('排序顺序') }}
+              {{ t("排序顺序") }}
             </label>
-            <InputNumber
-              v-model="formData.sortOrder"
-              :min="0"
-            />
+            <InputNumber v-model="formData.sortOrder" :min="0" />
           </div>
 
           <div v-if="dialogMode === 'edit'" class="flex items-center">
-            <Checkbox v-model="formData.active" :label="t('启用套餐')" />
+            <Checkbox v-model="formData.active">{{ t("启用套餐") }}</Checkbox>
           </div>
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button
-            variant="secondary"
-            @click="dialogMode = null"
-          >
-            {{ t('取消') }}
+          <Button variant="secondary" @click="dialogMode = null">
+            {{ t("取消") }}
           </Button>
           <Button
             :disabled="isSubmitting || !formData.name"
