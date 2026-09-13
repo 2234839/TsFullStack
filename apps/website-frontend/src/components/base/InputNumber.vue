@@ -5,7 +5,6 @@
  */
 import { computed } from "vue";
 import {
-  NumberFieldContent,
   NumberFieldDecrement,
   NumberFieldIncrement,
   NumberFieldInput,
@@ -84,13 +83,13 @@ const formatOptions = computed(() => ({
     @update:model-value="emit('update:modelValue', $event)"
   >
     <NumberFieldInput v-bind="$attrs" :placeholder="placeholder" :class="inputClasses" />
-    <NumberFieldContent v-if="showButtons" class="flex flex-col ml-2 gap-1">
+    <div v-if="showButtons" class="ml-2 flex flex-col gap-1">
       <NumberFieldIncrement :class="buttonClasses" aria-label="Increase">
         <i class="pi pi-chevron-up text-xs"></i>
       </NumberFieldIncrement>
       <NumberFieldDecrement :class="buttonClasses" aria-label="Decrease">
         <i class="pi pi-chevron-down text-xs"></i>
       </NumberFieldDecrement>
-    </NumberFieldContent>
+    </div>
   </NumberFieldRoot>
 </template>
