@@ -24,7 +24,6 @@ settings:
   prefer-workspace-packages: true
 ignoredBuiltDependencies:
   - "@prisma/engines"
-  - better-sqlite3
   - prisma
   - vue-demi
 overrides:

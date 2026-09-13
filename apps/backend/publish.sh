@@ -58,8 +58,30 @@ timer_start
 
 # 1. 准备阶段
 show_progress "准备远程环境..."
+
+# 本地生成 prisma schema + 迁移目录快照（zenstack CLI 需 Node 21+，远端 Node 20 只能用 prisma CLI 跑迁移；
+# prisma migrate deploy 在 schema 同级 migrations/ 找迁移，故两者都放进 prisma-deploy/）
+show_progress "生成 prisma schema..."
+node ./scripts/gen-prisma-schema.mjs || { show_error "prisma schema 生成失败"; exit 1; }
+rm -rf ./prisma-deploy/migrations && cp -r ./migrations ./prisma-deploy/migrations
+
+# 生成远端专用 package.json：剥离 workspace 协议依赖（note-calc-engine 已 alwaysBundle 内联进 dist，
+# 远端运行时不需要；zenstack/prisma CLI 需真实安装）
+node -e "
+const pkg = require('./package.json');
+for (const section of ['dependencies', 'devDependencies', 'optionalDependencies']) {
+  if (pkg[section]) {
+    for (const name of Object.keys(pkg[section])) {
+      if (pkg[section][name].startsWith('workspace:')) delete pkg[section][name];
+    }
+  }
+}
+// catalog: 协议（devDependencies 的 vite/vitest 等）远端由 pnpm-workspace.yaml 解析，无需处理
+require('fs').writeFileSync('./package.remote.json', JSON.stringify(pkg, null, 2) + '\n');
+"
+
 ssh $SSH_OPTS "$SSH_TARGET" "
-    mkdir -p $REMOTE_PATH/{dist/frontend,migrations} &&
+    mkdir -p $REMOTE_PATH/{dist/frontend,migrations,prisma-deploy} &&
     echo '环境准备完成'
 " || { show_error "环境准备失败"; exit 1; }
 show_success "远程环境准备完成"
@@ -89,11 +111,19 @@ timer_start
     # 数据库迁移和配置文件
     rsync -avz --compress-level=9 -e "ssh $SSH_OPTS" \
         ./schema.zmodel \
+        ./package.remote.json \
+        ./pnpm-lock.yaml \
+        ../../pnpm-workspace.yaml \
         ./migrations \
         ./config.schema.json \
         ./config.example.json \
         ./CONFIG.md \
         "$SSH_TARGET:$REMOTE_PATH/" &
+
+    # prisma schema（多源 rsync 会摊平目录结构，单独传保持 prisma-deploy/ 路径）
+    rsync -avz --compress-level=9 -e "ssh $SSH_OPTS" \
+        ./prisma-deploy/ \
+        "$SSH_TARGET:$REMOTE_PATH/prisma-deploy/" &
 
     wait $BACKEND_PID $DISTLIB_PID $FRONTEND_PID $DB_PID 
 } || { show_error "文件同步失败"; exit 1; }
@@ -118,11 +148,18 @@ ssh $SSH_OPTS "$SSH_TARGET" "
     # 数据库迁移（生产环境使用 migrate deploy）
     echo '执行数据库迁移...'
 
-    # 先生成 Prisma schema（migrate deploy 依赖此文件）
-    echo '生成 Prisma schema...'
-    pnpm zenstack generate || exit 1
+    # 安装依赖（prisma CLI 在 devDependencies，不能 --prod；zenstack 生成物已随 dist 内联，
+    # 远端 Node20 跑不了 zenstack CLI，迁移用 prisma CLI + 本地预生成的 schema）
+    echo '安装依赖...'
+    mv package.remote.json package.json
+    pnpm install --no-frozen-lockfile || exit 1
 
-    pnpm zenstack migrate deploy || exit 1
+    # better-sqlite3 被 ignoredBuiltDependencies 跳过原生编译，需显式 rebuild（否则运行时 bindings 报错）
+    pnpm rebuild better-sqlite3 || exit 1
+
+    echo '应用数据库迁移...'
+    DATABASE_URL="file:$REMOTE_PATH/prisma/dev.db" \
+      node node_modules/prisma/build/index.js migrate deploy --schema ./prisma-deploy/schema.prisma || exit 1
 
     # 重启应用（设置 DATABASE_URL 环境变量）
     echo '重启应用服务...'

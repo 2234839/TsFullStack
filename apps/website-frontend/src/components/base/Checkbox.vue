@@ -29,6 +29,9 @@ withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
 }>();
+
+/** reka CheckboxRoot 的值域含 "indeterminate"（三态），本组件只对外暴露 boolean */
+const handleRootUpdate = (v: boolean | "indeterminate") => emit("update:modelValue", v === true);
 </script>
 
 <template>
@@ -37,7 +40,7 @@ const emit = defineEmits<{
     :model-value="modelValue"
     :disabled="disabled"
     class="flex items-center gap-2"
-    @update:model-value="(v: boolean) => emit('update:modelValue', v)"
+    @update:model-value="handleRootUpdate"
   >
     <span
       class="h-5 w-5 shrink-0 rounded border transition-all duration-200"

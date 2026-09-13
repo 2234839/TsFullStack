@@ -12,8 +12,8 @@
 import { AvatarRoot, AvatarImage, AvatarFallback } from "reka-ui";
 import { ref } from "vue";
 
-/** 图片加载状态（无 image 时视为 error 以直接显示回退） */
-const imgStatus = ref<"error" | "loaded" | "loading">("loading");
+/** 图片加载状态（reka 的 ImageLoadingStatus 含 idle，无 image 时视为 error 以直接显示回退） */
+const imgStatus = ref<"idle" | "error" | "loaded" | "loading">("loading");
 
 defineOptions({ inheritAttrs: false });
 

@@ -29,3 +29,11 @@ export interface UiDrawerInstance {
   /** 打开抽屉（通过 v-model:open 控制） */
   open: boolean;
 }
+
+/**
+ * Drawer 组件事件定义
+ */
+export interface UiDrawerEmits {
+  /** 开关状态变化（v-model:open） */
+  (e: "update:open", value: boolean): void;
+}

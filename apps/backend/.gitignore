@@ -20,3 +20,9 @@ node_modules
 
 # 默认的数据库文件路径（如果不在 .gitignore 中，则可能会误提交数据库文件）
 /database
+
+# 部署脚本生成的临时文件（发布时远端专用 package.json）
+package.remote.json
+
+# 本地生成的 prisma schema 与迁移快照（部署产物）
+prisma-deploy/

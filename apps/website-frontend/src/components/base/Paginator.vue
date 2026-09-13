@@ -6,8 +6,6 @@
 import { computed } from "vue";
 import {
   PaginationEllipsis,
-  PaginationFirst,
-  PaginationLast,
   PaginationList,
   PaginationListItem,
   PaginationNext,

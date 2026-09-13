@@ -31,7 +31,6 @@ const selectButtonMulti = ref<string[]>([]);
 const toastService = useToast();
 const date = ref<Date | undefined>();
 const progress = ref(66);
-const tagOpen = ref(true);
 
 const selectOptions = [
   { label: "选项一", value: "1" },
@@ -65,13 +64,6 @@ const contextMenuItems = [
   { label: "粘贴", icon: "pi pi-clipboard", command: () => {} },
   { label: "删除", icon: "pi pi-trash", command: () => {} },
 ];
-
-const messages = [
-  { severity: "info", text: "这是一条信息提示" },
-  { severity: "success", text: "操作成功完成" },
-  { severity: "warn", text: "请注意潜在风险" },
-  { severity: "error", text: "操作失败，请重试" },
-] as const;
 </script>
 
 <template>
@@ -94,7 +86,7 @@ const messages = [
         <Button icon="pi pi-check" label="带图标" variant="primary" />
         <Button icon="pi pi-cog" variant="text" />
         <Button label="小尺寸" size="small" variant="primary" />
-        <Button label="大尺寸" size="large" variant="primary" />
+        <Button label="大尺寸" size="lg" variant="primary" />
         <Button label="禁用" disabled variant="primary" />
         <Button label="加载中" loading variant="primary" />
       </div>
@@ -311,7 +303,9 @@ const messages = [
           ><template #title>卡片一</template>
           <p class="text-primary-body text-sm">Card 组件内容。</p></Card
         >
-        <CardItem><p class="text-primary-body text-sm">CardItem 组件内容。</p></CardItem>
+        <CardItem title="卡片项" imageUrl="/util/placeholder.svg" route-path="/components"
+          ><p class="text-primary-body text-sm">CardItem 组件内容。</p></CardItem
+        >
         <Column><p class="text-primary-body text-sm">Column 组件内容。</p></Column>
       </div>
     </section>
