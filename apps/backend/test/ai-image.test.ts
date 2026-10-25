@@ -3,7 +3,7 @@
  * 测试完整的 AI 图片生成流程
  */
 
-import { describe, it, expect, beforeAll } from '@jest/globals';
+import { describe, it, expect, beforeAll } from 'vite-plus/test';
 import { setupTestEnvironment, TEST_ACCOUNTS, testAccounts } from './api-test-client';
 
 describe('AI 图片生成 API 测试', () => {

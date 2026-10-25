@@ -19,12 +19,12 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "test": "jest",
-    "test:fast": "jest tests/agent-fast.test.ts",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run",
+    "test:fast": "vitest run tests/agent-fast.test.ts",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "start": "node dist/index.js",
     "example:basic": "pnpm tsx examples/basic-example.ts",
     "example:files": "pnpm tsx examples/file-operations.ts",
@@ -38,12 +38,10 @@
     "dotenv": "^18.0.9"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/node": "^26.6.5",
-    "jest": "^30.5.2",
-    "ts-jest": "^29.4.15",
     "tsx": "^4.23.15",
-    "typescript": "6.0.3"
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   },
   "engines": {
     "node": ">=18.0.0"

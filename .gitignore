@@ -81,3 +81,7 @@ apps/website-frontend/projects/**/*.js
 apps/website-frontend/components.d.ts
 backup/
 backup/
+
+# agent 测试运行产物（tasks.json/tools.json/backups），不入库
+test-data/
+test-data-fast/

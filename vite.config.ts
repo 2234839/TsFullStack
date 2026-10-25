@@ -7,4 +7,8 @@ export default defineConfig({
     singleQuote: true,
     printWidth: 120,
   },
+  test: {
+    /** 全仓跑测试时排除手动集成测试目录（需要活的后端服务器与测试代币，只能手动跑） */
+    exclude: ['**/node_modules/**', '**/dist/**', 'apps/backend/test/**'],
+  },
 });
