@@ -66,7 +66,7 @@ function toView(qr: GroupQRCode): GroupQRCodeView {
  */
 export const GroupEntryService = {
   /** 查询某入口当前生效的群码（含图片绝对路径，仅服务端内部使用，不外泄） */
-  getActiveQr(entry: string) {
+  getActiveQr(entry: string): Effect.Effect<{ qr: GroupQRCode; absPath: string } | null, Error, AppConfigService> {
     return Effect.gen(function* () {
       yield* assertEntry(entry);
       const db = yield* DbClientEffect;
@@ -97,7 +97,13 @@ export const GroupEntryService = {
    * @param buffer 图片二进制
    * @param mime MIME 类型
    */
-  uploadQr(options: { entry: string; groupName?: string; note?: string; buffer: Buffer; mime: string }) {
+  uploadQr(options: {
+    entry: string;
+    groupName?: string;
+    note?: string;
+    buffer: Buffer;
+    mime: string;
+  }): Effect.Effect<GroupQRCodeView, Error, AppConfigService> {
     return Effect.gen(function* () {
       yield* assertEntry(options.entry);
       if (!ALLOWED_MIME.has(options.mime)) {
@@ -150,7 +156,7 @@ export const GroupEntryService = {
   },
 
   /** 手动下线某码（群满 100 人换码场景，等价过期） */
-  archiveQr(id: number) {
+  archiveQr(id: number): Effect.Effect<{ success: true }, Error, AppConfigService> {
     return Effect.gen(function* () {
       const db = yield* DbClientEffect;
       const updated = yield* tryOrFail('下线群码', () =>
@@ -165,7 +171,7 @@ export const GroupEntryService = {
   },
 
   /** 列出群码池（全部入口，按上传时间倒序；不暴露 imagePath） */
-  listQrs() {
+  listQrs(): Effect.Effect<GroupQRCodeView[], Error, AppConfigService> {
     return Effect.gen(function* () {
       const db = yield* DbClientEffect;
       const list = yield* tryOrFail('查询群码池', () => db.groupQRCode.findMany({ orderBy: { uploadedAt: 'desc' } }));
@@ -206,7 +212,14 @@ export const GroupEntryService = {
     ).catch((e) => console.error(`${LOG_PREFIX} 埋点失败（不影响响应）:`, extractErrorMessage(e)));
   },
   /** 引流统计：近 N 天按入口聚合（date 倒序） */
-  getStats(days: number) {
+  getStats(days: number): Effect.Effect<
+    {
+      days: number;
+      items: { date: string; entry: string; imgPv: number; pagePv: number; pageUv: number }[];
+    },
+    Error,
+    AppConfigService
+  > {
     return Effect.gen(function* () {
       const clampedDays = Math.min(Math.max(Math.trunc(days) || 30, 1), 365);
       const db = yield* DbClientEffect;
