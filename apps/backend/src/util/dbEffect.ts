@@ -38,7 +38,7 @@ export function dbTryOrDefault<T>(
   defaultValue: T,
 ): Effect.Effect<T, never, ReqCtxService> {
   return Effect.flatMap(ReqCtxService, (reqCtx) =>
-    Effect.catchAll(
+    Effect.catch(
       Effect.tryPromise({
         try: fn,
         catch: (error: unknown) => {

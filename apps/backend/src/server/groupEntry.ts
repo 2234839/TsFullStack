@@ -172,15 +172,15 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     if (reply.sent) return;
 
     /** 埋点放行后记录（fire-and-forget） */
-    GroupEntryService.recordStat(entry, 'imgPv');
+    GroupEntryService.recordStat(entry, appConfig, 'imgPv');
 
     if (active && isQrEffective(active.qr)) {
       reply
         .type(active.qr.imageMime)
         .header('Cache-Control', IMG_CACHE_CONTROL)
         .header('Content-Length', active.qr.imageSize);
-      reply.send(GroupEntryService.openQrStream(active.absPath));
-      return;
+      /** fastify v5：async handler 中发送 stream 必须 return reply.send()，否则 handler resolve undefined 会把未发送的流覆盖为空 body */
+      return reply.send(GroupEntryService.openQrStream(active.absPath));
     }
 
     /** 过期/缺失：提示图（同样 200，README 里的图不能裂） */
@@ -211,8 +211,8 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     if (isNewUv) {
       reply.header('Set-Cookie', `${UV_COOKIE}=${Date.now()}; Path=/group; Max-Age=${UV_COOKIE_MAX_AGE}; SameSite=Lax`);
     }
-    GroupEntryService.recordStat(entry, 'pagePv');
-    if (isNewUv) GroupEntryService.recordStat(entry, 'pageUv');
+    GroupEntryService.recordStat(entry, appConfig, 'pagePv');
+    if (isNewUv) GroupEntryService.recordStat(entry, appConfig, 'pageUv');
 
     /** 群码转 data URL 内嵌（落地页 no-store 避免缓存旧码；也不暴露原图路径） */
     let qrDataUrl: string | undefined;
@@ -282,7 +282,7 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     if (reply.sent) return;
 
     /** 上传回执（fire-and-forget，失败不影响响应） */
-    GroupEntryService.notifyUpload(entry, groupName);
+    GroupEntryService.notifyUpload(appConfig, entry, groupName);
     reply.send({ success: true, qrcode: created });
   });
 

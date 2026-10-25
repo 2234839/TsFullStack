@@ -307,7 +307,7 @@ class AIProxyServiceUtils {
 }
 
 /** AI 代理服务 Tag */
-export class AIProxyService extends Context.Tag('AIProxyService')<
+export class AIProxyService extends Context.Service<
   AIProxyService,
   {
     /** 检查频率限制 */
@@ -350,9 +350,9 @@ export class AIProxyService extends Context.Tag('AIProxyService')<
       AppConfigService | ReqCtxService
     >;
   }
->() {}
+>()('AIProxyService') {}
 
-/** AI 代理服务实现 */
+/** AI 代理服务实现（v4 Service 接口仍保留 .of 包装方法） */
 export const AIProxyServiceLive = AIProxyService.of({
   checkRateLimit: AIProxyServiceUtils.checkRateLimit,
   recordApiCall: AIProxyServiceUtils.recordApiCall,

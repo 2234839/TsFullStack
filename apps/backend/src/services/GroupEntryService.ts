@@ -4,7 +4,7 @@ import { join, dirname, resolve, sep } from 'path';
 import { createReadStream } from 'fs';
 import { v7 as uuidv7 } from 'uuid';
 import { DbClientEffect } from '../Context/DbService';
-import { AppConfigService } from '../Context/AppConfig';
+import { AppConfigService, type AppConfig } from '../Context/AppConfig';
 import { fail, tryOrFail, MsgError, extractErrorMessage } from '../util/error';
 import { MS_PER_HOUR } from '../util/constants';
 import type { GroupQRCode } from '../../.zenstack/models';
@@ -182,9 +182,10 @@ export const GroupEntryService = {
   /**
    * 引流埋点（fire-and-forget）：upsert 当日计数，失败仅记日志不影响响应
    * @param entry 入口标识
+   * @param appConfig 应用配置（DbClientEffect 的运行依赖）
    * @param kind 埋点类型：imgPv（动态图）/ pagePv（落地页）/ pageUv（落地页当日新 cookie）
    */
-  recordStat(entry: string, kind: 'imgPv' | 'pagePv' | 'pageUv'): void {
+  recordStat(entry: string, appConfig: AppConfig, kind: 'imgPv' | 'pagePv' | 'pageUv'): void {
     if (!ENTRY_RE.test(entry)) return;
     Effect.runPromise(
       Effect.gen(function* () {
@@ -208,7 +209,7 @@ export const GroupEntryService = {
                   : { pageUv: { increment: 1 } },
           }),
         );
-      }),
+      }).pipe(Effect.provideService(AppConfigService, appConfig)),
     ).catch((e) => console.error(`${LOG_PREFIX} 埋点失败（不影响响应）:`, extractErrorMessage(e)));
   },
   /** 引流统计：近 N 天按入口聚合（date 倒序） */
@@ -248,8 +249,11 @@ export const GroupEntryService = {
     });
   },
 
-  /** 上传成功后的回调通知（server酱/bark，GET 一次，失败仅记日志） */
-  notifyUpload(entry: string, groupName?: string): void {
+  /**
+   * 上传成功后的回调通知（server酱/bark，GET 一次，失败仅记日志）
+   * @param appConfig 应用配置（读取 notifyUrl）
+   */
+  notifyUpload(appConfig: AppConfig, entry: string, groupName?: string): void {
     Effect.runPromise(
       Effect.gen(function* () {
         const { groupEntry } = yield* AppConfigService;
@@ -258,7 +262,7 @@ export const GroupEntryService = {
         url.searchParams.set('title', encodeURIComponent(`群码已更新: ${entry}${groupName ? `（${groupName}）` : ''}`));
         yield* tryOrFail('发送上传回执通知', () => fetch(url, { signal: AbortSignal.timeout(10_000) }));
         console.log(`${LOG_PREFIX} 上传回执通知已发送: ${entry}`);
-      }),
+      }).pipe(Effect.provideService(AppConfigService, appConfig)),
     ).catch((e) => console.error(`${LOG_PREFIX} 回执通知失败（忽略）:`, extractErrorMessage(e)));
   },
 

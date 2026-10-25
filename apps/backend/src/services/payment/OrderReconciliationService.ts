@@ -55,7 +55,7 @@ export const OrderReconciliationService = {
             `${LOG_PREFIX} queryOrderStatus failed for ${provider}/${orderNo}: ${extractErrorMessage(error)}`,
           ),
         ),
-        Effect.catchAll(() => Effect.succeed(null)),
+        Effect.catch(() => Effect.succeed(null)),
       );
       return Effect.runPromise(program as Effect.Effect<QueryResult, never, never>);
     };

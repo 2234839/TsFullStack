@@ -54,7 +54,7 @@
     "@zenstackhq/sdk": "^3.9.8",
     "prisma": "8.0.0-rc.27",
     "tsx": "^4.23.15",
-    "typescript": "catalog:",
+    "typescript": "6.0.3",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "catalog:"

@@ -211,6 +211,7 @@ const generateAIImage = (request: { prompt: string; provider?: AiImageProvider; 
     const result = yield* aiImageGenerateService(prompt, { provider, count, size }).pipe(
       Effect.tap((generateResult) => {
         ctx.log(`${LOG_PREFIX} AI 服务返回 ${generateResult.images.length} 张图片`);
+        return Effect.void;
       }),
       Effect.andThen((generateResult) =>
         Effect.gen(function* () {

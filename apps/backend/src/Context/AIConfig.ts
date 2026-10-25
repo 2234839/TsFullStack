@@ -1,6 +1,6 @@
 import { Context } from 'effect';
 
-export class AIConfigContext extends Context.Tag('AIConfigService')<AIConfigContext, AIConfig>() {}
+export class AIConfigContext extends Context.Service<AIConfigContext, AIConfig>()('AIConfigService') {}
 
 /** AI服务配置 */
 export type AIConfig = {

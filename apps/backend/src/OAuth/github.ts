@@ -165,7 +165,7 @@ const catchNetworkError = Effect.mapError((error: unknown) =>
 );
 
 /** ===== 主要类实现 ===== */
-export class GithubAuthService extends Context.Tag('GithubAuthService')<
+export class GithubAuthService extends Context.Service<
   GithubAuthService,
   {
     readonly authenticate: (
@@ -180,7 +180,7 @@ export class GithubAuthService extends Context.Tag('GithubAuthService')<
     >;
     readonly getAuthorizationUrl: () => Effect.Effect<string>;
   }
->() {}
+>()('GithubAuthService') {}
 
 const GithubAuthLiveEffect = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;

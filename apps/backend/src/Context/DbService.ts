@@ -152,25 +152,29 @@ export const getDbAuthEffect = (opt: { userId?: string; email?: string; sessionT
     }
 
     const dbClient = yield* DbClientEffect;
+    /** 查询参数提取为独立常量，避免内联对象字面量触发 MapType 深度递归比较 */
+    const findFirstArgs = {
+      where,
+      include: {
+        role: true,
+        userSession: {
+          /** 只包含当前使用的 session，理论上只有一个，有多个返回结果时可能存在问题 */
+          where: {
+            ...(opt.sessionToken != null && { token: opt.sessionToken }),
+            ...(opt.sessionID != null && { id: opt.sessionID }),
+            expiresAt: { gt: now },
+          },
+          /** 兜底处理，当使用 user.userSession[0] 时能够获取最新的 */
+          orderBy: { expiresAt: 'desc' },
+        },
+      },
+    } satisfies UserFindFirstArgs;
     const user = yield* tryOrFail(
       '查询用户',
       () =>
-        dbClient.user.findFirst({
-          where,
-          include: {
-            role: true,
-            userSession: {
-              /** 只包含当前使用的 session，理论上只有一个，有多个返回结果时可能存在问题 */
-              where: {
-                ...(opt.sessionToken != null && { token: opt.sessionToken }),
-                ...(opt.sessionID != null && { id: opt.sessionID }),
-                expiresAt: { gt: now },
-              },
-              /** 兜底处理，当使用 user.userSession[0] 时能够获取最新的 */
-              orderBy: { expiresAt: 'desc' },
-            },
-          },
-        }) as Promise<(User & { role: Role[]; userSession: UserSession[] }) | null>,
+        dbClient.user.findFirst(findFirstArgs) as unknown as Promise<
+          (User & { role: Role[]; userSession: UserSession[] }) | null
+        >,
     );
 
     if (!user) {

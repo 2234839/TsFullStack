@@ -10,13 +10,13 @@ export interface Database {
   user: Omit<User, 'password'> & { role: Role[]; userSession: UserSession[] };
 }
 
-export class AuthContext extends Context.Tag('AuthContext')<
+export class AuthContext extends Context.Service<
   AuthContext,
   {
     db: Database['db'];
     user: Database['user'];
   }
->() {}
+>()('AuthContext') {}
 
 function userIsAdmin(user: Database['user']) {
   return Boolean(user.role?.find((el) => el.name === 'admin' /* ADMIN_ROLE_NAME — 避免循环依赖，此处保留字面值 */));

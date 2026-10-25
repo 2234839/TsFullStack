@@ -45,7 +45,9 @@ describe('fail', () => {
   it('返回一个产生 MsgError 的 Effect', async () => {
     const result = await Effect.runPromiseExit(fail('oops'));
     if (result._tag === 'Failure') {
-      const error = result.cause._tag === 'Fail' ? result.cause.error : null;
+      /** v4 Cause 扁平结构：Fail reason 直接携带 error */
+      const failReason = result.cause.reasons.find((r) => r._tag === 'Fail');
+      const error = failReason && failReason._tag === 'Fail' ? failReason.error : null;
       expect(MsgError.isMsgError(error)).toBe(true);
       expect((error as MsgError).message).toBe('oops');
     } else {
@@ -56,22 +58,22 @@ describe('fail', () => {
 
 describe('requireOrFail', () => {
   it('有值时返回成功', async () => {
-    const result = await Effect.runPromise(Effect.either(requireOrFail('hello', 'missing')));
-    expect(result._tag === 'Right' && result.right).toBe('hello');
+    const result = await Effect.runPromise(Effect.result(requireOrFail('hello', 'missing')));
+    expect(result._tag === 'Success' && result.success).toBe('hello');
   });
 
   it('null 时返回失败', async () => {
-    const result = await Effect.runPromise(Effect.either(requireOrFail(null, 'missing')));
-    expect(result._tag === 'Left').toBe(true);
+    const result = await Effect.runPromise(Effect.result(requireOrFail(null, 'missing')));
+    expect(result._tag === 'Failure').toBe(true);
   });
 
   it('undefined 时返回失败', async () => {
-    const result = await Effect.runPromise(Effect.either(requireOrFail(undefined, 'missing')));
-    expect(result._tag === 'Left').toBe(true);
+    const result = await Effect.runPromise(Effect.result(requireOrFail(undefined, 'missing')));
+    expect(result._tag === 'Failure').toBe(true);
   });
 
   it('空字符串时返回成功（空字符串是有效值）', async () => {
-    const result = await Effect.runPromise(Effect.either(requireOrFail('', 'missing')));
-    expect(result._tag === 'Right').toBe(true);
+    const result = await Effect.runPromise(Effect.result(requireOrFail('', 'missing')));
+    expect(result._tag === 'Success').toBe(true);
   });
 });

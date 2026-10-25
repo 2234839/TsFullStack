@@ -2,7 +2,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { ORMError, ORMErrorReason } from '@zenstackhq/orm';
-import { Cause, Effect, Exit, Layer, Queue } from 'effect';
+import { Cause, Effect, Exit, Layer, Queue, Semaphore } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import os from 'os';
 import path from 'path';
@@ -20,7 +20,7 @@ import { FileWrapItem } from '../util/file-types';
 import { verifySignByToken } from '../lib/SessionAuthSign';
 import { createRPC } from '../rpc';
 import { MsgError, fail, tryOrFail, extractErrorMessage } from '../util/error';
-import { FetchWithProxy } from '../util/github-proxy';
+import { FetchWithProxy, FetchWithProxyLive } from '../util/github-proxy';
 import {
   createDetailedErrorMessage,
   isRecordNotFoundError,
@@ -55,7 +55,7 @@ const REQUESTS_PER_CPU_CORE = 10;
 
 /** 统一错误序列化函数 */
 function handleCause(cause: Cause.Cause<unknown>) {
-  let err;
+  let err: { message: string; op?: string } | undefined;
   function setErr(error: unknown): string {
     if (MsgError.isMsgError(error)) {
       err = { message: error.message, op: error.op };
@@ -78,21 +78,20 @@ function handleCause(cause: Cause.Cause<unknown>) {
         err = { message: MSG.VALIDATION_FAILED };
       } else {
         // 其他错误，使用第一行错误消息
-        err = { message: error.message.split('\n')[0] };
+        err = { message: (error instanceof Error ? error.message : String(error)).split('\n')[0] ?? '' };
       }
     } else {
       err = { message: String(error) };
     }
-    return String(error); // Cause.match 回调要求返回 string，值虽不被使用但类型必须匹配
+    return String(error);
   }
-  const causeMsg = Cause.match(cause, {
-    onEmpty: '(empty)',
-    onFail: setErr,
-    onDie: setErr,
-    onInterrupt: (fiberId) => `(fiberId: ${fiberId})`,
-    onSequential: (left, right) => `(onSequential (left: ${left}) (right: ${right}))`,
-    onParallel: (left, right) => `(onParallel (left: ${left}) (right: ${right}))`,
-  });
+  /** effect v4：Cause 不再是单 reason 而是 reasons 列表，遍历所有 Fail/Die reason 提取错误信息 */
+  for (const reason of cause.reasons) {
+    if (reason._tag === 'Fail' || reason._tag === 'Die') {
+      setErr(reason._tag === 'Fail' ? reason.error : reason.defect);
+    }
+  }
+  const causeMsg = err ? String((err as { message: string }).message) : '(empty)';
 
   if (err) {
     return err;
@@ -224,8 +223,8 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
   const program = buildReqProgram({ req, reply, pathPrefix, method, enqueueTime });
 
   /** 合成层，避免其他 service 还在依赖 FetchWithProxy */
-  const unFetchProxyLayer = Layer.provide(GithubAuthLive, FetchWithProxy.Default);
-  const unLinuxDoLayer = Layer.provide(LinuxDoAuthLive, FetchWithProxy.Default);
+  const unFetchProxyLayer = Layer.provide(GithubAuthLive, FetchWithProxyLive);
+  const unLinuxDoLayer = Layer.provide(LinuxDoAuthLive, FetchWithProxyLive);
   const allOAuthLayers = Layer.merge(unFetchProxyLayer, unLinuxDoLayer);
 
   const reqLayer = Layer.succeed(ReqCtxService, reqCtx);
@@ -249,8 +248,8 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
       const cause = exit.cause;
 
       /** 记录详细的错误信息 */
-      if (Cause.isDieType(cause)) {
-        const defect = cause.defect;
+      if (cause.reasons.some((r) => r._tag === 'Die')) {
+        const defect: unknown = cause.reasons.find((r) => r._tag === 'Die')?.defect;
         const defectStack =
           defect instanceof Error ? defect.stack?.split('at Generator.next (<anonymous>)')?.[0] : String(defect);
         reqCtx.log(
@@ -496,17 +495,17 @@ export const startServer = Effect.gen(function* () {
   const recommendedConcurrency = cpuCount * REQUESTS_PER_CPU_CORE;
   console.log(`${LOG_PREFIX} 请求并发上限: ${recommendedConcurrency}`);
 
-  const semaphore = yield* Effect.makeSemaphore(recommendedConcurrency);
+  const semaphore = yield* Semaphore.make(recommendedConcurrency);
 
   /** 请求队列消费循环 */
   while (true) {
     const ctx = yield* Queue.take(queue);
 
     /** fork 一个 Fiber 去执行请求处理，确保不会阻塞循环 */
-    yield* Effect.forkDaemon(
+    yield* Effect.forkDetach(
       semaphore.withPermits(1)(
         handleReq(ctx).pipe(
-          Effect.catchAll((err) =>
+          Effect.catch((err: unknown) =>
             Effect.gen(function* () {
               yield* Effect.logError(`[handleReq error] ${String(err)}`);
               /** 确保客户端收到响应，避免连接挂起 */

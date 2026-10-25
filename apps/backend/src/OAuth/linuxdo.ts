@@ -47,7 +47,7 @@ interface LinuxDoTokenResponse {
 }
 
 /** ===== 主要类实现 ===== */
-export class LinuxDoAuthService extends Context.Tag('LinuxDoAuthService')<
+export class LinuxDoAuthService extends Context.Service<
   LinuxDoAuthService,
   {
     readonly authenticate: (
@@ -56,7 +56,7 @@ export class LinuxDoAuthService extends Context.Tag('LinuxDoAuthService')<
     ) => Effect.Effect<{ user: LinuxDoUser; accessToken: string }, Error>;
     readonly getAuthorizationUrl: () => Effect.Effect<string>;
   }
->() {}
+>()('LinuxDoAuthService') {}
 
 const LinuxDoAuthLiveEffect = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;

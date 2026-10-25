@@ -1,5 +1,5 @@
 import { Context } from 'effect';
-export class AppConfigService extends Context.Tag('AppConfigService')<AppConfigService, AppConfig>() {}
+export class AppConfigService extends Context.Service<AppConfigService, AppConfig>()('AppConfigService') {}
 
 /** 请求上下文数据 */
 export type AppConfig = {
