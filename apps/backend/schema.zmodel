@@ -755,3 +755,69 @@ model Task with Base {
     @@allow('read,create,update,delete', auth() == user)
 }
 
+/// 群二维码状态枚举
+enum GroupQRCodeStatus {
+    ACTIVE      // 生效中（当前出码）
+    ARCHIVED    // 已下线（手动换码或群满）
+}
+
+/// 微信群二维码（私域引流）
+/// 维护模型：事件驱动——群码过期后用户关注公众号催更，博主上传新码（上传即生效）
+model GroupQRCode with Base {
+    /** 入口标识（silkpulse / tsfullstack / ccdd ...），README 中的永久锚点 */
+    entry String
+
+    /** 群名称（备注用，如「TsFullStack 交流群 2 号」） */
+    groupName String?
+
+    /** 图片存储相对路径（相对 uploadDir，不含原图文件名，防路径猜测） */
+    imagePath String
+
+    /** 图片字节数（响应 Content-Length 用） */
+    imageSize Int
+
+    /** 图片 MIME 类型 */
+    imageMime String
+
+    /** 上传时刻即生效时刻 */
+    uploadedAt DateTime @default(now())
+
+    /** 过期时刻 = uploadedAt + 7 天（含 5 分钟提前量，宁早勿晚） */
+    expiresAt DateTime
+
+    /** 状态（同一 entry 同时最多一个 ACTIVE） */
+    status GroupQRCodeStatus @default(ACTIVE)
+
+    /** 博主备注 */
+    note String?
+
+    /** 索引优化：按入口查当前生效码 / 按上传时间列池 */
+    @@index([entry, status])
+    @@index([entry, uploadedAt])
+}
+
+/// 引流统计（按日聚合，date+entry 联合主键）
+/// 回答「哪个 repo 真的在带人进群」，指导后续在哪些项目投入
+model GroupStatDaily {
+    /** 日期（本地时区 YYYY-MM-DD） */
+    date String
+
+    /** 入口标识 */
+    entry String
+
+    /** 动态图 PV（README 内嵌图展示次数） */
+    imgPv Int @default(0)
+
+    /** 落地页 PV */
+    pagePv Int @default(0)
+
+    /** 落地页 UV（当日 cookie 去重） */
+    pageUv Int @default(0)
+
+    created DateTime @default(now())
+    updated DateTime @updatedAt
+
+    @@id([date, entry])
+    @@index([date])
+}
+

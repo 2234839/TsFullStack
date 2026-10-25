@@ -29,21 +29,13 @@
     "uploadDir": {
       "type": "string",
       "description": "文件上传目录路径，可以是相对路径或绝对路径",
-      "examples": [
-        "./uploads",
-        "/tmp/uploads",
-        "/var/www/uploads"
-      ]
+      "examples": ["./uploads", "/tmp/uploads", "/var/www/uploads"]
     },
     "databasePath": {
       "type": "string",
       "description": "SQLite 数据库文件路径，可以是相对路径或绝对路径",
       "default": "./database/dev.db",
-      "examples": [
-        "./database/dev.db",
-        "./prisma/dev.db",
-        "/var/data/tsfullstack.db"
-      ]
+      "examples": ["./database/dev.db", "./prisma/dev.db", "/var/data/tsfullstack.db"]
     },
     "ApiProxy": {
       "type": "object",
@@ -53,9 +45,7 @@
           "type": "string",
           "format": "uri",
           "description": "GitHub API 代理地址，用于在国内服务器访问 GitHub API",
-          "examples": [
-            "https://api-proxy.example.com"
-          ]
+          "examples": ["https://api-proxy.example.com"]
         }
       },
       "additionalProperties": true
@@ -136,13 +126,41 @@
         }
       },
       "additionalProperties": false
+    },
+    "groupEntry": {
+      "type": "object",
+      "description": "私域引流（微信群入口）配置，未配置则 /group 路由仅做统计、出公众号引导",
+      "properties": {
+        "adminToken": {
+          "type": "string",
+          "minLength": 16,
+          "description": "管理接口令牌（请求头 x-admin-token），至少 16 位；未配置或过短则管理接口整体禁用"
+        },
+        "officialAccountQrUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "公众号二维码图片的公开 URL（永不过期的兜底入口）"
+        },
+        "officialAccountName": {
+          "type": "string",
+          "description": "公众号名称（提示文案展示用）"
+        },
+        "replyKeyword": {
+          "type": "string",
+          "description": "关注公众号后回复的关键词（默认「加群」）",
+          "default": "加群"
+        },
+        "notifyUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "上传新码成功后的回调通知 URL（server酱/bark 等，可选）"
+        }
+      },
+      "required": ["adminToken", "officialAccountQrUrl"],
+      "additionalProperties": false
     }
   },
-  "required": [
-    "systemAdminUser",
-    "uploadDir",
-    "ApiProxy"
-  ],
+  "required": ["systemAdminUser", "uploadDir", "ApiProxy"],
   "additionalProperties": false,
   "examples": [
     {

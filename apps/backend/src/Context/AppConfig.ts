@@ -1,8 +1,5 @@
 import { Context } from 'effect';
-export class AppConfigService extends Context.Tag('AppConfigService')<
-  AppConfigService,
-  AppConfig
->() {}
+export class AppConfigService extends Context.Tag('AppConfigService')<AppConfigService, AppConfig>() {}
 
 /** 请求上下文数据 */
 export type AppConfig = {
@@ -58,10 +55,10 @@ export type AppConfig = {
     /** 爱发电配置 */
     afdian?: {
       enabled: boolean;
-      userId: string;           // 创作者页面 URL 中的 ID (用于构建赞助链接)
-      apiUserId: string;        // API 调用身份 (用于签名、查订单)
-      apiKey: string;            // API Token
-      webhookToken: string;       // Webhook 验证 Token
+      userId: string; // 创作者页面 URL 中的 ID (用于构建赞助链接)
+      apiUserId: string; // API 调用身份 (用于签名、查订单)
+      apiKey: string; // API Token
+      webhookToken: string; // Webhook 验证 Token
     };
     /** 微信好友支付配置（站长人工确认到账） */
     wechat?: {
@@ -73,5 +70,18 @@ export type AppConfig = {
     };
     /** 订单过期时间（分钟） */
     orderExpireMinutes?: number;
+  };
+  /** 私域引流（微信群入口）配置 */
+  groupEntry?: {
+    /** 管理接口令牌（x-admin-token），未配置则管理接口整体禁用；拒绝弱值（<16 字符） */
+    adminToken: string;
+    /** 公众号二维码图片的公开 URL（永不过期的兜底入口，提示图/落地页引用） */
+    officialAccountQrUrl: string;
+    /** 公众号名称（文案展示用） */
+    officialAccountName?: string;
+    /** 关注后回复的关键词（文案展示用，默认「加群」） */
+    replyKeyword?: string;
+    /** 上传新码成功后的回调通知 URL（server酱/bark 等，可选，收到即发 GET） */
+    notifyUrl?: string;
   };
 };
