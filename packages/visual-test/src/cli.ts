@@ -9,10 +9,10 @@
  *   # 本地开发环境
  *   npx tsx packages/visual-test/src/cli.ts serve --env local
  */
-import { readFileSync } from "fs";
-import { resolve } from "path";
-import { startServer } from "./server";
-import type { RunConfig, Scenario, TestEnv } from "./types";
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { startServer } from './server';
+import type { RunConfig, Scenario, TestEnv } from './types';
 
 /** 解析命令行参数 */
 function parseArgs(): {
@@ -23,7 +23,7 @@ function parseArgs(): {
   configPath: string;
 } {
   const args = process.argv.slice(2);
-  const command = args[0] ?? "serve";
+  const command = args[0] ?? 'serve';
 
   const getArg = (key: string, defaultValue?: string): string | undefined => {
     const idx = args.indexOf(`--${key}`);
@@ -33,13 +33,10 @@ function parseArgs(): {
   // 从 .deploy-env 读取默认值
   const deployEnv = loadDeployEnv();
 
-  const port = parseInt(getArg("port", "7890")!, 10);
-  const env = getArg("env", "local") as TestEnv;
-  const baseUrl = getArg(
-    "baseUrl",
-    env === "production" ? deployEnv.E2E_BASE_URL : "http://localhost:5173",
-  )!;
-  const configPath = getArg("config", "visual-test.config.json")!;
+  const port = parseInt(getArg('port', '7890')!, 10);
+  const env = getArg('env', 'local') as TestEnv;
+  const baseUrl = getArg('baseUrl', env === 'production' ? deployEnv.E2E_BASE_URL : 'http://localhost:5173')!;
+  const configPath = getArg('config', 'visual-test.config.json')!;
 
   return { command, port, env, baseUrl, configPath };
 }
@@ -47,19 +44,19 @@ function parseArgs(): {
 /** 加载 .deploy-env */
 function loadDeployEnv(): Record<string, string> {
   const result: Record<string, string> = {};
-  const envPath = resolve(process.cwd(), ".deploy-env");
+  const envPath = resolve(process.cwd(), '.deploy-env');
   try {
-    const content = readFileSync(envPath, "utf-8");
-    for (const line of content.split("\n")) {
+    const content = readFileSync(envPath, 'utf-8');
+    for (const line of content.split('\n')) {
       const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith("#")) continue;
-      const eqIdx = trimmed.indexOf("=");
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eqIdx = trimmed.indexOf('=');
       if (eqIdx === -1) continue;
       const key = trimmed.slice(0, eqIdx).trim();
       const val = trimmed
         .slice(eqIdx + 1)
         .trim()
-        .replace(/^["']|["']$/g, "");
+        .replace(/^["']|["']$/g, '');
       result[key] = val;
     }
   } catch {
@@ -72,7 +69,7 @@ function loadDeployEnv(): Record<string, string> {
 function loadScenarios(configPath: string): Scenario[] {
   const fullPath = resolve(process.cwd(), configPath);
   try {
-    const content = readFileSync(fullPath, "utf-8");
+    const content = readFileSync(fullPath, 'utf-8');
     const config = JSON.parse(content);
     return config.scenarios ?? [];
   } catch {
@@ -85,37 +82,37 @@ function loadScenarios(configPath: string): Scenario[] {
 function getDefaultScenarios(): Scenario[] {
   return [
     {
-      name: "login",
-      path: "/login",
-      description: "登录页",
-      envs: ["local", "production"],
+      name: 'login',
+      path: '/login',
+      description: '登录页',
+      envs: ['local', 'production'],
     },
     {
-      name: "home",
-      path: "/",
-      description: "首页",
-      envs: ["local", "production"],
+      name: 'home',
+      path: '/',
+      description: '首页',
+      envs: ['local', 'production'],
     },
     {
-      name: "noteCalc",
-      path: "/noteCalc",
-      description: "计算笔记本",
-      envs: ["local", "production"],
-      freezeSelectors: [".cm-content"],
+      name: 'noteCalc',
+      path: '/noteCalc',
+      description: '计算笔记本',
+      envs: ['local', 'production'],
+      freezeSelectors: ['.cm-content'],
     },
     {
-      name: "admin-dashboard",
-      path: "/admin",
-      description: "管理后台 - 仪表盘",
+      name: 'admin-dashboard',
+      path: '/admin',
+      description: '管理后台 - 仪表盘',
       loginRequired: true,
-      envs: ["local", "production"],
+      envs: ['local', 'production'],
     },
     {
-      name: "admin-studio",
-      path: "/admin/studio",
-      description: "管理后台 - 数据工作室",
+      name: 'admin-studio',
+      path: '/admin/studio',
+      description: '管理后台 - 数据工作室',
       loginRequired: true,
-      envs: ["local", "production"],
+      envs: ['local', 'production'],
       skipPixel: true, // 数据表格内容高度动态，只验证 DOM 结构
     },
   ];
@@ -124,13 +121,13 @@ function getDefaultScenarios(): Scenario[] {
 async function main() {
   const opts = parseArgs();
 
-  if (opts.command === "serve") {
+  if (opts.command === 'serve') {
     const scenarios = loadScenarios(opts.configPath);
     const deployEnv = loadDeployEnv();
 
     const runConfig: RunConfig = {
-      baselineDir: resolve(process.cwd(), "visual-test-baselines"),
-      outputDir: resolve(process.cwd(), "visual-test-output"),
+      baselineDir: resolve(process.cwd(), 'visual-test-baselines'),
+      outputDir: resolve(process.cwd(), 'visual-test-output'),
       scenarios,
       baseUrl: opts.baseUrl,
       env: opts.env,
@@ -144,14 +141,14 @@ async function main() {
       defaultViewport: { width: 1280, height: 720 },
     };
 
-    console.log("═══════════════════════════════════════════");
-    console.log("  Visual Test 服务");
-    console.log("═══════════════════════════════════════════");
+    console.log('═══════════════════════════════════════════');
+    console.log('  Visual Test 服务');
+    console.log('═══════════════════════════════════════════');
     console.log(`  环境: ${opts.env}`);
     console.log(`  目标: ${opts.baseUrl}`);
     console.log(`  场景: ${scenarios.length} 个`);
     console.log(`  端口: ${opts.port}`);
-    console.log("");
+    console.log('');
 
     startServer({
       port: opts.port,
@@ -159,9 +156,7 @@ async function main() {
     });
   } else {
     console.error(`未知命令: ${opts.command}`);
-    console.error(
-      "用法: visual-test serve [--port 7890] [--env local|production] [--baseUrl http://...]",
-    );
+    console.error('用法: visual-test serve [--port 7890] [--env local|production] [--baseUrl http://...]');
     process.exit(1);
   }
 }

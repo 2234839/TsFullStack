@@ -1,9 +1,9 @@
 /** ABOUTME: Build script for backend projects */
-import { readdirSync, existsSync, writeFileSync, mkdirSync } from "fs";
-import { join, dirname } from "path";
+import { readdirSync, existsSync, writeFileSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
 
 function discoverProjects() {
-  const projectsPath = join(process.cwd(), "projects");
+  const projectsPath = join(process.cwd(), 'projects');
 
   if (!existsSync(projectsPath)) {
     return [];
@@ -15,7 +15,7 @@ function discoverProjects() {
   for (const dir of projectDirs) {
     if (dir.isDirectory()) {
       const projectPath = join(projectsPath, dir.name);
-      const entryFile = join(projectPath, "index.ts");
+      const entryFile = join(projectPath, 'index.ts');
 
       if (existsSync(entryFile)) {
         projects.push({
@@ -58,22 +58,22 @@ function generateProjectsIndex() {
 }
 
 async function main() {
-  console.log("🚀 Building backend projects...");
+  console.log('🚀 Building backend projects...');
 
   try {
     // 0. 预检查：确保项目目录存在
-    const projectsPath = join(process.cwd(), "projects");
+    const projectsPath = join(process.cwd(), 'projects');
     if (!existsSync(projectsPath)) {
-      console.warn("⚠️ Projects directory not found, skipping build");
-      console.log("   To enable backend projects, create the projects directory");
+      console.warn('⚠️ Projects directory not found, skipping build');
+      console.log('   To enable backend projects, create the projects directory');
       return;
     }
 
     // 1. 生成 projects/index.ts 文件
-    console.log("📦 Step 1: Generating projects index...");
+    console.log('📦 Step 1: Generating projects index...');
 
     const projectsIndexContent = generateProjectsIndex();
-    const projectsIndexPath = join(process.cwd(), "src/projects/index.ts");
+    const projectsIndexPath = join(process.cwd(), 'src/projects/index.ts');
 
     // 确保目录存在
     const dir = dirname(projectsIndexPath);
@@ -81,22 +81,22 @@ async function main() {
       mkdirSync(dir, { recursive: true });
     }
 
-    writeFileSync(projectsIndexPath, projectsIndexContent, "utf8");
-    console.log("✅ Projects index generated successfully");
+    writeFileSync(projectsIndexPath, projectsIndexContent, 'utf8');
+    console.log('✅ Projects index generated successfully');
 
     // 2. 重新构建（含 dist 主产物 + dist-lib 库）
-    console.log("🔨 Step 2: Rebuilding backend...");
-    const { execSync } = await import("child_process");
-    execSync("pnpm build", {
+    console.log('🔨 Step 2: Rebuilding backend...');
+    const { execSync } = await import('child_process');
+    execSync('pnpm build', {
       cwd: process.cwd(),
-      stdio: "inherit",
+      stdio: 'inherit',
     });
 
-    console.log("🎉 Backend projects built successfully!");
+    console.log('🎉 Backend projects built successfully!');
   } catch (error: unknown) {
-    console.error("❌ Build failed:", error);
+    console.error('❌ Build failed:', error);
     if (error instanceof Error) {
-      console.error("   Error details:", error.message);
+      console.error('   Error details:', error.message);
     }
     process.exit(1);
   }

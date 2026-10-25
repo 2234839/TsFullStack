@@ -17,7 +17,10 @@
           <h2 class="text-lg font-semibold text-primary-800 dark:text-primary-50 flex items-center gap-2">
             <i class="pi pi-wallet" /> {{ t('面包多 (MBD)') }}
           </h2>
-          <ToggleSwitch :modelValue="config.mbd.enabled" @update:model-value="(v: boolean) => config.mbd.enabled = v" />
+          <ToggleSwitch
+            :modelValue="config.mbd.enabled"
+            @update:model-value="(v: boolean) => (config.mbd.enabled = v)"
+          />
         </div>
 
         <div class="space-y-4">
@@ -27,7 +30,12 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-primary-label mb-1">{{ t('App Key (签名密钥)') }}</label>
-            <Password v-model="config.mbd.appKey" :placeholder="t('用于签名验证，请妥善保管')" :feedback="false" :toggleMask="undefined" />
+            <Password
+              v-model="config.mbd.appKey"
+              :placeholder="t('用于签名验证，请妥善保管')"
+              :feedback="false"
+              :toggleMask="undefined"
+            />
           </div>
         </div>
       </Card>
@@ -38,7 +46,10 @@
           <h2 class="text-lg font-semibold text-primary-800 dark:text-primary-50 flex items-center gap-2">
             <i class="pi pi-heart" /> {{ t('爱发电 (AFDIAN)') }}
           </h2>
-          <ToggleSwitch :modelValue="config.afdian.enabled" @update:model-value="(v: boolean) => config.afdian.enabled = v" />
+          <ToggleSwitch
+            :modelValue="config.afdian.enabled"
+            @update:model-value="(v: boolean) => (config.afdian.enabled = v)"
+          />
         </div>
 
         <div class="space-y-4">
@@ -48,7 +59,12 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-primary-label mb-1">{{ t('API Token') }}</label>
-            <Password v-model="config.afdian.apiKey" :placeholder="t('API 调用签名用 Token')" :feedback="false" :toggleMask="undefined" />
+            <Password
+              v-model="config.afdian.apiKey"
+              :placeholder="t('API 调用签名用 Token')"
+              :feedback="false"
+              :toggleMask="undefined"
+            />
           </div>
           <div class="p-3 rounded-lg bg-primary-50 dark:bg-primary-800 text-xs text-primary-theme">
             <i class="pi pi-info-circle mr-1"></i>
@@ -66,7 +82,13 @@
             size="small"
             @click="handleTestWebhook"
           />
-          <p v-if="testResult" class="mt-2 text-xs" :class="testResult.success ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'">
+          <p
+            v-if="testResult"
+            class="mt-2 text-xs"
+            :class="
+              testResult.success ? 'text-success-600 dark:text-success-400' : 'text-danger-600 dark:text-danger-400'
+            "
+          >
             {{ testResult.message }}
           </p>
         </div>
@@ -78,7 +100,10 @@
           <h2 class="text-lg font-semibold text-primary-800 dark:text-primary-50 flex items-center gap-2">
             <i class="pi pi-wechat" /> {{ t('微信好友支付 (WECHAT)') }}
           </h2>
-          <ToggleSwitch :modelValue="config.wechat.enabled" @update:model-value="(v: boolean) => config.wechat.enabled = v" />
+          <ToggleSwitch
+            :modelValue="config.wechat.enabled"
+            @update:model-value="(v: boolean) => (config.wechat.enabled = v)"
+          />
         </div>
 
         <div class="space-y-4">
@@ -92,7 +117,11 @@
           </div>
           <div class="p-3 rounded-lg bg-primary-50 dark:bg-primary-800 text-xs text-primary-theme">
             <i class="pi pi-info-circle mr-1"></i>
-            {{ t('选择此支付方式的用户将看到您的微信号和订单信息，需管理员在订单列表中手动确认到账。不受订单过期时间限制。') }}
+            {{
+              t(
+                '选择此支付方式的用户将看到您的微信号和订单信息，需管理员在订单列表中手动确认到账。不受订单过期时间限制。',
+              )
+            }}
           </div>
         </div>
       </Card>
@@ -126,7 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted , shallowRef } from 'vue';
+import { ref, reactive, onMounted, shallowRef } from 'vue';
 import { useAPI } from '@/api';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';

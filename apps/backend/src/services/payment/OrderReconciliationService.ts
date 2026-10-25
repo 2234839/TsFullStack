@@ -38,8 +38,7 @@ function pendingOrderWhere(now: Date) {
 type QueryResult = { tradeNo: string; status: 'success' | 'pending' | 'closed' | 'failed'; paidAmount: number } | null;
 
 /** Effect 上下文查询函数（由 index.ts 启动时注入） */
-let queryRunner: (provider: PaymentProvider, orderNo: string) => Promise<QueryResult> = () =>
-  Promise.resolve(null);
+let queryRunner: (provider: PaymentProvider, orderNo: string) => Promise<QueryResult> = () => Promise.resolve(null);
 
 export const OrderReconciliationService = {
   /**
@@ -47,13 +46,14 @@ export const OrderReconciliationService = {
    */
   initQueryRunner(paymentConfig: PaymentConfig) {
     queryRunner = (provider: PaymentProvider, orderNo: string): Promise<QueryResult> => {
-      const program = Effect.flatMap(
-        PaymentAdapterRegistry.getAdapter(provider),
-        (adapter) => adapter.queryOrderStatus(orderNo),
+      const program = Effect.flatMap(PaymentAdapterRegistry.getAdapter(provider), (adapter) =>
+        adapter.queryOrderStatus(orderNo),
       ).pipe(
         Effect.provideService(PaymentConfigService, paymentConfig),
         Effect.tapError((error) =>
-          Effect.logError(`${LOG_PREFIX} queryOrderStatus failed for ${provider}/${orderNo}: ${extractErrorMessage(error)}`)
+          Effect.logError(
+            `${LOG_PREFIX} queryOrderStatus failed for ${provider}/${orderNo}: ${extractErrorMessage(error)}`,
+          ),
         ),
         Effect.catchAll(() => Effect.succeed(null)),
       );
@@ -129,9 +129,7 @@ export const OrderReconciliationService = {
             await grantTokensForPackage(asGrantTx(tx), order.userId, pkg, order.id, `购买套餐: ${pkg.name}(对账补偿)`);
           });
           paid++;
-          console.log(
-            `${LOG_PREFIX} 对账补偿成功: orderNo=${order.orderNo}, provider=${order.provider}`,
-          );
+          console.log(`${LOG_PREFIX} 对账补偿成功: orderNo=${order.orderNo}, provider=${order.provider}`);
         } else if (result.status === 'closed' || result.status === 'failed') {
           /** 支付平台返回关闭/失败状态，标记为取消 */
           await db.order.update({
@@ -139,9 +137,7 @@ export const OrderReconciliationService = {
             data: { status: OrderStatus.CANCELLED, providerData: { source: 'reconciliation' } },
           });
           cancelled++;
-          console.log(
-            `${LOG_PREFIX} 对账关闭订单: orderNo=${order.orderNo}, provider=${order.provider}`,
-          );
+          console.log(`${LOG_PREFIX} 对账关闭订单: orderNo=${order.orderNo}, provider=${order.provider}`);
         }
       } catch (error: unknown) {
         console.error(`${LOG_PREFIX} 处理订单 ${order.orderNo} 失败:`, error);
@@ -159,8 +155,6 @@ export const OrderReconciliationService = {
    */
   getReconcileIntervalMs(): number {
     const isDev = process.env.NODE_ENV !== 'production';
-    return isDev
-      ? DEV_RECONCILE_INTERVAL_SEC * 1000
-      : PROD_RECONCILE_INTERVAL_MIN * MS_PER_MINUTE;
+    return isDev ? DEV_RECONCILE_INTERVAL_SEC * 1000 : PROD_RECONCILE_INTERVAL_MIN * MS_PER_MINUTE;
   },
 };

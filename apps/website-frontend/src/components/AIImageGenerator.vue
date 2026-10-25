@@ -15,12 +15,7 @@ const ERROR_HIDE_KEYWORDS = ['未配置', 'API Key', '配置错误'] as const;
 /**
  * 安全地显示错误 toast，过滤掉包含敏感关键词的错误消息
  */
-function showSafeError(
-  toast: ReturnType<typeof useToast>,
-  summary: string,
-  fallbackMessage: string,
-  error: unknown,
-) {
+function showSafeError(toast: ReturnType<typeof useToast>, summary: string, fallbackMessage: string, error: unknown) {
   const message = getErrorMessage(error, fallbackMessage);
   if (ERROR_HIDE_KEYWORDS.some((kw) => message.includes(kw))) return;
   toast.error(summary, message);
@@ -116,9 +111,7 @@ const estimatedCost = computed(() => {
 
 /** 是否可以生成 */
 const canGenerate = computed(() => {
-  return prompt.value.trim().length > 0 &&
-         !isGenerating.value &&
-         tokenStore.balance.value.total >= estimatedCost.value;
+  return prompt.value.trim().length > 0 && !isGenerating.value && tokenStore.balance.value.total >= estimatedCost.value;
 });
 
 /** 加载可用的服务商列表 */
@@ -129,7 +122,9 @@ async function loadAvailableProviders() {
 
     /** 如果当前选择的服务商不可用，切换到第一个可用的 */
     if (providers.length > 0 && providers[0]) {
-      const currentProviderAvailable = providers.some((p: { value: string; label: string }) => p.value === provider.value);
+      const currentProviderAvailable = providers.some(
+        (p: { value: string; label: string }) => p.value === provider.value,
+      );
       if (!currentProviderAvailable) {
         provider.value = providers[0].value as 'qwen' | 'dalle' | 'stability';
       }
@@ -196,8 +191,11 @@ async function startGeneration() {
       console.warn('余额刷新失败:', e);
     }
   } catch (error: unknown) {
-
-    try { await tokenStore.resetBalance(); } catch (e) { console.warn('余额恢复失败:', e); }
+    try {
+      await tokenStore.resetBalance();
+    } catch (e) {
+      console.warn('余额恢复失败:', e);
+    }
 
     showSafeError(toast, t('生成失败'), t('生成图片时发生错误'), error);
   } finally {
@@ -214,10 +212,7 @@ async function selectImage(imageUrl: string) {
       taskId: currentTaskId.value,
       imageUrl,
     });
-    toast.success(
-      t('下载成功'),
-      `${t('已保存为')} ${result.filename} (${(result.size / 1024).toFixed(1)} KB)`,
-    );
+    toast.success(t('下载成功'), `${t('已保存为')} ${result.filename} (${(result.size / 1024).toFixed(1)} KB)`);
   } catch (error: unknown) {
     showSafeError(toast, t('下载失败'), t('下载图片时发生错误'), error);
   }
@@ -231,12 +226,7 @@ async function selectImage(imageUrl: string) {
       <label class="block text-sm font-medium text-primary-label mb-2">
         {{ t('提示词') }}
       </label>
-      <Textarea
-        v-model="prompt"
-        :rows="4"
-        :placeholder="t('描述你想要生成的图片...')"
-        :disabled="isGenerating"
-      />
+      <Textarea v-model="prompt" :rows="4" :placeholder="t('描述你想要生成的图片...')" :disabled="isGenerating" />
     </div>
 
     <!-- 快捷模板 -->
@@ -271,10 +261,7 @@ async function selectImage(imageUrl: string) {
           :disabled="isGenerating || availableProviders.length === 0"
           class="w-full"
         />
-        <p
-          v-if="availableProviders.length === 0"
-          class="mt-1 text-sm text-primary-subtle"
-        >
+        <p v-if="availableProviders.length === 0" class="mt-1 text-sm text-primary-subtle">
           {{ t('暂无可用的 AI 服务') }}
         </p>
       </div>
@@ -284,12 +271,7 @@ async function selectImage(imageUrl: string) {
         <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('数量') }}
         </label>
-        <Select
-          v-model="count"
-          :options="countOptions"
-          :disabled="isGenerating"
-          class="w-full"
-        />
+        <Select v-model="count" :options="countOptions" :disabled="isGenerating" class="w-full" />
       </div>
 
       <!-- 图片尺寸 -->
@@ -297,12 +279,7 @@ async function selectImage(imageUrl: string) {
         <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('尺寸') }}
         </label>
-        <Select
-          v-model="size"
-          :options="sizeOptions"
-          :disabled="isGenerating"
-          class="w-full"
-        />
+        <Select v-model="size" :options="sizeOptions" :disabled="isGenerating" class="w-full" />
       </div>
     </div>
 
@@ -311,10 +288,12 @@ async function selectImage(imageUrl: string) {
       <!-- 代币余额显示 -->
       <div class="text-sm text-secondary-600 dark:text-secondary-400">
         <span class="font-medium">{{ t('代币余额:') }}</span>
-        <span :class="{
-          'text-danger-600 dark:text-danger-400': tokenStore.isLowBalance.value,
-          'text-success-600 dark:text-success-400': !tokenStore.isLowBalance.value
-        }">
+        <span
+          :class="{
+            'text-danger-600 dark:text-danger-400': tokenStore.isLowBalance.value,
+            'text-success-600 dark:text-success-400': !tokenStore.isLowBalance.value,
+          }"
+        >
           {{ tokenStore.balance.value.total }} {{ t('枚') }}
         </span>
         <span v-if="estimatedCost > 0" class="ml-2 text-secondary-500 dark:text-secondary-400">
@@ -322,37 +301,25 @@ async function selectImage(imageUrl: string) {
         </span>
       </div>
 
-      <Button
-        :disabled="!canGenerate"
-        :loading="isGenerating"
-        @click="startGeneration"
-      >
+      <Button :disabled="!canGenerate" :loading="isGenerating" @click="startGeneration">
         {{ isGenerating ? t('生成中...') : t('生成图片') }}
       </Button>
     </div>
 
     <!-- 结果对话框 -->
-    <Dialog
-      v-model:open="showResultDialog"
-      :title="t('生成的图片')"
-    >
+    <Dialog v-model:open="showResultDialog" :title="t('生成的图片')">
       <!-- 图片列表 -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div
-          v-for="imageUrl in generatedImages"
-          :key="imageUrl"
-          class="relative group"
-        >
+        <div v-for="imageUrl in generatedImages" :key="imageUrl" class="relative group">
           <img
             :src="imageUrl"
             :alt="t('AI 生成的图片')"
             class="w-full h-auto rounded-lg border border-primary-default"
           />
-          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <Button
-              size="sm"
-              @click="selectImage(imageUrl)"
-            >
+          <div
+            class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100"
+          >
+            <Button size="sm" @click="selectImage(imageUrl)">
               {{ t('选择此图片') }}
             </Button>
           </div>

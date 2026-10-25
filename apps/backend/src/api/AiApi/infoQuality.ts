@@ -45,16 +45,22 @@ function createOptimizedPrompt(content: string): string {
 }
 
 async function callOllamaAPI(prompt: string, model: string, ollamaUrl: string): Promise<string> {
-  const response = await fetch(`${ollamaUrl}/api/generate`, withFetchTimeout({
-    method: 'POST',
-    headers: JSON_CONTENT_HEADERS,
-    body: JSON.stringify({
-      model,
-      /** 禁止思考：https://qwenlm.github.io/blog/qwen3/#advanced-usages */
-      prompt: prompt + ' /no_think',
-      stream: false,
-    }),
-  }, FETCH_TIMEOUTS.ollama));
+  const response = await fetch(
+    `${ollamaUrl}/api/generate`,
+    withFetchTimeout(
+      {
+        method: 'POST',
+        headers: JSON_CONTENT_HEADERS,
+        body: JSON.stringify({
+          model,
+          /** 禁止思考：https://qwenlm.github.io/blog/qwen3/#advanced-usages */
+          prompt: prompt + ' /no_think',
+          stream: false,
+        }),
+      },
+      FETCH_TIMEOUTS.ollama,
+    ),
+  );
 
   if (!response.ok) {
     throw MsgError.msg(`Ollama API request failed: ${response.status} ${response.statusText}`);

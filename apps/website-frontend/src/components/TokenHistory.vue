@@ -134,13 +134,7 @@ function getTypeColor(type: string): string {
       <h3 class="text-lg font-semibold text-primary-title">
         {{ t('代币使用历史') }}
       </h3>
-      <Button
-        variant="secondary"
-        size="sm"
-        :disabled="isLoading"
-        :loading="isLoading"
-        @click="refresh"
-      >
+      <Button variant="secondary" size="sm" :disabled="isLoading" :loading="isLoading" @click="refresh">
         {{ isLoading ? t('刷新中...') : t('刷新') }}
       </Button>
     </div>
@@ -176,9 +170,7 @@ function getTypeColor(type: string): string {
 
           <!-- 右侧：消耗数量 -->
           <div class="text-right">
-            <div class="text-lg font-semibold text-danger-600 dark:text-danger-400">
-              -{{ record.amount }}
-            </div>
+            <div class="text-lg font-semibold text-danger-600 dark:text-danger-400">-{{ record.amount }}</div>
             <div class="text-xs text-secondary-500 dark:text-secondary-400">
               {{ t('代币') }}
             </div>
@@ -188,16 +180,8 @@ function getTypeColor(type: string): string {
     </div>
 
     <!-- 空状态 -->
-    <div
-      v-else-if="!isLoading"
-      class="text-center py-12 text-secondary-500 dark:text-secondary-400"
-    >
-      <svg
-        class="mx-auto h-12 w-12 text-secondary-400"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-      >
+    <div v-else-if="!isLoading" class="text-center py-12 text-secondary-500 dark:text-secondary-400">
+      <svg class="mx-auto h-12 w-12 text-secondary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path
           stroke-linecap="round"
           stroke-linejoin="round"
@@ -210,13 +194,7 @@ function getTypeColor(type: string): string {
 
     <!-- 加载更多 -->
     <div v-if="hasMore" class="text-center">
-      <Button
-        variant="secondary"
-        size="sm"
-        :disabled="isLoading"
-        :loading="isLoading"
-        @click="loadMore"
-      >
+      <Button variant="secondary" size="sm" :disabled="isLoading" :loading="isLoading" @click="loadMore">
         {{ isLoading ? t('加载中...') : t('加载更多') }}
       </Button>
     </div>

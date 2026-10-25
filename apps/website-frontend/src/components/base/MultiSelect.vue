@@ -3,7 +3,7 @@
  * 多选组件（基于 reka-ui Combobox 无头 primitives，multiple 模式）
  * 浮层定位/键盘导航/焦点管理交给 reka，保留原 props/emits API
  */
-import { computed } from "vue";
+import { computed } from 'vue';
 import {
   ComboboxAnchor,
   ComboboxContent,
@@ -12,9 +12,9 @@ import {
   ComboboxItemIndicator,
   ComboboxRoot,
   ComboboxTrigger,
-} from "reka-ui";
-import { useI18n } from "@/composables/useI18n";
-import { INPUT_BASE_CLASSES } from "./inputStyles";
+} from 'reka-ui';
+import { useI18n } from '@/composables/useI18n';
+import { INPUT_BASE_CLASSES } from './inputStyles';
 
 defineOptions({ inheritAttrs: false });
 
@@ -55,11 +55,11 @@ const {
   options = [] as Option[],
   placeholder,
   maxSelectedLabels = 3,
-  selectedItemsLabel = "{0} items selected",
+  selectedItemsLabel = '{0} items selected',
 } = defineProps<Props>();
 
 const emit = defineEmits<{
-  "update:modelValue": [value: unknown[]];
+  'update:modelValue': [value: unknown[]];
 }>();
 
 /** Combobox 的受控值（规范化为数组） */
@@ -80,10 +80,8 @@ const valueByKey = computed(() => {
 /** 处理 reka 多选值变化 → 转换回原始值数组 */
 function handleUpdate(keys: unknown) {
   const keyArray = Array.isArray(keys) ? keys : keys != null ? [keys] : [];
-  const rawValues = keyArray
-    .map((k) => valueByKey.value.get(String(k)))
-    .filter((v): v is unknown => v !== undefined);
-  emit("update:modelValue", rawValues);
+  const rawValues = keyArray.map((k) => valueByKey.value.get(String(k))).filter((v): v is unknown => v !== undefined);
+  emit('update:modelValue', rawValues);
 }
 
 /** 获取选中的选项标签 */
@@ -97,21 +95,21 @@ const displayLabel = computed(() => {
   const labels = selectedLabels.value;
   if (labels.length === 0) return placeholder;
   if (labels.length <= maxSelectedLabels) {
-    return labels.join(", ");
+    return labels.join(', ');
   }
-  return selectedItemsLabel.replace("{0}", String(labels.length));
+  return selectedItemsLabel.replace('{0}', String(labels.length));
 });
 
 /** 触发按钮样式类 */
 const triggerClasses = computed(() => {
   const extraClasses =
-    "bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer w-full text-left";
+    'bg-white dark:bg-primary-900 min-h-[42px] flex items-center justify-between cursor-pointer w-full text-left';
 
   const stateClasses = invalid
-    ? "border-danger-500 focus:ring-danger-500 dark:border-danger-400"
-    : "border-primary-default focus:ring-primary-500 dark:focus:ring-primary-400";
+    ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
+    : 'border-primary-default focus:ring-primary-500 dark:focus:ring-primary-400';
 
-  const disabledClass = disabled ? "opacity-50 cursor-not-allowed" : "";
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${INPUT_BASE_CLASSES} ${extraClasses} ${stateClasses} ${disabledClass}`;
 });
@@ -133,12 +131,7 @@ const triggerClasses = computed(() => {
         </span>
         <span class="ml-2 text-primary-400">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
-            />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </span>
       </ComboboxTrigger>
@@ -150,7 +143,7 @@ const triggerClasses = computed(() => {
       class="z-50 w-[var(--reka-combobox-trigger-width)] bg-white dark:bg-primary-900 border border-primary-default rounded-lg shadow-lg max-h-60 overflow-y-auto"
     >
       <ComboboxEmpty class="px-3 py-2 text-sm text-primary-subtle text-center">
-        {{ t("没有可用选项") }}
+        {{ t('没有可用选项') }}
       </ComboboxEmpty>
       <ComboboxItem
         v-for="option in options"
@@ -166,12 +159,7 @@ const triggerClasses = computed(() => {
           >
             <ComboboxItemIndicator>
               <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="3"
-                  d="M5 13l4 4L19 7"
-                />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
               </svg>
             </ComboboxItemIndicator>
           </div>

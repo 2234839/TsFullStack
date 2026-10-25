@@ -72,9 +72,12 @@ export default defineBackground(() => {
         contentScriptReadyMap.set(tabId, { url, timestamp });
 
         // 5分钟后清理过期记录
-        setTimeout(() => {
-          contentScriptReadyMap.delete(tabId);
-        }, 5 * 60 * 1000);
+        setTimeout(
+          () => {
+            contentScriptReadyMap.delete(tabId);
+          },
+          5 * 60 * 1000,
+        );
       }
     }
   });

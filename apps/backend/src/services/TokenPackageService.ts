@@ -64,23 +64,29 @@ export const TokenPackageService = {
   /**
    * 更新代币套餐
    */
-  updatePackage: (packageId: number, request: {
-    name?: string;
-    description?: string;
-    amount?: number;
-    price?: number;
-    durationMonths?: number;
-    sortOrder?: number;
-    active?: boolean;
-  }) =>
+  updatePackage: (
+    packageId: number,
+    request: {
+      name?: string;
+      description?: string;
+      amount?: number;
+      price?: number;
+      durationMonths?: number;
+      sortOrder?: number;
+      active?: boolean;
+    },
+  ) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
 
       // 检查套餐是否存在（不存在则抛错）
-      yield* dbTryRequire(LOG_PREFIX, '查询套餐', () =>
-        db.tokenPackage.findUnique({
-          where: { id: packageId },
-        }),
+      yield* dbTryRequire(
+        LOG_PREFIX,
+        '查询套餐',
+        () =>
+          db.tokenPackage.findUnique({
+            where: { id: packageId },
+          }),
         MSG.PACKAGE_NOT_FOUND,
       );
 
@@ -130,11 +136,7 @@ export const TokenPackageService = {
   /**
    * 获取套餐列表
    */
-  listPackages: (options?: {
-    active?: boolean;
-    skip?: number;
-    take?: number;
-  }) =>
+  listPackages: (options?: { active?: boolean; skip?: number; take?: number }) =>
     Effect.flatMap(DbClientEffect, (db) =>
       dbTry(LOG_PREFIX, '获取套餐列表', () =>
         db.tokenPackage.findMany({
@@ -145,7 +147,6 @@ export const TokenPackageService = {
         }),
       ),
     ),
-
 
   /**
    * 取消订阅
@@ -163,12 +164,7 @@ export const TokenPackageService = {
   /**
    * 获取用户订阅列表
    */
-  listSubscriptions: (options?: {
-    userId?: string;
-    active?: boolean;
-    skip?: number;
-    take?: number;
-  }) =>
+  listSubscriptions: (options?: { userId?: string; active?: boolean; skip?: number; take?: number }) =>
     Effect.flatMap(DbClientEffect, (db) =>
       dbTry(LOG_PREFIX, '获取订阅列表', () =>
         db.userTokenSubscription.findMany({

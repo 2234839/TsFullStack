@@ -28,7 +28,7 @@ export class InteractiveService {
       askForClarification: boolean;
       maxQuestions: number;
     },
-    logger: Logger
+    logger: Logger,
   ) {
     this.logger = logger;
     this.enabled = config.enabled;
@@ -44,18 +44,22 @@ export class InteractiveService {
     }
 
     this.questionsAsked++;
-    
-    this.logger.info('Asking user question', { 
-      type: decision.type,
-      question: decision.question,
-      options: decision.options 
-    }, 'InteractiveService');
+
+    this.logger.info(
+      'Asking user question',
+      {
+        type: decision.type,
+        question: decision.question,
+        options: decision.options,
+      },
+      'InteractiveService',
+    );
 
     try {
       const readline = require('readline');
       const rl = readline.createInterface({
         input: process.stdin,
-        output: process.stdout
+        output: process.stdout,
       });
 
       const askQuestion = (question: string): Promise<string> => {
@@ -67,51 +71,56 @@ export class InteractiveService {
       };
 
       let answer: string;
-      
+
       if (decision.type === 'confirmation') {
         answer = await askQuestion(`${decision.question} (yes/no): `);
         while (answer !== 'yes' && answer !== 'no' && answer !== 'y' && answer !== 'n') {
           answer = await askQuestion('请输入 yes 或 no: ');
         }
         answer = answer.startsWith('y') ? 'yes' : 'no';
-        
       } else if (decision.type === 'choice' && decision.options) {
         console.log(decision.question);
         decision.options.forEach((option, index) => {
           console.log(`${index + 1}. ${option}`);
         });
-        
+
         const choice = await askQuestion('请选择 (输入数字): ');
         const choiceIndex = parseInt(choice) - 1;
-        
+
         if (choiceIndex >= 0 && choiceIndex < decision.options.length) {
           answer = decision.options[choiceIndex];
         } else {
           answer = decision.options[0]; // 默认选择第一个
         }
-        
       } else {
         answer = await askQuestion(`${decision.question}: `);
       }
 
       rl.close();
-      
+
       const confirmed = answer !== 'no' && answer !== 'cancel';
-      
-      this.logger.info('User responded', { 
-        answer,
-        confirmed,
-        type: decision.type 
-      }, 'InteractiveService');
+
+      this.logger.info(
+        'User responded',
+        {
+          answer,
+          confirmed,
+          type: decision.type,
+        },
+        'InteractiveService',
+      );
 
       return { answer, confirmed };
-
     } catch (error) {
-      this.logger.error('Failed to ask question', { 
-        error: error instanceof Error ? error.message : String(error),
-        question: decision.question 
-      }, 'InteractiveService');
-      
+      this.logger.error(
+        'Failed to ask question',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          question: decision.question,
+        },
+        'InteractiveService',
+      );
+
       return { answer: decision.required ? 'no' : 'auto', confirmed: false };
     }
   }
@@ -124,7 +133,7 @@ export class InteractiveService {
     const decision: InteractiveDecision = {
       type: 'confirmation',
       question: `是否要执行工具 "${toolName}"?${description ? `\n描述: ${description}` : ''}\n输入: ${JSON.stringify(input, null, 2)}`,
-      required: true
+      required: true,
     };
 
     const response = await this.askQuestion(decision);
@@ -139,7 +148,7 @@ export class InteractiveService {
     const decision: InteractiveDecision = {
       type: 'clarification',
       question: `任务描述存在歧义: "${ambiguity}"\n请澄清任务 "${taskDescription}"`,
-      required: false
+      required: false,
     };
 
     const response = await this.askQuestion(decision);
@@ -155,7 +164,7 @@ export class InteractiveService {
       type: 'choice',
       question,
       options,
-      required
+      required,
     };
 
     const response = await this.askQuestion(decision);

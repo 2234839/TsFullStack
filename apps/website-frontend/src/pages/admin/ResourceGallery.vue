@@ -81,9 +81,10 @@ const hasLoadedAll = computed(() => resources.value.length >= total.value);
 /** 过滤后的资源列表（组合过滤：status 和 type 同时生效） */
 const filteredResources = computed(() => {
   const list = resources.value ?? [];
-  return list.filter(r =>
-    (statusFilter.value === 'all' || r.status === statusFilter.value) &&
-    (typeFilter.value === 'all' || r.type === typeFilter.value),
+  return list.filter(
+    (r) =>
+      (statusFilter.value === 'all' || r.status === statusFilter.value) &&
+      (typeFilter.value === 'all' || r.type === typeFilter.value),
   );
 });
 
@@ -188,29 +189,23 @@ onMounted(() => loadResources(true));
         <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('状态') }}
         </label>
-        <Select
-          v-model="statusFilter"
-          :options="statusOptions"
-          :placeholder="t('全部')"
-        />
+        <Select v-model="statusFilter" :options="statusOptions" :placeholder="t('全部')" />
       </div>
 
       <div>
         <label class="block text-sm font-medium text-primary-label mb-2">
           {{ t('类型') }}
         </label>
-        <Select
-          v-model="typeFilter"
-          :options="typeOptions"
-          :placeholder="t('全部')"
-        />
+        <Select v-model="typeFilter" :options="typeOptions" :placeholder="t('全部')" />
       </div>
     </div>
 
     <!-- 资源列表 -->
     <div class="bg-primary-panel rounded-lg shadow">
       <!-- 表格头部 -->
-      <div class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-primary-default font-medium text-sm text-primary-label">
+      <div
+        class="grid grid-cols-12 gap-4 px-6 py-3 border-b border-primary-default font-medium text-sm text-primary-label"
+      >
         <div class="col-span-1">{{ t('预览') }}</div>
         <div class="col-span-3">{{ t('标题') }}</div>
         <div class="col-span-2">{{ t('类型') }}</div>
@@ -228,7 +223,12 @@ onMounted(() => loadResources(true));
       <!-- 空状态 -->
       <div v-else-if="filteredResources.length === 0" class="text-center py-12">
         <svg class="mx-auto h-12 w-12 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+          />
         </svg>
         <p class="mt-2 text-primary-theme">{{ t('暂无资源') }}</p>
       </div>
@@ -242,7 +242,11 @@ onMounted(() => loadResources(true));
         >
           <!-- 预览 -->
           <div class="col-span-1">
-            <div v-if="resource.type === 'IMAGE'" key="image" class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 overflow-hidden">
+            <div
+              v-if="resource.type === 'IMAGE'"
+              key="image"
+              class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 overflow-hidden"
+            >
               <img
                 v-if="resource.file || hasExternalUrl(resource)"
                 :src="getImageUrl(resource)"
@@ -251,13 +255,27 @@ onMounted(() => loadResources(true));
               />
               <div v-else class="w-full h-full flex items-center justify-center text-primary-400">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
             </div>
-            <div v-else key="file" class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 flex items-center justify-center">
+            <div
+              v-else
+              key="file"
+              class="w-12 h-12 rounded bg-primary-100 dark:bg-primary-600 flex items-center justify-center"
+            >
               <svg class="w-6 h-6 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                />
               </svg>
             </div>
           </div>
@@ -288,11 +306,7 @@ onMounted(() => loadResources(true));
 
           <!-- 操作 -->
           <div class="col-span-2 flex items-center">
-            <Button
-              variant="text"
-              size="sm"
-              @click="viewDetail(resource)"
-            >
+            <Button variant="text" size="sm" @click="viewDetail(resource)">
               {{ t('查看详情') }}
             </Button>
           </div>
@@ -301,12 +315,7 @@ onMounted(() => loadResources(true));
 
       <!-- 加载更多 -->
       <div v-if="!hasLoadedAll && filteredResources.length > 0" class="px-6 py-4 border-t border-primary-default">
-        <Button
-          variant="secondary"
-          class="w-full"
-          :disabled="isLoading"
-          @click="loadResources()"
-        >
+        <Button variant="secondary" class="w-full" :disabled="isLoading" @click="loadResources()">
           <span v-if="isLoading" key="loading">{{ t('加载中...') }}</span>
           <span v-else key="idle">{{ t('加载更多') }}</span>
         </Button>
@@ -314,11 +323,7 @@ onMounted(() => loadResources(true));
     </div>
 
     <!-- 详情对话框 -->
-    <Dialog
-      v-if="selectedResource"
-      v-model:open="showDetailDialog"
-      :title="t('资源详情')"
-    >
+    <Dialog v-if="selectedResource" v-model:open="showDetailDialog" :title="t('资源详情')">
       <!-- 图片预览 -->
       <div v-if="selectedResource.type === 'IMAGE'" class="mb-6">
         <img
@@ -377,7 +382,9 @@ onMounted(() => loadResources(true));
           <label class="block text-sm font-medium text-primary-label mb-1">
             {{ t('元数据') }}
           </label>
-          <pre class="bg-primary-100 dark:bg-primary-900 p-3 rounded text-xs overflow-auto max-h-40">{{ JSON.stringify(selectedResource.metadata, null, 2) }}</pre>
+          <pre class="bg-primary-100 dark:bg-primary-900 p-3 rounded text-xs overflow-auto max-h-40">{{
+            JSON.stringify(selectedResource.metadata, null, 2)
+          }}</pre>
         </div>
       </div>
     </Dialog>

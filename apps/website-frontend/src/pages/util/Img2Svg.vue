@@ -1,16 +1,10 @@
 <template>
   <div class="svg-generator p-4 max-w-4xl mx-auto">
     <div class="grid gap-4 mb-4">
-      <FileUpload
-        mode="basic"
-        accept="image/*"
-        :chooseLabel="t('选择图片')"
-        @select="handleImageUpload" />
+      <FileUpload mode="basic" accept="image/*" :chooseLabel="t('选择图片')" @select="handleImageUpload" />
       <div class="flex flex-col">
         <label class="text-sm mb-1">{{ t('检测模式') }}</label>
-        <Select
-          v-model="detectionMode"
-          :options="detectionModeOptions" />
+        <Select v-model="detectionMode" :options="detectionModeOptions" />
       </div>
       <div class="flex flex-col" v-if="detectionMode === 'binarize'">
         <label class="text-sm mb-1">{{ t('二值化阈值') }}</label>
@@ -43,151 +37,151 @@
 </template>
 
 <script setup lang="ts">
-  import { ref, watch, computed } from 'vue';
-  import { Select } from '@tsfullstack/shared-frontend/components';
-  import { useI18n } from '@/composables/useI18n';
+import { ref, watch, computed } from 'vue';
+import { Select } from '@tsfullstack/shared-frontend/components';
+import { useI18n } from '@/composables/useI18n';
 
-  const { t } = useI18n();
+const { t } = useI18n();
 
-  /** 检测模式类型 */
-  type DetectionMode = 'binarize' | 'alpha';
+/** 检测模式类型 */
+type DetectionMode = 'binarize' | 'alpha';
 
-  /** 检测模式选项映射 */
-  const detectionModeOptions = computed(() => [
-    { label: t('二值化'), value: 'binarize' as DetectionMode },
-    { label: t('透明度'), value: 'alpha' as DetectionMode },
-  ]);
+/** 检测模式选项映射 */
+const detectionModeOptions = computed(() => [
+  { label: t('二值化'), value: 'binarize' as DetectionMode },
+  { label: t('透明度'), value: 'alpha' as DetectionMode },
+]);
 
-  const canvas = ref<HTMLCanvasElement | null>(null);
-  /** SVG 渲染容器（使用 innerHTML 替代 v-html，SVG 内容由程序化生成，无外部输入） */
-  const svgContainer = ref<HTMLDivElement | null>(null);
-  const previewData = ref<string | null>(null);
-  const loading = ref(false);
-  const binarizeThreshold = ref(30);
-  const alphaThreshold = ref(128);
-  const detectionMode = ref<DetectionMode>('binarize');
-  const originImgUrl = ref<string>();
+const canvas = ref<HTMLCanvasElement | null>(null);
+/** SVG 渲染容器（使用 innerHTML 替代 v-html，SVG 内容由程序化生成，无外部输入） */
+const svgContainer = ref<HTMLDivElement | null>(null);
+const previewData = ref<string | null>(null);
+const loading = ref(false);
+const binarizeThreshold = ref(30);
+const alphaThreshold = ref(128);
+const detectionMode = ref<DetectionMode>('binarize');
+const originImgUrl = ref<string>();
 
-  const invertColors = ref(false);
+const invertColors = ref(false);
 
-  watch([binarizeThreshold, alphaThreshold, detectionMode, invertColors], () => {
-    if (originImgUrl.value) {
-      const img = new Image();
-      img.onload = () => processImage(img);
-      img.src = originImgUrl.value;
-    }
-  });
+watch([binarizeThreshold, alphaThreshold, detectionMode, invertColors], () => {
+  if (originImgUrl.value) {
+    const img = new Image();
+    img.onload = () => processImage(img);
+    img.src = originImgUrl.value;
+  }
+});
 
-  const handleImageUpload = (event: { files: File[] }) => {
-    if (!event.files.length) return;
+const handleImageUpload = (event: { files: File[] }) => {
+  if (!event.files.length) return;
 
-    loading.value = true;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        processImage(img);
-        loading.value = false;
-      };
-      img.src = e.target?.result as string;
-      originImgUrl.value = img.src;
+  loading.value = true;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      processImage(img);
+      loading.value = false;
     };
-    reader.readAsDataURL(event.files[0]!);
+    img.src = e.target?.result as string;
+    originImgUrl.value = img.src;
   };
+  reader.readAsDataURL(event.files[0]!);
+};
 
-  const processImage = (img: HTMLImageElement) => {
-    if (!canvas.value) return;
+const processImage = (img: HTMLImageElement) => {
+  if (!canvas.value) return;
 
-    const ctx = canvas.value.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
+  const ctx = canvas.value.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return;
 
-    canvas.value.width = img.width;
-    canvas.value.height = img.height;
-    ctx.drawImage(img, 0, 0);
+  canvas.value.width = img.width;
+  canvas.value.height = img.height;
+  ctx.drawImage(img, 0, 0);
 
-    const imageData = ctx.getImageData(0, 0, img.width, img.height);
-    if (detectionMode.value === 'binarize') {
-      binarizeImage(imageData);
-    } else {
-      alphaDetectImage(imageData);
-    }
+  const imageData = ctx.getImageData(0, 0, img.width, img.height);
+  if (detectionMode.value === 'binarize') {
+    binarizeImage(imageData);
+  } else {
+    alphaDetectImage(imageData);
+  }
 
-    if (invertColors.value) {
-      invertImage(imageData);
-    }
+  if (invertColors.value) {
+    invertImage(imageData);
+  }
 
-    previewData.value = canvas.value.toDataURL();
-  };
+  previewData.value = canvas.value.toDataURL();
+};
 
-  /** 反相处理图像 */
-  const invertImage = (imageData: ImageData) => {
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      data[i] = 255 - (data[i] || 0);
-      data[i + 1] = 255 - (data[i + 1] || 0);
-      data[i + 2] = 255 - (data[i + 2] || 0);
-    }
-    if (canvas.value) {
-      const ctx = canvas.value.getContext('2d');
-      ctx?.putImageData(imageData, 0, 0);
-    }
-  };
-
-  const binarizeImage = (imageData: ImageData) => {
-    const data = imageData.data;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const avg = ((data[i] || 0) + (data[i + 1] || 0) + (data[i + 2] || 0)) / 3;
-      const value = avg > binarizeThreshold.value ? 255 : 0;
-      data[i] = data[i + 1] = data[i + 2] = value;
-    }
-
-    if (canvas.value) {
-      const ctx = canvas.value.getContext('2d');
-      ctx?.putImageData(imageData, 0, 0);
-    }
-  };
-
-  const alphaDetectImage = (imageData: ImageData) => {
-    const data = imageData.data;
-
-    for (let i = 0; i < data.length; i += 4) {
-      const alpha = data[i + 3] || 0;
-      const value = alpha > alphaThreshold.value ? 255 : 0;
-      data[i] = data[i + 1] = data[i + 2] = value;
-      data[i + 3] = 255;
-    }
-
-    if (canvas.value) {
-      const ctx = canvas.value.getContext('2d');
-      ctx?.putImageData(imageData, 0, 0);
-    }
-  };
-  const generateSVG = () => {
-    if (!canvas.value || !svgContainer.value) return;
-
+/** 反相处理图像 */
+const invertImage = (imageData: ImageData) => {
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    data[i] = 255 - (data[i] || 0);
+    data[i + 1] = 255 - (data[i + 1] || 0);
+    data[i + 2] = 255 - (data[i + 2] || 0);
+  }
+  if (canvas.value) {
     const ctx = canvas.value.getContext('2d');
-    if (!ctx) return;
+    ctx?.putImageData(imageData, 0, 0);
+  }
+};
 
-    const width = canvas.value.width;
-    const height = canvas.value.height;
-    const imageData = ctx.getImageData(0, 0, width, height);
-    const paths = traceImageToSVG(imageData);
+const binarizeImage = (imageData: ImageData) => {
+  const data = imageData.data;
 
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svgEl = document.createElementNS(svgNS, 'svg');
-    svgEl.setAttribute('width', String(width));
-    svgEl.setAttribute('height', String(height));
-    svgEl.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    svgEl.setAttribute('xmlns', svgNS);
-    const pathEl = document.createElementNS(svgNS, 'path');
-    pathEl.setAttribute('d', paths.join(' '));
-    pathEl.setAttribute('fill', '#000000');
-    pathEl.setAttribute('stroke', 'none');
-    svgEl.appendChild(pathEl);
+  for (let i = 0; i < data.length; i += 4) {
+    const avg = ((data[i] || 0) + (data[i + 1] || 0) + (data[i + 2] || 0)) / 3;
+    const value = avg > binarizeThreshold.value ? 255 : 0;
+    data[i] = data[i + 1] = data[i + 2] = value;
+  }
 
-    svgContainer.value.replaceChildren(svgEl);
-  };
+  if (canvas.value) {
+    const ctx = canvas.value.getContext('2d');
+    ctx?.putImageData(imageData, 0, 0);
+  }
+};
+
+const alphaDetectImage = (imageData: ImageData) => {
+  const data = imageData.data;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const alpha = data[i + 3] || 0;
+    const value = alpha > alphaThreshold.value ? 255 : 0;
+    data[i] = data[i + 1] = data[i + 2] = value;
+    data[i + 3] = 255;
+  }
+
+  if (canvas.value) {
+    const ctx = canvas.value.getContext('2d');
+    ctx?.putImageData(imageData, 0, 0);
+  }
+};
+const generateSVG = () => {
+  if (!canvas.value || !svgContainer.value) return;
+
+  const ctx = canvas.value.getContext('2d');
+  if (!ctx) return;
+
+  const width = canvas.value.width;
+  const height = canvas.value.height;
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const paths = traceImageToSVG(imageData);
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svgEl = document.createElementNS(svgNS, 'svg');
+  svgEl.setAttribute('width', String(width));
+  svgEl.setAttribute('height', String(height));
+  svgEl.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svgEl.setAttribute('xmlns', svgNS);
+  const pathEl = document.createElementNS(svgNS, 'path');
+  pathEl.setAttribute('d', paths.join(' '));
+  pathEl.setAttribute('fill', '#000000');
+  pathEl.setAttribute('stroke', 'none');
+  svgEl.appendChild(pathEl);
+
+  svgContainer.value.replaceChildren(svgEl);
+};
 
 const traceImageToSVG = (imageData: ImageData): string[] => {
   const width = imageData.width;
@@ -229,8 +223,8 @@ const traceImageToSVG = (imageData: ImageData): string[] => {
 </script>
 
 <style scoped>
-  .preview-container {
-    max-width: 100%;
-    overflow: auto;
-  }
+.preview-container {
+  max-width: 100%;
+  overflow: auto;
+}
 </style>

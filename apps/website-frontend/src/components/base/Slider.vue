@@ -8,8 +8,8 @@
  * <Slider v-model="value" :min="0" :max="100" :step="1" />
  * ```
  */
-import { computed } from "vue";
-import { SliderRoot, SliderTrack, SliderRange, SliderThumb } from "reka-ui";
+import { computed } from 'vue';
+import { SliderRoot, SliderTrack, SliderRange, SliderThumb } from 'reka-ui';
 
 defineOptions({ inheritAttrs: false });
 
@@ -35,13 +35,13 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  "update:modelValue": [value: number];
+  'update:modelValue': [value: number];
 }>();
 
 /** 双向绑定的模型值（reka-ui Slider 使用数组模型） */
 const model = computed({
   get: () => [props.modelValue],
-  set: (val: number[]) => emit("update:modelValue", val[0] ?? props.min),
+  set: (val: number[]) => emit('update:modelValue', val[0] ?? props.min),
 });
 </script>
 

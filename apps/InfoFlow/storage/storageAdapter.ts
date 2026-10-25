@@ -58,10 +58,7 @@ export interface ReactiveStorageOptions<TValue> {
  * @param options Configuration options
  * @returns Vue reactive ref that synchronizes with storage
  */
-export function useReactiveStorage<TValue>(
-  adapter: StorageAdapter<TValue>,
-  options: ReactiveStorageOptions<TValue>
-) {
+export function useReactiveStorage<TValue>(adapter: StorageAdapter<TValue>, options: ReactiveStorageOptions<TValue>) {
   const { fallback, throttleDelay = 100, enableDebugLog = false } = options;
 
   const devLog = enableDebugLog ? console.log.bind(console) : () => {};
@@ -147,12 +144,7 @@ export function useReactiveStorage<TValue>(
   }
 
   const deepRef = customRef<TValue>((track, trigger) => {
-    let proxyValue = createReactiveDeepProxy(
-      fallback as object,
-      handleDeepSet,
-      track,
-      trigger,
-    ) as TValue;
+    let proxyValue = createReactiveDeepProxy(fallback as object, handleDeepSet, track, trigger) as TValue;
 
     const saveValue = useThrottleFn(
       (value: TValue, isDeep: boolean = false) => {

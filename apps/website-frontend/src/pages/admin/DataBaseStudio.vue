@@ -18,11 +18,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import AutoTable from "@/components/AutoTable/AutoTable.vue";
-import { useModelMeta } from "@/components/AutoTable/util";
-import { ref, watch } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import { useI18n } from "@/composables/useI18n";
+import AutoTable from '@/components/AutoTable/AutoTable.vue';
+import { useModelMeta } from '@/components/AutoTable/util';
+import { ref, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
+import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
 
@@ -41,12 +41,12 @@ function handleWheel(e: WheelEvent) {
 const modelMeta = await useModelMeta().catch(() => null);
 
 const { hideSwitch, modelName } = defineProps<{
-  hideSwitch?: "true" | "false";
+  hideSwitch?: 'true' | 'false';
   modelName?: string;
 }>();
 
 /** 从路由 query 或 props 中初始化选中的模型名称 */
-const selectModelName = ref<string>((route.query.model as string) || modelName || "User");
+const selectModelName = ref<string>((route.query.model as string) || modelName || 'User');
 
 /** 监听模型选择变化，使用 replace 更新路由 query（不生成历史记录） */
 watch(selectModelName, (newValue) => {

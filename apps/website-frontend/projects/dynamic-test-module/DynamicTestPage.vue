@@ -10,9 +10,7 @@
       </template>
       <template #content>
         <div class="space-y-4">
-          <Message variant="info" :closable="false">
-            这是一个动态加载的测试模块，演示了自动路由系统的功能。
-          </Message>
+          <Message variant="info" :closable="false"> 这是一个动态加载的测试模块，演示了自动路由系统的功能。 </Message>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
@@ -40,18 +38,8 @@
           </div>
 
           <div class="mt-6">
-            <Button
-              label="测试按钮"
-              icon="pi pi-check"
-              @click="testFunction"
-              class="mr-2"
-            />
-            <Button
-              label="返回首页"
-              icon="pi pi-home"
-              @click="goHome"
-              variant="secondary"
-            />
+            <Button label="测试按钮" icon="pi pi-check" @click="testFunction" class="mr-2" />
+            <Button label="返回首页" icon="pi pi-home" @click="goHome" variant="secondary" />
           </div>
         </div>
       </template>
@@ -60,16 +48,16 @@
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { Card, Button, Message } from '@/components/base'
+import { useRouter } from 'vue-router';
+import { Card, Button, Message } from '@/components/base';
 
-const router = useRouter()
+const router = useRouter();
 
 const testFunction = () => {
-  alert('动态模块功能测试成功！')
-}
+  alert('动态模块功能测试成功！');
+};
 
 const goHome = () => {
-  router.push('/')
-}
+  router.push('/');
+};
 </script>

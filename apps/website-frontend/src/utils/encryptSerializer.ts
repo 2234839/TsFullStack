@@ -13,9 +13,9 @@ const encoder = new TextEncoder();
 const IV_LENGTH = 12;
 
 /** 使用 SHA-256 派生密钥，确保始终为 256-bit AES-GCM 密钥 */
-const key = crypto.subtle.digest('SHA-256', encoder.encode(SECRET_KEY)).then((hash) =>
-  crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']),
-);
+const key = crypto.subtle
+  .digest('SHA-256', encoder.encode(SECRET_KEY))
+  .then((hash) => crypto.subtle.importKey('raw', hash, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']));
 
 /** 自定义加密存储序列化器，使用随机 IV 防止相同明文产生相同密文 */
 export const encryptSerializer = {
@@ -39,7 +39,11 @@ export const encryptSerializer = {
     }
     /** 每次加密使用随机 IV，避免固定 IV 导致的密码学弱点 */
     const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await key, new TextEncoder().encode(JSON.stringify(value)));
+    const encrypted = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      await key,
+      new TextEncoder().encode(JSON.stringify(value)),
+    );
     /** 将 IV 前置到密文头部，解密时先读取 IV 再解密 */
     const combined = new Uint8Array(iv.length + encrypted.byteLength);
     combined.set(iv, 0);

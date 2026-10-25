@@ -25,12 +25,6 @@
     "noImplicitReturns": true, // 确保函数有显式返回
     "noUncheckedIndexedAccess": true // 索引访问时检查 undefined
   },
-  "include": [
-    "src/**/*",
-    "projects/**/*"
-  ], // 包含 src 和 projects 目录下的所有文件
-  "exclude": [
-    "node_modules",
-    "dist"
-  ] // 排除 node_modules 和 dist 目录
+  "include": ["src/**/*", "projects/**/*"], // 包含 src 和 projects 目录下的所有文件
+  "exclude": ["node_modules", "dist"] // 排除 node_modules 和 dist 目录
 }

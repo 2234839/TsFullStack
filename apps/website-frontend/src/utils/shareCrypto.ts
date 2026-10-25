@@ -23,24 +23,24 @@ const PBKDF2_ITERATIONS = 100_000;
 const SALT_LENGTH = 16;
 
 /** 加密标记：用于验证密码是否正确 */
-const MAGIC_STRING = "__share_crypto_valid__";
+const MAGIC_STRING = '__share_crypto_valid__';
 
 /**
  * Base64URL 编码（URL 安全，用于 hash 传递）
  */
 export function base64UrlEncode(bytes: Uint8Array): string {
-  let binary = "";
+  let binary = '';
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /**
  * Base64URL 解码
  */
 export function base64UrlDecode(str: string): Uint8Array {
-  const padded = str.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = str.replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(padded);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -53,23 +53,21 @@ export function base64UrlDecode(str: string): Uint8Array {
  * 从用户密码 + 盐派生 AES-GCM 密钥
  */
 async function deriveKey(password: string, salt: Uint8Array): Promise<CryptoKey> {
-  const baseKey = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, [
-    "deriveKey",
-  ]);
+  const baseKey = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveKey']);
   /** 拷贝到新 ArrayBuffer，确保类型为 ArrayBuffer 而非 SharedArrayBuffer（TS 5.7+ 严格类型） */
   const saltBuffer = new ArrayBuffer(salt.byteLength);
   new Uint8Array(saltBuffer).set(salt);
   return crypto.subtle.deriveKey(
     {
-      name: "PBKDF2",
+      name: 'PBKDF2',
       salt: saltBuffer,
       iterations: PBKDF2_ITERATIONS,
-      hash: "SHA-256",
+      hash: 'SHA-256',
     },
     baseKey,
-    { name: "AES-GCM", length: 256 },
+    { name: 'AES-GCM', length: 256 },
     false,
-    ["encrypt", "decrypt"],
+    ['encrypt', 'decrypt'],
   );
 }
 
@@ -85,11 +83,7 @@ export function generateSalt(): Uint8Array {
  */
 export async function encryptString(plaintext: string, key: CryptoKey): Promise<string> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const ciphertext = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    encoder.encode(plaintext),
-  );
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoder.encode(plaintext));
   const combined = new Uint8Array(iv.length + ciphertext.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertext), iv.length);
@@ -103,7 +97,7 @@ export async function decryptString(encrypted: string, key: CryptoKey): Promise<
   const combined = base64UrlDecode(encrypted);
   const iv = combined.slice(0, IV_LENGTH);
   const ciphertext = combined.slice(IV_LENGTH);
-  const plaintext = await crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
   return decoder.decode(plaintext);
 }
 
@@ -112,7 +106,7 @@ export async function decryptString(encrypted: string, key: CryptoKey): Promise<
  */
 export async function encryptBytes(data: ArrayBuffer, key: CryptoKey): Promise<ArrayBuffer> {
   const iv = crypto.getRandomValues(new Uint8Array(IV_LENGTH));
-  const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, data);
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, data);
   const combined = new Uint8Array(iv.length + ciphertext.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertext), iv.length);
@@ -126,7 +120,7 @@ export async function decryptBytes(encrypted: ArrayBuffer, key: CryptoKey): Prom
   const combined = new Uint8Array(encrypted);
   const iv = combined.slice(0, IV_LENGTH);
   const ciphertext = combined.slice(IV_LENGTH);
-  return crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, ciphertext);
+  return crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
 }
 
 /**
@@ -204,10 +198,10 @@ export class ShareCrypto {
  * @returns salt 和 verifier，如果不存在则返回 null
  */
 export function parseHashParams(hash: string): { salt: string; verifier: string } | null {
-  const stripped = hash.replace(/^#/, "");
+  const stripped = hash.replace(/^#/, '');
   const params = new URLSearchParams(stripped);
-  const salt = params.get("k");
-  const verifier = params.get("v");
+  const salt = params.get('k');
+  const verifier = params.get('v');
   if (!salt || !verifier) return null;
   return { salt, verifier };
 }
@@ -217,9 +211,9 @@ export function parseHashParams(hash: string): { salt: string; verifier: string 
  * 生成一个足够安全的随机密码，用户无需自己设置
  */
 export function generateRandomPassword(length = 16): string {
-  const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const randomValues = crypto.getRandomValues(new Uint8Array(length));
-  let result = "";
+  let result = '';
   for (const val of randomValues) {
     result += charset[val % charset.length];
   }

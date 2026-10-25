@@ -17,7 +17,8 @@ defineOptions({ inheritAttrs: false });
   <div
     v-bind="$attrs"
     class="bg-primary-surface rounded-lg shadow-md overflow-hidden"
-    :class="{ 'cursor-pointer hover:shadow-lg transition-shadow duration-300': clickable }">
+    :class="{ 'cursor-pointer hover:shadow-lg transition-shadow duration-300': clickable }"
+  >
     <!-- 具名插槽：标题区域 -->
     <div v-if="$slots.title" class="p-4 border-b border-primary-default">
       <slot name="title" />

@@ -10,27 +10,17 @@
         {{ t('抱歉，您访问的页面不存在或已被移动。') }}
       </p>
       <div class="space-x-4">
-        <Button
-          @click="router.go(-1)"
-          :label="t('返回上页')"
-          icon="pi pi-arrow-left"
-          variant="secondary"
-        />
-        <Button
-          @click="router.push('/')"
-          :label="t('返回首页')"
-          icon="pi pi-home"
-          variant="primary"
-        />
+        <Button @click="router.go(-1)" :label="t('返回上页')" icon="pi pi-arrow-left" variant="secondary" />
+        <Button @click="router.push('/')" :label="t('返回首页')" icon="pi pi-home" variant="primary" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { useI18n } from '@/composables/useI18n'
+import { useRouter } from 'vue-router';
+import { useI18n } from '@/composables/useI18n';
 
-const router = useRouter()
-const { t } = useI18n()
+const router = useRouter();
+const { t } = useI18n();
 </script>

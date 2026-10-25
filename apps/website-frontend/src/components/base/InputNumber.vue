@@ -3,14 +3,9 @@
  * 数字输入框组件（基于 reka-ui NumberField 无头 primitives）
  * 输入解析/上下限/步进由 NumberField 处理，保留原 props/emits API
  */
-import { computed } from "vue";
-import {
-  NumberFieldDecrement,
-  NumberFieldIncrement,
-  NumberFieldInput,
-  NumberFieldRoot,
-} from "reka-ui";
-import { INPUT_BASE_CLASSES } from "./inputStyles";
+import { computed } from 'vue';
+import { NumberFieldDecrement, NumberFieldIncrement, NumberFieldInput, NumberFieldRoot } from 'reka-ui';
+import { INPUT_BASE_CLASSES } from './inputStyles';
 
 interface Props {
   /** 模型值 */
@@ -45,25 +40,23 @@ const {
 defineOptions({ inheritAttrs: false });
 
 const emit = defineEmits<{
-  "update:modelValue": [value: number | null];
+  'update:modelValue': [value: number | null];
 }>();
 
 /** 输入框样式类 */
 const inputClasses = computed(() => {
-  const stateClasses =
-    "border-primary-300 dark:border-primary-700 focus:ring-info-600 dark:focus:ring-info-500";
+  const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-info-600 dark:focus:ring-info-500';
 
-  const bgClass = "bg-primary-card";
-  const textClass =
-    "text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400";
-  const disabledClass = disabled ? "opacity-50 cursor-not-allowed" : "";
+  const bgClass = 'bg-primary-card';
+  const textClass = 'text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400';
+  const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${INPUT_BASE_CLASSES} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });
 
 /** 步进按钮样式类 */
 const buttonClasses =
-  "w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-card hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed";
+  'w-6 h-6 flex items-center justify-center border border-primary-300 dark:border-primary-700 rounded bg-primary-card hover:bg-primary-100 dark:hover:bg-primary-800 disabled:opacity-50 disabled:cursor-not-allowed';
 
 /** 数值格式化选项（控制允许输入与显示的小数位） */
 const formatOptions = computed(() => ({

@@ -11,13 +11,13 @@
         <div class="flex items-center justify-between mb-3">
           <div class="flex items-center gap-2">
             <i class="pi pi-lock text-primary-500" />
-            <span class="text-sm font-semibold text-primary-label">{{ t("加密分享") }}</span>
+            <span class="text-sm font-semibold text-primary-label">{{ t('加密分享') }}</span>
           </div>
           <ToggleSwitch v-model="formData.encrypted" />
         </div>
         <template v-if="formData.encrypted">
           <p class="text-xs text-primary-subtle mb-3">
-            {{ t("文件内容将在上传前加密，密码不存储在服务器。通过链接中的密码可直接访问。") }}
+            {{ t('文件内容将在上传前加密，密码不存储在服务器。通过链接中的密码可直接访问。') }}
           </p>
           <div class="flex gap-2">
             <Password
@@ -60,15 +60,15 @@
         <div class="text-primary-subtle mb-4 flex justify-center">
           <i class="pi pi-cloud-upload text-5xl"></i>
         </div>
-        <div class="text-sm text-primary-theme mb-1">{{ t("点击或拖拽文件到此处上传") }}</div>
+        <div class="text-sm text-primary-theme mb-1">{{ t('点击或拖拽文件到此处上传') }}</div>
         <div class="text-xs text-primary-500 dark:text-primary-500">
-          {{ t("支持多个文件同时上传") }}
+          {{ t('支持多个文件同时上传') }}
         </div>
       </div>
 
       <!-- 已选择的文件列表 -->
       <div v-if="selectedFiles.length > 0">
-        <div class="text-sm font-semibold text-primary-label mb-3">{{ t("已选择的文件") }}</div>
+        <div class="text-sm font-semibold text-primary-label mb-3">{{ t('已选择的文件') }}</div>
         <div
           v-for="(file, index) in selectedFiles"
           :key="`${file.name}-${file.size}-${index}`"
@@ -77,9 +77,7 @@
           <div class="flex items-center gap-3 text-sm text-primary-label min-w-0 flex-1">
             <i class="pi pi-file text-xl shrink-0 text-primary-subtle"></i>
             <span class="truncate flex-1">{{ file.name }}</span>
-            <span class="text-xs text-primary-subtle shrink-0 ml-2">{{
-              formatFileSize(file.size)
-            }}</span>
+            <span class="text-xs text-primary-subtle shrink-0 ml-2">{{ formatFileSize(file.size) }}</span>
           </div>
           <Button
             variant="ghost"
@@ -95,7 +93,7 @@
 
       <!-- 已上传的文件列表 -->
       <div v-if="uploadedFiles.length > 0">
-        <div class="text-sm font-semibold text-primary-label mb-3">{{ t("已上传的文件") }}</div>
+        <div class="text-sm font-semibold text-primary-label mb-3">{{ t('已上传的文件') }}</div>
         <div
           v-for="file in uploadedFiles"
           :key="file.id"
@@ -117,18 +115,14 @@
             <i
               class="pi pi-file text-xl shrink-0"
               :class="
-                isFileMarkedForDeletion(file.id)
-                  ? 'text-primary-400 dark:text-primary-600'
-                  : 'text-primary-subtle'
+                isFileMarkedForDeletion(file.id) ? 'text-primary-400 dark:text-primary-600' : 'text-primary-subtle'
               "
             ></i>
             <span class="truncate flex-1">{{ file.filename }}</span>
             <span
               class="text-xs shrink-0 ml-2"
               :class="
-                isFileMarkedForDeletion(file.id)
-                  ? 'text-primary-400 dark:text-primary-600'
-                  : 'text-primary-subtle'
+                isFileMarkedForDeletion(file.id) ? 'text-primary-400 dark:text-primary-600' : 'text-primary-subtle'
               "
               >{{ formatFileSize(file.size ?? 0) }}</span
             >
@@ -141,7 +135,7 @@
             @click="toggleFileDeletion(file.id)"
             :aria-label="isFileMarkedForDeletion(file.id) ? t('撤销删除') : t('移除文件')"
           >
-            {{ isFileMarkedForDeletion(file.id) ? t("撤销") : "" }}
+            {{ isFileMarkedForDeletion(file.id) ? t('撤销') : '' }}
             <i :class="isFileMarkedForDeletion(file.id) ? 'pi pi-refresh' : 'pi pi-times'"></i>
           </Button>
         </div>
@@ -151,10 +145,10 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button variant="secondary" @click="close">
-          {{ t("取消") }}
+          {{ t('取消') }}
         </Button>
         <Button :disabled="isSubmitting" :loading="isSubmitting" @click="submit">
-          {{ isSubmitting ? t("提交中...") : t("提交") }}
+          {{ isSubmitting ? t('提交中...') : t('提交') }}
         </Button>
       </div>
     </template>
@@ -165,10 +159,10 @@
     <div class="flex flex-col gap-4">
       <div class="flex items-center gap-2 text-success-600 dark:text-success-400">
         <i class="pi pi-check-circle text-xl" />
-        <span class="text-sm">{{ t("分享已加密创建成功，请保存以下链接分享给他人") }}</span>
+        <span class="text-sm">{{ t('分享已加密创建成功，请保存以下链接分享给他人') }}</span>
       </div>
       <div class="bg-primary-50 dark:bg-primary-800 border border-primary-default rounded-lg p-3">
-        <p class="text-xs text-primary-subtle mb-2">{{ t("分享链接（包含密码，请妥善保管）") }}</p>
+        <p class="text-xs text-primary-subtle mb-2">{{ t('分享链接（包含密码，请妥善保管）') }}</p>
         <div
           class="text-xs text-primary-label break-all font-mono bg-primary-card dark:bg-primary-900 p-2 rounded border border-primary-default max-h-32 overflow-y-auto"
         >
@@ -177,17 +171,17 @@
       </div>
       <p class="text-xs text-warning-600 dark:text-warning-400">
         <i class="pi pi-info-circle mr-1" />
-        {{ t("此链接包含解密密码，丢失后将无法恢复文件内容") }}
+        {{ t('此链接包含解密密码，丢失后将无法恢复文件内容') }}
       </p>
     </div>
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button variant="secondary" @click="showShareUrlDialog = false">
-          {{ t("关闭") }}
+          {{ t('关闭') }}
         </Button>
         <Button @click="copyShareUrl">
           <i class="pi pi-copy mr-1" />
-          {{ t("复制链接") }}
+          {{ t('复制链接') }}
         </Button>
       </div>
     </template>
@@ -195,21 +189,21 @@
 </template>
 
 <script setup lang="ts">
-import { useAPI } from "@/api";
-import type { ShareFileJSON, ShareItemJSON, ShareJSON } from "@/pages/admin/share/ShareDef";
-import { authInfo } from "@/storage";
-import { userDataAppid } from "@/storage/userDataAppid";
-import { computed, ref, shallowRef, watch } from "vue";
-import { useI18n } from "@/composables/useI18n";
-import { useToast } from "@/composables/useToast";
-import { getErrorMessage } from "@/utils/error";
-import { Dialog } from "@tsfullstack/shared-frontend/components";
-import { formatFileSize } from "@/utils/format";
-import { toJsonValue } from "@/utils/apiType";
-import { ShareCrypto, generateRandomPassword, base64UrlEncode } from "@/utils/shareCrypto";
-import { useFileUpload } from "@/composables/useFileUpload";
-import { isEncryptedData, getPlaintextShare } from "@/pages/admin/share/ShareDef";
-import { copyToClipboard } from "@/utils/clipboard";
+import { useAPI } from '@/api';
+import type { ShareFileJSON, ShareItemJSON, ShareJSON } from '@/pages/admin/share/ShareDef';
+import { authInfo } from '@/storage';
+import { userDataAppid } from '@/storage/userDataAppid';
+import { computed, ref, shallowRef, watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { getErrorMessage } from '@/utils/error';
+import { Dialog } from '@tsfullstack/shared-frontend/components';
+import { formatFileSize } from '@/utils/format';
+import { toJsonValue } from '@/utils/apiType';
+import { ShareCrypto, generateRandomPassword, base64UrlEncode } from '@/utils/shareCrypto';
+import { useFileUpload } from '@/composables/useFileUpload';
+import { isEncryptedData, getPlaintextShare } from '@/pages/admin/share/ShareDef';
+import { copyToClipboard } from '@/utils/clipboard';
 
 const { API } = useAPI();
 const { t } = useI18n();
@@ -224,20 +218,20 @@ const { open, editingItem } = defineProps<Props>();
 
 /** Emits */
 const emit = defineEmits<{
-  (e: "update:open", value: boolean): void;
-  (e: "success"): void;
+  (e: 'update:open', value: boolean): void;
+  (e: 'success'): void;
 }>();
 
 /** 本地的 open 状态，支持双向绑定 */
 const localVisible = computed<boolean>({
   get: () => open,
-  set: (value: boolean) => emit("update:open", value),
+  set: (value: boolean) => emit('update:open', value),
 });
 
 /** 表单数据 */
 const formData = ref({
   /** 标题 */
-  title: "",
+  title: '',
   /** 是否加密分享 */
   encrypted: true,
   /** 加密密码（仅创建时使用，不提交到后端） */
@@ -245,7 +239,7 @@ const formData = ref({
 });
 
 /** 表单类型 */
-const formType = ref<"create" | "update">("create");
+const formType = ref<'create' | 'update'>('create');
 
 /** 当前编辑的分享ID */
 const editingId = ref<number>();
@@ -263,7 +257,7 @@ const deletedFileIds = ref<Set<number>>(new Set());
 const isSubmitting = shallowRef(false);
 
 /** 加密分享的完整链接（含密码 hash），创建成功后展示 */
-const encryptedShareUrl = ref("");
+const encryptedShareUrl = ref('');
 /** 是否显示分享链接对话框 */
 const showShareUrlDialog = ref(false);
 
@@ -281,7 +275,7 @@ const fileInputRef = ref<HTMLInputElement>();
 
 /** 对话框标题 */
 const dialogTitle = computed(() => {
-  return formType.value === "create" ? t("新建分享") : t("编辑分享");
+  return formType.value === 'create' ? t('新建分享') : t('编辑分享');
 });
 
 /**
@@ -291,21 +285,21 @@ const dialogTitle = computed(() => {
  */
 function loadEditingItem() {
   if (editingItem) {
-    formType.value = "update";
+    formType.value = 'update';
     editingId.value = editingItem.id;
 
     if (isEncryptedData(editingItem.data)) {
       /** 加密分享：标题从 description 字段取，文件列表无法显示（需要密码） */
-      formData.value.title = editingItem.description ?? "";
+      formData.value.title = editingItem.description ?? '';
       formData.value.encrypted = true;
       uploadedFiles.value = [];
       selectedFiles.value = [];
       /** 编辑加密分享时需要用户输入新密码重新加密 */
-      formData.value.password = "";
+      formData.value.password = '';
     } else {
       /** 非加密分享：正常加载 */
       const plainShare = getPlaintextShare(editingItem);
-      formData.value.title = plainShare?.title ?? editingItem.description ?? "";
+      formData.value.title = plainShare?.title ?? editingItem.description ?? '';
       formData.value.encrypted = false;
       uploadedFiles.value = [...(plainShare?.files ?? [])];
       selectedFiles.value = [];
@@ -351,10 +345,10 @@ function triggerFileInput() {
  */
 function handleDragOver(event: DragEvent) {
   if (event.dataTransfer) {
-    event.dataTransfer.dropEffect = "copy";
+    event.dataTransfer.dropEffect = 'copy';
   }
   const target = event.target as HTMLElement;
-  target.closest(".upload-area")?.classList.add("drag-over");
+  target.closest('.upload-area')?.classList.add('drag-over');
 }
 
 /**
@@ -362,7 +356,7 @@ function handleDragOver(event: DragEvent) {
  */
 function handleDragLeave(event: DragEvent) {
   const target = event.target as HTMLElement;
-  target.closest(".upload-area")?.classList.remove("drag-over");
+  target.closest('.upload-area')?.classList.remove('drag-over');
 }
 
 /**
@@ -370,7 +364,7 @@ function handleDragLeave(event: DragEvent) {
  */
 function handleDrop(event: DragEvent) {
   const target = event.target as HTMLElement;
-  target.closest(".upload-area")?.classList.remove("drag-over");
+  target.closest('.upload-area')?.classList.remove('drag-over');
 
   const files = event.dataTransfer?.files;
   if (files) {
@@ -434,7 +428,7 @@ async function submit() {
     let cryptoInstance: ShareCrypto | undefined;
     if (formData.value.encrypted) {
       if (!formData.value.password) {
-        toast.error(t("请输入加密密码"));
+        toast.error(t('请输入加密密码'));
         isSubmitting.value = false;
         return;
       }
@@ -448,14 +442,9 @@ async function submit() {
       return result;
     });
 
-    const deletePromises = Array.from(deletedFileIds.value).map((fileId) =>
-      API.fileApi.delete(fileId),
-    );
+    const deletePromises = Array.from(deletedFileIds.value).map((fileId) => API.fileApi.delete(fileId));
 
-    const [uploadedResults] = await Promise.all([
-      Promise.all(uploadPromises),
-      Promise.all(deletePromises),
-    ]);
+    const [uploadedResults] = await Promise.all([Promise.all(uploadPromises), Promise.all(deletePromises)]);
 
     uploadedFiles.value = [...uploadedFiles.value, ...uploadedResults];
 
@@ -479,7 +468,7 @@ async function submit() {
       const payload = await cryptoInstance.encryptString(JSON.stringify(shareJson));
       const encryptedData = { encrypted: true as const, payload, salt: cryptoInstance.saltB64 };
 
-      if (formType.value === "create") {
+      if (formType.value === 'create') {
         const created = await API.db.userData.create({
           data: {
             appId: userDataAppid.shareInfo,
@@ -490,7 +479,7 @@ async function submit() {
           },
         });
         editingId.value = created.id;
-        formType.value = "update";
+        formType.value = 'update';
       } else if (editingId.value !== undefined) {
         await API.db.userData.update({
           where: { id: editingId.value },
@@ -502,7 +491,7 @@ async function submit() {
       }
     } else {
       /** 非加密分享：明文存储，兼容旧逻辑 */
-      if (formType.value === "create") {
+      if (formType.value === 'create') {
         const created = await API.db.userData.create({
           data: {
             appId: userDataAppid.shareInfo,
@@ -513,7 +502,7 @@ async function submit() {
           },
         });
         editingId.value = created.id;
-        formType.value = "update";
+        formType.value = 'update';
       } else if (editingId.value !== undefined) {
         await API.db.userData.update({
           where: { id: editingId.value },
@@ -526,7 +515,7 @@ async function submit() {
     }
 
     // 通知成功，但不关闭对话框
-    emit("success");
+    emit('success');
 
     /** 加密分享创建成功后，生成含密码的分享链接并显示 */
     if (formData.value.encrypted && cryptoInstance && editingId.value !== undefined) {
@@ -536,7 +525,7 @@ async function submit() {
       showShareUrlDialog.value = true;
     }
   } catch (error: unknown) {
-    toast.error(t("保存失败"), getErrorMessage(error, t("保存分享信息时发生错误")));
+    toast.error(t('保存失败'), getErrorMessage(error, t('保存分享信息时发生错误')));
   } finally {
     isSubmitting.value = false;
   }
@@ -546,16 +535,16 @@ async function submit() {
  * 关闭对话框
  */
 function close() {
-  emit("update:open", false);
+  emit('update:open', false);
 }
 
 /** 复制加密分享链接 */
 async function copyShareUrl() {
   try {
     await copyToClipboard(encryptedShareUrl.value);
-    toast.success(t("链接已复制到剪贴板"));
+    toast.success(t('链接已复制到剪贴板'));
   } catch {
-    toast.error(t("复制失败"));
+    toast.error(t('复制失败'));
   }
 }
 
@@ -563,13 +552,13 @@ async function copyShareUrl() {
  * 重置表单
  */
 function resetForm() {
-  formData.value.title = "";
+  formData.value.title = '';
   formData.value.encrypted = true;
   formData.value.password = generateRandomPassword();
   selectedFiles.value = [];
   uploadedFiles.value = [];
   deletedFileIds.value.clear();
-  formType.value = "create";
+  formType.value = 'create';
   editingId.value = undefined;
 }
 </script>

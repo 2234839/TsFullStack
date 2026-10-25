@@ -46,10 +46,17 @@ export interface ParsedWebhookResult {
 export interface PaymentAdapter {
   readonly provider: PaymentProvider;
   createPayment(params: CreatePaymentParams): Effect.Effect<CreatePaymentResult, Error, AdapterDeps>;
-  parseWebhook(payload: WebhookPayload, headers?: Record<string, string>): Effect.Effect<ParsedWebhookResult, Error, AdapterDeps>;
-  queryOrderStatus(orderNo: string): Effect.Effect<{
-    tradeNo: string;
-    status: 'success' | 'pending';
-    paidAmount: number;
-  } | null, Error, AdapterDeps>;
+  parseWebhook(
+    payload: WebhookPayload,
+    headers?: Record<string, string>,
+  ): Effect.Effect<ParsedWebhookResult, Error, AdapterDeps>;
+  queryOrderStatus(orderNo: string): Effect.Effect<
+    {
+      tradeNo: string;
+      status: 'success' | 'pending';
+      paidAmount: number;
+    } | null,
+    Error,
+    AdapterDeps
+  >;
 }

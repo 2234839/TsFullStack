@@ -21,7 +21,10 @@
         <!-- 提示说明 -->
         <div class="bg-success-50 dark:bg-success-950 border border-success-200 dark:border-success-800 rounded-lg p-4">
           <p class="text-sm text-success-800 dark:text-success-200 leading-relaxed">
-            {{ t('请通过微信向站长转账') }} <span class="font-bold text-danger-600 dark:text-danger-400">{{ formatPriceWithCurrency(orderInfo.amount) }}</span>
+            {{ t('请通过微信向站长转账') }}
+            <span class="font-bold text-danger-600 dark:text-danger-400">{{
+              formatPriceWithCurrency(orderInfo.amount)
+            }}</span>
             {{ t('，转账后发送订单信息给站长确认，确认到账后会自动发放代币') }}
           </p>
         </div>
@@ -58,7 +61,9 @@
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-primary-theme">{{ t('金额') }}</span>
-            <span class="font-bold text-danger-500 dark:text-danger-400">{{ formatPriceWithCurrency(orderInfo.amount) }}</span>
+            <span class="font-bold text-danger-500 dark:text-danger-400">{{
+              formatPriceWithCurrency(orderInfo.amount)
+            }}</span>
           </div>
         </div>
 
@@ -73,10 +78,14 @@
 
         <!-- 格式化文本预览（默认展开） -->
         <details open class="group">
-          <summary class="cursor-pointer text-xs text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 select-none">
+          <summary
+            class="cursor-pointer text-xs text-primary-400 hover:text-primary-600 dark:hover:text-primary-300 select-none"
+          >
             {{ t('查看发送给站长的消息格式') }} ▼
           </summary>
-          <pre class="mt-2 bg-primary-100 dark:bg-primary-800 rounded p-3 text-xs text-primary-theme whitespace-pre-wrap break-all">{{ formattedMessage }}</pre>
+          <pre
+            class="mt-2 bg-primary-100 dark:bg-primary-800 rounded p-3 text-xs text-primary-theme whitespace-pre-wrap break-all"
+            >{{ formattedMessage }}</pre>
         </details>
 
         <!-- 底部提示 -->
@@ -117,10 +126,14 @@ const emit = defineEmits<{ close: [] }>();
 
 /** 复制反馈状态 + 自动重置定时器 */
 const copiedId = shallowRef(false);
-const { start: resetCopiedId } = useTimeoutFn(() => { copiedId.value = false; }, 2000);
+const { start: resetCopiedId } = useTimeoutFn(() => {
+  copiedId.value = false;
+}, 2000);
 
 const copiedMsg = shallowRef(false);
-const { start: resetCopiedMsg } = useTimeoutFn(() => { copiedMsg.value = false; }, 2000);
+const { start: resetCopiedMsg } = useTimeoutFn(() => {
+  copiedMsg.value = false;
+}, 2000);
 
 /** 生成要复制的格式化消息文本 */
 const formattedMessage = computed(() => {

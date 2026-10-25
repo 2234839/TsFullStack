@@ -40,11 +40,11 @@
   </div>
 </template>
 <script setup lang="ts">
-import RelationSelect, { type RelationSelectData } from "@/components/AutoTable/RelationSelect.vue";
-import { onClickOutside } from "@vueuse/core";
-import { Tooltip } from "@tsfullstack/shared-frontend/components";
-import { computed, ref, useTemplateRef } from "vue";
-import { type FieldInfo, isDataModelField } from "./type";
+import RelationSelect, { type RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
+import { onClickOutside } from '@vueuse/core';
+import { Tooltip } from '@tsfullstack/shared-frontend/components';
+import { computed, ref, useTemplateRef } from 'vue';
+import { type FieldInfo, isDataModelField } from './type';
 
 const { field, cellData, row } = defineProps<{
   field: FieldInfo;
@@ -61,7 +61,7 @@ const datePickerShow = ref(false);
 /** 关系字段的计数显示（从模板中抽出断言，避免格式化器解析问题） */
 const relationCount = computed(() => {
   const counts = row?._count as Record<string, number | string> | undefined;
-  return counts?.[String(fieldName) as keyof Record<string, number | string>] ?? "";
+  return counts?.[String(fieldName) as keyof Record<string, number | string>] ?? '';
 });
 /** 双向绑定，但当值未修改时，不更新 editModel  */
 const editValue = computed({
@@ -77,30 +77,28 @@ const editValue = computed({
 
 /** 日期字段绑定值 */
 const dateValue = computed<Date | string | null>({
-  get: () =>
-    editValue.value instanceof Date || typeof editValue.value === "string" ? editValue.value : null,
+  get: () => (editValue.value instanceof Date || typeof editValue.value === 'string' ? editValue.value : null),
   set: (v) => {
     editValue.value = v;
   },
 });
 /** 字符串字段绑定值 */
 const stringValue = computed<string>({
-  get: () =>
-    typeof editValue.value === "string" ? editValue.value : String(editValue.value ?? ""),
+  get: () => (typeof editValue.value === 'string' ? editValue.value : String(editValue.value ?? '')),
   set: (v) => {
     editValue.value = v;
   },
 });
 /** 数值字段绑定值 */
 const numberValue = computed<number | undefined>({
-  get: () => (typeof editValue.value === "number" ? editValue.value : undefined),
+  get: () => (typeof editValue.value === 'number' ? editValue.value : undefined),
   set: (v) => {
     editValue.value = v;
   },
 });
 
-const editEl = useTemplateRef<HTMLElement>("__editEl");
-const editMode = defineModel<boolean>("editMode", { default: false });
+const editEl = useTemplateRef<HTMLElement>('__editEl');
+const editMode = defineModel<boolean>('editMode', { default: false });
 
 // 模板辅助属性，避免类型推断问题
 const fieldType = computed<string>(() => field.type);
@@ -115,7 +113,7 @@ function changeRelation(relation: RelationSelectData) {
 
 /** 点击外部关闭编辑模式（日期选择面板打开时除外） */
 onClickOutside(editEl, () => {
-  if (field.type === "DateTime" && datePickerShow.value) {
+  if (field.type === 'DateTime' && datePickerShow.value) {
     return;
   }
   if (isDataModelField(field)) return;

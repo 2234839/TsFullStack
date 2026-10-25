@@ -8,5 +8,5 @@ export {
   type RouteNode,
   type RouteTree,
   type ExpandRouteMap,
-  type ExpandedRouteMap
+  type ExpandedRouteMap,
 } from './routeUtil';

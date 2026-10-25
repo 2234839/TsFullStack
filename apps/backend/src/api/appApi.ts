@@ -34,9 +34,7 @@ function randomDelay(baseDelay = AUTH_DELAY_BASE_MS) {
 /** 基本邮箱格式校验 */
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const validateEmail = (email: string) =>
-  (!email || typeof email !== 'string' || !EMAIL_REGEX.test(email))
-    ? fail(MSG.EMAIL_FORMAT_INVALID)
-    : Effect.void;
+  !email || typeof email !== 'string' || !EMAIL_REGEX.test(email) ? fail(MSG.EMAIL_FORMAT_INVALID) : Effect.void;
 
 /** 无需鉴权的 api */
 export const appApis = {
@@ -54,10 +52,13 @@ export const appApis = {
           return yield* fail(MSG.PASSWORD_TOO_LONG);
         }
 
-        const user = yield* dbTryOrDefault(LOG_PREFIX, '查询用户', () =>
-          dbClient.user.findUnique({
-            where: { email },
-          }),
+        const user = yield* dbTryOrDefault(
+          LOG_PREFIX,
+          '查询用户',
+          () =>
+            dbClient.user.findUnique({
+              where: { email },
+            }),
           null,
         );
         if (user) {
@@ -85,11 +86,14 @@ export const appApis = {
           return yield* fail(MSG.PASSWORD_REQUIRED);
         }
 
-        const user = yield* dbTryOrDefault(LOG_PREFIX, '查询用户(含角色)', () =>
-          dbClient.user.findUnique({
-            where: { email },
-            include: { role: true },
-          }),
+        const user = yield* dbTryOrDefault(
+          LOG_PREFIX,
+          '查询用户(含角色)',
+          () =>
+            dbClient.user.findUnique({
+              where: { email },
+              include: { role: true },
+            }),
           null,
         );
         if (!user || !(yield* comparePassword(password, user.password))) {

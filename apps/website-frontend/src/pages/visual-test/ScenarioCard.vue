@@ -9,14 +9,14 @@
 
     <template #subtitle>
       <div class="flex flex-wrap gap-3 text-sm text-gray-500">
-        <span v-if="scenario.duration">{{ t("耗时") }}: {{ scenario.duration }}ms</span>
+        <span v-if="scenario.duration">{{ t('耗时') }}: {{ scenario.duration }}ms</span>
         <span v-if="scenario.pixelDiffPercent !== null">
-          {{ t("像素差异") }}: {{ scenario.pixelDiffPercent.toFixed(2) }}%
+          {{ t('像素差异') }}: {{ scenario.pixelDiffPercent.toFixed(2) }}%
         </span>
         <span
-          >{{ t("DOM 结构") }}:
+          >{{ t('DOM 结构') }}:
           <b :class="scenario.domPassed ? 'text-green-600' : 'text-red-500'">
-            {{ scenario.domPassed ? t("通过") : t("差异") }}
+            {{ scenario.domPassed ? t('通过') : t('差异') }}
           </b>
         </span>
       </div>
@@ -31,22 +31,16 @@
 
       <!-- DOM diff -->
       <div v-if="scenario.domDiff" class="mb-3 rounded bg-orange-50 p-3">
-        <p class="mb-1 font-semibold text-orange-700">{{ t("DOM 结构差异") }}</p>
-        <pre class="overflow-x-auto whitespace-pre-wrap text-xs text-orange-800">{{
-          scenario.domDiff
-        }}</pre>
+        <p class="mb-1 font-semibold text-orange-700">{{ t('DOM 结构差异') }}</p>
+        <pre class="overflow-x-auto whitespace-pre-wrap text-xs text-orange-800">{{ scenario.domDiff }}</pre>
       </div>
 
       <!-- 图片对比 -->
       <div v-if="showImageCompare" class="grid grid-cols-1 gap-3 md:grid-cols-3">
         <!-- 基准截图 -->
         <div class="overflow-hidden rounded border">
-          <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("基准") }}</p>
-          <div
-            ref="baselineScrollRef"
-            class="max-h-64 overflow-y-auto"
-            @scroll="syncScroll('baseline')"
-          >
+          <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t('基准') }}</p>
+          <div ref="baselineScrollRef" class="max-h-64 overflow-y-auto" @scroll="syncScroll('baseline')">
             <img
               v-if="images.baseline"
               :src="`data:image/png;base64,${images.baseline}`"
@@ -55,19 +49,15 @@
               @click="previewImage = { src: images.baseline, title: t('基准截图') }"
             />
             <div v-else class="flex h-32 items-center justify-center text-sm text-gray-400">
-              {{ t("无基准") }}
+              {{ t('无基准') }}
             </div>
           </div>
         </div>
 
         <!-- 当前截图 -->
         <div class="overflow-hidden rounded border">
-          <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("当前") }}</p>
-          <div
-            ref="currentScrollRef"
-            class="max-h-64 overflow-y-auto"
-            @scroll="syncScroll('current')"
-          >
+          <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t('当前') }}</p>
+          <div ref="currentScrollRef" class="max-h-64 overflow-y-auto" @scroll="syncScroll('current')">
             <img
               v-if="images.current"
               :src="`data:image/png;base64,${images.current}`"
@@ -81,7 +71,7 @@
 
         <!-- diff 图 -->
         <div class="overflow-hidden rounded border">
-          <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t("差异") }}</p>
+          <p class="bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">{{ t('差异') }}</p>
           <div ref="diffScrollRef" class="max-h-64 overflow-y-auto" @scroll="syncScroll('diff')">
             <img
               v-if="images.diff"
@@ -109,17 +99,14 @@
         >
           <!-- 工具栏 -->
           <div class="absolute top-4 right-4 flex items-center gap-2 z-10">
-            <button
-              class="rounded bg-white/20 px-3 py-1 text-sm text-white hover:bg-white/30"
-              @click="resetZoom"
-            >
-              {{ t("重置") }}
+            <button class="rounded bg-white/20 px-3 py-1 text-sm text-white hover:bg-white/30" @click="resetZoom">
+              {{ t('重置') }}
             </button>
             <button
               class="rounded bg-white/20 px-3 py-1 text-sm text-white hover:bg-white/30"
               @click="previewImage = null"
             >
-              ✕ {{ t("关闭") }}
+              ✕ {{ t('关闭') }}
             </button>
           </div>
 
@@ -181,10 +168,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
-import { Button, Card, Tag } from "@/components/base";
-import { useI18n } from "@/composables/useI18n";
-import type { ScenarioResult, VisualTestAPI } from "@tsfullstack/visual-test";
+import { ref, computed, watch } from 'vue';
+import { Button, Card, Tag } from '@/components/base';
+import { useI18n } from '@/composables/useI18n';
+import type { ScenarioResult, VisualTestAPI } from '@tsfullstack/visual-test';
 
 const props = defineProps<{
   scenario: ScenarioResult;
@@ -212,13 +199,13 @@ const diffScrollRef = ref<HTMLElement>();
 
 /** 同步滚动：防止循环触发 */
 let syncing = false;
-function syncScroll(source: "baseline" | "current" | "diff") {
+function syncScroll(source: 'baseline' | 'current' | 'diff') {
   if (syncing) return;
   syncing = true;
   const sourceEl =
-    source === "baseline"
+    source === 'baseline'
       ? baselineScrollRef.value
-      : source === "current"
+      : source === 'current'
         ? currentScrollRef.value
         : diffScrollRef.value;
   if (sourceEl) {
@@ -296,50 +283,46 @@ function resetZoom() {
 /** 状态标签 */
 const statusLabel = computed(() => {
   const map: Record<string, string> = {
-    approved: t("已批准"),
-    failed: t("回归"),
-    pendingNew: t("待批准（新）"),
-    pendingDiff: t("待审批（差异）"),
-    rejected: t("已拒绝"),
-    error: t("错误"),
+    approved: t('已批准'),
+    failed: t('回归'),
+    pendingNew: t('待批准（新）'),
+    pendingDiff: t('待审批（差异）'),
+    rejected: t('已拒绝'),
+    error: t('错误'),
   };
   return map[props.scenario.status] ?? props.scenario.status;
 });
 
 /** 状态变体 */
-const statusVariant = computed<"success" | "warn" | "danger" | "secondary">(() => {
-  const map: Record<string, "success" | "warn" | "danger" | "secondary"> = {
-    approved: "success",
-    failed: "danger",
-    pendingNew: "warn",
-    pendingDiff: "warn",
-    rejected: "danger",
-    error: "danger",
+const statusVariant = computed<'success' | 'warn' | 'danger' | 'secondary'>(() => {
+  const map: Record<string, 'success' | 'warn' | 'danger' | 'secondary'> = {
+    approved: 'success',
+    failed: 'danger',
+    pendingNew: 'warn',
+    pendingDiff: 'warn',
+    rejected: 'danger',
+    error: 'danger',
   };
-  return map[props.scenario.status] ?? "secondary";
+  return map[props.scenario.status] ?? 'secondary';
 });
 
 /** 是否显示图片对比 */
 const showImageCompare = computed(() => {
-  return props.scenario.status !== "error" && (images.value.baseline || images.value.current);
+  return props.scenario.status !== 'error' && (images.value.baseline || images.value.current);
 });
 
 /** 是否可批准 */
-const canApprove = computed(
-  () => props.scenario.status === "pendingNew" || props.scenario.status === "pendingDiff",
-);
+const canApprove = computed(() => props.scenario.status === 'pendingNew' || props.scenario.status === 'pendingDiff');
 
 /** 是否可拒绝 */
-const canReject = computed(
-  () => props.scenario.status === "pendingNew" || props.scenario.status === "pendingDiff",
-);
+const canReject = computed(() => props.scenario.status === 'pendingNew' || props.scenario.status === 'pendingDiff');
 
 /** 加载图片 */
 async function loadImages() {
   const [baseline, current, diff] = await Promise.all([
-    props.rpc.getImage("baseline", props.scenario.name).catch(() => null),
-    props.rpc.getImage("current", props.scenario.name).catch(() => null),
-    props.rpc.getImage("diff", props.scenario.name).catch(() => null),
+    props.rpc.getImage('baseline', props.scenario.name).catch(() => null),
+    props.rpc.getImage('current', props.scenario.name).catch(() => null),
+    props.rpc.getImage('diff', props.scenario.name).catch(() => null),
   ]);
   images.value = { baseline, current, diff };
 }
@@ -349,7 +332,7 @@ async function approve() {
   approving.value = true;
   try {
     await props.rpc.approve(props.scenario.name);
-    emit("approved");
+    emit('approved');
   } finally {
     approving.value = false;
   }
@@ -360,7 +343,7 @@ async function reject() {
   rejecting.value = true;
   try {
     await props.rpc.reject(props.scenario.name);
-    emit("rejected");
+    emit('rejected');
   } finally {
     rejecting.value = false;
   }
@@ -371,7 +354,7 @@ async function rerun() {
   rerunning.value = true;
   try {
     await props.rpc.runOne(props.scenario.name);
-    emit("rejected");
+    emit('rejected');
   } finally {
     rerunning.value = false;
   }

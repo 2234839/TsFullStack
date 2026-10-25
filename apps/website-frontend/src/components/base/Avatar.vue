@@ -9,11 +9,11 @@
  * <Avatar image="/a.png" label="张三" size="large" />
  * ```
  */
-import { AvatarRoot, AvatarImage, AvatarFallback } from "reka-ui";
-import { ref } from "vue";
+import { AvatarRoot, AvatarImage, AvatarFallback } from 'reka-ui';
+import { ref } from 'vue';
 
 /** 图片加载状态（reka 的 ImageLoadingStatus 含 idle，无 image 时视为 error 以直接显示回退） */
-const imgStatus = ref<"idle" | "error" | "loaded" | "loading">("loading");
+const imgStatus = ref<'idle' | 'error' | 'loaded' | 'loading'>('loading');
 
 defineOptions({ inheritAttrs: false });
 
@@ -23,9 +23,9 @@ interface Props {
   /** 标签（回退文字取首字符） */
   label?: string;
   /** 大小 */
-  size?: "normal" | "large" | "xlarge";
+  size?: 'normal' | 'large' | 'xlarge';
   /** 形状 */
-  shape?: "circle" | "square";
+  shape?: 'circle' | 'square';
   /** 延迟显示回退内容（毫秒） */
   fallbackDelay?: number;
   /** 是否禁用 */
@@ -33,17 +33,17 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  size: "normal",
-  shape: "circle",
+  size: 'normal',
+  shape: 'circle',
   fallbackDelay: 0,
   disabled: false,
 });
 
 /** 尺寸映射（静态常量） */
 const AVATAR_SIZE_CLASSES: Record<string, string> = {
-  normal: "w-8 h-8",
-  large: "w-12 h-12",
-  xlarge: "w-16 h-16",
+  normal: 'w-8 h-8',
+  large: 'w-12 h-12',
+  xlarge: 'w-16 h-16',
 };
 </script>
 
@@ -74,10 +74,7 @@ const AVATAR_SIZE_CLASSES: Record<string, string> = {
       </slot>
     </AvatarFallback>
     <!-- 无图片时直接渲染回退内容（reka AvatarFallback 依赖图片状态机，无 image 时不会显示） -->
-    <span
-      v-else
-      class="flex h-full w-full items-center justify-center text-sm font-medium text-primary-theme"
-    >
+    <span v-else class="flex h-full w-full items-center justify-center text-sm font-medium text-primary-theme">
       <slot>
         {{ label?.charAt(0).toUpperCase() }}
       </slot>

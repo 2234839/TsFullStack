@@ -24,7 +24,7 @@ class RateLimiter {
   constructor(
     private maxRequests: number,
     private windowMs: number,
-    maxEntries: number = DEFAULT_MAX_RATE_LIMIT_ENTRIES
+    maxEntries: number = DEFAULT_MAX_RATE_LIMIT_ENTRIES,
   ) {
     this.maxEntries = maxEntries;
     this.cleanupInterval = setInterval(() => {
@@ -115,4 +115,3 @@ export const tokenConsumeRateLimiter = new RateLimiter(TOKEN_CONSUME_MAX_REQUEST
 export function destroyRateLimiter() {
   tokenConsumeRateLimiter.destroy();
 }
-

@@ -45,12 +45,15 @@ export const ResourceService = {
   /**
    * 获取用户资源列表
    */
-  listResources: (userId: string, options: {
-    type?: string;
-    status?: string;
-    skip?: number;
-    take?: number;
-  } = {}) =>
+  listResources: (
+    userId: string,
+    options: {
+      type?: string;
+      status?: string;
+      skip?: number;
+      take?: number;
+    } = {},
+  ) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
       const where: ResourceWhereInput = { userId };
@@ -69,25 +72,26 @@ export const ResourceService = {
         }
       }
 
-      return yield* dbPaginatedFindMany(LOG_PREFIX,
-        () => db.resource.findMany({
-          where,
-          select: {
-            id: true,
-            type: true,
-            title: true,
-            status: true,
-            taskId: true,
-            created: true,
-            file: { select: { id: true, filename: true, mimetype: true, size: true } },
-            task: { select: { id: true, type: true, title: true } },
-          },
-          skip: options.skip ?? 0,
-          take: Math.min(options.take ?? DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_LARGE),
-          orderBy: { created: 'desc' },
-        }),
+      return yield* dbPaginatedFindMany(
+        LOG_PREFIX,
+        () =>
+          db.resource.findMany({
+            where,
+            select: {
+              id: true,
+              type: true,
+              title: true,
+              status: true,
+              taskId: true,
+              created: true,
+              file: { select: { id: true, filename: true, mimetype: true, size: true } },
+              task: { select: { id: true, type: true, title: true } },
+            },
+            skip: options.skip ?? 0,
+            take: Math.min(options.take ?? DEFAULT_PAGE_SIZE, DEFAULT_PAGE_SIZE_LARGE),
+            orderBy: { created: 'desc' },
+          }),
         () => db.resource.count({ where }),
       );
     }),
-
 };

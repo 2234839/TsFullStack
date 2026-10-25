@@ -14,10 +14,7 @@ export class ModuleDiscovery {
       modulePattern: options.modulePattern || '*/package.json',
       outputDir: options.outputDir || 'packages/module-loader/generated',
       watch: options.watch || false,
-      targetPackages: options.targetPackages || [
-        'apps/backend/package.json',
-        'apps/website-frontend/package.json'
-      ]
+      targetPackages: options.targetPackages || ['apps/backend/package.json', 'apps/website-frontend/package.json'],
     };
   }
 
@@ -25,7 +22,7 @@ export class ModuleDiscovery {
   async discoverModules(): Promise<ModuleInfo[]> {
     const modulesPath = join(this.options.rootDir, this.options.modulesDir);
     const pattern = join(modulesPath, this.options.modulePattern);
-    
+
     try {
       const packageJsonFiles = fg.globSync(pattern, { absolute: true });
       const modules: ModuleInfo[] = [];
@@ -33,15 +30,15 @@ export class ModuleDiscovery {
       for (const packageFile of packageJsonFiles) {
         const moduleDir = dirname(packageFile);
         const modulePath = join(this.options.modulesDir, moduleDir.split('/').pop()!);
-        
+
         try {
           const packageJson = JSON.parse(fs.readFileSync(packageFile, 'utf-8'));
-          
+
           // Check if module has backend/frontend files
           const hasBackend = fs.existsSync(join(moduleDir, 'backend'));
           const hasFrontend = fs.existsSync(join(moduleDir, 'frontend'));
           const hasVueComponents = fs.existsSync(join(moduleDir, 'frontend', 'vue.ts'));
-          
+
           modules.push({
             name: packageJson.name,
             version: packageJson.version || '1.0.0',
@@ -49,7 +46,7 @@ export class ModuleDiscovery {
             packageJson,
             hasBackend,
             hasFrontend,
-            hasVueComponents
+            hasVueComponents,
           });
         } catch (error) {
           console.warn(`Failed to parse package.json for ${moduleDir}:`, error);
@@ -66,11 +63,11 @@ export class ModuleDiscovery {
   /** Generate workspace dependencies for modules */
   generateWorkspaceDependencies(modules: ModuleInfo[]): Record<string, string> {
     const dependencies: Record<string, string> = {};
-    
+
     for (const module of modules) {
       dependencies[module.name] = 'workspace:*';
     }
-    
+
     return dependencies;
   }
 

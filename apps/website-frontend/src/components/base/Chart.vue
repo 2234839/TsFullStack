@@ -90,7 +90,9 @@ onUnmounted(() => {
 // 暴露图表实例
 defineExpose({
   /** shallowRef + triggerRef 实现响应式暴露，父组件通过 ref.chart 可获取最新实例 */
-  get chart() { return chartRef.value; },
+  get chart() {
+    return chartRef.value;
+  },
 });
 </script>
 

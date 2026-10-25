@@ -13,7 +13,13 @@ import { TokenPricingCalculator } from '../../services/TokenPricingCalculator';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../util/http';
 import { TaskType, TaskStatus, ResourceType } from '../../../.zenstack/models';
 import { tokenConsumeRateLimiter } from '../../middleware/rateLimit';
-import { DEFAULT_IMAGE_SIZE, DEFAULT_IMAGE_DIMENSION, AI_IMAGE_PROVIDERS, type AiImageProvider, MSG } from '../../util/constants';
+import {
+  DEFAULT_IMAGE_SIZE,
+  DEFAULT_IMAGE_DIMENSION,
+  AI_IMAGE_PROVIDERS,
+  type AiImageProvider,
+  MSG,
+} from '../../util/constants';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[TaskApi]';
@@ -21,8 +27,16 @@ const LOG_PREFIX = '[TaskApi]';
 /** 图片生成参数常量 */
 const MAX_PROMPT_LENGTH = 2000;
 const MAX_IMAGE_COUNT = 4;
-const VALID_IMAGE_SIZES = new Set(['1024x1024', '1024x768', '768x1024', '512x512',
-  '1344x768', '768x1344', '864x1152', '1152x864']);
+const VALID_IMAGE_SIZES = new Set([
+  '1024x1024',
+  '1024x768',
+  '768x1024',
+  '512x512',
+  '1344x768',
+  '768x1344',
+  '864x1152',
+  '1152x864',
+]);
 const MAX_TOKEN_COST = 1000;
 const PROMPT_TRUNCATE_LENGTH = 50;
 const DEFAULT_COMPRESS_QUALITY = 85;
@@ -122,12 +136,7 @@ const PROVIDER_KEY_MAP: { readonly [K in AiImageProvider]: keyof NonNullable<App
 };
 
 /** 验证并规范化图片生成参数 */
-const validateImageParams = (request: {
-  prompt?: string;
-  provider?: string;
-  count?: number;
-  size?: string;
-}) =>
+const validateImageParams = (request: { prompt?: string; provider?: string; count?: number; size?: string }) =>
   Effect.gen(function* () {
     if (!request.prompt?.trim()) {
       return yield* fail(MSG.PROMPT_REQUIRED);
@@ -160,12 +169,7 @@ const validateImageParams = (request: {
 /**
  * 生成 AI 图片
  */
-const generateAIImage = (request: {
-  prompt: string;
-  provider?: AiImageProvider;
-  count?: number;
-  size?: string;
-}) =>
+const generateAIImage = (request: { prompt: string; provider?: AiImageProvider; count?: number; size?: string }) =>
   Effect.gen(function* () {
     const auth = yield* AuthContext;
     const ctx = yield* ReqCtxService;
@@ -249,9 +253,7 @@ const generateAIImage = (request: {
         }),
       ),
       /** 失败时标记任务为 FAILED 并传播原始错误 */
-      Effect.tapError((error) =>
-        TaskService.failTask(task.id, extractErrorMessage(error)).pipe(Effect.ignore),
-      ),
+      Effect.tapError((error) => TaskService.failTask(task.id, extractErrorMessage(error)).pipe(Effect.ignore)),
     );
 
     return result;
@@ -274,7 +276,12 @@ const selectAndDownloadImage = (request: {
     const ctx = yield* ReqCtxService;
 
     /** taskId 必须为正整数 */
-    if (!request.taskId || typeof request.taskId !== 'number' || request.taskId <= 0 || !Number.isFinite(request.taskId)) {
+    if (
+      !request.taskId ||
+      typeof request.taskId !== 'number' ||
+      request.taskId <= 0 ||
+      !Number.isFinite(request.taskId)
+    ) {
       return yield* fail(MSG.INVALID_TASK_ID);
     }
 
@@ -303,14 +310,18 @@ const selectAndDownloadImage = (request: {
     // 检查 Content-Length 是否超出限制
     const contentLength = imageResponse.headers.get('content-length');
     if (contentLength && Number(contentLength) > MAX_IMAGE_DOWNLOAD_BYTES) {
-      return yield* fail(`图片文件过大 (${Math.round(Number(contentLength) / 1024 / 1024)}MB)，限制 ${MAX_IMAGE_DOWNLOAD_BYTES / 1024 / 1024}MB`);
+      return yield* fail(
+        `图片文件过大 (${Math.round(Number(contentLength) / 1024 / 1024)}MB)，限制 ${MAX_IMAGE_DOWNLOAD_BYTES / 1024 / 1024}MB`,
+      );
     }
 
     // 4. 读取图片数据
     const buffer = yield* tryOrFail('读取图片数据', () => imageResponse.arrayBuffer());
 
     if (buffer.byteLength > MAX_IMAGE_DOWNLOAD_BYTES) {
-      return yield* fail(`图片文件过大 (${Math.round(buffer.byteLength / 1024 / 1024)}MB)，限制 ${MAX_IMAGE_DOWNLOAD_BYTES / 1024 / 1024}MB`);
+      return yield* fail(
+        `图片文件过大 (${Math.round(buffer.byteLength / 1024 / 1024)}MB)，限制 ${MAX_IMAGE_DOWNLOAD_BYTES / 1024 / 1024}MB`,
+      );
     }
 
     // 4. 默认使用 sharp 压缩（节省存储空间），调用方可传 { enabled: false } 跳过
@@ -383,38 +394,29 @@ const selectAndDownloadImage = (request: {
 /**
  * 获取任务列表
  */
-const listTasks = (options?: {
-  status?: TaskStatus;
-  type?: TaskType;
-  skip?: number;
-  take?: number;
-}) =>
-  AuthContext.pipe(Effect.flatMap(auth => TaskService.listTasks(auth.user.id, options)));
+const listTasks = (options?: { status?: TaskStatus; type?: TaskType; skip?: number; take?: number }) =>
+  AuthContext.pipe(Effect.flatMap((auth) => TaskService.listTasks(auth.user.id, options)));
 
 /**
  * 获取任务详情
  */
-const getTaskDetail = (taskId: number) =>
-  TaskService.getTask(taskId);
+const getTaskDetail = (taskId: number) => TaskService.getTask(taskId);
 
 /**
  * 获取资源列表
  */
-const listResources = (options?: {
-  type?: string;
-  status?: string;
-  skip?: number;
-  take?: number;
-}) =>
-  AuthContext.pipe(Effect.flatMap(auth => ResourceService.listResources(auth.user.id, options)));
+const listResources = (options?: { type?: string; status?: string; skip?: number; take?: number }) =>
+  AuthContext.pipe(Effect.flatMap((auth) => ResourceService.listResources(auth.user.id, options)));
 
 /**
  * 获取可用的 AI 图片生成服务商列表
  */
 const getAvailableProviders = () =>
-  Effect.map(AppConfigService, (appConfig) => AI_IMAGE_PROVIDERS
-    .filter(provider => appConfig.aiImage?.[PROVIDER_KEY_MAP[provider]])
-    .map(provider => ({ value: provider, label: PROVIDER_LABELS[provider] }))
+  Effect.map(AppConfigService, (appConfig) =>
+    AI_IMAGE_PROVIDERS.filter((provider) => appConfig.aiImage?.[PROVIDER_KEY_MAP[provider]]).map((provider) => ({
+      value: provider,
+      label: PROVIDER_LABELS[provider],
+    })),
   );
 
 /**

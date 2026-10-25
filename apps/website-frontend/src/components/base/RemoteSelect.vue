@@ -1,11 +1,8 @@
 <template>
   <Dropdown v-bind="$attrs" v-model="dropdownOpen" @open="handleSearch">
     <template #trigger>
-      <div
-        class="flex gap-1 items-center p-2 rounded-md cursor-pointer transition-colors min-h-10">
-        <span class="bg-primary-600 dark:bg-primary-700 rounded-sm px-1 text-white">{{
-          t('选择')
-        }}</span>
+      <div class="flex gap-1 items-center p-2 rounded-md cursor-pointer transition-colors min-h-10">
+        <span class="bg-primary-600 dark:bg-primary-700 rounded-sm px-1 text-white">{{ t('选择') }}</span>
         <div class="flex flex-wrap gap-1">
           <template v-if="showTag">
             <Tag
@@ -14,7 +11,8 @@
               class="group transition-all"
               :value="item?.label ?? item?.value"
               variant="info"
-              rounded>
+              rounded
+            >
               <template #icon>
                 <i
                   :class="[
@@ -28,7 +26,8 @@
                   ]"
                   @mouseover="setTagHovered(item, true)"
                   @mouseleave="setTagHovered(item, false)"
-                  @click.stop="remove(item)"></i>
+                  @click.stop="remove(item)"
+                ></i>
               </template> </Tag
           ></template>
         </div>
@@ -37,48 +36,43 @@
     </template>
     <div class="remote-select-dropdown">
       <div class="p-3">
-        <Input
-          v-model="searchText"
-          class="w-full"
-          :placeholder="t('搜索...')"
-          @input="debounceSearch" />
+        <Input v-model="searchText" class="w-full" :placeholder="t('搜索...')" @input="debounceSearch" />
       </div>
       <div class="flex items-center p-3">
-        <Checkbox
-          :model-value="isAllSelected"
-          binary
-          @update:model-value="toggleSelectAll(!isAllSelected)" />
+        <Checkbox :model-value="isAllSelected" binary @update:model-value="toggleSelectAll(!isAllSelected)" />
         <span class="ml-2 font-medium">{{ t('全选') }}</span>
       </div>
       <ScrollArea class="h-[250px]">
-          <div v-if="loading" class="p-4 text-center">
-            <i class="pi pi-spin pi-spinner mr-2"></i>
-            {{ t('加载中...') }}
-          </div>
-          <div
-            v-else
-            v-for="item in dataList"
-            :key="item.value"
-            class="p-3 cursor-pointer flex items-center transition-colors"
-            :class="{
-              'hover:bg-primary-100 dark:hover:bg-primary-900': !isItemDisabled(item),
-              'opacity-50 cursor-not-allowed bg-primary-surface': isItemDisabled(item)
-            }"
-            @click.capture.stop.prevent="handleSelect(item)">
-            <Checkbox
-              :model-value="modelValue.some((el) => itemEquals(el, item))"
-              :binary="true"
-              :disabled="isItemDisabled(item)" />
-            <span class="ml-2" :class="{ 'text-primary-theme': isItemDisabled(item) }">
-              {{ item.label }}
-            </span>
-            <span v-if="isItemDisabled(item)" class="ml-auto text-xs text-primary-subtle">
-              {{ t('必需') }}
-            </span>
-          </div>
-          <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-primary-theme">
-            {{ t('无数据') }}
-          </div>
+        <div v-if="loading" class="p-4 text-center">
+          <i class="pi pi-spin pi-spinner mr-2"></i>
+          {{ t('加载中...') }}
+        </div>
+        <div
+          v-else
+          v-for="item in dataList"
+          :key="item.value"
+          class="p-3 cursor-pointer flex items-center transition-colors"
+          :class="{
+            'hover:bg-primary-100 dark:hover:bg-primary-900': !isItemDisabled(item),
+            'opacity-50 cursor-not-allowed bg-primary-surface': isItemDisabled(item),
+          }"
+          @click.capture.stop.prevent="handleSelect(item)"
+        >
+          <Checkbox
+            :model-value="modelValue.some((el) => itemEquals(el, item))"
+            :binary="true"
+            :disabled="isItemDisabled(item)"
+          />
+          <span class="ml-2" :class="{ 'text-primary-theme': isItemDisabled(item) }">
+            {{ item.label }}
+          </span>
+          <span v-if="isItemDisabled(item)" class="ml-auto text-xs text-primary-subtle">
+            {{ t('必需') }}
+          </span>
+        </div>
+        <div v-if="dataList.length === 0 && !loading" class="p-4 text-center text-primary-theme">
+          {{ t('无数据') }}
+        </div>
       </ScrollArea>
       <div class="p-3 border-t border-primary-default">
         <Paginator
@@ -86,185 +80,180 @@
           :rowsPerPage="pagination.take"
           :page="currentPage"
           :disabled="loading"
-          @update:page="handlePageChange" />
+          @update:page="handlePageChange"
+        />
       </div>
     </div>
   </Dropdown>
 </template>
 <script lang="ts">
-  export interface RemoteSelectItem {
-    value: string | number;
-    label: string;
-  }
+export interface RemoteSelectItem {
+  value: string | number;
+  label: string;
+}
 
-  function addItem(items: RemoteSelectItem[], item: RemoteSelectItem): RemoteSelectItem[] {
-    if (!items.some((el) => el.value === item.value)) {
-      return [...items, item];
-    }
-    return items;
+function addItem(items: RemoteSelectItem[], item: RemoteSelectItem): RemoteSelectItem[] {
+  if (!items.some((el) => el.value === item.value)) {
+    return [...items, item];
   }
-  function removeItem(items: RemoteSelectItem[], item: RemoteSelectItem): RemoteSelectItem[] {
-    const index = items.findIndex((el) => itemEquals(el, item));
-    if (index !== -1) {
-      return [...items.slice(0, index), ...items.slice(index + 1)];
-    }
-    return items;
+  return items;
+}
+function removeItem(items: RemoteSelectItem[], item: RemoteSelectItem): RemoteSelectItem[] {
+  const index = items.findIndex((el) => itemEquals(el, item));
+  if (index !== -1) {
+    return [...items.slice(0, index), ...items.slice(index + 1)];
   }
-  /** 因为数据会分页加载，所以直接按引用判断不行。要按值判断 */
-  function itemEquals(a: RemoteSelectItem, b: RemoteSelectItem) {
-    return a.value === b.value;
-  }
-  export const RemoteSelectUtils = {
-    addItem,
-    removeItem,
-    itemEquals,
-  };
+  return items;
+}
+/** 因为数据会分页加载，所以直接按引用判断不行。要按值判断 */
+function itemEquals(a: RemoteSelectItem, b: RemoteSelectItem) {
+  return a.value === b.value;
+}
+export const RemoteSelectUtils = {
+  addItem,
+  removeItem,
+  itemEquals,
+};
 </script>
 <script setup lang="ts">
-  import { Dropdown, ScrollArea } from '@tsfullstack/shared-frontend/components';
-  import { computed, ref, shallowRef } from 'vue';
-  import { useDebounceFn } from '@vueuse/core';
-  import { useI18n } from '@/composables/useI18n';
+import { Dropdown, ScrollArea } from '@tsfullstack/shared-frontend/components';
+import { computed, ref, shallowRef } from 'vue';
+import { useDebounceFn } from '@vueuse/core';
+import { useI18n } from '@/composables/useI18n';
 
-  defineOptions({ inheritAttrs: false });
+defineOptions({ inheritAttrs: false });
 
-  /** 获取 t 函数 */
-  const { t } = useI18n();
+/** 获取 t 函数 */
+const { t } = useI18n();
 
-  interface Pagination {
-    skip: number;
-    take: number;
+interface Pagination {
+  skip: number;
+  take: number;
+  total: number;
+}
+
+interface RemoteSelectProps {
+  /** 查询方法 */
+  queryMethod: (params: { keyword: string; skip: number; take: number }) => Promise<{
+    data: RemoteSelectItem[];
     total: number;
+  }>;
+  /** 是否显示已选标签 */
+  showTag?: boolean;
+  /** 禁用的项列表（不能取消选择的项） */
+  disabledItems?: RemoteSelectItem[];
+}
+
+const { queryMethod, showTag = true, disabledItems = [] } = defineProps<RemoteSelectProps>();
+
+const emit = defineEmits<{
+  add: [value: RemoteSelectItem];
+  remove: [value: RemoteSelectItem];
+}>();
+
+const modelValue = defineModel<RemoteSelectItem[]>({
+  required: true,
+});
+const searchText = ref('');
+const loading = ref(false);
+const dataList = shallowRef<RemoteSelectItem[]>([]);
+const tagHovered = ref<Record<string, boolean>>({});
+const dropdownOpen = ref(false);
+
+const pagination = ref<Pagination>({
+  skip: 0,
+  take: 10,
+  total: 0,
+});
+
+/** 当前页码（从0开始） */
+const currentPage = computed(() => {
+  return Math.floor(pagination.value.skip / pagination.value.take);
+});
+
+const debounceSearch = useDebounceFn(() => {
+  pagination.value.skip = 0;
+  fetchData();
+}, 300);
+
+const handleSearch = async () => {
+  pagination.value.skip = 0;
+  await fetchData();
+};
+
+const handlePageChange = async (page: number) => {
+  pagination.value.skip = page * pagination.value.take;
+  await fetchData();
+};
+
+const fetchData = async () => {
+  loading.value = true;
+  try {
+    const res = await queryMethod({
+      keyword: searchText.value,
+      skip: pagination.value.skip,
+      take: pagination.value.take,
+    });
+    dataList.value = res.data;
+    pagination.value.total = res.total;
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleSelect = (item: RemoteSelectItem) => {
+  // 如果项被禁用，不允许操作
+  if (isItemDisabled(item)) {
+    return;
   }
 
-  interface RemoteSelectProps {
-    /** 查询方法 */
-    queryMethod: (params: {
-      keyword: string;
-      skip: number;
-      take: number;
-    }) => Promise<{
-      data: RemoteSelectItem[];
-      total: number;
-    }>;
-    /** 是否显示已选标签 */
-    showTag?: boolean;
-    /** 禁用的项列表（不能取消选择的项） */
-    disabledItems?: RemoteSelectItem[];
+  const index = modelValue.value.findIndex((v) => itemEquals(v, item));
+  if (index === -1) {
+    add(item);
+  } else {
+    remove(item);
   }
+};
 
-  const { queryMethod, showTag = true, disabledItems = [] } = defineProps<RemoteSelectProps>();
+const isAllSelected = computed(() => {
+  return (
+    dataList.value.length > 0 &&
+    dataList.value.every((item) => modelValue.value.find((el) => RemoteSelectUtils.itemEquals(el, item)))
+  );
+});
 
-  const emit = defineEmits<{
-    add: [value: RemoteSelectItem];
-    remove: [value: RemoteSelectItem];
-  }>();
-
-  const modelValue = defineModel<RemoteSelectItem[]>({
-    required: true,
-  });
-  const searchText = ref('');
-  const loading = ref(false);
-  const dataList = shallowRef<RemoteSelectItem[]>([]);
-  const tagHovered = ref<Record<string, boolean>>({});
-  const dropdownOpen = ref(false);
-
-  const pagination = ref<Pagination>({
-    skip: 0,
-    take: 10,
-    total: 0,
-  });
-
-  /** 当前页码（从0开始） */
-  const currentPage = computed(() => {
-    return Math.floor(pagination.value.skip / pagination.value.take);
-  });
-
-  const debounceSearch = useDebounceFn(() => {
-    pagination.value.skip = 0;
-    fetchData();
-  }, 300);
-
-  const handleSearch = async () => {
-    pagination.value.skip = 0;
-    await fetchData();
-  };
-
-  const handlePageChange = async (page: number) => {
-    pagination.value.skip = page * pagination.value.take;
-    await fetchData();
-  };
-
-  const fetchData = async () => {
-    loading.value = true;
-    try {
-      const res = await queryMethod({
-        keyword: searchText.value,
-        skip: pagination.value.skip,
-        take: pagination.value.take,
-      });
-      dataList.value = res.data;
-      pagination.value.total = res.total;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  const handleSelect = (item: RemoteSelectItem) => {
-    // 如果项被禁用，不允许操作
-    if (isItemDisabled(item)) {
-      return;
-    }
-
-    const index = modelValue.value.findIndex((v) => itemEquals(v, item));
-    if (index === -1) {
+const toggleSelectAll = (checked: boolean) => {
+  if (checked) {
+    dataList.value.forEach((item) => {
       add(item);
-    } else {
-      remove(item);
-    }
-  };
+    });
+  } else {
+    dataList.value.forEach((item) => remove(item));
+  }
+};
 
-  const isAllSelected = computed(() => {
-    return (
-      dataList.value.length > 0 &&
-      dataList.value.every((item) =>
-        modelValue.value.find((el) => RemoteSelectUtils.itemEquals(el, item)),
-      )
-    );
-  });
+const remove = (item: RemoteSelectItem) => {
+  emit('remove', item);
+  modelValue.value = RemoteSelectUtils.removeItem(modelValue.value, item);
+  tagHovered.value[item.value] = false;
+};
+const add = (item: RemoteSelectItem) => {
+  emit('add', item);
+  modelValue.value = RemoteSelectUtils.addItem(modelValue.value, item);
+};
 
-  const toggleSelectAll = (checked: boolean) => {
-    if (checked) {
-      dataList.value.forEach((item) => {
-        add(item);
-      });
-    } else {
-      dataList.value.forEach((item) => remove(item));
-    }
-  };
+const isTagHovered = (item: RemoteSelectItem) => {
+  return tagHovered.value[item.value] ?? false;
+};
 
-  const remove = (item: RemoteSelectItem) => {
-    emit('remove', item);
-    modelValue.value = RemoteSelectUtils.removeItem(modelValue.value, item);
-    tagHovered.value[item.value] = false;
-  };
-  const add = (item: RemoteSelectItem) => {
-    emit('add', item);
-    modelValue.value = RemoteSelectUtils.addItem(modelValue.value, item);
-  };
+const setTagHovered = (item: RemoteSelectItem, hovered: boolean) => {
+  tagHovered.value[item.value] = hovered;
+};
 
-  const isTagHovered = (item: RemoteSelectItem) => {
-    return tagHovered.value[item.value] ?? false;
-  };
-
-  const setTagHovered = (item: RemoteSelectItem, hovered: boolean) => {
-    tagHovered.value[item.value] = hovered;
-  };
-
-  /** 判断某个项是否被禁用（不可取消） */
-  const isItemDisabled = (item: RemoteSelectItem) => {
-    return disabledItems.some((disabledItem: RemoteSelectItem) => itemEquals(disabledItem, item));
-  };
+/** 判断某个项是否被禁用（不可取消） */
+const isItemDisabled = (item: RemoteSelectItem) => {
+  return disabledItems.some((disabledItem: RemoteSelectItem) => itemEquals(disabledItem, item));
+};
 </script>
 
 <style scoped>

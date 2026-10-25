@@ -45,16 +45,16 @@ export const TokenCleanupService = {
       // 三类操作互不重叠 ID 集合，安全并行执行
       await Promise.all([
         fullyConsumed.length > 0
-          ? db.token.deleteMany({ where: { id: { in: fullyConsumed.map(t => t.id) } } })
+          ? db.token.deleteMany({ where: { id: { in: fullyConsumed.map((t) => t.id) } } })
           : Promise.resolve({ count: 0 }),
         partiallyConsumed.length > 0
           ? db.token.updateMany({
-              where: { id: { in: partiallyConsumed.map(t => t.id) } },
+              where: { id: { in: partiallyConsumed.map((t) => t.id) } },
               data: { active: false },
             })
           : Promise.resolve({ count: 0 }),
         neverUsed.length > 0
-          ? db.token.deleteMany({ where: { id: { in: neverUsed.map(t => t.id) } } })
+          ? db.token.deleteMany({ where: { id: { in: neverUsed.map((t) => t.id) } } })
           : Promise.resolve({ count: 0 }),
       ]);
 

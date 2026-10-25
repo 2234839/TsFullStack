@@ -2,9 +2,9 @@
   <div class="min-h-screen bg-primary-card py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-primary-900 dark:text-white">{{ t("分享管理") }}</h1>
+        <h1 class="text-3xl font-bold text-primary-900 dark:text-white">{{ t('分享管理') }}</h1>
         <p class="mt-2 text-primary-theme">
-          {{ t("浏览和管理您的分享") }}
+          {{ t('浏览和管理您的分享') }}
         </p>
       </div>
 
@@ -29,20 +29,14 @@
       />
 
       <!-- QR码对话框 -->
-      <Dialog
-        v-model:open="qrDialogVisible"
-        :header="t('分享二维码')"
-        :modal="true"
-        :closable="true"
-        class="w-75"
-      >
+      <Dialog v-model:open="qrDialogVisible" :header="t('分享二维码')" :modal="true" :closable="true" class="w-75">
         <div class="text-center">
           <div class="mb-4">
             <h3 class="text-lg font-semibold text-primary-900 dark:text-white mb-2">
-              {{ selectedQRItem ? getShareTitle(selectedQRItem) : "" }}
+              {{ selectedQRItem ? getShareTitle(selectedQRItem) : '' }}
             </h3>
             <p class="text-sm text-primary-theme">
-              {{ t("扫描二维码访问分享") }}
+              {{ t('扫描二维码访问分享') }}
             </p>
           </div>
 
@@ -56,7 +50,7 @@
               height="200"
             />
             <div v-else class="w-52 h-52 flex items-center justify-center text-primary-subtle">
-              {{ t("生成二维码中...") }}
+              {{ t('生成二维码中...') }}
             </div>
           </div>
 
@@ -87,7 +81,7 @@
         <div class="bg-primary-panel rounded-lg shadow p-8">
           <i class="pi pi-images text-4xl text-primary-400 mb-4" />
           <p class="text-primary-theme">
-            {{ t("暂无分享") }}
+            {{ t('暂无分享') }}
           </p>
         </div>
       </div>
@@ -104,13 +98,8 @@
 
             <!-- 标题和文件信息 -->
             <div class="p-4">
-              <h3
-                class="text-lg h-8 font-semibold text-primary-900 dark:text-white truncate flex items-center gap-1"
-              >
-                <i
-                  v-if="isEncryptedData(item.data)"
-                  class="pi pi-lock text-sm text-primary-subtle shrink-0"
-                />
+              <h3 class="text-lg h-8 font-semibold text-primary-900 dark:text-white truncate flex items-center gap-1">
+                <i v-if="isEncryptedData(item.data)" class="pi pi-lock text-sm text-primary-subtle shrink-0" />
                 {{ getShareTitle(item) }}
               </h3>
               <div class="flex items-center">
@@ -150,13 +139,9 @@
               </div>
 
               <div class="flex items-center justify-between text-sm text-primary-subtle">
-                <span v-if="!isEncryptedData(item.data)"
-                  >{{ item.data.files?.length ?? 0 }} {{ t("个文件") }}</span
-                >
-                <span v-else>{{ t("加密") }}</span>
-                <span v-if="!isEncryptedData(item.data)">{{
-                  formatFileSize(getTotalFileSize(item.data))
-                }}</span>
+                <span v-if="!isEncryptedData(item.data)">{{ item.data.files?.length ?? 0 }} {{ t('个文件') }}</span>
+                <span v-else>{{ t('加密') }}</span>
+                <span v-if="!isEncryptedData(item.data)">{{ formatFileSize(getTotalFileSize(item.data)) }}</span>
               </div>
             </div>
           </div>
@@ -168,9 +153,7 @@
           :rowsPerPage="shareList.params.take"
           :page="Math.floor(shareList.params.skip / shareList.params.take)"
           :show-rows-per-page-options="true"
-          @update:page="
-            (page: number) => onPageChange({ page, first: page * shareList.params.take })
-          "
+          @update:page="(page: number) => onPageChange({ page, first: page * shareList.params.take })"
           @update:rows-per-page="
             (newSize: number) => {
               shareList.params.take = newSize;
@@ -184,28 +167,28 @@
 </template>
 
 <script setup lang="ts">
-import { useAPI } from "@/api";
-import { Dialog } from "@tsfullstack/shared-frontend/components";
-import ShareCard from "@/pages/admin/share/ShareCard.vue";
-import { useToast } from "@/composables/useToast";
+import { useAPI } from '@/api';
+import { Dialog } from '@tsfullstack/shared-frontend/components';
+import ShareCard from '@/pages/admin/share/ShareCard.vue';
+import { useToast } from '@/composables/useToast';
 import {
   getTotalFileSize,
   parseShareItem,
   isEncryptedData,
   getPlaintextShare,
   type ShareItemJSON,
-} from "@/pages/admin/share/ShareDef";
-import { formatFileSize } from "@/utils/format";
-import ShareForm from "@/pages/admin/share/ShareForm.vue";
-import { routeMap, routerUtil } from "@/router";
-import { userDataAppid } from "@/storage/userDataAppid";
-import { useAsyncState, watchDebounced } from "@vueuse/core";
-import QRCode from "qrcode";
-import { reactive, ref, shallowRef } from "vue";
-import { useConfirm } from "@/composables/useConfirm";
-import { useI18n } from "@/composables/useI18n";
-import { getErrorMessage } from "@/utils/error";
-import { copyToClipboard } from "@/utils/clipboard";
+} from '@/pages/admin/share/ShareDef';
+import { formatFileSize } from '@/utils/format';
+import ShareForm from '@/pages/admin/share/ShareForm.vue';
+import { routeMap, routerUtil } from '@/router';
+import { userDataAppid } from '@/storage/userDataAppid';
+import { useAsyncState, watchDebounced } from '@vueuse/core';
+import QRCode from 'qrcode';
+import { reactive, ref, shallowRef } from 'vue';
+import { useConfirm } from '@/composables/useConfirm';
+import { useI18n } from '@/composables/useI18n';
+import { getErrorMessage } from '@/utils/error';
+import { copyToClipboard } from '@/utils/clipboard';
 
 const { API } = useAPI();
 const { t } = useI18n();
@@ -213,7 +196,7 @@ const toast = useToast();
 const confirm = useConfirm();
 
 /** 搜索关键词 */
-const searchTitle = shallowRef("");
+const searchTitle = shallowRef('');
 
 function useShareList() {
   const params = reactive({
@@ -221,13 +204,11 @@ function useShareList() {
     take: 12,
   });
 
-  type WhereInput = NonNullable<
-    NonNullable<Parameters<typeof API.db.userData.findMany>[0]>["where"]
-  >;
+  type WhereInput = NonNullable<NonNullable<Parameters<typeof API.db.userData.findMany>[0]>['where']>;
   const where = reactive({
     appId: userDataAppid.shareInfo,
   }) as WhereInput;
-  const orderBy = [{ created: "desc" as const }];
+  const orderBy = [{ created: 'desc' as const }];
 
   async function fetchShareItems(): Promise<{ data: ShareItemJSON[]; total: number }> {
     const [rawData, total] = await Promise.all([
@@ -276,7 +257,7 @@ const shareList = useShareList();
  */
 function getShareTitle(item: ShareItemJSON): string {
   const plain = getPlaintextShare(item);
-  return plain?.title ?? item.description ?? "";
+  return plain?.title ?? item.description ?? '';
 }
 
 /** 对话框可见性 */
@@ -292,10 +273,10 @@ const qrDialogVisible = shallowRef(false);
 const selectedQRItem = ref<ShareItemJSON | null>(null);
 
 /** 当前分享URL */
-const currentShareUrl = shallowRef("");
+const currentShareUrl = shallowRef('');
 
 /** QR码数据URL */
-const qrCodeDataUrl = shallowRef("");
+const qrCodeDataUrl = shallowRef('');
 
 /**
  * 打开创建对话框
@@ -339,23 +320,20 @@ const handleShowQRCode = async (item: ShareItemJSON) => {
   selectedQRItem.value = item;
   const baseUrl = window.location.origin;
   /** 安全：链接用不可预测的 UUID key，避免自增 id 被枚举遍历所有分享 */
-  currentShareUrl.value = `${baseUrl}${routeMap.ShareDetail.path.replace(
-    ":id",
-    encodeURIComponent(item.key),
-  )}`;
+  currentShareUrl.value = `${baseUrl}${routeMap.ShareDetail.path.replace(':id', encodeURIComponent(item.key))}`;
 
   try {
     qrCodeDataUrl.value = await QRCode.toDataURL(currentShareUrl.value, {
       width: 200,
       margin: 2,
       color: {
-        dark: "#000000",
-        light: "#FFFFFF",
+        dark: '#000000',
+        light: '#FFFFFF',
       },
     });
   } catch (error: unknown) {
-    toast.error(t("生成二维码失败"), getErrorMessage(error));
-    qrCodeDataUrl.value = "";
+    toast.error(t('生成二维码失败'), getErrorMessage(error));
+    qrCodeDataUrl.value = '';
   }
 
   qrDialogVisible.value = true;
@@ -367,9 +345,9 @@ const handleShowQRCode = async (item: ShareItemJSON) => {
 const handleCopyLink = async () => {
   try {
     await copyToClipboard(currentShareUrl.value);
-    toast.success(t("链接已复制到剪贴板"));
+    toast.success(t('链接已复制到剪贴板'));
   } catch (error: unknown) {
-    toast.error(t("复制失败"), getErrorMessage(error));
+    toast.error(t('复制失败'), getErrorMessage(error));
   }
 };
 
@@ -385,23 +363,23 @@ const handleGotoDetail = (item: ShareItemJSON) => {
 
 /** 高级编辑（独立页面） */
 const handleAdvancedEdit = (item: ShareItemJSON) => {
-  routerUtil.newBlank(routeMap.ShareDetail, { id: item.key }, { mode: "edit" });
+  routerUtil.newBlank(routeMap.ShareDetail, { id: item.key }, { mode: 'edit' });
 };
 
 /** 删除处理 */
 const handleDelete = (item: ShareItemJSON, event: MouseEvent) => {
   confirm.require({
-    message: t("确定要删除这个分享吗？"),
-    icon: "pi pi-exclamation-triangle",
+    message: t('确定要删除这个分享吗？'),
+    icon: 'pi pi-exclamation-triangle',
     event,
     rejectProps: {
-      label: t("取消"),
-      variant: "secondary",
+      label: t('取消'),
+      variant: 'secondary',
       outlined: true,
     },
     acceptProps: {
-      label: t("删除"),
-      variant: "danger",
+      label: t('删除'),
+      variant: 'danger',
     },
     accept: async () => {
       try {
@@ -417,9 +395,9 @@ const handleDelete = (item: ShareItemJSON, event: MouseEvent) => {
           },
         });
         shareList.execute(); // 刷新列表
-        toast.success(t("成功"), t("删除分享成功"));
+        toast.success(t('成功'), t('删除分享成功'));
       } catch (error: unknown) {
-        toast.error(t("失败"), t("删除分享失败：") + getErrorMessage(error));
+        toast.error(t('失败'), t('删除分享失败：') + getErrorMessage(error));
       }
     },
     reject: () => {

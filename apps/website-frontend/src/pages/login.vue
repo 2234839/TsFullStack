@@ -49,10 +49,10 @@
           <h2
             class="text-3xl font-extrabold bg-clip-text text-transparent animate-gradient bg-linear-to-r from-success-600 via-info-600 to-info-600 dark:from-success-400 dark:via-info-400 dark:to-info-400"
           >
-            {{ isLogin ? t("系统登录") : t("用户注册") }}
+            {{ isLogin ? t('系统登录') : t('用户注册') }}
           </h2>
           <p class="mt-2 text-sm text-primary-600 dark:text-primary-300">
-            {{ isLogin ? t("欢迎回来，请输入您的账号和密码") : t("创建一个新账号，开始您的旅程") }}
+            {{ isLogin ? t('欢迎回来，请输入您的账号和密码') : t('创建一个新账号，开始您的旅程') }}
           </p>
         </div>
 
@@ -60,12 +60,9 @@
           <div class="space-y-4">
             <!-- 用户名/邮箱输入框 -->
             <div class="group">
-              <label
-                for="username"
-                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200"
-              >
+              <label for="username" class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
                 <i class="pi pi-user mr-2 text-primary-500 dark:text-primary-300" />{{
-                  isLogin ? t("用户名") : t("邮箱")
+                  isLogin ? t('用户名') : t('邮箱')
                 }}
               </label>
 
@@ -80,11 +77,8 @@
 
             <!-- 密码输入框 -->
             <div class="group">
-              <label
-                for="password"
-                class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200"
-              >
-                <i class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{ t("密码") }}
+              <label for="password" class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
+                <i class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{ t('密码') }}
               </label>
               <Password
                 id="password"
@@ -101,9 +95,7 @@
                 for="confirmPassword"
                 class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200"
               >
-                <i class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{
-                  t("确认密码")
-                }}
+                <i class="pi pi-lock mr-2 text-primary-500 dark:text-primary-300" />{{ t('确认密码') }}
               </label>
               <Password
                 id="confirmPassword"
@@ -113,12 +105,10 @@
                 :placeholder="t('请再次输入密码')"
               />
               <small
-                v-if="
-                  form.password && form.confirmPassword && form.password !== form.confirmPassword
-                "
+                v-if="form.password && form.confirmPassword && form.password !== form.confirmPassword"
                 class="text-danger-500 dark:text-danger-400 mt-1 block"
               >
-                {{ t("两次输入的密码不一致") }}
+                {{ t('两次输入的密码不一致') }}
               </small>
             </div>
           </div>
@@ -127,11 +117,8 @@
           <div v-if="isLogin" class="flex items-center justify-between">
             <div class="flex items-center">
               <Checkbox v-model="localUserPwd.rememberMe" />
-              <label
-                for="remember"
-                class="ml-2 block text-sm text-primary-700 dark:text-primary-200"
-              >
-                {{ t("记住我") }}
+              <label for="remember" class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
+                {{ t('记住我') }}
               </label>
             </div>
 
@@ -140,7 +127,7 @@
                 href="#"
                 class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300"
               >
-                {{ t("忘记密码?") }}
+                {{ t('忘记密码?') }}
               </a>
             </div>
           </div>
@@ -149,19 +136,19 @@
           <div v-if="!isLogin" class="flex items-center">
             <Checkbox v-model="agreeTerms" />
             <label for="terms" class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
-              {{ t("我已阅读并同意") }}
+              {{ t('我已阅读并同意') }}
               <a
                 href="#"
                 class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300"
               >
-                {{ t("用户协议") }}
+                {{ t('用户协议') }}
               </a>
-              {{ t("和") }}
+              {{ t('和') }}
               <a
                 href="#"
                 class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300"
               >
-                {{ t("隐私政策") }}
+                {{ t('隐私政策') }}
               </a>
             </label>
           </div>
@@ -186,10 +173,7 @@
             />
           </div>
           <!-- OAuth 登录按钮  -->
-          <div
-            class="flex items-center justify-between gap-2"
-            v-if="configuredProviders.length > 0"
-          >
+          <div class="flex items-center justify-between gap-2" v-if="configuredProviders.length > 0">
             <!-- github 登录 -->
             <Button
               v-if="configuredProviders.includes('github')"
@@ -218,13 +202,9 @@
           class="pt-4 text-center text-xs border-t text-primary-500 border-primary-200 dark:text-primary-400 dark:border-primary-700/30"
         >
           <p>
-            {{ isLogin ? t("还没有账号?") : t("已有账号?") }}
-            <a
-              href="#"
-              @click.prevent="toggleMode"
-              class="hover:underline text-info-600 dark:text-info-400"
-            >
-              {{ isLogin ? t("立即注册") : t("立即登录") }}
+            {{ isLogin ? t('还没有账号?') : t('已有账号?') }}
+            <a href="#" @click.prevent="toggleMode" class="hover:underline text-info-600 dark:text-info-400">
+              {{ isLogin ? t('立即注册') : t('立即登录') }}
             </a>
           </p>
         </div>
@@ -237,16 +217,16 @@
 </template>
 
 <script setup lang="ts">
-import { useAPI } from "@/api";
-import ThemeSwitcher from "@/components/system/ThemeToggle.vue";
-import { loginGoto } from "@/pages/loginUtil";
-import { routeMap, routerUtil } from "@/router";
-import { authInfo_isLogin, localUserPwd, theme_isDark } from "@/storage";
-import { useAsyncState, useEventListener } from "@vueuse/core";
-import { useToast } from "@/composables/useToast";
-import { useI18n } from "@/composables/useI18n";
-import { getErrorMessage } from "@/utils/error";
-import { computed, onMounted, ref } from "vue";
+import { useAPI } from '@/api';
+import ThemeSwitcher from '@/components/system/ThemeToggle.vue';
+import { loginGoto } from '@/pages/loginUtil';
+import { routeMap, routerUtil } from '@/router';
+import { authInfo_isLogin, localUserPwd, theme_isDark } from '@/storage';
+import { useAsyncState, useEventListener } from '@vueuse/core';
+import { useToast } from '@/composables/useToast';
+import { useI18n } from '@/composables/useI18n';
+import { getErrorMessage } from '@/utils/error';
+import { computed, onMounted, ref } from 'vue';
 
 const { t } = useI18n();
 
@@ -263,17 +243,17 @@ const isLogin = ref(true); // 默认为登录模式
 const agreeTerms = ref(false); // 用户协议勾选
 
 const form = ref({
-  username: "",
-  password: "",
-  confirmPassword: "",
+  username: '',
+  password: '',
+  confirmPassword: '',
 });
 
 const oauthLogin = useAsyncState(
-  async (provider: "github" | "linuxdo") => {
-    if (provider === "github") {
+  async (provider: 'github' | 'linuxdo') => {
+    if (provider === 'github') {
       const url = await AppAPI.githubApi.getAuthorizationUrl();
       location.href = url;
-    } else if (provider === "linuxdo") {
+    } else if (provider === 'linuxdo') {
       const url = await AppAPI.linuxdoApi.getAuthorizationUrl();
       location.href = url;
     } else {
@@ -288,15 +268,15 @@ const oauthLogin = useAsyncState(
 const configuredProviders = ref<string[]>([]);
 
 onMounted(async () => {
-  useEventListener(document, "mousemove", handleMouseMove);
+  useEventListener(document, 'mousemove', handleMouseMove);
   if (localUserPwd.value.rememberMe) {
     form.value.username = localUserPwd.value.username;
     form.value.password = localUserPwd.value.password;
   }
   // 开发环境下默认填充本地测试账号（来自 apps/backend/config.json 的 systemAdminUser），方便调试
   if (import.meta.env.DEV && !form.value.username) {
-    form.value.username = import.meta.env.VITE_DEV_TEST_USERNAME ?? "";
-    form.value.password = import.meta.env.VITE_DEV_TEST_PASSWORD ?? "";
+    form.value.username = import.meta.env.VITE_DEV_TEST_USERNAME ?? '';
+    form.value.password = import.meta.env.VITE_DEV_TEST_PASSWORD ?? '';
   }
   try {
     configuredProviders.value = await AppAPI.oauthProviders();
@@ -327,9 +307,9 @@ const toggleMode = () => {
   isLogin.value = !isLogin.value;
   // 清空表单
   form.value = {
-    username: "",
-    password: "",
-    confirmPassword: "",
+    username: '',
+    password: '',
+    confirmPassword: '',
   };
   localUserPwd.value.rememberMe = false;
   agreeTerms.value = false;
@@ -375,18 +355,18 @@ const handleSubmit = async () => {
         localUserPwd.value.username = form.value.username;
         localUserPwd.value.password = form.value.password;
       }
-      toast.success(t("登录成功"), t("欢迎回来，正在为您跳转..."));
+      toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
     } else {
       // 注册逻辑
       await AppAPI.system.register(form.value.username, form.value.password);
 
-      toast.success(t("注册成功"), t("账号创建成功，请登录"));
+      toast.success(t('注册成功'), t('账号创建成功，请登录'));
 
       // 注册成功后切换到登录页
       isLogin.value = true;
     }
   } catch (error: unknown) {
-    toast.error(t(isLogin.value ? "登录失败" : "注册失败"), getErrorMessage(error));
+    toast.error(t(isLogin.value ? '登录失败' : '注册失败'), getErrorMessage(error));
   } finally {
     loading.value = false;
   }
@@ -594,20 +574,12 @@ form {
 }
 
 .cursor-light-glow {
-  background: radial-gradient(
-    circle,
-    rgba(var(--login-glow-color), 0.15) 0%,
-    rgba(var(--login-glow-color), 0) 70%
-  );
+  background: radial-gradient(circle, rgba(var(--login-glow-color), 0.15) 0%, rgba(var(--login-glow-color), 0) 70%);
   mix-blend-mode: multiply;
 }
 
 .dark .cursor-light-glow {
-  background: radial-gradient(
-    circle,
-    rgba(var(--login-glow-color), 0.2) 0%,
-    rgba(var(--login-glow-color), 0) 70%
-  );
+  background: radial-gradient(circle, rgba(var(--login-glow-color), 0.2) 0%, rgba(var(--login-glow-color), 0) 70%);
   mix-blend-mode: screen;
 }
 </style>

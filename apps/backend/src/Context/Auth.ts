@@ -29,6 +29,4 @@ export function authUserIsAdmin() {
 
 /** 要求当前用户必须是管理员，否则抛出权限错误 */
 export const requireAdmin = () =>
-  Effect.flatMap(authUserIsAdmin(), (isAdmin) =>
-    isAdmin ? Effect.void : fail(MSG.REQUIRE_ADMIN),
-  );
+  Effect.flatMap(authUserIsAdmin(), (isAdmin) => (isAdmin ? Effect.void : fail(MSG.REQUIRE_ADMIN)));

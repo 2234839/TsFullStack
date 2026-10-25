@@ -32,7 +32,8 @@ const handleBlur = () => {
     v-bind="$attrs"
     class="flex items-stretch w-full *:first:rounded-l-lg *:first:rounded-r-none *:last:rounded-r-lg *:last:rounded-l-none [&>:not(:last-child)]:border-r-0"
     @focusin="handleFocus"
-    @focusout="handleBlur">
+    @focusout="handleBlur"
+  >
     <slot />
   </div>
 </template>

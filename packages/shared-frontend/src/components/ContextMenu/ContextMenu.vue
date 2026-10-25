@@ -8,15 +8,9 @@
  * <ContextMenu ref="contextMenu" :model="menuItems" />
  * ```
  */
-import { ref, computed } from "vue";
-import {
-  ContextMenuRoot,
-  ContextMenuTrigger,
-  ContextMenuContent,
-  ContextMenuPortal,
-  ContextMenuItem,
-} from "reka-ui";
-import type { UiContextMenuInstance, UiContextMenuProps, MenuItem } from "./types";
+import { ref, computed } from 'vue';
+import { ContextMenuRoot, ContextMenuTrigger, ContextMenuContent, ContextMenuPortal, ContextMenuItem } from 'reka-ui';
+import type { UiContextMenuInstance, UiContextMenuProps, MenuItem } from './types';
 
 /** 定义 props */
 const props = defineProps<UiContextMenuProps>();
@@ -60,7 +54,7 @@ const handleItemClick = (item: MenuItem) => {
 /** 内容区域样式（必须用 computed 保持响应式，否则菜单位置永远停留在初始值） */
 const contentStyle = computed(() => ({
   zIndex: 10001,
-  position: "fixed" as const,
+  position: 'fixed' as const,
   left: `${position.value.x}px`,
   top: `${position.value.y}px`,
 }));

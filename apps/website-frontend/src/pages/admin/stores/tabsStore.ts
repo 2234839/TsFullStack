@@ -1,15 +1,6 @@
 import { allRoutes, findRouteNode } from '@/router';
 import type { Router } from 'vue-router';
-import {
-  computed,
-  type ComputedRef,
-  inject,
-  type InjectionKey,
-  provide,
-  reactive,
-  readonly,
-  ref,
-} from 'vue';
+import { computed, type ComputedRef, inject, type InjectionKey, provide, reactive, readonly, ref } from 'vue';
 import { type RouteLocationNormalizedLoaded } from 'vue-router';
 
 /** 标签页的元信息，用于多页签的展示和控制 */

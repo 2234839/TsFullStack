@@ -16,9 +16,9 @@ export class VideoGenerationTool implements ToolDefinition {
       model: { type: 'string', description: '使用的模型' },
       duration: { type: 'number', description: '视频时长（秒）' },
       fps: { type: 'number', description: '帧率' },
-      quality: { type: 'string', description: '视频质量' }
+      quality: { type: 'string', description: '视频质量' },
     },
-    required: ['prompt']
+    required: ['prompt'],
   };
   permissions = ['file_write'];
   private llmService: LLMService;
@@ -30,13 +30,13 @@ export class VideoGenerationTool implements ToolDefinition {
   }
 
   async execute(input: any): Promise<any> {
-    const { 
-      prompt, 
+    const {
+      prompt,
       outputPath = './generated_video.mp4',
       model = 'cogvideox-flash',
       duration = 5,
       fps = 24,
-      quality = 'high'
+      quality = 'high',
     } = input;
 
     if (!prompt) {
@@ -59,9 +59,7 @@ export class VideoGenerationTool implements ToolDefinition {
 - 风格：专业、流畅、视觉吸引力强
 - 请生成具有连贯叙事的视频内容`;
 
-      const messages: LLMMessage[] = [
-        { role: 'user', content: videoPrompt }
-      ];
+      const messages: LLMMessage[] = [{ role: 'user', content: videoPrompt }];
 
       // 使用 LLM 生成视频
       const response = await this.llmService.chat(messages, 'general');
@@ -76,23 +74,24 @@ export class VideoGenerationTool implements ToolDefinition {
         response,
         timestamp: new Date().toISOString(),
         status: 'generating',
-        estimatedTime: `${duration * 2}分钟`
+        estimatedTime: `${duration * 2}分钟`,
       };
-
     } catch (error) {
-      this.logger.error('视频生成失败', { 
-        error: error instanceof Error ? error.message : String(error),
-        prompt 
-      }, 'VideoGenerationTool');
+      this.logger.error(
+        '视频生成失败',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          prompt,
+        },
+        'VideoGenerationTool',
+      );
 
       throw error;
     }
   }
 
   validate(input: any): boolean {
-    return typeof input === 'object' && 
-           typeof input.prompt === 'string' && 
-           input.prompt.length > 0;
+    return typeof input === 'object' && typeof input.prompt === 'string' && input.prompt.length > 0;
   }
 }
 
@@ -106,9 +105,9 @@ export class VideoAnalysisTool implements ToolDefinition {
       videoPath: { type: 'string', description: '视频文件路径' },
       prompt: { type: 'string', description: '分析提示词' },
       model: { type: 'string', description: '使用的模型' },
-      extractFrames: { type: 'boolean', description: '是否提取帧' }
+      extractFrames: { type: 'boolean', description: '是否提取帧' },
     },
-    required: ['videoPath']
+    required: ['videoPath'],
   };
   permissions = ['file_read'];
   private llmService: LLMService;
@@ -120,11 +119,11 @@ export class VideoAnalysisTool implements ToolDefinition {
   }
 
   async execute(input: any): Promise<any> {
-    const { 
-      videoPath, 
+    const {
+      videoPath,
       prompt = '请分析这个视频的内容',
       model = 'glm-4.1v-thinking-flash',
-      extractFrames = true 
+      extractFrames = true,
     } = input;
 
     if (!videoPath) {
@@ -144,7 +143,7 @@ export class VideoAnalysisTool implements ToolDefinition {
         path: videoPath,
         size: fs.statSync(videoPath).size,
         extension: path.extname(videoPath),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
 
       // 构建视频分析提示
@@ -160,9 +159,7 @@ export class VideoAnalysisTool implements ToolDefinition {
 4. 视频质量和风格评估
 5. 关键时间点描述`;
 
-      const messages: LLMMessage[] = [
-        { role: 'user', content: analysisPrompt }
-      ];
+      const messages: LLMMessage[] = [{ role: 'user', content: analysisPrompt }];
 
       // 使用 LLM 分析视频
       const response = await this.llmService.chat(messages, 'general');
@@ -172,23 +169,24 @@ export class VideoAnalysisTool implements ToolDefinition {
         videoInfo,
         model,
         prompt,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-
     } catch (error) {
-      this.logger.error('视频分析失败', { 
-        error: error instanceof Error ? error.message : String(error),
-        videoPath 
-      }, 'VideoAnalysisTool');
+      this.logger.error(
+        '视频分析失败',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          videoPath,
+        },
+        'VideoAnalysisTool',
+      );
 
       throw error;
     }
   }
 
   validate(input: any): boolean {
-    return typeof input === 'object' && 
-           typeof input.videoPath === 'string' && 
-           input.videoPath.length > 0;
+    return typeof input === 'object' && typeof input.videoPath === 'string' && input.videoPath.length > 0;
   }
 }
 
@@ -203,9 +201,9 @@ export class VideoScriptTool implements ToolDefinition {
       duration: { type: 'number', description: '视频时长（秒）' },
       style: { type: 'string', description: '视频风格' },
       targetAudience: { type: 'string', description: '目标观众' },
-      model: { type: 'string', description: '使用的模型' }
+      model: { type: 'string', description: '使用的模型' },
     },
-    required: ['topic']
+    required: ['topic'],
   };
   permissions = [];
   private llmService: LLMService;
@@ -217,13 +215,7 @@ export class VideoScriptTool implements ToolDefinition {
   }
 
   async execute(input: any): Promise<any> {
-    const { 
-      topic, 
-      duration = 60,
-      style = 'educational',
-      targetAudience = 'general',
-      model = 'glm-4.5-flash'
-    } = input;
+    const { topic, duration = 60, style = 'educational', targetAudience = 'general', model = 'glm-4.5-flash' } = input;
 
     if (!topic) {
       throw new Error('缺少必需参数: topic');
@@ -249,9 +241,7 @@ export class VideoScriptTool implements ToolDefinition {
 
 请以结构化的格式返回脚本内容。`;
 
-      const messages: LLMMessage[] = [
-        { role: 'user', content: scriptPrompt }
-      ];
+      const messages: LLMMessage[] = [{ role: 'user', content: scriptPrompt }];
 
       // 使用 LLM 生成脚本
       const response = await this.llmService.chat(messages, 'general');
@@ -263,22 +253,23 @@ export class VideoScriptTool implements ToolDefinition {
         style,
         targetAudience,
         model,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-
     } catch (error) {
-      this.logger.error('视频脚本生成失败', { 
-        error: error instanceof Error ? error.message : String(error),
-        topic 
-      }, 'VideoScriptTool');
+      this.logger.error(
+        '视频脚本生成失败',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          topic,
+        },
+        'VideoScriptTool',
+      );
 
       throw error;
     }
   }
 
   validate(input: any): boolean {
-    return typeof input === 'object' && 
-           typeof input.topic === 'string' && 
-           input.topic.length > 0;
+    return typeof input === 'object' && typeof input.topic === 'string' && input.topic.length > 0;
   }
 }

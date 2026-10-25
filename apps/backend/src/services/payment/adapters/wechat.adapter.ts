@@ -1,11 +1,7 @@
 import { Effect } from 'effect';
 import { fail } from '../../../util/error';
 import { MSG } from '../../../util/constants';
-import type {
-  PaymentAdapter,
-  CreatePaymentParams,
-  CreatePaymentResult,
-} from './types';
+import type { PaymentAdapter, CreatePaymentParams, CreatePaymentResult } from './types';
 import { PaymentProvider } from '../../../../.zenstack/models';
 import { PaymentConfigService } from '../../../Context/PaymentConfig';
 import { ReqCtxService } from '../../../Context/ReqCtx';
@@ -50,9 +46,7 @@ export const WechatAdapter: PaymentAdapter = {
       } satisfies CreatePaymentResult;
     }),
 
-  parseWebhook: () =>
-    fail(MSG.WECHAT_NO_WEBHOOK),
+  parseWebhook: () => fail(MSG.WECHAT_NO_WEBHOOK),
 
-  queryOrderStatus: () =>
-    Effect.succeed(null),
+  queryOrderStatus: () => Effect.succeed(null),
 };

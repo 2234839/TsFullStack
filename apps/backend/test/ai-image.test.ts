@@ -111,7 +111,7 @@ describe('AI 图片生成 API 测试', () => {
           prompt: '',
           provider: 'qwen',
           count: 1,
-        })
+        }),
       ).rejects.toThrow('提示词不能为空');
     });
 
@@ -121,7 +121,7 @@ describe('AI 图片生成 API 测试', () => {
           prompt: '测试',
           provider: 'qwen',
           count: 10, // 超过最大值 4
-        })
+        }),
       ).rejects.toThrow('单次最多生成 4 张图片');
     });
 
@@ -139,7 +139,7 @@ describe('AI 图片生成 API 测试', () => {
           prompt: '测试',
           provider: 'qwen',
           count: Math.ceil(excessiveAmount / 10), // 每张图片 10 代币
-        })
+        }),
       ).rejects.toThrow('代币不足');
     });
   });

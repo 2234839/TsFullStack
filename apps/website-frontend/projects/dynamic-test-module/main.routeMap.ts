@@ -1,5 +1,5 @@
 /** ABOUTME: Dynamic test module route map */
-import type { RouteNode } from '@tsfullstack/shared-frontend/utils'
+import type { RouteNode } from '@tsfullstack/shared-frontend/utils';
 
 export default {
   dynamicTestModule: {
@@ -10,4 +10,4 @@ export default {
       icon: 'pi pi-bolt',
     },
   },
-} satisfies Record<string, RouteNode>
+} satisfies Record<string, RouteNode>;

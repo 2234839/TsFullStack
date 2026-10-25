@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h , shallowRef } from 'vue';
+import { ref, onMounted, computed, h, shallowRef } from 'vue';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { useConfirm } from '@/composables/useConfirm';
@@ -29,7 +29,15 @@ interface UserSubscription {
   endDate: Date | null;
   nextGrantDate: Date;
   grantsCount: number;
-  package?: { id: number; name: string; type: string; amount: number; price: number | null; durationMonths: number; active: boolean };
+  package?: {
+    id: number;
+    name: string;
+    type: string;
+    amount: number;
+    price: number | null;
+    durationMonths: number;
+    active: boolean;
+  };
   user?: { id: string; email: string };
 }
 
@@ -85,11 +93,7 @@ const subscribeForm = ref({
 const isSubmitting = shallowRef(false);
 
 /** 搜索套餐 */
-async function searchPackages(params: {
-  keyword: string;
-  skip: number;
-  take: number;
-}) {
+async function searchPackages(params: { keyword: string; skip: number; take: number }) {
   try {
     const packages = await API.db.tokenPackage.findMany({
       where: {
@@ -136,7 +140,11 @@ function openSubscribeDialog() {
 
 /** 批量订阅套餐 */
 async function batchSubscribe() {
-  if (isSubmitting.value || subscribeForm.value.selectedUsers.length === 0 || subscribeForm.value.selectedPackages.length === 0) {
+  if (
+    isSubmitting.value ||
+    subscribeForm.value.selectedUsers.length === 0 ||
+    subscribeForm.value.selectedPackages.length === 0
+  ) {
     return;
   }
 
@@ -161,7 +169,7 @@ async function batchSubscribe() {
               const errorMessage = getErrorMessage(error);
               results.push({ user: user.label, package: pkg.label, success: false, error: errorMessage });
             }
-          })()
+          })(),
         );
       }
     }
@@ -257,10 +265,11 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     key: 'package',
     title: t('套餐'),
     width: '15%',
-    render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'font-medium text-primary-title' }, row.package?.name ?? '--'),
-      h('div', { class: 'text-xs text-primary-subtle' }, `${row.package?.amount ?? '--'} ${t('代币')}`),
-    ]),
+    render: (row) =>
+      h('div', { class: 'text-sm' }, [
+        h('div', { class: 'font-medium text-primary-title' }, row.package?.name ?? '--'),
+        h('div', { class: 'text-xs text-primary-subtle' }, `${row.package?.amount ?? '--'} ${t('代币')}`),
+      ]),
   },
   {
     key: 'type',
@@ -278,7 +287,8 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     key: 'endDate',
     title: t('到期时间'),
     width: '10%',
-    render: (row) => h('div', { class: 'text-sm text-primary-theme' }, formatDate(row.endDate, { nullLabel: t('永久') })),
+    render: (row) =>
+      h('div', { class: 'text-sm text-primary-theme' }, formatDate(row.endDate, { nullLabel: t('永久') })),
   },
   {
     key: 'nextGrantDate',
@@ -287,11 +297,13 @@ const subscriptionColumns = computed<ColumnDef<UserSubscription>[]>(() => [
     render: (row) => {
       const days = getDaysUntilGrant(row.nextGrantDate);
       return h('div', { class: 'text-sm' }, [
-        h('div', {
-          class: days <= 7
-            ? 'text-warning-600 dark:text-warning-400'
-            : 'text-primary-theme'
-        }, formatDate(row.nextGrantDate)),
+        h(
+          'div',
+          {
+            class: days <= 7 ? 'text-warning-600 dark:text-warning-400' : 'text-primary-theme',
+          },
+          formatDate(row.nextGrantDate),
+        ),
         h('div', { class: 'text-xs text-primary-subtle' }, `${days}${t('天后')}`),
       ]);
     },
@@ -411,14 +423,13 @@ onMounted(loadSubscriptions);
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button
-            variant="secondary"
-            @click="showSubscribeDialog = false"
-          >
+          <Button variant="secondary" @click="showSubscribeDialog = false">
             {{ t('取消') }}
           </Button>
           <Button
-            :disabled="isSubmitting || subscribeForm.selectedUsers.length === 0 || subscribeForm.selectedPackages.length === 0"
+            :disabled="
+              isSubmitting || subscribeForm.selectedUsers.length === 0 || subscribeForm.selectedPackages.length === 0
+            "
             :loading="isSubmitting"
             @click="batchSubscribe"
           >

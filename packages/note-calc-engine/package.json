@@ -1,8 +1,11 @@
 {
   "name": "@tsfullstack/note-calc-engine",
   "version": "0.1.0",
-  "type": "module",
   "private": true,
+  "files": [
+    "src"
+  ],
+  "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",
   "types": "./src/index.ts",
@@ -11,8 +14,5 @@
       "import": "./src/index.ts",
       "types": "./src/index.ts"
     }
-  },
-  "files": [
-    "src"
-  ]
+  }
 }

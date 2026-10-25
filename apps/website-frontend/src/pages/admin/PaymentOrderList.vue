@@ -10,20 +10,11 @@
       <div class="flex items-center gap-4 flex-wrap">
         <div class="flex items-center gap-2">
           <label class="text-sm text-primary-theme whitespace-nowrap">{{ t('状态') }}:</label>
-          <Select
-            v-model="statusFilter"
-            :options="statusOptions"
-            :placeholder="t('全部')"
-            class="w-36"
-          />
+          <Select v-model="statusFilter" :options="statusOptions" :placeholder="t('全部')" class="w-36" />
         </div>
         <div class="flex items-center gap-2">
           <label class="text-sm text-primary-theme whitespace-nowrap">{{ t('用户') }}:</label>
-          <Input
-            v-model="userIdFilter"
-            :placeholder="t('输入邮箱搜索')"
-            class="w-64"
-          />
+          <Input v-model="userIdFilter" :placeholder="t('输入邮箱搜索')" class="w-64" />
         </div>
       </div>
     </Card>
@@ -40,12 +31,7 @@
 
     <!-- 分页 -->
     <div v-if="total > pageSize" class="mt-4 flex justify-center">
-      <Paginator
-        v-model:page="currentPage"
-        :total="total"
-        :pageSize="pageSize"
-        @update:page="loadOrders"
-      />
+      <Paginator v-model:page="currentPage" :total="total" :pageSize="pageSize" @update:page="loadOrders" />
     </div>
 
     <!-- 空状态 -->
@@ -162,7 +148,11 @@ const columns = computed<ColumnDef<OrderRow>[]>(() => [
     render: (row) =>
       h(
         'span',
-        { class: isExpired(row.expireAt, row.status, now.value) ? 'text-danger-500 dark:text-danger-400 font-medium' : '' },
+        {
+          class: isExpired(row.expireAt, row.status, now.value)
+            ? 'text-danger-500 dark:text-danger-400 font-medium'
+            : '',
+        },
         getRemainingText(row.expireAt, row.status, now.value),
       ),
   },
@@ -215,10 +205,14 @@ async function loadOrders() {
 }
 
 /** 监听筛选条件变化，immediate: true 同时替代 onMounted */
-watch([statusFilter, userIdFilter], () => {
-  currentPage.value = 0;
-  loadOrders();
-}, { immediate: true });
+watch(
+  [statusFilter, userIdFilter],
+  () => {
+    currentPage.value = 0;
+    loadOrders();
+  },
+  { immediate: true },
+);
 
 /** 正在确认中的订单 ID（防止重复点击） */
 const confirmingOrderId = ref<number | null>(null);
@@ -228,7 +222,9 @@ const confirmingOrderId = ref<number | null>(null);
  */
 async function handleConfirmPayment(row: OrderRow) {
   const confirmed = await confirm.require({
-    message: t(`确认订单 ${row.orderNo} 已通过微信转账到账？\n\n确认后将自动发放 ${row.package?.name ?? ''} 套餐的代币。`),
+    message: t(
+      `确认订单 ${row.orderNo} 已通过微信转账到账？\n\n确认后将自动发放 ${row.package?.name ?? ''} 套餐的代币。`,
+    ),
     header: t('确认到账'),
     acceptLabel: t('确认到账'),
     acceptProps: { variant: 'success', icon: 'pi pi-check-circle' },
@@ -248,5 +244,4 @@ async function handleConfirmPayment(row: OrderRow) {
     confirmingOrderId.value = null;
   }
 }
-
 </script>

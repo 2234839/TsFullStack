@@ -10,9 +10,9 @@ export type {
   Manifest,
   ManifestEntry,
   TestEnv,
-} from "./types";
+} from './types';
 
-export { runTests, approveScenario, rejectScenario } from "./runner";
-export { startServer } from "./server";
-export { serializeDom, diffDomJson } from "./dom-serializer";
-export type { VisualTestAPI } from "./api";
+export { runTests, approveScenario, rejectScenario } from './runner';
+export { startServer } from './server';
+export { serializeDom, diffDomJson } from './dom-serializer';
+export type { VisualTestAPI } from './api';

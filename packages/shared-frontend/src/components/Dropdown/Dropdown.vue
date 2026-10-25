@@ -13,12 +13,7 @@
  * </Dropdown>
  * ```
  */
-import {
-  DropdownMenuRoot,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuPortal,
-} from 'reka-ui';
+import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuPortal } from 'reka-ui';
 import type { UiDropdownEmits, UiDropdownProps } from './types';
 
 /** 定义 props */
@@ -69,10 +64,7 @@ const contentStyle = {
 </script>
 
 <template>
-  <DropdownMenuRoot
-    :open="openState"
-    :dir="props.dir"
-    @update:open="handleUpdateOpen">
+  <DropdownMenuRoot :open="openState" :dir="props.dir" @update:open="handleUpdateOpen">
     <DropdownMenuTrigger as-child>
       <slot name="trigger" :open="openState" :toggle="toggle" />
     </DropdownMenuTrigger>
@@ -85,11 +77,13 @@ const contentStyle = {
         :side="side"
         :align="align"
         :side-offset="sideOffset"
-        :style="contentStyle">
+        :style="contentStyle"
+      >
         <div
           v-if="showCloseIcon"
           class="absolute top-2 right-2 w-5 h-5 flex items-center justify-center cursor-pointer text-base text-primary-400 dark:text-primary-400 rounded-full hover:bg-primary-100 dark:hover:bg-primary-800 hover:text-primary-700 dark:hover:text-primary-200 transition-all z-10"
-          @click="close">
+          @click="close"
+        >
           ×
         </div>
         <slot />

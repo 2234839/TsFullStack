@@ -203,9 +203,7 @@ export function getFieldBackLink(field: FieldInfo): string | undefined {
  *
  * 通过映射类型从 API.db 中提取特定模型的类型
  */
-export type ModelAPI<M extends DBModelNames> = M extends keyof typeof API.db
-  ? typeof API.db[M]
-  : never;
+export type ModelAPI<M extends DBModelNames> = M extends keyof typeof API.db ? (typeof API.db)[M] : never;
 
 /**
  * ZenStack v3 的基础参数类型（从后端导入）
@@ -280,10 +278,7 @@ export type DynamicQuery<T = any> = T;
  * 类型安全的模型访问辅助函数
  * 返回模型的 CRUD 接口
  */
-export function getModelAPI<M extends DBModelNames>(
-  api: typeof API,
-  modelName: M
-): ModelCRUD {
+export function getModelAPI<M extends DBModelNames>(api: typeof API, modelName: M): ModelCRUD {
   // api.db[modelName] 的返回类型是所有模型客户端的联合类型，无法直接赋值给 ModelCRUD
   // 这是动态模型名称场景的固有限制：编译期无法确定具体模型类型
   return api.db[modelName] as unknown as ModelCRUD;

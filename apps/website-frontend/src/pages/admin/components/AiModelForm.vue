@@ -3,7 +3,7 @@
     <div class="space-y-4">
       <div class="field">
         <label class="block text-sm font-medium text-primary-label mb-1">
-          {{ t("模型名称") }} <span class="text-danger-500 dark:text-danger-400">*</span>
+          {{ t('模型名称') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
           v-model="form.name"
@@ -11,14 +11,12 @@
           :class="{ 'ring-2 ring-danger-500': errors.name }"
           @input="validateField('name')"
         />
-        <small v-if="errors.name" class="text-danger-500 dark:text-danger-400">{{
-          errors.name
-        }}</small>
+        <small v-if="errors.name" class="text-danger-500 dark:text-danger-400">{{ errors.name }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-primary-label mb-1">
-          {{ t("模型标识") }} <span class="text-danger-500 dark:text-danger-400">*</span>
+          {{ t('模型标识') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
           v-model="form.model"
@@ -26,14 +24,12 @@
           :class="{ 'ring-2 ring-danger-500': errors.model }"
           @input="validateField('model')"
         />
-        <small v-if="errors.model" class="text-danger-500 dark:text-danger-400">{{
-          errors.model
-        }}</small>
+        <small v-if="errors.model" class="text-danger-500 dark:text-danger-400">{{ errors.model }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-primary-label mb-1">
-          {{ t("API基础URL") }} <span class="text-danger-500 dark:text-danger-400">*</span>
+          {{ t('API基础URL') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Input
           v-model="form.baseUrl"
@@ -41,14 +37,12 @@
           :class="{ 'ring-2 ring-danger-500': errors.baseUrl }"
           @input="validateField('baseUrl')"
         />
-        <small v-if="errors.baseUrl" class="text-danger-500 dark:text-danger-400">{{
-          errors.baseUrl
-        }}</small>
+        <small v-if="errors.baseUrl" class="text-danger-500 dark:text-danger-400">{{ errors.baseUrl }}</small>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-primary-label mb-1">
-          {{ t("API密钥") }} <span class="text-danger-500 dark:text-danger-400">*</span>
+          {{ t('API密钥') }} <span class="text-danger-500 dark:text-danger-400">*</span>
         </label>
         <Password
           v-model="form.apiKey"
@@ -58,15 +52,13 @@
           :class="{ 'ring-2 ring-danger-500': errors.apiKey }"
           @input="validateField('apiKey')"
         />
-        <small v-if="errors.apiKey" class="text-danger-500 dark:text-danger-400">{{
-          errors.apiKey
-        }}</small>
+        <small v-if="errors.apiKey" class="text-danger-500 dark:text-danger-400">{{ errors.apiKey }}</small>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
           <label class="block text-sm font-medium text-primary-label mb-1">
-            {{ t("最大Token数") }}
+            {{ t('最大Token数') }}
           </label>
           <InputNumber
             v-model="form.maxTokens"
@@ -80,7 +72,7 @@
 
         <div class="field">
           <label class="block text-sm font-medium text-primary-label mb-1">
-            {{ t("温度参数") }}
+            {{ t('温度参数') }}
           </label>
           <InputNumber
             v-model="form.temperature"
@@ -97,7 +89,7 @@
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
           <label class="block text-sm font-medium text-primary-label mb-1">
-            {{ t("权重") }}
+            {{ t('权重') }}
           </label>
           <InputNumber
             v-model="form.weight"
@@ -111,63 +103,40 @@
 
         <div class="field">
           <label class="block text-sm font-medium text-primary-label mb-1">
-            {{ t("每分钟限制") }}
+            {{ t('每分钟限制') }}
           </label>
-          <InputNumber
-            v-model="form.rpmLimit"
-            :placeholder="t('默认：60')"
-            :min="1"
-            showButtons
-            class="w-full"
-          />
+          <InputNumber v-model="form.rpmLimit" :placeholder="t('默认：60')" :min="1" showButtons class="w-full" />
         </div>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div class="field">
           <label class="block text-sm font-medium text-primary-label mb-1">
-            {{ t("每小时限制") }}
+            {{ t('每小时限制') }}
           </label>
-          <InputNumber
-            v-model="form.rphLimit"
-            :placeholder="t('默认：1000')"
-            :min="1"
-            showButtons
-            class="w-full"
-          />
+          <InputNumber v-model="form.rphLimit" :placeholder="t('默认：1000')" :min="1" showButtons class="w-full" />
         </div>
 
         <div class="field">
           <label class="block text-sm font-medium text-primary-label mb-1">
-            {{ t("每日限制") }}
+            {{ t('每日限制') }}
           </label>
-          <InputNumber
-            v-model="form.rpdLimit"
-            :placeholder="t('默认：10000')"
-            :min="1"
-            showButtons
-            class="w-full"
-          />
+          <InputNumber v-model="form.rpdLimit" :placeholder="t('默认：10000')" :min="1" showButtons class="w-full" />
         </div>
       </div>
 
       <div class="field">
         <label class="block text-sm font-medium text-primary-label mb-1">
-          {{ t("描述信息") }}
+          {{ t('描述信息') }}
         </label>
-        <Textarea
-          v-model="form.description"
-          :placeholder="t('请输入模型描述信息')"
-          :rows="3"
-          class="w-full"
-        />
+        <Textarea v-model="form.description" :placeholder="t('请输入模型描述信息')" :rows="3" class="w-full" />
       </div>
 
       <div class="field">
         <div class="flex items-center">
           <Checkbox v-model="form.enabled" />
           <label for="enabled" class="ml-2 text-sm font-medium text-primary-label">
-            {{ t("启用模型") }}
+            {{ t('启用模型') }}
           </label>
         </div>
       </div>
@@ -176,26 +145,20 @@
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button :label="t('取消')" icon="pi pi-times" variant="text" @click="onCancel" />
-        <Button
-          :label="t('保存')"
-          icon="pi pi-check"
-          variant="primary"
-          @click="onSubmit"
-          :loading="loading"
-        />
+        <Button :label="t('保存')" icon="pi pi-check" variant="primary" @click="onSubmit" :loading="loading" />
       </div>
     </template>
   </Dialog>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, watch, computed } from "vue";
-import { useAPI } from "@/api";
-import { useI18n } from "@/composables/useI18n";
-import { useToast } from "@/composables/useToast";
-import { getErrorMessage } from "@/utils/error";
-import { DEFAULT_MAX_TOKENS } from "@/utils/constants";
-import { Dialog } from "@tsfullstack/shared-frontend/components";
+import { ref, reactive, watch, computed } from 'vue';
+import { useAPI } from '@/api';
+import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { getErrorMessage } from '@/utils/error';
+import { DEFAULT_MAX_TOKENS } from '@/utils/constants';
+import { Dialog } from '@tsfullstack/shared-frontend/components';
 
 /** AiModel 数据结构 */
 interface AiModelData {
@@ -225,14 +188,14 @@ const { open, model } = defineProps<Props>();
 
 /** 组件事件定义 */
 const emit = defineEmits<{
-  "update:open": [value: boolean];
+  'update:open': [value: boolean];
   submit: [model: Record<string, unknown>];
 }>();
 
 /** 本地的 open 状态，支持双向绑定 */
 const localVisible = computed<boolean>({
   get: () => open,
-  set: (value: boolean) => emit("update:open", value),
+  set: (value: boolean) => emit('update:open', value),
 });
 
 const { API } = useAPI();
@@ -253,66 +216,66 @@ const DEFAULT_MODEL_FORM = {
 
 /** 表单数据 */
 const form = reactive({
-  name: "",
-  model: "",
-  baseUrl: "",
-  apiKey: "",
+  name: '',
+  model: '',
+  baseUrl: '',
+  apiKey: '',
   ...DEFAULT_MODEL_FORM,
-  description: "",
+  description: '',
   enabled: true,
 });
 
 /** 错误信息 */
 const errors = reactive({
-  name: "",
-  model: "",
-  baseUrl: "",
-  apiKey: "",
+  name: '',
+  model: '',
+  baseUrl: '',
+  apiKey: '',
 });
 
 /** 验证规则 */
 const validateField = (field: string) => {
   switch (field) {
-    case "name":
-      errors.name = form.name.trim() ? "" : t("请输入模型名称");
+    case 'name':
+      errors.name = form.name.trim() ? '' : t('请输入模型名称');
       break;
-    case "model":
-      errors.model = form.model.trim() ? "" : t("请输入模型标识");
+    case 'model':
+      errors.model = form.model.trim() ? '' : t('请输入模型标识');
       break;
-    case "baseUrl":
-      errors.baseUrl = form.baseUrl.trim() ? "" : t("请输入API基础URL");
+    case 'baseUrl':
+      errors.baseUrl = form.baseUrl.trim() ? '' : t('请输入API基础URL');
       break;
-    case "apiKey":
+    case 'apiKey':
       // 编辑模式留空表示保留原密钥（后端不再回显 apiKey，泄露面收敛）
-      errors.apiKey = form.apiKey.trim() || isEdit.value ? "" : t("请输入API密钥");
+      errors.apiKey = form.apiKey.trim() || isEdit.value ? '' : t('请输入API密钥');
       break;
   }
 };
 
 const validateForm = () => {
-  validateField("name");
-  validateField("model");
-  validateField("baseUrl");
-  validateField("apiKey");
+  validateField('name');
+  validateField('model');
+  validateField('baseUrl');
+  validateField('apiKey');
 
   return !errors.name && !errors.model && !errors.baseUrl && !errors.apiKey;
 };
 
 const resetForm = () => {
   Object.assign(form, {
-    name: "",
-    model: "",
-    baseUrl: "",
-    apiKey: "",
+    name: '',
+    model: '',
+    baseUrl: '',
+    apiKey: '',
     ...DEFAULT_MODEL_FORM,
-    description: "",
+    description: '',
   });
 
   Object.assign(errors, {
-    name: "",
-    model: "",
-    baseUrl: "",
-    apiKey: "",
+    name: '',
+    model: '',
+    baseUrl: '',
+    apiKey: '',
   });
 };
 
@@ -340,18 +303,18 @@ const onSubmit = async () => {
       });
     }
 
-    emit("submit", form);
-    emit("update:open", false);
+    emit('submit', form);
+    emit('update:open', false);
     resetForm();
   } catch (error: unknown) {
-    toast.error(t("保存失败"), getErrorMessage(error));
+    toast.error(t('保存失败'), getErrorMessage(error));
   } finally {
     loading.value = false;
   }
 };
 
 const onCancel = () => {
-  emit("update:open", false);
+  emit('update:open', false);
   resetForm();
 };
 
@@ -363,10 +326,10 @@ watch(
       // 编辑模式
       isEdit.value = true;
       Object.assign(form, {
-        name: currentModel.name || "",
-        model: currentModel.model || "",
-        baseUrl: currentModel.baseUrl || "",
-        apiKey: "", // API密钥不显示，需要重新输入
+        name: currentModel.name || '',
+        model: currentModel.model || '',
+        baseUrl: currentModel.baseUrl || '',
+        apiKey: '', // API密钥不显示，需要重新输入
         ...DEFAULT_MODEL_FORM,
         maxTokens: currentModel.maxTokens ?? DEFAULT_MODEL_FORM.maxTokens,
         temperature: currentModel.temperature ?? DEFAULT_MODEL_FORM.temperature,
@@ -374,7 +337,7 @@ watch(
         rpmLimit: currentModel.rpmLimit ?? DEFAULT_MODEL_FORM.rpmLimit,
         rphLimit: currentModel.rphLimit ?? DEFAULT_MODEL_FORM.rphLimit,
         rpdLimit: currentModel.rpdLimit ?? DEFAULT_MODEL_FORM.rpdLimit,
-        description: currentModel.description || "",
+        description: currentModel.description || '',
         enabled: currentModel.enabled ?? true,
       });
     } else if (isVisible) {

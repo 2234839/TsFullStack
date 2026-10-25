@@ -12,7 +12,7 @@ export type moduleTemplateTypes = typeof moduleTemplate;
 
 // Export all modules as a collection
 export const modules = {
-  moduleTemplate: moduleTemplate
+  moduleTemplate: moduleTemplate,
 };
 
 // Export module metadata
@@ -23,7 +23,6 @@ export const moduleInfo = [
     path: 'modules/module-template',
     hasBackend: true,
     hasFrontend: true,
-    hasVueComponents: true
-  }
+    hasVueComponents: true,
+  },
 ] as const;
-

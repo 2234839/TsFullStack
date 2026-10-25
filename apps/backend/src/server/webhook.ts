@@ -23,16 +23,14 @@ export function registerWebhookRoutes(fastify: FastifyInstance) {
 }
 
 /** 统一 Webhook 请求处理器 */
-async function handleWebhookRequest(
-  provider: PaymentProvider,
-  req: FastifyRequest,
-  reply: FastifyReply,
-) {
+async function handleWebhookRequest(provider: PaymentProvider, req: FastifyRequest, reply: FastifyReply) {
   const startTime = Date.now();
 
   const reqCtx: ReqCtx = {
     logs: [],
-    log(...args) { reqCtx.logs.push(args); },
+    log(...args) {
+      reqCtx.logs.push(args);
+    },
     req,
     reqId: 0,
   };

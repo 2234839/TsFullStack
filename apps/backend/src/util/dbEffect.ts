@@ -62,10 +62,13 @@ export function dbPaginatedFindMany<T>(
   countFn: () => Promise<number>,
   emptyValue?: T[],
 ): Effect.Effect<{ items: T[]; total: number }, Error, ReqCtxService> {
-  return Effect.map(Effect.all([
-    dbTryOrDefault(label, '查询列表', findManyFn, emptyValue ?? ([] as unknown as T[])),
-    dbTryOrDefault(label, '查询总数', countFn, 0),
-  ]), ([items, total]) => ({ items, total }));
+  return Effect.map(
+    Effect.all([
+      dbTryOrDefault(label, '查询列表', findManyFn, emptyValue ?? ([] as unknown as T[])),
+      dbTryOrDefault(label, '查询总数', countFn, 0),
+    ]),
+    ([items, total]) => ({ items, total }),
+  );
 }
 
 /**
@@ -81,9 +84,7 @@ export function dbTryRequire<T>(
   fn: () => Promise<T | null | undefined>,
   errorMsg: string,
 ): Effect.Effect<T, Error | MsgError, ReqCtxService> {
-  return Effect.flatMap(dbTry<T | null | undefined>(label, operation, fn), result =>
-    requireOrFail(result, errorMsg),
-  );
+  return Effect.flatMap(dbTry<T | null | undefined>(label, operation, fn), (result) => requireOrFail(result, errorMsg));
 }
 
 /**
@@ -96,6 +97,6 @@ export function adminDbTry<T>(
   fn: (db: DbClient) => Promise<T>,
 ): Effect.Effect<T, Error | MsgError, ReqCtxService | AppConfigService | AuthContext> {
   return Effect.flatMap(requireAdmin(), () =>
-    Effect.flatMap(DbClientEffect, (db) => dbTry(label, operation, () => fn(db)))
+    Effect.flatMap(DbClientEffect, (db) => dbTry(label, operation, () => fn(db))),
   );
 }

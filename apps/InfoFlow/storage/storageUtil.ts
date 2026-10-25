@@ -34,10 +34,7 @@ export function useWxtStorage<TValue>(
   });
 }
 
-export function useIdbStorage<TValue>(
-  key: string,
-  options: { fallback: TValue | (undefined & TValue) },
-) {
+export function useIdbStorage<TValue>(key: string, options: { fallback: TValue | (undefined & TValue) }) {
   const adapter = new InexdbStorageAdapter(key, options.fallback);
 
   return useReactiveStorage(adapter, {

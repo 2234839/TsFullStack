@@ -48,11 +48,15 @@ export function asGrantTx<T>(tx: T): T & GrantTxClient {
 }
 
 /** 执行一次订阅代币发放的核心逻辑（创建代币、更新订阅、调度下次任务），供 subscribePackage 和队列处理器共用 */
-async function grantOnce(tx: GrantTxClient, subscription: {
-  id: number;
-  userId: string;
-  package: SubscriptionPackage;
-}, descriptionPrefix: string) {
+async function grantOnce(
+  tx: GrantTxClient,
+  subscription: {
+    id: number;
+    userId: string;
+    package: SubscriptionPackage;
+  },
+  descriptionPrefix: string,
+) {
   const grantIntervalDays = getGrantIntervalDays(subscription.package.type);
   const now = new Date();
   const expiresAt = new Date(now.getTime() + grantIntervalDays * MS_PER_DAY);
@@ -98,10 +102,7 @@ export const TokenGrantService = {
   /**
    * 处理订阅代币发放（队列任务处理器）
    */
-  processSubscriptionGrant: (
-    payload: { subscriptionId: number; userId: string },
-    db: DbClient,
-  ) =>
+  processSubscriptionGrant: (payload: { subscriptionId: number; userId: string }, db: DbClient) =>
     db.$transaction(async (tx) => {
       /** 原子占用：将 nextGrantDate 推后到远未来，防止并发 worker 重复发放 */
       const claimed = await tx.userTokenSubscription.updateMany({
@@ -130,15 +131,18 @@ export const TokenGrantService = {
         return { success: false, skipped: true, reason: MSG.PACKAGE_DISABLED };
       }
 
-      const { nextGrantDate } = await grantOnce(asGrantTx(tx), {
-        ...subscription,
-        package: {
-          ...subscription.package,
-          restrictedType: typeof subscription.package.restrictedType === 'string'
-            ? subscription.package.restrictedType
-            : undefined,
+      const { nextGrantDate } = await grantOnce(
+        asGrantTx(tx),
+        {
+          ...subscription,
+          package: {
+            ...subscription.package,
+            restrictedType:
+              typeof subscription.package.restrictedType === 'string' ? subscription.package.restrictedType : undefined,
+          },
         },
-      }, '套餐自动发放：');
+        '套餐自动发放：',
+      );
 
       return {
         success: true as const,

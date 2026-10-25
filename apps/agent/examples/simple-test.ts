@@ -7,24 +7,24 @@ async function simpleTest() {
   const config = {
     storage: {
       type: 'json' as const,
-      dataDir: './data'
+      dataDir: './data',
     },
     security: {
       enablePermissions: true,
       allowedTools: ['file_write', 'file_read', 'system_info'],
       maxTaskDuration: 300000,
-      safeMode: true
+      safeMode: true,
     },
     logging: {
       level: 'info' as const,
       enableConsole: true,
-      enableFile: false
+      enableFile: false,
     },
     tools: {
       directory: './tools',
       autoLoad: false,
-      timeout: 30000
-    }
+      timeout: 30000,
+    },
   };
 
   const agent = new TsAgent(config);
@@ -40,16 +40,16 @@ async function simpleTest() {
     // 执行简单任务
     console.log('执行任务: 创建一个测试文件');
     const result = await agent.executeTask('创建一个名为 ./data/test.txt 的文件，内容为 "Hello from TsAgent!"');
-    
+
     console.log('\n=== 执行结果 ===');
     console.log('✅ 成功:', result.success);
     console.log('⏱️  执行时间:', result.executionTime, 'ms');
     console.log('📊 执行步骤:', result.stepsExecuted);
-    
+
     if (result.output) {
       console.log('📋 结果:', JSON.stringify(result.output, null, 2));
     }
-    
+
     if (result.error) {
       console.log('❌ 错误:', result.error);
     }
@@ -79,7 +79,6 @@ async function simpleTest() {
     const health = await agent.healthCheck();
     console.log('状态:', health.status);
     console.log('检查结果:', health.checks);
-
   } catch (error) {
     console.error('❌ 执行失败:', error);
   } finally {

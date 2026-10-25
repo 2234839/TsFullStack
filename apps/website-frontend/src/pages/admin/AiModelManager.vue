@@ -3,7 +3,7 @@
     <!-- 页面标题和操作按钮 -->
     <div class="flex items-center justify-between">
       <PageHeader no-margin :subtitle="t('管理和配置AI模型')">
-        {{ t("AI模型管理") }}
+        {{ t('AI模型管理') }}
       </PageHeader>
       <div class="flex gap-2">
         <Button :label="t('添加模型')" icon="pi pi-plus" variant="primary" @click="showAddModel" />
@@ -24,12 +24,10 @@
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-theme">{{ t("总模型数") }}</p>
+            <p class="text-sm text-primary-theme">{{ t('总模型数') }}</p>
             <p class="text-2xl font-bold text-primary-theme">{{ totalModels }}</p>
           </div>
-          <div
-            class="w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-lg flex items-center justify-center"
-          >
+          <div class="w-12 h-12 bg-primary-100 dark:bg-primary-900/20 rounded-lg flex items-center justify-center">
             <i class="pi pi-microchip text-primary-theme text-xl"></i>
           </div>
         </div>
@@ -40,14 +38,12 @@
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-theme">{{ t("启用模型") }}</p>
+            <p class="text-sm text-primary-theme">{{ t('启用模型') }}</p>
             <p class="text-2xl font-bold text-success-600 dark:text-success-400">
               {{ enabledModels }}
             </p>
           </div>
-          <div
-            class="w-12 h-12 bg-success-100 dark:bg-success-900/20 rounded-lg flex items-center justify-center"
-          >
+          <div class="w-12 h-12 bg-success-100 dark:bg-success-900/20 rounded-lg flex items-center justify-center">
             <i class="pi pi-check-circle text-success-600 dark:text-success-400 text-xl"></i>
           </div>
         </div>
@@ -58,14 +54,12 @@
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-theme">{{ t("禁用模型") }}</p>
+            <p class="text-sm text-primary-theme">{{ t('禁用模型') }}</p>
             <p class="text-2xl font-bold text-danger-600 dark:text-danger-400">
               {{ disabledModels }}
             </p>
           </div>
-          <div
-            class="w-12 h-12 bg-danger-100 dark:bg-danger-900/20 rounded-lg flex items-center justify-center"
-          >
+          <div class="w-12 h-12 bg-danger-100 dark:bg-danger-900/20 rounded-lg flex items-center justify-center">
             <i class="pi pi-times-circle text-danger-600 dark:text-danger-400 text-xl"></i>
           </div>
         </div>
@@ -76,14 +70,12 @@
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm text-primary-theme">{{ t("总权重") }}</p>
+            <p class="text-sm text-primary-theme">{{ t('总权重') }}</p>
             <p class="text-2xl font-bold text-secondary-600 dark:text-secondary-400">
               {{ totalWeight }}
             </p>
           </div>
-          <div
-            class="w-12 h-12 bg-secondary-100 dark:bg-secondary-900/20 rounded-lg flex items-center justify-center"
-          >
+          <div class="w-12 h-12 bg-secondary-100 dark:bg-secondary-900/20 rounded-lg flex items-center justify-center">
             <i class="pi pi-balance-scale text-secondary-600 dark:text-secondary-400 text-xl"></i>
           </div>
         </div>
@@ -91,9 +83,7 @@
     </div>
 
     <!-- AI模型表格 -->
-    <div
-      class="bg-white dark:bg-secondary-800 rounded-lg shadow border border-primary-200 dark:border-secondary-700"
-    >
+    <div class="bg-white dark:bg-secondary-800 rounded-lg shadow border border-primary-200 dark:border-secondary-700">
       <DataTable
         :data="filteredModels"
         :loading="isLoading"
@@ -111,7 +101,7 @@
     >
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-xl font-semibold text-primary-800 dark:text-white">
-          {{ t("模型使用统计") }}
+          {{ t('模型使用统计') }}
         </h2>
         <Button
           :label="t('刷新统计')"
@@ -131,16 +121,16 @@
 </template>
 
 <script setup lang="ts">
-import { useAPI } from "@/api";
-import { computed, h, onMounted, ref, shallowRef } from "vue";
-import { useI18n } from "@/composables/useI18n";
-import { Button, Badge } from "@/components/base";
-import { useConfirm } from "@/composables/useConfirm";
-import { useToast } from "@/composables/useToast";
-import AiModelForm from "./components/AiModelForm.vue";
-import ModelStatsChart from "./components/ModelStatsChart.vue";
-import { getErrorMessage } from "@/utils/error";
-import { DEFAULT_MAX_TOKENS } from "@/utils/constants";
+import { useAPI } from '@/api';
+import { computed, h, onMounted, ref, shallowRef } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+import { Button, Badge } from '@/components/base';
+import { useConfirm } from '@/composables/useConfirm';
+import { useToast } from '@/composables/useToast';
+import AiModelForm from './components/AiModelForm.vue';
+import ModelStatsChart from './components/ModelStatsChart.vue';
+import { getErrorMessage } from '@/utils/error';
+import { DEFAULT_MAX_TOKENS } from '@/utils/constants';
 
 const { API } = useAPI();
 const { t } = useI18n();
@@ -171,9 +161,9 @@ const isStatsLoading = shallowRef(false);
 const modelStatsChartRef = ref<InstanceType<typeof ModelStatsChart> | null>(null);
 
 // 搜索和筛选
-const searchQuery = ref<string>("");
+const searchQuery = ref<string>('');
 const statusFilter = ref<boolean | null>(null);
-const sortBy = ref<string>("id-desc");
+const sortBy = ref<string>('id-desc');
 
 const totalModels = computed(() => models.value.length);
 const enabledModels = computed(() => models.value.filter((m) => m?.enabled).length);
@@ -188,8 +178,8 @@ const filteredModels = computed(() => {
   if (searchQuery.value.trim()) {
     const query = searchQuery.value.toLowerCase();
     filtered = filtered.filter((model) => {
-      const name = model?.name?.toLowerCase() ?? "";
-      const modelName = model?.model?.toLowerCase() ?? "";
+      const name = model?.name?.toLowerCase() ?? '';
+      const modelName = model?.model?.toLowerCase() ?? '';
       return name.includes(query) || modelName.includes(query);
     });
   }
@@ -200,7 +190,7 @@ const filteredModels = computed(() => {
   }
 
   // 排序
-  const [field, order] = sortBy.value.split("-");
+  const [field, order] = sortBy.value.split('-');
   filtered.sort((a, b) => {
     if (!a || !b) return 0;
     const aValue = (a as AiModelVO)[field as keyof AiModelVO];
@@ -208,19 +198,17 @@ const filteredModels = computed(() => {
 
     /** Date 类型字段使用 getTime() 比较时间戳，避免 toString 后的字符串比较语义错误 */
     if (aValue instanceof Date && bValue instanceof Date) {
-      return order === "asc"
-        ? aValue.getTime() - bValue.getTime()
-        : bValue.getTime() - aValue.getTime();
+      return order === 'asc' ? aValue.getTime() - bValue.getTime() : bValue.getTime() - aValue.getTime();
     }
 
-    if (typeof aValue === "string" && typeof bValue === "string") {
-      return order === "asc"
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      return order === 'asc'
         ? (aValue as string).localeCompare(bValue as string)
         : (bValue as string).localeCompare(aValue as string);
     }
 
-    if (typeof aValue === "number" && typeof bValue === "number") {
-      return order === "asc" ? aValue - bValue : bValue - aValue;
+    if (typeof aValue === 'number' && typeof bValue === 'number') {
+      return order === 'asc' ? aValue - bValue : bValue - aValue;
     }
 
     return 0;
@@ -232,101 +220,93 @@ const filteredModels = computed(() => {
 /** 表格列定义 */
 const aiModelColumns = computed(() => [
   {
-    key: "id",
-    title: t("ID"),
-    width: "80px",
+    key: 'id',
+    title: t('ID'),
+    width: '80px',
   },
   {
-    key: "name",
-    title: t("模型名称"),
-    width: "150px",
+    key: 'name',
+    title: t('模型名称'),
+    width: '150px',
   },
   {
-    key: "model",
-    title: t("模型标识"),
-    width: "150px",
+    key: 'model',
+    title: t('模型标识'),
+    width: '150px',
     render: (row: AiModelVO) =>
-      h(
-        "code",
-        { class: "text-sm bg-primary-100 dark:bg-secondary-700 px-2 py-1 rounded" },
-        row.model ?? "",
-      ),
+      h('code', { class: 'text-sm bg-primary-100 dark:bg-secondary-700 px-2 py-1 rounded' }, row.model ?? ''),
   },
   {
-    key: "baseUrl",
-    title: t("API地址"),
-    width: "200px",
+    key: 'baseUrl',
+    title: t('API地址'),
+    width: '200px',
     render: (row: AiModelVO) =>
-      h(
-        "div",
-        { class: "text-sm text-primary-theme truncate", title: row.baseUrl ?? "" },
-        row.baseUrl ?? "",
-      ),
+      h('div', { class: 'text-sm text-primary-theme truncate', title: row.baseUrl ?? '' }, row.baseUrl ?? ''),
   },
   {
-    key: "enabled",
-    title: t("状态"),
-    width: "100px",
+    key: 'enabled',
+    title: t('状态'),
+    width: '100px',
     render: (row: AiModelVO) =>
       h(Badge, {
-        value: row.enabled ? t("启用") : t("禁用"),
-        variant: row.enabled ? "success" : "danger",
-        size: "small",
+        value: row.enabled ? t('启用') : t('禁用'),
+        variant: row.enabled ? 'success' : 'danger',
+        size: 'small',
       }),
   },
   {
-    key: "weight",
-    title: t("权重"),
-    width: "80px",
-    render: (row: AiModelVO) => h("span", { class: "font-mono" }, row.weight ?? 0),
+    key: 'weight',
+    title: t('权重'),
+    width: '80px',
+    render: (row: AiModelVO) => h('span', { class: 'font-mono' }, row.weight ?? 0),
   },
   {
-    key: "maxTokens",
-    title: t("最大Token"),
-    width: "100px",
+    key: 'maxTokens',
+    title: t('最大Token'),
+    width: '100px',
     render: (row: AiModelVO) =>
-      h("span", { class: "font-mono" }, (row.maxTokens ?? DEFAULT_MAX_TOKENS).toLocaleString()),
+      h('span', { class: 'font-mono' }, (row.maxTokens ?? DEFAULT_MAX_TOKENS).toLocaleString()),
   },
   {
-    key: "temperature",
-    title: t("温度"),
-    width: "80px",
-    render: (row: AiModelVO) => h("span", { class: "font-mono" }, row.temperature ?? 0.7),
+    key: 'temperature',
+    title: t('温度'),
+    width: '80px',
+    render: (row: AiModelVO) => h('span', { class: 'font-mono' }, row.temperature ?? 0.7),
   },
   {
-    key: "actions",
-    title: t("操作"),
-    width: "150px",
+    key: 'actions',
+    title: t('操作'),
+    width: '150px',
     render: (row: AiModelVO) =>
-      h("div", { class: "flex gap-1" }, [
+      h('div', { class: 'flex gap-1' }, [
         h(Button, {
-          icon: "pi pi-pencil",
-          size: "small",
+          icon: 'pi pi-pencil',
+          size: 'small',
           onClick: (event: MouseEvent) => {
             event?.preventDefault();
             editModel(row);
           },
-          title: t("编辑"),
+          title: t('编辑'),
         }),
         h(Button, {
-          icon: "pi pi-play",
-          size: "small",
-          variant: row.enabled ? "danger" : "primary",
+          icon: 'pi pi-play',
+          size: 'small',
+          variant: row.enabled ? 'danger' : 'primary',
           onClick: (event: MouseEvent) => {
             event?.preventDefault();
             toggleModelStatus(row, event);
           },
-          title: row.enabled ? t("禁用") : t("启用"),
+          title: row.enabled ? t('禁用') : t('启用'),
         }),
         h(Button, {
-          icon: "pi pi-trash",
-          size: "small",
-          variant: "danger",
+          icon: 'pi pi-trash',
+          size: 'small',
+          variant: 'danger',
           onClick: (event: MouseEvent) => {
             event?.preventDefault();
             deleteModel(row, event);
           },
-          title: t("删除"),
+          title: t('删除'),
         }),
       ]),
   },
@@ -337,7 +317,7 @@ const loadModels = async () => {
   isLoading.value = true;
   try {
     const result = await API.db.aiModel.findMany({
-      orderBy: { id: "desc" },
+      orderBy: { id: 'desc' },
       select: {
         id: true,
         name: true,
@@ -358,7 +338,7 @@ const loadModels = async () => {
     });
     models.value = result;
   } catch (error: unknown) {
-    toast.error(t("失败"), t("加载失败：") + getErrorMessage(error));
+    toast.error(t('失败'), t('加载失败：') + getErrorMessage(error));
   } finally {
     isLoading.value = false;
   }
@@ -381,17 +361,17 @@ const toggleModelStatus = (model: AiModelVO, event: MouseEvent) => {
   if (!model) return;
 
   confirm.require({
-    message: t("确定要{0}这个模型吗？", model.enabled ? t("禁用") : t("启用")),
-    icon: "pi pi-exclamation-triangle",
+    message: t('确定要{0}这个模型吗？', model.enabled ? t('禁用') : t('启用')),
+    icon: 'pi pi-exclamation-triangle',
     event,
     rejectProps: {
-      label: t("取消"),
-      variant: "secondary",
+      label: t('取消'),
+      variant: 'secondary',
       outlined: true,
     },
     acceptProps: {
-      label: model.enabled ? t("禁用") : t("启用"),
-      variant: model.enabled ? "danger" : "primary",
+      label: model.enabled ? t('禁用') : t('启用'),
+      variant: model.enabled ? 'danger' : 'primary',
     },
     accept: async () => {
       try {
@@ -400,10 +380,10 @@ const toggleModelStatus = (model: AiModelVO, event: MouseEvent) => {
           data: { enabled: !model.enabled },
         });
 
-        toast.success(t("成功"), t("{0}成功", model.enabled ? t("禁用") : t("启用")));
+        toast.success(t('成功'), t('{0}成功', model.enabled ? t('禁用') : t('启用')));
         await loadModels(); // 重新加载数据
       } catch (error: unknown) {
-        toast.error(t("失败"), t("操作失败：") + getErrorMessage(error));
+        toast.error(t('失败'), t('操作失败：') + getErrorMessage(error));
       }
     },
     reject: () => {
@@ -417,17 +397,17 @@ const deleteModel = (model: AiModelVO, event: MouseEvent) => {
   if (!model) return;
 
   confirm.require({
-    message: t("确定要删除这个模型吗？此操作不可恢复。"),
-    icon: "pi pi-exclamation-triangle",
+    message: t('确定要删除这个模型吗？此操作不可恢复。'),
+    icon: 'pi pi-exclamation-triangle',
     event,
     rejectProps: {
-      label: t("取消"),
-      variant: "secondary",
+      label: t('取消'),
+      variant: 'secondary',
       outlined: true,
     },
     acceptProps: {
-      label: t("删除"),
-      variant: "danger",
+      label: t('删除'),
+      variant: 'danger',
     },
     accept: async () => {
       try {
@@ -435,10 +415,10 @@ const deleteModel = (model: AiModelVO, event: MouseEvent) => {
           where: { id: model.id },
         });
 
-        toast.success(t("成功"), t("删除成功"));
+        toast.success(t('成功'), t('删除成功'));
         await loadModels(); // 重新加载数据
       } catch (error: unknown) {
-        toast.error(t("失败"), t("删除失败：") + getErrorMessage(error));
+        toast.error(t('失败'), t('删除失败：') + getErrorMessage(error));
       }
     },
     reject: () => {
@@ -460,7 +440,7 @@ const refreshStats = async () => {
   try {
     await modelStatsChartRef.value.loadRequestStats();
   } catch (error: unknown) {
-    toast.error(t("失败"), t("刷新统计数据失败：") + getErrorMessage(error));
+    toast.error(t('失败'), t('刷新统计数据失败：') + getErrorMessage(error));
   } finally {
     isStatsLoading.value = false;
   }

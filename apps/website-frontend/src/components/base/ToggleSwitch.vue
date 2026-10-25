@@ -8,7 +8,7 @@
  * <ToggleSwitch v-model="on" />
  * ```
  */
-import { SwitchRoot, SwitchThumb } from "reka-ui";
+import { SwitchRoot, SwitchThumb } from 'reka-ui';
 
 defineOptions({ inheritAttrs: false });
 
@@ -25,7 +25,7 @@ withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  "update:modelValue": [value: boolean];
+  'update:modelValue': [value: boolean];
 }>();
 </script>
 
@@ -35,9 +35,7 @@ const emit = defineEmits<{
     :model-value="modelValue"
     :disabled="disabled"
     class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-primary-900"
-    :class="
-      modelValue ? 'bg-primary-600 dark:bg-primary-500' : 'bg-primary-200 dark:bg-primary-700'
-    "
+    :class="modelValue ? 'bg-primary-600 dark:bg-primary-500' : 'bg-primary-200 dark:bg-primary-700'"
     @update:model-value="(v: boolean) => emit('update:modelValue', v)"
   >
     <SwitchThumb

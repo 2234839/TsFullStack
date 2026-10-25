@@ -43,7 +43,7 @@ export function useApiStorage<T>(
     serializer,
   };
 
-    /** 目前由于同步远程数据到本地也会触发一次 setItem，导致不停的触发版本升级，暂时使用一个标志位来避免，但感觉可能还会存在bug */
+  /** 目前由于同步远程数据到本地也会触发一次 setItem，导致不停的触发版本升级，暂时使用一个标志位来避免，但感觉可能还会存在bug */
   const isSyncingFromRemote = ref(false);
 
   const setItem = useThrottleFn(

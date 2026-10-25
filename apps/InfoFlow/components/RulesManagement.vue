@@ -32,20 +32,8 @@
           variant="secondary"
           size="small"
         />
-        <Button
-          icon="pi pi-download"
-          @click="showExportDialog = true"
-          label="导出"
-          variant="info"
-          size="small"
-        />
-        <Button
-          icon="pi pi-upload"
-          @click="showImportDialog = true"
-          label="导入"
-          variant="success"
-          size="small"
-        />
+        <Button icon="pi pi-download" @click="showExportDialog = true" label="导出" variant="info" size="small" />
+        <Button icon="pi pi-upload" @click="showImportDialog = true" label="导入" variant="success" size="small" />
         <Button icon="pi pi-plus" @click="showCreateDialog = true" label="新建规则" />
       </div>
     </div>
@@ -78,11 +66,7 @@
           <div class="flex-1 min-w-64">
             <IconField>
               <InputIcon class="pi pi-search" />
-              <InputText
-                v-model="searchQuery"
-                placeholder="搜索规则名称或描述..."
-                @input="handleSearch"
-              />
+              <InputText v-model="searchQuery" placeholder="搜索规则名称或描述..." @input="handleSearch" />
             </IconField>
           </div>
           <Select
@@ -94,13 +78,7 @@
             @change="handleFilterChange"
             class="w-40"
           />
-          <Button
-            icon="pi pi-filter-slash"
-            @click="clearFilters"
-            variant="secondary"
-            size="small"
-            label="清除筛选"
-          />
+          <Button icon="pi pi-filter-slash" @click="clearFilters" variant="secondary" size="small" label="清除筛选" />
         </div>
       </div>
 
@@ -177,21 +155,12 @@
           <Column field="cron" header="执行计划" class="w-[180px] whitespace-nowrap">
             <template #body="slotProps">
               <div class="text-sm" :title="slotProps.data.cron">
-                <div
-                  v-if="slotProps.data.status === 'paused'"
-                  class="text-xs text-orange-600 font-medium"
-                >
-                  已暂停
-                </div>
+                <div v-if="slotProps.data.status === 'paused'" class="text-xs text-orange-600 font-medium">已暂停</div>
                 <div v-else-if="slotProps.data.nextExecutionAt">
-                  <div class="text-xs text-gray-500 mb-1">
-                    下次: {{ formatDate(slotProps.data.nextExecutionAt) }}
-                  </div>
+                  <div class="text-xs text-gray-500 mb-1">下次: {{ formatDate(slotProps.data.nextExecutionAt) }}</div>
                   <div class="w-full">
                     <CustomProgressBar
-                      :value="
-                        getExecutionProgress(slotProps.data.nextExecutionAt, slotProps.data.cron)
-                      "
+                      :value="getExecutionProgress(slotProps.data.nextExecutionAt, slotProps.data.cron)"
                       :text="getCountdownTime(slotProps.data.nextExecutionAt)"
                       class="h-2 w-full"
                     />
@@ -205,44 +174,19 @@
             <template #body="{ data }: { data: Rule }">
               <div class="flex gap-1">
                 <Tooltip v-if="data.status === 'paused'" content="激活">
-                  <Button
-                    icon="pi pi-play"
-                    @click="activateRule(data)"
-                    size="small"
-                    variant="success"
-                  />
+                  <Button icon="pi pi-play" @click="activateRule(data)" size="small" variant="success" />
                 </Tooltip>
                 <Tooltip v-if="data.status === 'active'" content="暂停">
-                  <Button
-                    icon="pi pi-pause"
-                    @click="pauseRule(data)"
-                    size="small"
-                    variant="warning"
-                  />
+                  <Button icon="pi pi-pause" @click="pauseRule(data)" size="small" variant="warning" />
                 </Tooltip>
                 <Tooltip content="立即执行">
-                  <Button
-                    icon="pi pi-play-circle"
-                    @click="executeRuleNow(data)"
-                    size="small"
-                    variant="primary"
-                  />
+                  <Button icon="pi pi-play-circle" @click="executeRuleNow(data)" size="small" variant="primary" />
                 </Tooltip>
                 <Tooltip content="编辑">
-                  <Button
-                    icon="pi pi-file-edit"
-                    @click="editRule(data)"
-                    size="small"
-                    variant="secondary"
-                  />
+                  <Button icon="pi pi-file-edit" @click="editRule(data)" size="small" variant="secondary" />
                 </Tooltip>
                 <Tooltip content="删除">
-                  <Button
-                    icon="pi pi-trash"
-                    @click="confirmDelete(data)"
-                    size="small"
-                    variant="danger"
-                  />
+                  <Button icon="pi pi-trash" @click="confirmDelete(data)" size="small" variant="danger" />
                 </Tooltip>
               </div>
             </template>
@@ -270,11 +214,7 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium mb-2">规则名称 *</label>
-            <InputText
-              v-model="ruleForm.name"
-              placeholder="输入规则名称"
-              :class="{ 'p-invalid': errors.name }"
-            />
+            <InputText v-model="ruleForm.name" placeholder="输入规则名称" :class="{ 'p-invalid': errors.name }" />
             <small v-if="errors.name" class="text-red-500">{{ errors.name }}</small>
           </div>
 
@@ -286,12 +226,7 @@
 
         <div class="col-span-2">
           <label class="block text-sm font-medium mb-2">规则描述</label>
-          <Textarea
-            v-model="ruleForm.description"
-            placeholder="输入规则描述"
-            rows="2"
-            class="w-full"
-          />
+          <Textarea v-model="ruleForm.description" placeholder="输入规则描述" rows="2" class="w-full" />
         </div>
 
         <div>
@@ -300,12 +235,7 @@
 
         <div>
           <label class="block text-sm font-medium mb-2">状态</label>
-          <Select
-            v-model="ruleForm.status"
-            :options="statusOptions"
-            optionLabel="label"
-            optionValue="value"
-          />
+          <Select v-model="ruleForm.status" :options="statusOptions" optionLabel="label" optionValue="value" />
         </div>
         <div class="col-span-2">
           <label class="block text-sm font-medium mb-2">目标 URL *</label>
@@ -314,9 +244,7 @@
             placeholder="https://example.com"
             :class="{ 'p-invalid': errors['taskConfig.url'] }"
           />
-          <small v-if="errors['taskConfig.url']" class="text-red-500">{{
-            errors["taskConfig.url"]
-          }}</small>
+          <small v-if="errors['taskConfig.url']" class="text-red-500">{{ errors['taskConfig.url'] }}</small>
         </div>
 
         <div class="col-span-2">
@@ -326,18 +254,11 @@
           <div class="border rounded-lg p-4 mb-4">
             <div class="flex items-center justify-between mb-4">
               <h3 class="text-lg font-medium">数据收集项</h3>
-              <Button
-                icon="pi pi-plus"
-                label="添加收集项"
-                size="small"
-                @click="showAddCollectionDialog"
-              />
+              <Button icon="pi pi-plus" label="添加收集项" size="small" @click="showAddCollectionDialog" />
             </div>
 
             <div
-              v-if="
-                ruleForm.taskConfig.dataCollection && ruleForm.taskConfig.dataCollection.length > 0
-              "
+              v-if="ruleForm.taskConfig.dataCollection && ruleForm.taskConfig.dataCollection.length > 0"
               class="space-y-2"
             >
               <div
@@ -349,44 +270,25 @@
                   <div class="flex items-center gap-2">
                     <span
                       class="px-2 py-1 text-xs rounded-md"
-                      :class="
-                        item.type === 'css'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-green-100 text-green-800'
-                      "
+                      :class="item.type === 'css' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'"
                     >
-                      {{ item.type === "css" ? "CSS" : "JS" }}
+                      {{ item.type === 'css' ? 'CSS' : 'JS' }}
                     </span>
                     <span class="font-medium">
-                      {{ item.type === "css" ? item.selector : "JavaScript 代码" }}
+                      {{ item.type === 'css' ? item.selector : 'JavaScript 代码' }}
                     </span>
-                    <span
-                      v-if="item.type === 'css' && item.attribute"
-                      class="text-sm text-gray-500"
-                    >
+                    <span v-if="item.type === 'css' && item.attribute" class="text-sm text-gray-500">
                       (属性: {{ item.attribute }})
                     </span>
                   </div>
                 </div>
                 <div class="flex gap-1">
-                  <Button
-                    icon="pi pi-file-edit"
-                    size="small"
-                    variant="info"
-                    @click="editCollectionItem(item, index)"
-                  />
-                  <Button
-                    icon="pi pi-trash"
-                    size="small"
-                    variant="danger"
-                    @click="removeCollectionItem(index)"
-                  />
+                  <Button icon="pi pi-file-edit" size="small" variant="info" @click="editCollectionItem(item, index)" />
+                  <Button icon="pi pi-trash" size="small" variant="danger" @click="removeCollectionItem(index)" />
                 </div>
               </div>
             </div>
-            <div v-else class="text-center text-gray-500 py-8">
-              暂无数据收集项，点击"添加收集项"开始配置
-            </div>
+            <div v-else class="text-center text-gray-500 py-8">暂无数据收集项，点击"添加收集项"开始配置</div>
           </div>
 
           <!-- Advanced JSON Configuration -->
@@ -458,9 +360,7 @@
             </div>
             <div class="text-xs text-blue-700">
               <div v-if="config.globalFilterConfig.enable">
-                全局过滤已启用：{{
-                  config.globalFilterConfig.filterType === "js" ? "JavaScript 过滤" : "AI 过滤"
-                }}
+                全局过滤已启用：{{ config.globalFilterConfig.filterType === 'js' ? 'JavaScript 过滤' : 'AI 过滤' }}
               </div>
               <div v-else>全局过滤已禁用</div>
             </div>
@@ -475,10 +375,7 @@
           </div>
 
           <!-- 禁用状态提示 -->
-          <div
-            v-if="filterStrategy === 'disable'"
-            class="bg-gray-50 border border-gray-200 rounded-lg p-3"
-          >
+          <div v-if="filterStrategy === 'disable'" class="bg-gray-50 border border-gray-200 rounded-lg p-3">
             <div class="flex items-center gap-2">
               <i class="pi pi-ban text-gray-600"></i>
               <span class="text-sm text-gray-600">过滤功能已禁用</span>
@@ -519,11 +416,7 @@
         <!-- CSS Configuration -->
         <div v-if="collectionItemType === 'css'">
           <label class="block text-sm font-medium mb-2">CSS 选择器 *</label>
-          <InputText
-            v-model="collectionForm.selector"
-            placeholder="例如: .title, #content, h1"
-            class="w-full"
-          />
+          <InputText v-model="collectionForm.selector" placeholder="例如: .title, #content, h1" class="w-full" />
 
           <label class="block text-sm font-medium mb-2 mt-4">属性 (可选)</label>
           <InputText
@@ -622,16 +515,9 @@ return document.title;"
     />
 
     <!-- Global Filter Configuration Dialog -->
-    <Dialog
-      v-model:visible="showGlobalFilterDialog"
-      header="全局过滤配置"
-      modal
-      class="max-w-[600px]"
-    >
+    <Dialog v-model:visible="showGlobalFilterDialog" header="全局过滤配置" modal class="max-w-[600px]">
       <div class="space-y-4">
-        <p class="text-sm text-gray-600">
-          配置全局过滤规则，这些规则将应用于所有选择"继承全局过滤配置"的订阅规则。
-        </p>
+        <p class="text-sm text-gray-600">配置全局过滤规则，这些规则将应用于所有选择"继承全局过滤配置"的订阅规则。</p>
 
         <FilterConfig
           :modelValue="
@@ -661,18 +547,18 @@ return document.title;"
 </template>
 
 <script setup lang="ts">
-import { getRulesService } from "@/entrypoints/background/service/rulesService";
-import { getDbService, RulesTable } from "@/entrypoints/background/service/dbService";
-import { getTaskExecutionService } from "@/entrypoints/background/service/taskExecutionService";
-import { Tooltip } from "@tsfullstack/shared-frontend/components";
-import { useNow } from "@vueuse/core";
-import { computed, onMounted, reactive, ref, watch } from "vue";
-import { getCronInterval, formatCountdown } from "@/utils/cronUtils";
-import { browser } from "#imports";
-import { EVENT_TYPES } from "@/constants/events";
-import { useInfoFlowConfig } from "@/storage/config";
-import RuleSelectionDialog from "./RuleSelectionDialog.vue";
-import FilterConfig from "./FilterConfig.vue";
+import { getRulesService } from '@/entrypoints/background/service/rulesService';
+import { getDbService, RulesTable } from '@/entrypoints/background/service/dbService';
+import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
+import { Tooltip } from '@tsfullstack/shared-frontend/components';
+import { useNow } from '@vueuse/core';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { getCronInterval, formatCountdown } from '@/utils/cronUtils';
+import { browser } from '#imports';
+import { EVENT_TYPES } from '@/constants/events';
+import { useInfoFlowConfig } from '@/storage/config';
+import RuleSelectionDialog from './RuleSelectionDialog.vue';
+import FilterConfig from './FilterConfig.vue';
 const taskExecutionService = getTaskExecutionService();
 const rulesService = getRulesService();
 const now = useNow();
@@ -684,7 +570,7 @@ const hasUnreadExecutionsAsync = async (ruleId: string): Promise<boolean> => {
     const hasUnread = await taskExecutionService.hasUnreadExecutions(ruleId);
     return hasUnread;
   } catch (error) {
-    console.error("Failed to check unread executions for rule:", ruleId, error);
+    console.error('Failed to check unread executions for rule:', ruleId, error);
     return false;
   }
 };
@@ -718,7 +604,7 @@ const getExecutionProgress = (nextExecutionAt: string, cronExpression?: string):
     const finalProgress = Math.round(Math.min(100, Math.max(0, progress)));
     return finalProgress;
   } catch (error) {
-    console.error("Error calculating execution progress:", error);
+    console.error('Error calculating execution progress:', error);
     return 0;
   }
 };
@@ -731,42 +617,42 @@ const getCountdownTime = (nextExecutionAt: string): string => {
 
     // 如果下次执行时间已经过去，返回"立即执行"
     if (nextTime <= currentTime) {
-      return "立即执行";
+      return '立即执行';
     }
 
     const timeUntilExecution = nextTime.getTime() - currentTime.getTime();
     return formatCountdown(timeUntilExecution);
   } catch (error) {
-    console.error("Error calculating countdown time:", error);
-    return "计算错误";
+    console.error('Error calculating countdown time:', error);
+    return '计算错误';
   }
 };
 
-import type { Rule } from "@/entrypoints/background/service/rulesService";
-import { format } from "date-fns";
-import RuleExecutionRecords from "./RuleExecutionRecords.vue";
-import CronSelector from "./CronSelector.vue";
+import type { Rule } from '@/entrypoints/background/service/rulesService';
+import { format } from 'date-fns';
+import RuleExecutionRecords from './RuleExecutionRecords.vue';
+import CronSelector from './CronSelector.vue';
 
 // PrimeVue components
-import Accordion from "primevue/accordion";
-import AccordionPanel from "primevue/accordionpanel";
-import AccordionHeader from "primevue/accordionheader";
-import AccordionContent from "primevue/accordioncontent";
-import CustomProgressBar from "./CustomProgressBar.vue";
-import Button from "primevue/button";
-import Column from "primevue/column";
-import DataTable from "primevue/datatable";
-import Dialog from "primevue/dialog";
-import IconField from "primevue/iconfield";
-import InputIcon from "primevue/inputicon";
-import InputNumber from "primevue/inputnumber";
-import InputText from "primevue/inputtext";
-import ToggleSwitch from "primevue/toggleswitch";
-import RadioButton from "primevue/radiobutton";
-import Select from "primevue/select";
-import Textarea from "primevue/textarea";
-import { useToast } from "primevue/usetoast";
-import { useAsyncState } from "@vueuse/core";
+import Accordion from 'primevue/accordion';
+import AccordionPanel from 'primevue/accordionpanel';
+import AccordionHeader from 'primevue/accordionheader';
+import AccordionContent from 'primevue/accordioncontent';
+import CustomProgressBar from './CustomProgressBar.vue';
+import Button from 'primevue/button';
+import Column from 'primevue/column';
+import DataTable from 'primevue/datatable';
+import Dialog from 'primevue/dialog';
+import IconField from 'primevue/iconfield';
+import InputIcon from 'primevue/inputicon';
+import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
+import ToggleSwitch from 'primevue/toggleswitch';
+import RadioButton from 'primevue/radiobutton';
+import Select from 'primevue/select';
+import Textarea from 'primevue/textarea';
+import { useToast } from 'primevue/usetoast';
+import { useAsyncState } from '@vueuse/core';
 
 // Toast service
 const toast = useToast();
@@ -792,8 +678,8 @@ const allRules = ref<Rule[]>([]);
 const currentPage = ref(1);
 
 // Search and filters
-const searchQuery = ref("");
-const statusFilter = ref<"active" | "inactive" | "paused" | "">("");
+const searchQuery = ref('');
+const statusFilter = ref<'active' | 'inactive' | 'paused' | ''>('');
 
 // 用户主动操作的loading状态
 const userActionLoading = ref(false);
@@ -809,12 +695,12 @@ const stats = ref({
 
 // Form
 const ruleForm = reactive({
-  name: "",
-  description: "",
-  cron: "",
-  status: "active" as "active" | "inactive" | "paused",
+  name: '',
+  description: '',
+  cron: '',
+  status: 'active' as 'active' | 'inactive' | 'paused',
   taskConfig: {
-    url: "",
+    url: '',
     timeout: 30000,
     dataCollection: [] as any[],
     ruleFilterConfig: {
@@ -822,16 +708,16 @@ const ruleForm = reactive({
       disableGlobalFilter: false,
       filterConfig: {
         enable: false,
-        filterType: "js" as "js" | "ai",
+        filterType: 'js' as 'js' | 'ai',
         jsFilter: {
-          code: "",
+          code: '',
         },
         aiFilter: {
-          model: "",
-          prompt: "",
-          ollamaUrl: "",
-          apiUrl: "http://localhost:11434",
-          provider: "ollama" as const,
+          model: '',
+          prompt: '',
+          ollamaUrl: '',
+          apiUrl: 'http://localhost:11434',
+          provider: 'ollama' as const,
         },
       },
     },
@@ -839,24 +725,24 @@ const ruleForm = reactive({
   priority: 1,
 });
 
-const taskConfigJson = ref("{}");
+const taskConfigJson = ref('{}');
 const errors = ref<Record<string, string>>({});
 
 // Data collection configuration
 const showDataCollectionDialog = ref(false);
 const editingCollectionItem = ref<any>(null);
-const collectionItemType = ref<"css" | "js">("css");
+const collectionItemType = ref<'css' | 'js'>('css');
 const collectionForm = reactive({
-  selector: "",
-  attribute: "",
-  code: "",
+  selector: '',
+  attribute: '',
+  code: '',
 });
 
 // Options
 const statusOptions = [
-  { label: "激活", value: "active" },
-  { label: "未激活", value: "inactive" },
-  { label: "暂停", value: "paused" },
+  { label: '激活', value: 'active' },
+  { label: '未激活', value: 'inactive' },
+  { label: '暂停', value: 'paused' },
 ];
 
 // Computed
@@ -866,7 +752,7 @@ const getStatusText = (status: string) => {
 };
 
 const formatDate = (date: Date | string) => {
-  return format(new Date(date), "MM-dd HH:mm");
+  return format(new Date(date), 'MM-dd HH:mm');
 };
 
 // 处理执行记录读取状态变更
@@ -876,7 +762,7 @@ const handleReadStatusChanged = async (ruleId: string) => {
     const hasUnread = await hasUnreadExecutionsAsync(ruleId);
     ruleUnreadStatus.value[ruleId] = hasUnread;
   } catch (error) {
-    console.error("Failed to check rule unread status:", error);
+    console.error('Failed to check rule unread status:', error);
   }
 };
 
@@ -891,13 +777,13 @@ const handleFilterConfigChange = (filterConfig: any) => {
   // 确保 filterConfig 有正确的类型
   const typedFilterConfig = {
     enable: filterConfig.enable || false,
-    filterType: (filterConfig.filterType || "js") as "js" | "ai",
-    jsFilter: filterConfig.jsFilter || { code: "" },
+    filterType: (filterConfig.filterType || 'js') as 'js' | 'ai',
+    jsFilter: filterConfig.jsFilter || { code: '' },
     aiFilter: filterConfig.aiFilter || {
-      model: "",
-      prompt: "",
-      apiUrl: "http://localhost:11434",
-      provider: "ollama",
+      model: '',
+      prompt: '',
+      apiUrl: 'http://localhost:11434',
+      provider: 'ollama',
     },
   };
 
@@ -928,32 +814,32 @@ const saveGlobalFilterConfig = () => {
   showGlobalFilterDialog.value = false;
 
   toast.add({
-    severity: "success",
-    summary: "保存成功",
-    detail: "全局过滤配置已保存",
+    severity: 'success',
+    summary: '保存成功',
+    detail: '全局过滤配置已保存',
     life: 3000,
   });
 };
 
 // 计算过滤策略
-const filterStrategy = computed<"inherit" | "custom" | "disable">(() => {
+const filterStrategy = computed<'inherit' | 'custom' | 'disable'>(() => {
   if (!ruleForm.taskConfig.ruleFilterConfig) {
-    return "inherit"; // 默认继承全局配置
+    return 'inherit'; // 默认继承全局配置
   }
 
   if (ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter) {
-    return "disable";
+    return 'disable';
   }
 
   if (ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter) {
-    return "inherit";
+    return 'inherit';
   }
 
-  return "custom";
+  return 'custom';
 });
 
 // 处理过滤策略变化
-const handleFilterStrategyChange = (strategy: "inherit" | "custom" | "disable") => {
+const handleFilterStrategyChange = (strategy: 'inherit' | 'custom' | 'disable') => {
   if (!ruleForm.taskConfig.ruleFilterConfig) {
     // 初始化过滤配置
     ruleForm.taskConfig.ruleFilterConfig = {
@@ -961,29 +847,29 @@ const handleFilterStrategyChange = (strategy: "inherit" | "custom" | "disable") 
       useGlobalFilter: true,
       filterConfig: {
         enable: false,
-        filterType: "js",
-        jsFilter: { code: "" },
+        filterType: 'js',
+        jsFilter: { code: '' },
         aiFilter: {
-          model: "",
-          prompt: "",
-          ollamaUrl: "http://localhost:11434",
-          apiUrl: "http://localhost:11434",
-          provider: "ollama",
+          model: '',
+          prompt: '',
+          ollamaUrl: 'http://localhost:11434',
+          apiUrl: 'http://localhost:11434',
+          provider: 'ollama',
         },
       },
     };
   }
 
   switch (strategy) {
-    case "inherit":
+    case 'inherit':
       ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter = false;
       ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter = true;
       break;
-    case "custom":
+    case 'custom':
       ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter = false;
       ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter = false;
       break;
-    case "disable":
+    case 'disable':
       ruleForm.taskConfig.ruleFilterConfig.disableGlobalFilter = true;
       ruleForm.taskConfig.ruleFilterConfig.useGlobalFilter = false;
       break;
@@ -1006,8 +892,8 @@ const rules = useAsyncState(
       limit: config.value.rulesPageSize,
       status: statusFilter.value || undefined,
       search: searchQuery.value || undefined,
-      sortBy: "unreadFirst", // 使用特殊的排序方式，将未读的排在前面
-      sortOrder: "desc",
+      sortBy: 'unreadFirst', // 使用特殊的排序方式，将未读的排在前面
+      sortOrder: 'desc',
     });
 
     // 检查每个规则的未读执行记录状态
@@ -1031,7 +917,7 @@ const loadStats = async () => {
   try {
     stats.value = await rulesService.getRuleStats();
   } catch (error) {
-    console.error("Failed to load stats:", error);
+    console.error('Failed to load stats:', error);
   }
 };
 
@@ -1039,7 +925,7 @@ const loadAllRules = async () => {
   try {
     allRules.value = await rulesService.getAll();
   } catch (error) {
-    console.error("Failed to load all rules:", error);
+    console.error('Failed to load all rules:', error);
   }
 };
 
@@ -1060,7 +946,7 @@ const checkRulesUnreadStatus = async () => {
       ruleUnreadStatus.value[result.ruleId] = result.hasUnread;
     }
   } catch (error) {
-    console.error("Failed to check rules unread status:", error);
+    console.error('Failed to check rules unread status:', error);
   }
 };
 
@@ -1097,15 +983,15 @@ const getRowStyle = (rule: Rule) => {
 
   if (hasUnread) {
     return {
-      backgroundColor: "#ffffff",
-      borderLeft: "3px solid #3b82f6",
-      fontWeight: "500",
-      cursor: "pointer",
+      backgroundColor: '#ffffff',
+      borderLeft: '3px solid #3b82f6',
+      fontWeight: '500',
+      cursor: 'pointer',
     };
   } else {
     return {
-      backgroundColor: "#f8fafc",
-      cursor: "pointer",
+      backgroundColor: '#f8fafc',
+      cursor: 'pointer',
     };
   }
 };
@@ -1127,8 +1013,8 @@ const handleFilterChange = () => {
 };
 
 const clearFilters = () => {
-  searchQuery.value = "";
-  statusFilter.value = "";
+  searchQuery.value = '';
+  statusFilter.value = '';
   currentPage.value = 1;
   userActionLoading.value = true;
   rules.execute().finally(() => {
@@ -1148,8 +1034,8 @@ const silentUpdateRules = async () => {
       limit: config.value.rulesPageSize,
       status: statusFilter.value || undefined,
       search: searchQuery.value || undefined,
-      sortBy: "unreadFirst",
-      sortOrder: "desc",
+      sortBy: 'unreadFirst',
+      sortOrder: 'desc',
     });
 
     // 检查每个规则的未读执行记录状态
@@ -1164,20 +1050,20 @@ const silentUpdateRules = async () => {
     // 恢复展开状态
     expandedRows.value = currentExpandedRows;
 
-    console.log("[RulesManagement] 静默更新完成");
+    console.log('[RulesManagement] 静默更新完成');
   } catch (error) {
-    console.error("[RulesManagement] 静默更新失败:", error);
+    console.error('[RulesManagement] 静默更新失败:', error);
   }
 };
 
 const resetForm = () => {
   Object.assign(ruleForm, {
-    name: "",
-    description: "",
-    cron: "",
-    status: "active",
+    name: '',
+    description: '',
+    cron: '',
+    status: 'active',
     taskConfig: {
-      url: "",
+      url: '',
       timeout: 30000,
       dataCollection: [],
       ruleFilterConfig: {
@@ -1185,32 +1071,32 @@ const resetForm = () => {
         disableGlobalFilter: false,
         filterConfig: {
           enable: false,
-          filterType: "js" as "js" | "ai",
+          filterType: 'js' as 'js' | 'ai',
           jsFilter: {
-            code: "",
+            code: '',
           },
           aiFilter: {
-            model: "",
-            prompt: "",
-            ollamaUrl: "",
+            model: '',
+            prompt: '',
+            ollamaUrl: '',
           },
         },
       },
     },
     priority: 1,
   });
-  taskConfigJson.value = "{}";
+  taskConfigJson.value = '{}';
   errors.value = {};
   editingRule.value = null;
 };
 
 const resetCollectionForm = () => {
   Object.assign(collectionForm, {
-    selector: "",
-    attribute: "",
-    code: "",
+    selector: '',
+    attribute: '',
+    code: '',
   });
-  collectionItemType.value = "css";
+  collectionItemType.value = 'css';
   editingCollectionItem.value = null;
 };
 
@@ -1223,9 +1109,9 @@ const editCollectionItem = (item: any, index: number) => {
   editingCollectionItem.value = index;
   collectionItemType.value = item.type;
 
-  if (item.type === "css") {
+  if (item.type === 'css') {
     collectionForm.selector = item.selector;
-    collectionForm.attribute = item.attribute || "";
+    collectionForm.attribute = item.attribute || '';
   } else {
     collectionForm.code = item.code;
   }
@@ -1243,12 +1129,12 @@ const saveCollectionItem = () => {
     type: collectionItemType.value,
   };
 
-  if (collectionItemType.value === "css") {
+  if (collectionItemType.value === 'css') {
     if (!collectionForm.selector.trim()) {
       toast.add({
-        severity: "error",
-        summary: "验证错误",
-        detail: "CSS 选择器不能为空",
+        severity: 'error',
+        summary: '验证错误',
+        detail: 'CSS 选择器不能为空',
         life: 3000,
       });
       return;
@@ -1260,9 +1146,9 @@ const saveCollectionItem = () => {
   } else {
     if (!collectionForm.code.trim()) {
       toast.add({
-        severity: "error",
-        summary: "验证错误",
-        detail: "JavaScript 代码不能为空",
+        severity: 'error',
+        summary: '验证错误',
+        detail: 'JavaScript 代码不能为空',
         life: 3000,
       });
       return;
@@ -1297,15 +1183,15 @@ const validateForm = () => {
   errors.value = {};
 
   if (!ruleForm.name.trim()) {
-    errors.value.name = "规则名称不能为空";
+    errors.value.name = '规则名称不能为空';
   }
 
   if (!ruleForm.cron.trim()) {
-    errors.value.cron = "Cron 表达式不能为空";
+    errors.value.cron = 'Cron 表达式不能为空';
   }
 
   if (!ruleForm.taskConfig.url.trim()) {
-    errors.value["taskConfig.url"] = "目标 URL 不能为空";
+    errors.value['taskConfig.url'] = '目标 URL 不能为空';
   }
 
   return Object.keys(errors.value).length === 0;
@@ -1319,7 +1205,7 @@ const saveRule = async () => {
     // Parse task config JSON
     const ruleData = { ...ruleForm };
 
-    console.log("[ruleData]", ruleData);
+    console.log('[ruleData]', ruleData);
     if (editingRule.value) {
       await rulesService.updateRule(editingRule.value.id, ruleData);
     } else {
@@ -1344,7 +1230,7 @@ const editRule = (rule: Rule) => {
     cron: rule.cron,
     status: rule.status,
     taskConfig: {
-      url: rule.taskConfig.url || "",
+      url: rule.taskConfig.url || '',
       timeout: rule.taskConfig.timeout || 30000,
       dataCollection: rule.taskConfig.dataCollection || [],
       ruleFilterConfig: rule.taskConfig.ruleFilterConfig || {
@@ -1352,14 +1238,14 @@ const editRule = (rule: Rule) => {
         disableGlobalFilter: false,
         filterConfig: {
           enable: false,
-          filterType: "js" as "js" | "ai",
+          filterType: 'js' as 'js' | 'ai',
           jsFilter: {
-            code: "",
+            code: '',
           },
           aiFilter: {
-            model: "",
-            prompt: "",
-            ollamaUrl: "",
+            model: '',
+            prompt: '',
+            ollamaUrl: '',
           },
         },
       },
@@ -1398,7 +1284,7 @@ const activateRule = async (rule: Rule) => {
     loadStats();
     loadAllRules();
   } catch (error) {
-    console.error("Failed to activate rule:", error);
+    console.error('Failed to activate rule:', error);
   }
 };
 
@@ -1409,7 +1295,7 @@ const pauseRule = async (rule: Rule) => {
     loadStats();
     loadAllRules();
   } catch (error) {
-    console.error("Failed to pause rule:", error);
+    console.error('Failed to pause rule:', error);
   }
 };
 
@@ -1420,16 +1306,16 @@ const executeRuleNow = async (rule: Rule) => {
       const res = result.result;
       if (res.matched === 1) {
         toast.add({
-          severity: "success",
-          summary: "执行成功",
+          severity: 'success',
+          summary: '执行成功',
           detail: `规则 "${rule.name}" 执行成功！\nURL: ${res.url}\n标题: ${res.title}`,
           life: 5000,
         });
       } else {
         toast.add({
-          severity: "warn",
-          summary: "执行完成",
-          detail: `规则 "${rule.name}" 执行完成，但未匹配到内容。\n消息: ${res.message || "无"}`,
+          severity: 'warn',
+          summary: '执行完成',
+          detail: `规则 "${rule.name}" 执行完成，但未匹配到内容。\n消息: ${res.message || '无'}`,
           life: 5000,
         });
       }
@@ -1437,18 +1323,18 @@ const executeRuleNow = async (rule: Rule) => {
       loadStats();
     } else {
       toast.add({
-        severity: "error",
-        summary: "执行失败",
+        severity: 'error',
+        summary: '执行失败',
         detail: `规则 "${rule.name}" 执行失败: ${result.message}`,
         life: 5000,
       });
     }
   } catch (error) {
-    console.error("Failed to execute rule:", error);
-    const errorMessage = error instanceof Error ? error.message : "未知错误";
+    console.error('Failed to execute rule:', error);
+    const errorMessage = error instanceof Error ? error.message : '未知错误';
     toast.add({
-      severity: "error",
-      summary: "执行失败",
+      severity: 'error',
+      summary: '执行失败',
       detail: `规则 "${rule.name}" 执行失败: ${errorMessage}`,
       life: 5000,
     });
@@ -1465,7 +1351,7 @@ onMounted(() => {
   if (browser.runtime) {
     browser.runtime.onMessage.addListener((message: any) => {
       if (message.type === EVENT_TYPES.RULE_EXECUTION_COMPLETED) {
-        console.log("[RulesManagement] 收到规则执行完成事件:", message.payload);
+        console.log('[RulesManagement] 收到规则执行完成事件:', message.payload);
         // 静默更新数据，不显示loading，保持用户操作状态
         silentUpdateRules();
         loadStats();
@@ -1496,9 +1382,9 @@ const handleExportConfirm = async (selectedRuleIds: string[]) => {
 
     if (selectedRulesData.length === 0) {
       toast.add({
-        severity: "warn",
-        summary: "没有选择规则",
-        detail: "请至少选择一条规则进行导出",
+        severity: 'warn',
+        summary: '没有选择规则',
+        detail: '请至少选择一条规则进行导出',
         life: 3000,
       });
       return;
@@ -1506,19 +1392,17 @@ const handleExportConfirm = async (selectedRuleIds: string[]) => {
 
     const exportData = {
       exportTime: new Date().toISOString(),
-      version: "1.0",
+      version: '1.0',
       rules: selectedRulesData,
     };
 
     const dataStr = JSON.stringify(exportData, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
 
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
-    link.download = `rules-export-${selectedRulesData.length}-rules-${
-      new Date().toISOString().split("T")[0]
-    }.json`;
+    link.download = `rules-export-${selectedRulesData.length}-rules-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1527,17 +1411,17 @@ const handleExportConfirm = async (selectedRuleIds: string[]) => {
     showExportDialog.value = false;
 
     toast.add({
-      severity: "success",
-      summary: "导出成功",
+      severity: 'success',
+      summary: '导出成功',
       detail: `已导出 ${selectedRulesData.length} 条规则`,
       life: 3000,
     });
   } catch (error) {
-    console.error("Failed to export rules:", error);
+    console.error('Failed to export rules:', error);
     toast.add({
-      severity: "error",
-      summary: "导出失败",
-      detail: "导出规则时发生错误",
+      severity: 'error',
+      summary: '导出失败',
+      detail: '导出规则时发生错误',
       life: 3000,
     });
   }
@@ -1554,11 +1438,11 @@ const handleFileSelect = (event: Event) => {
     return;
   }
 
-  if (!file.name.endsWith(".json")) {
+  if (!file.name.endsWith('.json')) {
     toast.add({
-      severity: "error",
-      summary: "文件格式错误",
-      detail: "请选择 JSON 文件",
+      severity: 'error',
+      summary: '文件格式错误',
+      detail: '请选择 JSON 文件',
       life: 3000,
     });
     return;
@@ -1574,7 +1458,7 @@ const handleFileSelect = (event: Event) => {
       const data = JSON.parse(content);
 
       if (!data.rules || !Array.isArray(data.rules)) {
-        throw new Error("无效的规则文件格式");
+        throw new Error('无效的规则文件格式');
       }
 
       // Preserve original IDs for selection purposes
@@ -1586,11 +1470,11 @@ const handleFileSelect = (event: Event) => {
         originalIndex: index,
       }));
     } catch (error) {
-      console.error("Failed to parse JSON file:", error);
+      console.error('Failed to parse JSON file:', error);
       toast.add({
-        severity: "error",
-        summary: "文件解析失败",
-        detail: "无法解析 JSON 文件",
+        severity: 'error',
+        summary: '文件解析失败',
+        detail: '无法解析 JSON 文件',
         life: 3000,
       });
       importPreview.value = [];
@@ -1606,7 +1490,7 @@ const cancelImport = () => {
   importPreview.value = [];
   importFile.value = null;
   if (fileInput.value) {
-    fileInput.value.value = "";
+    fileInput.value.value = '';
   }
 };
 
@@ -1625,18 +1509,18 @@ const handleImportConfirm = async (selectedRuleIds: string[]) => {
         const data = JSON.parse(content);
 
         if (!data.rules || !Array.isArray(data.rules)) {
-          throw new Error("无效的规则文件格式");
+          throw new Error('无效的规则文件格式');
         }
 
         console.log(
-          "[Import] 导入的规则数据:",
+          '[Import] 导入的规则数据:',
           data.rules.map((r: any) => ({ id: r.id, name: r.name })),
         );
 
         // 获取当前数据库中的所有规则用于调试
         const currentRules = await rulesService.getAll();
         console.log(
-          "[Import] 当前数据库中的规则:",
+          '[Import] 当前数据库中的规则:',
           currentRules.map((r: any) => ({ id: r.id, name: r.name })),
         );
 
@@ -1655,11 +1539,11 @@ const handleImportConfirm = async (selectedRuleIds: string[]) => {
             const cleanRule = {
               id: rule.id, // 保留原始ID用于覆盖检查
               name: rule.name,
-              description: rule.description || "",
+              description: rule.description || '',
               cron: rule.cron,
-              status: rule.status || "active",
+              status: rule.status || 'active',
               taskConfig: rule.taskConfig || {
-                url: "",
+                url: '',
                 timeout: 30000,
                 dataCollection: [],
               },
@@ -1676,7 +1560,7 @@ const handleImportConfirm = async (selectedRuleIds: string[]) => {
             const existingRule = await rulesService.getById(rule.id);
             console.log(
               `[Import] 检查规则 ${rule.name} (${rule.id}):`,
-              existingRule ? "找到现有规则" : "未找到现有规则",
+              existingRule ? '找到现有规则' : '未找到现有规则',
             );
 
             if (existingRule) {
@@ -1700,7 +1584,7 @@ const handleImportConfirm = async (selectedRuleIds: string[]) => {
 
             successCount++;
           } catch (error) {
-            console.error("Failed to import rule:", rule.name, error);
+            console.error('Failed to import rule:', rule.name, error);
             skipCount++;
           }
         }
@@ -1712,17 +1596,17 @@ const handleImportConfirm = async (selectedRuleIds: string[]) => {
         loadStats();
 
         toast.add({
-          severity: "success",
-          summary: "导入完成",
+          severity: 'success',
+          summary: '导入完成',
           detail: `成功处理 ${successCount} 条规则（覆盖已有规则，跳过 ${skipCount} 条规则）`,
           life: 5000,
         });
       } catch (error) {
-        console.error("Failed to import rules:", error);
+        console.error('Failed to import rules:', error);
         toast.add({
-          severity: "error",
-          summary: "导入失败",
-          detail: "导入规则时发生错误",
+          severity: 'error',
+          summary: '导入失败',
+          detail: '导入规则时发生错误',
           life: 3000,
         });
       } finally {
@@ -1731,11 +1615,11 @@ const handleImportConfirm = async (selectedRuleIds: string[]) => {
     };
     reader.readAsText(importFile.value);
   } catch (error) {
-    console.error("Failed to read file:", error);
+    console.error('Failed to read file:', error);
     toast.add({
-      severity: "error",
-      summary: "导入失败",
-      detail: "读取文件时发生错误",
+      severity: 'error',
+      summary: '导入失败',
+      detail: '读取文件时发生错误',
       life: 3000,
     });
     importing.value = false;

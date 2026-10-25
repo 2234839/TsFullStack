@@ -14,7 +14,8 @@
       optionLabel="label"
       optionValue="value"
       class="w-full"
-      @change="handleChange" />
+      @change="handleChange"
+    />
   </div>
 </template>
 
@@ -41,7 +42,7 @@ interface Emits {
   (e: 'change', value: string | string[] | null): void;
 }
 
-const { modelValue, multiple = false, maxSelection = 5, placeholder = '' } = defineProps<Props>()
+const { modelValue, multiple = false, maxSelection = 5, placeholder = '' } = defineProps<Props>();
 
 const emit = defineEmits<Emits>();
 
@@ -75,7 +76,7 @@ const selectedUsers = computed({
       emit('update:modelValue', finalValue);
       emit('change', finalValue);
     }
-  }
+  },
 });
 
 /** 加载用户列表 */
@@ -87,9 +88,9 @@ const loadUsers = async () => {
     });
 
     users.value = result;
-    userOptions.value = result.map(user => ({
+    userOptions.value = result.map((user) => ({
       label: `${user.email} (${user.id})`,
-      value: user.id
+      value: user.id,
     }));
   } catch (error: unknown) {
     toast.error(t('加载用户列表失败'), getErrorMessage(error));
@@ -113,20 +114,23 @@ const handleChange = (event: { value: unknown }) => {
 };
 
 // 监听 modelValue 变化
-watch(() => modelValue, (newValue) => {
-  if (multiple) {
-    if (Array.isArray(newValue)) {
-      const validValues = newValue.filter(v => userOptions.value.some(opt => opt.value === v));
-      if (validValues.length !== newValue.length) {
-        emit('update:modelValue', validValues.length > 0 ? validValues : null);
+watch(
+  () => modelValue,
+  (newValue) => {
+    if (multiple) {
+      if (Array.isArray(newValue)) {
+        const validValues = newValue.filter((v) => userOptions.value.some((opt) => opt.value === v));
+        if (validValues.length !== newValue.length) {
+          emit('update:modelValue', validValues.length > 0 ? validValues : null);
+        }
+      }
+    } else {
+      if (newValue && !userOptions.value.some((opt) => opt.value === newValue)) {
+        emit('update:modelValue', null);
       }
     }
-  } else {
-    if (newValue && !userOptions.value.some(opt => opt.value === newValue)) {
-      emit('update:modelValue', null);
-    }
-  }
-});
+  },
+);
 
 onMounted(loadUsers);
 </script>

@@ -16,9 +16,9 @@ import { MSG, MAX_ID_LENGTH, MAX_FILENAME_LENGTH } from '../util/constants';
 export class FilePathService {
   static readonly ALLOWED_CHARS = /^[a-zA-Z0-9._-]+$/;
   /** 预编译文件名清理正则 */
-  private static readonly FILENAME_SANITIZE_RE = /[\/\\:*?"<>|]/g;
+  private static readonly FILENAME_SANITIZE_RE = /[/\\:*?"<>|]/g;
   private static readonly HIDDEN_FILE_RE = /^\./;
-  
+
   /**
    * 生成安全的用户文件路径
    * @param userId 用户ID
@@ -72,11 +72,7 @@ export class FilePathService {
    *
    * 参考：https://nodejsdesignpatterns.com/blog/nodejs-path-traversal-security/
    */
-  static validateFileAccess(
-    requestedPath: string,
-    baseDir: string,
-    userId: string
-  ): string {
+  static validateFileAccess(requestedPath: string, baseDir: string, userId: string): string {
     // 拒绝 null 字节（用于绕过扩展名检查）
     if (requestedPath.includes('\0')) {
       throw MsgError.msg('Null bytes not allowed');

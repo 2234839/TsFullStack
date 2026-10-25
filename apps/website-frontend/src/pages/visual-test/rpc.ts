@@ -6,14 +6,14 @@
  *
  * 服务地址可通过 localStorage 的 'visualTestServerUrl' 配置。
  */
-import superjson from "superjson";
-import type { VisualTestAPI } from "@tsfullstack/visual-test";
+import superjson from 'superjson';
+import type { VisualTestAPI } from '@tsfullstack/visual-test';
 
 /** localStorage key：visual-test 服务地址 */
-const STORAGE_KEY = "visualTestServerUrl";
+const STORAGE_KEY = 'visualTestServerUrl';
 
 /** 默认服务地址 */
-const DEFAULT_SERVER = "http://localhost:7890";
+const DEFAULT_SERVER = 'http://localhost:7890';
 
 /** 获取当前配置的服务地址 */
 export function getServerUrl(): string {
@@ -39,15 +39,15 @@ interface RPCResponse {
  * 将异步 API 接口转换为 Proxy，支持链式调用如 `vt.runAll()`
  */
 export function createVisualTestRPC(serverUrl: string = getServerUrl()): VisualTestAPI {
-  const baseUrl = serverUrl.replace(/\/$/, "");
+  const baseUrl = serverUrl.replace(/\/$/, '');
 
   async function callMethod(method: string, args: unknown[] = []): Promise<unknown> {
     const url = `${baseUrl}/api/${method}`;
     const body = superjson.stringify(args);
 
     const resp = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain" },
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
       body,
     });
 
@@ -80,7 +80,7 @@ export function createVisualTestRPC(serverUrl: string = getServerUrl()): VisualT
 
   return new Proxy({} as VisualTestAPI, {
     get(_target, prop: string) {
-      if (prop === "health") return health;
+      if (prop === 'health') return health;
       return (...args: unknown[]) => callMethod(prop, args);
     },
   });

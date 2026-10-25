@@ -36,7 +36,12 @@ export const loadAppConfig: Effect.Effect<AppConfigType, Error, never> = Effect.
   const configPath = path.join(process.cwd(), 'config.json');
 
   const configExists = yield* tryOrFail('检查 config.json', async () => {
-    try { await fs.access(configPath); return true; } catch { return false; }
+    try {
+      await fs.access(configPath);
+      return true;
+    } catch {
+      return false;
+    }
   });
 
   if (configExists) {
@@ -59,9 +64,14 @@ export const loadAppConfig: Effect.Effect<AppConfigType, Error, never> = Effect.
     return yield* fail(MSG.CONFIG_NOT_FOUND);
   }
 
-  console.warn('\x1b[33m%s\x1b[0m', `${LOG_PREFIX} WARNING: No config.json found! Using default admin credentials. This is UNSAFE for production. Set ALLOW_INSECURE_DEFAULTS=1 to suppress this warning.`);
+  console.warn(
+    '\x1b[33m%s\x1b[0m',
+    `${LOG_PREFIX} WARNING: No config.json found! Using default admin credentials. This is UNSAFE for production. Set ALLOW_INSECURE_DEFAULTS=1 to suppress this warning.`,
+  );
   if (!process.env.ALLOW_INSECURE_DEFAULTS) {
-    console.error(`${LOG_PREFIX} Refusing to start with default credentials. Set ALLOW_INSECURE_DEFAULTS=1 to allow (development only).`);
+    console.error(
+      `${LOG_PREFIX} Refusing to start with default credentials. Set ALLOW_INSECURE_DEFAULTS=1 to allow (development only).`,
+    );
     return yield* fail(MSG.CONFIG_NOT_FOUND);
   }
   return {

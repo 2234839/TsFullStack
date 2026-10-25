@@ -49,11 +49,7 @@ const useTokenStoreImpl = () => {
    */
   async function refreshBalance(force = false): Promise<void> {
     // 如果1分钟内已刷新且不强制刷新，则跳过
-    if (
-      !force &&
-      lastUpdated.value &&
-      Date.now() - lastUpdated.value.getTime() < 60000
-    ) {
+    if (!force && lastUpdated.value && Date.now() - lastUpdated.value.getTime() < 60000) {
       return;
     }
 
@@ -74,7 +70,9 @@ const useTokenStoreImpl = () => {
   function optimisticallyDeduct(amount: number) {
     // 防御性检查：确保余额足够
     if (balance.value.total < amount) {
-      throw new Error(t('余额不足：需要 {required}，当前 {current}', { required: amount, current: balance.value.total }));
+      throw new Error(
+        t('余额不足：需要 {required}，当前 {current}', { required: amount, current: balance.value.total }),
+      );
     }
 
     balance.value.total -= amount;
@@ -103,7 +101,9 @@ const useTokenStoreImpl = () => {
     // 最后扣永久
     if (remaining > 0) {
       if (balance.value.permanent < remaining) {
-        throw new Error(t('永久代币不足：需要 {required}，当前 {current}', { required: remaining, current: balance.value.permanent }));
+        throw new Error(
+          t('永久代币不足：需要 {required}，当前 {current}', { required: remaining, current: balance.value.permanent }),
+        );
       }
       balance.value.permanent -= remaining;
       remaining = 0;

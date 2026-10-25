@@ -15,16 +15,29 @@
       </Button>
     </div>
   </div>
-  <AutoFilter v-if="selectModelMeta" :modelFields="fieldsToMap(selectModelMeta.model.fields)" @filter="
+  <AutoFilter
+    v-if="selectModelMeta"
+    :modelFields="fieldsToMap(selectModelMeta.model.fields)"
+    @filter="
       (options) => {
         filter = options;
         currentPage = 1;
         reloadTableData();
       }
-    " />
-  <DataTable :data="tableData.state.value.list" :loading="tableData.isLoading.value" :selectedRowKeys="selectRows"
-    @update:selectedRowKeys="(v) => selectRows = v" rowKey="id" size="small" striped bordered selectable
-    :columns="tableColumns">
+    "
+  />
+  <DataTable
+    :data="tableData.state.value.list"
+    :loading="tableData.isLoading.value"
+    :selectedRowKeys="selectRows"
+    @update:selectedRowKeys="(v) => (selectRows = v)"
+    rowKey="id"
+    size="small"
+    striped
+    bordered
+    selectable
+    :columns="tableColumns"
+  >
   </DataTable>
   <!-- 分页 -->
   <div class="flex justify-center gap-1 items-center mt-4 text-sm">
@@ -34,203 +47,224 @@
       :rowsPerPage="pageSize"
       :show-rows-per-page-options="true"
       @update:page="(page) => onPageChange({ page, first: page * pageSize })"
-      @update:rows-per-page="(newSize) => { pageSize = newSize; onPageChange({ page: 0, first: 0 }); }"
+      @update:rows-per-page="
+        (newSize) => {
+          pageSize = newSize;
+          onPageChange({ page: 0, first: 0 });
+        }
+      "
     />
     {{ t('总计') }}：{{ tableData.state.value.count }} {{ t('行') }}
   </div>
-  <AutoForm v-if="selectModelMeta && modelMeta.state.value" ref="__createFormRef" :modelKey="selectModelMeta.modelKey"
-    :modelFields="selectModelMeta.model.fields || {}" :modelMeta="modelMeta.state.value" @created="onRecordCreated()" />
+  <AutoForm
+    v-if="selectModelMeta && modelMeta.state.value"
+    ref="__createFormRef"
+    :modelKey="selectModelMeta.modelKey"
+    :modelFields="selectModelMeta.model.fields || {}"
+    :modelMeta="modelMeta.state.value"
+    @created="onRecordCreated()"
+  />
 </template>
 <script setup lang="ts">
-  import { useAPI } from '@/api';
-  import AutoFilter from '@/components/AutoTable/AutoFilter.vue';
-  import AutoForm from '@/components/AutoTable/AutoForm.vue';
-  import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
-  import { useAsyncState } from '@vueuse/core';
-  import { useConfirm } from '@/composables/useConfirm';
-  import { useToast } from '@/composables/useToast';
-  import { computed, h, nextTick, provide, ref, shallowRef, useTemplateRef, watch } from 'vue';
-  import { useI18n } from '@/composables/useI18n';
-  import { getErrorMessage } from '@/utils/error';
-  import AutoColumn from './AutoColumn.vue';
-  import { injectModelMetaKey, type ModelMetaNames, type Model, type DynamicQuery, getModelAPI, isDataModelField, isArrayField, getBackLinkFieldName, fieldsToMap } from './type';
+import { useAPI } from '@/api';
+import AutoFilter from '@/components/AutoTable/AutoFilter.vue';
+import AutoForm from '@/components/AutoTable/AutoForm.vue';
+import type { RelationSelectData } from '@/components/AutoTable/RelationSelect.vue';
+import { useAsyncState } from '@vueuse/core';
+import { useConfirm } from '@/composables/useConfirm';
+import { useToast } from '@/composables/useToast';
+import { computed, h, nextTick, provide, ref, shallowRef, useTemplateRef, watch } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+import { getErrorMessage } from '@/utils/error';
+import AutoColumn from './AutoColumn.vue';
+import {
+  injectModelMetaKey,
+  type ModelMetaNames,
+  type Model,
+  type DynamicQuery,
+  getModelAPI,
+  isDataModelField,
+  isArrayField,
+  getBackLinkFieldName,
+  fieldsToMap,
+} from './type';
 
-  import { findIdField, useModelMeta, getModelDbName as exportGetModelDbName } from './util';
-  const { t } = useI18n();
-  const confirm = useConfirm();
-  const toast = useToast();
-  const { API } = useAPI();
+import { findIdField, useModelMeta, getModelDbName as exportGetModelDbName } from './util';
+const { t } = useI18n();
+const confirm = useConfirm();
+const toast = useToast();
+const { API } = useAPI();
 
-  const modelMeta = await useModelMeta();
-  const initialMeta = modelMeta.state.value;
-  if (!initialMeta) {
-    /** 未登录或 API 不可用时提供空 meta，避免 throw 导致 Suspense 崩溃 */
-    provide(injectModelMetaKey, { models: {} } as NonNullable<typeof initialMeta>);
-  } else {
-    provide(injectModelMetaKey, initialMeta);
-  }
-  const models = computed(() => {
-    const meta = modelMeta.state.value;
-    return meta?.models ?? {};
-  });
-  const selectModelName = defineModel<string>('modelName', {
-    required: true,
-  });
-  /**
-   * 选中的行键值数组（存储 ID 值，不是完整对象）
-   * DataTable 组件的 update:selectedRowKeys 事件只返回 ID 值
-   */
-  const selectRows = shallowRef<Array<string | number>>([]);
+const modelMeta = await useModelMeta();
+const initialMeta = modelMeta.state.value;
+if (!initialMeta) {
+  /** 未登录或 API 不可用时提供空 meta，避免 throw 导致 Suspense 崩溃 */
+  provide(injectModelMetaKey, { models: {} } as NonNullable<typeof initialMeta>);
+} else {
+  provide(injectModelMetaKey, initialMeta);
+}
+const models = computed(() => {
+  const meta = modelMeta.state.value;
+  return meta?.models ?? {};
+});
+const selectModelName = defineModel<string>('modelName', {
+  required: true,
+});
+/**
+ * 选中的行键值数组（存储 ID 值，不是完整对象）
+ * DataTable 组件的 update:selectedRowKeys 事件只返回 ID 值
+ */
+const selectRows = shallowRef<Array<string | number>>([]);
 
-  /** 表格列定义 */
-  const tableColumns = computed(() => {
-    const fields = tableData.state.value.modelFields;
-    return Object.entries(fields).map(([fieldName, field]) => ({
-      key: fieldName,
-      title: fieldName,
-      render: (row: any, index: number) => {
-        return h(AutoColumn, {
-          row,
-          field,
-          editValue: editData.value[index]?.[fieldName],
-          'onUpdate:editValue': (newVal: any) => {
-            if (editData.value[index]) {
-              editData.value[index][fieldName] = newVal;
-            }
-          },
-        });
-      },
-    }));
-  });
-
-  const selectModelMeta = computed(() => {
-    if (!selectModelName.value) return undefined;
-    return findModelMeta(selectModelName.value);
-  });
-
-  function findModelMeta(modelName: string): { modelKey: string; model: Model } | undefined {
-    const result = Object.entries(models.value)
-      .map(([modelKey, model]) => {
-        return {
-          modelKey,
-          model,
-        };
-      })
-      .find((el) => (el.model as Model).name === modelName);
-    return result as { modelKey: string; model: Model } | undefined;
-  }
-  const filter = ref({});
-  //#region 表格分页
-  const currentPage = ref(1);
-  const pageSize = ref(10);
-  const onPageChange = (event: { page: number; first: number }) => {
-    currentPage.value = event.page + 1;
-    if (selectModelMeta.value) {
-      tableData.execute(0, {
-        modelKey: selectModelMeta.value.modelKey,
-        page: currentPage.value,
-        pageSize: pageSize.value,
+/** 表格列定义 */
+const tableColumns = computed(() => {
+  const fields = tableData.state.value.modelFields;
+  return Object.entries(fields).map(([fieldName, field]) => ({
+    key: fieldName,
+    title: fieldName,
+    render: (row: any, index: number) => {
+      return h(AutoColumn, {
+        row,
+        field,
+        editValue: editData.value[index]?.[fieldName],
+        'onUpdate:editValue': (newVal: any) => {
+          if (editData.value[index]) {
+            editData.value[index][fieldName] = newVal;
+          }
+        },
       });
-    }
-  };
-  //#endregion 表格分页
+    },
+  }));
+});
 
-  //#region 表格数据存储及加载
-  /** 编辑数据的临时存储，用于保存每行的编辑结果  */
-  const editData = ref<Array<Record<string, any>>>([]);
-  /** 防止保存/删除按钮重复点击 */
-  const isSaving = ref(false);
-  const isDeleting = ref(false);
-  const tableData = useAsyncState(
-    async (opt: { modelKey: string; page: number; pageSize: number }) => {
-      const meta = modelMeta.state.value;
-      const models = meta?.models;
-      if (!meta || !models) return { list: [], modelFields: {}, count: 0 };
-  
-      const modelFields = fieldsToMap(models[opt.modelKey as ModelMetaNames]?.fields ?? {});
-      let _count = { select: {} as { [key: string]: boolean } };
-      Object.entries(modelFields).forEach(([key, field]) => {
-        if ('relation' in field && 'array' in field && field.array) {
-          _count.select[key] = true;
-        }
-      });
-      // 类型安全的模型访问
-      const modelName = exportGetModelDbName(opt.modelKey as ModelMetaNames);
-      const modelAPI = getModelAPI(API, modelName);
-      const [list, count] = await Promise.all([
-        modelAPI.findMany({
-          take: opt.pageSize,
-          skip: (opt.page - 1) * opt.pageSize,
-          where: filter.value,
-          ...(Object.keys(_count.select).length > 0 && {
-            include: { _count },
-          }),
-        }),
-        modelAPI.count({
-          where: filter.value,
-        }),
-      ]);
-      //#region 清理数据
-      editData.value = list.map(() => ({}));
-      selectRows.value = [];
-      //#endregion 清理数据
-      return { list, count, modelFields };
-    },
-    { list: [], modelFields: {}, count: 0 },
-    {
-      resetOnExecute: false,
-      throwError: true,
-      immediate: false,
-    },
-  );
-  function reloadTableData() {
-    const meta = selectModelMeta.value;
-    if (!meta?.modelKey) return;
-    tableData.execute(200, {
-      modelKey: meta.modelKey,
+const selectModelMeta = computed(() => {
+  if (!selectModelName.value) return undefined;
+  return findModelMeta(selectModelName.value);
+});
+
+function findModelMeta(modelName: string): { modelKey: string; model: Model } | undefined {
+  const result = Object.entries(models.value)
+    .map(([modelKey, model]) => {
+      return {
+        modelKey,
+        model,
+      };
+    })
+    .find((el) => (el.model as Model).name === modelName);
+  return result as { modelKey: string; model: Model } | undefined;
+}
+const filter = ref({});
+//#region 表格分页
+const currentPage = ref(1);
+const pageSize = ref(10);
+const onPageChange = (event: { page: number; first: number }) => {
+  currentPage.value = event.page + 1;
+  if (selectModelMeta.value) {
+    tableData.execute(0, {
+      modelKey: selectModelMeta.value.modelKey,
       page: currentPage.value,
       pageSize: pageSize.value,
     });
   }
-  /** 切换模型时重置分页并重新加载数据 */
-  watch(
-    selectModelName,
-    async (val) => {
-      if (!val) return;
-      currentPage.value = 1;
-      await nextTick();
-      reloadTableData();
-    },
-    { immediate: true },
-  );
-  //#endregion
+};
+//#endregion 表格分页
 
-  //#region 数据编辑相关逻辑功能
-  /** 当前被编辑了的数据行 */
-  const editRows = computed(() => {
-    return editData.value.filter((row) => Object.keys(row).length > 0);
+//#region 表格数据存储及加载
+/** 编辑数据的临时存储，用于保存每行的编辑结果  */
+const editData = ref<Array<Record<string, any>>>([]);
+/** 防止保存/删除按钮重复点击 */
+const isSaving = ref(false);
+const isDeleting = ref(false);
+const tableData = useAsyncState(
+  async (opt: { modelKey: string; page: number; pageSize: number }) => {
+    const meta = modelMeta.state.value;
+    const models = meta?.models;
+    if (!meta || !models) return { list: [], modelFields: {}, count: 0 };
+
+    const modelFields = fieldsToMap(models[opt.modelKey as ModelMetaNames]?.fields ?? {});
+    let _count = { select: {} as { [key: string]: boolean } };
+    Object.entries(modelFields).forEach(([key, field]) => {
+      if ('relation' in field && 'array' in field && field.array) {
+        _count.select[key] = true;
+      }
+    });
+    // 类型安全的模型访问
+    const modelName = exportGetModelDbName(opt.modelKey as ModelMetaNames);
+    const modelAPI = getModelAPI(API, modelName);
+    const [list, count] = await Promise.all([
+      modelAPI.findMany({
+        take: opt.pageSize,
+        skip: (opt.page - 1) * opt.pageSize,
+        where: filter.value,
+        ...(Object.keys(_count.select).length > 0 && {
+          include: { _count },
+        }),
+      }),
+      modelAPI.count({
+        where: filter.value,
+      }),
+    ]);
+    //#region 清理数据
+    editData.value = list.map(() => ({}));
+    selectRows.value = [];
+    //#endregion 清理数据
+    return { list, count, modelFields };
+  },
+  { list: [], modelFields: {}, count: 0 },
+  {
+    resetOnExecute: false,
+    throwError: true,
+    immediate: false,
+  },
+);
+function reloadTableData() {
+  const meta = selectModelMeta.value;
+  if (!meta?.modelKey) return;
+  tableData.execute(200, {
+    modelKey: meta.modelKey,
+    page: currentPage.value,
+    pageSize: pageSize.value,
   });
-  const editCellCount = computed(() => {
-    return editRows.value.reduce((acc, row) => acc + Object.keys(row).length, 0);
-  });
-  async function saveChanges() {
-    if (!selectModelName.value || isSaving.value) return;
-    isSaving.value = true;
+}
+/** 切换模型时重置分页并重新加载数据 */
+watch(
+  selectModelName,
+  async (val) => {
+    if (!val) return;
+    currentPage.value = 1;
+    await nextTick();
+    reloadTableData();
+  },
+  { immediate: true },
+);
+//#endregion
 
-    try {
-      const currentModelMeta = modelMeta.state.value;
-      if (!currentModelMeta) return;
-      /** 查找一个可以用于更新指定记录的唯一主键字段  */
-      const idField = findIdField(currentModelMeta, selectModelName.value);
-      if (!idField) return;
-      /** 缓存字段映射，避免在循环中重复创建 */
-      const fieldsMap = fieldsToMap(selectModelMeta.value?.model.fields);
+//#region 数据编辑相关逻辑功能
+/** 当前被编辑了的数据行 */
+const editRows = computed(() => {
+  return editData.value.filter((row) => Object.keys(row).length > 0);
+});
+const editCellCount = computed(() => {
+  return editRows.value.reduce((acc, row) => acc + Object.keys(row).length, 0);
+});
+async function saveChanges() {
+  if (!selectModelName.value || isSaving.value) return;
+  isSaving.value = true;
 
-      for (const [index, editRowItem] of editData.value.entries()) {
-        const rawRow = tableData.state.value.list[index];
-        const editRow = { ...editRowItem };
-        const editFields = Object.keys(editRow);
-        if (editFields.length === 0) continue;
+  try {
+    const currentModelMeta = modelMeta.state.value;
+    if (!currentModelMeta) return;
+    /** 查找一个可以用于更新指定记录的唯一主键字段  */
+    const idField = findIdField(currentModelMeta, selectModelName.value);
+    if (!idField) return;
+    /** 缓存字段映射，避免在循环中重复创建 */
+    const fieldsMap = fieldsToMap(selectModelMeta.value?.model.fields);
+
+    for (const [index, editRowItem] of editData.value.entries()) {
+      const rawRow = tableData.state.value.list[index];
+      const editRow = { ...editRowItem };
+      const editFields = Object.keys(editRow);
+      if (editFields.length === 0) continue;
 
       /** 修改关联字段不能直接修改字段值，需要使用 connect 关联字段的 ID  */
       editFields.forEach((editFieldName) => {
@@ -350,9 +384,7 @@
             for (const item of relationData.add) {
               try {
                 // 使用已查找到的 relatedModel，避免重复 Object.values().find()
-                const backLinkField = relatedModel
-                  ? fieldsToMap(relatedModel.fields)[backLinkFieldName]
-                  : undefined;
+                const backLinkField = relatedModel ? fieldsToMap(relatedModel.fields)[backLinkFieldName] : undefined;
                 const foreignKeyField = backLinkField?.relation?.fields?.[0];
 
                 if (!foreignKeyField) {
@@ -380,7 +412,7 @@
                 if (editRow[editFieldName]?.connect) {
                   const connectData = editRow[editFieldName].connect ?? [];
                   editRow[editFieldName].connect = connectData.filter(
-                    (conn: any) => conn[relatedIdField.name] !== item.value
+                    (conn: any) => conn[relatedIdField.name] !== item.value,
                   );
                 }
               }
@@ -409,117 +441,113 @@
         } as DynamicQuery,
       });
     }
-    } catch (error: unknown) {
-      // 在 UI 上显示错误提示
-      toast.error(
-        t('保存失败'),
-        getErrorMessage(error, t('保存更改时发生错误，请查看控制台了解详情')),
-      );
-      return;
-    } finally {
-      isSaving.value = false;
-    }
-    reloadTableData();
+  } catch (error: unknown) {
+    // 在 UI 上显示错误提示
+    toast.error(t('保存失败'), getErrorMessage(error, t('保存更改时发生错误，请查看控制台了解详情')));
+    return;
+  } finally {
+    isSaving.value = false;
   }
-  function discardChanges() {
-    /** 直接操作 editData 源数据，而非通过 computed 引用 */
-    for (const row of editData.value) {
-      for (const key of Object.keys(row)) {
-        delete row[key];
-      }
+  reloadTableData();
+}
+function discardChanges() {
+  /** 直接操作 editData 源数据，而非通过 computed 引用 */
+  for (const row of editData.value) {
+    for (const key of Object.keys(row)) {
+      delete row[key];
     }
   }
-  async function deleteRows(rows: Array<Record<string, any> | string | number>) {
-    if (isDeleting.value) return;
-    isDeleting.value = true;
-    try {
-      const deleteModelMeta = modelMeta.state.value;
-      if (!deleteModelMeta) return;
-      /** 查找一个可以用于更新指定记录的唯一主键字段  */
-      const idField = findIdField(deleteModelMeta, selectModelName.value);
-      if (!idField) return;
-      if (rows.length === 0)
-        return toast.info(t('警告'), t('未选中数据'));
-      const deleteMeta = selectModelMeta.value;
-      if (!deleteMeta?.modelKey) return;
-      const modelKey = deleteMeta.modelKey;
-      const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
-      const modelAPI = getModelAPI(API, modelName);
+}
+async function deleteRows(rows: Array<Record<string, any> | string | number>) {
+  if (isDeleting.value) return;
+  isDeleting.value = true;
+  try {
+    const deleteModelMeta = modelMeta.state.value;
+    if (!deleteModelMeta) return;
+    /** 查找一个可以用于更新指定记录的唯一主键字段  */
+    const idField = findIdField(deleteModelMeta, selectModelName.value);
+    if (!idField) return;
+    if (rows.length === 0) return toast.info(t('警告'), t('未选中数据'));
+    const deleteMeta = selectModelMeta.value;
+    if (!deleteMeta?.modelKey) return;
+    const modelKey = deleteMeta.modelKey;
+    const modelName = exportGetModelDbName(modelKey as ModelMetaNames);
+    const modelAPI = getModelAPI(API, modelName);
 
-      /**
-       * 提取 ID 值
-       * rows 可能是：ID 数组 [1, 2, 3] 或对象数组 [{id: 1}, {id: 2}, {id: 3}]
-       */
-      const ids = rows.map((row) => {
-        if (typeof row === 'object' && row !== null) {
-          return row[idField.name];
-        }
-        return row;
-      });
-
-      /**
-       * 过滤掉无效的 ID（null、undefined）
-       * 防止 { id: null } 导致删除全部数据
-       */
-      const validIds = ids.filter((id) => id != null);
-
-      if (validIds.length === 0) {
-        return toast.warn(t('删除失败'), t('选中的数据没有有效的 ID'));
+    /**
+     * 提取 ID 值
+     * rows 可能是：ID 数组 [1, 2, 3] 或对象数组 [{id: 1}, {id: 2}, {id: 3}]
+     */
+    const ids = rows.map((row) => {
+      if (typeof row === 'object' && row !== null) {
+        return row[idField.name];
       }
-
-      await modelAPI.deleteMany({
-        where: {
-          OR: validIds.map((id) => ({
-            [idField.name]: id,
-          })),
-        } as DynamicQuery,
-      });
-
-      /** 删除成功后清空选中状态并刷新表格 */
-      selectRows.value = [];
-      reloadTableData();
-
-      toast.success(t('删除数据'), t(`成功删除 ${validIds.length} 条数据`));
-    } catch (error: unknown) {
-      const errorMessage = getErrorMessage(error);
-
-      /** 解析 FOREIGN KEY 约束错误，给出更友好的提示 */
-      let userMessage = errorMessage;
-      if (errorMessage.includes('FOREIGN KEY constraint failed')) {
-        userMessage = t('无法删除：该数据被其他记录引用，请先删除关联数据');
-      }
-
-      toast.error(t('删除失败'), userMessage);
-    } finally {
-      isDeleting.value = false;
-    }
-  }
-  function deleteConfirm(event: MouseEvent) {
-    confirm.require({
-      message: t('确定删除吗？'),
-      icon: 'pi pi-exclamation-triangle',
-      event,
-      acceptProps: {
-        label: t('删除'),
-        variant: 'danger',
-      },
-      accept: () => {
-        deleteRows(selectRows.value);
-      },
+      return row;
     });
-  }
-  //#endregion 数据编辑更新功能
 
-  //#region 新增记录功能
-  const createFormRef = useTemplateRef('__createFormRef');
-  function openCreateForm() {
-    if (createFormRef.value) {
-      createFormRef.value.open();
+    /**
+     * 过滤掉无效的 ID（null、undefined）
+     * 防止 { id: null } 导致删除全部数据
+     */
+    const validIds = ids.filter((id) => id != null);
+
+    if (validIds.length === 0) {
+      return toast.warn(t('删除失败'), t('选中的数据没有有效的 ID'));
     }
-  }
 
-  function onRecordCreated() {
+    await modelAPI.deleteMany({
+      where: {
+        OR: validIds.map((id) => ({
+          [idField.name]: id,
+        })),
+      } as DynamicQuery,
+    });
+
+    /** 删除成功后清空选中状态并刷新表格 */
+    selectRows.value = [];
     reloadTableData();
+
+    toast.success(t('删除数据'), t(`成功删除 ${validIds.length} 条数据`));
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
+
+    /** 解析 FOREIGN KEY 约束错误，给出更友好的提示 */
+    let userMessage = errorMessage;
+    if (errorMessage.includes('FOREIGN KEY constraint failed')) {
+      userMessage = t('无法删除：该数据被其他记录引用，请先删除关联数据');
+    }
+
+    toast.error(t('删除失败'), userMessage);
+  } finally {
+    isDeleting.value = false;
   }
-  //#endregion
+}
+function deleteConfirm(event: MouseEvent) {
+  confirm.require({
+    message: t('确定删除吗？'),
+    icon: 'pi pi-exclamation-triangle',
+    event,
+    acceptProps: {
+      label: t('删除'),
+      variant: 'danger',
+    },
+    accept: () => {
+      deleteRows(selectRows.value);
+    },
+  });
+}
+//#endregion 数据编辑更新功能
+
+//#region 新增记录功能
+const createFormRef = useTemplateRef('__createFormRef');
+function openCreateForm() {
+  if (createFormRef.value) {
+    createFormRef.value.open();
+  }
+}
+
+function onRecordCreated() {
+  reloadTableData();
+}
+//#endregion
 </script>

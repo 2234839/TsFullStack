@@ -19,6 +19,7 @@
 ### 1. 环境准备
 
 确保已安装：
+
 - [Node.js](https://nodejs.org/)
 - [pnpm](https://pnpm.io/)
 - [Cloudflare 账户](https://dash.cloudflare.com/sign-up)
@@ -40,6 +41,7 @@ pnpm exec wrangler login
 ```
 
 如果遇到登录问题：
+
 ```bash
 # 使用辅助脚本
 ./login.sh
@@ -78,6 +80,7 @@ curl https://api-proxy.your-subdomain.workers.dev/health
 ### 2. 直接代理方式
 
 #### GitHub API
+
 ```bash
 # 获取用户信息
 curl https://api-proxy.your-subdomain.workers.dev/github/user/username
@@ -87,6 +90,7 @@ curl https://api-proxy.your-subdomain.workers.dev/github/repos/owner/repo
 ```
 
 #### npm API
+
 ```bash
 # 获取包信息
 curl https://api-proxy.your-subdomain.workers.dev/npm/package-name

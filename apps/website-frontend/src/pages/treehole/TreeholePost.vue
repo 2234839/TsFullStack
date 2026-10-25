@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="treehole-post"
-    :class="{ 'pl-4 sm:pl-8 border-l-2 border-primary-default': depth > 0 }"
-  >
+  <div class="treehole-post" :class="{ 'pl-4 sm:pl-8 border-l-2 border-primary-default': depth > 0 }">
     <div
       class="bg-white dark:bg-primary-900 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-4 mb-4"
     >
@@ -10,11 +7,7 @@
       <div class="flex items-center justify-between mb-3">
         <div v-if="post.author" class="flex items-center gap-3">
           <File2Url v-if="post.author.avatar" :fileId="post.author.avatar" v-slot="{ url }">
-            <img
-              :src="url"
-              :alt="post.author.nickname ?? t('匿名用户')"
-              class="w-10 h-10 rounded-full object-cover"
-            />
+            <img :src="url" :alt="post.author.nickname ?? t('匿名用户')" class="w-10 h-10 rounded-full object-cover" />
           </File2Url>
           <div
             v-else
@@ -24,7 +17,7 @@
           </div>
           <div>
             <div class="font-semibold text-primary-900 dark:text-primary-50">
-              {{ post.author.nickname ?? t("匿名用户") }}
+              {{ post.author.nickname ?? t('匿名用户') }}
             </div>
             <div class="text-xs text-primary-subtle">
               {{ formatDate(post.updated, { relative: true }) }}
@@ -39,7 +32,7 @@
           </div>
           <div>
             <div class="font-semibold text-primary-900 dark:text-primary-50">
-              {{ t("未知用户") }}
+              {{ t('未知用户') }}
             </div>
             <div class="text-xs text-primary-subtle">
               {{ formatDate(post.updated, { relative: true }) }}
@@ -68,13 +61,8 @@
               <Button icon="pi pi-ellipsis-v" variant="text" size="small" />
             </template>
             <div class="py-1">
-              <Button
-                variant="ghost"
-                class="w-full justify-start"
-                icon="pi pi-pencil"
-                @click="handleEdit"
-              >
-                {{ t("编辑") }}
+              <Button variant="ghost" class="w-full justify-start" icon="pi pi-pencil" @click="handleEdit">
+                {{ t('编辑') }}
               </Button>
               <Button
                 variant="ghost"
@@ -82,7 +70,7 @@
                 icon="pi pi-trash"
                 @click="handleDelete"
               >
-                {{ t("删除") }}
+                {{ t('删除') }}
               </Button>
             </div>
           </Dropdown>
@@ -103,9 +91,7 @@
       </template>
 
       <!-- 折叠状态下的摘要 -->
-      <div v-else class="text-primary-theme text-sm">
-        {{ post.title ?? t("无标题") }} - {{ postSummary }}
-      </div>
+      <div v-else class="text-primary-theme text-sm">{{ post.title ?? t('无标题') }} - {{ postSummary }}</div>
 
       <!-- 帖子底部：操作按钮和回复数 -->
       <div class="flex items-center justify-between">
@@ -129,17 +115,13 @@
         </div>
         <div class="flex items-center gap-1 text-sm text-primary-subtle">
           <i class="pi pi-comments"></i>
-          <span>{{ post._count?.replies ?? 0 }} {{ t("条回复") }}</span>
+          <span>{{ post._count?.replies ?? 0 }} {{ t('条回复') }}</span>
         </div>
       </div>
 
       <!-- 回复编辑器 -->
       <div v-if="isReplying" class="mt-4 pt-4 border-t border-primary-default">
-        <TreeholePostForm
-          :parent-id="post.id"
-          @submit="handleReplySubmit"
-          @cancel="isReplying = false"
-        />
+        <TreeholePostForm :parent-id="post.id" @submit="handleReplySubmit" @cancel="isReplying = false" />
       </div>
     </div>
 
@@ -158,17 +140,17 @@
 </template>
 
 <script setup lang="ts">
-import { shallowRef, computed } from "vue";
-import { authInfo, authInfo_isLogin } from "@/storage";
-import { Dropdown } from "@tsfullstack/shared-frontend/components";
-import { useAPI } from "@/api";
-import TreeholePostForm from "./TreeholePostForm.vue";
-import { useToast } from "@/composables/useToast";
-import { useConfirm } from "@/composables/useConfirm";
-import type { TreeholePost } from "@tsfullstack/backend";
-import { getErrorMessage } from "@/utils/error";
-import { useI18n } from "@/composables/useI18n";
-import { truncateText, formatDate } from "@/utils/format";
+import { shallowRef, computed } from 'vue';
+import { authInfo, authInfo_isLogin } from '@/storage';
+import { Dropdown } from '@tsfullstack/shared-frontend/components';
+import { useAPI } from '@/api';
+import TreeholePostForm from './TreeholePostForm.vue';
+import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
+import type { TreeholePost } from '@tsfullstack/backend';
+import { getErrorMessage } from '@/utils/error';
+import { useI18n } from '@/composables/useI18n';
+import { truncateText, formatDate } from '@/utils/format';
 
 interface Props {
   post: TreeholePost;
@@ -196,9 +178,7 @@ const replies = shallowRef<TreeholePost[]>([]);
 const repliesLoaded = shallowRef(false);
 
 /** 当前用户是否是帖子作者 */
-const isAuthor = computed(() =>
-  authInfo_isLogin.value ? authInfo.value.userId === post.authorId : false,
-);
+const isAuthor = computed(() => (authInfo_isLogin.value ? authInfo.value.userId === post.authorId : false));
 
 /** 折叠状态下的帖子内容摘要 */
 const postSummary = computed(() => truncateText(post.content, 50));
@@ -219,7 +199,7 @@ const expandButtonText = computed(() => {
   if (!repliesLoaded.value) {
     return t(`展开 ${post._count?.replies ?? 0} 条回复`);
   }
-  return isExpanded.value ? t("收起回复") : t(`展开回复`);
+  return isExpanded.value ? t('收起回复') : t(`展开回复`);
 });
 
 /**
@@ -229,7 +209,7 @@ function getAuthorInitial(author: { nickname: string | null }): string {
   if (author.nickname) {
     return author.nickname.charAt(0).toUpperCase();
   }
-  return "?";
+  return '?';
 }
 
 /**
@@ -247,10 +227,10 @@ function getAuthorInitial(author: { nickname: string | null }): string {
  */
 function getVisibilityClass(visibility: string): string {
   const classes = {
-    DRAFT: "bg-primary-200 text-primary-700 dark:bg-primary-700 dark:text-primary-300",
-    PRIVATE: "bg-warning-100 text-warning-700 dark:bg-warning-900 dark:text-warning-300",
-    MEMBERS: "bg-info-100 text-info-700 dark:bg-info-900 dark:text-info-300",
-    PUBLIC: "bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300",
+    DRAFT: 'bg-primary-200 text-primary-700 dark:bg-primary-700 dark:text-primary-300',
+    PRIVATE: 'bg-warning-100 text-warning-700 dark:bg-warning-900 dark:text-warning-300',
+    MEMBERS: 'bg-info-100 text-info-700 dark:bg-info-900 dark:text-info-300',
+    PUBLIC: 'bg-success-100 text-success-700 dark:bg-success-900 dark:text-success-300',
   };
   return classes[visibility as keyof typeof classes] ?? classes.DRAFT;
 }
@@ -260,12 +240,12 @@ function getVisibilityClass(visibility: string): string {
  */
 function getVisibilityLabel(visibility: string): string {
   const labels = {
-    DRAFT: t("草稿"),
-    PRIVATE: t("私密"),
-    MEMBERS: t("登录可见"),
-    PUBLIC: t("公开"),
+    DRAFT: t('草稿'),
+    PRIVATE: t('私密'),
+    MEMBERS: t('登录可见'),
+    PUBLIC: t('公开'),
   };
-  return labels[visibility as keyof typeof labels] ?? t("未知");
+  return labels[visibility as keyof typeof labels] ?? t('未知');
 }
 
 /**
@@ -306,7 +286,7 @@ async function loadReplies() {
     repliesLoaded.value = true;
     isExpanded.value = true;
   } catch (error: unknown) {
-    toast.error(t("错误"), t("加载回复失败"));
+    toast.error(t('错误'), t('加载回复失败'));
   }
 }
 
@@ -315,7 +295,7 @@ async function loadReplies() {
  */
 function handleReplySubmit() {
   isReplying.value = false;
-  emit("updated");
+  emit('updated');
   loadReplies();
 }
 
@@ -325,7 +305,7 @@ function handleReplySubmit() {
 function handleEdit() {
   showMenu.value = false;
   /** 编辑功能待实现：需要打开编辑对话框预填当前内容，调用更新 API */
-  toast.info(t("提示"), t("编辑功能开发中"));
+  toast.info(t('提示'), t('编辑功能开发中'));
 }
 
 /**
@@ -335,24 +315,24 @@ function handleDelete() {
   showMenu.value = false;
 
   confirm.require({
-    message: t("确定要删除这条帖子吗？"),
-    icon: "pi pi-exclamation-triangle",
+    message: t('确定要删除这条帖子吗？'),
+    icon: 'pi pi-exclamation-triangle',
     rejectProps: {
-      label: t("取消"),
-      variant: "secondary",
+      label: t('取消'),
+      variant: 'secondary',
       outlined: true,
     },
     acceptProps: {
-      label: t("删除"),
-      variant: "danger",
+      label: t('删除'),
+      variant: 'danger',
     },
     accept: async () => {
       try {
         await API.db.post.delete({ where: { id: post.id } });
-        toast.success(t("成功"), t("删除成功"));
-        emit("deleted");
+        toast.success(t('成功'), t('删除成功'));
+        emit('deleted');
       } catch (error: unknown) {
-        toast.error(t("错误"), t("删除失败：") + getErrorMessage(error));
+        toast.error(t('错误'), t('删除失败：') + getErrorMessage(error));
       }
     },
   });

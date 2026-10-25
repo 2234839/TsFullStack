@@ -1,8 +1,8 @@
-import { Effect } from "effect";
-import { DbClientEffect } from "../../Context/DbService";
-import { dbTryOrDefault } from "../../util/dbEffect";
+import { Effect } from 'effect';
+import { DbClientEffect } from '../../Context/DbService';
+import { dbTryOrDefault } from '../../util/dbEffect';
 
-const LOG_PREFIX = "[ShareApi]";
+const LOG_PREFIX = '[ShareApi]';
 
 export const shareApi = {
   /**
@@ -13,11 +13,11 @@ export const shareApi = {
     return Effect.flatMap(DbClientEffect, (dbClient) =>
       dbTryOrDefault(
         LOG_PREFIX,
-        "查询分享信息",
+        '查询分享信息',
         () =>
           dbClient.userData.findFirst({
             where: {
-              appId: "shareInfo",
+              appId: 'shareInfo',
               OR: [{ key: idOrKey }, ...(/^\d+$/.test(idOrKey) ? [{ id: Number(idOrKey) }] : [])],
             },
           }),

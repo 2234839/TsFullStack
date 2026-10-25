@@ -11,11 +11,7 @@
       </div>
       <div class="flex gap-2">
         <Tooltip v-if="unreadCount > 0" content="全部标记为已读">
-          <Button
-            @click="markAllAsRead"
-            :loading="loading"
-            icon="pi pi-circle-fill"
-            size="small" />
+          <Button @click="markAllAsRead" :loading="loading" icon="pi pi-circle-fill" size="small" />
         </Tooltip>
         <Tooltip content="刷新">
           <Button
@@ -23,7 +19,8 @@
             @click="loadExecutionRecords"
             :loading="loading"
             variant="secondary"
-            size="small" />
+            size="small"
+          />
         </Tooltip>
         <SelectButton
           v-model="readStatusFilter"
@@ -31,13 +28,15 @@
           optionLabel="label"
           optionValue="value"
           :allowEmpty="false"
-          class="text-sm" />
+          class="text-sm"
+        />
         <Tooltip content="对比过滤选项">
           <Button
             icon="pi pi-filter"
             @click="showComparisonFilter = !showComparisonFilter"
             :variant="showComparisonFilter ? 'primary' : 'secondary'"
-            size="small" />
+            size="small"
+          />
         </Tooltip>
       </div>
     </div>
@@ -46,42 +45,25 @@
     <div v-if="showComparisonFilter" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
       <div class="flex items-center justify-between mb-2">
         <h4 class="text-sm font-medium text-blue-900">对比过滤选项</h4>
-        <Button
-          icon="pi pi-times"
-          @click="showComparisonFilter = false"
-          size="small"
-          text
-          variant="secondary" />
+        <Button icon="pi pi-times" @click="showComparisonFilter = false" size="small" text variant="secondary" />
       </div>
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div class="flex items-center gap-2">
-          <Checkbox
-            v-model="config.comparisonFilter.showAdded"
-            inputId="showAdded"
-            :binary="true"
-            size="small" />
+          <Checkbox v-model="config.comparisonFilter.showAdded" inputId="showAdded" :binary="true" size="small" />
           <label for="showAdded" class="text-sm text-blue-800 cursor-pointer">
             <span class="inline-block w-3 h-3 bg-green-500 rounded mr-1"></span>
             新增数据
           </label>
         </div>
         <div class="flex items-center gap-2">
-          <Checkbox
-            v-model="config.comparisonFilter.showRemoved"
-            inputId="showRemoved"
-            :binary="true"
-            size="small" />
+          <Checkbox v-model="config.comparisonFilter.showRemoved" inputId="showRemoved" :binary="true" size="small" />
           <label for="showRemoved" class="text-sm text-blue-800 cursor-pointer">
             <span class="inline-block w-3 h-3 bg-red-500 rounded mr-1"></span>
             删除数据
           </label>
         </div>
         <div class="flex items-center gap-2">
-          <Checkbox
-            v-model="config.comparisonFilter.showMoved"
-            inputId="showMoved"
-            :binary="true"
-            size="small" />
+          <Checkbox v-model="config.comparisonFilter.showMoved" inputId="showMoved" :binary="true" size="small" />
           <label for="showMoved" class="text-sm text-blue-800 cursor-pointer">
             <span class="inline-block w-3 h-3 bg-yellow-500 rounded mr-1"></span>
             位置移动
@@ -92,7 +74,8 @@
             v-model="config.comparisonFilter.showUnchanged"
             inputId="showUnchanged"
             :binary="true"
-            size="small" />
+            size="small"
+          />
           <label for="showUnchanged" class="text-sm text-blue-800 cursor-pointer">
             <span class="inline-block w-3 h-3 bg-gray-400 rounded mr-1"></span>
             未变化
@@ -117,7 +100,8 @@
         size="small"
         :rowStyle="getRowStyle"
         v-model:expandedRows="expandedRows"
-        dataKey="id">
+        dataKey="id"
+      >
         <Column :expander="true" headerStyle="width: 3rem">
           <template #body="slotProps">
             <Button
@@ -126,31 +110,31 @@
               size="small"
               text
               variant="secondary"
-              class="w-8 h-8" />
+              class="w-8 h-8"
+            />
           </template>
         </Column>
         <Column field="status" header="状态" class="w-[120px]">
           <template #body="slotProps">
             <div class="flex items-center gap-2">
               <div
-                :class="[
-                  'w-2 h-2 rounded-full',
-                  slotProps.data.isRead ?? 0 ? 'bg-gray-400' : 'bg-blue-500',
-                ]"
-                :title="slotProps.data.isRead ?? 0 ? '已读' : '未读'"></div>
+                :class="['w-2 h-2 rounded-full', (slotProps.data.isRead ?? 0) ? 'bg-gray-400' : 'bg-blue-500']"
+                :title="(slotProps.data.isRead ?? 0) ? '已读' : '未读'"
+              ></div>
               <span
                 :class="[
                   'text-xs px-2 py-1 rounded-md font-medium',
                   slotProps.data.status === 'completed'
                     ? 'bg-green-100 text-green-800'
                     : slotProps.data.status === 'failed'
-                    ? 'bg-red-100 text-red-800'
-                    : slotProps.data.status === 'running'
-                    ? 'bg-blue-100 text-blue-800'
-                    : slotProps.data.status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-gray-100 text-gray-800',
-                ]">
+                      ? 'bg-red-100 text-red-800'
+                      : slotProps.data.status === 'running'
+                        ? 'bg-blue-100 text-blue-800'
+                        : slotProps.data.status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800',
+                ]"
+              >
                 {{ getStatusText(slotProps.data.status) }}
               </span>
             </div>
@@ -165,9 +149,10 @@
                 slotProps.data.executionType === 'manual'
                   ? 'bg-purple-100 text-purple-800'
                   : slotProps.data.executionType === 'scheduled'
-                  ? 'bg-blue-100 text-blue-800'
-                  : 'bg-green-100 text-green-800',
-              ]">
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-green-100 text-green-800',
+              ]"
+            >
               {{ getExecutionTypeText(slotProps.data.executionType) }}
             </span>
           </template>
@@ -190,15 +175,12 @@
               <span
                 :class="[
                   'text-xs px-2 py-1 rounded-md font-medium',
-                  slotProps.data.matched
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800',
-                ]">
+                  slotProps.data.matched ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800',
+                ]"
+              >
                 {{ slotProps.data.matched ? '匹配' : '未匹配' }}
               </span>
-              <div
-                v-if="slotProps.data.matchedCount !== undefined"
-                class="text-xs text-gray-500 mt-1">
+              <div v-if="slotProps.data.matchedCount !== undefined" class="text-xs text-gray-500 mt-1">
                 {{ slotProps.data.matchedCount }} 项
               </div>
             </div>
@@ -218,9 +200,7 @@
               <div v-else-if="data.status === 'failed'" class="text-red-600 text-xs">
                 {{ data.error || '执行失败' }}
               </div>
-              <div v-else-if="data.status === 'running'" class="text-blue-600 text-xs">
-                执行中...
-              </div>
+              <div v-else-if="data.status === 'running'" class="text-blue-600 text-xs">执行中...</div>
               <div v-else class="text-gray-500 text-xs">等待执行</div>
             </div>
           </template>
@@ -234,28 +214,22 @@
                   :icon="data.isRead ? 'pi pi-circle' : 'pi pi-circle-fill'"
                   :variant="data.isRead ? 'secondary' : ''"
                   @click="toggleReadStatus(data)"
-                  size="small" />
+                  size="small"
+                />
               </Tooltip>
               <Tooltip :content="expandedRows[data.id] ? '隐藏详情' : '查看详情'">
                 <Button
                   :icon="expandedRows[data.id] ? 'pi pi-eye-slash' : 'pi pi-eye'"
                   @click="toggleExecutionDetails(data)"
                   size="small"
-                  variant="info" />
+                  variant="info"
+                />
               </Tooltip>
               <Tooltip v-if="data.status === 'running'" content="取消执行">
-                <Button
-                  icon="pi pi-times"
-                  @click="confirmCancelExecution(data)"
-                  size="small"
-                  variant="warning" />
+                <Button icon="pi pi-times" @click="confirmCancelExecution(data)" size="small" variant="warning" />
               </Tooltip>
               <Tooltip content="删除记录">
-                <Button
-                  icon="pi pi-trash"
-                  @click="confirmDeleteExecution(data)"
-                  size="small"
-                  variant="danger" />
+                <Button icon="pi pi-trash" @click="confirmDeleteExecution(data)" size="small" variant="danger" />
               </Tooltip>
             </div>
           </template>
@@ -265,10 +239,13 @@
         <template #expansion="{ data }: { data: TaskExecutionsTable }">
           <div class="bg-gray-50">
             <ExecutionDetails
-              :execution="getExecutionWithChangesLocal(data) as TaskExecutionRecord & { result?: TaskResultWithChanges }"
+              :execution="
+                getExecutionWithChangesLocal(data) as TaskExecutionRecord & { result?: TaskResultWithChanges }
+              "
               :show-comparison="!!getPreviousExecution(data)"
               :previous-execution="getPreviousExecution(data)"
-              :comparison-filter="config.comparisonFilter" />
+              :comparison-filter="config.comparisonFilter"
+            />
           </div>
         </template>
 
@@ -296,370 +273,353 @@
 
       <template #footer>
         <Button label="取消" @click="showCancelDialog = false" variant="secondary" />
-        <Button
-          label="确认取消"
-          @click="cancelExecution"
-          :loading="cancelling"
-          variant="warning" />
+        <Button label="确认取消" @click="cancelExecution" :loading="cancelling" variant="warning" />
       </template>
     </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { ref, computed, onMounted, watch } from 'vue';
-  import { Tooltip } from '@tsfullstack/shared-frontend/components';
-  import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
+import { ref, computed, onMounted, watch } from 'vue';
+import { Tooltip } from '@tsfullstack/shared-frontend/components';
+import { getTaskExecutionService } from '@/entrypoints/background/service/taskExecutionService';
 
-  const taskExecutionService = getTaskExecutionService();
-  import { format } from 'date-fns';
-  import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
-  import { useInfoFlowConfig } from '@/storage/config';
-  import { getExecutionWithChanges, type TaskResultWithChanges } from '@/utils/changeDetection';
+const taskExecutionService = getTaskExecutionService();
+import { format } from 'date-fns';
+import type { TaskExecutionRecord } from '@/entrypoints/background/service/taskExecutionService';
+import { useInfoFlowConfig } from '@/storage/config';
+import { getExecutionWithChanges, type TaskResultWithChanges } from '@/utils/changeDetection';
 
-  // PrimeVue components
-  import Button from 'primevue/button';
-  import DataTable from 'primevue/datatable';
-  import Column from 'primevue/column';
-  import Dialog from 'primevue/dialog';
-  import SelectButton from 'primevue/selectbutton';
-  import Badge from 'primevue/badge';
-  import Checkbox from 'primevue/checkbox';
-  import ExecutionDetails from './ExecutionDetails.vue';
-  import { Rule, TaskExecutionsTable } from '@/entrypoints/background/service/dbService';
+// PrimeVue components
+import Button from 'primevue/button';
+import DataTable from 'primevue/datatable';
+import Column from 'primevue/column';
+import Dialog from 'primevue/dialog';
+import SelectButton from 'primevue/selectbutton';
+import Badge from 'primevue/badge';
+import Checkbox from 'primevue/checkbox';
+import ExecutionDetails from './ExecutionDetails.vue';
+import { Rule, TaskExecutionsTable } from '@/entrypoints/background/service/dbService';
 
-  interface Props {
-    ruleId: string;
+interface Props {
+  ruleId: string;
+}
+
+const props = defineProps<Props>();
+
+// Define emits
+const emit = defineEmits<{
+  readStatusChanged: [ruleId: string];
+  allMarkedAsRead: [ruleId: string];
+}>();
+
+// State
+const executions = ref<TaskExecutionRecord[]>([]);
+const loading = ref(false);
+const deleting = ref(false);
+const cancelling = ref(false);
+const currentPage = ref(1);
+const pageSize = ref(10);
+const totalRecords = ref(0);
+
+// Filter state
+const statusFilter = ref<TaskExecutionRecord['status'] | ''>('');
+const readStatusFilter = ref<'all' | 'read' | 'unread'>('unread');
+
+// Dialog state
+const showDeleteDialog = ref(false);
+const showCancelDialog = ref(false);
+const selectedExecution = ref<TaskExecutionRecord | null>(null);
+
+// Expanded rows state
+const expandedRows = ref<Record<string, boolean>>({});
+
+// Configuration
+const config = useInfoFlowConfig();
+
+// Comparison filter state
+const showComparisonFilter = ref(false);
+
+// Options
+const statusOptions = [
+  { label: '已完成', value: 'completed' },
+  { label: '失败', value: 'failed' },
+  { label: '运行中', value: 'running' },
+  { label: '等待中', value: 'pending' },
+  { label: '已取消', value: 'cancelled' },
+];
+
+const executionTypeOptions = [
+  { label: '手动执行', value: 'manual' },
+  { label: '定时执行', value: 'scheduled' },
+  { label: '触发执行', value: 'triggered' },
+];
+
+const readStatusOptions = [
+  { label: '全部', value: 'all' },
+  { label: '未读', value: 'unread' },
+  { label: '已读', value: 'read' },
+];
+
+// Computed
+const hasActiveFilters = computed(() => {
+  return statusFilter.value || readStatusFilter.value !== 'all';
+});
+
+const unreadCount = computed(() => {
+  return executions.value.filter((exec) => !(exec.isRead ?? 0)).length;
+});
+
+// Methods
+const loadExecutionRecords = async () => {
+  loading.value = true;
+  try {
+    const result = await taskExecutionService.getPaginatedExecutionsByRuleId(props.ruleId, {
+      page: currentPage.value,
+      limit: pageSize.value,
+      status: statusFilter.value || undefined,
+      isRead: readStatusFilter.value === 'unread' ? 0 : readStatusFilter.value === 'read' ? 1 : undefined,
+    });
+
+    executions.value = result.executions;
+    totalRecords.value = result.total;
+  } catch (error) {
+    console.error('Failed to load execution records:', error);
+  } finally {
+    loading.value = false;
   }
+};
 
-  const props = defineProps<Props>();
+const handlePageChange = (event: any) => {
+  currentPage.value = event.page + 1;
+  pageSize.value = event.rows;
+  loadExecutionRecords();
+};
 
-  // Define emits
-  const emit = defineEmits<{
-    readStatusChanged: [ruleId: string];
-    allMarkedAsRead: [ruleId: string];
-  }>();
+const toggleExecutionDetails = async (execution: TaskExecutionRecord) => {
+  const currentExpandedState = expandedRows.value[execution.id] || false;
+  const shouldExpand = !currentExpandedState;
 
-  // State
-  const executions = ref<TaskExecutionRecord[]>([]);
-  const loading = ref(false);
-  const deleting = ref(false);
-  const cancelling = ref(false);
-  const currentPage = ref(1);
-  const pageSize = ref(10);
-  const totalRecords = ref(0);
-
-  // Filter state
-  const statusFilter = ref<TaskExecutionRecord['status'] | ''>('');
-  const readStatusFilter = ref<'all' | 'read' | 'unread'>('unread');
-
-  // Dialog state
-  const showDeleteDialog = ref(false);
-  const showCancelDialog = ref(false);
-  const selectedExecution = ref<TaskExecutionRecord | null>(null);
-
-  // Expanded rows state
-  const expandedRows = ref<Record<string, boolean>>({});
-
-  // Configuration
-  const config = useInfoFlowConfig();
-
-  // Comparison filter state
-  const showComparisonFilter = ref(false);
-
-  // Options
-  const statusOptions = [
-    { label: '已完成', value: 'completed' },
-    { label: '失败', value: 'failed' },
-    { label: '运行中', value: 'running' },
-    { label: '等待中', value: 'pending' },
-    { label: '已取消', value: 'cancelled' },
-  ];
-
-  const executionTypeOptions = [
-    { label: '手动执行', value: 'manual' },
-    { label: '定时执行', value: 'scheduled' },
-    { label: '触发执行', value: 'triggered' },
-  ];
-
-  const readStatusOptions = [
-    { label: '全部', value: 'all' },
-    { label: '未读', value: 'unread' },
-    { label: '已读', value: 'read' },
-  ];
-
-  // Computed
-  const hasActiveFilters = computed(() => {
-    return statusFilter.value || readStatusFilter.value !== 'all';
-  });
-
-  const unreadCount = computed(() => {
-    return executions.value.filter((exec) => !(exec.isRead ?? 0)).length;
-  });
-
-  // Methods
-  const loadExecutionRecords = async () => {
-    loading.value = true;
+  // 如果是未读状态，自动标记为已读
+  const isRead = execution.isRead ?? 0;
+  if (!isRead) {
     try {
-      const result = await taskExecutionService.getPaginatedExecutionsByRuleId(props.ruleId, {
-        page: currentPage.value,
-        limit: pageSize.value,
-        status: statusFilter.value || undefined,
-        isRead:
-          readStatusFilter.value === 'unread'
-            ? 0
-            : readStatusFilter.value === 'read'
-            ? 1
-            : undefined,
-      });
+      await taskExecutionService.markAsRead(execution.id);
 
-      executions.value = result.executions;
-      totalRecords.value = result.total;
-    } catch (error) {
-      console.error('Failed to load execution records:', error);
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  const handlePageChange = (event: any) => {
-    currentPage.value = event.page + 1;
-    pageSize.value = event.rows;
-    loadExecutionRecords();
-  };
-
-  const toggleExecutionDetails = async (execution: TaskExecutionRecord) => {
-    const currentExpandedState = expandedRows.value[execution.id] || false;
-    const shouldExpand = !currentExpandedState;
-
-    // 如果是未读状态，自动标记为已读
-    const isRead = execution.isRead ?? 0;
-    if (!isRead) {
-      try {
-        await taskExecutionService.markAsRead(execution.id);
-
-        // 如果当前筛选器是"未读"，自动切换到"全部"以便用户能看到刚标记为已读的消息
-        if (readStatusFilter.value === 'unread') {
-          readStatusFilter.value = 'all';
-        }
-
-        // 重新加载数据以更新已读状态
-        await loadExecutionRecords();
-        // 通知父组件读取状态已变更
-        emit('readStatusChanged', props.ruleId);
-      } catch (error) {
-        console.error('Failed to mark as read:', error);
-      }
-    }
-
-    // 切换展开状态 - 使用 v-model:expandedRows 的方式
-    expandedRows.value = {
-      ...expandedRows.value,
-      [execution.id]: shouldExpand,
-    };
-    if (!shouldExpand) {
-      delete expandedRows.value[execution.id];
-    }
-  };
-
-  const confirmDeleteExecution = (execution: TaskExecutionRecord) => {
-    selectedExecution.value = execution;
-    showDeleteDialog.value = true;
-  };
-
-  const deleteExecution = async () => {
-    if (!selectedExecution.value) return;
-
-    deleting.value = true;
-    try {
-      await taskExecutionService.delete(selectedExecution.value.id);
-      showDeleteDialog.value = false;
-      selectedExecution.value = null;
-      loadExecutionRecords();
-    } catch (error) {
-      console.error('Failed to delete execution:', error);
-    } finally {
-      deleting.value = false;
-    }
-  };
-
-  const confirmCancelExecution = (execution: TaskExecutionRecord) => {
-    selectedExecution.value = execution;
-    showCancelDialog.value = true;
-  };
-
-  const cancelExecution = async () => {
-    if (!selectedExecution.value) return;
-
-    cancelling.value = true;
-    try {
-      await taskExecutionService.cancelExecution(selectedExecution.value.id);
-      showCancelDialog.value = false;
-      selectedExecution.value = null;
-      loadExecutionRecords();
-    } catch (error) {
-      console.error('Failed to cancel execution:', error);
-    } finally {
-      cancelling.value = false;
-    }
-  };
-
-  const toggleReadStatus = async (execution: TaskExecutionRecord) => {
-    try {
-      const currentIsRead = execution.isRead ?? 0; // 如果 undefined，默认为 0（未读）
-
-      if (currentIsRead === 1) {
-        await taskExecutionService.markAsUnread(execution.id);
-      } else {
-        await taskExecutionService.markAsRead(execution.id);
+      // 如果当前筛选器是"未读"，自动切换到"全部"以便用户能看到刚标记为已读的消息
+      if (readStatusFilter.value === 'unread') {
+        readStatusFilter.value = 'all';
       }
 
-      // 立即更新本地状态以提供即时反馈
-      const newIsRead: 0 | 1 = currentIsRead === 1 ? 0 : 1;
-      const updatedExecution = { ...execution, isRead: newIsRead };
-      const index = executions.value.findIndex((e) => e.id === execution.id);
-      if (index !== -1) {
-        executions.value[index] = updatedExecution;
-      }
-
-      // 从服务器重新加载以确认状态
+      // 重新加载数据以更新已读状态
       await loadExecutionRecords();
-
       // 通知父组件读取状态已变更
       emit('readStatusChanged', props.ruleId);
     } catch (error) {
-      console.error('Failed to toggle read status:', error);
+      console.error('Failed to mark as read:', error);
     }
+  }
+
+  // 切换展开状态 - 使用 v-model:expandedRows 的方式
+  expandedRows.value = {
+    ...expandedRows.value,
+    [execution.id]: shouldExpand,
   };
+  if (!shouldExpand) {
+    delete expandedRows.value[execution.id];
+  }
+};
 
-  const markAllAsRead = async () => {
-    try {
-      await taskExecutionService.markAllAsRead(props.ruleId);
-      loadExecutionRecords();
+const confirmDeleteExecution = (execution: TaskExecutionRecord) => {
+  selectedExecution.value = execution;
+  showDeleteDialog.value = true;
+};
 
-      // 通知父组件所有记录已标记为已读
-      emit('allMarkedAsRead', props.ruleId);
-    } catch (error) {
-      console.error('Failed to mark all as read:', error);
-    }
-  };
+const deleteExecution = async () => {
+  if (!selectedExecution.value) return;
 
-  const onRowClick = (event: any) => {
-    if (
-      event.data &&
-      event.originalEvent.target.tagName !== 'BUTTON' &&
-      event.originalEvent.target.tagName !== 'I'
-    ) {
-      toggleExecutionDetails(event.data);
-    }
-  };
+  deleting.value = true;
+  try {
+    await taskExecutionService.delete(selectedExecution.value.id);
+    showDeleteDialog.value = false;
+    selectedExecution.value = null;
+    loadExecutionRecords();
+  } catch (error) {
+    console.error('Failed to delete execution:', error);
+  } finally {
+    deleting.value = false;
+  }
+};
 
-  const getRowStyle = (data: TaskExecutionRecord) => {
-    const isRead = data.isRead ?? 0; // 如果 undefined，默认为 0（未读）
-    if (isRead) {
-      return {
-        backgroundColor: '#f8fafc',
-        cursor: 'pointer',
-      };
+const confirmCancelExecution = (execution: TaskExecutionRecord) => {
+  selectedExecution.value = execution;
+  showCancelDialog.value = true;
+};
+
+const cancelExecution = async () => {
+  if (!selectedExecution.value) return;
+
+  cancelling.value = true;
+  try {
+    await taskExecutionService.cancelExecution(selectedExecution.value.id);
+    showCancelDialog.value = false;
+    selectedExecution.value = null;
+    loadExecutionRecords();
+  } catch (error) {
+    console.error('Failed to cancel execution:', error);
+  } finally {
+    cancelling.value = false;
+  }
+};
+
+const toggleReadStatus = async (execution: TaskExecutionRecord) => {
+  try {
+    const currentIsRead = execution.isRead ?? 0; // 如果 undefined，默认为 0（未读）
+
+    if (currentIsRead === 1) {
+      await taskExecutionService.markAsUnread(execution.id);
     } else {
-      return {
-        backgroundColor: '#ffffff',
-        borderLeft: '3px solid #3b82f6',
-        fontWeight: '500',
-        cursor: 'pointer',
-      };
+      await taskExecutionService.markAsRead(execution.id);
     }
-  };
 
-  const getStatusText = (status: string) => {
-    const option = statusOptions.find((opt) => opt.value === status);
-    return option?.label || status;
-  };
-
-  const getExecutionTypeText = (type: string) => {
-    const option = executionTypeOptions.find((opt) => opt.value === type);
-    return option?.label || type;
-  };
-
-  const formatDateTime = (date: Date | string) => {
-    return format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
-  };
-
-  const formatDuration = (duration: number) => {
-    if (duration < 1000) {
-      return `${duration}ms`;
-    } else if (duration < 60000) {
-      return `${(duration / 1000).toFixed(1)}s`;
-    } else {
-      return `${(duration / 60000).toFixed(1)}min`;
+    // 立即更新本地状态以提供即时反馈
+    const newIsRead: 0 | 1 = currentIsRead === 1 ? 0 : 1;
+    const updatedExecution = { ...execution, isRead: newIsRead };
+    const index = executions.value.findIndex((e) => e.id === execution.id);
+    if (index !== -1) {
+      executions.value[index] = updatedExecution;
     }
-  };
 
-  // 获取前一次执行记录
-  const getPreviousExecution = (
-    currentExecution: TaskExecutionRecord,
-  ): TaskExecutionRecord | null => {
-    if (!currentExecution.startTime) return null;
+    // 从服务器重新加载以确认状态
+    await loadExecutionRecords();
 
-    const currentTime = new Date(currentExecution.startTime).getTime();
+    // 通知父组件读取状态已变更
+    emit('readStatusChanged', props.ruleId);
+  } catch (error) {
+    console.error('Failed to toggle read status:', error);
+  }
+};
 
-    // 找到所有在当前执行时间之前的已完成执行记录
-    const previousExecutions = executions.value.filter(
-      (exec) =>
-        exec.id !== currentExecution.id &&
-        exec.status === 'completed' &&
-        exec.result?.collections &&
-        exec.startTime &&
-        new Date(exec.startTime).getTime() < currentTime,
-    );
+const markAllAsRead = async () => {
+  try {
+    await taskExecutionService.markAllAsRead(props.ruleId);
+    loadExecutionRecords();
 
-    if (previousExecutions.length === 0) return null;
+    // 通知父组件所有记录已标记为已读
+    emit('allMarkedAsRead', props.ruleId);
+  } catch (error) {
+    console.error('Failed to mark all as read:', error);
+  }
+};
 
-    // 按执行时间降序排序，取最近的一次
-    previousExecutions.sort(
-      (a, b) => new Date(b.startTime!).getTime() - new Date(a.startTime!).getTime(),
-    );
+const onRowClick = (event: any) => {
+  if (event.data && event.originalEvent.target.tagName !== 'BUTTON' && event.originalEvent.target.tagName !== 'I') {
+    toggleExecutionDetails(event.data);
+  }
+};
 
-    return previousExecutions[0];
-  };
-
-  // 为执行结果添加变化信息
-  const getExecutionWithChangesLocal = (execution: TaskExecutionRecord) => {
-    const previousExecution = getPreviousExecution(execution);
-    const executionWithChanges = getExecutionWithChanges(execution, previousExecution);
-
-    // 返回完整的 TaskExecutionRecord 对象，但替换 result 为带变化信息的版本
+const getRowStyle = (data: TaskExecutionRecord) => {
+  const isRead = data.isRead ?? 0; // 如果 undefined，默认为 0（未读）
+  if (isRead) {
     return {
-      ...execution,
-      result: executionWithChanges,
+      backgroundColor: '#f8fafc',
+      cursor: 'pointer',
     };
+  } else {
+    return {
+      backgroundColor: '#ffffff',
+      borderLeft: '3px solid #3b82f6',
+      fontWeight: '500',
+      cursor: 'pointer',
+    };
+  }
+};
+
+const getStatusText = (status: string) => {
+  const option = statusOptions.find((opt) => opt.value === status);
+  return option?.label || status;
+};
+
+const getExecutionTypeText = (type: string) => {
+  const option = executionTypeOptions.find((opt) => opt.value === type);
+  return option?.label || type;
+};
+
+const formatDateTime = (date: Date | string) => {
+  return format(new Date(date), 'yyyy-MM-dd HH:mm:ss');
+};
+
+const formatDuration = (duration: number) => {
+  if (duration < 1000) {
+    return `${duration}ms`;
+  } else if (duration < 60000) {
+    return `${(duration / 1000).toFixed(1)}s`;
+  } else {
+    return `${(duration / 60000).toFixed(1)}min`;
+  }
+};
+
+// 获取前一次执行记录
+const getPreviousExecution = (currentExecution: TaskExecutionRecord): TaskExecutionRecord | null => {
+  if (!currentExecution.startTime) return null;
+
+  const currentTime = new Date(currentExecution.startTime).getTime();
+
+  // 找到所有在当前执行时间之前的已完成执行记录
+  const previousExecutions = executions.value.filter(
+    (exec) =>
+      exec.id !== currentExecution.id &&
+      exec.status === 'completed' &&
+      exec.result?.collections &&
+      exec.startTime &&
+      new Date(exec.startTime).getTime() < currentTime,
+  );
+
+  if (previousExecutions.length === 0) return null;
+
+  // 按执行时间降序排序，取最近的一次
+  previousExecutions.sort((a, b) => new Date(b.startTime!).getTime() - new Date(a.startTime!).getTime());
+
+  return previousExecutions[0];
+};
+
+// 为执行结果添加变化信息
+const getExecutionWithChangesLocal = (execution: TaskExecutionRecord) => {
+  const previousExecution = getPreviousExecution(execution);
+  const executionWithChanges = getExecutionWithChanges(execution, previousExecution);
+
+  // 返回完整的 TaskExecutionRecord 对象，但替换 result 为带变化信息的版本
+  return {
+    ...execution,
+    result: executionWithChanges,
   };
+};
 
-  // Lifecycle
-  onMounted(async () => {
-    // Dexie 自动处理，不需要迁移
-    loadExecutionRecords();
-  });
+// Lifecycle
+onMounted(async () => {
+  // Dexie 自动处理，不需要迁移
+  loadExecutionRecords();
+});
 
-  // Watch for filter changes
-  watch([statusFilter, readStatusFilter], () => {
-    currentPage.value = 1;
-    // 注意：这里调用 loadExecutionRecords 会保持当前页面记录的展开状态
-    // 但切换筛选器后，某些记录可能不再显示，这是预期行为
-    loadExecutionRecords();
-  });
+// Watch for filter changes
+watch([statusFilter, readStatusFilter], () => {
+  currentPage.value = 1;
+  // 注意：这里调用 loadExecutionRecords 会保持当前页面记录的展开状态
+  // 但切换筛选器后，某些记录可能不再显示，这是预期行为
+  loadExecutionRecords();
+});
 </script>
 
 <style scoped>
-  :deep(.p-datatable-wrapper) {
-    border-radius: 0.375rem;
-  }
+:deep(.p-datatable-wrapper) {
+  border-radius: 0.375rem;
+}
 
-  :deep(.p-datatable .p-datatable-tbody > tr) {
-    cursor: pointer;
-  }
+:deep(.p-datatable .p-datatable-tbody > tr) {
+  cursor: pointer;
+}
 
-  :deep(.p-datatable .p-datatable-tbody > tr:hover) {
-    background-color: #f1f5f9 !important;
-  }
+:deep(.p-datatable .p-datatable-tbody > tr:hover) {
+  background-color: #f1f5f9 !important;
+}
 </style>

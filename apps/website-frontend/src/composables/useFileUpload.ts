@@ -1,6 +1,6 @@
-import { useAPI } from "@/api";
-import { $Enums } from "@tsfullstack/backend";
-import type { ShareCrypto } from "@/utils/shareCrypto";
+import { useAPI } from '@/api';
+import { $Enums } from '@tsfullstack/backend';
+import type { ShareCrypto } from '@/utils/shareCrypto';
 
 /**
  * 文件上传 composable，提供覆盖式上传能力
@@ -16,8 +16,7 @@ export function useFileUpload() {
    * @returns 新文件的 ShareFileJSON 格式数据
    */
   async function uploadPublic(file: File | Blob, filename?: string, cryptoInstance?: ShareCrypto) {
-    let uploadFile =
-      file instanceof File ? file : new File([file], filename ?? "untitled", { type: file.type });
+    let uploadFile = file instanceof File ? file : new File([file], filename ?? 'untitled', { type: file.type });
 
     /** 如果传入了加密实例，先加密文件二进制内容 */
     if (cryptoInstance) {

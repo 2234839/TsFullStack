@@ -99,13 +99,17 @@ export function evaluate(node: ASTNode, scope: Scope): EvalResult {
 
 function evaluateBinaryOp(op: '+' | '-' | '*' | '/' | '^', left: number, right: number): number {
   switch (op) {
-    case '+': return left + right;
-    case '-': return left - right;
-    case '*': return left * right;
+    case '+':
+      return left + right;
+    case '-':
+      return left - right;
+    case '*':
+      return left * right;
     case '/':
       if (right === 0) throw new Error('除以零');
       return left / right;
-    case '^': return Math.pow(left, right);
+    case '^':
+      return Math.pow(left, right);
   }
 }
 
@@ -146,7 +150,8 @@ function evaluateUnitBinaryOp(op: '+' | '-' | '*' | '/' | '^', left: EvalResult,
     const lv = left as UnitValue;
     const rv = right as number;
     switch (op) {
-      case '*': return { value: lv.value * rv, unit: lv.unit } as UnitValue;
+      case '*':
+        return { value: lv.value * rv, unit: lv.unit } as UnitValue;
       case '/':
         if (rv === 0) throw new Error('除以零');
         return { value: lv.value / rv, unit: lv.unit } as UnitValue;

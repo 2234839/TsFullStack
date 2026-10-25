@@ -24,6 +24,7 @@ npx tsx test/run-tests.ts
 ```
 
 测试会自动：
+
 - ✅ 创建测试用户账号
 - ✅ 发放测试代币
 - ✅ 运行所有 AI 图片生成测试用例
@@ -33,12 +34,15 @@ npx tsx test/run-tests.ts
 ## 测试文件说明
 
 ### `api-test-client.ts`
+
 API 测试客户端工具，提供：
+
 - `createTestClient()` - 创建测试客户端
 - `TestAccountManager` - 管理测试账号（注册、登录、会话管理）
 - `setupTestEnvironment()` - 初始化测试环境
 
 **示例：**
+
 ```typescript
 import { setupTestEnvironment, testAccounts } from './api-test-client';
 
@@ -54,13 +58,16 @@ const result = await authenticatedAPI.apis.taskApi.generateAIImage({
 ```
 
 ### `ai-image.test.ts`
+
 AI 图片生成功能的完整测试套件，包含：
 
 #### 代币管理测试
+
 - ✅ 查询可用代币
 - ✅ 检查代币是否足够
 
 #### AI 图片生成测试
+
 - ✅ 生成单张图片
 - ✅ 生成多张图片
 - ✅ 生成不同尺寸图片
@@ -69,18 +76,23 @@ AI 图片生成功能的完整测试套件，包含：
 - ✅ 拒绝代币不足
 
 #### 任务查询测试
+
 - ✅ 查询任务列表
 - ✅ 查询任务详情
 
 #### 资源查询测试
+
 - ✅ 查询资源列表
 - ✅ 按类型筛选资源
 
 #### 代币消耗验证测试
+
 - ✅ 验证代币正确消耗
 
 ### `run-tests.ts`
+
 测试运行器，提供：
+
 - 自动检查后端服务是否运行
 - 自动运行所有测试用例
 - 美化的测试输出
@@ -132,6 +144,7 @@ export const TEST_ACCOUNTS = {
 ## 测试最佳实践
 
 ### 1. 使用 setupTestEnvironment
+
 每个测试套件开始时调用，确保环境干净：
 
 ```typescript
@@ -142,6 +155,7 @@ beforeAll(async () => {
 ```
 
 ### 2. 清理测试数据
+
 测试完成后可以选择性清理：
 
 ```typescript
@@ -152,6 +166,7 @@ afterAll(async () => {
 ```
 
 ### 3. 独立的测试用例
+
 每个测试用例应该独立，不依赖其他用例的执行顺序：
 
 ```typescript
@@ -165,34 +180,40 @@ it('应该能够生成图片', async () => {
 ## 故障排查
 
 ### 后端服务未运行
+
 ```
 ❌ 无法连接到后端服务: http://localhost:3000
    请确保后端服务正在运行: pnpm dev
 ```
 
 **解决方案：**
+
 ```bash
 cd apps/backend
 pnpm dev
 ```
 
 ### API Key 未配置
+
 ```
 ❌ 调用 AI 服务失败: 通义千问 API Key 未配置
 ```
 
 **解决方案：**
 在 `.env` 文件中配置：
+
 ```bash
 QWEN_API_KEY=your_api_key_here
 ```
 
 ### 类型错误
+
 ```
 ❌ TypeScript 编译错误
 ```
 
 **解决方案：**
+
 ```bash
 # 重新生成类型
 pnpm zenstack generate
@@ -254,6 +275,7 @@ SKIP_ENV_CHECK=true pnpm test:api
 ## 测试覆盖率
 
 当前测试覆盖：
+
 - ✅ 代币管理（查询、检查、消耗）
 - ✅ AI 图片生成（多种配置）
 - ✅ 任务管理（创建、查询、状态更新）
@@ -261,6 +283,7 @@ SKIP_ENV_CHECK=true pnpm test:api
 - ✅ 错误处理（参数验证、权限检查）
 
 未来可以添加：
+
 - ⏳ 图片下载和压缩
 - ⏳ 文件上传集成
 - ⏳ 权限控制测试

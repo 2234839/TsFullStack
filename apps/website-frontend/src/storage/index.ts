@@ -1,24 +1,16 @@
-import { routeMap, routerUtil } from "@/router";
-import { useAPI } from "@/api";
-import type { loginByEmailPwd_res } from "@/utils/apiType";
-import { useApiStorage } from "@/utils/hooks/UseApiStorage";
-import { encryptSerializer } from "@/utils/encryptSerializer";
-import {
-  createSharedComposable,
-  StorageSerializers,
-  useStorage,
-  useStorageAsync,
-} from "@vueuse/core";
-import { computed, watchEffect } from "vue";
-import { DEFAULT_OPENAI_BASE_URL, DEFAULT_MAX_TOKENS } from "@/utils/constants";
-export const appId = "tfs_";
+import { routeMap, routerUtil } from '@/router';
+import { useAPI } from '@/api';
+import type { loginByEmailPwd_res } from '@/utils/apiType';
+import { useApiStorage } from '@/utils/hooks/UseApiStorage';
+import { encryptSerializer } from '@/utils/encryptSerializer';
+import { createSharedComposable, StorageSerializers, useStorage, useStorageAsync } from '@vueuse/core';
+import { computed, watchEffect } from 'vue';
+import { DEFAULT_OPENAI_BASE_URL, DEFAULT_MAX_TOKENS } from '@/utils/constants';
+export const appId = 'tfs_';
 /** 用户认证信息存储  */
-export const authInfo = useStorageAsync<loginByEmailPwd_res>(
-  appId + "authInfo_v0",
-  null,
-  undefined,
-  { serializer: encryptSerializer },
-);
+export const authInfo = useStorageAsync<loginByEmailPwd_res>(appId + 'authInfo_v0', null, undefined, {
+  serializer: encryptSerializer,
+});
 export const authInfo_isLogin = computed(() => {
   return !!authInfo.value && new Date(authInfo.value.expiresAt).getTime() > Date.now();
 });
@@ -28,8 +20,8 @@ export const localUserPwd = useStorageAsync<{
   password: string;
   rememberMe: boolean;
 }>(
-  /** v2: 密钥派生方式变更（SHA-256），不兼容旧数据 */ appId + "__test_v2__",
-  { username: "", password: "", rememberMe: false },
+  /** v2: 密钥派生方式变更（SHA-256），不兼容旧数据 */ appId + '__test_v2__',
+  { username: '', password: '', rememberMe: false },
   undefined,
   {
     serializer: encryptSerializer,
@@ -56,21 +48,21 @@ export function authInfo_logout(/** 登录后重定向的页面地址   */ r?: s
 
 //#region 主题功能
 /** 开发环境随机主题选项 */
-export const theme_randomMode = useStorage<boolean>(appId + "theme_randomMode", false);
+export const theme_randomMode = useStorage<boolean>(appId + 'theme_randomMode', false);
 
-export const theme = useStorage<"dark" | "light">(appId + "theme", null, undefined, {
+export const theme = useStorage<'dark' | 'light'>(appId + 'theme', null, undefined, {
   serializer: StorageSerializers.object,
 });
 
 /**  src/style.css 中也需要设置和此处一样 */
-export const theme_darkModeClass = "dark";
+export const theme_darkModeClass = 'dark';
 
 export const theme_isDark = computed<boolean>({
   set(v) {
-    theme.value = v ? "dark" : "light";
+    theme.value = v ? 'dark' : 'light';
   },
   get() {
-    return theme.value === "dark";
+    return theme.value === 'dark';
   },
 });
 watchEffect(() => {
@@ -80,11 +72,11 @@ watchEffect(() => {
 //#endregion 主题功能
 
 //#region i18n
-export const i18nStore = useStorage<"zh-CN" | "en">(appId + "i18nStore", null);
+export const i18nStore = useStorage<'zh-CN' | 'en'>(appId + 'i18nStore', null);
 //#endregion
 
 /** 用于控制悬浮github star按钮显示隐藏的storage key值 */
-export const githubStarShow = useStorage<"show" | "hide">(appId + "githubStarShow", "show");
+export const githubStarShow = useStorage<'show' | 'hide'>(appId + 'githubStarShow', 'show');
 
 //#region OpenAI 配置
 export interface OpenAIConfig {
@@ -103,11 +95,11 @@ export interface OpenAIConfig {
 /** OpenAI 配置存储 */
 export const useOpenAIConfig = createSharedComposable(function () {
   return useApiStorage<OpenAIConfig>(
-    appId + "openAIConfig",
+    appId + 'openAIConfig',
     {
       baseURL: DEFAULT_OPENAI_BASE_URL,
-      apiKey: "",
-      model: "gpt-3.5-turbo",
+      apiKey: '',
+      model: 'gpt-3.5-turbo',
       maxTokens: DEFAULT_MAX_TOKENS,
       temperature: 0.7,
     },

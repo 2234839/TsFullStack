@@ -1,5 +1,5 @@
 /** ABOUTME: Test project main route map */
-import type { RouteNode } from '@tsfullstack/shared-frontend/utils'
+import type { RouteNode } from '@tsfullstack/shared-frontend/utils';
 
 export default {
   testMain: {
@@ -18,4 +18,4 @@ export default {
       icon: 'pi pi-info-circle',
     },
   },
-} satisfies Record<string, RouteNode>
+} satisfies Record<string, RouteNode>;

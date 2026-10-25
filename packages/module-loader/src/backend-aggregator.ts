@@ -16,7 +16,7 @@ export class BackendAggregator {
     const outputDir = 'generated';
     fs.ensureDirSync(outputDir);
 
-    const backendModules = modules.filter(m => m.hasBackend);
+    const backendModules = modules.filter((m) => m.hasBackend);
 
     if (backendModules.length === 0) {
       console.log('No backend modules found to aggregate');
@@ -62,19 +62,23 @@ ${typeExports.join('\n')}
 
 // Export all modules as a collection
 export const modules = {
-${modules.map(m => `  ${this.getImportName(m.name)}: ${this.getImportName(m.name)}`).join(',\n')}
+${modules.map((m) => `  ${this.getImportName(m.name)}: ${this.getImportName(m.name)}`).join(',\n')}
 };
 
 // Export module metadata
 export const moduleInfo = [
-${modules.map(m => `  {
+${modules
+  .map(
+    (m) => `  {
     name: '${m.name}',
     version: '${m.version}',
     path: '${m.path}',
     hasBackend: ${m.hasBackend},
     hasFrontend: ${m.hasFrontend},
     hasVueComponents: ${m.hasVueComponents}
-  }`).join(',\n')}
+  }`,
+  )
+  .join(',\n')}
 ] as const;
 
 `;
@@ -84,9 +88,12 @@ ${modules.map(m => `  {
   private getImportName(moduleName: string): string {
     // Remove @tsfullstack/ prefix and convert to camelCase
     const baseName = moduleName.replace('@tsfullstack/', '');
-    return baseName.split('-').map((word, index) => {
-      if (index === 0) return word;
-      return word.charAt(0).toUpperCase() + word.slice(1);
-    }).join('');
+    return baseName
+      .split('-')
+      .map((word, index) => {
+        if (index === 0) return word;
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join('');
   }
 }

@@ -100,10 +100,7 @@ export const analyzeWordsBatch = async (
   if (words.length === 0) return {};
 
   const wordsList = words
-    .map(
-      ({ word, context }, index) =>
-        `${index + 1}. "${word}"${context ? ` (句子:"${context}")` : ''}`,
-    )
+    .map(({ word, context }, index) => `${index + 1}. "${word}"${context ? ` (句子:"${context}")` : ''}`)
     .join('\n');
 
   const prompt = `作为英语词汇专家，请批量分析以下 ${words.length} 个英文单词：
@@ -318,16 +315,8 @@ export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> =>
   };
 };
 
-export function useCreateMixedTranslation({
-  getWordData,
-}: {
-  getWordData: (word: string) => WordData | undefined;
-}) {
-  return async (
-    originalText: string,
-    translatedText: string,
-    wordsInSelection: string[],
-  ): Promise<string> => {
+export function useCreateMixedTranslation({ getWordData }: { getWordData: (word: string) => WordData | undefined }) {
+  return async (originalText: string, translatedText: string, wordsInSelection: string[]): Promise<string> => {
     try {
       // 获取熟悉的单词
       const familiarWords = wordsInSelection.filter((word) => {
@@ -505,10 +494,7 @@ function generateJsonFormatExample(schema: Record<string, JsonSchemaField>): str
 }
 
 /** 生成严格的 JSON 格式 prompt */
-function generateStrictJsonPrompt(
-  schema: Record<string, JsonSchemaField>,
-  additionalInstructions?: string,
-): string {
+function generateStrictJsonPrompt(schema: Record<string, JsonSchemaField>, additionalInstructions?: string): string {
   const formatExample = generateJsonFormatExample(schema);
 
   return `
@@ -562,7 +548,7 @@ export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
       repairedStr = repairedStr
         .replace(/'/g, '"') // 单引号转双引号
         .replace(/(\w+):/g, '"$1":') // 属性名加引号
-        .replace(/:\s*([^",\[\]\{\}][^",\[\]\{\}]*?)\s*([,\]}])/g, ': "$1"$2') // 未加引号的字符串值
+        .replace(/:\s*([^",[\]{\}][^",[\]{\}]*?)\s*([,\]}])/g, ': "$1"$2') // 未加引号的字符串值
         .replace(/:\s*"([^"]*)\n([^"]*?)"/g, ': "$1 $2"'); // 修复换行问题
 
       return JSON.parse(repairedStr);

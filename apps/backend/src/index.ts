@@ -15,7 +15,13 @@ import { TokenGrantService } from './services/TokenGrantService';
 import { destroyRateLimiter } from './middleware/rateLimit';
 import { TokenCleanupService } from './services/TokenCleanupService';
 import { OrderReconciliationService } from './services/payment/OrderReconciliationService';
-import { MS_PER_HOUR, MEMORY_LOG_INTERVAL_MS, QUEUE_STARTUP_DELAY_MS, RECONCILE_STARTUP_DELAY_MS, QUEUE_NAME_GRANT_TOKENS } from './util/constants';
+import {
+  MS_PER_HOUR,
+  MEMORY_LOG_INTERVAL_MS,
+  QUEUE_STARTUP_DELAY_MS,
+  RECONCILE_STARTUP_DELAY_MS,
+  QUEUE_NAME_GRANT_TOKENS,
+} from './util/constants';
 
 /** 日志前缀 */
 const LOG_PREFIX_TOKEN_GRANT = '[TokenGrant]';
@@ -34,7 +40,11 @@ const main = Effect.gen(function* () {
 
   /** 确保上传文件夹的路径存在 */
   const dirExists = yield* tryOrFail('检查上传目录', async () => {
-    try { return await fs.stat(config.uploadDir); } catch { return null; }
+    try {
+      return await fs.stat(config.uploadDir);
+    } catch {
+      return null;
+    }
   });
   if (!dirExists) {
     yield* tryOrFail('创建上传目录', () => fs.mkdir(config.uploadDir, { recursive: true }));
@@ -43,7 +53,7 @@ const main = Effect.gen(function* () {
     return yield* fail(`Upload directory ${config.uploadDir} is not a directory`);
   }
 
-  yield* seedDB
+  yield* seedDB;
 
   /** 启动代币发放队列 */
   const dbClient = yield* DbClientEffect;
@@ -51,7 +61,15 @@ const main = Effect.gen(function* () {
   type QueueTasks = {
     [QUEUE_NAME_GRANT_TOKENS]: {
       payload: { subscriptionId: number; userId: string };
-      result: { success: boolean; skipped?: boolean; reason?: string; userId?: string; packageName?: string; amount?: number; nextGrantDate?: Date };
+      result: {
+        success: boolean;
+        skipped?: boolean;
+        reason?: string;
+        userId?: string;
+        packageName?: string;
+        amount?: number;
+        nextGrantDate?: Date;
+      };
     };
   };
 
@@ -99,7 +117,7 @@ const main = Effect.gen(function* () {
 
       console.log(
         `内存波动: 常驻内存 ${rssMB} MB  堆总大小 ${heapTotalMB} MB ` +
-        `[常驻内存变化: ${rssChange} MB, 堆总大小变化: ${heapChange} MB, 时间间隔: ${currentTime - lastTime} ms]`,
+          `[常驻内存变化: ${rssChange} MB, 堆总大小变化: ${heapChange} MB, 时间间隔: ${currentTime - lastTime} ms]`,
       );
     }
 
@@ -139,7 +157,9 @@ const main = Effect.gen(function* () {
   const reconcileDelayTimer = setTimeout(() => {
     const intervalMs = OrderReconciliationService.getReconcileIntervalMs();
     const isDev = process.env.NODE_ENV !== 'production';
-    console.log(`${LOG_PREFIX_RECONCILE} 对账任务已启动 (间隔${isDev ? `${intervalMs / 1000}s` : `${intervalMs / 60000}min`}, ${isDev ? '开发模式' : '生产模式'})`);
+    console.log(
+      `${LOG_PREFIX_RECONCILE} 对账任务已启动 (间隔${isDev ? `${intervalMs / 1000}s` : `${intervalMs / 60000}min`}, ${isDev ? '开发模式' : '生产模式'})`,
+    );
     reconcileIntervalTimer = setInterval(async () => {
       try {
         // 快速检查是否有待处理订单
@@ -148,7 +168,9 @@ const main = Effect.gen(function* () {
 
         const r = await OrderReconciliationService.reconcile(dbClient);
         if (r.processed > 0) {
-          console.log(`${LOG_PREFIX_RECONCILE} 对账完成: 处理${r.processed}单, 支付成功${r.paid}单, 关闭${r.cancelled}单`);
+          console.log(
+            `${LOG_PREFIX_RECONCILE} 对账完成: 处理${r.processed}单, 支付成功${r.paid}单, 关闭${r.cancelled}单`,
+          );
         }
       } catch (error: unknown) {
         console.error(`${LOG_PREFIX_RECONCILE} 对账任务失败:`, error);

@@ -94,9 +94,7 @@ export class StorageService {
     return word.toLowerCase();
   }
   static async saveWords(words: WordData[]): Promise<void> {
-    storageRepo.saveBatch(
-      words.map((word) => ({ key: StorageService.word2key(word), data: word })),
-    );
+    storageRepo.saveBatch(words.map((word) => ({ key: StorageService.word2key(word), data: word })));
   }
 
   static async loadWords(words: string[]): Promise<Record<string, WordData>> {

@@ -40,7 +40,6 @@ interface FileAccessResult {
  * 所有文件访问操作都应该通过这个服务，而不是直接操作文件路径。
  */
 export class FileAccessService {
-
   /**
    * 验证文件访问权限并返回安全的文件路径
    * @param fileRow 文件记录
@@ -61,11 +60,7 @@ export class FileAccessService {
     /** 应总是通过 withAppConfig 传入，fallback 仅作防御 */
     uploadDir: string,
   ): FileAccessResult {
-    const {
-      checkOwnership = false,
-      userId,
-      publicOnly = false
-    } = options;
+    const { checkOwnership = false, userId, publicOnly = false } = options;
 
     // 验证文件存在性
     if (!fileRow?.path) {
@@ -73,30 +68,22 @@ export class FileAccessService {
     }
 
     // 检查文件状态
-    if (publicOnly===true && fileRow.status !== 'public') {
+    if (publicOnly === true && fileRow.status !== 'public') {
       throw MsgError.msg(MSG.FILE_NOT_FOUND_OR_NO_ACCESS);
     }
 
     // 检查所有权
-    if (checkOwnership===true && userId && fileRow.authorId !== userId) {
+    if (checkOwnership === true && userId && fileRow.authorId !== userId) {
       throw MsgError.msg(MSG.FILE_ACCESS_DENIED);
     }
 
-    const filePath = FilePathService.generateUserFilePath(
-      fileRow.authorId,
-      fileRow.path,
-      uploadDir
-    );
+    const filePath = FilePathService.generateUserFilePath(fileRow.authorId, fileRow.path, uploadDir);
 
-    const validatedPath = FilePathService.validateFileAccess(
-      filePath,
-      uploadDir,
-      fileRow.authorId
-    );
+    const validatedPath = FilePathService.validateFileAccess(filePath, uploadDir, fileRow.authorId);
 
     return {
       fileRow,
-      validatedPath
+      validatedPath,
     };
   }
 
@@ -108,10 +95,7 @@ export class FileAccessService {
    *
    * 这是一个 Effect 包装器，用于在 Effect 上下文中提供 AppConfigService
    */
-  static validateFileAccessEffect(
-    fileRow: FileModel,
-    options: FileAccessOptions = {}
-  ) {
+  static validateFileAccessEffect(fileRow: FileModel, options: FileAccessOptions = {}) {
     return FileAccessService.withAppConfig((uploadDir) =>
       FileAccessService.validateFileAccess(fileRow, options, uploadDir),
     );
@@ -145,10 +129,7 @@ export class FileAccessService {
    *
    * 这是一个 Effect 包装器，用于在 Effect 上下文中提供 AppConfigService
    */
-  static createFileWrapItemEffect(
-    fileRow: FileModel,
-    options: FileAccessOptions = {}
-  ) {
+  static createFileWrapItemEffect(fileRow: FileModel, options: FileAccessOptions = {}) {
     return FileAccessService.withAppConfig((uploadDir) =>
       FileAccessService.createFileWrapItem(fileRow, options, uploadDir),
     );

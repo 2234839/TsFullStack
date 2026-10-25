@@ -1,8 +1,4 @@
-import type {
-  TaskResult,
-  DataCollectionMethod,
-  CollectionItem,
-} from '@/services/InfoFlowGet/messageProtocol';
+import type { TaskResult, DataCollectionMethod, CollectionItem } from '@/services/InfoFlowGet/messageProtocol';
 import type { FilterConfig, RuleFilterConfig } from '@/entrypoints/background/service/dbService';
 import { convert } from 'html-to-text';
 
@@ -21,10 +17,7 @@ type JsFilterFunction = (item: CollectionItem) => boolean;
 // 过滤服务 - 处理 JS 和 AI 过滤逻辑
 export class FilterService {
   // 解析层次化过滤配置
-  resolveFilterConfig(
-    ruleFilterConfig?: RuleFilterConfig,
-    globalFilterConfig?: FilterConfig,
-  ): FilterConfig | null {
+  resolveFilterConfig(ruleFilterConfig?: RuleFilterConfig, globalFilterConfig?: FilterConfig): FilterConfig | null {
     if (!ruleFilterConfig) {
       // 如果规则没有过滤配置，使用全局配置
       return globalFilterConfig || null;
@@ -110,10 +103,7 @@ export class FilterService {
   }
 
   // 过滤数据数组
-  private async filterDataArray(
-    data: CollectionItem[],
-    filterConfig: FilterConfig,
-  ): Promise<CollectionItem[]> {
+  private async filterDataArray(data: CollectionItem[], filterConfig: FilterConfig): Promise<CollectionItem[]> {
     if (!Array.isArray(data) || data.length === 0) {
       return data;
     }
@@ -182,10 +172,7 @@ export class FilterService {
   }
 
   // 应用 AI 过滤
-  private async applyAiFilter(
-    data: CollectionItem[],
-    aiConfig?: AiFilterConfig,
-  ): Promise<CollectionItem[]> {
+  private async applyAiFilter(data: CollectionItem[], aiConfig?: AiFilterConfig): Promise<CollectionItem[]> {
     if (!aiConfig || !aiConfig.model || !aiConfig.prompt || !aiConfig.apiUrl) {
       console.warn('[FilterService] AI filter configuration incomplete');
       return data;
@@ -275,11 +262,7 @@ export class FilterService {
       });
 
       if (!response.ok) {
-        console.warn(
-          '[FilterService] AI filter request failed:',
-          response.status,
-          response.statusText,
-        );
+        console.warn('[FilterService] AI filter request failed:', response.status, response.statusText);
         // 网络错误时保留项目，避免误删
         return true;
       }
@@ -394,9 +377,7 @@ export class FilterService {
     if (result.collections) {
       return Object.values(result.collections).some(
         (collectionResult) =>
-          collectionResult.items &&
-          Array.isArray(collectionResult.items) &&
-          collectionResult.items.length > 0,
+          collectionResult.items && Array.isArray(collectionResult.items) && collectionResult.items.length > 0,
       );
     }
 

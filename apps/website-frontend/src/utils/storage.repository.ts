@@ -279,10 +279,13 @@ export class UserDataStrategy extends StorageStrategy {
           key: { in: keys },
         },
       });
-      const data = dataList.reduce((acc, item) => {
-        acc[item.key] = item.data;
-        return acc;
-      }, {} as Record<string, any>);
+      const data = dataList.reduce(
+        (acc, item) => {
+          acc[item.key] = item.data;
+          return acc;
+        },
+        {} as Record<string, any>,
+      );
       this.stats.readCount += keys.length;
       this.stats.readTime += performance.now() - start;
       return data;
@@ -475,10 +478,13 @@ export class WordDataStrategy extends StorageStrategy {
           authorId: this.authorId,
         },
       });
-      const data = dataList.reduce((acc, item) => {
-        acc[item.key] = item;
-        return acc;
-      }, {} as Record<string, any>);
+      const data = dataList.reduce(
+        (acc, item) => {
+          acc[item.key] = item;
+          return acc;
+        },
+        {} as Record<string, any>,
+      );
       this.stats.readCount += keys.length;
       this.stats.readTime += performance.now() - start;
       return data;
@@ -612,9 +618,7 @@ export class IndexedDBStorageStrategy extends StorageStrategy {
       if (!this.store) throw new Error('IndexedDB未初始化');
       const store = this.store;
 
-      const entries = await Promise.all(
-        keys.map(async (key) => [key, await store.getItem(key)] as const),
-      );
+      const entries = await Promise.all(keys.map(async (key) => [key, await store.getItem(key)] as const));
       const result = Object.fromEntries(entries);
       this.stats.readCount += keys.length;
       this.stats.readTime += performance.now() - start;
@@ -844,25 +848,17 @@ export class StorageRepository {
     throw new Error(lastError || t('数据未找到'));
   }
 
-  private async writeToHigherPriority(
-    key: string,
-    data: any,
-    currentStrategy: StorageStrategy,
-  ): Promise<void> {
+  private async writeToHigherPriority(key: string, data: any, currentStrategy: StorageStrategy): Promise<void> {
     const currentIndex = this.strategies.indexOf(currentStrategy);
     if (currentIndex <= 0) return; // 已经是最高优先级
 
-    const higherStrategies = this.strategies.filter(
-      (s) => s.isAvailable && this.strategies.indexOf(s) < currentIndex,
-    );
+    const higherStrategies = this.strategies.filter((s) => s.isAvailable && this.strategies.indexOf(s) < currentIndex);
 
     if (higherStrategies.length === 0) return;
 
     await Promise.all(
       higherStrategies.map((s) =>
-        s
-          .save(key, data, this.options.bucket)
-          .catch((e) => console.warn(`${t('回写到')} ${s.name} ${t('失败')}`, e)),
+        s.save(key, data, this.options.bucket).catch((e) => console.warn(`${t('回写到')} ${s.name} ${t('失败')}`, e)),
       ),
     );
   }
@@ -877,10 +873,7 @@ export class StorageRepository {
     );
   }
 
-  async saveBatch(
-    items: { key: string; data: any }[],
-    batchSize = this.defaultBatchSize,
-  ): Promise<void> {
+  async saveBatch(items: { key: string; data: any }[], batchSize = this.defaultBatchSize): Promise<void> {
     const strategies = await this.requireStrategies();
 
     // 分批处理
@@ -913,9 +906,7 @@ export class StorageRepository {
     for (const strategy of strategies) {
       try {
         for (const chunk of chunks) {
-          const chunkResult = await strategy.loadBatch(
-            chunk.map((key) => ({ key, bucket: this.options.bucket })),
-          );
+          const chunkResult = await strategy.loadBatch(chunk.map((key) => ({ key, bucket: this.options.bucket })));
           Object.assign(result, chunkResult);
         }
 
@@ -932,16 +923,11 @@ export class StorageRepository {
     throw new Error(lastError || t('数据未找到且所有存储策略批量读取均失败'));
   }
 
-  private async writeBatchToHigherPriority(
-    data: Record<string, any>,
-    currentStrategy: StorageStrategy,
-  ): Promise<void> {
+  private async writeBatchToHigherPriority(data: Record<string, any>, currentStrategy: StorageStrategy): Promise<void> {
     const currentIndex = this.strategies.indexOf(currentStrategy);
     if (currentIndex <= 0) return;
 
-    const higherStrategies = this.strategies.filter(
-      (s) => s.isAvailable && this.strategies.indexOf(s) < currentIndex,
-    );
+    const higherStrategies = this.strategies.filter((s) => s.isAvailable && this.strategies.indexOf(s) < currentIndex);
 
     if (higherStrategies.length === 0) return;
 

@@ -8,36 +8,36 @@ export const httpRequestTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      url: { 
+      url: {
         type: 'string',
-        description: 'URL to request'
+        description: 'URL to request',
       },
-      method: { 
+      method: {
         type: 'string',
         enum: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'],
         default: 'GET',
-        description: 'HTTP method'
+        description: 'HTTP method',
       },
       headers: {
         type: 'object',
-        description: 'HTTP headers'
+        description: 'HTTP headers',
       },
       body: {
         type: 'string',
-        description: 'Request body'
+        description: 'Request body',
       },
       timeout: {
         type: 'number',
         default: 10000,
-        description: 'Timeout in milliseconds'
+        description: 'Timeout in milliseconds',
       },
       followRedirects: {
         type: 'boolean',
         default: true,
-        description: 'Follow redirects'
-      }
+        description: 'Follow redirects',
+      },
     },
-    required: ['url']
+    required: ['url'],
   },
   outputSchema: {
     type: 'object',
@@ -46,8 +46,8 @@ export const httpRequestTool: ToolDefinition = {
       status: { type: 'number' },
       headers: { type: 'object' },
       body: { type: 'string' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   },
   timeout: 15000,
   validate: (input) => {
@@ -68,17 +68,24 @@ export const httpRequestTool: ToolDefinition = {
     // Prevent localhost access in production
     if (process.env.NODE_ENV === 'production') {
       const hostname = url.hostname.toLowerCase();
-      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.') || hostname.startsWith('10.')) {
+      if (
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.')
+      ) {
         return false;
       }
     }
 
-    return typeof input.method === 'string' &&
-           ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(input.method) &&
-           (input.headers === undefined || typeof input.headers === 'object') &&
-           (input.body === undefined || typeof input.body === 'string') &&
-           (input.timeout === undefined || typeof input.timeout === 'number' && input.timeout > 0) &&
-           (input.followRedirects === undefined || typeof input.followRedirects === 'boolean');
+    return (
+      typeof input.method === 'string' &&
+      ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'].includes(input.method) &&
+      (input.headers === undefined || typeof input.headers === 'object') &&
+      (input.body === undefined || typeof input.body === 'string') &&
+      (input.timeout === undefined || (typeof input.timeout === 'number' && input.timeout > 0)) &&
+      (input.followRedirects === undefined || typeof input.followRedirects === 'boolean')
+    );
   },
   execute: async (input) => {
     try {
@@ -106,7 +113,7 @@ export const httpRequestTool: ToolDefinition = {
         headers,
         body: body,
         signal: controller.signal,
-        redirect: followRedirects ? 'follow' : 'manual'
+        redirect: followRedirects ? 'follow' : 'manual',
       };
 
       const response = await fetch(url.toString(), options);
@@ -134,7 +141,7 @@ export const httpRequestTool: ToolDefinition = {
         status: response.status,
         headers: responseHeaders,
         body: responseBody,
-        message: success ? 'Request successful' : `Request failed with status ${response.status}`
+        message: success ? 'Request successful' : `Request failed with status ${response.status}`,
       };
     } catch (error) {
       return {
@@ -142,10 +149,10 @@ export const httpRequestTool: ToolDefinition = {
         status: 0,
         headers: {},
         body: '',
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       };
     }
-  }
+  },
 };
 
 export const httpGetTool: ToolDefinition = {
@@ -156,21 +163,21 @@ export const httpGetTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      url: { 
+      url: {
         type: 'string',
-        description: 'URL to fetch'
+        description: 'URL to fetch',
       },
       headers: {
         type: 'object',
-        description: 'Optional headers'
+        description: 'Optional headers',
       },
       timeout: {
         type: 'number',
         default: 10000,
-        description: 'Timeout in milliseconds'
-      }
+        description: 'Timeout in milliseconds',
+      },
     },
-    required: ['url']
+    required: ['url'],
   },
   outputSchema: {
     type: 'object',
@@ -178,8 +185,8 @@ export const httpGetTool: ToolDefinition = {
       success: { type: 'boolean' },
       content: { type: 'string' },
       status: { type: 'number' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   },
   timeout: 15000,
   validate: (input) => {
@@ -199,7 +206,7 @@ export const httpGetTool: ToolDefinition = {
       const response = await fetch(url, {
         method: 'GET',
         headers,
-        signal: AbortSignal.timeout(timeout)
+        signal: AbortSignal.timeout(timeout),
       });
 
       const content = await response.text();
@@ -209,17 +216,17 @@ export const httpGetTool: ToolDefinition = {
         success,
         content,
         status: response.status,
-        message: success ? 'GET request successful' : `GET request failed with status ${response.status}`
+        message: success ? 'GET request successful' : `GET request failed with status ${response.status}`,
       };
     } catch (error) {
       return {
         success: false,
         content: '',
         status: 0,
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       };
     }
-  }
+  },
 };
 
 export const httpPostTool: ToolDefinition = {
@@ -230,25 +237,25 @@ export const httpPostTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      url: { 
+      url: {
         type: 'string',
-        description: 'URL to post to'
+        description: 'URL to post to',
       },
       data: {
         type: 'object',
-        description: 'Data to post (will be JSON stringified)'
+        description: 'Data to post (will be JSON stringified)',
       },
       headers: {
         type: 'object',
-        description: 'Optional headers'
+        description: 'Optional headers',
       },
       timeout: {
         type: 'number',
         default: 10000,
-        description: 'Timeout in milliseconds'
-      }
+        description: 'Timeout in milliseconds',
+      },
     },
-    required: ['url', 'data']
+    required: ['url', 'data'],
   },
   outputSchema: {
     type: 'object',
@@ -256,8 +263,8 @@ export const httpPostTool: ToolDefinition = {
       success: { type: 'boolean' },
       response: { type: 'string' },
       status: { type: 'number' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   },
   timeout: 15000,
   validate: (input) => {
@@ -274,7 +281,7 @@ export const httpPostTool: ToolDefinition = {
       const data = input.data;
       const headers = {
         'Content-Type': 'application/json',
-        ...input.headers
+        ...input.headers,
       };
       const timeout = input.timeout || 10000;
 
@@ -282,7 +289,7 @@ export const httpPostTool: ToolDefinition = {
         method: 'POST',
         headers,
         body: JSON.stringify(data),
-        signal: AbortSignal.timeout(timeout)
+        signal: AbortSignal.timeout(timeout),
       });
 
       const responseText = await response.text();
@@ -292,15 +299,15 @@ export const httpPostTool: ToolDefinition = {
         success,
         response: responseText,
         status: response.status,
-        message: success ? 'POST request successful' : `POST request failed with status ${response.status}`
+        message: success ? 'POST request successful' : `POST request failed with status ${response.status}`,
       };
     } catch (error) {
       return {
         success: false,
         response: '',
         status: 0,
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       };
     }
-  }
+  },
 };

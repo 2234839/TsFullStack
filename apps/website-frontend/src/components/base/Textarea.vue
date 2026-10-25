@@ -62,5 +62,6 @@ function handleInput(event: Event) {
     :readonly="readonly"
     :value="modelValue"
     @input="handleInput"
-    :class="textareaClasses" />
+    :class="textareaClasses"
+  />
 </template>

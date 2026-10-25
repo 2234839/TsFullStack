@@ -5,10 +5,7 @@
       <div class="flex gap-2 items-center">
         <IconField class="flex-1">
           <InputIcon class="pi pi-search" />
-          <InputText
-            v-model="searchQuery"
-            placeholder="搜索规则名称或描述..."
-            @input="handleSearch" />
+          <InputText v-model="searchQuery" placeholder="搜索规则名称或描述..." @input="handleSearch" />
         </IconField>
         <Select
           v-model="statusFilter"
@@ -17,22 +14,15 @@
           optionValue="value"
           placeholder="状态筛选"
           @change="handleFilterChange"
-          class="w-40" />
-        <Button
-          icon="pi pi-filter-slash"
-          @click="clearFilters"
-          variant="secondary"
-          size="small"
-          label="清除" />
+          class="w-40"
+        />
+        <Button icon="pi pi-filter-slash" @click="clearFilters" variant="secondary" size="small" label="清除" />
       </div>
 
       <!-- Selection Controls -->
       <div class="flex items-center justify-between gap-2">
         <div class="flex items-center gap-2">
-          <Checkbox
-            v-model="selectAll"
-            :binary="true"
-            @change="handleSelectAll" />
+          <Checkbox v-model="selectAll" :binary="true" @change="handleSelectAll" />
           <label class="text-sm cursor-pointer">全选所有</label>
           <span class="text-sm text-gray-600">
             已选择 {{ selectedRules.length }} / {{ props.rules.length }} 条规则
@@ -48,42 +38,39 @@
             label="全选当前"
             size="small"
             variant="info"
-            @click="selectAllFiltered" />
+            @click="selectAllFiltered"
+          />
           <Button
             v-if="showBulkActions"
             icon="pi pi-check"
             label="选择激活的"
             size="small"
             variant="success"
-            @click="selectByStatus('active')" />
+            @click="selectByStatus('active')"
+          />
           <Button
             v-if="showBulkActions"
             icon="pi pi-pause"
             label="选择暂停的"
             size="small"
             variant="warning"
-            @click="selectByStatus('paused')" />
+            @click="selectByStatus('paused')"
+          />
           <Button
             v-if="showBulkActions"
             icon="pi pi-times"
             label="选择未激活的"
             size="small"
             variant="secondary"
-            @click="selectByStatus('inactive')" />
+            @click="selectByStatus('inactive')"
+          />
         </div>
       </div>
 
       <!-- Rules List -->
       <div class="border rounded-lg max-h-[400px] overflow-y-auto">
-        <div
-          v-for="rule in filteredRules"
-          :key="rule.id"
-          class="p-3 border-b hover:bg-gray-50 flex items-start gap-3">
-          <Checkbox
-            v-model="selectedRules"
-            :value="rule.id"
-            :binary="false"
-            class="mt-1" />
+        <div v-for="rule in filteredRules" :key="rule.id" class="p-3 border-b hover:bg-gray-50 flex items-start gap-3">
+          <Checkbox v-model="selectedRules" :value="rule.id" :binary="false" class="mt-1" />
           <div class="flex-1">
             <div class="flex items-center gap-2 mb-1">
               <span class="font-medium">{{ rule.name }}</span>
@@ -93,22 +80,17 @@
                   rule.status === 'active'
                     ? 'bg-green-500 text-white'
                     : rule.status === 'inactive'
-                    ? 'bg-gray-500 text-white'
-                    : 'bg-yellow-500 text-white',
-                ]">
+                      ? 'bg-gray-500 text-white'
+                      : 'bg-yellow-500 text-white',
+                ]"
+              >
                 {{ getStatusText(rule.status) }}
               </span>
-              <span class="text-xs text-gray-500">
-                执行次数: {{ rule.executionCount }}
-              </span>
+              <span class="text-xs text-gray-500"> 执行次数: {{ rule.executionCount }} </span>
             </div>
             <div class="text-sm text-gray-600 mb-1">{{ rule.description }}</div>
-            <div class="text-xs text-gray-500">
-              URL: {{ rule.taskConfig.url }}
-            </div>
-            <div class="text-xs text-gray-500">
-              Cron: {{ rule.cron }}
-            </div>
+            <div class="text-xs text-gray-500">URL: {{ rule.taskConfig.url }}</div>
+            <div class="text-xs text-gray-500">Cron: {{ rule.cron }}</div>
           </div>
         </div>
         <div v-if="filteredRules.length === 0" class="p-8 text-center text-gray-500">
@@ -125,10 +107,10 @@
           <div>总规则数: {{ rules.length }}</div>
           <div>已选择: {{ selectedRules.length }} 条</div>
           <div v-if="selectedRules.length > 0">
-            其中: 
-            激活 {{ selectedRules.filter(id => rules.find(r => r.id === id)?.status === 'active').length }} 条,
-            暂停 {{ selectedRules.filter(id => rules.find(r => r.id === id)?.status === 'paused').length }} 条,
-            未激活 {{ selectedRules.filter(id => rules.find(r => r.id === id)?.status === 'inactive').length }} 条
+            其中: 激活
+            {{ selectedRules.filter((id) => rules.find((r) => r.id === id)?.status === 'active').length }} 条, 暂停
+            {{ selectedRules.filter((id) => rules.find((r) => r.id === id)?.status === 'paused').length }} 条, 未激活
+            {{ selectedRules.filter((id) => rules.find((r) => r.id === id)?.status === 'inactive').length }} 条
           </div>
         </div>
       </div>
@@ -136,11 +118,7 @@
 
     <template #footer>
       <Button label="取消" @click="cancel" variant="secondary" />
-      <Button 
-        :label="confirmLabel" 
-        @click="confirm" 
-        :disabled="selectedRules.length === 0"
-        :variant="confirmVariant" />
+      <Button :label="confirmLabel" @click="confirm" :disabled="selectedRules.length === 0" :variant="confirmVariant" />
     </template>
   </Dialog>
 </template>
@@ -198,12 +176,13 @@ const statusOptions = [
 // Computed
 const filteredRules = computed(() => {
   return props.rules.filter((rule) => {
-    const matchesSearch = !searchQuery.value || 
+    const matchesSearch =
+      !searchQuery.value ||
       rule.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       rule.description.toLowerCase().includes(searchQuery.value.toLowerCase());
-    
+
     const matchesStatus = !statusFilter.value || rule.status === statusFilter.value;
-    
+
     return matchesSearch && matchesStatus;
   });
 });
@@ -234,22 +213,20 @@ const clearFilters = () => {
 
 const handleSelectAll = () => {
   if (selectAll.value) {
-    selectedRules.value = props.rules.map(rule => rule.id);
+    selectedRules.value = props.rules.map((rule) => rule.id);
   } else {
     selectedRules.value = [];
   }
 };
 
 const selectAllFiltered = () => {
-  const filteredIds = filteredRules.value.map(rule => rule.id);
+  const filteredIds = filteredRules.value.map((rule) => rule.id);
   selectedRules.value = [...new Set([...selectedRules.value, ...filteredIds])];
 };
 
 const selectByStatus = (status: 'active' | 'inactive' | 'paused') => {
-  const rulesToAdd = filteredRules.value
-    .filter(rule => rule.status === status)
-    .map(rule => rule.id);
-  
+  const rulesToAdd = filteredRules.value.filter((rule) => rule.status === status).map((rule) => rule.id);
+
   selectedRules.value = [...new Set([...selectedRules.value, ...rulesToAdd])];
 };
 
@@ -263,22 +240,29 @@ const cancel = () => {
 };
 
 // Watchers
-watch(() => props.visible, (newValue) => {
-  if (newValue) {
-    // Reset state when dialog opens
-    selectedRules.value = [...props.initialSelected];
-    searchQuery.value = '';
-    statusFilter.value = '';
-    selectAll.value = false;
-  }
-});
+watch(
+  () => props.visible,
+  (newValue) => {
+    if (newValue) {
+      // Reset state when dialog opens
+      selectedRules.value = [...props.initialSelected];
+      searchQuery.value = '';
+      statusFilter.value = '';
+      selectAll.value = false;
+    }
+  },
+);
 
-watch([props.rules, selectedRules], () => {
-  // Update select all checkbox state based on all rules
-  if (props.rules.length === 0) {
-    selectAll.value = false;
-  } else {
-    selectAll.value = selectedRules.value.length === props.rules.length;
-  }
-}, { deep: true });
+watch(
+  [props.rules, selectedRules],
+  () => {
+    // Update select all checkbox state based on all rules
+    if (props.rules.length === 0) {
+      selectAll.value = false;
+    } else {
+      selectAll.value = selectedRules.value.length === props.rules.length;
+    }
+  },
+  { deep: true },
+);
 </script>

@@ -1,10 +1,9 @@
-import { useAPI } from "@/api";
-import { authInfo_isLogin } from "@/storage";
-import { ref, watch, type Ref } from "vue";
+import { useAPI } from '@/api';
+import { authInfo_isLogin } from '@/storage';
+import { ref, watch, type Ref } from 'vue';
 
 /** 1px 透明 GIF（43 字节），加载期占位避免 <img src=""> 闪 broken image */
-export const TRANSPARENT_PIXEL =
-  "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
+export const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 export interface FileUrlState {
   /** 文件访问 URL；加载中为 1px 透明像素占位，加载失败为空字符串（<img> 呈现原生碎图标） */
@@ -36,13 +35,13 @@ export function useFileUrl(fileId: () => number | string | undefined | null): Fi
       }
       loading.value = true;
       error.value = false;
-      const fileIdVal = typeof id === "string" ? Number(id) : id;
+      const fileIdVal = typeof id === 'string' ? Number(id) : id;
       try {
         url.value = authInfo_isLogin.value
           ? await APIGetUrl.fileApi.file(fileIdVal)
           : await AppAPIGetUrl.fileApi.file(fileIdVal);
       } catch {
-        url.value = "";
+        url.value = '';
         error.value = true;
       } finally {
         loading.value = false;

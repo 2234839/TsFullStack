@@ -59,9 +59,7 @@ const contentStyle = computed<CSSProperties>(() => ({
 </script>
 
 <template>
-  <TooltipProvider
-    :delay-duration="delayDuration"
-    :skip-delay-duration="skipDelayDuration">
+  <TooltipProvider :delay-duration="delayDuration" :skip-delay-duration="skipDelayDuration">
     <TooltipRoot v-bind="forwarded">
       <TooltipTrigger as-child>
         <slot />
@@ -73,7 +71,8 @@ const contentStyle = computed<CSSProperties>(() => ({
           :side="side"
           :align="align"
           :side-offset="sideOffset"
-          :style="contentStyle">
+          :style="contentStyle"
+        >
           <slot name="content">
             {{ content }}
           </slot>

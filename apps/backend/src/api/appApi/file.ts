@@ -18,10 +18,13 @@ export const fileApi = {
       const dbClient = yield* DbClientEffect;
 
       const fileRow = yield* requireOrFail(
-        yield* dbTryOrDefault(LOG_PREFIX, '查询文件', () =>
-          dbClient.file.findUnique({
-            where: { id },
-          }),
+        yield* dbTryOrDefault(
+          LOG_PREFIX,
+          '查询文件',
+          () =>
+            dbClient.file.findUnique({
+              where: { id },
+            }),
           null,
         ),
         MSG.FILE_NOT_FOUND,

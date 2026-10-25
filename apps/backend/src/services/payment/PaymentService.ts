@@ -42,11 +42,15 @@ export const PaymentService = {
       const reqCtx = yield* ReqCtxService;
 
       // 1. 查询套餐
-      const pkg = yield* dbTryRequire(LOG_PREFIX, '查询套餐', () =>
-        db.tokenPackage.findUnique({ where: { id: params.packageId } }),
+      const pkg = yield* dbTryRequire(
+        LOG_PREFIX,
+        '查询套餐',
+        () => db.tokenPackage.findUnique({ where: { id: params.packageId } }),
         MSG.PACKAGE_NOT_FOUND,
       );
-      if (!pkg.active) { return yield* fail(MSG.PACKAGE_DISABLED); }
+      if (!pkg.active) {
+        return yield* fail(MSG.PACKAGE_DISABLED);
+      }
       if (pkg.price === null || pkg.price <= 0) {
         return yield* fail(MSG.PACKAGE_NO_ONLINE_PURCHASE);
       }
@@ -125,14 +129,16 @@ export const PaymentService = {
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
       const where = { userId: params.userId, ...(params.status && { status: params.status }) };
-      const { items, total } = yield* dbPaginatedFindMany(LOG_PREFIX,
-        () => db.order.findMany({
-          where,
-          orderBy: { created: 'desc' },
-          skip: params.skip ?? 0,
-          take: params.take ?? DEFAULT_PAGE_SIZE,
-          include: { package: true },
-        }),
+      const { items, total } = yield* dbPaginatedFindMany(
+        LOG_PREFIX,
+        () =>
+          db.order.findMany({
+            where,
+            orderBy: { created: 'desc' },
+            skip: params.skip ?? 0,
+            take: params.take ?? DEFAULT_PAGE_SIZE,
+            include: { package: true },
+          }),
         () => db.order.count({ where }),
       );
       return { orders: items, total };
@@ -154,11 +160,16 @@ export const PaymentService = {
       const parsed = yield* adapter.parseWebhook(payload, headers);
 
       reqCtx.log(
-        LOG_PREFIX, 'Webhook 回调:',
-        'provider=', provider,
-        'orderNo=', parsed.orderNo,
-        'tradeNo=', parsed.tradeNo,
-        'status=', parsed.paymentStatus,
+        LOG_PREFIX,
+        'Webhook 回调:',
+        'provider=',
+        provider,
+        'orderNo=',
+        parsed.orderNo,
+        'tradeNo=',
+        parsed.tradeNo,
+        'status=',
+        parsed.paymentStatus,
       );
 
       // 2. 查找订单
@@ -216,11 +227,16 @@ export const PaymentService = {
         );
 
         reqCtx.log(
-          LOG_PREFIX, '支付成功, 代币已发放:',
-          'orderNo=', order.orderNo,
-          'userId=', order.userId,
-          'package=', pkg.name,
-          'amount=', pkg.amount,
+          LOG_PREFIX,
+          '支付成功, 代币已发放:',
+          'orderNo=',
+          order.orderNo,
+          'userId=',
+          order.userId,
+          'package=',
+          pkg.name,
+          'amount=',
+          pkg.amount,
         );
 
         return { success: true as const, orderId: order.id };
@@ -261,8 +277,10 @@ export const PaymentService = {
 
       if (result.count === 0) {
         /** 区分"订单不存在/不属于该用户"和"订单状态不允许取消" */
-        const order = yield* dbTryRequire(LOG_PREFIX, '查询订单', () =>
-          db.order.findFirst({ where: { id: orderId, userId }, select: { status: true } }),
+        const order = yield* dbTryRequire(
+          LOG_PREFIX,
+          '查询订单',
+          () => db.order.findFirst({ where: { id: orderId, userId }, select: { status: true } }),
           MSG.ORDER_NOT_FOUND,
         );
         return yield* fail(MSG.CANCEL_PENDING_ONLY);

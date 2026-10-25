@@ -80,10 +80,7 @@ export function createRPC<API_TYPE>(
     });
   };
 
-  async function RC<K extends string>(
-    method: K,
-    data: unknown[],
-  ): Promise<DeepReturnTypeUnion<API_TYPE>> {
+  async function RC<K extends string>(method: K, data: unknown[]): Promise<DeepReturnTypeUnion<API_TYPE>> {
     // 安全检查：验证方法路径是否在白名单中
     if (!isAllowedPath(method)) {
       throw MsgError.msg(`方法 ${method} 不在允许的路径白名单中`);
@@ -99,41 +96,41 @@ export function createRPC<API_TYPE>(
     }
 
     async function executeCall(): Promise<unknown> {
-        if (type === 'apiProvider') {
-          if (!cachedApiModule) cachedApiModule = await options.genApiModule();
-          const apiModule = cachedApiModule;
-          const methodParts = method.split('.');
+      if (type === 'apiProvider') {
+        if (!cachedApiModule) cachedApiModule = await options.genApiModule();
+        const apiModule = cachedApiModule;
+        const methodParts = method.split('.');
 
-          // 安全检查：检查每个属性部分是否在黑名单中
-          for (const part of methodParts) {
-            if (forbiddenProps.has(part)) {
-              throw MsgError.msg(`禁止访问敏感属性: ${part}`);
-            }
+        // 安全检查：检查每个属性部分是否在黑名单中
+        for (const part of methodParts) {
+          if (forbiddenProps.has(part)) {
+            throw MsgError.msg(`禁止访问敏感属性: ${part}`);
           }
-
-          // 动态属性访问链 — any 不可避免：API 模块嵌套路径深度在编译期不可确定
-          let currentObj: unknown = apiModule;
-          for (const part of methodParts) {
-            if (currentObj == null || typeof currentObj !== 'object') {
-              throw MsgError.msg(`方法 ${method} 未找到`);
-            }
-            currentObj = (currentObj as Record<string, unknown>)[part];
-            if (currentObj == null) {
-              throw MsgError.msg(`方法 ${method} 未找到`);
-            }
-          }
-
-          if (typeof currentObj === 'function') {
-            return await (currentObj as (...args: unknown[]) => unknown)(...data);
-          } else {
-            throw MsgError.msg(`${method} 不是一个函数`);
-          }
-        } else {
-          return await remoteCall!(method, data);
         }
+
+        // 动态属性访问链 — any 不可避免：API 模块嵌套路径深度在编译期不可确定
+        let currentObj: unknown = apiModule;
+        for (const part of methodParts) {
+          if (currentObj == null || typeof currentObj !== 'object') {
+            throw MsgError.msg(`方法 ${method} 未找到`);
+          }
+          currentObj = (currentObj as Record<string, unknown>)[part];
+          if (currentObj == null) {
+            throw MsgError.msg(`方法 ${method} 未找到`);
+          }
+        }
+
+        if (typeof currentObj === 'function') {
+          return await (currentObj as (...args: unknown[]) => unknown)(...data);
+        } else {
+          throw MsgError.msg(`${method} 不是一个函数`);
+        }
+      } else {
+        return await remoteCall!(method, data);
+      }
     }
 
-    return await executeMiddleware(0) as Promise<DeepReturnTypeUnion<API_TYPE>>;
+    return (await executeMiddleware(0)) as Promise<DeepReturnTypeUnion<API_TYPE>>;
   }
 
   /** 创建嵌套的Proxy处理器 */
@@ -177,9 +174,7 @@ export function createRPC<API_TYPE>(
 }
 
 /** 将函数返回值包裹 Promise */
-type WrapPromise<T> = T extends (...args: unknown[]) => infer R
-  ? (...args: Parameters<T>) => Promise<Awaited<R>>
-  : T;
+type WrapPromise<T> = T extends (...args: unknown[]) => infer R ? (...args: Parameters<T>) => Promise<Awaited<R>> : T;
 /** 将函数返回值解开 Effect 再包裹 Promise */
 type WrapPromiseUnEffect<T> = T extends (...args: unknown[]) => infer R
   ? (...args: Parameters<T>) => Promise<ExtractEffectSuccess<Awaited<R>>>
@@ -189,27 +184,27 @@ type WrapPromiseUnEffect<T> = T extends (...args: unknown[]) => infer R
 export type DeepAsyncify<T> = T extends (...args: unknown[]) => unknown
   ? WrapPromise<T>
   : T extends object
-  ? { [K in keyof T]: DeepAsyncify<T[K]> }
-  : T;
+    ? { [K in keyof T]: DeepAsyncify<T[K]> }
+    : T;
 /** 如果是客户端调用，服务端必须要已经处理了 Effect ，所以返回的就是解开来 Effect 的*/
 export type DeepAsyncEffect<T> = T extends (...args: unknown[]) => unknown
   ? WrapPromiseUnEffect<T>
   : T extends object
-  ? { [K in keyof T]: DeepAsyncEffect<T[K]> }
-  : T;
+    ? { [K in keyof T]: DeepAsyncEffect<T[K]> }
+    : T;
 
 /** 获取一个深度嵌套的对象（apis）上的函数的返回值联合类型 */
 export type DeepReturnTypeUnion<T> = T extends (...args: unknown[]) => unknown
   ? Awaited<ReturnType<T>>
   : T extends object
-  ? { [K in keyof T]: DeepReturnTypeUnion<T[K]> }[keyof T]
-  : never;
+    ? { [K in keyof T]: DeepReturnTypeUnion<T[K]> }[keyof T]
+    : never;
 
 export type DeepUnEffectReturnTypeUnion<T> = T extends (...args: unknown[]) => unknown
   ? ExtractEffectSuccess<Awaited<ReturnType<T>>>
   : T extends object
-  ? { [K in keyof T]: DeepUnEffectReturnTypeUnion<T[K]> }[keyof T]
-  : never;
+    ? { [K in keyof T]: DeepUnEffectReturnTypeUnion<T[K]> }[keyof T]
+    : never;
 /** 解开可能是 Effect 的返回值，如果是 Effect 则返回其成功类型，否则返回原类型 */
 export type ExtractEffectSuccess<T> = T extends Effect.Effect<infer A, infer _E, infer _R> ? A : T;
 

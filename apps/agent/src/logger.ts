@@ -30,7 +30,7 @@ export class Logger {
       maxFileSize: 10 * 1024 * 1024, // 10MB
       maxFiles: 5,
       enableColors: true,
-      ...config
+      ...config,
     };
 
     // Process log queue periodically
@@ -64,7 +64,7 @@ export class Logger {
       level,
       message,
       data,
-      context
+      context,
     };
 
     // Add to queue
@@ -92,15 +92,15 @@ export class Logger {
     const timestamp = new Date(entry.timestamp).toLocaleTimeString();
     const level = entry.level.toUpperCase();
     const context = entry.context ? `[${entry.context}]` : '';
-    
+
     let message = `${timestamp} ${level}${context}: ${entry.message}`;
-    
+
     if (this.config.enableColors) {
       const colors = {
-        debug: '\x1b[90m',    // Gray
-        info: '\x1b[36m',     // Cyan
-        warn: '\x1b[33m',     // Yellow
-        error: '\x1b[31m'     // Red
+        debug: '\x1b[90m', // Gray
+        info: '\x1b[36m', // Cyan
+        warn: '\x1b[33m', // Yellow
+        error: '\x1b[31m', // Red
       };
       const reset = '\x1b[0m';
       message = `${colors[entry.level]}${message}${reset}`;
@@ -156,7 +156,7 @@ export class Logger {
     }
 
     // Write entries to file
-    const logLines = entries.map(entry => JSON.stringify(entry));
+    const logLines = entries.map((entry) => JSON.stringify(entry));
     const content = logLines.join('\n') + '\n';
 
     await fs.appendFile(this.config.logPath, content, 'utf8');
@@ -194,7 +194,7 @@ export class Logger {
     for (let i = this.config.maxFiles - 1; i >= 1; i--) {
       const oldFile = i === 1 ? this.config.logPath : `${this.config.logPath}.${i - 1}`;
       const newFile = `${this.config.logPath}.${i}`;
-      
+
       try {
         await fs.rename(oldFile, newFile);
       } catch {
@@ -213,7 +213,7 @@ export class Logger {
   }
 
   getLogEntries(level?: LogLevel): LogEntry[] {
-    return [...this.logQueue].filter(entry => !level || entry.level === level);
+    return [...this.logQueue].filter((entry) => !level || entry.level === level);
   }
 
   clear(): void {

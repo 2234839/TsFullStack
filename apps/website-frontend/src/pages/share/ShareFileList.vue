@@ -47,11 +47,11 @@
     <div v-if="isEditMode" class="p-3 border-t border-primary-default space-y-2">
       <Button variant="text" size="sm" class="w-full justify-start!" @click="handleCreateTextFile">
         <i class="pi pi-file-edit mr-2" />
-        {{ t("新建文本文件") }}
+        {{ t('新建文本文件') }}
       </Button>
       <Button variant="text" size="sm" class="w-full justify-start!" @click="triggerUpload">
         <i class="pi pi-upload mr-2" />
-        {{ t("上传文件") }}
+        {{ t('上传文件') }}
       </Button>
       <input ref="fileInputRef" type="file" multiple class="hidden" @change="onFileSelect" />
     </div>
@@ -59,11 +59,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import type { ShareFileJSON } from "@/pages/admin/share/ShareDef";
-import { isTextFile, getFileTypeIcon } from "@/pages/admin/share/ShareDef";
-import { formatFileSize } from "@/utils/format";
-import { useI18n } from "@/composables/useI18n";
+import { ref } from 'vue';
+import type { ShareFileJSON } from '@/pages/admin/share/ShareDef';
+import { isTextFile, getFileTypeIcon } from '@/pages/admin/share/ShareDef';
+import { formatFileSize } from '@/utils/format';
+import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
 
@@ -104,16 +104,16 @@ const emit = defineEmits<{
 const fileInputRef = ref<HTMLInputElement>();
 
 function getFileIcon(file: ShareFileJSON): string {
-  if (isTextFile(file.mimetype)) return "pi pi-file-edit";
+  if (isTextFile(file.mimetype)) return 'pi pi-file-edit';
   return getFileTypeIcon(file.mimetype);
 }
 
 function selectFile(file: ShareFileJSON, index: number) {
-  emit("select", file, index);
+  emit('select', file, index);
 }
 
 function handleCreateTextFile() {
-  emit("createTextFile");
+  emit('createTextFile');
 }
 
 function triggerUpload() {
@@ -123,8 +123,8 @@ function triggerUpload() {
 function onFileSelect(event: Event) {
   const input = event.target as HTMLInputElement;
   if (input.files?.length) {
-    emit("uploadFiles", Array.from(input.files));
-    input.value = "";
+    emit('uploadFiles', Array.from(input.files));
+    input.value = '';
   }
 }
 
@@ -135,7 +135,7 @@ function isFileMarkedForDeletion(fileId: number | undefined): boolean {
 
 function toggleDelete(fileId: number | undefined) {
   if (fileId === undefined) return;
-  emit("toggleDelete", fileId);
+  emit('toggleDelete', fileId);
 }
 </script>
 

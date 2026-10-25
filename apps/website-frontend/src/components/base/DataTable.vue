@@ -69,7 +69,7 @@ const emptyText = computed(() => t(props.emptyText));
 
 const emit = defineEmits<{
   'update:selectedRowKeys': [keys: (string | number)[]];
-  'rowClick': [row: T, index: number];
+  rowClick: [row: T, index: number];
 }>();
 
 /** 排序状态 */
@@ -138,7 +138,10 @@ function handleRowSelect(row: T) {
 function handleSelectAll(event: Event) {
   const target = event.target as HTMLInputElement;
   if (target.checked) {
-    emit('update:selectedRowKeys', props.data.map(row => row[props.rowKey]));
+    emit(
+      'update:selectedRowKeys',
+      props.data.map((row) => row[props.rowKey]),
+    );
   } else {
     emit('update:selectedRowKeys', []);
   }
@@ -216,10 +219,11 @@ function normalizeRenderResult(result: VNode | string | null): VNode {
               :class="[
                 sizeConfig[props.size].header,
                 'text-left text-xs font-medium text-primary-theme uppercase tracking-wider',
-                { 'cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800': column.sortable }
+                { 'cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800': column.sortable },
               ]"
               :style="{ width: typeof column.width === 'number' ? `${column.width}px` : column.width }"
-              @click="column.sortable && handleSort(column)">
+              @click="column.sortable && handleSort(column)"
+            >
               <div class="flex items-center gap-2">
                 {{ column.title }}
                 <span v-if="column.sortable" class="text-primary-subtle">
@@ -232,7 +236,10 @@ function normalizeRenderResult(result: VNode | string | null): VNode {
         <tbody class="bg-primary-surface">
           <!-- 空数据 -->
           <tr v-if="sortedData.length === 0">
-            <td :colspan="props.columns.length + (props.selectable ? 1 : 0)" class="px-4 py-8 text-center text-primary-theme">
+            <td
+              :colspan="props.columns.length + (props.selectable ? 1 : 0)"
+              class="px-4 py-8 text-center text-primary-theme"
+            >
               {{ emptyText }}
             </td>
           </tr>
@@ -246,9 +253,10 @@ function normalizeRenderResult(result: VNode | string | null): VNode {
               {
                 'bg-primary-100 dark:bg-primary-900/50': props.striped && rowIndex % 2 === 0,
                 'hover:bg-primary-200 dark:hover:bg-primary-800': props.selectable,
-                'border': props.bordered,
-              }
-            ]">
+                border: props.bordered,
+              },
+            ]"
+          >
             <!-- 选择列 -->
             <td v-if="props.selectable" :class="[sizeConfig[props.size].cell, 'text-center']">
               <input
@@ -269,13 +277,11 @@ function normalizeRenderResult(result: VNode | string | null): VNode {
                   'text-center': column.align === 'center',
                   'text-right': column.align === 'right',
                   'text-left': !column.align || column.align === 'left',
-                }
-              ]">
+                },
+              ]"
+            >
               <!-- 自定义渲染（统一处理 VNode 和 string） -->
-              <component
-                v-if="column.render"
-                :is="normalizeRenderResult(column.render(row, rowIndex))"
-              />
+              <component v-if="column.render" :is="normalizeRenderResult(column.render(row, rowIndex))" />
               <!-- 默认显示 -->
               <span v-else>{{ row[column.key] }}</span>
             </td>

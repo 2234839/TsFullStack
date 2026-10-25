@@ -6,22 +6,22 @@ async function fileOperationsExample() {
   const config = {
     storage: {
       type: 'json' as const,
-      dataDir: './data'
+      dataDir: './data',
     },
     security: {
       enablePermissions: true,
       allowedTools: ['file_write', 'file_read', 'file_delete', 'file_list'],
       maxTaskDuration: 300000,
-      safeMode: true
+      safeMode: true,
     },
     logging: {
       level: 'debug' as const,
       enableConsole: true,
-      enableFile: false
+      enableFile: false,
     },
     tools: {
-      timeout: 30000
-    }
+      timeout: 30000,
+    },
   };
 
   const agent = new TsAgent(config);
@@ -63,7 +63,6 @@ async function fileOperationsExample() {
     console.log('- Total tasks:', stats.tasks.total);
     console.log('- Completed tasks:', stats.tasks.completed);
     console.log('- Failed tasks:', stats.tasks.failed);
-
   } catch (error) {
     console.error('File operations example failed:', error);
   } finally {

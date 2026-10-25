@@ -14,13 +14,7 @@
  * ```
  */
 import { computed } from 'vue';
-import {
-  PopoverRoot,
-  PopoverTrigger,
-  PopoverContent,
-  PopoverPortal,
-  PopoverArrow,
-} from 'reka-ui';
+import { PopoverRoot, PopoverTrigger, PopoverContent, PopoverPortal, PopoverArrow } from 'reka-ui';
 import type { PopoverRootProps } from 'reka-ui';
 import type { UiPopoverEmits, UiPopoverProps } from './types';
 
@@ -100,13 +94,9 @@ defineExpose({
         :side="side"
         :align="align"
         :side-offset="sideOffset"
-        :style="contentStyle">
-        <div
-          v-if="showCloseIcon"
-          class="ui-popover-close-icon"
-          @click="close">
-          ×
-        </div>
+        :style="contentStyle"
+      >
+        <div v-if="showCloseIcon" class="ui-popover-close-icon" @click="close">×</div>
         <slot />
         <PopoverArrow class="ui-popover-arrow" :width="12" :height="6" />
       </PopoverContent>

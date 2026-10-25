@@ -1,27 +1,27 @@
-import { defineConfig } from "vite-plus";
+import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   pack: {
-    entry: ["src/lib/index.ts"],
-    outDir: "dist-lib",
+    entry: ['src/lib/index.ts'],
+    outDir: 'dist-lib',
     dts: true,
-    format: ["esm"],
+    format: ['esm'],
     sourcemap: true,
     clean: true,
     deps: {
       neverBundle: [
-        "@zenstackhq/orm",
-        "@zenstackhq/plugin-policy",
-        "@zenstackhq/runtime",
-        "kysely",
-        "better-sqlite3",
-        "fastify",
-        "superjson",
-        "bcryptjs",
-        "uuid",
-        "@fastify/cors",
-        "@fastify/multipart",
-        "@fastify/static",
+        '@zenstackhq/orm',
+        '@zenstackhq/plugin-policy',
+        '@zenstackhq/runtime',
+        'kysely',
+        'better-sqlite3',
+        'fastify',
+        'superjson',
+        'bcryptjs',
+        'uuid',
+        '@fastify/cors',
+        '@fastify/multipart',
+        '@fastify/static',
       ],
     },
   },

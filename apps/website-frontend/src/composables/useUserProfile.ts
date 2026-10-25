@@ -175,13 +175,17 @@ export const useUserProfile = createSharedComposable(() => {
   }
 
   // 监听登录状态变化，自动获取用户信息
-  watch(authInfo_isLogin, (isLoggedIn) => {
-    if (isLoggedIn) {
-      fetchUserProfile();
-    } else {
-      userProfile.value = null;
-    }
-  }, { immediate: true });
+  watch(
+    authInfo_isLogin,
+    (isLoggedIn) => {
+      if (isLoggedIn) {
+        fetchUserProfile();
+      } else {
+        userProfile.value = null;
+      }
+    },
+    { immediate: true },
+  );
 
   return {
     /** 用户信息（只读，防止外部整体替换） */

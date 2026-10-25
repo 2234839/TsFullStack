@@ -30,9 +30,9 @@ This is my TypeScript full-stack best practice project. It allows direct databas
   - Perfect i18n internationalization support, ensuring every detail supports dynamic language switching without page reload.
   - Light/dark theme switching, components and Tailwind CSS support dynamic switching simultaneously.
   - Some implemented feature pages
-   - Prisma Studio-like admin panel (to some extent can serve as an open-source alternative), no longer need to write cookie-cutter CRUD pages.
-   - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) A Chinese-friendly real-time calculation notebook
-   - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) Progressive English learning while reading
+  - Prisma Studio-like admin panel (to some extent can serve as an open-source alternative), no longer need to write cookie-cutter CRUD pages.
+  - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) A Chinese-friendly real-time calculation notebook
+  - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) Progressive English learning while reading
 
 Other Application Demos
 

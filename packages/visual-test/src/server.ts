@@ -6,13 +6,13 @@
  *
  * 同时提供静态文件服务（图片资源）。
  */
-import { createServer, type IncomingMessage, type ServerResponse } from "http";
-import { readFileSync, existsSync } from "fs";
-import superjson from "superjson";
-import type { RunConfig, RunReport, TestEnv } from "./types";
-import { runTests, approveScenario, rejectScenario } from "./runner";
-import { loadManifest, getBaselinePaths, getCurrentPaths } from "./comparator";
-import type { VisualTestAPI } from "./api";
+import { createServer, type IncomingMessage, type ServerResponse } from 'http';
+import { readFileSync, existsSync } from 'fs';
+import superjson from 'superjson';
+import type { RunConfig, RunReport, TestEnv } from './types';
+import { runTests, approveScenario, rejectScenario } from './runner';
+import { loadManifest, getBaselinePaths, getCurrentPaths } from './comparator';
+import type { VisualTestAPI } from './api';
 
 interface ServerOptions {
   /** 监听端口 */
@@ -31,7 +31,7 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
 
   return {
     async health() {
-      return { status: "ok", env: runConfig.env };
+      return { status: 'ok', env: runConfig.env };
     },
 
     async getResults() {
@@ -68,34 +68,34 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
         runConfig.baselineDir,
         runConfig.outputDir,
         name,
-        "web-ui",
+        'web-ui',
         runConfig.env,
         scenario.skipPixel ?? false,
       );
       /** 同步更新 latestReport 中的场景状态 */
       if (latestReport) {
         const r = latestReport.results.find((it) => it.name === name);
-        if (r) r.status = "approved";
+        if (r) r.status = 'approved';
       }
       return { success: true };
     },
 
     async approveAll() {
-      if (!latestReport) throw new Error("请先运行测试");
+      if (!latestReport) throw new Error('请先运行测试');
       const approved: string[] = [];
       for (const result of latestReport.results) {
-        if (result.status === "pendingNew" || result.status === "pendingDiff") {
+        if (result.status === 'pendingNew' || result.status === 'pendingDiff') {
           const scenario = runConfig.scenarios.find((s) => s.name === result.name);
           if (!scenario) continue;
           approveScenario(
             runConfig.baselineDir,
             runConfig.outputDir,
             result.name,
-            "web-ui",
+            'web-ui',
             runConfig.env,
             scenario.skipPixel ?? false,
           );
-          result.status = "approved";
+          result.status = 'approved';
           approved.push(result.name);
         }
       }
@@ -107,7 +107,7 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
       /** 同步更新 latestReport 中的场景状态 */
       if (latestReport) {
         const r = latestReport.results.find((it) => it.name === name);
-        if (r) r.status = "rejected";
+        if (r) r.status = 'rejected';
       }
       return { success: true };
     },
@@ -129,29 +129,29 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
       return { success: true };
     },
 
-    async getImage(type: "baseline" | "current" | "diff", name: string) {
+    async getImage(type: 'baseline' | 'current' | 'diff', name: string) {
       let filePath: string;
-      if (type === "baseline") {
+      if (type === 'baseline') {
         filePath = getBaselinePaths(runConfig.baselineDir, name, runConfig.env).image;
-      } else if (type === "current") {
+      } else if (type === 'current') {
         filePath = getCurrentPaths(runConfig.outputDir, name).image;
       } else {
         filePath = getCurrentPaths(runConfig.outputDir, name).diff;
       }
       if (!existsSync(filePath)) return null;
       const buffer = readFileSync(filePath);
-      return buffer.toString("base64");
+      return buffer.toString('base64');
     },
 
-    async getDom(type: "baseline" | "current", name: string) {
+    async getDom(type: 'baseline' | 'current', name: string) {
       let filePath: string;
-      if (type === "baseline") {
+      if (type === 'baseline') {
         filePath = getBaselinePaths(runConfig.baselineDir, name, runConfig.env).dom;
       } else {
         filePath = getCurrentPaths(runConfig.outputDir, name).dom;
       }
       if (!existsSync(filePath)) return null;
-      return readFileSync(filePath, "utf-8");
+      return readFileSync(filePath, 'utf-8');
     },
   };
 }
@@ -160,32 +160,32 @@ function createApiImpl(runConfig: RunConfig): VisualTestAPI {
  * 启动 HTTP 服务
  */
 export function startServer(options: ServerOptions): void {
-  const { port, host = "localhost", runConfig } = options;
+  const { port, host = 'localhost', runConfig } = options;
   const api = createApiImpl(runConfig);
 
   const server = createServer(async (req, res) => {
     // CORS
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === "OPTIONS") {
+    if (req.method === 'OPTIONS') {
       res.writeHead(204);
       res.end();
       return;
     }
 
-    const url = req.url ?? "";
+    const url = req.url ?? '';
 
     // RPC 路由：POST /api/method → 调用 api[method](...args)
-    if (req.method === "POST" && url.startsWith("/api/")) {
-      const method = url.replace("/api/", "");
+    if (req.method === 'POST' && url.startsWith('/api/')) {
+      const method = url.replace('/api/', '');
       try {
         const body = await readBody(req);
         const parsed = body ? superjson.parse(body) : [];
         const args = Array.isArray(parsed) ? parsed : [parsed];
         const methodKey = method as keyof VisualTestAPI;
-        if (typeof api[methodKey] !== "function") {
+        if (typeof api[methodKey] !== 'function') {
           sendJson(res, 404, { error: { message: `方法 ${method} 不存在` } });
           return;
         }
@@ -199,13 +199,13 @@ export function startServer(options: ServerOptions): void {
     }
 
     // 健康检查
-    if (url === "/health") {
-      sendJson(res, 200, { status: "ok", env: runConfig.env });
+    if (url === '/health') {
+      sendJson(res, 200, { status: 'ok', env: runConfig.env });
       return;
     }
 
     res.writeHead(404);
-    res.end("Not Found");
+    res.end('Not Found');
   });
 
   server.listen(port, host, () => {
@@ -219,14 +219,14 @@ export function startServer(options: ServerOptions): void {
 /** 读取请求 body */
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve) => {
-    let data = "";
-    req.on("data", (chunk) => (data += chunk));
-    req.on("end", () => resolve(data));
+    let data = '';
+    req.on('data', (chunk) => (data += chunk));
+    req.on('end', () => resolve(data));
   });
 }
 
 /** 发送 JSON 响应 */
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
-  res.writeHead(status, { "Content-Type": "application/json" });
+  res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
 }

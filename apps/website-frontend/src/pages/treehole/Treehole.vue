@@ -3,19 +3,14 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
       <!-- 页面标题 -->
       <div class="mb-8 flex items-center justify-between">
-        <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50">
-          🌳 {{ t('树洞') }}
-        </h1>
-        <Button
-          :label="t('首页')"
-          icon="pi pi-home"
-          variant="secondary"
-          @click="router.push('/')"
-        />
+        <h1 class="text-3xl font-bold text-primary-900 dark:text-primary-50">🌳 {{ t('树洞') }}</h1>
+        <Button :label="t('首页')" icon="pi pi-home" variant="secondary" @click="router.push('/')" />
       </div>
 
       <!-- 过滤器 -->
-      <div class="mb-6 flex flex-wrap gap-2 items-center justify-between bg-white dark:bg-primary-900 rounded-lg shadow-sm p-4">
+      <div
+        class="mb-6 flex flex-wrap gap-2 items-center justify-between bg-white dark:bg-primary-900 rounded-lg shadow-sm p-4"
+      >
         <div class="flex gap-2">
           <Button
             v-for="filter in visibilityFilters"
@@ -30,11 +25,7 @@
         </div>
 
         <div class="relative">
-          <Input
-            v-model="searchKeyword"
-            :placeholder="t('搜索标题或内容...')"
-            class="w-48"
-          >
+          <Input v-model="searchKeyword" :placeholder="t('搜索标题或内容...')" class="w-48">
             <template #prefix>
               <i class="pi pi-search"></i>
             </template>
@@ -50,11 +41,7 @@
           class="w-full mb-4"
           @click="showCreateForm = !showCreateForm"
         />
-        <TreeholePostForm
-          v-if="showCreateForm"
-          @submit="handlePostCreated"
-          @cancel="showCreateForm = false"
-        />
+        <TreeholePostForm v-if="showCreateForm" @submit="handlePostCreated" @cancel="showCreateForm = false" />
       </div>
 
       <!-- 加载状态 -->
@@ -270,7 +257,11 @@ watch(searchKeyword, () => {
 });
 
 /** 监听过滤器变化，immediate: true 同时替代 onMounted */
-watch(currentFilter, () => {
-  loadPosts();
-}, { immediate: true });
+watch(
+  currentFilter,
+  () => {
+    loadPosts();
+  },
+  { immediate: true },
+);
 </script>

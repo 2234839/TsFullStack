@@ -7,7 +7,10 @@ import type { StorageAdapter, VersionedStorage } from './storageAdapter';
 export class InexdbStorageAdapter<TValue> implements StorageAdapter<TValue> {
   private configsService = getConfigsService();
 
-  constructor(private key: string, private fallback: TValue) {}
+  constructor(
+    private key: string,
+    private fallback: TValue,
+  ) {}
 
   async getValue(): Promise<VersionedStorage<TValue> | null> {
     const value = await this.configsService.getItem(this.key);

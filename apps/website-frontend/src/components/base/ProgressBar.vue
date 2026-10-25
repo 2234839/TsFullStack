@@ -8,13 +8,7 @@ import { computed } from 'vue';
 defineOptions({ inheritAttrs: false });
 
 /** 进度条颜色变体 */
-type ProgressBarColor =
-  | 'primary'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'amber'
-  | 'orange';
+type ProgressBarColor = 'primary' | 'success' | 'warning' | 'danger' | 'amber' | 'orange';
 
 /** 颜色 → Tailwind 类映射 */
 const COLOR_CLASSES: Record<ProgressBarColor, { fill: string; track: string }> = {
@@ -54,7 +48,8 @@ const colorStyle = computed(() => COLOR_CLASSES[color]);
       <template v-if="mode === 'determinate'">
         <div
           :class="['h-full transition-all duration-300 ease-out', colorStyle.fill]"
-          :style="{ width: `${percentage}%` }" />
+          :style="{ width: `${percentage}%` }"
+        />
       </template>
       <template v-else>
         <div :class="['absolute top-0 left-0 h-full animate-progress-indeterminate', colorStyle.fill]" />

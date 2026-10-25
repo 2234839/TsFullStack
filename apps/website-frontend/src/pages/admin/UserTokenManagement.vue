@@ -160,7 +160,9 @@ async function loadTokens() {
 async function loadTransactions() {
   isLoading.value = true;
   try {
-    type TokenTransactionWhereInput = NonNullable<NonNullable<Parameters<typeof API.db.tokenTransaction.findMany>[0]>['where']>;
+    type TokenTransactionWhereInput = NonNullable<
+      NonNullable<Parameters<typeof API.db.tokenTransaction.findMany>[0]>['where']
+    >;
     const where: Partial<TokenTransactionWhereInput> = {};
     if (transactionsSearchKeyword.value) {
       where.OR = [
@@ -213,9 +215,13 @@ function loadData() {
 }
 
 /** 监听标签页切换，immediate: true 同时替代 onMounted */
-watch(activeTab, () => {
-  loadData();
-}, { immediate: true });
+watch(
+  activeTab,
+  () => {
+    loadData();
+  },
+  { immediate: true },
+);
 
 /** ========== 搜索功能 ========== */
 /** 代币列表搜索 */
@@ -378,7 +384,7 @@ function getTaskTypeLabel(type: string): string {
 function getRestrictedTypeLabel(type: string | string[]): string {
   if (Array.isArray(type)) {
     if (type.length === 0) return t('通用代币');
-    return type.map(t => TokenOptions.TaskTypeLabels[t as keyof typeof TokenOptions.TaskTypeLabels] || t).join('、');
+    return type.map((t) => TokenOptions.TaskTypeLabels[t as keyof typeof TokenOptions.TaskTypeLabels] || t).join('、');
   }
   return TokenOptions.TaskTypeLabels[type as keyof typeof TokenOptions.TaskTypeLabels] || type;
 }
@@ -401,46 +407,60 @@ const tokenColumns = computed<ColumnDef<UserToken>[]>(() => [
     key: 'type',
     title: t('类型'),
     width: '15%',
-    render: (row) => h('div', { class: 'flex flex-wrap gap-1' }, [
-      h(Tag, { value: getTypeLabel(row.type), variant: 'info' }),
-      ...(parseRestrictedType(row.restrictedType).length > 0
-        ? [h(Tag, { value: t('专用'), variant: 'warn' })]
-        : []
-      ),
-    ]),
+    render: (row) =>
+      h('div', { class: 'flex flex-wrap gap-1' }, [
+        h(Tag, { value: getTypeLabel(row.type), variant: 'info' }),
+        ...(parseRestrictedType(row.restrictedType).length > 0 ? [h(Tag, { value: t('专用'), variant: 'warn' })] : []),
+      ]),
   },
   {
     key: 'amount',
     title: t('数量'),
     width: '15%',
-    render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'text-primary-title' }, `${t('总量')}: ${row.amount}`),
-      h('div', { class: 'text-xs text-primary-subtle' }, `${t('已用')}: ${row.used} | ${t('可用')}: ${getAvailableAmount(row)}`),
-    ]),
+    render: (row) =>
+      h('div', { class: 'text-sm' }, [
+        h('div', { class: 'text-primary-title' }, `${t('总量')}: ${row.amount}`),
+        h(
+          'div',
+          { class: 'text-xs text-primary-subtle' },
+          `${t('已用')}: ${row.used} | ${t('可用')}: ${getAvailableAmount(row)}`,
+        ),
+      ]),
   },
   {
     key: 'expiresAt',
     title: t('过期时间'),
     width: '15%',
-    render: (row) => h('div', { class: 'text-sm text-primary-theme' }, formatDate(row.expiresAt, { nullLabel: t('永不过期') })),
+    render: (row) =>
+      h('div', { class: 'text-sm text-primary-theme' }, formatDate(row.expiresAt, { nullLabel: t('永不过期') })),
   },
   {
     key: 'description',
     title: t('备注'),
     width: '20%',
-    render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', {
-        class: 'text-primary-theme truncate',
-        title: row.description || ''
-      }, row.description || '-'),
-      ...(parseRestrictedType(row.restrictedType).length > 0
-        ? [h('div', {
-            class: 'text-xs text-warning-600 dark:text-warning-400 truncate',
-            title: getRestrictedTypeLabel(parseRestrictedType(row.restrictedType))
-          }, getRestrictedTypeLabel(parseRestrictedType(row.restrictedType)))]
-        : []
-      ),
-    ]),
+    render: (row) =>
+      h('div', { class: 'text-sm' }, [
+        h(
+          'div',
+          {
+            class: 'text-primary-theme truncate',
+            title: row.description || '',
+          },
+          row.description || '-',
+        ),
+        ...(parseRestrictedType(row.restrictedType).length > 0
+          ? [
+              h(
+                'div',
+                {
+                  class: 'text-xs text-warning-600 dark:text-warning-400 truncate',
+                  title: getRestrictedTypeLabel(parseRestrictedType(row.restrictedType)),
+                },
+                getRestrictedTypeLabel(parseRestrictedType(row.restrictedType)),
+              ),
+            ]
+          : []),
+      ]),
   },
   {
     key: 'created',
@@ -462,10 +482,11 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     key: 'task',
     title: t('任务'),
     width: '17%',
-    render: (row) => h('div', { class: 'text-sm' }, [
-      h('div', { class: 'text-primary-title' }, row.task?.title ?? '--'),
-      h('div', { class: 'text-xs text-primary-subtle' }, getTaskTypeLabel(row.task?.type ?? '')),
-    ]),
+    render: (row) =>
+      h('div', { class: 'text-sm' }, [
+        h('div', { class: 'text-primary-title' }, row.task?.title ?? '--'),
+        h('div', { class: 'text-xs text-primary-subtle' }, getTaskTypeLabel(row.task?.type ?? '')),
+      ]),
   },
   {
     key: 'tokenType',
@@ -485,10 +506,12 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
     width: '17%',
     render: (row) => {
       if (!row.balanceSnapshot) return '';
-      return h('div', { class: 'text-xs text-primary-subtle' },
+      return h(
+        'div',
+        { class: 'text-xs text-primary-subtle' },
         Object.entries(row.balanceSnapshot).map(([type, balance]) =>
-          h('div', { key: type, class: 'truncate' }, `${getTypeLabel(type)}: ${balance}`)
-        )
+          h('div', { key: type, class: 'truncate' }, `${getTypeLabel(type)}: ${balance}`),
+        ),
       );
     },
   },
@@ -516,7 +539,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
             'border-b-2',
             activeTab === 'tokens'
               ? 'border-primary-500 text-primary-theme'
-              : 'border-transparent text-primary-subtle hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
+              : 'border-transparent text-primary-subtle hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600',
           ]"
           variant="text"
           @click="activeTab = 'tokens'"
@@ -529,7 +552,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
             'border-b-2',
             activeTab === 'transactions'
               ? 'border-primary-500 text-primary-theme'
-              : 'border-transparent text-primary-subtle hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600'
+              : 'border-transparent text-primary-subtle hover:text-primary-700 dark:hover:text-primary-300 hover:border-primary-300 dark:hover:border-primary-600',
           ]"
           @click="activeTab = 'transactions'"
         >
@@ -560,11 +583,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
           <Button @click="searchTokens">
             {{ t('搜索') }}
           </Button>
-          <Button
-            v-if="tokensSearchKeyword"
-            variant="secondary"
-            @click="clearTokensSearch"
-          >
+          <Button v-if="tokensSearchKeyword" variant="secondary" @click="clearTokensSearch">
             {{ t('清空') }}
           </Button>
         </div>
@@ -609,11 +628,7 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
           <Button @click="searchTransactions">
             {{ t('搜索') }}
           </Button>
-          <Button
-            v-if="transactionsSearchKeyword"
-            variant="secondary"
-            @click="clearTransactionsSearch"
-          >
+          <Button v-if="transactionsSearchKeyword" variant="secondary" @click="clearTransactionsSearch">
             {{ t('清空') }}
           </Button>
         </div>
@@ -664,8 +679,12 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
           <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('专用类型') }}
           </label>
-          <MultiSelect v-model="grantForm.restrictedType" :options="taskTypeOptions" :placeholder="t('请选择专用类型（可选）')"
-            :selected-items-label="t('{0} 个类型已选择')" />
+          <MultiSelect
+            v-model="grantForm.restrictedType"
+            :options="taskTypeOptions"
+            :placeholder="t('请选择专用类型（可选）')"
+            :selected-items-label="t('{0} 个类型已选择')"
+          />
           <p class="mt-1 text-xs text-primary-subtle">
             {{ t('如果选择专用类型，代币只能用于指定类型的任务；不选择则可用于所有任务') }}
           </p>
@@ -675,30 +694,20 @@ const transactionColumns = computed<ColumnDef<TokenTransaction>[]>(() => [
           <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('数量 *') }}
           </label>
-          <InputNumber
-            v-model="grantForm.amount"
-            :min="1"
-          />
+          <InputNumber v-model="grantForm.amount" :min="1" />
         </div>
 
         <div>
           <label class="block text-sm font-medium text-primary-label mb-2">
             {{ t('备注') }}
           </label>
-          <Textarea
-            v-model="grantForm.description"
-            :rows="2"
-            :placeholder="t('发放原因（可选）')"
-          />
+          <Textarea v-model="grantForm.description" :rows="2" :placeholder="t('发放原因（可选）')" />
         </div>
       </div>
 
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button
-            variant="secondary"
-            @click="showGrantDialog = false"
-          >
+          <Button variant="secondary" @click="showGrantDialog = false">
             {{ t('取消') }}
           </Button>
           <Button

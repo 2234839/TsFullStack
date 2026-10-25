@@ -1,4 +1,3 @@
-
 export interface CollectionItem {
   type: 'text' | 'html' | 'attribute' | 'js' | 'error';
   selector?: string;

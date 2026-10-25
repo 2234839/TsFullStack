@@ -9,7 +9,7 @@
  * - 独立运行，由 visual-test 进程提供 HTTP 服务
  * - 但使用与 TsFullStack 相同的 RPC 协议（superjson + POST /api/method）
  */
-import type { RunReport, ScenarioResult, Manifest, TestEnv } from "./types";
+import type { RunReport, ScenarioResult, Manifest, TestEnv } from './types';
 
 /**
  * visual-test API 接口
@@ -48,8 +48,8 @@ export interface VisualTestAPI {
   setEnv(env: TestEnv): Promise<{ success: boolean }>;
 
   /** 获取图片的 base64（供前端展示） */
-  getImage(type: "baseline" | "current" | "diff", name: string): Promise<string | null>;
+  getImage(type: 'baseline' | 'current' | 'diff', name: string): Promise<string | null>;
 
   /** 获取 DOM 结构 JSON */
-  getDom(type: "baseline" | "current", name: string): Promise<string | null>;
+  getDom(type: 'baseline' | 'current', name: string): Promise<string | null>;
 }

@@ -31,26 +31,16 @@
             Ts<span class="text-primary-600 dark:text-info-400">FullStack</span>
           </h1>
         </div>
-        <Button
-          v-if="!isCollapsed"
-          variant="ghost"
-          @click.stop="toggleCollapse"
-          class="p-2"
-          aria-label="Toggle menu"
-        >
+        <Button v-if="!isCollapsed" variant="ghost" @click.stop="toggleCollapse" class="p-2" aria-label="Toggle menu">
           <i class="pi pi-bars"></i>
         </Button>
       </div>
 
       <!-- 用户信息区域 -->
-      <div
-        class="user-profile px-4 py-5 flex items-center border-b border-primary-200 dark:border-secondary-700/50"
-      >
+      <div class="user-profile px-4 py-5 flex items-center border-b border-primary-200 dark:border-secondary-700/50">
         <div class="relative">
           <a href="https://shenzilong.cn" target="_blank">
-            <div
-              class="shadow-lg border-2 border-primary-400 dark:border-info-400 mr-3 rounded-full"
-            >
+            <div class="shadow-lg border-2 border-primary-400 dark:border-info-400 mr-3 rounded-full">
               <UserAvatar :fileId="avatarFileId" size="md" />
             </div>
           </a>
@@ -64,7 +54,7 @@
         >
           <h2 class="font-medium text-primary-800 dark:text-primary-50">{{ displayName }}</h2>
           <p class="text-sm text-primary-500 dark:text-secondary-400">
-            {{ userProfile?.email ?? t("未登录") }}
+            {{ userProfile?.email ?? t('未登录') }}
           </p>
         </div>
         <Badge v-if="!isCollapsed" value="3" variant="info" class="ml-auto"></Badge>
@@ -132,11 +122,7 @@
                       ]"
                     ></i>
                     <span class="flex-1 text-sm whitespace-nowrap">{{ subItem.label }}</span>
-                    <Badge
-                      v-if="subItem.badge"
-                      :value="subItem.badge"
-                      :variant="getBadgeVariant(subItem)"
-                    ></Badge>
+                    <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
                   </div>
                 </div>
               </Dropdown>
@@ -147,10 +133,7 @@
                   <Button
                     variant="icon"
                     :icon="item.icon"
-                    :class="[
-                      'w-full justify-center',
-                      isActiveRoute(item) ? 'text-primary-600 dark:text-info-400' : '',
-                    ]"
+                    :class="['w-full justify-center', isActiveRoute(item) ? 'text-primary-600 dark:text-info-400' : '']"
                     @click="navigateTo(item)"
                   />
                 </Tooltip>
@@ -165,11 +148,7 @@
           </ul>
         </div>
         <div v-else class="expanded-menu">
-          <div
-            v-for="(category, index) in filteredMenuItems"
-            :key="category.category"
-            class="menu-category mb-4"
-          >
+          <div v-for="(category, index) in filteredMenuItems" :key="category.category" class="menu-category mb-4">
             <div
               class="menu-category-header flex items-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-primary-500 dark:text-secondary-400"
               v-if="index > 0"
@@ -194,12 +173,7 @@
                   ]"
                 ></i>
                 <span class="flex-1">{{ menuItem.label }}</span>
-                <Badge
-                  v-if="menuItem.badge"
-                  :value="menuItem.badge"
-                  :variant="getBadgeVariant(menuItem)"
-                  class="mr-2"
-                >
+                <Badge v-if="menuItem.badge" :value="menuItem.badge" :variant="getBadgeVariant(menuItem)" class="mr-2">
                 </Badge>
                 <i
                   v-if="menuItem.items && menuItem.items.length"
@@ -235,11 +209,7 @@
                     ]"
                   ></i>
                   <span class="flex-1 text-sm">{{ subItem.label }}</span>
-                  <Badge
-                    v-if="subItem.badge"
-                    :value="subItem.badge"
-                    :variant="getBadgeVariant(subItem)"
-                  ></Badge>
+                  <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
                 </div>
               </div>
             </div>
@@ -249,10 +219,7 @@
 
       <!-- 底部操作区 -->
       <div class="footer border-t border-primary-200 dark:border-secondary-700/50 p-4">
-        <div
-          class="flex items-center justify-around"
-          :class="{ 'flex-col space-y-4': isCollapsed }"
-        >
+        <div class="flex items-center justify-around" :class="{ 'flex-col space-y-4': isCollapsed }">
           <ThemeSwitch />
           <I18nSwitch />
           <UserSettingBtn />
@@ -270,16 +237,16 @@
 </template>
 
 <script setup lang="ts">
-import I18nSwitch from "@/components/system/I18nSwitch.vue";
-import ThemeSwitch from "@/components/system/ThemeToggle.vue";
-import { useI18n } from "@/composables/useI18n";
-import { routeMap, router, routerUtil } from "@/router";
-import { Dropdown, Tooltip } from "@tsfullstack/shared-frontend/components";
-import { computed, reactive, ref } from "vue";
-import type { RouteLocationRaw } from "vue-router";
-import UserAvatar from "@/components/base/UserAvatar.vue";
-import UserSettingBtn from "@/components/system/UserSettingBtn.vue";
-import { useUserProfile } from "@/composables/useUserProfile";
+import I18nSwitch from '@/components/system/I18nSwitch.vue';
+import ThemeSwitch from '@/components/system/ThemeToggle.vue';
+import { useI18n } from '@/composables/useI18n';
+import { routeMap, router, routerUtil } from '@/router';
+import { Dropdown, Tooltip } from '@tsfullstack/shared-frontend/components';
+import { computed, reactive, ref } from 'vue';
+import type { RouteLocationRaw } from 'vue-router';
+import UserAvatar from '@/components/base/UserAvatar.vue';
+import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
+import { useUserProfile } from '@/composables/useUserProfile';
 
 /** 获取用户信息 */
 const { displayName, avatarFileId, userProfile } = useUserProfile();
@@ -303,7 +270,7 @@ interface MenuCategory {
 
 // 侧边栏状态
 const isCollapsed = ref(false);
-const searchQuery = ref("");
+const searchQuery = ref('');
 
 /** 存储 Dropdown 打开状态的响应式对象 */
 const dropdownOpenStates = reactive<Record<string, boolean>>({});
@@ -322,103 +289,103 @@ const { t } = useI18n();
 
 const menuItems = reactive([
   {
-    category: t("工作台"),
+    category: t('工作台'),
     items: [
       {
-        key: "dashboard",
-        label: t("控制台"),
-        icon: "pi pi-home",
+        key: 'dashboard',
+        label: t('控制台'),
+        icon: 'pi pi-home',
         to: routerUtil.to(routeMap.admin.child.index, {}),
       },
       {
-        key: "studio",
-        label: t("模型管理"),
-        icon: "pi pi-th-large",
+        key: 'studio',
+        label: t('模型管理'),
+        icon: 'pi pi-th-large',
         to: routerUtil.to(routeMap.admin.child.studio, {}),
-        badgeVariant: "info",
+        badgeVariant: 'info',
         expanded: false,
       },
       {
-        key: "UploadList",
-        label: t("上传列表"),
-        icon: "pi pi-upload",
+        key: 'UploadList',
+        label: t('上传列表'),
+        icon: 'pi pi-upload',
         to: routerUtil.to(routeMap.admin.child.UploadList, {}),
-        badgeVariant: "info",
+        badgeVariant: 'info',
         expanded: false,
       },
       {
-        key: "ShareList",
-        label: t("分享管理"),
+        key: 'ShareList',
+        label: t('分享管理'),
         icon: routeMap.admin.child.ShareList.meta.icon,
         to: routerUtil.to(routeMap.admin.child.ShareList, {}),
       },
       {
-        key: "resourceGallery",
-        label: t("资源库"),
+        key: 'resourceGallery',
+        label: t('资源库'),
         icon: routeMap.admin.child.resourceGallery.meta.icon,
         to: routerUtil.to(routeMap.admin.child.resourceGallery, {}),
       },
       {
-        key: "aiManagement",
-        label: t("AI工作台"),
-        icon: "pi pi-android",
+        key: 'aiManagement',
+        label: t('AI工作台'),
+        icon: 'pi pi-android',
         expanded: false,
         items: [
           {
-            key: "aiImageGeneration",
-            label: t("AI图片生成"),
+            key: 'aiImageGeneration',
+            label: t('AI图片生成'),
             icon: routeMap.admin.child.aiImageGeneration.meta.icon,
             to: routerUtil.to(routeMap.admin.child.aiImageGeneration, {}),
           },
           {
-            key: "aiModelManager",
-            label: t("AI模型管理"),
-            icon: "pi pi-microchip-ai",
+            key: 'aiModelManager',
+            label: t('AI模型管理'),
+            icon: 'pi pi-microchip-ai',
             to: routerUtil.to(routeMap.admin.child.aiModelManager, {}),
           },
         ],
       },
       {
-        key: "tokenManagement",
-        label: t("代币管理"),
-        icon: "pi pi-bitcoin",
+        key: 'tokenManagement',
+        label: t('代币管理'),
+        icon: 'pi pi-bitcoin',
         expanded: false,
         items: [
           {
-            key: "tokenPackageManagement",
-            label: t("代币套餐管理"),
+            key: 'tokenPackageManagement',
+            label: t('代币套餐管理'),
             icon: routeMap.admin.child.tokenPackageManagement.meta.icon,
             to: routerUtil.to(routeMap.admin.child.tokenPackageManagement, {}),
           },
           {
-            key: "userTokenManagement",
-            label: t("用户代币管理"),
+            key: 'userTokenManagement',
+            label: t('用户代币管理'),
             icon: routeMap.admin.child.userTokenManagement.meta.icon,
             to: routerUtil.to(routeMap.admin.child.userTokenManagement, {}),
           },
           {
-            key: "userSubscriptionManagement",
-            label: t("用户订阅管理"),
+            key: 'userSubscriptionManagement',
+            label: t('用户订阅管理'),
             icon: routeMap.admin.child.userSubscriptionManagement.meta.icon,
             to: routerUtil.to(routeMap.admin.child.userSubscriptionManagement, {}),
           },
         ],
       },
       {
-        key: "paymentManagement",
-        label: t("支付管理"),
-        icon: "pi pi-wallet",
+        key: 'paymentManagement',
+        label: t('支付管理'),
+        icon: 'pi pi-wallet',
         expanded: false,
         items: [
           {
-            key: "paymentConfig",
-            label: t("支付配置"),
+            key: 'paymentConfig',
+            label: t('支付配置'),
             icon: routeMap.admin.child.paymentConfig.meta.icon,
             to: routerUtil.to(routeMap.admin.child.paymentConfig, {}),
           },
           {
-            key: "paymentOrderList",
-            label: t("支付订单"),
+            key: 'paymentOrderList',
+            label: t('支付订单'),
             icon: routeMap.admin.child.paymentOrderList.meta.icon,
             to: routerUtil.to(routeMap.admin.child.paymentOrderList, {}),
           },
@@ -427,58 +394,50 @@ const menuItems = reactive([
     ],
   },
   {
-    category: t("用户与权限"),
+    category: t('用户与权限'),
     items: [
       {
-        key: "users",
-        label: t("用户管理"),
-        icon: "pi pi-users",
+        key: 'users',
+        label: t('用户管理'),
+        icon: 'pi pi-users',
         expanded: false,
         items: [
           {
-            key: "user-list",
-            label: t("用户列表"),
-            icon: "pi pi-list",
-            to: routerUtil.to(
-              routeMap.admin.child.studio,
-              {},
-              { hideSwitch: "true", modelName: "User" },
-            ),
+            key: 'user-list',
+            label: t('用户列表'),
+            icon: 'pi pi-list',
+            to: routerUtil.to(routeMap.admin.child.studio, {}, { hideSwitch: 'true', modelName: 'User' }),
           },
         ],
       },
       {
-        key: "roles",
-        label: t("角色权限"),
-        icon: "pi pi-shield",
-        to: routerUtil.to(
-          routeMap.admin.child.studio,
-          {},
-          { hideSwitch: "true", modelName: "Role" },
-        ),
+        key: 'roles',
+        label: t('角色权限'),
+        icon: 'pi pi-shield',
+        to: routerUtil.to(routeMap.admin.child.studio, {}, { hideSwitch: 'true', modelName: 'Role' }),
       },
     ],
   },
   {
-    category: t("系统设置"),
+    category: t('系统设置'),
     items: [
       {
-        key: "userSettings",
-        label: t("个人设置"),
+        key: 'userSettings',
+        label: t('个人设置'),
         icon: routeMap.admin.child.userSettings.meta.icon,
         to: routerUtil.to(routeMap.admin.child.userSettings, {}),
       },
       {
-        key: "settings",
-        label: t("系统设置"),
-        icon: "pi pi-cog",
+        key: 'settings',
+        label: t('系统设置'),
+        icon: 'pi pi-cog',
         expanded: false,
         items: [],
       },
       {
-        key: "logs",
-        label: t("系统日志"),
-        icon: "pi pi-list",
+        key: 'logs',
+        label: t('系统日志'),
+        icon: 'pi pi-list',
         to: routerUtil.to(routeMap.admin.child.systemLog, {}),
       },
     ],
@@ -568,7 +527,7 @@ const navigateTo = (item: MenuItem): void => {
 
 /** 检查是否是当前活动路由（支持 string 路径和路由名称对象两种格式） */
 const isActiveRoute = (item: MenuItem): boolean => {
-  if (typeof item.to === "string") {
+  if (typeof item.to === 'string') {
     return router.currentRoute.value.path === item.to;
   }
   return router.currentRoute.value.name === (item.to as { name?: string })?.name;
@@ -576,7 +535,7 @@ const isActiveRoute = (item: MenuItem): boolean => {
 
 /** 获取徽章样式 */
 const getBadgeVariant = (item: MenuItem): string => {
-  return item.badgeVariant ?? "info";
+  return item.badgeVariant ?? 'info';
 };
 </script>
 
@@ -590,7 +549,7 @@ const getBadgeVariant = (item: MenuItem): string => {
 
 /* 有子菜单的菜单项样式 */
 .has-submenu::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 65%;
   right: 0px;
@@ -670,16 +629,8 @@ const getBadgeVariant = (item: MenuItem): string => {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(
-      to right,
-      color-mix(in srgb, var(--color-slate-500) 5%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in srgb, var(--color-slate-500) 5%, transparent) 1px,
-      transparent 1px
-    );
+    linear-gradient(to right, color-mix(in srgb, var(--color-slate-500) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--color-slate-500) 5%, transparent) 1px, transparent 1px);
   background-size: 20px 20px;
   opacity: 0.3;
 }
@@ -708,17 +659,13 @@ const getBadgeVariant = (item: MenuItem): string => {
 
 .menu-item-header::before,
 .submenu-item::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 0;
   height: 100%;
   width: 0;
-  background: linear-gradient(
-    90deg,
-    color-mix(in srgb, var(--color-primary-500) 10%, transparent),
-    transparent
-  );
+  background: linear-gradient(90deg, color-mix(in srgb, var(--color-primary-500) 10%, transparent), transparent);
   transition: width 0.3s ease;
 }
 
@@ -734,7 +681,7 @@ const getBadgeVariant = (item: MenuItem): string => {
 }
 
 .logo-icon::after {
-  content: "";
+  content: '';
   position: absolute;
   top: -50%;
   left: -50%;

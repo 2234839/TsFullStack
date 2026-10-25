@@ -5,7 +5,7 @@
     <div v-if="isEncrypted" class="h-48 w-full flex items-center justify-center">
       <div class="flex flex-col items-center text-primary-subtle">
         <i class="pi pi-lock text-4xl mb-2" />
-        <span class="text-xs">{{ t("加密分享") }}</span>
+        <span class="text-xs">{{ t('加密分享') }}</span>
       </div>
     </div>
     <!-- 非加密分享：文件预览轮播 -->
@@ -24,10 +24,10 @@ import {
   type ShareItemJSON,
   isEncryptedData,
   getPlaintextShare,
-} from "@/pages/admin/share/ShareDef";
-import ShareFilePreview from "@/pages/admin/share/ShareFilePreview.vue";
-import { useI18n } from "@/composables/useI18n";
-import { computed } from "vue";
+} from '@/pages/admin/share/ShareDef';
+import ShareFilePreview from '@/pages/admin/share/ShareFilePreview.vue';
+import { useI18n } from '@/composables/useI18n';
+import { computed } from 'vue';
 
 interface ShareCardProps {
   data: ShareItemJSON;

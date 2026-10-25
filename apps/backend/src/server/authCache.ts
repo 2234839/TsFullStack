@@ -55,12 +55,7 @@ export function destroyAuthCache() {
  * - 既然需要强引用键对象，WeakMap 的自动垃圾回收优势就无法发挥
  * - 对于字符串键的缓存场景，纯 Map + LRU 是最优解
  */
-export function getAuthFromCache(opt: {
-  userId?: string;
-  email?: string;
-  sessionToken?: string;
-  sessionID?: number;
-}) {
+export function getAuthFromCache(opt: { userId?: string; email?: string; sessionToken?: string; sessionID?: number }) {
   return Effect.gen(function* () {
     const cacheKey = `${opt.userId}-${opt.email}-${opt.sessionToken}-${opt.sessionID}`;
     const now = Date.now();

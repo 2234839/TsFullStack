@@ -10,14 +10,16 @@
         :class="{
           'button-show': githubStarShow !== 'hide',
           'button-hide': githubStarShow === 'hide',
-        }">
+        }"
+      >
         <i class="pi pi-github text-2xl!" />
         <i class="pi pi-star-fill text-2xl! text-warning-300" />
         <span class="font-medium button-text"> {{ t('支持一下 | Star 这个项目') }} </span>
         <button
           @click.prevent.stop="toggleGithubStar()"
           :aria-label="t('关闭')"
-          class="hidden group-hover:block absolute -top-2 -right-2 bg-white text-gray-600 rounded-full p-1 leading-none shadow-md hover:bg-danger-50 hover:text-danger-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-danger-900 dark:hover:text-danger-400 transition-colors">
+          class="hidden group-hover:block absolute -top-2 -right-2 bg-white text-gray-600 rounded-full p-1 leading-none shadow-md hover:bg-danger-50 hover:text-danger-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-danger-900 dark:hover:text-danger-400 transition-colors"
+        >
           <i class="pi pi-times text-sm" />
         </button>
       </a>
@@ -31,7 +33,8 @@
         :class="{
           'button-show': githubStarShow === 'hide',
           'button-hide': githubStarShow !== 'hide',
-        }">
+        }"
+      >
         <i class="pi pi-github text-white text-4xl!" />
       </button>
     </div>
@@ -39,57 +42,57 @@
 </template>
 
 <script setup lang="ts">
-  import { githubStarShow } from '@/storage'
-  import { useI18n } from '@/composables/useI18n';
-  import { GITHUB_REPO_URL } from '@/utils/constants';
+import { githubStarShow } from '@/storage';
+import { useI18n } from '@/composables/useI18n';
+import { GITHUB_REPO_URL } from '@/utils/constants';
 
-  const { t } = useI18n();
+const { t } = useI18n();
 
-  const toggleGithubStar = () => {
-    githubStarShow.value = githubStarShow.value === 'hide' ? 'show' : 'hide';
-  };
+const toggleGithubStar = () => {
+  githubStarShow.value = githubStarShow.value === 'hide' ? 'show' : 'hide';
+};
 </script>
 
 <style scoped>
-  .button-container {
-    position: relative;
-    min-height: 3rem; /* 确保容器高度足够 */
-    min-width: 3rem; /* 确保容器宽度足够 */
-  }
+.button-container {
+  position: relative;
+  min-height: 3rem; /* 确保容器高度足够 */
+  min-width: 3rem; /* 确保容器宽度足够 */
+}
 
-  .large-button {
-    /* 不设置固定宽度，让它自适应内容 */
-    white-space: nowrap; /* 防止文本换行 */
-  }
+.large-button {
+  /* 不设置固定宽度，让它自适应内容 */
+  white-space: nowrap; /* 防止文本换行 */
+}
 
-  /* 按钮显示状态 */
-  .button-show {
-    opacity: 1;
-    transform: scale(1);
-    pointer-events: auto;
-  }
+/* 按钮显示状态 */
+.button-show {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
 
-  /* 按钮隐藏状态 */
-  .button-hide {
-    opacity: 0;
-    pointer-events: none;
-  }
+/* 按钮隐藏状态 */
+.button-hide {
+  opacity: 0;
+  pointer-events: none;
+}
 
-  /* 大按钮隐藏时的样式 */
-  .large-button.button-hide {
-    transform: scale(0.5);
-    border-radius: 9999px;
-    width: 3rem;
-    height: 3rem;
-    overflow: hidden;
-  }
+/* 大按钮隐藏时的样式 */
+.large-button.button-hide {
+  transform: scale(0.5);
+  border-radius: 9999px;
+  width: 3rem;
+  height: 3rem;
+  overflow: hidden;
+}
 
-  /* 文字淡入淡出 */
-  .button-text {
-    transition: opacity 0.2s ease;
-  }
+/* 文字淡入淡出 */
+.button-text {
+  transition: opacity 0.2s ease;
+}
 
-  .large-button.button-hide .button-text {
-    opacity: 0;
-  }
+.large-button.button-hide .button-text {
+  opacity: 0;
+}
 </style>

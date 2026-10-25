@@ -92,7 +92,14 @@ const fileColumns = computed(() => [
     title: t('文件名'),
     render: (row: FileInfo) =>
       h('div', { class: 'flex items-center' }, [
-        h('div', { class: 'flex items-center justify-center w-[50px] h-[50px] text-2xl mx-auto md:w-[50px] md:h-[50px] md:text-2xl max-md:w-[40px] max-md:h-[40px] max-md:text-xl max-[480px]:w-[30px] max-[480px]:h-[30px] max-[480px]:text-lg' }, [h('i', { class: getFileIcon(row.type) })]),
+        h(
+          'div',
+          {
+            class:
+              'flex items-center justify-center w-[50px] h-[50px] text-2xl mx-auto md:w-[50px] md:h-[50px] md:text-2xl max-md:w-[40px] max-md:h-[40px] max-md:text-xl max-[480px]:w-[30px] max-[480px]:h-[30px] max-[480px]:text-lg',
+          },
+          [h('i', { class: getFileIcon(row.type) })],
+        ),
         h('span', { class: 'ml-2' }, row.name),
       ]),
   },
@@ -316,7 +323,6 @@ const uploadFiles = async () => {
   try {
     // 逐个上传文件
     for (const [i, file] of selectedFiles.value.entries()) {
-
       // 初始化进度
       uploadProgress.value[i] = 0;
 
@@ -384,9 +390,13 @@ onMounted(loadFiles);
     <!-- 文件上传对话框 -->
     <Dialog v-model:open="uploadDialogVisible" :title="t('上传文件')">
       <div class="upload-dialog-content">
-        <div class="border-2 border-dashed border-neutral-400 dark:border-neutral-600 rounded-lg p-8 text-center cursor-pointer transition-all duration-300 hover:border-primary-600 hover:bg-neutral-50 dark:hover:border-primary-400 dark:hover:bg-neutral-800"
+        <div
+          class="border-2 border-dashed border-neutral-400 dark:border-neutral-600 rounded-lg p-8 text-center cursor-pointer transition-all duration-300 hover:border-primary-600 hover:bg-neutral-50 dark:hover:border-primary-400 dark:hover:bg-neutral-800"
           :class="{ 'border-primary-600 bg-neutral-50 dark:border-primary-400 dark:bg-neutral-800': isDragging }"
-          @dragover.prevent="onDragOver" @dragleave.prevent="onDragLeave" @drop.prevent="onDrop">
+          @dragover.prevent="onDragOver"
+          @dragleave.prevent="onDragLeave"
+          @drop.prevent="onDrop"
+        >
           <i class="pi pi-cloud-upload text-3xl text-primary-theme mb-4"></i>
           <p>{{ t('拖拽文件到此处或点击选择文件') }}</p>
           <Button :label="t('选择文件')" icon="pi pi-folder" @click="triggerFileInput" class="mt-3" />
@@ -395,8 +405,11 @@ onMounted(loadFiles);
         <div v-if="selectedFiles.length > 0" class="border-t border-neutral-200 dark:border-neutral-700 pt-4 mt-4">
           <h3>{{ t('已选择的文件') }}</h3>
           <ul class="file-list">
-            <li v-for="(file, index) in selectedFiles" :key="`${file.name}-${file.size}-${index}`"
-              class="py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0">
+            <li
+              v-for="(file, index) in selectedFiles"
+              :key="`${file.name}-${file.size}-${index}`"
+              class="py-2 border-b border-neutral-200 dark:border-neutral-700 last:border-b-0"
+            >
               <div class="flex items-center justify-between">
                 <div class="flex items-center">
                   <i :class="getFileIcon(file.type)" class="mr-2"></i>
@@ -411,8 +424,12 @@ onMounted(loadFiles);
       </div>
       <template #footer>
         <Button :label="t('取消')" icon="pi pi-times" variant="text" @click="uploadDialogVisible = false" />
-        <Button :label="t('上传')" icon="pi pi-upload" @click="uploadFiles"
-          :disabled="selectedFiles.length === 0 || isUploading" />
+        <Button
+          :label="t('上传')"
+          icon="pi pi-upload"
+          @click="uploadFiles"
+          :disabled="selectedFiles.length === 0 || isUploading"
+        />
       </template>
     </Dialog>
 
@@ -420,8 +437,12 @@ onMounted(loadFiles);
     <Dialog v-model:open="previewDialogVisible" :title="currentFile?.name" :description="t('预览文件内容')">
       <div class="file-preview-dialog">
         <!-- 图片文件预览 -->
-        <img v-if="isImageFile(currentFile?.type)" :src="previewUrl" :alt="currentFile?.name"
-          class="max-w-full max-h-[40vh] object-contain" />
+        <img
+          v-if="isImageFile(currentFile?.type)"
+          :src="previewUrl"
+          :alt="currentFile?.name"
+          class="max-w-full max-h-[40vh] object-contain"
+        />
         <!-- 非图片文件显示信息 -->
         <div v-else class="text-center">
           <i :class="getFileIcon(currentFile?.type)" class="text-6xl"></i>

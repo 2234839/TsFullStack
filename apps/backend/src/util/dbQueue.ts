@@ -1,8 +1,8 @@
-import * as os from "os";
-import * as crypto from "crypto";
-import type { Queue as QueueModel } from "../../.zenstack/models";
-import type { DbClient } from "../Context/DbService";
-import { extractErrorMessage } from "./error";
+import * as os from 'os';
+import * as crypto from 'crypto';
+import type { Queue as QueueModel } from '../../.zenstack/models';
+import type { DbClient } from '../Context/DbService';
+import { extractErrorMessage } from './error';
 
 export type TaskMap = Record<string, { payload: unknown; result: unknown }>;
 
@@ -18,7 +18,7 @@ const DEFAULT_POLLING_INTERVAL_MS = 1000;
 const BACKOFF_BASE_MS = 1000;
 
 /** 日志前缀 */
-const LOG_PREFIX = "[Queue]";
+const LOG_PREFIX = '[Queue]';
 /** 默认最大重试次数 */
 const DEFAULT_MAX_ATTEMPTS = 3;
 /** 默认队列并发数 */
@@ -74,24 +74,21 @@ export class PrismaQueue<T extends TaskMap> {
   }
 
   private generateInstanceId(): string {
-    return `${os.hostname()}-${process.pid}-${crypto.randomBytes(4).toString("hex")}`;
+    return `${os.hostname()}-${process.pid}-${crypto.randomBytes(4).toString('hex')}`;
   }
 
-  register<K extends keyof T>(
-    name: K,
-    handler: (payload: T[K]["payload"]) => Promise<T[K]["result"]>,
-  ) {
+  register<K extends keyof T>(name: K, handler: (payload: T[K]['payload']) => Promise<T[K]['result']>) {
     this.workers.set(name as string, handler as (payload: unknown) => Promise<unknown>);
     console.log(`${LOG_PREFIX} Registered handler: ${name as string}`);
     return this;
   }
 
-  async add<K extends keyof T>(name: K, payload: T[K]["payload"], options: AddTaskOptions = {}) {
+  async add<K extends keyof T>(name: K, payload: T[K]['payload'], options: AddTaskOptions = {}) {
     return this.dbClient.queue.create({
       data: {
         name: name as string,
         payload: payload as never, // ZenStack payload 字段要求严格类型，动态队列通过注册时泛型保证类型安全
-        status: "PENDING",
+        status: 'PENDING',
         priority: options.priority ?? 0,
         runAt: options.runAt ?? new Date(),
         maxAttempts: options.maxAttempts ?? DEFAULT_MAX_ATTEMPTS,
@@ -131,7 +128,7 @@ export class PrismaQueue<T extends TaskMap> {
     this.heartbeatTimer = setInterval(async () => {
       try {
         await this.dbClient.queue.updateMany({
-          where: { status: "PROCESSING", workerId: this.instanceId },
+          where: { status: 'PROCESSING', workerId: this.instanceId },
           data: { updated: new Date() },
         });
       } catch (error: unknown) {
@@ -161,18 +158,18 @@ export class PrismaQueue<T extends TaskMap> {
         const candidate = await tx.queue.findFirst({
           where: {
             name: { in: taskTypes },
-            status: "PENDING",
+            status: 'PENDING',
             runAt: { lte: new Date() },
           },
-          orderBy: [{ priority: "desc" }, { created: "asc" }],
+          orderBy: [{ priority: 'desc' }, { created: 'asc' }],
         });
 
         if (!candidate) return null;
 
         const updated = await tx.queue.updateMany({
-          where: { id: candidate.id, status: "PENDING" },
+          where: { id: candidate.id, status: 'PENDING' },
           data: {
-            status: "PROCESSING",
+            status: 'PROCESSING',
             workerId: this.instanceId,
             startedAt: new Date(),
             attempts: { increment: 1 },
@@ -214,17 +211,17 @@ export class PrismaQueue<T extends TaskMap> {
     }
 
     try {
-      const payload = task.payload as T[keyof T]["payload"];
+      const payload = task.payload as T[keyof T]['payload'];
       const result = await handler(payload);
 
       const updated = await this.dbClient.queue.updateMany({
         where: {
           id: task.id,
           workerId: this.instanceId,
-          status: "PROCESSING",
+          status: 'PROCESSING',
         },
         data: {
-          status: "COMPLETED",
+          status: 'COMPLETED',
           result: result as never, // ZenStack result 字段要求严格类型，动态队列通过注册时泛型保证类型安全
           completedAt: new Date(),
           updated: new Date(),
@@ -247,10 +244,10 @@ export class PrismaQueue<T extends TaskMap> {
           where: {
             id: task.id,
             workerId: this.instanceId,
-            status: "PROCESSING",
+            status: 'PROCESSING',
           },
           data: {
-            status: "PENDING",
+            status: 'PENDING',
             workerId: null,
             runAt,
             error: `Retry ${current.attempts}/${current.maxAttempts}: ${extractErrorMessage(error)}`,
@@ -269,9 +266,9 @@ export class PrismaQueue<T extends TaskMap> {
 
   private async failTask(id: number, reason: string) {
     await this.dbClient.queue.updateMany({
-      where: { id, status: "PROCESSING" },
+      where: { id, status: 'PROCESSING' },
       data: {
-        status: "FAILED",
+        status: 'FAILED',
         error: reason,
         completedAt: new Date(),
         updated: new Date(),
@@ -292,7 +289,7 @@ export class PrismaQueue<T extends TaskMap> {
     try {
       const stuckTasks = await this.dbClient.queue.findMany({
         where: {
-          status: "PROCESSING",
+          status: 'PROCESSING',
           updated: { lt: stuckBefore },
         },
       });
@@ -317,10 +314,10 @@ export class PrismaQueue<T extends TaskMap> {
         await this.dbClient.queue.updateMany({
           where: {
             id: { in: retryIds },
-            status: "PROCESSING",
+            status: 'PROCESSING',
           },
           data: {
-            status: "PENDING",
+            status: 'PENDING',
             workerId: null,
             runAt: batchRunAt,
             error: `Batch recovered ${toRetry.length} stuck tasks`,
@@ -334,9 +331,9 @@ export class PrismaQueue<T extends TaskMap> {
       if (toFail.length > 0) {
         const failIds = toFail.map((t) => t.id);
         await this.dbClient.queue.updateMany({
-          where: { id: { in: failIds }, status: "PROCESSING" },
+          where: { id: { in: failIds }, status: 'PROCESSING' },
           data: {
-            status: "FAILED",
+            status: 'FAILED',
             error: `Max attempts reached after stuck timeout (${toFail.length} tasks)`,
             completedAt: new Date(),
             updated: new Date(),

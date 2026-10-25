@@ -13,6 +13,7 @@
 ## 快速开始
 
 1. 复制示例配置文件：
+
    ```bash
    cp config.example.json config.json
    ```
@@ -22,20 +23,28 @@
 ## 配置项说明
 
 ### systemAdminUser
+
 系统管理员账户配置
+
 - `email`: 管理员邮箱地址
 - `password`: 管理员密码，至少8位字符
 
 ### uploadDir
+
 文件上传目录路径，支持相对路径和绝对路径
+
 - 示例: `"./uploads"`, `"/tmp/uploads"`
 
 ### ApiProxy
+
 API 代理配置，用于代理无法直接访问的 API 请求
+
 - `github`: GitHub API 代理地址（可选）
 
 ### OAuth_github
+
 GitHub OAuth 登录配置（可选）
+
 - `clientId`: GitHub OAuth 应用的 Client ID
 - `clientSecret`: GitHub OAuth 应用的 Client Secret
 - `redirectUri`: OAuth 回调地址
@@ -44,6 +53,7 @@ GitHub OAuth 登录配置（可选）
 ## 配置优先级
 
 程序按以下优先级加载配置：
+
 1. `config.json` (最高优先级)
 2. `config.ts` (兼容性支持，会自动转换为 config.json)
 3. 默认配置 (最低优先级)
@@ -51,6 +61,7 @@ GitHub OAuth 登录配置（可选）
 ## 编辑器支持
 
 在 VSCode 中编辑 `config.json` 时，会获得以下智能提示：
+
 - 字段自动补全
 - 类型检查和验证
 - 悬停提示

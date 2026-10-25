@@ -16,7 +16,7 @@ export const noteCalcApi = {
   evaluate(params: CalcRequest): Effect.Effect<CalcResponse, Error> {
     return Effect.try({
       try: () => calcEvaluate(params),
-      catch: (error) => error instanceof Error ? error : new Error(String(error)),
+      catch: (error) => (error instanceof Error ? error : new Error(String(error))),
     });
   },
 };

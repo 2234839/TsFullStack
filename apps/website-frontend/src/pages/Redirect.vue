@@ -3,20 +3,19 @@
 </template>
 
 <script setup lang="ts">
-  import { routeMap, routerUtil } from '@/router';
-  import { onMounted } from 'vue';
-  import { useI18n } from '@/composables/useI18n';
-  import { useRouter } from 'vue-router';
+import { routeMap, routerUtil } from '@/router';
+import { onMounted } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+import { useRouter } from 'vue-router';
 
-  const router = useRouter();
-  const { t } = useI18n();
-  const { path } = defineProps<{ path?: string }>();
-  onMounted(() => {
-
-    if (path && typeof path === 'string') {
-      router.replace({ path });
-    } else {
-      routerUtil.push(routeMap.index, {});
-    }
-  });
+const router = useRouter();
+const { t } = useI18n();
+const { path } = defineProps<{ path?: string }>();
+onMounted(() => {
+  if (path && typeof path === 'string') {
+    router.replace({ path });
+  } else {
+    routerUtil.push(routeMap.index, {});
+  }
+});
 </script>

@@ -10,29 +10,23 @@
  * </Drawer>
  * ```
  */
-import { computed } from "vue";
-import { DrawerClose, DrawerContent, DrawerOverlay, DrawerPortal, DrawerRoot } from "reka-ui";
-import type { UiDrawerProps } from "./types";
+import { computed } from 'vue';
+import { DrawerClose, DrawerContent, DrawerOverlay, DrawerPortal, DrawerRoot } from 'reka-ui';
+import type { UiDrawerProps } from './types';
 
 /** 组件属性 */
 const props = withDefaults(defineProps<UiDrawerProps>(), {
-  side: () => "right" as const,
-  width: "400px",
+  side: () => 'right' as const,
+  width: '400px',
   showClose: true,
 });
 
 /** v-model:open 双向绑定 */
-const openModel = defineModel<boolean>("open", { default: false });
+const openModel = defineModel<boolean>('open', { default: false });
 
 /** swipe 关闭方向：朝停靠侧滑出 */
 const swipeDirection = computed(() =>
-  props.side === "left"
-    ? "left"
-    : props.side === "right"
-      ? "right"
-      : props.side === "top"
-        ? "up"
-        : "down",
+  props.side === 'left' ? 'left' : props.side === 'right' ? 'right' : props.side === 'top' ? 'up' : 'down',
 );
 </script>
 
@@ -43,13 +37,10 @@ const swipeDirection = computed(() =>
       <DrawerContent
         class="fixed z-[10001] bg-primary-50 shadow-xl outline-none dark:bg-primary-950"
         :class="{
-          'left-0 top-0 h-full border-r border-primary-200 dark:border-primary-800':
-            side === 'left',
-          'right-0 top-0 h-full border-l border-primary-200 dark:border-primary-800':
-            side === 'right',
+          'left-0 top-0 h-full border-r border-primary-200 dark:border-primary-800': side === 'left',
+          'right-0 top-0 h-full border-l border-primary-200 dark:border-primary-800': side === 'right',
           'top-0 left-0 w-full border-b border-primary-200 dark:border-primary-800': side === 'top',
-          'bottom-0 left-0 w-full border-t border-primary-200 dark:border-primary-800':
-            side === 'bottom',
+          'bottom-0 left-0 w-full border-t border-primary-200 dark:border-primary-800': side === 'bottom',
         }"
         :style="side === 'left' || side === 'right' ? { width } : undefined"
       >

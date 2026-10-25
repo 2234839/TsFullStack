@@ -24,9 +24,9 @@
 </template>
 
 <script setup lang="ts">
-  import RulesManagement from '@/components/RulesManagement.vue';
-  import { Toast } from 'primevue';
-  import { version } from '../../package.json';
+import RulesManagement from '@/components/RulesManagement.vue';
+import { Toast } from 'primevue';
+import { version } from '../../package.json';
 </script>
 
 <style scoped></style>

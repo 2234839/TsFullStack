@@ -1,8 +1,8 @@
-import { defineConfig } from "vite-plus";
-import { execSync } from "child_process";
+import { defineConfig } from 'vite-plus';
+import { execSync } from 'child_process';
 
 /** 构建 commit hash（构建时注入，用于线上版本追踪） */
-const GIT_COMMIT = execSync("git rev-parse --short HEAD").toString().trim();
+const GIT_COMMIT = execSync('git rev-parse --short HEAD').toString().trim();
 const BUILD_TIME = new Date().toISOString();
 
 /**
@@ -15,9 +15,9 @@ const BUILD_TIME = new Date().toISOString();
 export default defineConfig({
   pack: [
     {
-      entry: ["src/index.ts"],
-      outDir: "dist",
-      format: ["esm"],
+      entry: ['src/index.ts'],
+      outDir: 'dist',
+      format: ['esm'],
       sourcemap: true,
       clean: true,
       define: {
@@ -25,47 +25,47 @@ export default defineConfig({
         __BUILD_TIME__: JSON.stringify(BUILD_TIME),
       },
       deps: {
-        alwaysBundle: ["@tsfullstack/note-calc-engine"],
+        alwaysBundle: ['@tsfullstack/note-calc-engine'],
         neverBundle: [
-          "better-sqlite3",
-          "bindings",
-          "prebuild-install",
-          "node-gyp",
-          "node-gyp-build",
-          "@prisma/adapter-better-sqlite3",
-          "@prisma/client",
-          "@prisma/debug",
-          "@prisma/generator-helper",
-          "@prisma/runtime",
-          "@prisma/runtime-library",
-          "@zenstackhq/runtime",
-          "@zenstackhq/orm",
-          "@zenstackhq/plugin-policy",
-          "@zenstackhq/schema",
+          'better-sqlite3',
+          'bindings',
+          'prebuild-install',
+          'node-gyp',
+          'node-gyp-build',
+          '@prisma/adapter-better-sqlite3',
+          '@prisma/client',
+          '@prisma/debug',
+          '@prisma/generator-helper',
+          '@prisma/runtime',
+          '@prisma/runtime-library',
+          '@zenstackhq/runtime',
+          '@zenstackhq/orm',
+          '@zenstackhq/plugin-policy',
+          '@zenstackhq/schema',
         ],
       },
     },
     {
-      entry: ["src/lib/index.ts"],
-      outDir: "dist-lib",
+      entry: ['src/lib/index.ts'],
+      outDir: 'dist-lib',
       dts: true,
-      format: ["esm"],
+      format: ['esm'],
       sourcemap: true,
       clean: true,
       deps: {
         neverBundle: [
-          "@zenstackhq/orm",
-          "@zenstackhq/plugin-policy",
-          "@zenstackhq/runtime",
-          "kysely",
-          "better-sqlite3",
-          "fastify",
-          "superjson",
-          "bcryptjs",
-          "uuid",
-          "@fastify/cors",
-          "@fastify/multipart",
-          "@fastify/static",
+          '@zenstackhq/orm',
+          '@zenstackhq/plugin-policy',
+          '@zenstackhq/runtime',
+          'kysely',
+          'better-sqlite3',
+          'fastify',
+          'superjson',
+          'bcryptjs',
+          'uuid',
+          '@fastify/cors',
+          '@fastify/multipart',
+          '@fastify/static',
         ],
       },
     },

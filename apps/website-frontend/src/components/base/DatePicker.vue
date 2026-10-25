@@ -3,7 +3,7 @@
  * 日期选择器组件
  * 基于 reka-ui DatePicker/Calendar primitives 的弹层式日期时间选择器
  */
-import { computed } from "vue";
+import { computed } from 'vue';
 import {
   DatePickerRoot,
   DatePickerField,
@@ -22,11 +22,11 @@ import {
   CalendarHeading,
   CalendarPrev,
   CalendarNext,
-} from "reka-ui";
-import type { DateValue } from "reka-ui";
-import { CalendarDate, CalendarDateTime } from "@internationalized/date";
-import { toDate } from "reka-ui/date";
-import { INPUT_BASE_CLASSES } from "./inputStyles";
+} from 'reka-ui';
+import type { DateValue } from 'reka-ui';
+import { CalendarDate, CalendarDateTime } from '@internationalized/date';
+import { toDate } from 'reka-ui/date';
+import { INPUT_BASE_CLASSES } from './inputStyles';
 
 interface Props {
   /** 模型值 */
@@ -45,7 +45,7 @@ const props = withDefaults(defineProps<Props>(), {
 defineOptions({ inheritAttrs: false });
 
 const emit = defineEmits<{
-  "update:modelValue": [value: Date | string | null];
+  'update:modelValue': [value: Date | string | null];
   show: [];
   hide: [];
 }>();
@@ -53,7 +53,7 @@ const emit = defineEmits<{
 /** 外部值统一转为合法 native Date，非法返回 null */
 function toNativeDate(value: Date | string | null | undefined): Date | null {
   if (!value) return null;
-  const date = typeof value === "string" ? new Date(value) : value;
+  const date = typeof value === 'string' ? new Date(value) : value;
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
@@ -78,17 +78,17 @@ const dateValue = computed<DateValue | undefined>({
     return date ? toDateValue(date) : undefined;
   },
   set: (value) => {
-    emit("update:modelValue", value ? toDate(value) : null);
+    emit('update:modelValue', value ? toDate(value) : null);
   },
 });
 
 /** reka-ui 粒度：showTime 时精确到分钟 */
-const granularity = computed(() => (props.showTime ? "minute" : "day"));
+const granularity = computed(() => (props.showTime ? 'minute' : 'day'));
 
 /** 弹层开关变化时转发 show/hide */
 function handleOpenChange(open: boolean) {
-  if (open) emit("show");
-  else emit("hide");
+  if (open) emit('show');
+  else emit('hide');
 }
 
 /** 是否有有效值（决定清除按钮显隐） */
@@ -96,12 +96,12 @@ const hasValue = computed(() => toNativeDate(props.modelValue) !== null);
 
 /** 清空值 */
 function clearValue() {
-  emit("update:modelValue", null);
+  emit('update:modelValue', null);
 }
 
 /** 输入框容器样式类 */
 const fieldClasses = computed(() => {
-  const disabledClass = props.disabled ? "opacity-50 cursor-not-allowed" : "";
+  const disabledClass = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
   return `${INPUT_BASE_CLASSES} bg-primary-surface border-primary-300 dark:border-primary-700 text-primary-title ${disabledClass}`;
 });
 </script>
@@ -119,12 +119,9 @@ const fieldClasses = computed(() => {
       <DatePickerField v-bind="$attrs" :class="fieldClasses" class="flex items-center gap-0.5 pr-9">
         <template #default="{ segments }">
           <template v-for="item in segments" :key="item.part">
-            <DatePickerInput
-              v-if="item.part === 'literal'"
-              :part="item.part"
-              class="text-primary-400"
-              >{{ item.value }}</DatePickerInput
-            >
+            <DatePickerInput v-if="item.part === 'literal'" :part="item.part" class="text-primary-400">{{
+              item.value
+            }}</DatePickerInput>
             <DatePickerInput
               v-else
               :part="item.part"
@@ -163,13 +160,7 @@ const fieldClasses = computed(() => {
           <CalendarPrev
             class="text-primary-body hover:bg-primary-surface inline-flex size-8 items-center justify-center rounded-md"
           >
-            <svg
-              class="size-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </CalendarPrev>
@@ -177,13 +168,7 @@ const fieldClasses = computed(() => {
           <CalendarNext
             class="text-primary-body hover:bg-primary-surface inline-flex size-8 items-center justify-center rounded-md"
           >
-            <svg
-              class="size-4"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
+            <svg class="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </CalendarNext>

@@ -53,7 +53,10 @@ export class MsgError extends Error {
     return err instanceof MsgError;
   }
   errorTag = MsgError.errorTag;
-  constructor(public op: MsgErrorOpValues, message: string) {
+  constructor(
+    public op: MsgErrorOpValues,
+    message: string,
+  ) {
     super(message);
     this.name = 'MsgError';
   }

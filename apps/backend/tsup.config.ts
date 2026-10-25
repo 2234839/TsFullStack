@@ -52,7 +52,7 @@ export default defineConfig({
       console.log('Killing old server process...');
       serverProcess.kill('SIGKILL');
       // 等待进程完全退出
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise((resolve) => setTimeout(resolve, 1500));
     }
 
     // 额外保险：使用 lsof 查找并杀掉所有占用端口的进程
@@ -65,7 +65,7 @@ export default defineConfig({
           await execAsync(`kill -9 ${pid}`);
         }
         // 等待端口释放
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
       }
     } catch (error) {
       // lsof 没有找到进程是正常的，忽略错误
@@ -74,7 +74,7 @@ export default defineConfig({
     // 启动新的服务器进程
     console.log('Starting server...');
     serverProcess = spawn('node', ['--enable-source-maps', './dist/index.js'], {
-      stdio: 'inherit'
+      stdio: 'inherit',
     });
 
     // 处理进程退出

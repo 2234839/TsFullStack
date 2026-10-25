@@ -36,9 +36,7 @@ export function findIdField(modelMeta: ModelMeta, modelName: string): FieldInfo 
  */
 export function findDisplayField(modelMeta: ModelMeta, refModelKey: ModelMetaNames) {
   const model = modelMeta.models[refModelKey as keyof typeof modelMeta.models];
-  const displayField = Object.values(model?.fields ?? {}).find(
-    (f: FieldInfo) => f.type === 'String' && !isIdField(f),
-  );
+  const displayField = Object.values(model?.fields ?? {}).find((f: FieldInfo) => f.type === 'String' && !isIdField(f));
   return displayField;
 }
 
@@ -51,7 +49,9 @@ export function findDisplayField(modelMeta: ModelMeta, refModelKey: ModelMetaNam
 export function getModelKey(modelMeta: ModelMeta, modelName: string): ModelMetaNames | undefined {
   const model = Object.values(modelMeta.models).find((m) => m.name === modelName);
   if (!model) return undefined;
-  return Object.keys(modelMeta.models).find((key) => (modelMeta.models as Record<string, unknown>)[key] === model) as ModelMetaNames | undefined;
+  return Object.keys(modelMeta.models).find((key) => (modelMeta.models as Record<string, unknown>)[key] === model) as
+    | ModelMetaNames
+    | undefined;
 }
 
 /**
@@ -62,7 +62,7 @@ export function getModelKey(modelMeta: ModelMeta, modelName: string): ModelMetaN
  */
 export function modelNameToDbName(modelName: string): DBModelNames {
   // 将首字母小写
-  return modelName.charAt(0).toLowerCase() + modelName.slice(1) as DBModelNames;
+  return (modelName.charAt(0).toLowerCase() + modelName.slice(1)) as DBModelNames;
 }
 
 //#region modelMeta ,只有调用 useModelMeta 之后，才会发起请求获取 modelMeta 数据

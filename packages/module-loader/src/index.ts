@@ -24,10 +24,12 @@ export class ModuleLoader {
   async run(): Promise<AggregatedOutput> {
     console.log('🔍 Discovering modules...');
     const modules = await this.discovery.discoverModules();
-    
+
     console.log(`📦 Found ${modules.length} modules:`);
-    modules.forEach(module => {
-      console.log(`  - ${module.name} (${module.version}) [${module.hasBackend ? 'backend' : ''}${module.hasFrontend ? ' frontend' : ''}${module.hasVueComponents ? ' vue' : ''}]`);
+    modules.forEach((module) => {
+      console.log(
+        `  - ${module.name} (${module.version}) [${module.hasBackend ? 'backend' : ''}${module.hasFrontend ? ' frontend' : ''}${module.hasVueComponents ? ' vue' : ''}]`,
+      );
     });
 
     if (modules.length === 0) {
@@ -36,7 +38,7 @@ export class ModuleLoader {
         modules: [],
         backendExports: [],
         frontendExports: [],
-        vueExports: []
+        vueExports: [],
       };
     }
 
@@ -52,9 +54,9 @@ export class ModuleLoader {
     // Generate summary
     const output: AggregatedOutput = {
       modules,
-      backendExports: modules.filter(m => m.hasBackend).map(m => m.name),
-      frontendExports: modules.filter(m => m.hasFrontend).map(m => m.name),
-      vueExports: modules.filter(m => m.hasVueComponents).map(m => m.name)
+      backendExports: modules.filter((m) => m.hasBackend).map((m) => m.name),
+      frontendExports: modules.filter((m) => m.hasFrontend).map((m) => m.name),
+      vueExports: modules.filter((m) => m.hasVueComponents).map((m) => m.name),
     };
 
     console.log('✅ Module loading complete!');
@@ -70,12 +72,12 @@ export class ModuleLoader {
   async watch(): Promise<void> {
     const chokidar = await import('chokidar');
     const modulesDir = this.discovery.getModulesDir();
-    
+
     console.log(`👀 Watching for changes in ${modulesDir}...`);
-    
+
     const watcher = chokidar.watch(modulesDir, {
       ignored: /node_modules/,
-      persistent: true
+      persistent: true,
     });
 
     watcher.on('change', async () => {

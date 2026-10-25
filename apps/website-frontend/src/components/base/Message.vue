@@ -19,10 +19,12 @@ const emit = defineEmits<{
 
 /** 变体样式映射（静态常量） */
 const MESSAGE_VARIANT_CLASSES: Record<string, string> = {
-  success: 'bg-success-50 border-success-200 text-success-700 dark:bg-success-900/20 dark:border-success-700 dark:text-success-300',
+  success:
+    'bg-success-50 border-success-200 text-success-700 dark:bg-success-900/20 dark:border-success-700 dark:text-success-300',
   info: 'bg-info-50 border-info-200 text-info-700 dark:bg-info-900/20 dark:border-info-700 dark:text-info-300',
   warn: 'bg-warning-50 border-warning-200 text-warning-700 dark:bg-warning-900/20 dark:border-warning-700 dark:text-warning-300',
-  error: 'bg-danger-50 border-danger-200 text-danger-700 dark:bg-danger-900/20 dark:border-danger-700 dark:text-danger-300',
+  error:
+    'bg-danger-50 border-danger-200 text-danger-700 dark:bg-danger-900/20 dark:border-danger-700 dark:text-danger-300',
 };
 
 const MESSAGE_ICON_MAP: Record<string, string> = {
@@ -32,9 +34,7 @@ const MESSAGE_ICON_MAP: Record<string, string> = {
   error: 'pi pi-times-circle',
 };
 
-const messageClasses = computed(() =>
-  `border rounded-lg p-4 ${MESSAGE_VARIANT_CLASSES[variant]}`,
-);
+const messageClasses = computed(() => `border rounded-lg p-4 ${MESSAGE_VARIANT_CLASSES[variant]}`);
 
 const iconClasses = computed(() => MESSAGE_ICON_MAP[variant]);
 </script>

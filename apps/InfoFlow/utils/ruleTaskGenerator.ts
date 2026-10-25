@@ -9,13 +9,8 @@ import { useInfoFlowConfig } from '../storage/config';
 import { getExecutionWithChanges, checkIfNoAdditions } from './changeDetection';
 import { filterService } from '../services/filterService';
 
-
 // 处理自动已读逻辑
-async function handleAutoRead(
-  ruleId: string,
-  currentExecutionId: string,
-  currentResult: TaskResult,
-): Promise<void> {
+async function handleAutoRead(ruleId: string, currentExecutionId: string, currentResult: TaskResult): Promise<void> {
   try {
     // 获取上一次成功的执行结果（排除当前执行）
     const taskExecutionService = getTaskExecutionService();
@@ -30,10 +25,7 @@ async function handleAutoRead(
     const lastResult = previousExecution.result;
 
     // 计算两次执行结果的变化，判断是否有新增项
-    const executionWithChanges = getExecutionWithChanges(
-      { result: currentResult },
-      { result: lastResult }
-    );
+    const executionWithChanges = getExecutionWithChanges({ result: currentResult }, { result: lastResult });
 
     const hasNoAdditions = checkIfNoAdditions(executionWithChanges);
 
@@ -47,7 +39,6 @@ async function handleAutoRead(
     console.error('[AutoRead] 自动已读处理失败:', error);
   }
 }
-
 
 // 公共的规则执行逻辑
 export async function executeRuleLogic(
@@ -90,12 +81,11 @@ export async function executeRuleLogic(
     // 应用过滤规则（如果启用）
     let finalResult = res;
 
-
     console.log('[executeRule] Applying hierarchical filter before storage');
     finalResult = await filterService.applyHierarchicalFilter(
       res,
       rule.taskConfig?.ruleFilterConfig,
-      config.value.globalFilterConfig
+      config.value.globalFilterConfig,
     );
 
     // Complete execution with filtered result

@@ -8,35 +8,35 @@ async function quickStart() {
   const basicConfig = {
     storage: {
       type: 'json' as const,
-      dataDir: './data'
+      dataDir: './data',
     },
     security: {
       enablePermissions: true,
       allowedTools: ['file_write', 'file_read', 'system_info'],
       maxTaskDuration: 300000,
-      safeMode: true
+      safeMode: true,
     },
     logging: {
       level: 'info' as const,
       enableConsole: true,
-      enableFile: false
+      enableFile: false,
     },
     tools: {
       directory: './tools',
       autoLoad: false,
-      timeout: 30000
-    }
+      timeout: 30000,
+    },
   };
 
   // 2. 交互式配置（推荐）
   const interactiveConfig = {
     ...basicConfig,
     interactive: {
-      enabled: true,                    // 启用交互式决策
-      confirmBeforeExecution: true,     // 执行前确认
-      askForClarification: true,        // 需要澄清时询问
-      maxQuestions: 5                   // 最大询问次数
-    }
+      enabled: true, // 启用交互式决策
+      confirmBeforeExecution: true, // 执行前确认
+      askForClarification: true, // 需要澄清时询问
+      maxQuestions: 5, // 最大询问次数
+    },
   };
 
   console.log('请选择运行模式:');
@@ -46,7 +46,7 @@ async function quickStart() {
   const readline = require('readline');
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout
+    output: process.stdout,
   });
 
   const choice = await new Promise<string>((resolve) => {
@@ -102,23 +102,23 @@ async function quickStart() {
     }
 
     console.log(`\n执行任务: ${taskDescription}`);
-    
+
     if (config.interactive?.enabled) {
       console.log('💡 交互模式已启用，Agent 会在执行过程中询问您的确认\n');
     }
 
     // 执行任务
     const result = await agent.executeTask(taskDescription);
-    
+
     console.log('\n=== 执行结果 ===');
     console.log('✅ 成功:', result.success);
     console.log('⏱️  执行时间:', result.executionTime, 'ms');
     console.log('📊 执行步骤:', result.stepsExecuted);
-    
+
     if (result.output) {
       console.log('📋 结果:', JSON.stringify(result.output, null, 2));
     }
-    
+
     if (result.error) {
       console.log('❌ 错误:', result.error);
     }
@@ -141,7 +141,6 @@ async function quickStart() {
     console.log('• 运行其他示例: pnpm example:files, pnpm example:http');
     console.log('• 运行多媒体功能: pnpm example:multimedia');
     console.log('• 运行测试: pnpm test');
-
   } catch (error) {
     console.error('❌ 执行失败:', error);
   } finally {

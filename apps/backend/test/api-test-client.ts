@@ -165,10 +165,7 @@ export async function setupTestEnvironment() {
 
   // 1. 创建测试用户
   console.log('  ✓ 创建测试用户...');
-  const userSession = await testAccounts.registerTestAccount(
-    TEST_ACCOUNTS.user.email,
-    TEST_ACCOUNTS.user.password
-  );
+  const userSession = await testAccounts.registerTestAccount(TEST_ACCOUNTS.user.email, TEST_ACCOUNTS.user.password);
   console.log(`    - 用户ID: ${userSession.userId}`);
   console.log(`    - Token: ${userSession.token.substring(0, 20)}...`);
 

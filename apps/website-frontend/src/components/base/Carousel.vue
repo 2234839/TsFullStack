@@ -103,9 +103,7 @@ useIntervalFn(
         @click="currentIndex = index"
         class="w-2 h-2 rounded-full transition-colors"
         :class="
-          index === currentIndex
-            ? 'bg-primary-50 dark:bg-primary-200'
-            : 'bg-primary-50/50 dark:bg-primary-200/50'
+          index === currentIndex ? 'bg-primary-50 dark:bg-primary-200' : 'bg-primary-50/50 dark:bg-primary-200/50'
         "
         :aria-label="t('第 N 张', { n: index + 1 })"
       ></button>

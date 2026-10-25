@@ -23,7 +23,7 @@ import {
   OCRTool,
   VideoGenerationTool,
   VideoAnalysisTool,
-  VideoScriptTool
+  VideoScriptTool,
 } from './tools';
 
 export class TsAgent {
@@ -53,7 +53,7 @@ export class TsAgent {
       execution: 'glm-4.5',
       validation: 'glm-4.5-air',
       repair: 'glm-4.5-air',
-      general: 'glm-4.5'
+      general: 'glm-4.5',
     };
 
     this.llmService = new LLMService(llmTaskModels, this.logger);
@@ -63,7 +63,7 @@ export class TsAgent {
       enabled: false,
       confirmBeforeExecution: false,
       askForClarification: false,
-      maxQuestions: 5
+      maxQuestions: 5,
     };
     this.interactiveService = new InteractiveService(interactiveConfig, this.logger);
 
@@ -72,12 +72,12 @@ export class TsAgent {
         maxRetries: this.config.security.maxTaskDuration > 0 ? 3 : 0,
         maxTaskDuration: this.config.security.maxTaskDuration,
         enableAutoValidation: true,
-        enableAutoRepair: this.config.security.safeMode
+        enableAutoRepair: this.config.security.safeMode,
       },
       this.toolRegistry,
       this.storage,
       this.logger,
-      this.interactiveService
+      this.interactiveService,
     );
   }
 
@@ -88,10 +88,14 @@ export class TsAgent {
     }
 
     try {
-      this.logger.info('Initializing TsAgent', {
-        version: '1.0.0',
-        config: this.config
-      }, 'TsAgent');
+      this.logger.info(
+        'Initializing TsAgent',
+        {
+          version: '1.0.0',
+          config: this.config,
+        },
+        'TsAgent',
+      );
 
       // Initialize storage
       await this.storage.init();
@@ -108,29 +112,44 @@ export class TsAgent {
       // Load tools from directory if enabled
       if (this.config.tools.autoLoad && this.config.tools.directory) {
         const loadedCount = await this.toolRegistry.loadToolsFromDirectory();
-        this.logger.info(`Loaded ${loadedCount} tools from directory`, {
-          directory: this.config.tools.directory
-        }, 'TsAgent');
+        this.logger.info(
+          `Loaded ${loadedCount} tools from directory`,
+          {
+            directory: this.config.tools.directory,
+          },
+          'TsAgent',
+        );
       }
 
       // Validate all tools
       const validation = await this.toolRegistry.validateAllTools();
       if (validation.invalid.length > 0) {
-        this.logger.warn('Some tools failed validation', {
-          invalid: validation.invalid.map(t => ({ tool: t.tool.name, errors: t.errors }))
-        }, 'TsAgent');
+        this.logger.warn(
+          'Some tools failed validation',
+          {
+            invalid: validation.invalid.map((t) => ({ tool: t.tool.name, errors: t.errors })),
+          },
+          'TsAgent',
+        );
       }
 
       this.isInitialized = true;
-      this.logger.info('TsAgent initialized successfully', {
-        toolsCount: validation.valid.length,
-        invalidTools: validation.invalid.length
-      }, 'TsAgent');
-
+      this.logger.info(
+        'TsAgent initialized successfully',
+        {
+          toolsCount: validation.valid.length,
+          invalidTools: validation.invalid.length,
+        },
+        'TsAgent',
+      );
     } catch (error) {
-      this.logger.error('Failed to initialize TsAgent', {
-        error: error instanceof Error ? error.message : String(error)
-      }, 'TsAgent');
+      this.logger.error(
+        'Failed to initialize TsAgent',
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'TsAgent',
+      );
       throw error;
     }
   }
@@ -144,18 +163,26 @@ export class TsAgent {
 
     try {
       const result = await this.taskManager.executeTask(description);
-      this.logger.info('Task execution completed', {
-        success: result.success,
-        executionTime: result.executionTime,
-        stepsExecuted: result.stepsExecuted
-      }, 'TsAgent');
+      this.logger.info(
+        'Task execution completed',
+        {
+          success: result.success,
+          executionTime: result.executionTime,
+          stepsExecuted: result.stepsExecuted,
+        },
+        'TsAgent',
+      );
 
       return result;
     } catch (error) {
-      this.logger.error('Task execution failed', {
-        error: error instanceof Error ? error.message : String(error),
-        description
-      }, 'TsAgent');
+      this.logger.error(
+        'Task execution failed',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          description,
+        },
+        'TsAgent',
+      );
       throw error;
     }
   }
@@ -165,21 +192,33 @@ export class TsAgent {
       await this.initialize();
     }
 
-    this.logger.info('Registering tool', {
-      name: tool.name,
-      version: tool.version
-    }, 'TsAgent');
+    this.logger.info(
+      'Registering tool',
+      {
+        name: tool.name,
+        version: tool.version,
+      },
+      'TsAgent',
+    );
 
     try {
       await this.toolRegistry.register(tool);
-      this.logger.info('Tool registered successfully', {
-        name: tool.name
-      }, 'TsAgent');
+      this.logger.info(
+        'Tool registered successfully',
+        {
+          name: tool.name,
+        },
+        'TsAgent',
+      );
     } catch (error) {
-      this.logger.error('Failed to register tool', {
-        error: error instanceof Error ? error.message : String(error),
-        toolName: tool.name
-      }, 'TsAgent');
+      this.logger.error(
+        'Failed to register tool',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          toolName: tool.name,
+        },
+        'TsAgent',
+      );
       throw error;
     }
   }
@@ -200,10 +239,14 @@ export class TsAgent {
       }
       return success;
     } catch (error) {
-      this.logger.error('Failed to unregister tool', {
-        error: error instanceof Error ? error.message : String(error),
-        toolName
-      }, 'TsAgent');
+      this.logger.error(
+        'Failed to unregister tool',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          toolName,
+        },
+        'TsAgent',
+      );
       throw error;
     }
   }
@@ -253,7 +296,7 @@ export class TsAgent {
     const [taskStats, toolStats, storageStats] = await Promise.all([
       this.taskManager.getTaskStats(),
       this.toolRegistry.getToolStats(),
-      this.storage.getStats()
+      this.storage.getStats(),
     ]);
 
     return {
@@ -263,8 +306,8 @@ export class TsAgent {
         version: '1.0.0',
         uptime: process.uptime(),
         memory: process.memoryUsage(),
-        initialized: this.isInitialized
-      }
+        initialized: this.isInitialized,
+      },
     };
   }
 
@@ -312,9 +355,13 @@ export class TsAgent {
       this.isInitialized = false;
       this.logger.info('TsAgent shutdown completed', null, 'TsAgent');
     } catch (error) {
-      this.logger.error('Error during shutdown', {
-        error: error instanceof Error ? error.message : String(error)
-      }, 'TsAgent');
+      this.logger.error(
+        'Error during shutdown',
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'TsAgent',
+      );
     }
   }
 
@@ -360,22 +407,30 @@ export class TsAgent {
       systemInfoTool,
       httpRequestTool,
       httpGetTool,
-      httpPostTool
+      httpPostTool,
     ];
 
     // Register basic tools
     for (const tool of basicTools) {
       try {
         await this.toolRegistry.register(tool);
-        this.logger.debug(`Built-in tool registered`, {
-          name: tool.name,
-          version: tool.version
-        }, 'TsAgent');
+        this.logger.debug(
+          `Built-in tool registered`,
+          {
+            name: tool.name,
+            version: tool.version,
+          },
+          'TsAgent',
+        );
       } catch (error) {
-        this.logger.error(`Failed to register built-in tool`, {
-          error: error instanceof Error ? error.message : String(error),
-          toolName: tool.name
-        }, 'TsAgent');
+        this.logger.error(
+          `Failed to register built-in tool`,
+          {
+            error: error instanceof Error ? error.message : String(error),
+            toolName: tool.name,
+          },
+          'TsAgent',
+        );
       }
     }
 
@@ -387,21 +442,29 @@ export class TsAgent {
         new OCRTool(this.llmService, this.logger),
         new VideoGenerationTool(this.llmService, this.logger),
         new VideoAnalysisTool(this.llmService, this.logger),
-        new VideoScriptTool(this.llmService, this.logger)
+        new VideoScriptTool(this.llmService, this.logger),
       ];
 
       for (const tool of llmTools) {
         try {
           await this.toolRegistry.register(tool);
-          this.logger.debug(`LLM tool registered`, {
-            name: tool.name,
-            version: tool.version
-          }, 'TsAgent');
+          this.logger.debug(
+            `LLM tool registered`,
+            {
+              name: tool.name,
+              version: tool.version,
+            },
+            'TsAgent',
+          );
         } catch (error) {
-          this.logger.error(`Failed to register LLM tool`, {
-            error: error instanceof Error ? error.message : String(error),
-            toolName: tool.name
-          }, 'TsAgent');
+          this.logger.error(
+            `Failed to register LLM tool`,
+            {
+              error: error instanceof Error ? error.message : String(error),
+              toolName: tool.name,
+            },
+            'TsAgent',
+          );
         }
       }
     }
@@ -431,7 +494,7 @@ export class TsAgent {
     const checks = {
       storage: false,
       tools: false,
-      tasks: false
+      tasks: false,
     };
 
     const details: any = {};
@@ -462,7 +525,7 @@ export class TsAgent {
       details.tasks = error instanceof Error ? error.message : String(error);
     }
 
-    const failedChecks = Object.values(checks).filter(check => !check).length;
+    const failedChecks = Object.values(checks).filter((check) => !check).length;
     let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
 
     if (failedChecks === Object.keys(checks).length) {
@@ -519,7 +582,7 @@ export class TsAgent {
       timestamp: new Date(),
       action,
       result,
-      success
+      success,
     });
 
     // Maintain memory size limit
@@ -527,19 +590,25 @@ export class TsAgent {
       this.memory = this.memory.slice(-this.maxMemorySize);
     }
 
-    this.logger.debug('Added to memory', {
-      action: action.substring(0, 50),
-      success,
-      memorySize: this.memory.length
-    }, 'TsAgent');
+    this.logger.debug(
+      'Added to memory',
+      {
+        action: action.substring(0, 50),
+        success,
+        memorySize: this.memory.length,
+      },
+      'TsAgent',
+    );
   }
 
-  async getRecentMemory(count: number = 10): Promise<Array<{
-    timestamp: Date;
-    action: string;
-    result: any;
-    success: boolean;
-  }>> {
+  async getRecentMemory(count: number = 10): Promise<
+    Array<{
+      timestamp: Date;
+      action: string;
+      result: any;
+      success: boolean;
+    }>
+  > {
     if (!this.isInitialized) {
       await this.initialize();
     }
@@ -547,20 +616,22 @@ export class TsAgent {
     return this.memory.slice(-count);
   }
 
-  async searchMemory(query: string): Promise<Array<{
-    timestamp: Date;
-    action: string;
-    result: any;
-    success: boolean;
-  }>> {
+  async searchMemory(query: string): Promise<
+    Array<{
+      timestamp: Date;
+      action: string;
+      result: any;
+      success: boolean;
+    }>
+  > {
     if (!this.isInitialized) {
       await this.initialize();
     }
 
     const lowerQuery = query.toLowerCase();
-    return this.memory.filter(mem =>
-      mem.action.toLowerCase().includes(lowerQuery) ||
-      JSON.stringify(mem.result).toLowerCase().includes(lowerQuery)
+    return this.memory.filter(
+      (mem) =>
+        mem.action.toLowerCase().includes(lowerQuery) || JSON.stringify(mem.result).toLowerCase().includes(lowerQuery),
     );
   }
 
@@ -581,7 +652,7 @@ export class TsAgent {
     }
 
     const totalEntries = this.memory.length;
-    const successfulEntries = this.memory.filter(m => m.success).length;
+    const successfulEntries = this.memory.filter((m) => m.success).length;
     const successRate = totalEntries > 0 ? successfulEntries / totalEntries : 0;
 
     let oldestEntry: Date | undefined;
@@ -601,7 +672,7 @@ export class TsAgent {
       successRate,
       averageActionsPerDay,
       oldestEntry,
-      newestEntry
+      newestEntry,
     };
   }
 
@@ -677,7 +748,7 @@ export class TsAgent {
     const decision = {
       type: 'confirmation' as const,
       question: action,
-      required: true
+      required: true,
     };
 
     const response = await this.interactiveService.askQuestion(decision);
@@ -706,7 +777,7 @@ export class TsAgent {
     return {
       enabled: this.interactiveService.isEnabled(),
       questionsAsked: this.interactiveService.getQuestionsAsked(),
-      maxQuestions: this.interactiveService['maxQuestions']
+      maxQuestions: this.interactiveService['maxQuestions'],
     };
   }
 }

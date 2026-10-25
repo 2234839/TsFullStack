@@ -115,7 +115,6 @@ async function testAPI() {
     console.log('   ✅ 任务管理正常');
     console.log('   ✅ 资源管理正常');
     console.log('\n🎉 后端 API 功能完全正常！\n');
-
   } catch (error: any) {
     console.error('\n========================================');
     console.error('❌ 测试失败!');

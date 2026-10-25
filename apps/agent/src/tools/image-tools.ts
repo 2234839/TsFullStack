@@ -13,9 +13,9 @@ export class ImageAnalysisTool implements ToolDefinition {
     properties: {
       imagePath: { type: 'string', description: '图像文件路径' },
       prompt: { type: 'string', description: '分析提示词' },
-      model: { type: 'string', description: '使用的模型' }
+      model: { type: 'string', description: '使用的模型' },
     },
-    required: ['imagePath']
+    required: ['imagePath'],
   };
   permissions = ['file_read'];
   private llmService: LLMService;
@@ -52,9 +52,9 @@ export class ImageAnalysisTool implements ToolDefinition {
           role: 'user',
           content: JSON.stringify([
             { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } }
-          ])
-        }
+            { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
+          ]),
+        },
       ];
 
       this.logger.debug('分析图像', { imagePath, prompt, model }, 'ImageAnalysisTool');
@@ -66,23 +66,24 @@ export class ImageAnalysisTool implements ToolDefinition {
         analysis: response,
         imagePath,
         model,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-
     } catch (error) {
-      this.logger.error('图像分析失败', { 
-        error: error instanceof Error ? error.message : String(error),
-        imagePath 
-      }, 'ImageAnalysisTool');
+      this.logger.error(
+        '图像分析失败',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          imagePath,
+        },
+        'ImageAnalysisTool',
+      );
 
       throw error;
     }
   }
 
   validate(input: any): boolean {
-    return typeof input === 'object' && 
-           typeof input.imagePath === 'string' && 
-           input.imagePath.length > 0;
+    return typeof input === 'object' && typeof input.imagePath === 'string' && input.imagePath.length > 0;
   }
 }
 
@@ -97,9 +98,9 @@ export class ImageGenerationTool implements ToolDefinition {
       outputPath: { type: 'string', description: '输出文件路径' },
       model: { type: 'string', description: '使用的模型' },
       size: { type: 'string', description: '图像尺寸' },
-      quality: { type: 'string', description: '图像质量' }
+      quality: { type: 'string', description: '图像质量' },
     },
-    required: ['prompt']
+    required: ['prompt'],
   };
   permissions = ['file_write'];
   private llmService: LLMService;
@@ -111,12 +112,12 @@ export class ImageGenerationTool implements ToolDefinition {
   }
 
   async execute(input: any): Promise<any> {
-    const { 
-      prompt, 
+    const {
+      prompt,
       outputPath = './generated_image.png',
       model = 'cogview-3-flash',
       size = '1024x1024',
-      quality = 'standard'
+      quality = 'standard',
     } = input;
 
     if (!prompt) {
@@ -137,9 +138,7 @@ export class ImageGenerationTool implements ToolDefinition {
 - 风格：专业、现代、美观
 - 请直接生成图像，不需要额外说明`;
 
-      const messages: LLMMessage[] = [
-        { role: 'user', content: generationPrompt }
-      ];
+      const messages: LLMMessage[] = [{ role: 'user', content: generationPrompt }];
 
       // 使用 LLM 生成图像
       const response = await this.llmService.chat(messages, 'general');
@@ -152,23 +151,24 @@ export class ImageGenerationTool implements ToolDefinition {
         quality,
         response,
         timestamp: new Date().toISOString(),
-        status: 'generated'
+        status: 'generated',
       };
-
     } catch (error) {
-      this.logger.error('图像生成失败', { 
-        error: error instanceof Error ? error.message : String(error),
-        prompt 
-      }, 'ImageGenerationTool');
+      this.logger.error(
+        '图像生成失败',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          prompt,
+        },
+        'ImageGenerationTool',
+      );
 
       throw error;
     }
   }
 
   validate(input: any): boolean {
-    return typeof input === 'object' && 
-           typeof input.prompt === 'string' && 
-           input.prompt.length > 0;
+    return typeof input === 'object' && typeof input.prompt === 'string' && input.prompt.length > 0;
   }
 }
 
@@ -180,9 +180,9 @@ export class OCRTool implements ToolDefinition {
     type: 'object',
     properties: {
       imagePath: { type: 'string', description: '图像文件路径' },
-      language: { type: 'string', description: '识别语言' }
+      language: { type: 'string', description: '识别语言' },
     },
-    required: ['imagePath']
+    required: ['imagePath'],
   };
   permissions = ['file_read'];
   private llmService: LLMService;
@@ -214,18 +214,19 @@ export class OCRTool implements ToolDefinition {
       const imageDataUrl = `data:${mimeType};base64,${base64Image}`;
 
       // 构建OCR提示
-      const ocrPrompt = language === 'auto' 
-        ? '请从这张图片中提取所有文字内容，包括中文、英文、数字等。请以结构化的方式返回结果。'
-        : `请从这张图片中提取${language === 'zh' ? '中文' : language === 'en' ? '英文' : '所有'}文字内容。`;
+      const ocrPrompt =
+        language === 'auto'
+          ? '请从这张图片中提取所有文字内容，包括中文、英文、数字等。请以结构化的方式返回结果。'
+          : `请从这张图片中提取${language === 'zh' ? '中文' : language === 'en' ? '英文' : '所有'}文字内容。`;
 
       const messages: LLMMessage[] = [
         {
           role: 'user',
           content: JSON.stringify([
             { type: 'text', text: ocrPrompt },
-            { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } }
-          ])
-        }
+            { type: 'image_url', image_url: { url: imageDataUrl, detail: 'high' } },
+          ]),
+        },
       ];
 
       this.logger.debug('OCR识别', { imagePath, language }, 'OCRTool');
@@ -237,22 +238,23 @@ export class OCRTool implements ToolDefinition {
         extractedText: response,
         imagePath,
         language,
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       };
-
     } catch (error) {
-      this.logger.error('OCR识别失败', { 
-        error: error instanceof Error ? error.message : String(error),
-        imagePath 
-      }, 'OCRTool');
+      this.logger.error(
+        'OCR识别失败',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          imagePath,
+        },
+        'OCRTool',
+      );
 
       throw error;
     }
   }
 
   validate(input: any): boolean {
-    return typeof input === 'object' && 
-           typeof input.imagePath === 'string' && 
-           input.imagePath.length > 0;
+    return typeof input === 'object' && typeof input.imagePath === 'string' && input.imagePath.length > 0;
   }
 }

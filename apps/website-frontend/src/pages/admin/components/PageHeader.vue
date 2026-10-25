@@ -1,9 +1,6 @@
 <template>
   <div :class="marginClass">
-    <div :class="[
-      'flex items-center gap-2 font-bold text-primary-title',
-      size === 'large' ? 'text-3xl' : 'text-2xl',
-    ]">
+    <div :class="['flex items-center gap-2 font-bold text-primary-title', size === 'large' ? 'text-3xl' : 'text-2xl']">
       <i v-if="icon" :class="icon" />
       <slot />
     </div>

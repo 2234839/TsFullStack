@@ -53,8 +53,7 @@ export function evaluate(params: CalcRequest): CalcResponse {
       return { line, type: 'title', result: null, error: null, isCorrect: null, variable: null };
     if (line.startsWith('## '))
       return { line, type: 'subtitle', result: null, error: null, isCorrect: null, variable: null };
-    if (line.trim() === '')
-      return { line, type: 'empty', result: null, error: null, isCorrect: null, variable: null };
+    if (line.trim() === '') return { line, type: 'empty', result: null, error: null, isCorrect: null, variable: null };
     if (line.startsWith('//'))
       return { line, type: 'comment', result: null, error: null, isCorrect: null, variable: null };
 

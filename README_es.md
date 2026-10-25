@@ -30,9 +30,9 @@ Este es mi proyecto de mejores prácticas para full-stack con TypeScript. Permit
   - Soporte de internacionalización i18n perfecto, asegurando que cada detalle soporte cambio dinámico de idioma sin necesidad de recargar la página.
   - Cambio de tema claro/oscuro, componentes y tailwindcss soportan cambio dinámico sincronizado.
   - Algunas páginas de funcionalidad implementadas
-   - Panel de administración tipo prisma studio (puede servir como alternativa de código abierto hasta cierto punto), ya no es necesario escribir páginas CRUD monótonas.
-   - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) Un bloc de notas de cálculo en tiempo real amigable con el chino
-   - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) Aprendizaje progresivo de inglés durante la lectura
+  - Panel de administración tipo prisma studio (puede servir como alternativa de código abierto hasta cierto punto), ya no es necesario escribir páginas CRUD monótonas.
+  - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) Un bloc de notas de cálculo en tiempo real amigable con el chino
+  - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) Aprendizaje progresivo de inglés durante la lectura
 
 Otros ejemplos de aplicaciones
 

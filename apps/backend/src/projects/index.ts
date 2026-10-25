@@ -9,4 +9,3 @@ import * as testBackendProject from '../../projects/test-backend-project/index';
 export const projects = {
   'test-backend-project': testBackendProject,
 };
-

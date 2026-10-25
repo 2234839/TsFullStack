@@ -1,6 +1,7 @@
 <template>
   <div
-    class="tabs-bar custom-scrollbar bg-primary-50 dark:bg-primary-800 border-b border-primary-default h-10 px-4 relative overflow-x-auto overflow-y-hidden">
+    class="tabs-bar custom-scrollbar bg-primary-50 dark:bg-primary-800 border-b border-primary-default h-10 px-4 relative overflow-x-auto overflow-y-hidden"
+  >
     <div class="tabs-wrapper flex items-center h-full">
       <div
         v-for="tab of tabsStore.tabs"
@@ -12,7 +13,8 @@
             : 'bg-white dark:bg-primary-700 border border-primary-200 dark:border-primary-600 hover:bg-primary-100 dark:hover:bg-primary-600',
         ]"
         @click="handleTabClick(tab.value)"
-        @contextmenu.prevent="handleContextMenu($event, tab.value)">
+        @contextmenu.prevent="handleContextMenu($event, tab.value)"
+      >
         <span class="tab-icon mr-1.5 flex items-center" v-if="tab.value.icon">
           <i :class="tab.value.icon"></i>
         </span>
@@ -22,7 +24,8 @@
         <span
           v-if="!tab.value.fixed"
           class="tab-close ml-1.5 flex items-center justify-center w-4 h-4 rounded-full opacity-60 hover:opacity-100 hover:bg-primary-200 dark:hover:bg-primary-500"
-          @click.stop="handleCloseTab(tab.value.fullPath)">
+          @click.stop="handleCloseTab(tab.value.fullPath)"
+        >
           <i class="pi pi-times text-xs"></i>
         </span>
       </div>
@@ -32,95 +35,95 @@
 </template>
 
 <script setup lang="ts">
-  import { useTabsStore, type TabItem } from '@/pages/admin/stores/tabsStore';
-  import { routeMap, routerUtil } from '@/router';
-  import { ContextMenu } from '@tsfullstack/shared-frontend/components';
-  import { computed, ref, useTemplateRef, watch } from 'vue';
-  import { useRoute, useRouter } from 'vue-router';
-  import { useI18n } from '@/composables/useI18n';
+import { useTabsStore, type TabItem } from '@/pages/admin/stores/tabsStore';
+import { routeMap, routerUtil } from '@/router';
+import { ContextMenu } from '@tsfullstack/shared-frontend/components';
+import { computed, ref, useTemplateRef, watch } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useI18n } from '@/composables/useI18n';
 
-  const router = useRouter();
-  const route = useRoute();
-  const tabsStore = useTabsStore();
-  const { t } = useI18n();
+const router = useRouter();
+const route = useRoute();
+const tabsStore = useTabsStore();
+const { t } = useI18n();
 
-  const currentContextTab = ref<TabItem | null>(null);
-  const menuRef = useTemplateRef('__contextMenu');
-  const contextMenuItems = computed(() => [
-    {
-      label: t('刷新页面'),
-      icon: 'pi pi-refresh',
-      command: handleRefresh,
-    },
-    {
-      label: t('关闭标签'),
-      icon: 'pi pi-times',
-      command: () => handleCloseTab(currentContextTab.value?.path),
-    },
-    {
-      label: t('关闭其他标签'),
-      icon: 'pi pi-window-minimize',
-      command: handleCloseOtherTabs,
-    },
-    {
-      label: t('关闭所有标签'),
-      icon: 'pi pi-times-circle',
-      command: handleCloseAllTabs,
-    },
-  ]);
+const currentContextTab = ref<TabItem | null>(null);
+const menuRef = useTemplateRef('__contextMenu');
+const contextMenuItems = computed(() => [
+  {
+    label: t('刷新页面'),
+    icon: 'pi pi-refresh',
+    command: handleRefresh,
+  },
+  {
+    label: t('关闭标签'),
+    icon: 'pi pi-times',
+    command: () => handleCloseTab(currentContextTab.value?.path),
+  },
+  {
+    label: t('关闭其他标签'),
+    icon: 'pi pi-window-minimize',
+    command: handleCloseOtherTabs,
+  },
+  {
+    label: t('关闭所有标签'),
+    icon: 'pi pi-times-circle',
+    command: handleCloseAllTabs,
+  },
+]);
 
-  watch(
-    () => route.fullPath,
-    () => {
-      if (route.meta.hideTab) return;
-      tabsStore.addTab(route);
-    },
-    { immediate: true },
-  );
+watch(
+  () => route.fullPath,
+  () => {
+    if (route.meta.hideTab) return;
+    tabsStore.addTab(route);
+  },
+  { immediate: true },
+);
 
-  const handleTabClick = (tab: TabItem) => {
-    if (tab.fullPath !== route.fullPath) {
-      router.push(tab.fullPath);
-    }
-  };
+const handleTabClick = (tab: TabItem) => {
+  if (tab.fullPath !== route.fullPath) {
+    router.push(tab.fullPath);
+  }
+};
 
-  const handleCloseTab = (fullPath?: string) => {
-    if (!fullPath || fullPath === '/') return;
-    tabsStore.closeTab(fullPath, router);
-  };
+const handleCloseTab = (fullPath?: string) => {
+  if (!fullPath || fullPath === '/') return;
+  tabsStore.closeTab(fullPath, router);
+};
 
-  const handleContextMenu = (e: MouseEvent, tab: TabItem) => {
-    menuRef.value?.show(e);
-    currentContextTab.value = tab;
-  };
+const handleContextMenu = (e: MouseEvent, tab: TabItem) => {
+  menuRef.value?.show(e);
+  currentContextTab.value = tab;
+};
 
-  const handleRefresh = () => {
-    const { fullPath } = currentContextTab.value ?? {};
-    if (fullPath) {
-      routerUtil.replace(
-        routeMap.redirect,
-        {},
-        {
-          path: fullPath,
-        },
-      );
-    }
-  };
+const handleRefresh = () => {
+  const { fullPath } = currentContextTab.value ?? {};
+  if (fullPath) {
+    routerUtil.replace(
+      routeMap.redirect,
+      {},
+      {
+        path: fullPath,
+      },
+    );
+  }
+};
 
-  const handleCloseOtherTabs = () => {
-    if (currentContextTab.value) {
-      tabsStore.closeOtherTabs(currentContextTab.value.path);
-    }
-  };
+const handleCloseOtherTabs = () => {
+  if (currentContextTab.value) {
+    tabsStore.closeOtherTabs(currentContextTab.value.path);
+  }
+};
 
-  const handleCloseAllTabs = () => {
-    tabsStore.closeAllTabs(router);
-  };
+const handleCloseAllTabs = () => {
+  tabsStore.closeAllTabs(router);
+};
 </script>
 
 <style scoped>
-  .tabs-bar {
-    --scrollbar-size: 4px;
-    --scrollbar-radius: 4px;
-  }
+.tabs-bar {
+  --scrollbar-size: 4px;
+  --scrollbar-radius: 4px;
+}
 </style>

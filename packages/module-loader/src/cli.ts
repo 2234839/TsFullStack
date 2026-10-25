@@ -14,17 +14,9 @@ function findProjectRoot(startDir: string = process.cwd()): string {
 
   while (currentDir !== '/') {
     // 检查是否是项目根目录的标志
-    const indicators = [
-      'pnpm-workspace.yaml',
-      'package.json',
-      'apps',
-      'packages',
-      'modules'
-    ];
+    const indicators = ['pnpm-workspace.yaml', 'package.json', 'apps', 'packages', 'modules'];
 
-    const hasIndicators = indicators.some(indicator =>
-      fs.existsSync(join(currentDir, indicator))
-    );
+    const hasIndicators = indicators.some((indicator) => fs.existsSync(join(currentDir, indicator)));
 
     // 必须同时有 pnpm-workspace.yaml 和 modules 目录才是真正的根目录
     const hasWorkspaceYaml = fs.existsSync(join(currentDir, 'pnpm-workspace.yaml'));
@@ -61,7 +53,7 @@ program
         rootDir,
         modulesDir: options.modules,
         outputDir: options.output,
-        watch: options.watch
+        watch: options.watch,
       });
 
       if (options.watch) {
@@ -87,16 +79,18 @@ program
       const rootDir = options.root === process.cwd() ? findProjectRoot() : options.root;
       const loader = new ModuleLoader({
         rootDir,
-        modulesDir: options.modules
+        modulesDir: options.modules,
       });
 
       const modules = await loader.getModules();
 
       console.log('Discovered modules:');
-      modules.forEach(module => {
+      modules.forEach((module) => {
         console.log(`  - ${module.name} (${module.version})`);
         console.log(`    Path: ${module.path}`);
-        console.log(`    Features: ${module.hasBackend ? 'backend' : ''}${module.hasFrontend ? ' frontend' : ''}${module.hasVueComponents ? ' vue' : ''}`);
+        console.log(
+          `    Features: ${module.hasBackend ? 'backend' : ''}${module.hasFrontend ? ' frontend' : ''}${module.hasVueComponents ? ' vue' : ''}`,
+        );
         console.log();
       });
     } catch (error) {
@@ -104,6 +98,5 @@ program
       process.exit(1);
     }
   });
-
 
 program.parse();

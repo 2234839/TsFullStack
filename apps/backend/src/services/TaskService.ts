@@ -20,14 +20,17 @@ export const TaskService = {
   /**
    * 创建任务
    */
-  createTask: (userId: string, data: {
-    type: TaskType;
-    title: string;
-    description?: string;
-    inputParams: JsonValue;
-    tokenCost: number;
-    tags?: string;
-  }) =>
+  createTask: (
+    userId: string,
+    data: {
+      type: TaskType;
+      title: string;
+      description?: string;
+      inputParams: JsonValue;
+      tokenCost: number;
+      tags?: string;
+    },
+  ) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
 
@@ -74,11 +77,14 @@ export const TaskService = {
       );
 
       if (result.count === 0) {
-        const task = yield* dbTryRequire(LOG_PREFIX, '查询任务', () =>
-          db.task.findUnique({
-            where: { id: taskId },
-            select: { status: true },
-          }),
+        const task = yield* dbTryRequire(
+          LOG_PREFIX,
+          '查询任务',
+          () =>
+            db.task.findUnique({
+              where: { id: taskId },
+              select: { status: true },
+            }),
           MSG.TASK_NOT_FOUND,
         );
 
@@ -111,14 +117,17 @@ export const TaskService = {
     Effect.gen(function* () {
       const auth = yield* AuthContext;
 
-      const task = yield* dbTryRequire(LOG_PREFIX, '查询任务', () =>
-        auth.db.task.findUnique({
-          where: { id: taskId },
-          include: {
-            transactions: true,
-            resources: true,
-          },
-        }),
+      const task = yield* dbTryRequire(
+        LOG_PREFIX,
+        '查询任务',
+        () =>
+          auth.db.task.findUnique({
+            where: { id: taskId },
+            include: {
+              transactions: true,
+              resources: true,
+            },
+          }),
         MSG.TASK_NOT_FOUND,
       );
 
@@ -132,12 +141,15 @@ export const TaskService = {
   /**
    * 获取用户任务列表
    */
-  listTasks: (userId: string, options: {
-    status?: TaskStatus;
-    type?: TaskType;
-    skip?: number;
-    take?: number;
-  } = {}) =>
+  listTasks: (
+    userId: string,
+    options: {
+      status?: TaskStatus;
+      type?: TaskType;
+      skip?: number;
+      take?: number;
+    } = {},
+  ) =>
     Effect.gen(function* () {
       const db = yield* DbClientEffect;
       const where: TaskWhereInput = { userId };
@@ -150,23 +162,25 @@ export const TaskService = {
         where.type = options.type;
       }
 
-      return yield* dbPaginatedFindMany(LOG_PREFIX,
-        () => db.task.findMany({
-          where,
-          select: {
-            id: true,
-            type: true,
-            title: true,
-            status: true,
-            tokenCost: true,
-            externalTaskId: true,
-            created: true,
-            updated: true,
-          },
-          skip: options.skip ?? 0,
-          take: options.take ?? DEFAULT_PAGE_SIZE,
-          orderBy: { created: 'desc' },
-        }),
+      return yield* dbPaginatedFindMany(
+        LOG_PREFIX,
+        () =>
+          db.task.findMany({
+            where,
+            select: {
+              id: true,
+              type: true,
+              title: true,
+              status: true,
+              tokenCost: true,
+              externalTaskId: true,
+              created: true,
+              updated: true,
+            },
+            skip: options.skip ?? 0,
+            take: options.take ?? DEFAULT_PAGE_SIZE,
+            orderBy: { created: 'desc' },
+          }),
         () => db.task.count({ where }),
       );
     }),

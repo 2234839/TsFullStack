@@ -2,7 +2,7 @@
  * 全局 Toast composable
  * 提供通知功能
  */
-import { ref, readonly } from "vue";
+import { ref, readonly } from 'vue';
 
 interface ToastAction {
   /** 按钮文案 */
@@ -14,7 +14,7 @@ interface ToastAction {
 interface ToastMessage {
   id: number;
   /** Toast 变体：success/error/info/warn/warning/danger */
-  variant?: "success" | "error" | "info" | "warn" | "warning" | "danger";
+  variant?: 'success' | 'error' | 'info' | 'warn' | 'warning' | 'danger';
   summary: string;
   detail?: string;
   life?: number;
@@ -28,7 +28,7 @@ let messageIdCounter = 0;
 const autoRemoveTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
 /** 添加消息 */
-function add(message: Omit<ToastMessage, "id">) {
+function add(message: Omit<ToastMessage, 'id'>) {
   const id = messageIdCounter++;
   const messageWithId: ToastMessage = { id, ...message };
 
@@ -61,22 +61,22 @@ function remove(id: number) {
 
 /** 成功消息 */
 function success(summary: string, detail?: string, life = 3000) {
-  return add({ variant: "success", summary, detail, life });
+  return add({ variant: 'success', summary, detail, life });
 }
 
 /** 错误消息 */
 function error(summary: string, detail?: string, life = 5000) {
-  return add({ variant: "error", summary, detail, life });
+  return add({ variant: 'error', summary, detail, life });
 }
 
 /** 信息消息 */
 function info(summary: string, detail?: string, life = 3000) {
-  return add({ variant: "info", summary, detail, life });
+  return add({ variant: 'info', summary, detail, life });
 }
 
 /** 警告消息 */
 function warn(summary: string, detail?: string, life = 4000) {
-  return add({ variant: "warn", summary, detail, life });
+  return add({ variant: 'warn', summary, detail, life });
 }
 
 /** 清除所有消息（同时清理自动移除定时器） */

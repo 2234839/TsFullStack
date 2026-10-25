@@ -49,16 +49,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, shallowRef, onMounted, computed, markRaw } from 'vue'
-import { useAPI } from '@/api'
-import { useI18n } from '@/composables/useI18n'
-import { useToast } from '@/composables/useToast'
-import { ONE_DAY_MS } from '@/utils/format'
-import { DEFAULT_PAGE_SIZE } from '@/utils/constants'
+import { ref, shallowRef, onMounted, computed, markRaw } from 'vue';
+import { useAPI } from '@/api';
+import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { ONE_DAY_MS } from '@/utils/format';
+import { DEFAULT_PAGE_SIZE } from '@/utils/constants';
 
-const { API } = useAPI()
-const { t } = useI18n()
-const toast = useToast()
+const { API } = useAPI();
+const { t } = useI18n();
+const toast = useToast();
 
 /** 图表颜色常量（与 Tailwind 调色板一致） */
 const CHART_COLORS = {
@@ -80,7 +80,7 @@ const CHART_COLORS = {
   grayFill: 'rgba(107, 114, 128, 0.8)',
   /** pink - 补充色 */
   pinkFill: 'rgba(236, 72, 153, 0.8)',
-} as const
+} as const;
 
 /** 饼图配色（6色循环） */
 const DOUGHNUT_COLORS = [
@@ -90,80 +90,84 @@ const DOUGHNUT_COLORS = [
   CHART_COLORS.dangerFill,
   CHART_COLORS.grayFill,
   CHART_COLORS.pinkFill,
-]
+];
 
 /**
  * 批量获取用户信息（分块查询避免超大查询）
  */
 async function batchFetchUsers(userIds: string[]): Promise<Map<string, { id: string; email: string }>> {
-  const userMap = new Map<string, { id: string; email: string }>()
-  if (userIds.length === 0) return userMap
+  const userMap = new Map<string, { id: string; email: string }>();
+  if (userIds.length === 0) return userMap;
 
-  const chunkSize = 100
+  const chunkSize = 100;
   for (let i = 0; i < userIds.length; i += chunkSize) {
-    const chunk = userIds.slice(i, i + chunkSize)
-    const users = await API.db.user.findMany({
+    const chunk = userIds.slice(i, i + chunkSize);
+    const users = (await API.db.user.findMany({
       where: { id: { in: chunk } },
       select: { id: true, email: true },
-    }) as { id: string; email: string }[]
+    })) as { id: string; email: string }[];
 
     for (const user of users) {
-      userMap.set(user.id, user)
+      userMap.set(user.id, user);
     }
   }
-  return userMap
+  return userMap;
 }
 
 interface DetailedStats {
-  modelName: string
-  requestCount: number
-  successRate: number
-  avgTokens: number
-  lastUsed: string
+  modelName: string;
+  requestCount: number;
+  successRate: number;
+  avgTokens: number;
+  lastUsed: string;
 }
 
 interface ApiCallLog {
-  id: number
-  timestamp: Date
-  aiModelId: number
-  userId?: string
-  inputTokens?: number
-  outputTokens?: number
-  success?: boolean
+  id: number;
+  timestamp: Date;
+  aiModelId: number;
+  userId?: string;
+  inputTokens?: number;
+  outputTokens?: number;
+  success?: boolean;
 }
 
 interface UserStat {
-  userEmail: string
-  requestCount: number
-  totalTokens: number
-  lastUsed: string
+  userEmail: string;
+  requestCount: number;
+  totalTokens: number;
+  lastUsed: string;
 }
 
-const lineChartData = shallowRef(markRaw({
-  labels: [] as string[],
-  datasets: [
-    {
-      label: t('请求数量'),
-      data: [] as number[],
-      borderColor: CHART_COLORS.primary,
-      backgroundColor: CHART_COLORS.primaryBg,
-      tension: 0.4
-    }
-  ]
-}))
+const lineChartData = shallowRef(
+  markRaw({
+    labels: [] as string[],
+    datasets: [
+      {
+        label: t('请求数量'),
+        data: [] as number[],
+        borderColor: CHART_COLORS.primary,
+        backgroundColor: CHART_COLORS.primaryBg,
+        tension: 0.4,
+      },
+    ],
+  }),
+);
 
-const doughnutChartData = shallowRef(markRaw({
-  labels: [] as string[],
-  datasets: [
-    {
-      data: [] as number[],
-      backgroundColor: DOUGHNUT_COLORS,
-    }
-  ]
-}))
+const doughnutChartData = shallowRef(
+  markRaw({
+    labels: [] as string[],
+    datasets: [
+      {
+        data: [] as number[],
+        backgroundColor: DOUGHNUT_COLORS,
+      },
+    ],
+  }),
+);
 
-const detailedStats = shallowRef<DetailedStats[]>([])
-const userStats = shallowRef<UserStat[]>([])
+const detailedStats = shallowRef<DetailedStats[]>([]);
+const userStats = shallowRef<UserStat[]>([]);
 
 // 用户排行表格列定义
 const userStatsColumns = computed(() => [
@@ -171,7 +175,7 @@ const userStatsColumns = computed(() => [
   { key: 'requestCount', title: t('请求数量') },
   { key: 'totalTokens', title: t('总令牌数') },
   { key: 'lastUsed', title: t('最后使用时间') },
-])
+]);
 
 // 详细统计表格列定义
 const detailedStatsColumns = computed(() => [
@@ -184,268 +188,278 @@ const detailedStatsColumns = computed(() => [
   },
   { key: 'avgTokens', title: t('平均令牌数') },
   { key: 'lastUsed', title: t('最后使用时间') },
-])
-const userActivityData = shallowRef(markRaw({
-  labels: [] as string[],
-  datasets: [
-    {
-      label: t('活跃用户数'),
-      data: [] as number[],
-      backgroundColor: CHART_COLORS.successFill,
-      borderColor: CHART_COLORS.success,
-      borderWidth: 1
-    }
-  ]
-}))
+]);
+const userActivityData = shallowRef(
+  markRaw({
+    labels: [] as string[],
+    datasets: [
+      {
+        label: t('活跃用户数'),
+        data: [] as number[],
+        backgroundColor: CHART_COLORS.successFill,
+        borderColor: CHART_COLORS.success,
+        borderWidth: 1,
+      },
+    ],
+  }),
+);
 
 const userPagination = ref({
   page: 0,
   pageSize: DEFAULT_PAGE_SIZE,
-  total: 0
-})
+  total: 0,
+});
 
 const chartOptions = markRaw({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'top' as const
-    }
+      position: 'top' as const,
+    },
   },
   scales: {
     y: {
       beginAtZero: true,
       ticks: {
-        precision: 0
-      }
-    }
-  }
-})
+        precision: 0,
+      },
+    },
+  },
+});
 
 const doughnutOptions = markRaw({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'right' as const
-    }
-  }
-})
+      position: 'right' as const,
+    },
+  },
+});
 
 const barOptions = markRaw({
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
     legend: {
-      position: 'top' as const
-    }
+      position: 'top' as const,
+    },
   },
   scales: {
     y: {
       beginAtZero: true,
       ticks: {
-        precision: 0
-      }
-    }
-  }
-})
+        precision: 0,
+      },
+    },
+  },
+});
 
 const changeUserPage = async (page: number) => {
-  userPagination.value.page = page
+  userPagination.value.page = page;
   try {
-    await updateUserStatsDisplay()
+    await updateUserStatsDisplay();
   } catch (error: unknown) {
-    toast.error(t('加载失败'), t('无法加载用户统计'))
-    console.error('ModelStatsChart changeUserPage failed:', error)
+    toast.error(t('加载失败'), t('无法加载用户统计'));
+    console.error('ModelStatsChart changeUserPage failed:', error);
   }
-}
+};
 
 const updateUserStatsDisplay = async () => {
   // Re-process user stats without re-fetching all data
-  const now = new Date()
-  const startTime = new Date(now.getTime() - ONE_DAY_MS)
+  const now = new Date();
+  const startTime = new Date(now.getTime() - ONE_DAY_MS);
 
   // Query API call logs with model information（限制最近 10000 条防止性能问题）
-  const apiCalls = await API.db.aiCallLog.findMany({
+  const apiCalls = (await API.db.aiCallLog.findMany({
     where: {
       timestamp: {
-        gte: startTime
-      }
+        gte: startTime,
+      },
     },
     take: 10000,
     orderBy: { timestamp: 'desc' },
-  }) as ApiCallLog[]
+  })) as ApiCallLog[];
 
   // Get unique user IDs from API calls
-  const uniqueUserIds = new Set<string>()
+  const uniqueUserIds = new Set<string>();
   apiCalls.forEach((apiCall: ApiCallLog) => {
     if (apiCall.userId) {
-      uniqueUserIds.add(apiCall.userId)
+      uniqueUserIds.add(apiCall.userId);
     }
-  })
+  });
 
   // Get users for mapping
-  const userMap = await batchFetchUsers(Array.from(uniqueUserIds))
+  const userMap = await batchFetchUsers(Array.from(uniqueUserIds));
 
   // Process user data for charts
-  const userStatsMap = new Map<string, {
-    requestCount: number
-    totalTokens: number
-    lastUsed: Date
-  }>()
+  const userStatsMap = new Map<
+    string,
+    {
+      requestCount: number;
+      totalTokens: number;
+      lastUsed: Date;
+    }
+  >();
 
   apiCalls.forEach((apiCall: ApiCallLog) => {
     if (apiCall.userId) {
-      const user = userMap.get(apiCall.userId)
+      const user = userMap.get(apiCall.userId);
       if (user) {
         const userStat = userStatsMap.get(user.email) ?? {
           requestCount: 0,
           totalTokens: 0,
-          lastUsed: new Date(0)
-        }
+          lastUsed: new Date(0),
+        };
 
-        userStat.requestCount++
-        userStat.totalTokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0)
+        userStat.requestCount++;
+        userStat.totalTokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0);
         if (apiCall.timestamp > userStat.lastUsed) {
-          userStat.lastUsed = apiCall.timestamp
+          userStat.lastUsed = apiCall.timestamp;
         }
 
-        userStatsMap.set(user.email, userStat)
+        userStatsMap.set(user.email, userStat);
       }
     }
-  })
+  });
 
   // Update user stats with pagination
-  const allUserStats = Array.from(userStatsMap.entries())
-    .sort((a, b) => b[1].requestCount - a[1].requestCount)
+  const allUserStats = Array.from(userStatsMap.entries()).sort((a, b) => b[1].requestCount - a[1].requestCount);
 
   // Update pagination info
-  userPagination.value.total = allUserStats.length
+  userPagination.value.total = allUserStats.length;
 
   // Get current page data
-  const startIndex = userPagination.value.page * userPagination.value.pageSize
-  const endIndex = startIndex + userPagination.value.pageSize
-  const paginatedUserStats = allUserStats.slice(startIndex, endIndex)
+  const startIndex = userPagination.value.page * userPagination.value.pageSize;
+  const endIndex = startIndex + userPagination.value.pageSize;
+  const paginatedUserStats = allUserStats.slice(startIndex, endIndex);
 
   userStats.value = paginatedUserStats.map(([userEmail, stats]) => ({
     userEmail,
     requestCount: stats.requestCount,
     totalTokens: stats.totalTokens,
-    lastUsed: stats.lastUsed.toLocaleString()
-  }))
-}
+    lastUsed: stats.lastUsed.toLocaleString(),
+  }));
+};
 
 const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
-  const now = new Date()
+  const now = new Date();
   const TIME_RANGE_DAYS: Record<string, number> = { '24h': 1, '7d': 7, '30d': 30 };
   const days = TIME_RANGE_DAYS[timeRange] ?? 1;
   const startTime = new Date(now.getTime() - days * ONE_DAY_MS);
 
   // Query API call logs with model information（限制最近 10000 条防止性能问题）
-  const apiCalls = await API.db.aiCallLog.findMany({
+  const apiCalls = (await API.db.aiCallLog.findMany({
     where: {
       timestamp: {
-        gte: startTime
-      }
+        gte: startTime,
+      },
     },
     take: 10000,
     orderBy: { timestamp: 'desc' },
-  }) as ApiCallLog[]
+  })) as ApiCallLog[];
 
   // Get AI models for mapping
-  const aiModels = await API.db.aiModel.findMany({ take: 500 }) as { id: number; name: string }[]
+  const aiModels = (await API.db.aiModel.findMany({ take: 500 })) as { id: number; name: string }[];
 
   // Create model mapping
-  const modelMap = new Map<number, { id: number; name: string }>()
-  aiModels.forEach(model => {
-    modelMap.set(model.id, model)
-  })
+  const modelMap = new Map<number, { id: number; name: string }>();
+  aiModels.forEach((model) => {
+    modelMap.set(model.id, model);
+  });
 
   // Process user data for charts
-  const userStatsMap = new Map<string, {
-    requestCount: number
-    totalTokens: number
-    lastUsed: Date
-  }>()
+  const userStatsMap = new Map<
+    string,
+    {
+      requestCount: number;
+      totalTokens: number;
+      lastUsed: Date;
+    }
+  >();
 
   // Get unique user IDs from API calls
-  const uniqueUserIds = new Set<string>()
+  const uniqueUserIds = new Set<string>();
   apiCalls.forEach((apiCall: ApiCallLog) => {
     if (apiCall.userId) {
-      uniqueUserIds.add(apiCall.userId)
+      uniqueUserIds.add(apiCall.userId);
     }
-  })
+  });
 
   // Create user mapping - only fetch users that actually made calls
-  const userMap = await batchFetchUsers(Array.from(uniqueUserIds))
+  const userMap = await batchFetchUsers(Array.from(uniqueUserIds));
 
   // Process data for charts
-  const modelStats = new Map<string, {
-    count: number
-    tokens: number
-    success: number
-    lastUsed: Date
-  }>()
+  const modelStats = new Map<
+    string,
+    {
+      count: number;
+      tokens: number;
+      success: number;
+      lastUsed: Date;
+    }
+  >();
 
   apiCalls.forEach((apiCall: ApiCallLog) => {
-    const model = modelMap.get(apiCall.aiModelId)
-    if (!model) return
+    const model = modelMap.get(apiCall.aiModelId);
+    if (!model) return;
 
-    const modelName = model.name
+    const modelName = model.name;
     const current = modelStats.get(modelName) ?? {
       count: 0,
       tokens: 0,
       success: 0,
-      lastUsed: new Date(0)
-    }
+      lastUsed: new Date(0),
+    };
 
-    current.count++
-    current.tokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0)
+    current.count++;
+    current.tokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0);
     if (apiCall.success) {
-      current.success++
+      current.success++;
     }
     if (apiCall.timestamp > current.lastUsed) {
-      current.lastUsed = apiCall.timestamp
+      current.lastUsed = apiCall.timestamp;
     }
 
-    modelStats.set(modelName, current)
+    modelStats.set(modelName, current);
 
     // Process user statistics
     if (apiCall.userId) {
-      const user = userMap.get(apiCall.userId)
+      const user = userMap.get(apiCall.userId);
       if (user) {
         const userStat = userStatsMap.get(user.email) ?? {
           requestCount: 0,
           totalTokens: 0,
-          lastUsed: new Date(0)
-        }
+          lastUsed: new Date(0),
+        };
 
-        userStat.requestCount++
-        userStat.totalTokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0)
+        userStat.requestCount++;
+        userStat.totalTokens += (apiCall.inputTokens ?? 0) + (apiCall.outputTokens ?? 0);
         if (apiCall.timestamp > userStat.lastUsed) {
-          userStat.lastUsed = apiCall.timestamp
+          userStat.lastUsed = apiCall.timestamp;
         }
 
-        userStatsMap.set(user.email, userStat)
+        userStatsMap.set(user.email, userStat);
       }
     }
-  })
+  });
 
   // Update line chart data
-  const hourlyData = new Map<number, number>()
-  const hourlyUsers = new Map<number, Set<string>>()
+  const hourlyData = new Map<number, number>();
+  const hourlyUsers = new Map<number, Set<string>>();
 
-  apiCalls.forEach(apiCall => {
-    const hour = new Date(apiCall.timestamp).getHours()
-    hourlyData.set(hour, (hourlyData.get(hour) || 0) + 1)
+  apiCalls.forEach((apiCall) => {
+    const hour = new Date(apiCall.timestamp).getHours();
+    hourlyData.set(hour, (hourlyData.get(hour) || 0) + 1);
 
     // Track unique users per hour
     if (apiCall.userId) {
-      const userSet = hourlyUsers.get(hour) ?? new Set<string>()
-      userSet.add(apiCall.userId)
-      hourlyUsers.set(hour, userSet)
+      const userSet = hourlyUsers.get(hour) ?? new Set<string>();
+      userSet.add(apiCall.userId);
+      hourlyUsers.set(hour, userSet);
     }
-  })
+  });
 
   lineChartData.value = markRaw({
     labels: Array.from({ length: 24 }, (_, i) => `${i}:00`),
@@ -455,10 +469,10 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
         data: Array.from({ length: 24 }, (_, i) => hourlyData.get(i) ?? 0),
         borderColor: CHART_COLORS.primary,
         backgroundColor: CHART_COLORS.primaryBg,
-        tension: 0.4
-      }
-    ]
-  })
+        tension: 0.4,
+      },
+    ],
+  });
 
   // Update user activity data
   userActivityData.value = markRaw({
@@ -469,14 +483,14 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
         data: Array.from({ length: 24 }, (_, i) => hourlyUsers.get(i)?.size ?? 0),
         backgroundColor: CHART_COLORS.successFill,
         borderColor: CHART_COLORS.success,
-        borderWidth: 1
-      }
-    ]
-  })
+        borderWidth: 1,
+      },
+    ],
+  });
 
   // Update doughnut chart data
-  const modelNames = Array.from(modelStats.keys())
-  const modelCounts = modelNames.map(name => modelStats.get(name)?.count ?? 0)
+  const modelNames = Array.from(modelStats.keys());
+  const modelCounts = modelNames.map((name) => modelStats.get(name)?.count ?? 0);
 
   doughnutChartData.value = markRaw({
     labels: modelNames,
@@ -484,9 +498,9 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
       {
         data: modelCounts,
         backgroundColor: DOUGHNUT_COLORS,
-      }
-    ]
-  })
+      },
+    ],
+  });
 
   // Update detailed stats
   detailedStats.value = Array.from(modelStats.entries()).map(([modelName, stats]) => ({
@@ -494,40 +508,39 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     requestCount: stats.count,
     successRate: stats.count > 0 ? Math.round((stats.success / stats.count) * 100) : 0,
     avgTokens: stats.count > 0 ? Math.round(stats.tokens / stats.count) : 0,
-    lastUsed: stats.lastUsed.toLocaleString()
-  }))
+    lastUsed: stats.lastUsed.toLocaleString(),
+  }));
 
   // Update user stats with pagination
-  const allUserStats = Array.from(userStatsMap.entries())
-    .sort((a, b) => b[1].requestCount - a[1].requestCount)
+  const allUserStats = Array.from(userStatsMap.entries()).sort((a, b) => b[1].requestCount - a[1].requestCount);
 
   // Update pagination info
-  userPagination.value.total = allUserStats.length
+  userPagination.value.total = allUserStats.length;
 
   // Get current page data
-  const startIndex = userPagination.value.page * userPagination.value.pageSize
-  const endIndex = startIndex + userPagination.value.pageSize
-  const paginatedUserStats = allUserStats.slice(startIndex, endIndex)
+  const startIndex = userPagination.value.page * userPagination.value.pageSize;
+  const endIndex = startIndex + userPagination.value.pageSize;
+  const paginatedUserStats = allUserStats.slice(startIndex, endIndex);
 
   userStats.value = paginatedUserStats.map(([userEmail, stats]) => ({
     userEmail,
     requestCount: stats.requestCount,
     totalTokens: stats.totalTokens,
-    lastUsed: stats.lastUsed.toLocaleString()
-  }))
-}
+    lastUsed: stats.lastUsed.toLocaleString(),
+  }));
+};
 
 onMounted(async () => {
   try {
-    await loadRequestStats()
+    await loadRequestStats();
   } catch (error: unknown) {
-    toast.error(t('加载失败'), t('无法加载统计数据'))
-    console.error('ModelStatsChart loadRequestStats failed:', error)
+    toast.error(t('加载失败'), t('无法加载统计数据'));
+    console.error('ModelStatsChart loadRequestStats failed:', error);
   }
-})
+});
 
 defineExpose({
   loadRequestStats,
-  changeUserPage
-})
+  changeUserPage,
+});
 </script>

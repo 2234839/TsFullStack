@@ -1,12 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": [
-    "**/.env.*local",
-    "**/.env",
-    "pnpm-lock.yaml",
-    "tsconfig.json",
-    "**/tsconfig*.json"
-  ],
+  "globalDependencies": ["**/.env.*local", "**/.env", "pnpm-lock.yaml", "tsconfig.json", "**/tsconfig*.json"],
   "globalEnv": ["NODE_ENV", "CI", "TURBO_REMOTE_CACHE_SIGNATURE_KEY"],
   "tasks": {
     "build": {
@@ -21,12 +15,7 @@
       "outputs": ["dist/frontend/**"],
       "cache": true,
       "env": ["NODE_ENV"],
-      "inputs": [
-        "src/**/*.{vue,ts,js,css,scss}",
-        "vite.config.*",
-        "tailwind.config.*",
-        "postwind.config.*"
-      ]
+      "inputs": ["src/**/*.{vue,ts,js,css,scss}", "vite.config.*", "tailwind.config.*", "postwind.config.*"]
     },
     "build:api": {
       "dependsOn": ["^build"],

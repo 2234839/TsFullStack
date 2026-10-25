@@ -7,7 +7,7 @@
  * - local: 本地开发服务器
  * - production: 线上环境
  */
-export type TestEnv = "local" | "production";
+export type TestEnv = 'local' | 'production';
 
 /**
  * 单个测试场景的配置
@@ -52,13 +52,7 @@ export interface Scenario {
  * - rejected: 人工拒绝了该场景
  * - error: 运行时出错
  */
-export type ScenarioStatus =
-  | "approved"
-  | "failed"
-  | "pendingNew"
-  | "pendingDiff"
-  | "rejected"
-  | "error";
+export type ScenarioStatus = 'approved' | 'failed' | 'pendingNew' | 'pendingDiff' | 'rejected' | 'error';
 
 /**
  * 单个场景的运行结果
@@ -125,7 +119,7 @@ export interface RunConfig {
   /** 测试场景列表 */
   scenarios: Scenario[];
   /** 浏览器类型 */
-  browser?: "chromium" | "firefox" | "webkit";
+  browser?: 'chromium' | 'firefox' | 'webkit';
   /** 基础 URL */
   baseUrl: string;
   /** 当前测试环境 */

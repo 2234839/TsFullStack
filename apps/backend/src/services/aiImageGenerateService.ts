@@ -24,7 +24,10 @@ interface ProviderConfig {
   /** API Key 未配置时的错误信息 */
   missingKeyMsg: string;
   /** 构建请求参数 */
-  buildRequest: (prompt: string, options: { count?: number; size?: string; quality?: string }) => {
+  buildRequest: (
+    prompt: string,
+    options: { count?: number; size?: string; quality?: string },
+  ) => {
     url: string;
     headers: Record<string, string>;
     body: Record<string, unknown>;
@@ -45,12 +48,8 @@ export const aiImageGenerateService = (
     count?: number;
     size?: string;
     quality?: string;
-  }
-): Effect.Effect<
-  AIImageGenerateResult,
-  Error | string,
-  ReqCtxService | AppConfigService
-> =>
+  },
+): Effect.Effect<AIImageGenerateResult, Error | string, ReqCtxService | AppConfigService> =>
   Effect.gen(function* () {
     const reqCtx = yield* ReqCtxService;
     reqCtx.log(`${LOG_PREFIX} 生成图片, provider=${options.provider}`);
@@ -72,10 +71,7 @@ function callImageProvider(
     const reqCtx = yield* ReqCtxService;
     const appConfig = yield* AppConfigService;
 
-    const apiKey = yield* requireOrFail(
-      appConfig.aiImage?.[config.apiKeyField],
-      config.missingKeyMsg,
-    );
+    const apiKey = yield* requireOrFail(appConfig.aiImage?.[config.apiKeyField], config.missingKeyMsg);
 
     const { url, headers, body } = config.buildRequest(prompt, options);
 
@@ -84,11 +80,17 @@ function callImageProvider(
 
     const response = yield* Effect.tryPromise({
       try: () =>
-        fetch(url, withFetchTimeout({
-          method: 'POST',
-          headers,
-          body: JSON.stringify(body),
-        }, FETCH_TIMEOUTS.aiImage)),
+        fetch(
+          url,
+          withFetchTimeout(
+            {
+              method: 'POST',
+              headers,
+              body: JSON.stringify(body),
+            },
+            FETCH_TIMEOUTS.aiImage,
+          ),
+        ),
       catch: (e) => {
         reqCtx.log(`${LOG_PREFIX} 调用 AI API 失败: ${extractErrorMessage(e)}`);
         if (MsgError.isMsgError(e)) return e;
@@ -159,7 +161,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       const output = result.output as Record<string, unknown> | undefined;
       const results = output?.results as Array<{ url: string }> | undefined;
       return {
-        images: (results ?? []).map(r => r.url),
+        images: (results ?? []).map((r) => r.url),
         taskId: String(result.request_id ?? ''),
       };
     },
@@ -179,7 +181,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       },
     }),
     parseResponse: (result) => ({
-      images: ((result.data as Array<{ url: string }>) ?? []).map(item => item.url),
+      images: ((result.data as Array<{ url: string }>) ?? []).map((item) => item.url),
       taskId: String(result.created ?? ''),
     }),
   },
@@ -191,8 +193,10 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
       const rawWidth = parts[0];
       const rawHeight = parts[1];
       /** 显式 NaN/undefined 防护：非法 size 格式回退到默认值 */
-      const width = rawWidth === undefined || Number.isNaN(rawWidth) || rawWidth <= 0 ? DEFAULT_IMAGE_DIMENSION : rawWidth;
-      const height = rawHeight === undefined || Number.isNaN(rawHeight) || rawHeight <= 0 ? DEFAULT_IMAGE_DIMENSION : rawHeight;
+      const width =
+        rawWidth === undefined || Number.isNaN(rawWidth) || rawWidth <= 0 ? DEFAULT_IMAGE_DIMENSION : rawWidth;
+      const height =
+        rawHeight === undefined || Number.isNaN(rawHeight) || rawHeight <= 0 ? DEFAULT_IMAGE_DIMENSION : rawHeight;
       return {
         url: STABILITY_IMAGE_API_URL,
         headers: { ...JSON_CONTENT_HEADERS, Accept: 'application/json' },
@@ -208,7 +212,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
     },
     parseResponse: (result) => ({
       images: ((result.artifacts as Array<{ base64: string }>) ?? []).map(
-        item => `data:image/png;base64,${item.base64}`,
+        (item) => `data:image/png;base64,${item.base64}`,
       ),
       taskId: String(result.request_id ?? ''),
     }),
@@ -233,7 +237,7 @@ const PROVIDER_CONFIGS: Record<string, ProviderConfig> = {
         return MsgError.msg(`智谱 GLM 生成失败: ${msg}`);
       }
       return {
-        images: ((result.data as Array<{ url: string }>) ?? []).map(item => item.url),
+        images: ((result.data as Array<{ url: string }>) ?? []).map((item) => item.url),
         taskId: String(result.id ?? Date.now()),
       };
     },

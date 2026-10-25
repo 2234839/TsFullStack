@@ -30,9 +30,9 @@ Dies ist mein TypeScript-Fullstack-Best-Practice-Projekt. Nach der Definition vo
   - Perfekte i18n-Internationalisierungsunterstützung, um sicherzustellen, dass jedes Detail mehrsprachiges dynamisches Umschalten ohne Neuladen der Seite unterstützt.
   - Hell/Dunkel-Themen-Wechsel, Komponenten und tailwindcss unterstützen synchron dynamisches Umschalten.
   - Implementierte Funktionsseiten
-   - Prisma-Studio-ähnliches Admin-Panel (kann bis zu einem gewissen Grad als Open-Source-Alternative dienen), kein Bedarf mehr für das Schreiben von sich wiederholenden CRUD-Seiten.
-   - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) Ein chinesischfreundliches Echtzeit-Berechnungsnotizbuch
-   - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) Progressives Englischlernen beim Lesen
+  - Prisma-Studio-ähnliches Admin-Panel (kann bis zu einem gewissen Grad als Open-Source-Alternative dienen), kein Bedarf mehr für das Schreiben von sich wiederholenden CRUD-Seiten.
+  - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) Ein chinesischfreundliches Echtzeit-Berechnungsnotizbuch
+  - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) Progressives Englischlernen beim Lesen
 
 Weitere Anwendungsbeispiele
 

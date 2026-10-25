@@ -8,8 +8,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { router } from "@/router";
+import { ref } from 'vue';
+import { router } from '@/router';
 
 /**
  * 路由导航进度条：解决「URL 已变化但页面还在加载懒加载 chunk」期间无任何反馈的问题。

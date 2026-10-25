@@ -24,7 +24,7 @@ export class JsonStorage {
       backupEnabled: true,
       backupInterval: 24 * 60 * 60 * 1000, // 24 hours
       maxBackups: 7,
-      ...config
+      ...config,
     };
 
     this.dataDir = this.config.dataDir!;
@@ -78,8 +78,8 @@ export class JsonStorage {
   // Task operations
   async saveTask(task: Task): Promise<void> {
     const tasks = await this.getTasks();
-    const existingIndex = tasks.findIndex(t => t.id === task.id);
-    
+    const existingIndex = tasks.findIndex((t) => t.id === task.id);
+
     if (existingIndex >= 0) {
       tasks[existingIndex] = task;
     } else {
@@ -91,7 +91,7 @@ export class JsonStorage {
 
   async getTask(taskId: string): Promise<Task | null> {
     const tasks = await this.getTasks();
-    return tasks.find(t => t.id === taskId) || null;
+    return tasks.find((t) => t.id === taskId) || null;
   }
 
   async getTasks(filter?: {
@@ -101,25 +101,25 @@ export class JsonStorage {
     startDate?: Date;
     endDate?: Date;
   }): Promise<Task[]> {
-    let tasks = await this.readJsonFile(this.tasksFile) || [];
+    let tasks = (await this.readJsonFile(this.tasksFile)) || [];
 
     if (filter) {
       if (filter.status) {
         tasks = tasks.filter((t: Task) => t.status === filter.status);
       }
-      
+
       if (filter.startDate) {
         tasks = tasks.filter((t: Task) => new Date(t.createdAt) >= filter.startDate!);
       }
-      
+
       if (filter.endDate) {
         tasks = tasks.filter((t: Task) => new Date(t.createdAt) <= filter.endDate!);
       }
-      
+
       if (filter.offset) {
         tasks = tasks.slice(filter.offset);
       }
-      
+
       if (filter.limit) {
         tasks = tasks.slice(0, filter.limit);
       }
@@ -131,13 +131,13 @@ export class JsonStorage {
   async deleteTask(taskId: string): Promise<boolean> {
     const tasks = await this.getTasks();
     const initialLength = tasks.length;
-    const filteredTasks = tasks.filter(t => t.id !== taskId);
-    
+    const filteredTasks = tasks.filter((t) => t.id !== taskId);
+
     if (filteredTasks.length < initialLength) {
       await this.writeJsonFile(this.tasksFile, filteredTasks);
       return true;
     }
-    
+
     return false;
   }
 
@@ -149,15 +149,15 @@ export class JsonStorage {
 
     task.status = status;
     task.updatedAt = new Date();
-    
+
     if (status === 'completed' || status === 'failed') {
       task.completedAt = new Date();
     }
-    
+
     if (result !== undefined) {
       task.result = result;
     }
-    
+
     if (error !== undefined) {
       task.error = error;
     }
@@ -169,8 +169,8 @@ export class JsonStorage {
   // Tool operations
   async saveTool(tool: ToolDefinition): Promise<void> {
     const tools = await this.getTools();
-    const existingIndex = tools.findIndex(t => t.name === tool.name);
-    
+    const existingIndex = tools.findIndex((t) => t.name === tool.name);
+
     if (existingIndex >= 0) {
       tools[existingIndex] = tool;
     } else {
@@ -182,23 +182,23 @@ export class JsonStorage {
 
   async getTool(toolName: string): Promise<ToolDefinition | null> {
     const tools = await this.getTools();
-    return tools.find(t => t.name === toolName) || null;
+    return tools.find((t) => t.name === toolName) || null;
   }
 
   async getTools(): Promise<ToolDefinition[]> {
-    return await this.readJsonFile(this.toolsFile) || [];
+    return (await this.readJsonFile(this.toolsFile)) || [];
   }
 
   async deleteTool(toolName: string): Promise<boolean> {
     const tools = await this.getTools();
     const initialLength = tools.length;
-    const filteredTools = tools.filter(t => t.name !== toolName);
-    
+    const filteredTools = tools.filter((t) => t.name !== toolName);
+
     if (filteredTools.length < initialLength) {
       await this.writeJsonFile(this.toolsFile, filteredTools);
       return true;
     }
-    
+
     return false;
   }
 
@@ -212,10 +212,10 @@ export class JsonStorage {
   }> {
     const tasks = await this.getTasks();
     const tools = await this.getTools();
-    
-    const completedTasks = tasks.filter(t => t.status === 'completed').length;
-    const failedTasks = tasks.filter(t => t.status === 'failed').length;
-    
+
+    const completedTasks = tasks.filter((t) => t.status === 'completed').length;
+    const failedTasks = tasks.filter((t) => t.status === 'failed').length;
+
     const sortedTasks = tasks.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     const lastTask = sortedTasks[0];
 
@@ -224,7 +224,7 @@ export class JsonStorage {
       completedTasks,
       failedTasks,
       totalTools: tools.length,
-      lastTask
+      lastTask,
     };
   }
 
@@ -236,10 +236,10 @@ export class JsonStorage {
 
     const tasks = await this.getTasks();
     const cutoffDate = new Date(Date.now() - maxAge);
-    
-    const filteredTasks = tasks.filter(t => new Date(t.createdAt) > cutoffDate);
+
+    const filteredTasks = tasks.filter((t) => new Date(t.createdAt) > cutoffDate);
     const removedCount = tasks.length - filteredTasks.length;
-    
+
     if (removedCount > 0) {
       await this.writeJsonFile(this.tasksFile, filteredTasks);
     }
@@ -250,7 +250,7 @@ export class JsonStorage {
   // Backup
   async backup(): Promise<void> {
     const now = Date.now();
-    
+
     // Check if enough time has passed since last backup
     if (now - this.lastBackup < this.config.backupInterval!) {
       return;
@@ -284,8 +284,8 @@ export class JsonStorage {
   private async cleanOldBackups(backupDir: string): Promise<void> {
     try {
       const files = await fs.readdir(backupDir);
-      const backupFiles = files.filter(f => f.endsWith('.json')).sort();
-      
+      const backupFiles = files.filter((f) => f.endsWith('.json')).sort();
+
       const maxBackups = this.config.maxBackups!;
       while (backupFiles.length > maxBackups) {
         const oldestFile = backupFiles.shift();
@@ -308,7 +308,7 @@ export class JsonStorage {
     } else {
       // Simple CSV export for tasks
       const csvHeaders = ['id', 'description', 'status', 'createdAt', 'updatedAt', 'completedAt', 'result', 'error'];
-      const csvRows = tasks.map(task => [
+      const csvRows = tasks.map((task) => [
         task.id,
         `"${task.description.replace(/"/g, '""')}"`,
         task.status,
@@ -316,10 +316,10 @@ export class JsonStorage {
         task.updatedAt,
         task.completedAt || '',
         `"${JSON.stringify(task.result || '').replace(/"/g, '""')}"`,
-        `"${(task.error || '').replace(/"/g, '""')}"`
+        `"${(task.error || '').replace(/"/g, '""')}"`,
       ]);
 
-      return [csvHeaders.join(','), ...csvRows.map(row => row.join(','))].join('\n');
+      return [csvHeaders.join(','), ...csvRows.map((row) => row.join(','))].join('\n');
     }
   }
 
@@ -327,11 +327,11 @@ export class JsonStorage {
   async importData(data: string, format: 'json' | 'csv' = 'json'): Promise<void> {
     if (format === 'json') {
       const imported = JSON.parse(data);
-      
+
       if (imported.tasks) {
         await this.writeJsonFile(this.tasksFile, imported.tasks);
       }
-      
+
       if (imported.tools) {
         await this.writeJsonFile(this.toolsFile, imported.tools);
       }

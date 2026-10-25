@@ -1,10 +1,10 @@
 /**
  * 测试运行器：用 Playwright 打开页面、截图、对比
  */
-import { chromium, type Browser, type Page } from "playwright";
-import { mkdirSync, writeFileSync, readFileSync, existsSync } from "fs";
-import { join } from "path";
-import type { RunConfig, Scenario, ScenarioResult, RunReport, Manifest, TestEnv } from "./types";
+import { chromium, type Browser, type Page } from 'playwright';
+import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'fs';
+import { join } from 'path';
+import type { RunConfig, Scenario, ScenarioResult, RunReport, Manifest, TestEnv } from './types';
 import {
   loadManifest,
   saveManifest,
@@ -14,7 +14,7 @@ import {
   determineStatus,
   getBaselinePaths,
   getCurrentPaths,
-} from "./comparator";
+} from './comparator';
 /**
  * 浏览器上下文中执行的 DOM 序列化代码（IIFE 字符串，避免 tsx __name 污染）
  *
@@ -67,23 +67,16 @@ export async function runTests(config: RunConfig): Promise<RunReport> {
   const manifest = loadManifest(config.baselineDir, config.env);
 
   // 过滤出适用当前环境的场景
-  const applicableScenarios = config.scenarios.filter(
-    (s) => !s.envs || s.envs.includes(config.env),
-  );
+  const applicableScenarios = config.scenarios.filter((s) => !s.envs || s.envs.includes(config.env));
 
   const browser = await chromium.launch({
     headless: true,
-    args: [
-      "--disable-gpu",
-      "--disable-software-rasterizer",
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-    ],
+    args: ['--disable-gpu', '--disable-software-rasterizer', '--no-sandbox', '--disable-dev-shm-usage'],
   });
   const results: ScenarioResult[] = [];
 
   // 如果需要登录，先登录
-  let page: import("playwright").Page | undefined;
+  let page: import('playwright').Page | undefined;
   let loggedIn = false;
 
   for (const scenario of applicableScenarios) {
@@ -115,8 +108,8 @@ async function loginAndCreatePage(browser: Browser, config: RunConfig): Promise<
     viewport: config.defaultViewport,
   });
 
-  const loginPath = config.login?.loginPath ?? "/login";
-  await page.goto(`${config.baseUrl}${loginPath}`, { waitUntil: "networkidle", timeout: 30000 });
+  const loginPath = config.login?.loginPath ?? '/login';
+  await page.goto(`${config.baseUrl}${loginPath}`, { waitUntil: 'networkidle', timeout: 30000 });
 
   await page.fill('input[placeholder="请输入用户名"]', config.login!.email);
   await page.fill('input[placeholder="请输入密码"]', config.login!.password);
@@ -124,7 +117,7 @@ async function loginAndCreatePage(browser: Browser, config: RunConfig): Promise<
 
   // 等待跳转
   try {
-    await page.waitForURL(config.baseUrl + "/", { timeout: 15000 });
+    await page.waitForURL(config.baseUrl + '/', { timeout: 15000 });
   } catch {
     // 某些情况下可能只是 toast 提示
   }
@@ -156,7 +149,7 @@ async function runScenario(
 
     // 导航
     await page.goto(`${config.baseUrl}${scenario.path}`, {
-      waitUntil: "commit",
+      waitUntil: 'commit',
       timeout: 15000,
     });
 
@@ -167,9 +160,7 @@ async function runScenario(
     // 截图前处理：隐藏动态元素
     if (scenario.hideSelectors?.length) {
       await page.addStyleTag({
-        content: scenario.hideSelectors
-          .map((s) => `${s} { visibility: hidden !important; }`)
-          .join("\n"),
+        content: scenario.hideSelectors.map((s) => `${s} { visibility: hidden !important; }`).join('\n'),
       });
     }
 
@@ -178,8 +169,8 @@ async function runScenario(
       await page.evaluate((selectors) => {
         for (const sel of selectors) {
           document.querySelectorAll(sel).forEach((el) => {
-            const text = el.textContent ?? "";
-            el.textContent = "█".repeat(Math.max(text.length, 3));
+            const text = el.textContent ?? '';
+            el.textContent = '█'.repeat(Math.max(text.length, 3));
           });
         }
       }, scenario.freezeSelectors);
@@ -209,7 +200,7 @@ async function runScenario(
             path: currentPaths.image,
             fullPage: true,
             timeout: 20000,
-            animations: "disabled",
+            animations: 'disabled',
           });
         }
       } catch (e) {
@@ -231,7 +222,7 @@ async function runScenario(
 
     // DOM 对比
     if (existsSync(baselinePaths.dom)) {
-      const baselineDom = readFileSync(baselinePaths.dom, "utf-8");
+      const baselineDom = readFileSync(baselinePaths.dom, 'utf-8');
       const domResult = compareDom(baselineDom, domJson);
       domIdentical = domResult.identical;
       domDiff = domResult.diff;
@@ -262,7 +253,7 @@ async function runScenario(
   } catch (err) {
     return {
       name: scenario.name,
-      status: "error",
+      status: 'error',
       domPassed: false,
       pixelDiffPercent: null,
       error: err instanceof Error ? err.message : String(err),
@@ -295,24 +286,22 @@ export function approveScenario(
     writeFileSync(baselinePaths.image, readFileSync(currentPaths.image));
   }
   if (existsSync(currentPaths.dom)) {
-    mkdirSync(join(baselineDir, "shared"), { recursive: true });
+    mkdirSync(join(baselineDir, 'shared'), { recursive: true });
     writeFileSync(baselinePaths.dom, readFileSync(currentPaths.dom));
   }
 
   // 更新 manifest（按环境）
-  const domContent = existsSync(baselinePaths.dom) ? readFileSync(baselinePaths.dom, "utf-8") : "";
+  const domContent = existsSync(baselinePaths.dom) ? readFileSync(baselinePaths.dom, 'utf-8') : '';
 
   manifest.scenarios[scenarioName] = {
-    status: "approved",
+    status: 'approved',
     approvedBy,
     approvedAt: new Date().toISOString(),
     commit,
     threshold: manifest.scenarios[scenarioName]?.threshold ?? 0.1,
     domHash: contentHash(domContent),
     imageHash:
-      !skipPixel && existsSync(baselinePaths.image)
-        ? contentHash(readFileSync(baselinePaths.image))
-        : undefined,
+      !skipPixel && existsSync(baselinePaths.image) ? contentHash(readFileSync(baselinePaths.image)) : undefined,
   };
 
   saveManifest(baselineDir, env, manifest);
@@ -327,9 +316,9 @@ export function rejectScenario(baselineDir: string, scenarioName: string, env: T
 
   manifest.scenarios[scenarioName] = {
     ...existing,
-    status: "rejected" as const,
+    status: 'rejected' as const,
     threshold: existing?.threshold ?? 0.1,
-    domHash: existing?.domHash ?? "",
+    domHash: existing?.domHash ?? '',
   };
 
   saveManifest(baselineDir, env, manifest);

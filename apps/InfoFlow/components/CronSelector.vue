@@ -7,7 +7,8 @@
         placeholder="0 9 * * *"
         :class="{ 'p-invalid': error }"
         class="w-full"
-        @input="onCronInput" />
+        @input="onCronInput"
+      />
       <small v-if="error" class="text-red-500">{{ error }}</small>
       <small class="text-gray-500">格式: 分钟 小时 * * * (例如: 0 9 * * * = 每天9点)</small>
     </div>
@@ -32,7 +33,8 @@
           max="1000"
           step="1"
           class="relative w-full h-2 bg-transparent appearance-none cursor-pointer slider z-10"
-          @input="onSliderInput" />
+          @input="onSliderInput"
+        />
 
         <!-- 滑块分段标记 -->
         <div class="flex justify-between text-xs text-gray-500 mt-1">
@@ -57,12 +59,7 @@
       <div v-show="currentMode === 'minute'" class="p-3 bg-blue-50 rounded-lg">
         <label class="block text-sm font-medium mb-2">每多少分钟执行一次</label>
         <div class="flex items-center gap-3">
-          <InputNumber
-            v-model="minuteValue"
-            :min="1"
-            :max="59"
-            class="w-24"
-            @input="updateFromMinute" />
+          <InputNumber v-model="minuteValue" :min="1" :max="59" class="w-24" @input="updateFromMinute" />
           <span class="text-sm text-gray-600">分钟</span>
         </div>
         <div class="text-xs text-gray-500 mt-1">范围: 1-59 分钟</div>
@@ -72,12 +69,7 @@
       <div v-show="currentMode === 'hour'" class="p-3 bg-green-50 rounded-lg">
         <label class="block text-sm font-medium mb-2">每多少小时执行一次</label>
         <div class="flex items-center gap-3">
-          <InputNumber
-            v-model="hourValue"
-            :min="1"
-            :max="23"
-            class="w-24"
-            @input="updateFromHour" />
+          <InputNumber v-model="hourValue" :min="1" :max="23" class="w-24" @input="updateFromHour" />
           <span class="text-sm text-gray-600">小时</span>
         </div>
         <div class="text-xs text-gray-500 mt-1">范围: 1-23 小时</div>
@@ -87,12 +79,7 @@
       <div v-show="currentMode === 'day'" class="p-3 bg-yellow-50 rounded-lg">
         <label class="block text-sm font-medium mb-2">每多少天执行一次</label>
         <div class="flex items-center gap-3">
-          <InputNumber
-            v-model="dayValue"
-            :min="1"
-            :max="30"
-            class="w-24"
-            @input="updateFromDay" />
+          <InputNumber v-model="dayValue" :min="1" :max="30" class="w-24" @input="updateFromDay" />
           <span class="text-sm text-gray-600">天</span>
         </div>
         <div class="text-xs text-gray-500 mt-1">范围: 1-30 天</div>
@@ -102,12 +89,7 @@
       <div v-show="currentMode === 'week'" class="p-3 bg-purple-50 rounded-lg">
         <label class="block text-sm font-medium mb-2">每多少星期执行一次</label>
         <div class="flex items-center gap-3">
-          <InputNumber
-            v-model="weekValue"
-            :min="1"
-            :max="4"
-            class="w-24"
-            @input="updateFromWeek" />
+          <InputNumber v-model="weekValue" :min="1" :max="4" class="w-24" @input="updateFromWeek" />
           <span class="text-sm text-gray-600">星期</span>
         </div>
         <div class="text-xs text-gray-500 mt-1">范围: 1-4 星期</div>
@@ -119,7 +101,8 @@
             optionLabel="label"
             optionValue="value"
             class="w-32"
-            @change="updateFromWeek" />
+            @change="updateFromWeek"
+          />
         </div>
       </div>
     </div>
@@ -192,7 +175,7 @@ const currentFrequency = computed(() => {
         cron: `0 9 */${dayValue.value} * *`,
       };
     case 'week':
-      const dayName = weekDayOptions.find(opt => opt.value === weekDay.value)?.label || '周一';
+      const dayName = weekDayOptions.find((opt) => opt.value === weekDay.value)?.label || '周一';
       return {
         description: `每 ${weekValue.value} 星期执行一次（${dayName}）`,
         cron: `0 9 * * ${weekDay.value}`,
@@ -369,12 +352,15 @@ const updateFromWeek = () => {
 };
 
 // 监听外部值变化
-watch(() => props.modelValue, (newValue) => {
-  if (newValue !== cronExpression.value) {
-    cronExpression.value = newValue;
-    parseCron(newValue);
-  }
-});
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    if (newValue !== cronExpression.value) {
+      cronExpression.value = newValue;
+      parseCron(newValue);
+    }
+  },
+);
 
 // 初始化
 onMounted(() => {

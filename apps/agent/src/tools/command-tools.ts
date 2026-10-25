@@ -12,30 +12,30 @@ export const commandExecuteTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      command: { 
+      command: {
         type: 'string',
-        description: 'Command to execute'
+        description: 'Command to execute',
       },
-      args: { 
+      args: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Command arguments'
+        description: 'Command arguments',
       },
       cwd: {
         type: 'string',
-        description: 'Working directory'
+        description: 'Working directory',
       },
       timeout: {
         type: 'number',
         default: 30000,
-        description: 'Timeout in milliseconds'
+        description: 'Timeout in milliseconds',
       },
       env: {
         type: 'object',
-        description: 'Additional environment variables'
-      }
+        description: 'Additional environment variables',
+      },
     },
-    required: ['command']
+    required: ['command'],
   },
   outputSchema: {
     type: 'object',
@@ -44,31 +44,45 @@ export const commandExecuteTool: ToolDefinition = {
       stdout: { type: 'string' },
       stderr: { type: 'string' },
       exitCode: { type: 'number' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   },
   timeout: 60000,
   validate: (input) => {
     // Security validation
     const dangerousCommands = [
-      'rm -rf', 'format', 'del', '> /dev/null', 'sudo', 'su',
-      'chmod 777', 'chown', 'mkfs', 'fdisk', 'dd if=/dev',
-      'shutdown', 'reboot', 'halt', 'poweroff'
+      'rm -rf',
+      'format',
+      'del',
+      '> /dev/null',
+      'sudo',
+      'su',
+      'chmod 777',
+      'chown',
+      'mkfs',
+      'fdisk',
+      'dd if=/dev',
+      'shutdown',
+      'reboot',
+      'halt',
+      'poweroff',
     ];
-    
+
     const cmd = input.command.toLowerCase();
-    
-    if (dangerousCommands.some(dangerous => cmd.includes(dangerous))) {
+
+    if (dangerousCommands.some((dangerous) => cmd.includes(dangerous))) {
       return false;
     }
 
-    return typeof input.command === 'string' &&
-           input.command.length > 0 &&
-           input.command.trim().length > 0 &&
-           (input.args === undefined || Array.isArray(input.args)) &&
-           (input.cwd === undefined || typeof input.cwd === 'string') &&
-           (input.timeout === undefined || typeof input.timeout === 'number' && input.timeout > 0) &&
-           (input.env === undefined || typeof input.env === 'object');
+    return (
+      typeof input.command === 'string' &&
+      input.command.length > 0 &&
+      input.command.trim().length > 0 &&
+      (input.args === undefined || Array.isArray(input.args)) &&
+      (input.cwd === undefined || typeof input.cwd === 'string') &&
+      (input.timeout === undefined || (typeof input.timeout === 'number' && input.timeout > 0)) &&
+      (input.env === undefined || typeof input.env === 'object')
+    );
   },
   execute: async (input) => {
     try {
@@ -87,7 +101,7 @@ export const commandExecuteTool: ToolDefinition = {
         timeout,
         env,
         encoding: 'utf8',
-        maxBuffer: 1024 * 1024 // 1MB
+        maxBuffer: 1024 * 1024, // 1MB
       });
 
       return {
@@ -95,7 +109,7 @@ export const commandExecuteTool: ToolDefinition = {
         stdout: stdout || '',
         stderr: stderr || '',
         exitCode: 0,
-        message: 'Command executed successfully'
+        message: 'Command executed successfully',
       };
     } catch (error: any) {
       return {
@@ -103,10 +117,10 @@ export const commandExecuteTool: ToolDefinition = {
         stdout: error.stdout || '',
         stderr: error.stderr || error.message,
         exitCode: error.status || 1,
-        message: error.message
+        message: error.message,
       };
     }
-  }
+  },
 };
 
 export const commandExecuteSyncTool: ToolDefinition = {
@@ -117,26 +131,26 @@ export const commandExecuteSyncTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      command: { 
+      command: {
         type: 'string',
-        description: 'Command to execute'
+        description: 'Command to execute',
       },
-      args: { 
+      args: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Command arguments'
+        description: 'Command arguments',
       },
       cwd: {
         type: 'string',
-        description: 'Working directory'
+        description: 'Working directory',
       },
       timeout: {
         type: 'number',
         default: 10000,
-        description: 'Timeout in milliseconds'
-      }
+        description: 'Timeout in milliseconds',
+      },
     },
-    required: ['command']
+    required: ['command'],
   },
   outputSchema: {
     type: 'object',
@@ -145,34 +159,60 @@ export const commandExecuteSyncTool: ToolDefinition = {
       stdout: { type: 'string' },
       stderr: { type: 'string' },
       exitCode: { type: 'number' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   },
   timeout: 15000,
   validate: (input) => {
     // More restrictive validation for sync execution
     const dangerousCommands = [
-      'rm -rf', 'format', 'del', 'sudo', 'su', 'chmod 777',
-      'chown', 'mkfs', 'fdisk', 'dd if=/dev', 'shutdown', 'reboot'
+      'rm -rf',
+      'format',
+      'del',
+      'sudo',
+      'su',
+      'chmod 777',
+      'chown',
+      'mkfs',
+      'fdisk',
+      'dd if=/dev',
+      'shutdown',
+      'reboot',
     ];
-    
+
     const cmd = input.command.toLowerCase();
-    
-    if (dangerousCommands.some(dangerous => cmd.includes(dangerous))) {
+
+    if (dangerousCommands.some((dangerous) => cmd.includes(dangerous))) {
       return false;
     }
 
     // Only allow safe commands for sync execution
-    const allowedCommands = ['echo', 'ls', 'pwd', 'date', 'whoami', 'uname', 'cat', 'head', 'tail', 'wc', 'grep', 'find'];
-    if (!allowedCommands.some(allowed => cmd.includes(allowed))) {
+    const allowedCommands = [
+      'echo',
+      'ls',
+      'pwd',
+      'date',
+      'whoami',
+      'uname',
+      'cat',
+      'head',
+      'tail',
+      'wc',
+      'grep',
+      'find',
+    ];
+    if (!allowedCommands.some((allowed) => cmd.includes(allowed))) {
       return false;
     }
 
-    return typeof input.command === 'string' &&
-           input.command.length > 0 &&
-           (input.args === undefined || Array.isArray(input.args)) &&
-           (input.cwd === undefined || typeof input.cwd === 'string') &&
-           (input.timeout === undefined || typeof input.timeout === 'number' && input.timeout > 0 && input.timeout <= 30000);
+    return (
+      typeof input.command === 'string' &&
+      input.command.length > 0 &&
+      (input.args === undefined || Array.isArray(input.args)) &&
+      (input.cwd === undefined || typeof input.cwd === 'string') &&
+      (input.timeout === undefined ||
+        (typeof input.timeout === 'number' && input.timeout > 0 && input.timeout <= 30000))
+    );
   },
   execute: async (input) => {
     try {
@@ -187,7 +227,7 @@ export const commandExecuteSyncTool: ToolDefinition = {
         cwd,
         timeout,
         encoding: 'utf8',
-        maxBuffer: 512 * 1024 // 512KB for sync
+        maxBuffer: 512 * 1024, // 512KB for sync
       });
 
       return {
@@ -195,7 +235,7 @@ export const commandExecuteSyncTool: ToolDefinition = {
         stdout: stdout || '',
         stderr: '',
         exitCode: 0,
-        message: 'Command executed successfully'
+        message: 'Command executed successfully',
       };
     } catch (error: any) {
       return {
@@ -203,10 +243,10 @@ export const commandExecuteSyncTool: ToolDefinition = {
         stdout: error.stdout || '',
         stderr: error.stderr || error.message,
         exitCode: error.status || 1,
-        message: error.message
+        message: error.message,
       };
     }
-  }
+  },
 };
 
 export const systemInfoTool: ToolDefinition = {
@@ -221,22 +261,23 @@ export const systemInfoTool: ToolDefinition = {
         type: 'string',
         enum: ['os', 'memory', 'disk', 'cpu', 'network', 'all'],
         default: 'all',
-        description: 'Type of system information to retrieve'
-      }
-    }
+        description: 'Type of system information to retrieve',
+      },
+    },
   },
   outputSchema: {
     type: 'object',
     properties: {
       success: { type: 'boolean' },
       info: { type: 'object' },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   },
   timeout: 5000,
   validate: (input) => {
-    return typeof input.info_type === 'string' &&
-           ['os', 'memory', 'disk', 'cpu', 'network', 'all'].includes(input.info_type);
+    return (
+      typeof input.info_type === 'string' && ['os', 'memory', 'disk', 'cpu', 'network', 'all'].includes(input.info_type)
+    );
   },
   execute: async (input) => {
     try {
@@ -249,7 +290,7 @@ export const systemInfoTool: ToolDefinition = {
           arch: process.arch,
           version: process.version,
           uptime: process.uptime(),
-          cwd: process.cwd()
+          cwd: process.cwd(),
         };
       }
 
@@ -259,44 +300,44 @@ export const systemInfoTool: ToolDefinition = {
           rss: Math.round(memUsage.rss / 1024 / 1024), // MB
           heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
           heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-          external: Math.round(memUsage.external / 1024 / 1024)
+          external: Math.round(memUsage.external / 1024 / 1024),
         };
       }
 
       if (infoType === 'all' || infoType === 'cpu') {
         result.cpu = {
           cpus: require('os').cpus().length,
-          loadavg: require('os').loadavg()
+          loadavg: require('os').loadavg(),
         };
       }
 
       if (infoType === 'all' || infoType === 'network') {
         const networkInterfaces = require('os').networkInterfaces();
         result.network = {
-          interfaces: Object.keys(networkInterfaces).map(iface => ({
+          interfaces: Object.keys(networkInterfaces).map((iface) => ({
             name: iface,
             addresses: networkInterfaces[iface].map((addr: any) => ({
               address: addr.address,
               netmask: addr.netmask,
               family: addr.family,
               mac: addr.mac,
-              internal: addr.internal
-            }))
-          }))
+              internal: addr.internal,
+            })),
+          })),
         };
       }
 
       return {
         success: true,
         info: result,
-        message: 'System information retrieved successfully'
+        message: 'System information retrieved successfully',
       };
     } catch (error) {
       return {
         success: false,
         info: {},
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       };
     }
-  }
+  },
 };

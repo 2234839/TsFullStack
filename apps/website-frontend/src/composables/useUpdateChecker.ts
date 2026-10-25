@@ -8,13 +8,13 @@
  * 原理：Vite 构建产物是 hash 命名（如 index-BN0u034N.js），每次部署 hash 必变。
  * 零后端改动，纯客户端实现。
  */
-import { ref } from "vue";
+import { ref } from 'vue';
 
 /** 轮询间隔（5 分钟） */
 const POLL_INTERVAL = 5 * 60 * 1000;
 
 /** index.html 轮询时的 cache-busting 查询参数 */
-const CACHE_BUST_QUERY = "?t=";
+const CACHE_BUST_QUERY = '?t=';
 
 /** 模块级状态：是否检测到更新（轮询和路由兜底共享） */
 export const isUpdateAvailable = ref(false);
@@ -30,7 +30,7 @@ let isNotified = false;
 function extractEntrySrc(html: string): string | null {
   const matches = [...html.matchAll(/<script[^>]+type="module"[^>]+src="([^"]+)"/g)];
   /** 找到真正的入口（不是 devtools / vite-client） */
-  const entry = matches.find((m) => m[1].includes("/src/main") || m[1].includes("/assets/index-"));
+  const entry = matches.find((m) => m[1].includes('/src/main') || m[1].includes('/assets/index-'));
   return entry ? entry[1] : null;
 }
 
@@ -41,8 +41,8 @@ function extractEntrySrc(html: string): string | null {
 function getCurrentEntry(): string | null {
   const scripts = document.querySelectorAll<HTMLScriptElement>('script[type="module"][src]');
   for (const script of scripts) {
-    const src = script.src.replace(window.location.origin, "");
-    if (src.includes("/src/main") || src.includes("/assets/index-")) {
+    const src = script.src.replace(window.location.origin, '');
+    if (src.includes('/src/main') || src.includes('/assets/index-')) {
       return src;
     }
   }
@@ -56,7 +56,7 @@ function getCurrentEntry(): string | null {
 export async function checkUpdate(): Promise<boolean> {
   try {
     const res = await fetch(CACHE_BUST_QUERY + Date.now(), {
-      headers: { Accept: "text/html" },
+      headers: { Accept: 'text/html' },
     });
     if (!res.ok) return false;
 

@@ -120,17 +120,13 @@ const itemTextPlClass = computed(() => {
 </script>
 
 <template>
-  <SelectRoot
-    :model-value="rootModelValue"
-    :disabled="disabled"
-    @update:model-value="handleUpdateValue">
+  <SelectRoot :model-value="rootModelValue" :disabled="disabled" @update:model-value="handleUpdateValue">
     <SelectTrigger
       class="inline-flex items-center justify-between border border-primary-300 dark:border-primary-700 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-900 transition-colors"
       :class="triggerSizeClasses"
-      :data-placeholder="!selectedOption">
-      <SelectValue
-        class="flex-1"
-        :placeholder="placeholder">
+      :data-placeholder="!selectedOption"
+    >
+      <SelectValue class="flex-1" :placeholder="placeholder">
         {{ selectedOption?.label || placeholder }}
       </SelectValue>
       <svg
@@ -138,12 +134,9 @@ const itemTextPlClass = computed(() => {
         :class="[iconSizeClasses, { 'rotate-180': $attrs['data-state'] === 'open' }]"
         fill="none"
         stroke="currentColor"
-        viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M19 9l-7 7-7-7" />
+        viewBox="0 0 24 24"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
       </svg>
     </SelectTrigger>
 
@@ -155,20 +148,14 @@ const itemTextPlClass = computed(() => {
         :side="side"
         :align="align"
         :side-offset="sideOffset"
-        :style="contentStyle">
+        :style="contentStyle"
+      >
         <SelectScrollUpButton
           class="flex items-center justify-center bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
-          :class="props.size === 'sm' ? 'h-5' : props.size === 'lg' ? 'h-7' : 'h-6'">
-          <svg
-            :class="iconSizeClasses"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M5 15l7-7 7 7" />
+          :class="props.size === 'sm' ? 'h-5' : props.size === 'lg' ? 'h-7' : 'h-6'"
+        >
+          <svg :class="iconSizeClasses" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
           </svg>
         </SelectScrollUpButton>
 
@@ -179,20 +166,14 @@ const itemTextPlClass = computed(() => {
             :value="option.value"
             :disabled="option.disabled"
             class="relative flex items-center rounded-md cursor-pointer select-none data-[highlighted]:bg-primary-200 dark:data-[highlighted]:bg-primary-800 data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed transition-colors"
-            :class="itemSizeClasses">
+            :class="itemSizeClasses"
+          >
             <SelectItemIndicator
               class="absolute flex items-center justify-center text-primary-600 dark:text-primary-400"
-              :class="indicatorSizeClasses">
-              <svg
-                :class="iconSizeClasses"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24">
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M5 13l4 4L19 7" />
+              :class="indicatorSizeClasses"
+            >
+              <svg :class="iconSizeClasses" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
             </SelectItemIndicator>
 
@@ -204,17 +185,10 @@ const itemTextPlClass = computed(() => {
 
         <SelectScrollDownButton
           class="flex items-center justify-center bg-primary-50 dark:bg-primary-950 text-primary-900 dark:text-primary-100 cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
-          :class="props.size === 'sm' ? 'h-5' : props.size === 'lg' ? 'h-7' : 'h-6'">
-          <svg
-            :class="iconSizeClasses"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7" />
+          :class="props.size === 'sm' ? 'h-5' : props.size === 'lg' ? 'h-7' : 'h-6'"
+        >
+          <svg :class="iconSizeClasses" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </SelectScrollDownButton>
       </SelectContent>

@@ -30,9 +30,9 @@
   - 尽善尽美的 i18n 国际化支持，确保每个细节都支持多语言动态切换而无需重载页面。
   - 明暗主题切换，组件和 tailwindcss 同步支持动态切换。
   - 实现的一些功能页面
-   - 类 prisma studio 的管理面板（一定程度上可以作为他的开源替代方案），不再需要写千篇一律的 CRUD 页面。
-   - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) 一个中文友好的实时计算笔记本
-   - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) 在阅读中渐进式学习英语
+  - 类 prisma studio 的管理面板（一定程度上可以作为他的开源替代方案），不再需要写千篇一律的 CRUD 页面。
+  - [NoteCalc](https://tsfullstack.heartstack.space/noteCalc) 一个中文友好的实时计算笔记本
+  - [AiEnglish](https://tsfullstack.heartstack.space/AiEnglish) 在阅读中渐进式学习英语
 
 其他应用示范
 

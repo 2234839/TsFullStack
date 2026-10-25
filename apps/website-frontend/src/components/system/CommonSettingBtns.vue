@@ -7,7 +7,7 @@
   </div>
 </template>
 <script setup lang="ts">
-  import ThemeToggle from '@/components/system/ThemeToggle.vue';
-  import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
-  import I18nSwitch from '@/components/system/I18nSwitch.vue';
+import ThemeToggle from '@/components/system/ThemeToggle.vue';
+import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
+import I18nSwitch from '@/components/system/I18nSwitch.vue';
 </script>

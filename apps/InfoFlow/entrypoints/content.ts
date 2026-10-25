@@ -36,10 +36,7 @@ const ELEMENT_WAIT_TIMEOUT = 10000;
 /**
  * Wait for an element to appear in the DOM
  */
-async function waitForElement(
-  selector: string,
-  timeout: number = ELEMENT_WAIT_TIMEOUT,
-): Promise<Element> {
+async function waitForElement(selector: string, timeout: number = ELEMENT_WAIT_TIMEOUT): Promise<Element> {
   const element = document.querySelector(selector);
   if (element) {
     return element;
@@ -193,9 +190,7 @@ async function executeCollectionMethod(
       const result = await collectCSSData(method, maxWaitTime, pollInterval, startTime);
 
       if (result.success) {
-        console.log(
-          `[Collection] CSS collected ${result.data.length} items after ${result.attempts} attempts`,
-        );
+        console.log(`[Collection] CSS collected ${result.data.length} items after ${result.attempts} attempts`);
 
         // 转换为CollectionItem格式
         const items: CollectionItem[] = result.data.map((item) => ({
@@ -226,9 +221,7 @@ async function executeCollectionMethod(
         console.log(`[Collection] JS completed with result after ${result.attempts} attempts`);
 
         // 转换为CollectionItem格式
-        const items: CollectionItem[] = (
-          Array.isArray(result.data) ? result.data : [result.data]
-        ).map((item: any) => ({
+        const items: CollectionItem[] = (Array.isArray(result.data) ? result.data : [result.data]).map((item: any) => ({
           type: 'js',
           value: item,
           timestamp: new Date().toISOString(),
@@ -304,12 +297,7 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
     const method = task.dataCollection[i];
     const collectionKey = `collection_${i}`;
 
-    result.collections![collectionKey] = await executeCollectionMethod(
-      method,
-      maxWaitTime,
-      POLL_INTERVAL,
-      startTime,
-    );
+    result.collections![collectionKey] = await executeCollectionMethod(method, maxWaitTime, POLL_INTERVAL, startTime);
   }
 
   // Wait 3 seconds before second collection to prevent missing data
@@ -321,12 +309,7 @@ async function execTask(task: runInfoFlowGet_task): Promise<TaskResult> {
     const method = task.dataCollection[i];
     const collectionKey = `collection_${i}`;
 
-    result.collections![collectionKey] = await executeCollectionMethod(
-      method,
-      maxWaitTime,
-      POLL_INTERVAL,
-      startTime,
-    );
+    result.collections![collectionKey] = await executeCollectionMethod(method, maxWaitTime, POLL_INTERVAL, startTime);
   }
 
   console.log(`[Task] Completed with ${Object.keys(result.collections!).length} collections`);
@@ -433,8 +416,8 @@ export default defineContentScript({
         action: contentScriptReadyMessageId,
         data: {
           url: window.location.href,
-          timestamp: Date.now()
-        }
+          timestamp: Date.now(),
+        },
       });
       console.log('[ContentScript] Notified background script of ready state');
     } catch (error) {

@@ -7,24 +7,24 @@ async function basicExample() {
   const config = {
     storage: {
       type: 'json' as const,
-      dataDir: './data'
+      dataDir: './data',
     },
     security: {
       enablePermissions: true,
       allowedTools: ['file_write', 'file_read', 'system_info'],
       maxTaskDuration: 300000,
-      safeMode: true
+      safeMode: true,
     },
     logging: {
       level: 'info' as const,
       enableConsole: true,
-      enableFile: false
+      enableFile: false,
     },
     tools: {
       directory: './tools',
       autoLoad: false,
-      timeout: 30000
-    }
+      timeout: 30000,
+    },
   };
 
   // Create agent
@@ -43,7 +43,7 @@ async function basicExample() {
     // Execute a simple task
     console.log('Executing task: "创建一个测试文件"');
     const result = await agent.executeTask('创建一个测试文件');
-    
+
     console.log('Task result:');
     console.log('- Success:', result.success);
     console.log('- Execution time:', result.executionTime, 'ms');
@@ -72,7 +72,6 @@ async function basicExample() {
     console.log('- Storage:', health.checks.storage ? '✓' : '✗');
     console.log('- Tools:', health.checks.tools ? '✓' : '✗');
     console.log('- Tasks:', health.checks.tasks ? '✓' : '✗');
-
   } catch (error) {
     console.error('Example failed:', error);
   } finally {

@@ -11,19 +11,19 @@ async function hmacSha256(key: string, data: string): Promise<string> {
   let cryptoKey = cryptoKeyCache.get(key);
   if (!cryptoKey) {
     cryptoKey = await crypto.subtle.importKey(
-      "raw",
+      'raw',
       textEncoder.encode(key),
-      { name: "HMAC", hash: "SHA-256" },
+      { name: 'HMAC', hash: 'SHA-256' },
       false,
-      ["sign"],
+      ['sign'],
     );
     cryptoKeyCache.set(key, cryptoKey);
   }
 
-  const signature = await crypto.subtle.sign("HMAC", cryptoKey, textEncoder.encode(data));
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, textEncoder.encode(data));
   return Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 /** 使用 sessionToken 对原始字符串签名 */

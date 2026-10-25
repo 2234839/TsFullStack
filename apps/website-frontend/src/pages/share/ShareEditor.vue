@@ -12,8 +12,8 @@
       >
         <i class="pi pi-exclamation-triangle text-2xl text-danger-600 dark:text-danger-400" />
       </div>
-      <h2 class="text-2xl font-semibold text-primary-title mb-2">{{ t("加载失败") }}</h2>
-      <p class="text-primary-subtle">{{ t("无法加载分享内容") }}</p>
+      <h2 class="text-2xl font-semibold text-primary-title mb-2">{{ t('加载失败') }}</h2>
+      <p class="text-primary-subtle">{{ t('无法加载分享内容') }}</p>
     </div>
 
     <!-- 加密分享：需要密码解锁 -->
@@ -25,8 +25,8 @@
           >
             <i class="pi pi-lock text-2xl text-primary-500" />
           </div>
-          <h2 class="text-xl font-semibold text-primary-title mb-2">{{ t("加密分享") }}</h2>
-          <p class="text-sm text-primary-subtle">{{ t("请输入密码以查看分享内容") }}</p>
+          <h2 class="text-xl font-semibold text-primary-title mb-2">{{ t('加密分享') }}</h2>
+          <p class="text-sm text-primary-subtle">{{ t('请输入密码以查看分享内容') }}</p>
         </div>
         <div class="flex flex-col gap-3">
           <Password
@@ -43,7 +43,7 @@
           </p>
           <Button :loading="isDecrypting" @click="tryDecryptWithManualPassword">
             <i class="pi pi-unlock mr-1" />
-            {{ t("解锁") }}
+            {{ t('解锁') }}
           </Button>
         </div>
       </div>
@@ -67,27 +67,17 @@
         </Button>
         <!-- 编辑模式：可编辑标题 -->
         <template v-if="isEditMode">
-          <Input
-            v-model="title"
-            class="flex-1 min-w-0 !py-1.5 !text-sm"
-            :placeholder="t('分享标题')"
-          />
+          <Input v-model="title" class="flex-1 min-w-0 !py-1.5 !text-sm" :placeholder="t('分享标题')" />
           <span
             v-if="hasUnsavedChanges"
             class="text-xs text-warning-500 dark:text-warning-400 whitespace-nowrap shrink-0"
           >
             <i class="pi pi-exclamation-circle sm:mr-1" />
-            <span class="hidden sm:inline">{{ t("未保存") }}</span>
+            <span class="hidden sm:inline">{{ t('未保存') }}</span>
           </span>
-          <Button
-            :loading="isSaving"
-            :disabled="isSaving"
-            size="small"
-            class="shrink-0"
-            @click="save"
-          >
+          <Button :loading="isSaving" :disabled="isSaving" size="small" class="shrink-0" @click="save">
             <i class="pi pi-save sm:mr-1" />
-            <span class="hidden sm:inline">{{ t("保存") }}</span>
+            <span class="hidden sm:inline">{{ t('保存') }}</span>
           </Button>
         </template>
         <!-- 查看模式：显示标题 -->
@@ -95,33 +85,18 @@
           <h1 class="text-base sm:text-xl font-bold text-primary-title flex-1 truncate min-w-0">
             {{ shareData.data.title }}
           </h1>
-          <Button
-            v-if="isOwner"
-            variant="secondary"
-            size="sm"
-            class="shrink-0"
-            @click="enterEditMode"
-          >
+          <Button v-if="isOwner" variant="secondary" size="sm" class="shrink-0" @click="enterEditMode">
             <i class="pi pi-pencil sm:mr-1" />
-            <span class="hidden sm:inline">{{ t("编辑") }}</span>
+            <span class="hidden sm:inline">{{ t('编辑') }}</span>
           </Button>
         </template>
-        <Button
-          variant="icon"
-          class="shrink-0"
-          @click="qrDialogVisible = true"
-          :title="t('分享二维码')"
-        >
+        <Button variant="icon" class="shrink-0" @click="qrDialogVisible = true" :title="t('分享二维码')">
           <i class="pi pi-qrcode" />
         </Button>
       </header>
 
       <!-- 二维码对话框 -->
-      <ShareQRDialog
-        v-model:open="qrDialogVisible"
-        :share-url="shareUrl"
-        :title="shareData.data.title"
-      />
+      <ShareQRDialog v-model:open="qrDialogVisible" :share-url="shareUrl" :title="shareData.data.title" />
 
       <!-- 主体：侧边栏 + 内容区 -->
       <div class="flex flex-1 overflow-hidden">
@@ -152,11 +127,7 @@
           >
             <i
               class="pi mr-1 sm:mr-2 shrink-0"
-              :class="
-                isTextFile(selectedFile.mimetype)
-                  ? 'pi-file-edit'
-                  : getFileTypeIcon(selectedFile.mimetype)
-              "
+              :class="isTextFile(selectedFile.mimetype) ? 'pi-file-edit' : getFileTypeIcon(selectedFile.mimetype)"
             />
             <template v-if="isEditMode">
               <input
@@ -175,31 +146,16 @@
             <template v-if="isEditMode && selectedFile.id !== undefined && selectedFile.id > 0">
               <Button variant="ghost" size="sm" class="shrink-0" @click="triggerReplaceFile">
                 <i class="pi pi-upload sm:mr-1" />
-                <span class="hidden sm:inline">{{ t("替换文件") }}</span>
+                <span class="hidden sm:inline">{{ t('替换文件') }}</span>
               </Button>
-              <input
-                ref="replaceFileInputRef"
-                type="file"
-                class="hidden"
-                @change="onReplaceFileSelected"
-              />
+              <input ref="replaceFileInputRef" type="file" class="hidden" @change="onReplaceFileSelected" />
             </template>
             <!-- 查看模式的操作按钮 -->
             <template v-if="!isEditMode">
-              <Button
-                variant="ghost"
-                size="sm"
-                class="shrink-0"
-                @click="openInNewTab(selectedFile)"
-              >
+              <Button variant="ghost" size="sm" class="shrink-0" @click="openInNewTab(selectedFile)">
                 <i class="pi pi-external-link" />
               </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                class="shrink-0"
-                @click="downloadFile(selectedFile)"
-              >
+              <Button variant="ghost" size="sm" class="shrink-0" @click="downloadFile(selectedFile)">
                 <i class="pi pi-download" />
               </Button>
             </template>
@@ -221,12 +177,7 @@
                 @update:content="handleTextContentChange"
               />
               <!-- 查看模式 -->
-              <ShareCodeMirror
-                v-else
-                :content="currentTextContent"
-                :filename="selectedFile.filename"
-                read-only
-              />
+              <ShareCodeMirror v-else :content="currentTextContent" :filename="selectedFile.filename" read-only />
             </template>
 
             <!-- 二进制文件：预览 -->
@@ -238,7 +189,7 @@
         <div v-else class="flex-1 hidden sm:flex items-center justify-center text-primary-subtle">
           <div class="text-center">
             <i class="pi pi-file text-4xl mb-2" />
-            <p>{{ t("选择一个文件查看") }}</p>
+            <p>{{ t('选择一个文件查看') }}</p>
           </div>
         </div>
       </div>
@@ -247,33 +198,23 @@
 </template>
 
 <script setup lang="ts">
-import { useAPI } from "@/api";
-import type { ShareFileJSON } from "@/pages/admin/share/ShareDef";
-import {
-  isTextFile,
-  getFileTypeIcon,
-  guessMimetype,
-  parseShareItem,
-} from "@/pages/admin/share/ShareDef";
-import ShareFileList from "@/pages/share/ShareFileList.vue";
-import ShareCodeMirror from "@/pages/share/ShareCodeMirror.vue";
-import ShareQRDialog from "@/pages/share/ShareQRDialog.vue";
-import ShareFilePreview from "@/pages/admin/share/ShareFilePreview.vue";
-import { authInfo, authInfo_isLogin } from "@/storage";
-import { useAsyncState } from "@vueuse/core";
-import { useFileUpload } from "@/composables/useFileUpload";
-import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from "vue";
-import { onBeforeRouteLeave, useRoute } from "vue-router";
-import { useI18n } from "@/composables/useI18n";
-import { useToast } from "@/composables/useToast";
-import { toJsonValue } from "@/utils/apiType";
-import {
-  isEncryptedData,
-  parseShareHashParams,
-  decryptShareData,
-  type ShareJSON,
-} from "@/pages/admin/share/ShareDef";
-import type { ShareCrypto } from "@/utils/shareCrypto";
+import { useAPI } from '@/api';
+import type { ShareFileJSON } from '@/pages/admin/share/ShareDef';
+import { isTextFile, getFileTypeIcon, guessMimetype, parseShareItem } from '@/pages/admin/share/ShareDef';
+import ShareFileList from '@/pages/share/ShareFileList.vue';
+import ShareCodeMirror from '@/pages/share/ShareCodeMirror.vue';
+import ShareQRDialog from '@/pages/share/ShareQRDialog.vue';
+import ShareFilePreview from '@/pages/admin/share/ShareFilePreview.vue';
+import { authInfo, authInfo_isLogin } from '@/storage';
+import { useAsyncState } from '@vueuse/core';
+import { useFileUpload } from '@/composables/useFileUpload';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, shallowRef, watch } from 'vue';
+import { onBeforeRouteLeave, useRoute } from 'vue-router';
+import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { toJsonValue } from '@/utils/apiType';
+import { isEncryptedData, parseShareHashParams, decryptShareData, type ShareJSON } from '@/pages/admin/share/ShareDef';
+import type { ShareCrypto } from '@/utils/shareCrypto';
 
 const { API, AppAPI, AppAPIGetUrl, APIGetUrl } = useAPI();
 const route = useRoute();
@@ -297,10 +238,10 @@ const decryptedShare = ref<ShareJSON>();
 const needsPassword = ref(false);
 
 /** 手动输入的密码 */
-const manualPassword = ref("");
+const manualPassword = ref('');
 
 /** 密码错误信息 */
-const passwordError = ref("");
+const passwordError = ref('');
 
 /** 是否正在解密 */
 const isDecrypting = ref(false);
@@ -323,7 +264,7 @@ const loadShareDetail = async () => {
     if (hashParams) {
       const decrypted = await decryptShareData(parsed.data, hashParams.password, hashParams.salt);
       if (decrypted) {
-        const { ShareCrypto: SC } = await import("@/utils/shareCrypto");
+        const { ShareCrypto: SC } = await import('@/utils/shareCrypto');
         activeCrypto.value = await SC.fromPassword(hashParams.password, hashParams.salt);
         decryptedShare.value = decrypted;
         return parsed;
@@ -347,20 +288,20 @@ const { state: _shareDataState, isLoading, error } = useAsyncState(loadShareDeta
 async function tryDecryptWithManualPassword() {
   if (!rawShareData.value || !isEncryptedData(rawShareData.value.data)) return;
   if (!manualPassword.value) {
-    passwordError.value = t("请输入密码");
+    passwordError.value = t('请输入密码');
     return;
   }
 
   isDecrypting.value = true;
-  passwordError.value = "";
+  passwordError.value = '';
 
   try {
     /** 加密数据中存储了 salt（明文），直接使用 */
     const encryptedData = rawShareData.value.data;
-    const salt = isEncryptedData(encryptedData) ? encryptedData.salt : "";
+    const salt = isEncryptedData(encryptedData) ? encryptedData.salt : '';
     const decrypted = await decryptShareData(rawShareData.value.data, manualPassword.value, salt);
     if (decrypted) {
-      const { ShareCrypto: SC, base64UrlEncode } = await import("@/utils/shareCrypto");
+      const { ShareCrypto: SC, base64UrlEncode } = await import('@/utils/shareCrypto');
       activeCrypto.value = await SC.fromPassword(manualPassword.value, salt);
       decryptedShare.value = decrypted;
       needsPassword.value = false;
@@ -368,14 +309,14 @@ async function tryDecryptWithManualPassword() {
       const encodedP = base64UrlEncode(new TextEncoder().encode(manualPassword.value));
       const newHash = `#k=${salt}&p=${encodedP}`;
       if (window.location.hash !== newHash) {
-        window.history.replaceState(null, "", `${window.location.pathname}${newHash}`);
+        window.history.replaceState(null, '', `${window.location.pathname}${newHash}`);
         currentHash.value = newHash;
       }
     } else {
-      passwordError.value = t("密码错误");
+      passwordError.value = t('密码错误');
     }
   } catch {
-    passwordError.value = t("解密失败");
+    passwordError.value = t('解密失败');
   } finally {
     isDecrypting.value = false;
   }
@@ -403,12 +344,10 @@ const shareUrl = computed(() => {
 });
 
 /** 是否为分享所有者 */
-const isOwner = computed(
-  () => authInfo_isLogin.value && rawShareData.value?.userId === authInfo.value?.userId,
-);
+const isOwner = computed(() => authInfo_isLogin.value && rawShareData.value?.userId === authInfo.value?.userId);
 
 /** 是否编辑模式 */
-const isEditMode = computed(() => isOwner.value && route.query.mode === "edit");
+const isEditMode = computed(() => isOwner.value && route.query.mode === 'edit');
 
 // ──────────────── 文件选择 ────────────────
 
@@ -437,8 +376,8 @@ const textContentLoading = ref(false);
 
 /** 当前选中文本文件的内容 */
 const currentTextContent = computed(() => {
-  if (selectedFile.value?.id === undefined) return "";
-  return currentTexts[selectedFile.value.id] ?? "";
+  if (selectedFile.value?.id === undefined) return '';
+  return currentTexts[selectedFile.value.id] ?? '';
 });
 
 /** 判断文本文件是否有未保存修改 */
@@ -461,9 +400,7 @@ async function loadTextContent(fileId: number) {
   if (fileId in originalTexts) return;
   textContentLoading.value = true;
   try {
-    const url = authInfo_isLogin.value
-      ? await APIGetUrl.fileApi.file(fileId)
-      : await AppAPIGetUrl.fileApi.file(fileId);
+    const url = authInfo_isLogin.value ? await APIGetUrl.fileApi.file(fileId) : await AppAPIGetUrl.fileApi.file(fileId);
     const response = await fetch(url);
     /** 加密分享：文件内容是密文，需要解密 */
     if (activeCrypto.value) {
@@ -478,7 +415,7 @@ async function loadTextContent(fileId: number) {
       currentTexts[fileId] = text;
     }
   } catch {
-    toast.error(t("加载失败"), t("无法加载文件内容"));
+    toast.error(t('加载失败'), t('无法加载文件内容'));
   } finally {
     textContentLoading.value = false;
   }
@@ -492,7 +429,7 @@ function handleTextContentChange(newContent: string) {
 
 // ──────────────── 标题 ────────────────
 
-const title = ref("");
+const title = ref('');
 
 watch(shareData, (data) => {
   if (data) {
@@ -537,7 +474,7 @@ const hasUnsavedChanges = computed(() => {
 /** 路由离开拦截 */
 onBeforeRouteLeave(() => {
   if (hasUnsavedChanges.value) {
-    const confirmed = window.confirm(t("有未保存的修改，确定离开吗？"));
+    const confirmed = window.confirm(t('有未保存的修改，确定离开吗？'));
     if (!confirmed) return false;
   }
 });
@@ -549,7 +486,7 @@ function beforeUnloadHandler(e: BeforeUnloadEvent) {
 
 /** Ctrl+S 快捷保存 */
 function handleKeyDown(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key === "s") {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
     e.preventDefault();
     if (isEditMode.value && !isSaving.value) {
       save();
@@ -558,12 +495,12 @@ function handleKeyDown(e: KeyboardEvent) {
 }
 
 onMounted(() => {
-  window.addEventListener("beforeunload", beforeUnloadHandler);
-  window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener('beforeunload', beforeUnloadHandler);
+  window.addEventListener('keydown', handleKeyDown);
 });
 onBeforeUnmount(() => {
-  window.removeEventListener("beforeunload", beforeUnloadHandler);
-  window.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener('beforeunload', beforeUnloadHandler);
+  window.removeEventListener('keydown', handleKeyDown);
 });
 
 /** 重命名文件（标签栏） */
@@ -623,22 +560,22 @@ function toggleDeleteFile(fileId: number) {
 function createTextFile() {
   const tempId = newTextIdCounter--;
   const filename = `untitled-${Math.abs(tempId)}.md`;
-  editState.newTextFiles.set(tempId, { filename, content: "" });
+  editState.newTextFiles.set(tempId, { filename, content: '' });
 
   /** 临时 ShareFileJSON 加入列表 */
   const tempFile: ShareFileJSON = {
     id: tempId,
-    path: "",
+    path: '',
     created: new Date().toISOString(),
     updated: new Date().toISOString(),
-    authorId: authInfo.value?.userId ?? "",
+    authorId: authInfo.value?.userId ?? '',
     filename,
-    mimetype: "text/markdown",
+    mimetype: 'text/markdown',
     size: 0,
   };
   shareData.value?.data.files.push(tempFile);
-  originalTexts[tempId] = "";
-  currentTexts[tempId] = "";
+  originalTexts[tempId] = '';
+  currentTexts[tempId] = '';
   handleFileSelect(tempFile, shareData.value!.data.files.length - 1);
 }
 
@@ -683,8 +620,8 @@ async function onReplaceFileSelected(event: Event) {
     triggerFilesUpdate();
   }
 
-  input.value = "";
-  toast.info(t("文件已暂存"), t("点击保存按钮生效"));
+  input.value = '';
+  toast.info(t('文件已暂存'), t('点击保存按钮生效'));
 }
 
 // ──────────────── 保存 ────────────────
@@ -713,7 +650,7 @@ async function save() {
   // 1. 新建的文本文件
   for (const [tempId, { filename: fname }] of snapshotNewTextFiles) {
     const mimetype = guessMimetype(fname);
-    const content = snapshot[tempId] ?? "";
+    const content = snapshot[tempId] ?? '';
     const blob = new Blob([content], { type: mimetype });
     uploadPromises.push(uploadPublic(blob, fname, activeCrypto.value));
     uploadSources.push(tempId);
@@ -726,7 +663,7 @@ async function save() {
     if (snapshotNewTextFiles.has(fileId)) continue;
     const existingFile = files.find((f) => f.id === fileId);
     if (!existingFile) continue;
-    const content = snapshot[fileId] ?? "";
+    const content = snapshot[fileId] ?? '';
     const blob = new Blob([content], { type: existingFile.mimetype });
     uploadPromises.push(overwriteUpload(fileId, blob, existingFile.filename, activeCrypto.value));
     uploadSources.push(fileId);
@@ -739,9 +676,7 @@ async function save() {
     const targetId = snapshotReplaceTargetId;
     const existingFile = targetId ? files.find((f) => f.id === targetId) : undefined;
     if (existingFile && targetId !== undefined) {
-      uploadPromises.push(
-        overwriteUpload(targetId, file, existingFile.filename, activeCrypto.value),
-      );
+      uploadPromises.push(overwriteUpload(targetId, file, existingFile.filename, activeCrypto.value));
       const idx = files.findIndex((f) => f.id === targetId);
       if (idx !== -1) files.splice(idx, 1);
     } else {
@@ -754,10 +689,7 @@ async function save() {
   const deletePromises = Array.from(snapshotDeletedIds).map((fileId) => API.fileApi.delete(fileId));
 
   // ── 执行上传和删除 ──
-  const [uploadedResults] = await Promise.all([
-    Promise.all(uploadPromises),
-    Promise.all(deletePromises),
-  ]);
+  const [uploadedResults] = await Promise.all([Promise.all(uploadPromises), Promise.all(deletePromises)]);
 
   // ── 合并最终文件列表 ──
   files.push(...uploadedResults);
@@ -798,7 +730,7 @@ async function save() {
   /** 用快照内容重建 originalTexts（代表已保存到服务端的内容） */
   const newOriginals: Record<number, string> = {};
   for (const [sourceId, realId] of idMapping) {
-    newOriginals[realId] = snapshot[sourceId] ?? "";
+    newOriginals[realId] = snapshot[sourceId] ?? '';
   }
   /** 未被上传但之前已加载的文件，保留其 originalTexts（key 可能被覆盖上传改了 ID） */
   for (const [fid, content] of Object.entries(originalTexts)) {
@@ -841,7 +773,7 @@ async function save() {
     if (updated) selectedFile.value = updated;
   }
 
-  toast.success(t("保存成功"));
+  toast.success(t('保存成功'));
   isSaving.value = false;
 }
 
@@ -873,17 +805,17 @@ async function downloadFile(file: ShareFileJSON) {
     } else {
       blobUrl = await getFileUrl(file.id);
     }
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = blobUrl;
     link.download = file.filename;
-    link.style.display = "none";
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     /** 加密分享使用 Blob URL，需要延迟释放 */
     if (activeCrypto.value) setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
   } catch {
-    toast.error(t("下载失败"));
+    toast.error(t('下载失败'));
   }
 }
 
@@ -895,9 +827,9 @@ async function openInNewTab(file: ShareFileJSON) {
     } else {
       url = await getFileUrl(file.id);
     }
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(url, '_blank', 'noopener,noreferrer');
   } catch {
-    toast.error(t("打开失败"));
+    toast.error(t('打开失败'));
   }
 }
 </script>

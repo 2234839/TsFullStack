@@ -20,7 +20,7 @@ const VALID_TOKEN_TYPES: TokenType[] = ['MONTHLY', 'YEARLY', 'PERMANENT'];
 
 /** 验证 userId 非空 */
 const validateUserId = (userId: string | undefined | null) =>
-  (!userId?.trim()) ? fail(MSG.USER_ID_REQUIRED) : Effect.void;
+  !userId?.trim() ? fail(MSG.USER_ID_REQUIRED) : Effect.void;
 
 /**
  * 创建代币套餐
@@ -45,15 +45,18 @@ const createTokenPackage = (request: {
 /**
  * 更新代币套餐
  */
-const updateTokenPackage = (packageId: number, request: {
-  name?: string;
-  description?: string;
-  amount?: number;
-  price?: number;
-  durationMonths?: number;
-  sortOrder?: number;
-  active?: boolean;
-}) =>
+const updateTokenPackage = (
+  packageId: number,
+  request: {
+    name?: string;
+    description?: string;
+    amount?: number;
+    price?: number;
+    durationMonths?: number;
+    sortOrder?: number;
+    active?: boolean;
+  },
+) =>
   Effect.gen(function* () {
     yield* requireAdmin();
     const tokenPackage = yield* TokenPackageService.updatePackage(packageId, request);
@@ -68,17 +71,18 @@ const updateTokenPackage = (packageId: number, request: {
 const deleteTokenPackage = (packageId: number) =>
   requireAdmin().pipe(
     Effect.andThen(() => TokenPackageService.deletePackage(packageId)),
-    Effect.tap(() => Effect.map(ReqCtxService, (ctx) => { ctx.log(`${LOG_PREFIX} 删除套餐 ${packageId}`); })),
+    Effect.tap(() =>
+      Effect.map(ReqCtxService, (ctx) => {
+        ctx.log(`${LOG_PREFIX} 删除套餐 ${packageId}`);
+      }),
+    ),
   );
 
 /**
  * 获取套餐列表
  */
-const listTokenPackages = (options?: {
-  active?: boolean;
-  skip?: number;
-  take?: number;
-}) => TokenPackageService.listPackages(options);
+const listTokenPackages = (options?: { active?: boolean; skip?: number; take?: number }) =>
+  TokenPackageService.listPackages(options);
 
 /**
  * 给用户发放代币（手动）
@@ -133,10 +137,7 @@ const grantTokens = (request: {
 /**
  * 订阅套餐
  */
-const subscribePackage = (request: {
-  userId: string;
-  packageId: number;
-}) =>
+const subscribePackage = (request: { userId: string; packageId: number }) =>
   Effect.gen(function* () {
     yield* requireAdmin();
     const reqCtx = yield* ReqCtxService;
@@ -205,18 +206,17 @@ const subscribePackage = (request: {
 const cancelSubscription = (subscriptionId: number) =>
   requireAdmin().pipe(
     Effect.andThen(() => TokenPackageService.cancelSubscription(subscriptionId)),
-    Effect.tap(() => Effect.map(ReqCtxService, (ctx) => { ctx.log(`${LOG_PREFIX} 取消订阅 ${subscriptionId}`); })),
+    Effect.tap(() =>
+      Effect.map(ReqCtxService, (ctx) => {
+        ctx.log(`${LOG_PREFIX} 取消订阅 ${subscriptionId}`);
+      }),
+    ),
   );
 
 /**
  * 获取用户订阅列表（需要管理员权限）
  */
-const listUserSubscriptions = (options?: {
-  userId?: string;
-  active?: boolean;
-  skip?: number;
-  take?: number;
-}) =>
+const listUserSubscriptions = (options?: { userId?: string; active?: boolean; skip?: number; take?: number }) =>
   requireAdmin().pipe(Effect.andThen(() => TokenPackageService.listSubscriptions(options)));
 
 /**

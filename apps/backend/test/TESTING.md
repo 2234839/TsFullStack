@@ -16,6 +16,7 @@
 ### 前置要求
 
 1. **启动后端服务**
+
    ```bash
    cd apps/backend
    pnpm dev
@@ -60,10 +61,7 @@ import { createTestClient, testAccounts } from './api-test-client';
 const API = createTestClient();
 
 // 创建带认证的客户端
-const userSession = await testAccounts.registerTestAccount(
-  'user@test.local',
-  'password123'
-);
+const userSession = await testAccounts.registerTestAccount('user@test.local', 'password123');
 const authAPI = testAccounts.createAuthenticatedClient(userSession);
 ```
 
@@ -187,6 +185,7 @@ console.log('消耗代币:', before.total - after.total);
 ### 常见问题
 
 **Q: 后端服务未运行**
+
 ```
 A: 确保后端服务正在运行：
    cd apps/backend
@@ -194,12 +193,14 @@ A: 确保后端服务正在运行：
 ```
 
 **Q: API Key 未配置**
+
 ```
 A: 在 .env 文件中配置：
    QWEN_API_KEY=your_key
 ```
 
 **Q: 类型错误**
+
 ```
 A: 重新生成类型并构建：
    pnpm zenstack generate
@@ -207,6 +208,7 @@ A: 重新生成类型并构建：
 ```
 
 **Q: 测试账号冲突**
+
 ```
 A: 测试会自动处理已存在的账号，
    或修改 TEST_ACCOUNTS 中的邮箱地址

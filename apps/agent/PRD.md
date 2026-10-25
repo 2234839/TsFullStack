@@ -3,9 +3,11 @@
 ## 1. 产品概述
 
 ### 1.1 产品愿景
+
 构建一个轻量级、独立的 TypeScript Agent 系统，能够自动处理用户提交的任务、自动验证执行结果、自动修复错误，并提供灵活的工具扩展能力。系统设计简洁，可独立运行，无需复杂的框架依赖。
 
 ### 1.2 核心价值主张
+
 - **轻量级**: 最小化依赖，快速启动，低资源消耗
 - **自动化任务处理**: Agent 能够自主理解、执行和验证任务
 - **自我修复能力**: 自动检测执行失败并进行修复
@@ -14,6 +16,7 @@
 - **简单安全**: 内置基础权限校验和操作记录
 
 ### 1.3 目标用户
+
 - **主要用户**: 开发者，需要自动化处理编程任务
 - **次要用户**: 系统管理员，需要自动化运维任务
 - **潜在用户**: 个人开发者和小团队，需要轻量级自动化解决方案
@@ -21,6 +24,7 @@
 ## 2. 产品架构
 
 ### 2.1 系统架构图
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                      TsAgent 核心                              │
@@ -52,6 +56,7 @@
 ### 2.2 核心模块
 
 #### 2.2.1 任务管理器
+
 - **任务解析**: 解析用户输入的自然语言任务
 - **工具选择**: 根据任务需求选择合适的工具
 - **执行引擎**: 协调工具的执行顺序
@@ -59,16 +64,19 @@
 - **错误处理**: 自动处理执行过程中的错误
 
 #### 2.2.2 工具系统
+
 - **工具注册表**: 管理所有可用工具
 - **权限管理**: 基础的工具权限验证
 - **工具执行器**: 执行具体的工具操作
 
 #### 2.2.3 存储层
+
 - **任务存储**: 任务和执行记录的持久化
 - **工具存储**: 工具定义和元数据存储
 - **日志存储**: 操作日志和执行记录
 
 #### 2.2.4 配置层
+
 - **系统配置**: Agent 的基础配置
 - **权限配置**: 工具权限规则配置
 - **工具配置**: 工具特定配置
@@ -76,6 +84,7 @@
 ## 3. 功能特性
 
 ### 3.1 任务处理流程
+
 1. **任务接收**: 接收用户提交的自然语言任务
 2. **任务分析**: 理解任务目标，识别所需工具
 3. **计划制定**: 生成详细的执行步骤
@@ -86,18 +95,21 @@
 8. **结果返回**: 返回执行结果和详细报告
 
 ### 3.2 自动验证机制
+
 - **结果断言**: 验证文件是否存在、内容是否正确
 - **状态检查**: 检查系统状态是否符合预期
 - **性能验证**: 验证执行时间、资源使用是否合理
 - **安全检查**: 验证操作是否符合安全策略
 
 ### 3.3 自动修复能力
+
 - **重试机制**: 针对临时性错误自动重试
 - **策略调整**: 根据错误类型调整执行策略
 - **回滚操作**: 失败时自动回滚到之前状态
 - **求助机制**: 无法修复时向用户请求指导
 
 ### 3.4 工具系统特性
+
 - **插件化架构**: 工具可以作为独立模块开发和注册
 - **类型安全**: 完整的 TypeScript 类型定义
 - **权限控制**: 每个工具都有独立的权限配置
@@ -107,6 +119,7 @@
 ## 4. 技术实现
 
 ### 4.1 技术栈
+
 - **语言**: TypeScript
 - **运行时**: Node.js >= 18
 - **存储**: SQLite (本地文件) 或 JSON 文件存储
@@ -115,6 +128,7 @@
 - **包管理**: npm 或 pnpm
 
 ### 4.2 数据模型设计
+
 ```typescript
 // 任务数据模型
 interface Task {
@@ -190,6 +204,7 @@ interface AgentConfig {
 ```
 
 ### 4.3 核心类设计
+
 ```typescript
 // 核心 Agent 类
 class TsAgent {
@@ -254,7 +269,7 @@ class TaskManager {
       status: 'pending',
       steps: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
   }
 
@@ -322,9 +337,7 @@ class ToolRegistry {
 
     return Promise.race([
       tool.execute(input),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Tool execution timeout')), timeout)
-      )
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Tool execution timeout')), timeout)),
     ]);
   }
 
@@ -398,7 +411,7 @@ class Logger {
       timestamp: new Date().toISOString(),
       level,
       message,
-      data
+      data,
     };
 
     if (this.config.enableConsole) {
@@ -413,6 +426,7 @@ class Logger {
 ```
 
 ### 4.4 工具定义示例
+
 ```typescript
 // 文件写入工具
 const fileWriteTool: ToolDefinition = {
@@ -425,23 +439,21 @@ const fileWriteTool: ToolDefinition = {
     properties: {
       path: { type: 'string' },
       content: { type: 'string' },
-      encoding: { type: 'string', enum: ['utf8', 'base64'], default: 'utf8' }
+      encoding: { type: 'string', enum: ['utf8', 'base64'], default: 'utf8' },
     },
-    required: ['path', 'content']
+    required: ['path', 'content'],
   },
   outputSchema: {
     type: 'object',
     properties: {
       success: { type: 'boolean' },
       message: { type: 'string' },
-      path: { type: 'string' }
-    }
+      path: { type: 'string' },
+    },
   },
   timeout: 10000,
   validate: (input) => {
-    return typeof input.path === 'string' &&
-           typeof input.content === 'string' &&
-           !input.path.includes('..'); // 防止路径遍历
+    return typeof input.path === 'string' && typeof input.content === 'string' && !input.path.includes('..'); // 防止路径遍历
   },
   execute: async (input) => {
     const fs = require('fs').promises;
@@ -451,7 +463,7 @@ const fileWriteTool: ToolDefinition = {
     const safePath = path.resolve(input.path);
     const allowedDirs = ['/tmp', './workspace'];
 
-    if (!allowedDirs.some(dir => safePath.startsWith(dir))) {
+    if (!allowedDirs.some((dir) => safePath.startsWith(dir))) {
       throw new Error('Access denied: path outside allowed directories');
     }
 
@@ -460,9 +472,9 @@ const fileWriteTool: ToolDefinition = {
     return {
       success: true,
       message: 'File written successfully',
-      path: safePath
+      path: safePath,
     };
-  }
+  },
 };
 
 // 命令执行工具
@@ -477,9 +489,9 @@ const commandExecuteTool: ToolDefinition = {
       command: { type: 'string' },
       args: { type: 'array', items: { type: 'string' } },
       cwd: { type: 'string' },
-      timeout: { type: 'number', default: 30000 }
+      timeout: { type: 'number', default: 30000 },
     },
-    required: ['command']
+    required: ['command'],
   },
   outputSchema: {
     type: 'object',
@@ -487,15 +499,15 @@ const commandExecuteTool: ToolDefinition = {
       stdout: { type: 'string' },
       stderr: { type: 'string' },
       exitCode: { type: 'number' },
-      success: { type: 'boolean' }
-    }
+      success: { type: 'boolean' },
+    },
   },
   timeout: 60000,
   validate: (input) => {
     const dangerousCommands = ['rm -rf', 'format', 'del', '> /dev/null'];
     const cmd = input.command.toLowerCase();
 
-    return !dangerousCommands.some(dangerous => cmd.includes(dangerous));
+    return !dangerousCommands.some((dangerous) => cmd.includes(dangerous));
   },
   execute: async (input) => {
     const { execSync } = require('child_process');
@@ -505,24 +517,24 @@ const commandExecuteTool: ToolDefinition = {
         cwd: input.cwd,
         timeout: input.timeout || 30000,
         encoding: 'utf8',
-        maxBuffer: 1024 * 1024 // 1MB
+        maxBuffer: 1024 * 1024, // 1MB
       });
 
       return {
         stdout,
         stderr: '',
         exitCode: 0,
-        success: true
+        success: true,
       };
     } catch (error: any) {
       return {
         stdout: error.stdout || '',
         stderr: error.stderr || error.message,
         exitCode: error.status || 1,
-        success: false
+        success: false,
       };
     }
-  }
+  },
 };
 
 // HTTP 请求工具
@@ -538,9 +550,9 @@ const httpRequestTool: ToolDefinition = {
       method: { type: 'string', enum: ['GET', 'POST', 'PUT', 'DELETE'], default: 'GET' },
       headers: { type: 'object' },
       body: { type: 'string' },
-      timeout: { type: 'number', default: 10000 }
+      timeout: { type: 'number', default: 10000 },
     },
-    required: ['url']
+    required: ['url'],
   },
   outputSchema: {
     type: 'object',
@@ -548,8 +560,8 @@ const httpRequestTool: ToolDefinition = {
       status: { type: 'number' },
       headers: { type: 'object' },
       body: { type: 'string' },
-      success: { type: 'boolean' }
-    }
+      success: { type: 'boolean' },
+    },
   },
   timeout: 15000,
   validate: (input) => {
@@ -574,18 +586,18 @@ const httpRequestTool: ToolDefinition = {
         path: url.pathname + url.search,
         method: input.method || 'GET',
         headers: input.headers || {},
-        timeout: input.timeout || 10000
+        timeout: input.timeout || 10000,
       };
 
       const req = client.request(options, (res: any) => {
         let data = '';
-        res.on('data', (chunk: any) => data += chunk);
+        res.on('data', (chunk: any) => (data += chunk));
         res.on('end', () => {
           resolve({
             status: res.statusCode,
             headers: res.headers,
             body: data,
-            success: res.statusCode >= 200 && res.statusCode < 300
+            success: res.statusCode >= 200 && res.statusCode < 300,
           });
         });
       });
@@ -595,7 +607,7 @@ const httpRequestTool: ToolDefinition = {
           status: 0,
           headers: {},
           body: error.message,
-          success: false
+          success: false,
         });
       });
 
@@ -605,7 +617,7 @@ const httpRequestTool: ToolDefinition = {
           status: 0,
           headers: {},
           body: 'Request timeout',
-          success: false
+          success: false,
         });
       });
 
@@ -615,19 +627,21 @@ const httpRequestTool: ToolDefinition = {
 
       req.end();
     });
-  }
+  },
 };
 ```
 
 ## 5. 安全设计
 
 ### 5.1 轻量级权限模型
+
 - **基于配置的权限**: 通过配置文件管理工具权限
 - **工具白名单**: 只允许执行配置中允许的工具
 - **简单权限规则**: 基础的权限验证机制
 - **运行时检查**: 执行前进行权限验证
 
 ### 5.2 基础安全措施
+
 - **输入验证**: 所有工具输入都经过严格验证
 - **路径安全**: 防止路径遍历攻击
 - **命令过滤**: 过滤危险的系统命令
@@ -635,6 +649,7 @@ const httpRequestTool: ToolDefinition = {
 - **资源限制**: 限制输出缓冲区大小
 
 ### 5.3 简单隔离机制
+
 - **工作目录限制**: 限制文件操作的目录范围
 - **命令白名单**: 只允许执行安全的命令
 - **URL 验证**: 验证 HTTP 请求的目标地址
@@ -643,6 +658,7 @@ const httpRequestTool: ToolDefinition = {
 ## 6. 开发者体验
 
 ### 6.1 快速开始
+
 ```typescript
 // 安装
 npm install @tsagent/core
@@ -676,6 +692,7 @@ console.log(result);
 ```
 
 ### 6.2 工具开发
+
 ```typescript
 // 自定义工具示例
 import { ToolDefinition } from '@tsagent/core';
@@ -688,15 +705,15 @@ const calculatorTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      expression: { type: 'string' }
+      expression: { type: 'string' },
     },
-    required: ['expression']
+    required: ['expression'],
   },
   outputSchema: {
     type: 'object',
     properties: {
-      result: { type: 'number' }
-    }
+      result: { type: 'number' },
+    },
   },
   validate: (input) => {
     // 只允许简单的数学表达式
@@ -706,7 +723,7 @@ const calculatorTool: ToolDefinition = {
     // 安全的计算表达式
     const result = Function('"use strict"; return (' + input.expression + ')')();
     return { result };
-  }
+  },
 };
 
 // 注册工具
@@ -714,6 +731,7 @@ await agent.registerTool(calculatorTool);
 ```
 
 ### 6.3 配置文件
+
 ```json
 // tsagent.config.json
 {
@@ -742,6 +760,7 @@ await agent.registerTool(calculatorTool);
 ```
 
 ### 6.4 调试和监控
+
 - **控制台日志**: 实时显示执行状态
 - **任务历史**: 保存任务执行记录
 - **错误追踪**: 详细的错误信息
@@ -750,12 +769,14 @@ await agent.registerTool(calculatorTool);
 ## 7. 部署和运维
 
 ### 7.1 部署要求
+
 - **Node.js**: >= 18.0.0
 - **内存**: 最小 128MB，推荐 512MB
 - **存储**: 最小 50MB，推荐 1GB
 - **操作系统**: Linux、macOS、Windows
 
 ### 7.2 快速部署
+
 ```bash
 # 1. 安装依赖
 npm install @tsagent/core
@@ -773,12 +794,14 @@ node agent.js "创建一个测试文件"
 ```
 
 ### 7.3 监控
+
 - **日志文件**: 所有操作记录到日志文件
 - **任务状态**: 通过 API 查询任务状态
 - **性能指标**: 简单的执行统计
 - **错误报告**: 错误汇总和分析
 
 ### 7.4 扩展性
+
 - **自定义工具**: 支持添加任意工具
 - **存储后端**: 支持 JSON 文件和 SQLite
 - **配置热重载**: 支持配置文件热重载
@@ -787,6 +810,7 @@ node agent.js "创建一个测试文件"
 ## 8. 发展路线图
 
 ### 8.1 MVP 版本 (v1.0)
+
 - [ ] 基础任务处理框架
 - [ ] 简单工具系统
 - [ ] 基础权限管理
@@ -796,6 +820,7 @@ node agent.js "创建一个测试文件"
 - [ ] JSON 文件存储
 
 ### 8.2 v1.1 - 增强功能
+
 - [ ] 更智能的任务解析
 - [ ] 工具超时控制
 - [ ] 错误重试机制
@@ -803,6 +828,7 @@ node agent.js "创建一个测试文件"
 - [ ] 更详细的日志
 
 ### 8.3 v1.2 - 高级特性
+
 - [ ] 任务模板系统
 - [ ] 批量任务处理
 - [ ] 简单的 Web 管理界面
@@ -813,18 +839,21 @@ node agent.js "创建一个测试文件"
 ## 9. 风险和挑战
 
 ### 9.1 技术风险
+
 - **安全性**: 工具执行的安全性保障
 - **稳定性**: 系统的稳定性和错误处理
 - **性能**: 大量任务的执行效率
 - **兼容性**: 不同平台的兼容性
 
 ### 9.2 业务风险
+
 - **采用率**: 开发者对轻量级方案的接受度
 - **维护**: 长期维护的成本和资源
 - **竞争**: 类似自动化工具的竞争
 - **标准化**: 缺乏行业标准
 
 ### 9.3 缓解措施
+
 - **安全优先**: 严格的安全验证和测试
 - **简单设计**: 保持系统简单易懂
 - **社区驱动**: 积极建设开发者社区
@@ -833,18 +862,21 @@ node agent.js "创建一个测试文件"
 ## 10. 成功指标
 
 ### 10.1 技术指标
+
 - 启动时间 < 3秒
 - 内存占用 < 100MB
 - 任务执行成功率 > 90%
 - 平均任务执行时间 < 10秒
 
 ### 10.2 用户指标
+
 - 安装量 > 1000/月
 - 工具采用率 > 60%
 - 用户满意度 > 4.0/5
 - 文档访问量 > 5000/月
 
 ### 10.3 开发指标
+
 - 代码覆盖率 > 80%
 - 问题响应时间 < 24小时
 - 发布周期 < 2周/版本
@@ -855,6 +887,7 @@ node agent.js "创建一个测试文件"
 TsAgent 是一个轻量级、独立的 TypeScript Agent 系统，专注于提供简单、安全、可扩展的自动化能力。
 
 ### 核心优势：
+
 1. **轻量级**: 最小依赖，快速启动，低资源消耗
 2. **简单易用**: 直观的 API 和配置，快速上手
 3. **安全可靠**: 基础安全措施，防止滥用
@@ -862,6 +895,7 @@ TsAgent 是一个轻量级、独立的 TypeScript Agent 系统，专注于提供
 5. **独立运行**: 不依赖特定框架，可在任何 Node.js 环境运行
 
 ### 目标用户：
+
 - 个人开发者和小团队
 - 需要轻量级自动化解决方案的用户
 - 希望快速集成自动化能力的项目

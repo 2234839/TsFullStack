@@ -42,19 +42,19 @@ const createOrder = (request: { packageId: number; provider: PaymentProvider }) 
  * 查询单个订单详情
  */
 const queryOrder = (orderId: number) =>
-  AuthContext.pipe(Effect.flatMap(auth => PaymentService.getOrder(orderId, auth.user.id)));
+  AuthContext.pipe(Effect.flatMap((auth) => PaymentService.getOrder(orderId, auth.user.id)));
 
 /**
  * 查询当前用户的订单列表
  */
 const listMyOrders = (options?: { status?: OrderStatus; skip?: number; take?: number }) =>
-  AuthContext.pipe(Effect.flatMap(auth => PaymentService.listOrders({ userId: auth.user.id, ...options })));
+  AuthContext.pipe(Effect.flatMap((auth) => PaymentService.listOrders({ userId: auth.user.id, ...options })));
 
 /**
  * 取消订单
  */
 const cancelOrder = (orderId: number) =>
-  AuthContext.pipe(Effect.flatMap(auth => PaymentService.cancelOrder(orderId, auth.user.id)));
+  AuthContext.pipe(Effect.flatMap((auth) => PaymentService.cancelOrder(orderId, auth.user.id)));
 
 /**
  * 获取可用支付渠道列表
@@ -94,8 +94,7 @@ const adminListOrders = (options?: { userId?: string; status?: OrderStatus; skip
 /**
  * 管理：获取当前支付配置（只读）
  */
-const getPaymentConfig = () =>
-  requireAdmin().pipe(Effect.andThen(() => PaymentConfigService));
+const getPaymentConfig = () => requireAdmin().pipe(Effect.andThen(() => PaymentConfigService));
 
 /**
  * 管理：保存支付配置（写入 config.json）
@@ -160,10 +159,7 @@ const testAfdianWebhook = () =>
     };
 
     // 直接调用 handleWebhook 来测试完整链路（不会匹配到真实订单，仅验证解析是否正常）
-    const result = yield* PaymentService.handleWebhook(
-      PaymentProvider.AFDIAN,
-      testPayload as Record<string, unknown>,
-    );
+    const result = yield* PaymentService.handleWebhook(PaymentProvider.AFDIAN, testPayload as Record<string, unknown>);
 
     return { testPayload: true as const, result };
   });
@@ -180,11 +176,14 @@ const confirmOrderPayment = (orderId: number) =>
     const db = yield* DbClientEffect;
     const reqCtx = yield* ReqCtxService;
 
-    const order = yield* dbTryRequire(LOG_PREFIX, '查询待确认订单', () =>
-      db.order.findUnique({
-        where: { id: orderId },
-        include: { package: true, user: true },
-      }),
+    const order = yield* dbTryRequire(
+      LOG_PREFIX,
+      '查询待确认订单',
+      () =>
+        db.order.findUnique({
+          where: { id: orderId },
+          include: { package: true, user: true },
+        }),
       MSG.ORDER_NOT_FOUND,
     );
     if (order.provider !== PaymentProvider.WECHAT) {
@@ -223,9 +222,12 @@ const confirmOrderPayment = (orderId: number) =>
 
     reqCtx.log(
       `${LOG_PREFIX} 管理员确认微信订单到账:`,
-      'orderNo=', order.orderNo,
-      'userId=', order.userId,
-      'package=', pkg.name,
+      'orderNo=',
+      order.orderNo,
+      'userId=',
+      order.userId,
+      'package=',
+      pkg.name,
     );
 
     return { success: true as const, orderId };

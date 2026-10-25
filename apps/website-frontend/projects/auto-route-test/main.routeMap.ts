@@ -9,4 +9,4 @@ export default {
       icon: 'pi pi-sparkles',
     },
   },
-} satisfies Record<string, RouteNode>
+} satisfies Record<string, RouteNode>;

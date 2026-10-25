@@ -18,30 +18,30 @@ export interface SerializedNode {
 }
 
 /** 序列化时要忽略的标签（不影响视觉渲染） */
-const IGNORE_TAGS = new Set(["script", "style", "link", "meta", "noscript", "svg", "path"]);
+const IGNORE_TAGS = new Set(['script', 'style', 'link', 'meta', 'noscript', 'svg', 'path']);
 
 /** 序列化时要保留的属性（影响布局/视觉的属性） */
 const KEEP_ATTRS = new Set([
-  "class",
-  "id",
-  "role",
-  "aria-label",
-  "aria-hidden",
-  "data-test",
-  "type",
-  "href",
-  "placeholder",
-  "disabled",
-  "checked",
-  "selected",
-  "colspan",
-  "rowspan",
-  "target",
-  "rel",
+  'class',
+  'id',
+  'role',
+  'aria-label',
+  'aria-hidden',
+  'data-test',
+  'type',
+  'href',
+  'placeholder',
+  'disabled',
+  'checked',
+  'selected',
+  'colspan',
+  'rowspan',
+  'target',
+  'rel',
 ]);
 
 /** 忽略的属性值前缀（Vue 内部属性等） */
-const IGNORE_ATTR_PREFIX = ["data-v-", "aria-", "aria_"];
+const IGNORE_ATTR_PREFIX = ['data-v-', 'aria-', 'aria_'];
 
 /**
  * 在浏览器上下文中执行：序列化整个 body 的 DOM 结构
@@ -56,15 +56,15 @@ export function serializeDom(): string {
 
     // 跳过 display:none 的元素
     const style = window.getComputedStyle(el);
-    if (style.display === "none") return null;
+    if (style.display === 'none') return null;
 
     const node: SerializedNode = { tag };
 
     // class
-    if (el.className && typeof el.className === "string") {
+    if (el.className && typeof el.className === 'string') {
       node.class = el.className
         .split(/\s+/)
-        .filter((c) => c && !c.startsWith("data-v-"))
+        .filter((c) => c && !c.startsWith('data-v-'))
         .sort();
       if (node.class.length === 0) delete node.class;
     }
@@ -99,7 +99,7 @@ export function serializeDom(): string {
   };
 
   const body = document.body;
-  if (!body) return "{}";
+  if (!body) return '{}';
 
   const result = walk(body);
   return JSON.stringify(result, null, 2);
@@ -108,10 +108,7 @@ export function serializeDom(): string {
 /**
  * 对比两个 DOM JSON 字符串，返回差异描述
  */
-export function diffDomJson(
-  baseline: string,
-  current: string,
-): { identical: boolean; diff?: string } {
+export function diffDomJson(baseline: string, current: string): { identical: boolean; diff?: string } {
   if (baseline === current) {
     return { identical: true };
   }
@@ -123,11 +120,11 @@ export function diffDomJson(
     baselineObj = JSON.parse(baseline);
     currentObj = JSON.parse(current);
   } catch {
-    return { identical: false, diff: "JSON 解析失败" };
+    return { identical: false, diff: 'JSON 解析失败' };
   }
 
   const diffs: string[] = [];
-  compareNodes(baselineObj, currentObj, "", diffs);
+  compareNodes(baselineObj, currentObj, '', diffs);
 
   if (diffs.length === 0) {
     return { identical: true };
@@ -135,22 +132,15 @@ export function diffDomJson(
 
   return {
     identical: false,
-    diff: diffs.slice(0, 20).join("\n"),
+    diff: diffs.slice(0, 20).join('\n'),
   };
 }
 
 /** 递归对比两个序列化节点 */
 function compareNodes(baseline: unknown, current: unknown, path: string, diffs: string[]): void {
-  if (
-    typeof baseline !== "object" ||
-    typeof current !== "object" ||
-    baseline === null ||
-    current === null
-  ) {
+  if (typeof baseline !== 'object' || typeof current !== 'object' || baseline === null || current === null) {
     if (baseline !== current) {
-      diffs.push(
-        `${path || "(root)"}: 值不同 ${JSON.stringify(baseline)} → ${JSON.stringify(current)}`,
-      );
+      diffs.push(`${path || '(root)'}: 值不同 ${JSON.stringify(baseline)} → ${JSON.stringify(current)}`);
     }
     return;
   }
@@ -172,9 +162,9 @@ function compareNodes(baseline: unknown, current: unknown, path: string, diffs: 
     const added = cClass.filter((x) => !bClass.includes(x));
     const removed = bClass.filter((x) => !cClass.includes(x));
     const parts: string[] = [];
-    if (added.length) parts.push(`+${added.join(",")}`);
-    if (removed.length) parts.push(`-${removed.join(",")}`);
-    diffs.push(`${currentPath}.class: ${parts.join(" ")}`);
+    if (added.length) parts.push(`+${added.join(',')}`);
+    if (removed.length) parts.push(`-${removed.join(',')}`);
+    diffs.push(`${currentPath}.class: ${parts.join(' ')}`);
   }
 
   // 对比属性
@@ -183,7 +173,7 @@ function compareNodes(baseline: unknown, current: unknown, path: string, diffs: 
   const allAttrKeys = new Set([...Object.keys(bAttrs), ...Object.keys(cAttrs)]);
   for (const key of allAttrKeys) {
     if (bAttrs[key] !== cAttrs[key]) {
-      diffs.push(`${currentPath}[${key}]: ${bAttrs[key] ?? "(无)"} → ${cAttrs[key] ?? "(无)"}`);
+      diffs.push(`${currentPath}[${key}]: ${bAttrs[key] ?? '(无)'} → ${cAttrs[key] ?? '(无)'}`);
     }
   }
 

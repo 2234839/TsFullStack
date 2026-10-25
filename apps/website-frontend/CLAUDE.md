@@ -76,6 +76,7 @@ const where: UserDataWhereInput = {};
 当实现新的组件时需要考虑应该作为共享组件还是本地组件，新增和删除组件时更新这个文档中的可用组件列表
 
 **共享组件** (来自 `import { xxx } from '@tsfullstack/shared-frontend/components';`)：
+
 - Dialog
 - Tooltip
 - Popover
@@ -86,6 +87,7 @@ const where: UserDataWhereInput = {};
 - Select
 
 **本地基础组件** (`@/components/base`)：
+
 - Button
 - Input
 - Textarea
@@ -138,6 +140,7 @@ watchEffect(() => {
 **本项目使用统一的语义化颜色系统，所有新代码必须遵循此规范。**
 
 ### 颜色配置位置
+
 配置文件：[tailwind.config.ts](tailwind.config.ts)
 
 ### 必须使用的语义化颜色
@@ -190,13 +193,16 @@ class="bg-blue-600"
 
 **每次修改代码后** 都要主动查看网页运行日志来验证实现是否正确。
 你仔细思考下开发的目标该怎么调试，然后你自己去运行调试，自己把日志输出出来，你自己查看log，反复如此，尽量不要找我
+
 ### 网页运行日志系统说明
+
 - 前端自动收集所有 console 输出
 - 每秒增量追加到 `.dev-logs/latest-errors.log`
 - 开发服务器启动时自动清空日志
 - 日志显示完整的错误信息和堆栈跟踪
 
 **重要**：
+
 - ✅ 修改代码后，查看日志确认没有错误
 - ❌ 主动的查看日志，多看看日志对开发优秀的程序非常有帮助
 

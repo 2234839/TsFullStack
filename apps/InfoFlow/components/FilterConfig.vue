@@ -5,10 +5,9 @@
       <ToggleSwitch
         :modelValue="modelValue?.enable"
         @update:modelValue="handleEnableChange"
-        inputId="filter-enable-switch" />
-      <label for="filter-enable-switch" class="text-sm text-gray-600 cursor-pointer">
-        启用信息过滤
-      </label>
+        inputId="filter-enable-switch"
+      />
+      <label for="filter-enable-switch" class="text-sm text-gray-600 cursor-pointer"> 启用信息过滤 </label>
     </div>
 
     <!-- 过滤配置详情 -->
@@ -22,7 +21,8 @@
               :modelValue="modelValue?.filterType"
               value="js"
               inputId="js-filter-type"
-              @update:modelValue="handleFilterTypeChange" />
+              @update:modelValue="handleFilterTypeChange"
+            />
             <label for="js-filter-type">JavaScript 过滤</label>
           </div>
           <div class="flex items-center gap-2">
@@ -30,7 +30,8 @@
               :modelValue="modelValue?.filterType"
               value="ai"
               inputId="ai-filter-type"
-              @update:modelValue="handleFilterTypeChange" />
+              @update:modelValue="handleFilterTypeChange"
+            />
             <label for="ai-filter-type">AI 过滤</label>
           </div>
         </div>
@@ -50,10 +51,11 @@ function filterItem(item) {
   return item.title && item.title.includes('重要');
 }"
           rows="6"
-          class="w-full font-mono text-sm" />
+          class="w-full font-mono text-sm"
+        />
         <small class="text-gray-500">
-          编写一个过滤函数，函数接收一个数据项作为参数，返回 true 表示保留该项，false 表示过滤掉该项。
-          函数名为 filterItem，可以使用 JavaScript 的所有特性。
+          编写一个过滤函数，函数接收一个数据项作为参数，返回 true 表示保留该项，false 表示过滤掉该项。 函数名为
+          filterItem，可以使用 JavaScript 的所有特性。
         </small>
       </div>
 
@@ -67,7 +69,8 @@ function filterItem(item) {
                 :modelValue="modelValue?.aiFilter?.provider"
                 value="openai"
                 inputId="openai-provider"
-                @update:modelValue="handleAiProviderChange" />
+                @update:modelValue="handleAiProviderChange"
+              />
               <label for="openai-provider">OpenAI</label>
             </div>
             <div class="flex items-center gap-2">
@@ -75,7 +78,8 @@ function filterItem(item) {
                 :modelValue="modelValue?.aiFilter?.provider"
                 value="ollama"
                 inputId="ollama-provider"
-                @update:modelValue="handleAiProviderChange" />
+                @update:modelValue="handleAiProviderChange"
+              />
               <label for="ollama-provider">Ollama</label>
             </div>
             <div class="flex items-center gap-2">
@@ -83,7 +87,8 @@ function filterItem(item) {
                 :modelValue="modelValue?.aiFilter?.provider"
                 value="custom"
                 inputId="custom-provider"
-                @update:modelValue="handleAiProviderChange" />
+                @update:modelValue="handleAiProviderChange"
+              />
               <label for="custom-provider">自定义</label>
             </div>
           </div>
@@ -94,8 +99,13 @@ function filterItem(item) {
           <InputText
             :modelValue="modelValue?.aiFilter?.model"
             @update:modelValue="handleAiModelChange"
-            :placeholder="modelValue?.aiFilter?.provider === 'openai' ? '例如: gpt-4, gpt-3.5-turbo' : '例如: qwen2.5:7b, llama3.2:3b'"
-            class="w-full" />
+            :placeholder="
+              modelValue?.aiFilter?.provider === 'openai'
+                ? '例如: gpt-4, gpt-3.5-turbo'
+                : '例如: qwen2.5:7b, llama3.2:3b'
+            "
+            class="w-full"
+          />
         </div>
 
         <div>
@@ -105,10 +115,11 @@ function filterItem(item) {
             @update:modelValue="handleAiPromptChange"
             placeholder="请判断以下内容是否值得保留，请从重要性和相关性角度考虑..."
             rows="4"
-            class="w-full" />
+            class="w-full"
+          />
           <small class="text-gray-500">
-            编写用于判断内容是否值得保留的提示词，AI 将根据此提示词对每个数据项进行判断。
-            让ai回答 "pass" 则会保留对应的数据项
+            编写用于判断内容是否值得保留的提示词，AI 将根据此提示词对每个数据项进行判断。 让ai回答 "pass"
+            则会保留对应的数据项
           </small>
         </div>
 
@@ -117,8 +128,11 @@ function filterItem(item) {
           <InputText
             :modelValue="modelValue?.aiFilter?.apiUrl"
             @update:modelValue="handleAiUrlChange"
-            :placeholder="modelValue?.aiFilter?.provider === 'openai' ? 'https://api.openai.com/v1' : '例如: http://localhost:11434'"
-            class="w-full" />
+            :placeholder="
+              modelValue?.aiFilter?.provider === 'openai' ? 'https://api.openai.com/v1' : '例如: http://localhost:11434'
+            "
+            class="w-full"
+          />
           <small v-if="modelValue?.aiFilter?.provider === 'ollama'" class="text-gray-500">
             对于本地的ollama服务，需要配置允许浏览器扩展访问的环境变量：https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-allow-additional-web-origins-to-access-ollama
           </small>
@@ -131,10 +145,9 @@ function filterItem(item) {
             @update:modelValue="handleAiApiKeyChange"
             placeholder="输入 OpenAI API 密钥"
             type="password"
-            class="w-full" />
-          <small class="text-gray-500">
-            您的 API 密钥将安全存储在浏览器扩展中，不会上传到服务器
-          </small>
+            class="w-full"
+          />
+          <small class="text-gray-500"> 您的 API 密钥将安全存储在浏览器扩展中，不会上传到服务器 </small>
         </div>
       </div>
     </div>
@@ -143,7 +156,7 @@ function filterItem(item) {
 
 <script setup lang="ts">
 import type { FilterConfig } from '@/entrypoints/background/service/dbService';
-import { InputText, RadioButton, Textarea, ToggleSwitch } from 'primevue'
+import { InputText, RadioButton, Textarea, ToggleSwitch } from 'primevue';
 
 interface Props {
   modelValue?: FilterConfig;
@@ -167,11 +180,11 @@ const ensureConfig = (): FilterConfig => {
       enable: false,
       filterType: 'js',
       jsFilter: { code: '' },
-      aiFilter: { 
-        model: '', 
-        prompt: '', 
-        apiUrl: 'http://localhost:11434', 
-        provider: 'ollama' 
+      aiFilter: {
+        model: '',
+        prompt: '',
+        apiUrl: 'http://localhost:11434',
+        provider: 'ollama',
       },
     };
   }
@@ -184,9 +197,12 @@ const ensureConfig = (): FilterConfig => {
     aiFilter: {
       model: current.aiFilter?.model || '',
       prompt: current.aiFilter?.prompt || '',
-      apiUrl: current.aiFilter?.apiUrl || (current.aiFilter?.['ollamaUrl' as keyof typeof current.aiFilter] || 'http://localhost:11434'),
+      apiUrl:
+        current.aiFilter?.apiUrl ||
+        current.aiFilter?.['ollamaUrl' as keyof typeof current.aiFilter] ||
+        'http://localhost:11434',
       apiKey: current.aiFilter?.apiKey || '',
-      provider: current.aiFilter?.provider || 'ollama'
+      provider: current.aiFilter?.provider || 'ollama',
     },
   };
 };
@@ -222,7 +238,7 @@ const handleAiProviderChange = (provider: 'openai' | 'ollama' | 'custom' | undef
       prompt: config.aiFilter?.prompt || '',
       apiUrl: provider === 'openai' ? 'https://api.openai.com/v1' : config.aiFilter?.apiUrl || 'http://localhost:11434',
       apiKey: config.aiFilter?.apiKey || '',
-      provider: provider || 'ollama'
+      provider: provider || 'ollama',
     },
   });
 };
@@ -237,7 +253,7 @@ const handleAiModelChange = (model: string | undefined) => {
       prompt: config.aiFilter?.prompt || '',
       apiUrl: config.aiFilter?.apiUrl || 'http://localhost:11434',
       apiKey: config.aiFilter?.apiKey || '',
-      provider: config.aiFilter?.provider || 'ollama'
+      provider: config.aiFilter?.provider || 'ollama',
     },
   });
 };
@@ -252,7 +268,7 @@ const handleAiPromptChange = (prompt: string | undefined) => {
       prompt: prompt || '',
       apiUrl: config.aiFilter?.apiUrl || 'http://localhost:11434',
       apiKey: config.aiFilter?.apiKey || '',
-      provider: config.aiFilter?.provider || 'ollama'
+      provider: config.aiFilter?.provider || 'ollama',
     },
   });
 };
@@ -267,7 +283,7 @@ const handleAiUrlChange = (url: string | undefined) => {
       prompt: config.aiFilter?.prompt || '',
       apiUrl: url || 'http://localhost:11434',
       apiKey: config.aiFilter?.apiKey || '',
-      provider: config.aiFilter?.provider || 'ollama'
+      provider: config.aiFilter?.provider || 'ollama',
     },
   });
 };
@@ -282,7 +298,7 @@ const handleAiApiKeyChange = (apiKey: string | undefined) => {
       prompt: config.aiFilter?.prompt || '',
       apiUrl: config.aiFilter?.apiUrl || 'http://localhost:11434',
       apiKey: apiKey || '',
-      provider: config.aiFilter?.provider || 'ollama'
+      provider: config.aiFilter?.provider || 'ollama',
     },
   });
 };

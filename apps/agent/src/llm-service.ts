@@ -32,11 +32,11 @@ export interface LLMConfig {
 }
 
 export interface LLMTaskType {
-  planning: string;        // Model for task planning
-  execution: string;       // Model for tool execution decisions
-  validation: string;      // Model for result validation
-  repair: string;          // Model for error repair
-  general: string;         // Default model
+  planning: string; // Model for task planning
+  execution: string; // Model for tool execution decisions
+  validation: string; // Model for result validation
+  repair: string; // Model for error repair
+  general: string; // Default model
 }
 
 export class LLMService {
@@ -48,7 +48,7 @@ export class LLMService {
   constructor(taskModels: LLMTaskType, logger: Logger) {
     this.taskModels = taskModels;
     this.logger = logger;
-    
+
     // Default configuration
     this.defaultConfig = {
       apiKey: '',
@@ -56,48 +56,64 @@ export class LLMService {
       model: 'glm-4-flash',
       maxTokens: 4000,
       temperature: 0.7,
-      timeout: 30000
+      timeout: 30000,
     };
   }
 
   async initialize(): Promise<void> {
     // Load configurations from environment
     await this.loadConfigurations();
-    
-    this.logger.info('LLM Service initialized', { 
-      models: Array.from(this.configs.keys()),
-      taskModels: this.taskModels 
-    }, 'LLMService');
+
+    this.logger.info(
+      'LLM Service initialized',
+      {
+        models: Array.from(this.configs.keys()),
+        taskModels: this.taskModels,
+      },
+      'LLMService',
+    );
   }
 
   async chat(messages: LLMMessage[], taskType: keyof LLMTaskType = 'general'): Promise<string> {
     const modelName = this.taskModels[taskType];
     const config = this.configs.get(modelName) || this.defaultConfig;
-    
+
     if (!config.apiKey) {
       throw new Error(`API key not configured for model: ${modelName}`);
     }
 
-    this.logger.debug('LLM chat request', { 
-      model: modelName, 
-      messagesCount: messages.length,
-      taskType 
-    }, 'LLMService');
+    this.logger.debug(
+      'LLM chat request',
+      {
+        model: modelName,
+        messagesCount: messages.length,
+        taskType,
+      },
+      'LLMService',
+    );
 
     try {
       const response = await this.makeAPIRequest(messages, config);
-      this.logger.debug('LLM chat response', { 
-        model: modelName,
-        responseLength: response.length 
-      }, 'LLMService');
-      
+      this.logger.debug(
+        'LLM chat response',
+        {
+          model: modelName,
+          responseLength: response.length,
+        },
+        'LLMService',
+      );
+
       return response;
     } catch (error) {
-      this.logger.error('LLM chat failed', { 
-        error: error instanceof Error ? error.message : String(error),
-        model: modelName,
-        taskType 
-      }, 'LLMService');
+      this.logger.error(
+        'LLM chat failed',
+        {
+          error: error instanceof Error ? error.message : String(error),
+          model: modelName,
+          taskType,
+        },
+        'LLMService',
+      );
       throw error;
     }
   }
@@ -115,7 +131,7 @@ export class LLMService {
 
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: description }
+      { role: 'user', content: description },
     ];
 
     return await this.chat(messages, 'planning');
@@ -133,7 +149,7 @@ export class LLMService {
 
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: description }
+      { role: 'user', content: description },
     ];
 
     return await this.chat(messages, 'execution');
@@ -149,7 +165,7 @@ export class LLMService {
 
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: '请验证这个结果是否满足任务要求' }
+      { role: 'user', content: '请验证这个结果是否满足任务要求' },
     ];
 
     const response = await this.chat(messages, 'validation');
@@ -167,7 +183,7 @@ export class LLMService {
 
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
-      { role: 'user', content: '请分析错误并提供修复建议' }
+      { role: 'user', content: '请分析错误并提供修复建议' },
     ];
 
     return await this.chat(messages, 'repair');
@@ -179,7 +195,7 @@ export class LLMService {
       messages: messages,
       max_tokens: config.maxTokens || 4000,
       temperature: config.temperature || 0.7,
-      stream: false
+      stream: false,
     };
 
     const controller = new AbortController();
@@ -190,10 +206,10 @@ export class LLMService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`
+          Authorization: `Bearer ${config.apiKey}`,
         },
         body: JSON.stringify(payload),
-        signal: controller.signal
+        signal: controller.signal,
       });
 
       clearTimeout(timeout);
@@ -214,14 +230,14 @@ export class LLMService {
   private async loadConfigurations(): Promise<void> {
     // Load from environment variables
     const envModels = process.env.LLM_MODELS ? JSON.parse(process.env.LLM_MODELS) : {};
-    
+
     // Default models configuration with new Flash models
     const defaultModels: LLMTaskType = {
       planning: process.env.LLM_MODEL_PLANNING || 'glm-4.5-flash',
       execution: process.env.LLM_MODEL_EXECUTION || 'glm-4.5-flash',
       validation: process.env.LLM_MODEL_VALIDATION || 'glm-4.5-air',
       repair: process.env.LLM_MODEL_REPAIR || 'glm-4.5-air',
-      general: process.env.LLM_MODEL_GENERAL || 'glm-4.5-flash'
+      general: process.env.LLM_MODEL_GENERAL || 'glm-4.5-flash',
     };
 
     this.taskModels = defaultModels;
@@ -230,13 +246,20 @@ export class LLMService {
     for (const [taskType, modelName] of Object.entries(defaultModels)) {
       const config: LLMConfig = {
         apiKey: process.env[`LLM_API_KEY_${modelName.toUpperCase()}`] || process.env.LLM_API_KEY || '',
-        baseUrl: process.env[`LLM_BASE_URL_${modelName.toUpperCase()}`] || process.env.LLM_BASE_URL || 'https://open.bigmodel.cn/api/paas/v4/chat/completions',
+        baseUrl:
+          process.env[`LLM_BASE_URL_${modelName.toUpperCase()}`] ||
+          process.env.LLM_BASE_URL ||
+          'https://open.bigmodel.cn/api/paas/v4/chat/completions',
         model: modelName,
-        maxTokens: parseInt(process.env[`LLM_MAX_TOKENS_${modelName.toUpperCase()}`] || process.env.LLM_MAX_TOKENS || '4000'),
-        temperature: parseFloat(process.env[`LLM_TEMPERATURE_${modelName.toUpperCase()}`] || process.env.LLM_TEMPERATURE || '0.7'),
+        maxTokens: parseInt(
+          process.env[`LLM_MAX_TOKENS_${modelName.toUpperCase()}`] || process.env.LLM_MAX_TOKENS || '4000',
+        ),
+        temperature: parseFloat(
+          process.env[`LLM_TEMPERATURE_${modelName.toUpperCase()}`] || process.env.LLM_TEMPERATURE || '0.7',
+        ),
         timeout: parseInt(process.env[`LLM_TIMEOUT_${modelName.toUpperCase()}`] || process.env.LLM_TIMEOUT || '30000'),
         // Set model capabilities based on model name
-        ...this.getModelCapabilities(modelName)
+        ...this.getModelCapabilities(modelName),
       };
 
       this.configs.set(modelName, config);
@@ -256,22 +279,22 @@ export class LLMService {
       'glm-4-flash': { modelType: 'text' },
       'glm-z1-flash': { modelType: 'text' },
       'glm-4.5-air': { modelType: 'text' },
-      
+
       // Vision models
-      'glm-4.1v-thinking-flash': { 
-        modelType: 'vision', 
-        supportsImages: true 
+      'glm-4.1v-thinking-flash': {
+        modelType: 'vision',
+        supportsImages: true,
       },
-      'cogview-3-flash': { 
-        modelType: 'vision', 
-        supportsImages: true 
+      'cogview-3-flash': {
+        modelType: 'vision',
+        supportsImages: true,
       },
-      
+
       // Video models
-      'cogvideox-flash': { 
-        modelType: 'video', 
-        supportsVideo: true 
-      }
+      'cogvideox-flash': {
+        modelType: 'video',
+        supportsVideo: true,
+      },
     };
 
     return modelCapabilities[modelName] || { modelType: 'text' };
@@ -300,15 +323,17 @@ export class LLMService {
   // Health check
   async healthCheck(): Promise<boolean> {
     try {
-      const testMessage: LLMMessage[] = [
-        { role: 'user', content: 'Hello, this is a health check.' }
-      ];
+      const testMessage: LLMMessage[] = [{ role: 'user', content: 'Hello, this is a health check.' }];
       await this.chat(testMessage, 'general');
       return true;
     } catch (error) {
-      this.logger.error('LLM health check failed', { 
-        error: error instanceof Error ? error.message : String(error) 
-      }, 'LLMService');
+      this.logger.error(
+        'LLM health check failed',
+        {
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'LLMService',
+      );
       return false;
     }
   }

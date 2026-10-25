@@ -90,7 +90,7 @@ async function testAPI() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
         prompt: '一只可爱的小猫，卡通风格，简洁明快',
@@ -122,7 +122,6 @@ async function testAPI() {
     console.log(`   ✅ 系统连接正常`);
     console.log(`   ✅ 用户认证正常`);
     console.log(`   ✅ API 路由正常`);
-
   } catch (error: any) {
     console.error(`\n========================================`);
     console.error(`❌ 测试失败!`);

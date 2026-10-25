@@ -8,20 +8,16 @@
 
 ```typescript
 // 导入共享工具
-import {
-  buildNestedTree,
-  type RouteNode,
-  type RouteTree,
-} from "@tsfullstack/shared-frontend/utils";
-import { type ModuleFrontendConfig } from "@tsfullstack/shared-frontend/types";
+import { buildNestedTree, type RouteNode, type RouteTree } from '@tsfullstack/shared-frontend/utils';
+import { type ModuleFrontendConfig } from '@tsfullstack/shared-frontend/types';
 ```
 
 ### 在模块模板中使用
 
 ```typescript
 // 在 module-template 中引用共享工具
-import { buildNestedTree } from "@tsfullstack/shared-frontend/utils";
-import { type ModuleFrontendConfig } from "@tsfullstack/shared-frontend/types";
+import { buildNestedTree } from '@tsfullstack/shared-frontend/utils';
+import { type ModuleFrontendConfig } from '@tsfullstack/shared-frontend/types';
 ```
 
 ## 架构优势

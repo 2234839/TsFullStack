@@ -1,6 +1,6 @@
-import { createProxyService, registerService } from "@webext-core/proxy-service";
-import { getDbService } from "./dbService";
-import type { StorageAdapter, VersionedStorage } from "@/storage/storageAdapter";
+import { createProxyService, registerService } from '@webext-core/proxy-service';
+import { getDbService } from './dbService';
+import type { StorageAdapter, VersionedStorage } from '@/storage/storageAdapter';
 
 // 配置服务 - 基于统一的数据库服务
 function createConfigsService() {
@@ -47,9 +47,8 @@ type DeepAsync<T> = T extends (...args: any[]) => any
 /** ConfigsService 的代理类型 */
 export type ConfigsService = DeepAsync<ReturnType<typeof createConfigsService>>;
 
-export const getConfigsService = () => createProxyService<ConfigsService>("configs-service");
-export const registerConfigsService = () =>
-  registerService("configs-service", createConfigsService());
+export const getConfigsService = () => createProxyService<ConfigsService>('configs-service');
+export const registerConfigsService = () => registerService('configs-service', createConfigsService());
 
 /**
  * 通过 Indexdb 存储数据，使用轮询实现数据变更 watch
@@ -68,7 +67,7 @@ export class InexdbStorageAdapter<TValue> implements StorageAdapter<TValue> {
       value?.data ?? {
         value: this.fallback,
         version: 0,
-        writerId: "",
+        writerId: '',
       }
     );
   }

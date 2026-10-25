@@ -16,7 +16,7 @@ export class DependencyUpdater {
   async updatePackageDependencies(packagePath: string, modules: ModuleInfo[]): Promise<boolean> {
     try {
       const fullPath = join(this.discovery.getRootDir(), packagePath);
-      
+
       if (!fs.existsSync(fullPath)) {
         console.warn(`Package file not found: ${fullPath}`);
         return false;
@@ -24,25 +24,28 @@ export class DependencyUpdater {
 
       const packageJson = JSON.parse(fs.readFileSync(fullPath, 'utf-8'));
       const workspaceDependencies = this.discovery.generateWorkspaceDependencies(modules);
-      
+
       // Merge with existing dependencies
       const existingDependencies = packageJson.dependencies || {};
       const updatedDependencies = {
         ...existingDependencies,
-        ...workspaceDependencies
+        ...workspaceDependencies,
       };
 
       // Remove dependencies for modules that no longer exist, but only manage @tsfullstack/module- prefixed packages
-      const moduleNames = new Set(modules.map(m => m.name));
+      const moduleNames = new Set(modules.map((m) => m.name));
       const removedDeps: string[] = [];
       for (const depName of Object.keys(updatedDependencies)) {
-        if (depName.startsWith('@tsfullstack/module-') && !moduleNames.has(depName) && depName !== '@tsfullstack/module-loader') {
+        if (
+          depName.startsWith('@tsfullstack/module-') &&
+          !moduleNames.has(depName) &&
+          depName !== '@tsfullstack/module-loader'
+        ) {
           delete updatedDependencies[depName];
           removedDeps.push(depName);
         }
       }
-      
-      
+
       // Ensure @tsfullstack/module-loader is always present
       updatedDependencies['@tsfullstack/module-loader'] = 'workspace:*';
 
@@ -93,7 +96,7 @@ export class DependencyUpdater {
         process.chdir(moduleLoaderDir);
         execSync('pnpm install', {
           stdio: 'inherit',
-          cwd: moduleLoaderDir
+          cwd: moduleLoaderDir,
         });
 
         console.log('Dependencies installed successfully');

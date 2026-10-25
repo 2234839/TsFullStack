@@ -1,6 +1,2 @@
 export { default as Dialog } from './Dialog.vue';
-export type {
-  UiDialogEmits,
-  UiDialogInstance,
-  UiDialogProps,
-} from './types';
+export type { UiDialogEmits, UiDialogInstance, UiDialogProps } from './types';

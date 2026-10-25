@@ -6,27 +6,24 @@ async function multimediaExample() {
   const config = {
     storage: {
       type: 'json' as const,
-      dataDir: './data'
+      dataDir: './data',
     },
     security: {
       enablePermissions: true,
-      allowedTools: [
-        'image_analysis', 'image_generation', 'ocr',
-        'video_generation', 'video_analysis', 'video_script'
-      ],
+      allowedTools: ['image_analysis', 'image_generation', 'ocr', 'video_generation', 'video_analysis', 'video_script'],
       maxTaskDuration: 300000,
-      safeMode: true
+      safeMode: true,
     },
     logging: {
       level: 'info' as const,
       enableConsole: true,
-      enableFile: false
+      enableFile: false,
     },
     tools: {
       directory: './tools',
       autoLoad: false,
-      timeout: 60000
-    }
+      timeout: 60000,
+    },
   };
 
   const agent = new TsAgent(config);
@@ -76,7 +73,6 @@ async function multimediaExample() {
     console.log('- 成功任务:', stats.tasks.completed);
     console.log('- 失败任务:', stats.tasks.failed);
     console.log('- 可用工具数:', stats.tools.length || 0);
-
   } catch (error) {
     console.error('多媒体示例失败:', error);
   } finally {

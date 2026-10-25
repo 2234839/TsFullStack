@@ -14,31 +14,31 @@ import { DEFAULT_PAGE_SIZE } from '../../util/constants';
 
 /** 获取当前用户的可用代币余额 */
 const getAvailableTokens = () =>
-  AuthContext.pipe(Effect.flatMap(auth => TokenService.getAvailableTokens(auth.user.id)));
+  AuthContext.pipe(Effect.flatMap((auth) => TokenService.getAvailableTokens(auth.user.id)));
 
 /** 获取当前用户的代币列表 */
-const getUserTokens = (options?: {
-  skip?: number;
-  take?: number;
-}) =>
-  AuthContext.pipe(Effect.flatMap(auth => TokenService.getUserTokens(auth.user.id, {
-    skip: options?.skip ?? 0,
-    take: options?.take ?? DEFAULT_PAGE_SIZE,
-  })));
+const getUserTokens = (options?: { skip?: number; take?: number }) =>
+  AuthContext.pipe(
+    Effect.flatMap((auth) =>
+      TokenService.getUserTokens(auth.user.id, {
+        skip: options?.skip ?? 0,
+        take: options?.take ?? DEFAULT_PAGE_SIZE,
+      }),
+    ),
+  );
 
 /** 获取当前用户的代币使用历史 */
-const getTokenHistory = (options?: {
-  skip?: number;
-  take?: number;
-  startDate?: Date;
-  endDate?: Date;
-}) =>
-  AuthContext.pipe(Effect.flatMap(auth => TokenService.getTokenHistory(auth.user.id, {
-    skip: options?.skip ?? 0,
-    take: options?.take ?? DEFAULT_PAGE_SIZE,
-    startDate: options?.startDate,
-    endDate: options?.endDate,
-  })));
+const getTokenHistory = (options?: { skip?: number; take?: number; startDate?: Date; endDate?: Date }) =>
+  AuthContext.pipe(
+    Effect.flatMap((auth) =>
+      TokenService.getTokenHistory(auth.user.id, {
+        skip: options?.skip ?? 0,
+        take: options?.take ?? DEFAULT_PAGE_SIZE,
+        startDate: options?.startDate,
+        endDate: options?.endDate,
+      }),
+    ),
+  );
 
 /**
  * 导出代币 API

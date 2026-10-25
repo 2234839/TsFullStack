@@ -2,7 +2,7 @@
   <div class="user-settings-page p-6 max-w-4xl mx-auto">
     <!-- 页面标题 -->
     <PageHeader icon="pi pi-user text-primary-theme">
-      {{ t("个人设置") }}
+      {{ t('个人设置') }}
     </PageHeader>
 
     <!-- 设置卡片 -->
@@ -15,7 +15,7 @@
         <!-- 头像设置 -->
         <div class="setting-section">
           <h3 class="text-lg font-medium text-secondary-800 dark:text-white mb-4">
-            {{ t("头像设置") }}
+            {{ t('头像设置') }}
           </h3>
           <div class="flex items-center gap-6">
             <!-- 头像预览 -->
@@ -28,16 +28,10 @@
                   :disabled="uploading"
                   @click="triggerFileInput"
                 />
-                <input
-                  ref="fileInputRef"
-                  type="file"
-                  accept="image/*"
-                  class="hidden"
-                  @change="handleFileUpload"
-                />
+                <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleFileUpload" />
               </div>
               <p class="text-sm text-secondary-500 dark:text-secondary-400">
-                {{ t("支持 JPG、PNG 格式，文件大小不超过 2MB") }}
+                {{ t('支持 JPG、PNG 格式，文件大小不超过 2MB') }}
               </p>
               <Button
                 v-if="avatarFileId"
@@ -55,16 +49,11 @@
         <!-- 昵称设置 -->
         <div class="setting-section">
           <h3 class="text-lg font-medium text-secondary-800 dark:text-white mb-4">
-            {{ t("昵称设置") }}
+            {{ t('昵称设置') }}
           </h3>
           <div class="max-w-md space-y-3">
             <div class="flex gap-2">
-              <Input
-                v-model="nicknameInput"
-                :placeholder="t('请输入昵称')"
-                :maxlength="20"
-                class="flex-1"
-              />
+              <Input v-model="nicknameInput" :placeholder="t('请输入昵称')" :maxlength="20" class="flex-1" />
               <Button
                 :label="savingNickname ? t('保存中...') : t('保存')"
                 :icon="savingNickname ? 'pi pi-spinner pi-spin' : 'pi pi-check'"
@@ -73,7 +62,7 @@
               />
             </div>
             <p class="text-sm text-secondary-500 dark:text-secondary-400">
-              {{ t("昵称将显示在侧边栏和其他地方") }}
+              {{ t('昵称将显示在侧边栏和其他地方') }}
             </p>
           </div>
         </div>
@@ -81,24 +70,16 @@
         <!-- 账户信息 -->
         <div class="setting-section">
           <h3 class="text-lg font-medium text-secondary-800 dark:text-white mb-4">
-            {{ t("账户信息") }}
+            {{ t('账户信息') }}
           </h3>
           <div class="space-y-2 text-sm">
-            <div
-              class="flex justify-between py-2 border-b border-secondary-200 dark:border-secondary-700"
-            >
-              <span class="text-secondary-600 dark:text-secondary-400">{{ t("邮箱") }}</span>
-              <span class="font-medium text-secondary-800 dark:text-white">{{
-                userProfile?.email
-              }}</span>
+            <div class="flex justify-between py-2 border-b border-secondary-200 dark:border-secondary-700">
+              <span class="text-secondary-600 dark:text-secondary-400">{{ t('邮箱') }}</span>
+              <span class="font-medium text-secondary-800 dark:text-white">{{ userProfile?.email }}</span>
             </div>
-            <div
-              class="flex justify-between py-2 border-b border-secondary-200 dark:border-secondary-700"
-            >
-              <span class="text-secondary-600 dark:text-secondary-400">{{ t("用户 ID") }}</span>
-              <span class="font-mono text-secondary-800 dark:text-white">{{
-                userProfile?.id
-              }}</span>
+            <div class="flex justify-between py-2 border-b border-secondary-200 dark:border-secondary-700">
+              <span class="text-secondary-600 dark:text-secondary-400">{{ t('用户 ID') }}</span>
+              <span class="font-mono text-secondary-800 dark:text-white">{{ userProfile?.id }}</span>
             </div>
           </div>
         </div>
@@ -112,31 +93,26 @@
           <i class="pi pi-shopping-cart text-primary-theme text-xl"></i>
           <div>
             <h3 class="font-medium text-primary-900 dark:text-primary-50">
-              {{ t("购买代币套餐") }}
+              {{ t('购买代币套餐') }}
             </h3>
-            <p class="text-sm text-primary-theme">{{ t("选择套餐购买代币，解锁更多功能") }}</p>
+            <p class="text-sm text-primary-theme">{{ t('选择套餐购买代币，解锁更多功能') }}</p>
           </div>
         </div>
-        <Button
-          :label="t('去购买')"
-          icon="pi pi-arrow-right"
-          variant="primary"
-          @click="goToPricing"
-        />
+        <Button :label="t('去购买')" icon="pi pi-arrow-right" variant="primary" @click="goToPricing" />
       </div>
     </Card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useUserProfile } from "@/composables/useUserProfile";
-import { API } from "@/api";
-import UserAvatar from "@/components/base/UserAvatar.vue";
-import { routerUtil, routeMap } from "@/router";
-import { ref, computed, watch, shallowRef } from "vue";
-import { useI18n } from "@/composables/useI18n";
-import { useToast } from "@/composables/useToast";
-import { useConfirm } from "@/composables/useConfirm";
+import { useUserProfile } from '@/composables/useUserProfile';
+import { API } from '@/api';
+import UserAvatar from '@/components/base/UserAvatar.vue';
+import { routerUtil, routeMap } from '@/router';
+import { ref, computed, watch, shallowRef } from 'vue';
+import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
+import { useConfirm } from '@/composables/useConfirm';
 const { t } = useI18n();
 const toast = useToast();
 const confirm = useConfirm();
@@ -163,11 +139,11 @@ function goToPricing() {
 }
 const savingNickname = shallowRef(false);
 /** 昵称输入 */
-const nicknameInput = ref(userProfile.value?.nickname ?? "");
+const nicknameInput = ref(userProfile.value?.nickname ?? '');
 
 /** 监听 userProfile 变化，同步更新昵称输入框 */
 watch(
-  () => userProfile.value?.nickname ?? "",
+  () => userProfile.value?.nickname ?? '',
   (newNickname) => {
     if (newNickname !== nicknameInput.value) {
       nicknameInput.value = newNickname;
@@ -177,7 +153,7 @@ watch(
 
 /** 昵称是否有变化 */
 const nicknameChanged = computed(() => {
-  return nicknameInput.value !== (userProfile.value?.nickname ?? "");
+  return nicknameInput.value !== (userProfile.value?.nickname ?? '');
 });
 
 /** 触发文件选择 */
@@ -192,14 +168,14 @@ async function handleFileUpload(event: Event) {
   if (!file) return;
 
   // 验证文件类型
-  if (!file.type.startsWith("image/")) {
-    toast.error(t("错误"), t("请选择图片文件"));
+  if (!file.type.startsWith('image/')) {
+    toast.error(t('错误'), t('请选择图片文件'));
     return;
   }
 
   // 验证文件大小（2MB）
   if (file.size > 2 * 1024 * 1024) {
-    toast.error(t("错误"), t("图片大小不能超过 2MB"));
+    toast.error(t('错误'), t('图片大小不能超过 2MB'));
     return;
   }
 
@@ -215,14 +191,14 @@ async function handleFileUpload(event: Event) {
     // 刷新用户信息
     await refresh();
 
-    toast.success(t("成功"), t("头像上传成功"));
+    toast.success(t('成功'), t('头像上传成功'));
   } catch (error: unknown) {
-    toast.error(t("错误"), t("头像上传失败，请重试"));
+    toast.error(t('错误'), t('头像上传失败，请重试'));
   } finally {
     uploading.value = false;
     // 清空文件输入
     if (target) {
-      target.value = "";
+      target.value = '';
     }
   }
 }
@@ -230,11 +206,11 @@ async function handleFileUpload(event: Event) {
 /** 删除头像 */
 async function handleRemoveAvatar() {
   const confirmed = await confirm.require({
-    message: t("确定要删除头像吗？"),
-    header: t("删除头像"),
-    icon: "pi pi-exclamation-triangle",
-    acceptLabel: t("确认"),
-    rejectLabel: t("取消"),
+    message: t('确定要删除头像吗？'),
+    header: t('删除头像'),
+    icon: 'pi pi-exclamation-triangle',
+    acceptLabel: t('确认'),
+    rejectLabel: t('取消'),
   });
 
   if (!confirmed) return;
@@ -242,11 +218,11 @@ async function handleRemoveAvatar() {
   removing.value = true;
 
   try {
-    await updateAvatar("");
+    await updateAvatar('');
     await refresh();
-    toast.success(t("成功"), t("头像已删除"));
+    toast.success(t('成功'), t('头像已删除'));
   } catch (error: unknown) {
-    toast.error(t("错误"), t("删除头像失败，请重试"));
+    toast.error(t('错误'), t('删除头像失败，请重试'));
   } finally {
     removing.value = false;
   }
@@ -255,7 +231,7 @@ async function handleRemoveAvatar() {
 /** 保存昵称 */
 async function handleSaveNickname() {
   if (!nicknameInput.value.trim()) {
-    toast.warn(t("提示"), t("昵称不能为空"));
+    toast.warn(t('提示'), t('昵称不能为空'));
     return;
   }
 
@@ -264,9 +240,9 @@ async function handleSaveNickname() {
   try {
     await updateNickname(nicknameInput.value.trim());
     await refresh();
-    toast.success(t("成功"), t("昵称保存成功"));
+    toast.success(t('成功'), t('昵称保存成功'));
   } catch (error: unknown) {
-    toast.error(t("错误"), t("保存昵称失败，请重试"));
+    toast.error(t('错误'), t('保存昵称失败，请重试'));
   } finally {
     savingNickname.value = false;
   }

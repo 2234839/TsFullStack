@@ -3,12 +3,7 @@ import { Effect } from 'effect';
 import { fail, tryOrFail } from '../../../util/error';
 import { JSON_CONTENT_HEADERS, deepCloneToJson, MSG } from '../../../util/constants';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../../util/http';
-import type {
-  PaymentAdapter,
-  CreatePaymentParams,
-  CreatePaymentResult,
-  ParsedWebhookResult,
-} from './types';
+import type { PaymentAdapter, CreatePaymentParams, CreatePaymentResult, ParsedWebhookResult } from './types';
 import { PaymentProvider } from '../../../../.zenstack/models';
 import { PaymentConfigService } from '../../../Context/PaymentConfig';
 import { ReqCtxService } from '../../../Context/ReqCtx';
@@ -144,13 +139,23 @@ export const AfdianAdapter: PaymentAdapter = {
       const sign = afdianSign(afdianConfig.apiKey, params, ts, afdianConfig.apiUserId);
 
       const response = yield* tryOrFail('爱发电查询', () =>
-          fetch(`${AFDIAN_API_BASE}/query-order`, withFetchTimeout({
-            method: 'POST',
-            headers: JSON_CONTENT_HEADERS,
-            body: JSON.stringify({ user_id: afdianConfig.apiUserId, params, ts, sign }),
-          }, FETCH_TIMEOUTS.payment)).then((r) => r.json()));
+        fetch(
+          `${AFDIAN_API_BASE}/query-order`,
+          withFetchTimeout(
+            {
+              method: 'POST',
+              headers: JSON_CONTENT_HEADERS,
+              body: JSON.stringify({ user_id: afdianConfig.apiUserId, params, ts, sign }),
+            },
+            FETCH_TIMEOUTS.payment,
+          ),
+        ).then((r) => r.json()),
+      );
 
-      const data = response as { ec?: number; data?: { list?: Array<{ out_trade_no?: string; total_amount?: string; status?: number }> } };
+      const data = response as {
+        ec?: number;
+        data?: { list?: Array<{ out_trade_no?: string; total_amount?: string; status?: number }> };
+      };
       if (data.ec !== AFDIAN_EC_SUCCESS || !data.data?.list?.length) return null;
 
       const found = data.data.list.find((o) => o.out_trade_no === orderNo);

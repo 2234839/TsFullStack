@@ -58,9 +58,7 @@ export function formatDate(date: string | Date | null | undefined, options: Form
     return d.toLocaleDateString(i18n.global.locale.value, { year: 'numeric', month: '2-digit', day: '2-digit' });
   }
 
-  return dateOnly
-    ? d.toLocaleDateString(i18n.global.locale.value)
-    : d.toLocaleString(i18n.global.locale.value);
+  return dateOnly ? d.toLocaleDateString(i18n.global.locale.value) : d.toLocaleString(i18n.global.locale.value);
 }
 
 /**

@@ -1,8 +1,12 @@
 import { reactive, ref } from 'vue';
 import {
-  tokenize, Parser, evalAST, formatEvalResult,
+  tokenize,
+  Parser,
+  evalAST,
+  formatEvalResult,
   isUnitValue,
-  type EvalResult, type Scope,
+  type EvalResult,
+  type Scope,
 } from '@tsfullstack/note-calc-engine';
 import type { CalculationResult, CalculatorConfig, TextDiff } from './types';
 
@@ -419,9 +423,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   /**
    * 添加计算任务到队列
    */
-  function addCalculationTask(
-    task: () => Promise<CalculationResult[]>,
-  ): Promise<CalculationResult[]> {
+  function addCalculationTask(task: () => Promise<CalculationResult[]>): Promise<CalculationResult[]> {
     return new Promise((resolve, reject) => {
       // 创建一个包装任务，执行完成后解析Promise
       const wrappedTask = async () => {
@@ -587,10 +589,7 @@ export function useCalculator(initialConfig: CalculatorConfig) {
   /**
    * 增量计算
    */
-  async function calculateIncremental(
-    prevContent: string,
-    newContent: string,
-  ): Promise<CalculationResult[]> {
+  async function calculateIncremental(prevContent: string, newContent: string): Promise<CalculationResult[]> {
     // 将增量计算任务添加到队列
     return addCalculationTask(async () => {
       // 如果内容相同，直接返回

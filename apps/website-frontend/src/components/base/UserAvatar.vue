@@ -20,9 +20,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from "vue";
-import File2Url from "@/pages/admin/components/File2Url.vue";
-import { useI18n } from "@/composables/useI18n";
+import { computed } from 'vue';
+import File2Url from '@/pages/admin/components/File2Url.vue';
+import { useI18n } from '@/composables/useI18n';
 
 const { t } = useI18n();
 
@@ -30,16 +30,16 @@ const { t } = useI18n();
 const props = defineProps<{
   fileId?: string | null;
   /** 尺寸档位：sm=32px(贴文场景)，md=48px(侧边栏)，lg=64px(设置页) */
-  size?: "sm" | "md" | "lg";
+  size?: 'sm' | 'md' | 'lg';
 }>();
 
 /** 尺寸 → 容器类 */
 const avatarClass = computed(() => {
-  return { sm: "w-8 h-8", md: "w-12 h-12", lg: "w-16 h-16" }[props.size ?? "md"];
+  return { sm: 'w-8 h-8', md: 'w-12 h-12', lg: 'w-16 h-16' }[props.size ?? 'md'];
 });
 
 /** 尺寸 → 图标字号 */
 const iconClass = computed(() => {
-  return { sm: "!text-sm", md: "!text-xl", lg: "!text-2xl" }[props.size ?? "md"];
+  return { sm: '!text-sm', md: '!text-xl', lg: '!text-2xl' }[props.size ?? 'md'];
 });
 </script>

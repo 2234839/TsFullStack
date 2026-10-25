@@ -113,9 +113,7 @@ export const calculateNextExecution = (cronExpression: string, timeBase?: Date):
       const baseTime = timeBase || new Date();
 
       // 计算从基点时间开始经过的完整天数
-      const daysSinceBase = Math.floor(
-        (next.getTime() - baseTime.getTime()) / (24 * 60 * 60 * 1000),
-      );
+      const daysSinceBase = Math.floor((next.getTime() - baseTime.getTime()) / (24 * 60 * 60 * 1000));
 
       // 计算下一个执行点：如果已经过了interval天，就等待下一个interval周期
       const daysToNextInterval = interval - (daysSinceBase % interval);

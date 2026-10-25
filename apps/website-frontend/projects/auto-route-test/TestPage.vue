@@ -3,7 +3,9 @@
     <div class="max-w-4xl mx-auto">
       <div class="bg-white dark:bg-primary-800 rounded-2xl shadow-xl p-8">
         <div class="flex items-center space-x-4 mb-8">
-          <div class="w-16 h-16 bg-linear-to-r from-success-400 to-info-500 rounded-full flex items-center justify-center">
+          <div
+            class="w-16 h-16 bg-linear-to-r from-success-400 to-info-500 rounded-full flex items-center justify-center"
+          >
             <i class="pi pi-sparkles text-white text-2xl"></i>
           </div>
           <div>
@@ -13,15 +15,26 @@
         </div>
 
         <div class="space-y-6">
-          <div class="bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800 rounded-lg p-6">
+          <div
+            class="bg-success-50 dark:bg-success-900/20 border border-success-200 dark:border-success-800 rounded-lg p-6"
+          >
             <h2 class="text-xl font-semibold text-success-800 dark:text-success-300 mb-4">
               <i class="pi pi-check-circle mr-2"></i>
               系统状态
             </h2>
             <div class="space-y-2 text-success-700 dark:text-success-400">
-              <p><i class="pi pi-cog mr-2"></i>Vite 插件: <span class="font-mono bg-success-100 dark:bg-success-800 px-2 py-1 rounded">运行中</span></p>
-              <p><i class="pi pi-refresh mr-2"></i>热更新: <span class="font-mono bg-success-100 dark:bg-success-800 px-2 py-1 rounded">已启用</span></p>
-              <p><i class="pi pi-folder mr-2"></i>路由扫描: <span class="font-mono bg-success-100 dark:bg-success-800 px-2 py-1 rounded">projects/*</span></p>
+              <p>
+                <i class="pi pi-cog mr-2"></i>Vite 插件:
+                <span class="font-mono bg-success-100 dark:bg-success-800 px-2 py-1 rounded">运行中</span>
+              </p>
+              <p>
+                <i class="pi pi-refresh mr-2"></i>热更新:
+                <span class="font-mono bg-success-100 dark:bg-success-800 px-2 py-1 rounded">已启用</span>
+              </p>
+              <p>
+                <i class="pi pi-folder mr-2"></i>路由扫描:
+                <span class="font-mono bg-success-100 dark:bg-success-800 px-2 py-1 rounded">projects/*</span>
+              </p>
             </div>
           </div>
 
@@ -31,9 +44,22 @@
               路由信息
             </h2>
             <div class="space-y-2 text-info-700 dark:text-info-400">
-              <p><i class="pi pi-link mr-2"></i>当前路径: <span class="font-mono bg-info-100 dark:bg-info-800 px-2 py-1 rounded">{{ $route.path }}</span></p>
-              <p><i class="pi pi-clock mr-2"></i>生成时间: <span class="font-mono bg-info-100 dark:bg-info-800 px-2 py-1 rounded">{{ new Date().toLocaleString() }}</span></p>
-              <p><i class="pi pi-code mr-2"></i>文件位置: <span class="font-mono bg-info-100 dark:bg-info-800 px-2 py-1 rounded text-sm">projects/auto-route-test/main.routeMap.ts</span></p>
+              <p>
+                <i class="pi pi-link mr-2"></i>当前路径:
+                <span class="font-mono bg-info-100 dark:bg-info-800 px-2 py-1 rounded">{{ $route.path }}</span>
+              </p>
+              <p>
+                <i class="pi pi-clock mr-2"></i>生成时间:
+                <span class="font-mono bg-info-100 dark:bg-info-800 px-2 py-1 rounded">{{
+                  new Date().toLocaleString()
+                }}</span>
+              </p>
+              <p>
+                <i class="pi pi-code mr-2"></i>文件位置:
+                <span class="font-mono bg-info-100 dark:bg-info-800 px-2 py-1 rounded text-sm"
+                  >projects/auto-route-test/main.routeMap.ts</span
+                >
+              </p>
             </div>
           </div>
 

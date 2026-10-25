@@ -55,14 +55,17 @@ function handleOpenChange(open: boolean) {
       enter-to-class="opacity-100"
       leave-active-class="transition duration-150 ease-in"
       leave-from-class="opacity-100"
-      leave-to-class="opacity-0">
+      leave-to-class="opacity-0"
+    >
       <div
         v-if="confirmState.show && !confirmState.targetElement"
         v-bind="$attrs"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/50">
+        class="fixed inset-0 z-50 flex items-center justify-center bg-primary-950/50"
+      >
         <div
           class="bg-primary-card border border-primary-default rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
-          @click.stop>
+          @click.stop
+        >
           <!-- 标题 -->
           <div v-if="confirmState.header" class="text-lg font-semibold text-primary-950 dark:text-primary-50 mb-4">
             {{ confirmState.header }}
@@ -82,14 +85,12 @@ function handleOpenChange(open: boolean) {
 
           <!-- 按钮 -->
           <div class="flex justify-end gap-3">
-            <Button
-              :label="confirmState.rejectLabel || t('取消')"
-              variant="secondary"
-              @click="handleReject" />
+            <Button :label="confirmState.rejectLabel || t('取消')" variant="secondary" @click="handleReject" />
             <Button
               :label="confirmState.acceptLabel || t('确认')"
               :class="confirmState.acceptClass"
-              @click="handleAccept" />
+              @click="handleAccept"
+            />
           </div>
         </div>
       </div>
@@ -99,7 +100,8 @@ function handleOpenChange(open: boolean) {
     <PopoverRoot
       v-if="confirmState.targetElement && confirmState.show"
       :open="confirmState.show"
-      @update:open="handleOpenChange">
+      @update:open="handleOpenChange"
+    >
       <!-- 隐藏的 anchor 元素用于定位 -->
       <div
         ref="anchorRef"
@@ -107,7 +109,8 @@ function handleOpenChange(open: boolean) {
         :style="{
           left: `${anchorPosition.x}px`,
           top: `${anchorPosition.y}px`,
-        }">
+        }"
+      >
         <PopoverAnchor />
       </div>
       <PopoverPortal>
@@ -117,7 +120,8 @@ function handleOpenChange(open: boolean) {
           :align="'center'"
           :avoid-collisions="true"
           class="z-50 bg-primary-card border border-primary-default rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
-          @click.stop>
+          @click.stop
+        >
           <!-- 箭头 -->
           <PopoverArrow class="fill-primary-50 dark:fill-primary-900 border border-primary-default border-b-0" />
 
@@ -140,14 +144,12 @@ function handleOpenChange(open: boolean) {
 
           <!-- 按钮 -->
           <div class="flex justify-end gap-3">
-            <Button
-              :label="confirmState.rejectLabel || t('取消')"
-              variant="secondary"
-              @click="handleReject" />
+            <Button :label="confirmState.rejectLabel || t('取消')" variant="secondary" @click="handleReject" />
             <Button
               :label="confirmState.acceptLabel || t('确认')"
               :class="confirmState.acceptClass"
-              @click="handleAccept" />
+              @click="handleAccept"
+            />
           </div>
         </PopoverContent>
       </PopoverPortal>

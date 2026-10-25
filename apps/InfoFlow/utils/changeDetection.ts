@@ -22,20 +22,16 @@ export interface TaskResultWithChanges {
   collections?: Record<string, CollectionWithChanges>;
 }
 
-
-
 // 计算两个collection之间的变化
-export function calculateChanges(
-  currentItems: CollectionItem[],
-  previousItems: CollectionItem[],
-): ItemWithChanges[] {
+export function calculateChanges(currentItems: CollectionItem[], previousItems: CollectionItem[]): ItemWithChanges[] {
   return currentItems.map((currentItem, index) => {
     // 在前一次执行中查找相同的item
-    const previousIndex = previousItems.findIndex((prevItem) => 
-      prevItem.value === currentItem.value && 
-      prevItem.type === currentItem.type &&
-      prevItem.selector === currentItem.selector &&
-      prevItem.attribute === currentItem.attribute
+    const previousIndex = previousItems.findIndex(
+      (prevItem) =>
+        prevItem.value === currentItem.value &&
+        prevItem.type === currentItem.type &&
+        prevItem.selector === currentItem.selector &&
+        prevItem.attribute === currentItem.attribute,
     );
 
     let changeType: ItemWithChanges['changeType'] = 'added'; // 默认为新增
@@ -72,7 +68,7 @@ export function getExecutionWithChanges(
   if (!previousExecution?.result?.collections) {
     // 如果没有前一次执行，所有item都标记为新增
     const collectionsWithChanges: Record<string, CollectionWithChanges> = {};
-    Object.keys(currentExecution.result.collections).forEach(key => {
+    Object.keys(currentExecution.result.collections).forEach((key) => {
       const collection = currentExecution.result!.collections![key];
       collectionsWithChanges[key] = {
         ...collection,
@@ -93,10 +89,10 @@ export function getExecutionWithChanges(
 
   // 有前一次执行，计算变化
   const collectionsWithChanges: Record<string, CollectionWithChanges> = {};
-  Object.keys(currentExecution.result.collections).forEach(key => {
+  Object.keys(currentExecution.result.collections).forEach((key) => {
     const currentCollection = currentExecution.result!.collections![key];
     const previousCollection = previousExecution?.result?.collections?.[key];
-    
+
     if (previousCollection?.items) {
       collectionsWithChanges[key] = {
         ...currentCollection,
@@ -132,8 +128,8 @@ export function checkIfAllUnchanged(executionWithChanges: TaskResultWithChanges)
     const collection = executionWithChanges.collections[collectionKey];
     if (collection.items && collection.items.length > 0) {
       // 检查是否所有项都是"unchanged"类型
-      const hasChanges = collection.items.some((item: ItemWithChanges) => 
-        item.changeType && item.changeType !== 'unchanged'
+      const hasChanges = collection.items.some(
+        (item: ItemWithChanges) => item.changeType && item.changeType !== 'unchanged',
       );
       if (hasChanges) {
         return false; // 如果有任何变化，返回false
@@ -154,9 +150,7 @@ export function checkIfNoAdditions(executionWithChanges: TaskResultWithChanges):
     const collection = executionWithChanges.collections[collectionKey];
     if (collection.items && collection.items.length > 0) {
       // 检查是否有任何新增项
-      const hasAdditions = collection.items.some((item: ItemWithChanges) => 
-        item.changeType === 'added'
-      );
+      const hasAdditions = collection.items.some((item: ItemWithChanges) => item.changeType === 'added');
       if (hasAdditions) {
         return false; // 如果有新增项，返回false
       }

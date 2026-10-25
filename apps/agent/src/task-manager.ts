@@ -42,7 +42,7 @@ export class TaskManager {
     toolRegistry: ToolRegistry,
     storage: JsonStorage,
     logger: Logger,
-    interactiveService?: InteractiveService
+    interactiveService?: InteractiveService,
   ) {
     this.config = {
       maxRetries: 3,
@@ -55,7 +55,7 @@ export class TaskManager {
       enableLearning: true,
       enableStateAnalysis: true,
       enableLoopDetection: true,
-      ...config
+      ...config,
     };
     this.toolRegistry = toolRegistry;
     this.storage = storage;
@@ -63,7 +63,7 @@ export class TaskManager {
     this.interactiveService = interactiveService;
   }
 
-async executeTask(description: string): Promise<TaskResult> {
+  async executeTask(description: string): Promise<TaskResult> {
     const startTime = Date.now();
 
     // Reset memory and knowledge for new task
@@ -76,11 +76,15 @@ async executeTask(description: string): Promise<TaskResult> {
       const task = await this.createTask(description);
       await this.storage.saveTask(task);
 
-      this.logger.info(`Starting advanced task execution`, {
-        taskId: task.id,
-        description,
-        maxTurns: this.config.maxTurns
-      }, 'TaskManager');
+      this.logger.info(
+        `Starting advanced task execution`,
+        {
+          taskId: task.id,
+          description,
+          maxTurns: this.config.maxTurns,
+        },
+        'TaskManager',
+      );
 
       // Start timeout monitoring
       this.startTaskTimeout(task.id, this.config.maxTaskDuration!);
@@ -98,12 +102,16 @@ async executeTask(description: string): Promise<TaskResult> {
         await this.completeTask(task.id, executionResult);
 
         const executionTime = Date.now() - startTime;
-        this.logger.info(`Advanced task completed successfully`, {
-          taskId: task.id,
-          executionTime,
-          stepsExecuted: executionResult.stepsExecuted,
-          totalTurns: this.currentTurn
-        }, 'TaskManager');
+        this.logger.info(
+          `Advanced task completed successfully`,
+          {
+            taskId: task.id,
+            executionTime,
+            stepsExecuted: executionResult.stepsExecuted,
+            totalTurns: this.currentTurn,
+          },
+          'TaskManager',
+        );
 
         const finalTask = await this.storage.getTask(task.id);
         if (!finalTask) {
@@ -115,20 +123,23 @@ async executeTask(description: string): Promise<TaskResult> {
           task: finalTask,
           output: executionResult.output,
           executionTime,
-          stepsExecuted: executionResult.stepsExecuted
+          stepsExecuted: executionResult.stepsExecuted,
         };
-
       } catch (error) {
         // Handle task failure
         const errorResult = await this.handleTaskFailure(task.id, error);
         const executionTime = Date.now() - startTime;
 
-        this.logger.error(`Advanced task failed`, {
-          taskId: task.id,
-          error: errorResult.error,
-          executionTime,
-          totalTurns: this.currentTurn
-        }, 'TaskManager');
+        this.logger.error(
+          `Advanced task failed`,
+          {
+            taskId: task.id,
+            error: errorResult.error,
+            executionTime,
+            totalTurns: this.currentTurn,
+          },
+          'TaskManager',
+        );
 
         const failedTask = await this.storage.getTask(task.id);
         if (!failedTask) {
@@ -140,26 +151,29 @@ async executeTask(description: string): Promise<TaskResult> {
           task: failedTask,
           error: errorResult.error,
           executionTime,
-          stepsExecuted: errorResult.stepsExecuted
+          stepsExecuted: errorResult.stepsExecuted,
         };
       }
-
     } catch (error) {
       const executionTime = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
 
-      this.logger.error(`Advanced task creation failed`, {
-        error: errorMessage,
-        description,
-        executionTime
-      }, 'TaskManager');
+      this.logger.error(
+        `Advanced task creation failed`,
+        {
+          error: errorMessage,
+          description,
+          executionTime,
+        },
+        'TaskManager',
+      );
 
       return {
         success: false,
         task: null as unknown as Task,
         error: errorMessage,
         executionTime,
-        stepsExecuted: 0
+        stepsExecuted: 0,
       };
     }
   }
@@ -170,7 +184,7 @@ async executeTask(description: string): Promise<TaskResult> {
       status: 'pending',
       steps: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     return task;
@@ -183,42 +197,54 @@ async executeTask(description: string): Promise<TaskResult> {
 
     // File operations
     if (lowerDescription.includes('文件') || lowerDescription.includes('file')) {
-      if (lowerDescription.includes('创建') || lowerDescription.includes('创建') || lowerDescription.includes('write')) {
+      if (
+        lowerDescription.includes('创建') ||
+        lowerDescription.includes('创建') ||
+        lowerDescription.includes('write')
+      ) {
         const contentMatch = description.match(/["']([^"']+)["']/) || description.match(/["']([^"']+)["']/);
         const content = contentMatch ? contentMatch[1] : 'Hello World';
 
-        const pathMatch = description.match(/([a-zA-Z0-9_\-\.\/]+\.(txt|md|json|js|ts))/);
+        const pathMatch = description.match(/([a-zA-Z0-9_\-.\/]+\.(txt|md|json|js|ts))/);
         const filename = pathMatch ? pathMatch[1] : './data/test.txt';
 
         steps.push({
           toolName: 'file_write',
           input: { path: filename, content },
-          description: `Create file ${filename} with content`
+          description: `Create file ${filename} with content`,
         });
       }
     }
 
     // Command execution
-    if (lowerDescription.includes('命令') || lowerDescription.includes('command') || lowerDescription.includes('执行')) {
+    if (
+      lowerDescription.includes('命令') ||
+      lowerDescription.includes('command') ||
+      lowerDescription.includes('执行')
+    ) {
       const commandMatch = description.match(/["']([^"']+)["']/);
       const command = commandMatch ? commandMatch[1] : 'echo "Hello World"';
 
       steps.push({
         toolName: 'command_execute',
         input: { command, args: [] },
-        description: `Execute command: ${command}`
+        description: `Execute command: ${command}`,
       });
     }
 
     // HTTP requests
-    if (lowerDescription.includes('http') || lowerDescription.includes('请求') || lowerDescription.includes('request')) {
+    if (
+      lowerDescription.includes('http') ||
+      lowerDescription.includes('请求') ||
+      lowerDescription.includes('request')
+    ) {
       const urlMatch = description.match(/https?:\/\/[^\s]+/);
       const url = urlMatch ? urlMatch[0] : 'https://httpbin.org/get';
 
       steps.push({
         toolName: 'http_request',
         input: { url, method: 'GET' },
-        description: `Make HTTP request to ${url}`
+        description: `Make HTTP request to ${url}`,
       });
     }
 
@@ -227,19 +253,26 @@ async executeTask(description: string): Promise<TaskResult> {
       steps.push({
         toolName: 'info',
         input: { message: `Processing task: ${description}` },
-        description: 'Process task description'
+        description: 'Process task description',
       });
     }
 
-    this.logger.debug(`Planned steps for task`, {
-      taskId: task.id,
-      steps: steps.length
-    }, 'TaskManager');
+    this.logger.debug(
+      `Planned steps for task`,
+      {
+        taskId: task.id,
+        steps: steps.length,
+      },
+      'TaskManager',
+    );
 
     return steps;
   }
 
-  private async executeSteps(taskId: string, plannedSteps: PlannedStep[]): Promise<{
+  private async executeSteps(
+    taskId: string,
+    plannedSteps: PlannedStep[],
+  ): Promise<{
     success: boolean;
     output?: any;
     stepsExecuted: number;
@@ -261,18 +294,22 @@ async executeTask(description: string): Promise<TaskResult> {
         toolName: plannedStep.toolName,
         input: plannedStep.input,
         status: 'pending',
-        startTime: new Date()
+        startTime: new Date(),
       };
 
       // Add step to task
       task.steps.push(taskStep);
       await this.storage.saveTask(task);
 
-      this.logger.debug(`Executing step ${i + 1}/${plannedSteps.length}`, {
-        taskId,
-        stepId: taskStep.id,
-        toolName: plannedStep.toolName
-      }, 'TaskManager');
+      this.logger.debug(
+        `Executing step ${i + 1}/${plannedSteps.length}`,
+        {
+          taskId,
+          stepId: taskStep.id,
+          toolName: plannedStep.toolName,
+        },
+        'TaskManager',
+      );
 
       try {
         // Execute step with retry logic
@@ -292,7 +329,6 @@ async executeTask(description: string): Promise<TaskResult> {
         // Collect output
         finalOutput = result.output;
         stepsExecuted++;
-
       } catch (error) {
         taskStep.status = 'failed';
         taskStep.error = error instanceof Error ? error.message : String(error);
@@ -308,7 +344,10 @@ async executeTask(description: string): Promise<TaskResult> {
     return { success: true, output: finalOutput, stepsExecuted };
   }
 
-  private async executeStepWithRetry(step: TaskStep, plannedStep: PlannedStep): Promise<{
+  private async executeStepWithRetry(
+    step: TaskStep,
+    plannedStep: PlannedStep,
+  ): Promise<{
     success: boolean;
     output?: any;
     error?: string;
@@ -321,25 +360,21 @@ async executeTask(description: string): Promise<TaskResult> {
       const confirmed = await this.interactiveService.confirmExecution(
         plannedStep.toolName,
         plannedStep.input,
-        plannedStep.description
+        plannedStep.description,
       );
 
       if (!confirmed) {
         return {
           success: false,
           error: 'User cancelled execution',
-          duration: 0
+          duration: 0,
         };
       }
     }
 
     for (let attempt = 1; attempt <= this.config.maxRetries!; attempt++) {
       try {
-        const result = await this.toolRegistry.execute(
-          plannedStep.toolName,
-          plannedStep.input,
-          `TaskStep-${step.id}`
-        );
+        const result = await this.toolRegistry.execute(plannedStep.toolName, plannedStep.input, `TaskStep-${step.id}`);
 
         if (result.success) {
           return result;
@@ -360,7 +395,7 @@ async executeTask(description: string): Promise<TaskResult> {
     return {
       success: false,
       error: lastError || `Step failed after ${this.config.maxRetries} attempts`,
-      duration: 0
+      duration: 0,
     };
   }
 
@@ -373,7 +408,7 @@ async executeTask(description: string): Promise<TaskResult> {
     this.logger.debug(`Validating task result`, { taskId }, 'TaskManager');
 
     // Simple validation - check if all steps completed successfully
-    const failedSteps = task.steps.filter(step => step.status === 'failed');
+    const failedSteps = task.steps.filter((step) => step.status === 'failed');
     if (failedSteps.length > 0) {
       throw new Error(`${failedSteps.length} steps failed`);
     }
@@ -389,7 +424,10 @@ async executeTask(description: string): Promise<TaskResult> {
     await this.storage.saveTask(task);
   }
 
-  private async handleTaskFailure(taskId: string, error: any): Promise<{
+  private async handleTaskFailure(
+    taskId: string,
+    error: any,
+  ): Promise<{
     error: string;
     stepsExecuted: number;
   }> {
@@ -411,11 +449,14 @@ async executeTask(description: string): Promise<TaskResult> {
       await this.attemptAutoRepair(task, error);
     }
 
-    const stepsExecuted = task.steps.filter(step => step.status === 'completed').length;
+    const stepsExecuted = task.steps.filter((step) => step.status === 'completed').length;
     return { error: task.error, stepsExecuted };
   }
 
-  private async executeAdvancedTask(task: Task, description: string): Promise<{
+  private async executeAdvancedTask(
+    task: Task,
+    description: string,
+  ): Promise<{
     success: boolean;
     output?: any;
     stepsExecuted: number;
@@ -432,7 +473,7 @@ async executeTask(description: string): Promise<TaskResult> {
     let currentState: AdvancedState = {
       task: description,
       context: { lastExecution: null, knowledge: {} },
-      goalAchieved: false
+      goalAchieved: false,
     };
 
     // Main execution loop
@@ -451,10 +492,14 @@ async executeTask(description: string): Promise<TaskResult> {
 
       // 3. Execute action
       const execution = await this.executeAction(task.id, strategy.action);
-      this.logger.info(`Execution result: ${execution.result.substring(0, 100)}...`, {
-        taskId: task.id,
-        success: execution.success
-      }, 'TaskManager');
+      this.logger.info(
+        `Execution result: ${execution.result.substring(0, 100)}...`,
+        {
+          taskId: task.id,
+          success: execution.success,
+        },
+        'TaskManager',
+      );
 
       // 4. Update state
       currentState = this.updateState(currentState, execution, this.currentTurn);
@@ -478,21 +523,24 @@ async executeTask(description: string): Promise<TaskResult> {
     return {
       success: currentState.goalAchieved,
       output: currentState.context.lastExecution?.result,
-      stepsExecuted: this.memory.filter(m => m.success).length
+      stepsExecuted: this.memory.filter((m) => m.success).length,
     };
   }
 
-  private analyzeCurrentState(state: any, turn: number): {
+  private analyzeCurrentState(
+    state: any,
+    turn: number,
+  ): {
     situation: string;
     context: any;
   } {
     const context = {
-      hasExplored: this.memory.some(m => m.action.includes('搜索') || m.action.includes('读取')),
+      hasExplored: this.memory.some((m) => m.action.includes('搜索') || m.action.includes('读取')),
       hasTests: this.knowledge.has('testFiles') && this.knowledge.get('testFiles').length > 0,
       hasTestFramework: this.knowledge.has('package') && this.knowledge.get('package').scripts?.test,
-      hasRunTests: this.memory.some(m => m.action.includes('运行测试')),
+      hasRunTests: this.memory.some((m) => m.action.includes('运行测试')),
       codeQuality: this.knowledge.get('codeQuality') || 'unknown',
-      turn
+      turn,
     };
 
     let situation = '';
@@ -514,7 +562,10 @@ async executeTask(description: string): Promise<TaskResult> {
     return { situation, context };
   }
 
-  private makeStrategy(analysis: any, turn: number): {
+  private makeStrategy(
+    analysis: any,
+    turn: number,
+  ): {
     plan: string;
     action: any;
   } {
@@ -528,7 +579,7 @@ async executeTask(description: string): Promise<TaskResult> {
       action = {
         toolName: 'file_list',
         input: { path: './', recursive: false },
-        purpose: 'explore'
+        purpose: 'explore',
       };
     } else if (situation.includes('缺少测试文件')) {
       plan = '创建测试文件来确保代码质量';
@@ -536,23 +587,23 @@ async executeTask(description: string): Promise<TaskResult> {
         toolName: 'file_write',
         input: {
           path: './test/test.js',
-          content: this.generateTestFile()
+          content: this.generateTestFile(),
         },
-        purpose: 'createTests'
+        purpose: 'createTests',
       };
     } else if (situation.includes('需要运行验证')) {
       plan = '运行测试用例验证代码正确性';
       action = {
         toolName: 'command_execute',
         input: { command: 'npm test', args: [] },
-        purpose: 'runTests'
+        purpose: 'runTests',
       };
     } else if (situation.includes('检查代码质量')) {
       plan = '运行代码质量检查工具';
       action = {
         toolName: 'command_execute',
         input: { command: 'npm run lint', args: [] },
-        purpose: 'checkQuality'
+        purpose: 'checkQuality',
       };
     } else if (situation.includes('已完成')) {
       plan = '任务完成，生成最终报告';
@@ -562,7 +613,10 @@ async executeTask(description: string): Promise<TaskResult> {
     return { plan, action };
   }
 
-  private async executeAction(taskId: string, action: any): Promise<{
+  private async executeAction(
+    taskId: string,
+    action: any,
+  ): Promise<{
     success: boolean;
     result: string;
     nextState: string;
@@ -571,16 +625,12 @@ async executeTask(description: string): Promise<TaskResult> {
       return {
         success: true,
         result: '任务完成',
-        nextState: 'completed'
+        nextState: 'completed',
       };
     }
 
     try {
-      const toolResult = await this.toolRegistry.execute(
-        action.toolName,
-        action.input,
-        `AdvancedAction-${Date.now()}`
-      );
+      const toolResult = await this.toolRegistry.execute(action.toolName, action.input, `AdvancedAction-${Date.now()}`);
 
       // Process tool result based on purpose
       return this.processToolResult(action, toolResult);
@@ -588,12 +638,15 @@ async executeTask(description: string): Promise<TaskResult> {
       return {
         success: false,
         result: `执行失败: ${error instanceof Error ? error.message : String(error)}`,
-        nextState: 'error'
+        nextState: 'error',
       };
     }
   }
 
-  private processToolResult(action: any, toolResult: any): {
+  private processToolResult(
+    action: any,
+    toolResult: any,
+  ): {
     success: boolean;
     result: string;
     nextState: string;
@@ -604,7 +657,7 @@ async executeTask(description: string): Promise<TaskResult> {
         return {
           success: true,
           result: `发现项目文件: ${toolResult.output?.length || 0} 个`,
-          nextState: 'needsAnalysis'
+          nextState: 'needsAnalysis',
         };
 
       case 'createTests':
@@ -612,7 +665,7 @@ async executeTask(description: string): Promise<TaskResult> {
         return {
           success: true,
           result: '测试文件创建成功',
-          nextState: 'needsTestRun'
+          nextState: 'needsTestRun',
         };
 
       case 'runTests':
@@ -621,7 +674,7 @@ async executeTask(description: string): Promise<TaskResult> {
         return {
           success: !hasTestFailures,
           result: toolResult.output || '测试完成',
-          nextState: hasTestFailures ? 'needsFix' : 'needsQualityCheck'
+          nextState: hasTestFailures ? 'needsFix' : 'needsQualityCheck',
         };
 
       case 'checkQuality':
@@ -630,14 +683,14 @@ async executeTask(description: string): Promise<TaskResult> {
         return {
           success: !hasIssues,
           result: toolResult.output || '质量检查完成',
-          nextState: hasIssues ? 'needs_improvement' : 'completed'
+          nextState: hasIssues ? 'needs_improvement' : 'completed',
         };
 
       default:
         return {
           success: toolResult.success,
           result: toolResult.output || '操作完成',
-          nextState: 'completed'
+          nextState: 'completed',
         };
     }
   }
@@ -648,7 +701,7 @@ async executeTask(description: string): Promise<TaskResult> {
       action: execution.result,
       nextState: execution.nextState,
       success: execution.success,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     return {
@@ -656,9 +709,9 @@ async executeTask(description: string): Promise<TaskResult> {
       context: {
         ...currentState.context,
         lastExecution: execution,
-        knowledge: Object.fromEntries(this.knowledge)
+        knowledge: Object.fromEntries(this.knowledge),
       },
-      goalAchieved: execution.nextState === 'completed'
+      goalAchieved: execution.nextState === 'completed',
     };
   }
 
@@ -666,7 +719,11 @@ async executeTask(description: string): Promise<TaskResult> {
     if (execution.success) {
       this.logger.info(`Agent learning: Turn ${turn} execution succeeded`, null, 'TaskManager');
     } else {
-      this.logger.info(`Agent learning: Turn ${turn} execution failed, strategy adjustment needed`, null, 'TaskManager');
+      this.logger.info(
+        `Agent learning: Turn ${turn} execution failed, strategy adjustment needed`,
+        null,
+        'TaskManager',
+      );
     }
   }
 
@@ -690,17 +747,15 @@ async executeTask(description: string): Promise<TaskResult> {
   private isStuckInLoop(): boolean {
     if (this.memory.length < 4) return false;
 
-    const recentActions = this.memory.slice(-4).map(m => m.action.substring(0, 20));
+    const recentActions = this.memory.slice(-4).map((m) => m.action.substring(0, 20));
     const uniqueActions = new Set(recentActions);
 
     return uniqueActions.size <= 2;
   }
 
   private hasUnrecoverableError(state: any): boolean {
-    return this.memory.some(m =>
-      m.action.includes('致命错误') ||
-      m.action.includes('权限不足') ||
-      m.action.includes('文件不存在')
+    return this.memory.some(
+      (m) => m.action.includes('致命错误') || m.action.includes('权限不足') || m.action.includes('文件不存在'),
     );
   }
 
@@ -722,10 +777,14 @@ describe('Application Tests', () => {
   }
 
   private async attemptAutoRepair(task: Task, error: any): Promise<void> {
-    this.logger.info(`Attempting auto-repair for task`, {
-      taskId: task.id,
-      error: String(error)
-    }, 'TaskManager');
+    this.logger.info(
+      `Attempting auto-repair for task`,
+      {
+        taskId: task.id,
+        error: String(error),
+      },
+      'TaskManager',
+    );
 
     // Simple repair strategies
     const errorMessage = String(error).toLowerCase();
@@ -745,11 +804,14 @@ describe('Application Tests', () => {
     }
   }
 
-  private async completeTask(taskId: string, result: {
-    success: boolean;
-    output?: any;
-    stepsExecuted: number;
-  }): Promise<void> {
+  private async completeTask(
+    taskId: string,
+    result: {
+      success: boolean;
+      output?: any;
+      stepsExecuted: number;
+    },
+  ): Promise<void> {
     const task = await this.storage.getTask(taskId);
     if (!task) {
       throw new Error(`Task ${taskId} not found`);
@@ -796,7 +858,7 @@ describe('Application Tests', () => {
   }
 
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   // Public methods for task management
@@ -837,10 +899,10 @@ describe('Application Tests', () => {
 
     return {
       total: tasks.length,
-      completed: tasks.filter(t => t.status === 'completed').length,
-      failed: tasks.filter(t => t.status === 'failed').length,
-      running: tasks.filter(t => t.status === 'running').length,
-      pending: tasks.filter(t => t.status === 'pending').length
+      completed: tasks.filter((t) => t.status === 'completed').length,
+      failed: tasks.filter((t) => t.status === 'failed').length,
+      running: tasks.filter((t) => t.status === 'running').length,
+      pending: tasks.filter((t) => t.status === 'pending').length,
     };
   }
 }

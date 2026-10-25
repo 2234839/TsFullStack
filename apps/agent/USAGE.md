@@ -11,22 +11,22 @@ import { TsAgent } from '@tsagent/core';
 const config = {
   storage: {
     type: 'json' as const,
-    dataDir: './data'
+    dataDir: './data',
   },
   security: {
     enablePermissions: true,
     allowedTools: ['file_write', 'file_read', 'system_info'],
     maxTaskDuration: 300000,
-    safeMode: true
+    safeMode: true,
   },
   logging: {
     level: 'info' as const,
     enableConsole: true,
-    enableFile: false
+    enableFile: false,
   },
   tools: {
-    timeout: 30000
-  }
+    timeout: 30000,
+  },
 };
 
 const agent = new TsAgent(config);
@@ -39,11 +39,11 @@ await agent.initialize();
 const interactiveConfig = {
   ...config,
   interactive: {
-    enabled: true,                    // 启用交互式决策
-    confirmBeforeExecution: true,     // 执行前确认
-    askForClarification: true,        // 需要澄清时询问
-    maxQuestions: 5                   // 最大询问次数
-  }
+    enabled: true, // 启用交互式决策
+    confirmBeforeExecution: true, // 执行前确认
+    askForClarification: true, // 需要澄清时询问
+    maxQuestions: 5, // 最大询问次数
+  },
 };
 
 const agent = new TsAgent(interactiveConfig);
@@ -115,19 +115,13 @@ console.log('已询问问题数:', stats.questionsAsked);
 
 ```typescript
 // 直接询问用户问题
-const answer = await agent.askUserQuestion(
-  '您希望使用哪个工具?',
-  ['文件读取', '系统信息', 'HTTP请求']
-);
+const answer = await agent.askUserQuestion('您希望使用哪个工具?', ['文件读取', '系统信息', 'HTTP请求']);
 
 // 确认特定操作
 const confirmed = await agent.confirmAction('是否要删除该文件?');
 
 // 澄清任务描述
-const clarified = await agent.clarifyTask(
-  '处理数据',
-  '您想要如何处理数据?'
-);
+const clarified = await agent.clarifyTask('处理数据', '您想要如何处理数据?');
 ```
 
 ### 3. 多媒体处理
@@ -146,21 +140,25 @@ const videoResult = await agent.executeTask('生成一个展示猫咪的短视�
 ## 内置工具
 
 ### 文件操作
+
 - `file_write`: 写入文件
 - `file_read`: 读取文件
 - `file_delete`: 删除文件
 - `file_list`: 列出文件
 
 ### 系统操作
+
 - `system_info`: 获取系统信息
 - `command_execute`: 执行命令
 
 ### 网络操作
+
 - `http_get`: GET 请求
 - `http_post`: POST 请求
 - `http_request`: 通用 HTTP 请求
 
 ### 多媒体操作
+
 - `image_analysis`: 图像分析
 - `image_generation`: 图像生成
 - `ocr`: OCR 文字识别
@@ -171,6 +169,7 @@ const videoResult = await agent.executeTask('生成一个展示猫咪的短视�
 ## 配置选项详解
 
 ### 存储配置
+
 ```typescript
 storage: {
   type: 'json' | 'sqlite',     // 存储类型
@@ -181,6 +180,7 @@ storage: {
 ```
 
 ### 安全配置
+
 ```typescript
 security: {
   enablePermissions: boolean,  // 启用权限检查
@@ -191,6 +191,7 @@ security: {
 ```
 
 ### 交互式配置
+
 ```typescript
 interactive: {
   enabled: boolean,                    // 是否启用交互
@@ -203,6 +204,7 @@ interactive: {
 ## 实际应用场景
 
 ### 1. 自动化脚本
+
 ```typescript
 // 自动化部署脚本
 const deployTask = `
@@ -217,6 +219,7 @@ const result = await agent.executeTask(deployTask);
 ```
 
 ### 2. 数据处理
+
 ```typescript
 // 数据处理管道
 const dataProcessing = `
@@ -231,6 +234,7 @@ const result = await agent.executeTask(dataProcessing);
 ```
 
 ### 3. 系统管理
+
 ```typescript
 // 系统维护任务
 const maintenance = `
@@ -246,18 +250,21 @@ const result = await agent.executeTask(maintenance);
 ## 最佳实践
 
 ### 1. 配置建议
+
 - 生产环境启用 `safeMode`
 - 设置合理的 `maxTaskDuration`
 - 使用具体的工具权限
 - 启用日志记录
 
 ### 2. 交互式使用
+
 - 在复杂任务中启用交互模式
 - 设置合理的 `maxQuestions`
 - 提供清晰的选项描述
 - 处理用户取消的情况
 
 ### 3. 错误处理
+
 ```typescript
 try {
   const result = await agent.executeTask(task);
@@ -274,12 +281,14 @@ try {
 ## 故障排除
 
 ### 常见问题
+
 1. **权限错误**: 检查 `allowedTools` 配置
 2. **超时错误**: 增加 `maxTaskDuration` 或优化任务
 3. **LLM 调用失败**: 检查 API 密钥和网络连接
 4. **交互无响应**: 确保在支持交互的环境中运行
 
 ### 调试技巧
+
 - 启用 `debug` 级别日志
 - 使用 `healthCheck()` 检查系统状态
 - 查看 `getStats()` 获取运行统计

@@ -115,11 +115,7 @@
     </Dialog>
 
     <!-- 微信支付引导面板 -->
-    <WechatPayGuide
-      v-if="wechatGuideOpen"
-      :orderInfo="wechatOrderInfo!"
-      @close="wechatGuideOpen = false"
-    />
+    <WechatPayGuide v-if="wechatGuideOpen" :orderInfo="wechatOrderInfo!" @close="wechatGuideOpen = false" />
 
     <!-- 联系微信指引（支付问题兜底） -->
     <div
@@ -132,7 +128,9 @@
         <button
           class="font-mono font-medium text-info-800 dark:text-info-200 underline hover:no-underline mx-1"
           @click="copyContactId"
-        >{{ contactInfo.wechatAccountId }}</button>
+        >
+          {{ contactInfo.wechatAccountId }}
+        </button>
         {{ t('联系站长') }}
       </span>
     </div>
@@ -205,7 +203,9 @@ const MAX_POLL_COUNT = POLL_TIMEOUT_MS / POLL_INTERVAL_MS;
 /** 当前轮询次数 */
 let pollCount = 0;
 /** 轮询控制器 — 在 setup 层级创建，自动绑定组件生命周期 */
-const { pause: pausePolling, resume: resumePolling } = useIntervalFn(pollOrderStatus, POLL_INTERVAL_MS, { immediate: false });
+const { pause: pausePolling, resume: resumePolling } = useIntervalFn(pollOrderStatus, POLL_INTERVAL_MS, {
+  immediate: false,
+});
 
 /** 页面可见性控制 */
 const visibility = useDocumentVisibility();

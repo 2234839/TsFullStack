@@ -39,7 +39,8 @@ async function runEffect<T>(
   fallback: T,
 ): Promise<T> {
   try {
-    return await Effect.runPromise(Effect.provideService(program, AppConfigService, appConfig));
+    const provided = program.pipe(Effect.provideService(AppConfigService, appConfig));
+    return await Effect.runPromise(provided as Effect.Effect<T, never, never>);
   } catch (e) {
     console.error(`${LOG_PREFIX} 处理失败:`, extractErrorMessage(e));
     reply.code(500).send({ error: extractErrorMessage(e) });

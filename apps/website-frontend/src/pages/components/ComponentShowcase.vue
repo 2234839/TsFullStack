@@ -1,6 +1,6 @@
 <!-- ABOUTME: 组件展示页（showcase）— 集中展示与验证所有 UI 组件的渲染效果与交互 -->
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref } from 'vue';
 import {
   Dialog,
   Drawer,
@@ -10,45 +10,45 @@ import {
   ScrollArea,
   Select,
   Tooltip,
-} from "@tsfullstack/shared-frontend/components";
-import { useConfirm } from "@/composables/useConfirm";
-import Toast from "@/components/system/Toast.vue";
-import { useToast } from "@/composables/useToast";
+} from '@tsfullstack/shared-frontend/components';
+import { useConfirm } from '@/composables/useConfirm';
+import Toast from '@/components/system/Toast.vue';
+import { useToast } from '@/composables/useToast';
 
 // ---------- base 组件演示状态 ----------
 const confirmService = useConfirm();
-const text = ref("");
-const textarea = ref("");
-const password = ref("");
+const text = ref('');
+const textarea = ref('');
+const password = ref('');
 const number = ref(0);
 const checked = ref(false);
 const switched = ref(false);
 const slider = ref(50);
 const selectValue = ref<string | undefined>();
 const multiValue = ref<string[]>([]);
-const selectButton = ref("A");
+const selectButton = ref('A');
 const selectButtonMulti = ref<string[]>([]);
 const toastService = useToast();
 const date = ref<Date | undefined>();
 const progress = ref(66);
 
 const selectOptions = [
-  { label: "选项一", value: "1" },
-  { label: "选项二", value: "2" },
-  { label: "选项三", value: "3" },
+  { label: '选项一', value: '1' },
+  { label: '选项二', value: '2' },
+  { label: '选项三', value: '3' },
 ];
 
 const tableColumns = [
-  { key: "id", title: "ID", width: 60 },
-  { key: "name", title: "姓名", sortable: true },
-  { key: "role", title: "角色" },
-  { key: "status", title: "状态" },
+  { key: 'id', title: 'ID', width: 60 },
+  { key: 'name', title: '姓名', sortable: true },
+  { key: 'role', title: '角色' },
+  { key: 'status', title: '状态' },
 ];
 
 const tableData = [
-  { id: 1, name: "张三", role: "管理员", status: "启用" },
-  { id: 2, name: "李四", role: "编辑", status: "禁用" },
-  { id: 3, name: "王五", role: "访客", status: "启用" },
+  { id: 1, name: '张三', role: '管理员', status: '启用' },
+  { id: 2, name: '李四', role: '编辑', status: '禁用' },
+  { id: 3, name: '王五', role: '访客', status: '启用' },
 ];
 
 // ---------- 浮层组件演示状态 ----------
@@ -60,9 +60,9 @@ const popoverOpen = ref(false);
 const contextMenuRef = ref<InstanceType<typeof ContextMenu>>();
 /** 右键菜单项 */
 const contextMenuItems = [
-  { label: "复制", icon: "pi pi-copy", command: () => {} },
-  { label: "粘贴", icon: "pi pi-clipboard", command: () => {} },
-  { label: "删除", icon: "pi pi-trash", command: () => {} },
+  { label: '复制', icon: 'pi pi-copy', command: () => {} },
+  { label: '粘贴', icon: 'pi pi-clipboard', command: () => {} },
+  { label: '删除', icon: 'pi pi-trash', command: () => {} },
 ];
 </script>
 
@@ -152,12 +152,7 @@ const contextMenuItems = [
         <div>
           <label class="text-primary-label mb-1 block text-sm">SelectButton</label>
           <SelectButton v-model="selectButton" :options="['A', 'B', 'C']" />
-          <SelectButton
-            v-model="selectButtonMulti"
-            :options="['X', 'Y', 'Z']"
-            multiple
-            class="mt-2"
-          />
+          <SelectButton v-model="selectButtonMulti" :options="['X', 'Y', 'Z']" multiple class="mt-2" />
         </div>
         <div class="sm:col-span-2">
           <label class="text-primary-label mb-1 block text-sm">Slider（{{ slider }}）</label>
@@ -210,26 +205,10 @@ const contextMenuItems = [
     <section class="bg-primary-card border-primary-default mb-6 rounded-lg border p-6">
       <h2 class="text-primary-heading mb-4 text-lg font-semibold">反馈类</h2>
       <div class="flex flex-wrap items-center gap-3">
-        <Button
-          label="成功 Toast"
-          variant="primary"
-          @click="toastService.success('保存成功', '数据已写入')"
-        />
-        <Button
-          label="错误 Toast"
-          variant="danger"
-          @click="toastService.error('操作失败', '请稍后重试')"
-        />
-        <Button
-          label="信息 Toast"
-          variant="secondary"
-          @click="toastService.info('提示', '这是一条信息', 3000)"
-        />
-        <Button
-          label="警告 Toast"
-          variant="secondary"
-          @click="toastService.warn('注意', '存在潜在风险')"
-        />
+        <Button label="成功 Toast" variant="primary" @click="toastService.success('保存成功', '数据已写入')" />
+        <Button label="错误 Toast" variant="danger" @click="toastService.error('操作失败', '请稍后重试')" />
+        <Button label="信息 Toast" variant="secondary" @click="toastService.info('提示', '这是一条信息', 3000)" />
+        <Button label="警告 Toast" variant="secondary" @click="toastService.warn('注意', '存在潜在风险')" />
         <Button
           label="带操作 Toast"
           variant="secondary"
@@ -263,9 +242,7 @@ const contextMenuItems = [
             <Button icon="pi pi-ellipsis-v" variant="text" />
           </template>
           <div class="py-1">
-            <button
-              class="hover:bg-primary-100 dark:hover:bg-primary-800 block w-full px-3 py-1.5 text-left text-sm"
-            >
+            <button class="hover:bg-primary-100 dark:hover:bg-primary-800 block w-full px-3 py-1.5 text-left text-sm">
               编辑
             </button>
             <button

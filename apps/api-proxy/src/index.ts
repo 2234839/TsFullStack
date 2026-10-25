@@ -2,7 +2,6 @@ interface Env {
   ENVIRONMENT: string;
 }
 
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     // 检查是否为浏览器直接访问
@@ -23,8 +22,7 @@ export default {
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers':
-        'Content-Type, Authorization, User-Agent, X-Api-Key, X-Requested-With',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization, User-Agent, X-Api-Key, X-Requested-With',
     };
 
     // 处理 OPTIONS 请求
@@ -160,7 +158,6 @@ export default {
         );
       }
 
-      
       // 代理端点 - POST 请求传递完整目标 URL
       if (url.pathname === '/proxy') {
         return await handleProxyRequest(request, corsHeaders);
@@ -201,11 +198,7 @@ export default {
   },
 };
 
-
-async function handleProxyRequest(
-  request: Request,
-  corsHeaders: Record<string, string>,
-): Promise<Response> {
+async function handleProxyRequest(request: Request, corsHeaders: Record<string, string>): Promise<Response> {
   if (request.method !== 'POST') {
     return new Response(
       JSON.stringify({
@@ -220,7 +213,12 @@ async function handleProxyRequest(
   }
 
   try {
-    const body = await request.json() as { url: string; method?: string; headers?: Record<string, string>; body?: string };
+    const body = (await request.json()) as {
+      url: string;
+      method?: string;
+      headers?: Record<string, string>;
+      body?: string;
+    };
     const { url: targetUrl, method = 'GET', headers = {}, body: requestBody } = body;
 
     // 验证目标 URL
@@ -261,11 +259,9 @@ async function handleProxyRequest(
     const responseHeaders = new Headers(corsHeaders);
     response.headers.forEach((value, key) => {
       if (
-        ![
-          'access-control-allow-origin',
-          'access-control-allow-methods',
-          'access-control-allow-headers',
-        ].includes(key.toLowerCase())
+        !['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'].includes(
+          key.toLowerCase(),
+        )
       ) {
         responseHeaders.set(key, value);
       }
@@ -300,7 +296,7 @@ async function handleDirectProxy(
 
   if (platform === 'github') {
     const githubPath = url.pathname.replace('/github', '');
-    
+
     // 根据路径决定目标域名
     if (githubPath.startsWith('/login/oauth/') || githubPath.startsWith('/settings/')) {
       // OAuth 相关端点使用 github.com
@@ -361,11 +357,9 @@ async function handleDirectProxy(
     const responseHeaders = new Headers(corsHeaders);
     response.headers.forEach((value, key) => {
       if (
-        ![
-          'access-control-allow-origin',
-          'access-control-allow-methods',
-          'access-control-allow-headers',
-        ].includes(key.toLowerCase())
+        !['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'].includes(
+          key.toLowerCase(),
+        )
       ) {
         responseHeaders.set(key, value);
       }

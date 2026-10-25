@@ -11,12 +11,7 @@
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
           <label class="text-sm text-primary-theme whitespace-nowrap">{{ t('状态') }}:</label>
-          <Select
-            v-model="statusFilter"
-            :options="statusOptions"
-            :placeholder="t('全部')"
-            class="w-36"
-          />
+          <Select v-model="statusFilter" :options="statusOptions" :placeholder="t('全部')" class="w-36" />
         </div>
       </div>
     </Card>
@@ -33,19 +28,20 @@
 
     <!-- 分页 -->
     <div v-if="total > pageSize" class="mt-4 flex justify-center">
-      <Paginator
-        v-model:page="currentPage"
-        :total="total"
-        :pageSize="pageSize"
-        @update:page="loadOrders"
-      />
+      <Paginator v-model:page="currentPage" :total="total" :pageSize="pageSize" @update:page="loadOrders" />
     </div>
 
     <!-- 空状态 -->
     <div v-if="!loading && orders.length === 0" class="text-center py-12 text-primary-theme">
       <i class="pi pi-inbox text-4xl mb-4 block"></i>
       <p>{{ t('暂无订单记录') }}</p>
-      <Button :label="t('去购买套餐')" icon="pi pi-shopping-cart" variant="secondary" class="mt-4" @click="goToPricing" />
+      <Button
+        :label="t('去购买套餐')"
+        icon="pi pi-shopping-cart"
+        variant="secondary"
+        class="mt-4"
+        @click="goToPricing"
+      />
       <!-- 联系微信指引 -->
       <div
         v-if="contactInfo.wechatAccountId"
@@ -57,7 +53,9 @@
           <button
             class="font-mono font-medium text-info-800 dark:text-info-200 underline hover:no-underline mx-1"
             @click="copyContactId"
-          >{{ contactInfo.wechatAccountId }}</button>
+          >
+            {{ contactInfo.wechatAccountId }}
+          </button>
           {{ t('联系站长') }}
         </span>
       </div>
@@ -207,10 +205,14 @@ function goToPricing() {
 }
 
 /** 监听状态筛选变化，immediate: true 同时替代 onMounted 中的 loadOrders */
-watch(statusFilter, () => {
-  currentPage.value = 0;
-  loadOrders();
-}, { immediate: true });
+watch(
+  statusFilter,
+  () => {
+    currentPage.value = 0;
+    loadOrders();
+  },
+  { immediate: true },
+);
 
 onMounted(loadContactInfo);
 </script>

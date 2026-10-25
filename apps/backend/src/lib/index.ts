@@ -7,7 +7,20 @@
 export type { Effect } from 'effect';
 
 /** ZenStack v3 生成的完整模型类型（仅在必要时使用）。这些类型非常复杂，会导致 TypeScript 编译内存溢出 */
-export type { OauthProvider, StorageType, FileStatusEnum, LogLevel, TokenType, TaskType, TaskStatus, AiModelType, ContentVisibility, ContentType, PaymentProvider, OrderStatus } from '../../.zenstack/models';
+export type {
+  OauthProvider,
+  StorageType,
+  FileStatusEnum,
+  LogLevel,
+  TokenType,
+  TaskType,
+  TaskStatus,
+  AiModelType,
+  ContentVisibility,
+  ContentType,
+  PaymentProvider,
+  OrderStatus,
+} from '../../.zenstack/models';
 
 /** JSON 类型（用于前端 AsyncAPI 截断递归映射） */
 export type { JsonValue } from '@zenstackhq/orm';
@@ -25,12 +38,7 @@ export type { API } from '../api';
 export type { AppAPI } from '../api/appApi';
 
 /** Treehole API types - required for treehole feature */
-export type {
-  TreeholeAuthor,
-  TreeholePost,
-  TreeholePostsQuery,
-  TreeholePostsResult,
-} from '../api/appApi/treehole';
+export type { TreeholeAuthor, TreeholePost, TreeholePostsQuery, TreeholePostsResult } from '../api/appApi/treehole';
 
 /** Session authentication - required for API calls */
 export * as SessionAuthSign from './SessionAuthSign';

@@ -6,7 +6,7 @@
 /**
  * Drawer 显示位置
  */
-export type DrawerSide = "left" | "right" | "top" | "bottom";
+export type DrawerSide = 'left' | 'right' | 'top' | 'bottom';
 
 /**
  * Drawer 组件 Props
@@ -35,5 +35,5 @@ export interface UiDrawerInstance {
  */
 export interface UiDrawerEmits {
   /** 开关状态变化（v-model:open） */
-  (e: "update:open", value: boolean): void;
+  (e: 'update:open', value: boolean): void;
 }

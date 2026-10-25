@@ -10,27 +10,27 @@ export const fileWriteTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      path: { 
+      path: {
         type: 'string',
-        description: 'File path to write to'
+        description: 'File path to write to',
       },
-      content: { 
+      content: {
         type: 'string',
-        description: 'Content to write to the file'
+        description: 'Content to write to the file',
       },
-      encoding: { 
+      encoding: {
         type: 'string',
         enum: ['utf8', 'base64'],
         default: 'utf8',
-        description: 'File encoding'
+        description: 'File encoding',
       },
       createDir: {
         type: 'boolean',
         default: false,
-        description: 'Create directory if it does not exist'
-      }
+        description: 'Create directory if it does not exist',
+      },
     },
-    required: ['path', 'content']
+    required: ['path', 'content'],
   },
   outputSchema: {
     type: 'object',
@@ -38,25 +38,27 @@ export const fileWriteTool: ToolDefinition = {
       success: { type: 'boolean' },
       message: { type: 'string' },
       path: { type: 'string' },
-      size: { type: 'number' }
-    }
+      size: { type: 'number' },
+    },
   },
   timeout: 30000,
   validate: (input) => {
-    return typeof input.path === 'string' &&
-           typeof input.content === 'string' &&
-           input.path.length > 0 &&
-           !input.path.includes('..') && // Prevent path traversal
-           (input.encoding === undefined || ['utf8', 'base64'].includes(input.encoding)) &&
-           (input.createDir === undefined || typeof input.createDir === 'boolean');
+    return (
+      typeof input.path === 'string' &&
+      typeof input.content === 'string' &&
+      input.path.length > 0 &&
+      !input.path.includes('..') && // Prevent path traversal
+      (input.encoding === undefined || ['utf8', 'base64'].includes(input.encoding)) &&
+      (input.createDir === undefined || typeof input.createDir === 'boolean')
+    );
   },
   execute: async (input) => {
     try {
       // Security check - ensure path is within allowed directories
       const safePath = path.resolve(input.path);
       const allowedDirs = ['/tmp', './workspace', './data', './logs'];
-      
-      if (!allowedDirs.some(dir => safePath.startsWith(path.resolve(dir)))) {
+
+      if (!allowedDirs.some((dir) => safePath.startsWith(path.resolve(dir)))) {
         throw new Error('Access denied: path outside allowed directories');
       }
 
@@ -77,17 +79,17 @@ export const fileWriteTool: ToolDefinition = {
         success: true,
         message: 'File written successfully',
         path: safePath,
-        size: stats.size
+        size: stats.size,
       };
     } catch (error) {
       return {
         success: false,
         message: error instanceof Error ? error.message : String(error),
         path: input.path,
-        size: 0
+        size: 0,
       };
     }
-  }
+  },
 };
 
 export const fileReadTool: ToolDefinition = {
@@ -98,23 +100,23 @@ export const fileReadTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      path: { 
+      path: {
         type: 'string',
-        description: 'File path to read from'
+        description: 'File path to read from',
       },
-      encoding: { 
+      encoding: {
         type: 'string',
         enum: ['utf8', 'base64'],
         default: 'utf8',
-        description: 'File encoding'
+        description: 'File encoding',
       },
       maxLength: {
         type: 'number',
         default: 1024 * 1024, // 1MB
-        description: 'Maximum content length to read'
-      }
+        description: 'Maximum content length to read',
+      },
     },
-    required: ['path']
+    required: ['path'],
   },
   outputSchema: {
     type: 'object',
@@ -123,24 +125,26 @@ export const fileReadTool: ToolDefinition = {
       content: { type: 'string' },
       message: { type: 'string' },
       path: { type: 'string' },
-      size: { type: 'number' }
-    }
+      size: { type: 'number' },
+    },
   },
   timeout: 10000,
   validate: (input) => {
-    return typeof input.path === 'string' &&
-           input.path.length > 0 &&
-           !input.path.includes('..') &&
-           (input.encoding === undefined || ['utf8', 'base64'].includes(input.encoding)) &&
-           (input.maxLength === undefined || typeof input.maxLength === 'number' && input.maxLength > 0);
+    return (
+      typeof input.path === 'string' &&
+      input.path.length > 0 &&
+      !input.path.includes('..') &&
+      (input.encoding === undefined || ['utf8', 'base64'].includes(input.encoding)) &&
+      (input.maxLength === undefined || (typeof input.maxLength === 'number' && input.maxLength > 0))
+    );
   },
   execute: async (input) => {
     try {
       // Security check
       const safePath = path.resolve(input.path);
       const allowedDirs = ['/tmp', './workspace', './data', './logs'];
-      
-      if (!allowedDirs.some(dir => safePath.startsWith(path.resolve(dir)))) {
+
+      if (!allowedDirs.some((dir) => safePath.startsWith(path.resolve(dir)))) {
         throw new Error('Access denied: path outside allowed directories');
       }
 
@@ -154,9 +158,9 @@ export const fileReadTool: ToolDefinition = {
       // Read file
       const encoding = input.encoding || 'utf8';
       const maxLength = input.maxLength || 1024 * 1024;
-      
+
       let content = await fs.readFile(safePath, encoding as BufferEncoding);
-      
+
       // Truncate if too long
       if (content.length > maxLength) {
         content = content.substring(0, maxLength) + '\n... [TRUNCATED]';
@@ -169,7 +173,7 @@ export const fileReadTool: ToolDefinition = {
         content,
         message: 'File read successfully',
         path: safePath,
-        size: stats.size
+        size: stats.size,
       };
     } catch (error) {
       return {
@@ -177,10 +181,10 @@ export const fileReadTool: ToolDefinition = {
         content: '',
         message: error instanceof Error ? error.message : String(error),
         path: input.path,
-        size: 0
+        size: 0,
       };
     }
-  }
+  },
 };
 
 export const fileDeleteTool: ToolDefinition = {
@@ -191,34 +195,32 @@ export const fileDeleteTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      path: { 
+      path: {
         type: 'string',
-        description: 'File path to delete'
-      }
+        description: 'File path to delete',
+      },
     },
-    required: ['path']
+    required: ['path'],
   },
   outputSchema: {
     type: 'object',
     properties: {
       success: { type: 'boolean' },
       message: { type: 'string' },
-      path: { type: 'string' }
-    }
+      path: { type: 'string' },
+    },
   },
   timeout: 5000,
   validate: (input) => {
-    return typeof input.path === 'string' &&
-           input.path.length > 0 &&
-           !input.path.includes('..');
+    return typeof input.path === 'string' && input.path.length > 0 && !input.path.includes('..');
   },
   execute: async (input) => {
     try {
       // Security check
       const safePath = path.resolve(input.path);
       const allowedDirs = ['/tmp', './workspace', './data', './logs'];
-      
-      if (!allowedDirs.some(dir => safePath.startsWith(path.resolve(dir)))) {
+
+      if (!allowedDirs.some((dir) => safePath.startsWith(path.resolve(dir)))) {
         throw new Error('Access denied: path outside allowed directories');
       }
 
@@ -235,16 +237,16 @@ export const fileDeleteTool: ToolDefinition = {
       return {
         success: true,
         message: 'File deleted successfully',
-        path: safePath
+        path: safePath,
       };
     } catch (error) {
       return {
         success: false,
         message: error instanceof Error ? error.message : String(error),
-        path: input.path
+        path: input.path,
       };
     }
-  }
+  },
 };
 
 export const fileListTool: ToolDefinition = {
@@ -255,21 +257,21 @@ export const fileListTool: ToolDefinition = {
   inputSchema: {
     type: 'object',
     properties: {
-      path: { 
+      path: {
         type: 'string',
         default: './workspace',
-        description: 'Directory path to list'
+        description: 'Directory path to list',
       },
       pattern: {
         type: 'string',
-        description: 'Optional file pattern to filter (e.g., "*.txt")'
+        description: 'Optional file pattern to filter (e.g., "*.txt")',
       },
       recursive: {
         type: 'boolean',
         default: false,
-        description: 'List files recursively'
-      }
-    }
+        description: 'List files recursively',
+      },
+    },
   },
   outputSchema: {
     type: 'object',
@@ -284,28 +286,30 @@ export const fileListTool: ToolDefinition = {
             path: { type: 'string' },
             size: { type: 'number' },
             isDirectory: { type: 'boolean' },
-            modified: { type: 'string' }
-          }
-        }
+            modified: { type: 'string' },
+          },
+        },
       },
-      message: { type: 'string' }
-    }
+      message: { type: 'string' },
+    },
   },
   timeout: 10000,
   validate: (input) => {
-    return typeof input.path === 'string' &&
-           input.path.length > 0 &&
-           !input.path.includes('..') &&
-           (input.pattern === undefined || typeof input.pattern === 'string') &&
-           (input.recursive === undefined || typeof input.recursive === 'boolean');
+    return (
+      typeof input.path === 'string' &&
+      input.path.length > 0 &&
+      !input.path.includes('..') &&
+      (input.pattern === undefined || typeof input.pattern === 'string') &&
+      (input.recursive === undefined || typeof input.recursive === 'boolean')
+    );
   },
   execute: async (input) => {
     try {
       // Security check
       const safePath = path.resolve(input.path);
       const allowedDirs = ['/tmp', './workspace', './data', './logs'];
-      
-      if (!allowedDirs.some(dir => safePath.startsWith(path.resolve(dir)))) {
+
+      if (!allowedDirs.some((dir) => safePath.startsWith(path.resolve(dir)))) {
         throw new Error('Access denied: path outside allowed directories');
       }
 
@@ -325,16 +329,16 @@ export const fileListTool: ToolDefinition = {
       return {
         success: true,
         files,
-        message: `Found ${files.length} files`
+        message: `Found ${files.length} files`,
       };
     } catch (error) {
       return {
         success: false,
         files: [],
-        message: error instanceof Error ? error.message : String(error)
+        message: error instanceof Error ? error.message : String(error),
       };
     }
-  }
+  },
 };
 
 async function listFiles(dirPath: string, pattern?: string, recursive = false): Promise<any[]> {
@@ -350,7 +354,7 @@ async function listFiles(dirPath: string, pattern?: string, recursive = false): 
       path: fullPath,
       size: stats.size,
       isDirectory: entry.isDirectory(),
-      modified: stats.mtime.toISOString()
+      modified: stats.mtime.toISOString(),
     };
 
     // Apply pattern filter

@@ -75,13 +75,15 @@ function handleInput(event: Event) {
       :disabled="disabled"
       :value="modelValue"
       @input="handleInput"
-      :class="inputClasses" />
+      :class="inputClasses"
+    />
     <button
       type="button"
       @click="toggleVisibility"
       :disabled="disabled"
       :aria-label="visible ? t('隐藏密码') : t('显示密码')"
-      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-primary-subtle hover:text-primary-700 dark:hover:text-primary-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-primary-subtle hover:text-primary-700 dark:hover:text-primary-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+    >
       <i :class="visible ? 'pi pi-eye-slash' : 'pi pi-eye'" class="text-lg"></i>
     </button>
   </div>

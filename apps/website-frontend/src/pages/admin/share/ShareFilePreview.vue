@@ -59,7 +59,7 @@
         :title="file.filename"
         preload="metadata"
       >
-        {{ t("您的浏览器不支持视频播放。") }}
+        {{ t('您的浏览器不支持视频播放。') }}
       </video>
       <!-- 其他文件 -->
       <div v-else class="file-preview">
@@ -70,7 +70,7 @@
           <div class="font-medium text-sm mb-2">{{ file.filename }}</div>
           <div class="text-xs text-primary-theme mb-4">{{ formatFileSize(file.size) }}</div>
           <a :href="decryptedUrl" :download="file.filename" class="download-link">
-            <i class="pi pi-download mr-1"></i>{{ t("下载") }}
+            <i class="pi pi-download mr-1"></i>{{ t('下载') }}
           </a>
         </div>
       </div>
@@ -96,7 +96,7 @@
       :title="file.filename"
       preload="metadata"
     >
-      {{ t("您的浏览器不支持视频播放。") }}
+      {{ t('您的浏览器不支持视频播放。') }}
     </video>
 
     <!-- 其他文件类型 -->
@@ -113,22 +113,22 @@
         </div>
         <a :href="url" :download="file.filename" class="download-link">
           <i class="pi pi-download mr-1"></i>
-          {{ t("下载") }}
+          {{ t('下载') }}
         </a>
       </div>
     </div>
   </File2Url>
 </template>
 <script setup lang="ts">
-import File2Url from "@/pages/admin/components/File2Url.vue";
-import { type ShareFileJSON, isTextFile } from "@/pages/admin/share/ShareDef";
-import ShareCodeMirror from "@/pages/share/ShareCodeMirror.vue";
-import { useAPI } from "@/api";
-import { authInfo_isLogin } from "@/storage";
-import { useI18n } from "@/composables/useI18n";
-import { formatFileSize } from "@/utils/format";
-import { ref, watch } from "vue";
-import type { ShareCrypto } from "@/utils/shareCrypto";
+import File2Url from '@/pages/admin/components/File2Url.vue';
+import { type ShareFileJSON, isTextFile } from '@/pages/admin/share/ShareDef';
+import ShareCodeMirror from '@/pages/share/ShareCodeMirror.vue';
+import { useAPI } from '@/api';
+import { authInfo_isLogin } from '@/storage';
+import { useI18n } from '@/composables/useI18n';
+import { formatFileSize } from '@/utils/format';
+import { ref, watch } from 'vue';
+import type { ShareCrypto } from '@/utils/shareCrypto';
 
 const { AppAPIGetUrl, APIGetUrl } = useAPI();
 const { t } = useI18n();
@@ -142,7 +142,7 @@ interface ShareFilePreviewProps {
 const { file, cryptoInstance } = defineProps<ShareFilePreviewProps>();
 
 /** 解密后的二进制文件 Blob URL（加密分享用） */
-const decryptedUrl = ref("");
+const decryptedUrl = ref('');
 const binaryLoading = ref(false);
 
 /** 文本文件内容 */
@@ -150,9 +150,7 @@ const textContent = ref<string | undefined>(undefined);
 
 /** 获取文件 URL */
 async function getFileUrl(fileId: number) {
-  return authInfo_isLogin.value
-    ? await APIGetUrl.fileApi.file(fileId)
-    : await AppAPIGetUrl.fileApi.file(fileId);
+  return authInfo_isLogin.value ? await APIGetUrl.fileApi.file(fileId) : await AppAPIGetUrl.fileApi.file(fileId);
 }
 
 watch(
@@ -160,7 +158,7 @@ watch(
   async ([fileId, crypto]) => {
     if (fileId === undefined) {
       textContent.value = undefined;
-      decryptedUrl.value = "";
+      decryptedUrl.value = '';
       return;
     }
 
@@ -177,7 +175,7 @@ watch(
           textContent.value = await response.text();
         }
       } catch {
-        textContent.value = "";
+        textContent.value = '';
       }
     } else {
       /** 二进制文件：如果有加密实例，fetch 并解密为 Blob URL */
@@ -191,12 +189,12 @@ watch(
           const blob = new Blob([decryptedBuffer], { type: file.mimetype });
           decryptedUrl.value = URL.createObjectURL(blob);
         } catch {
-          decryptedUrl.value = "";
+          decryptedUrl.value = '';
         } finally {
           binaryLoading.value = false;
         }
       } else {
-        decryptedUrl.value = "";
+        decryptedUrl.value = '';
       }
     }
   },

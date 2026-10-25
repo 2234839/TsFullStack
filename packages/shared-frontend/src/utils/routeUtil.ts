@@ -69,12 +69,7 @@ export function buildNestedTree(modules: Record<string, RouteNode>): RouteTree {
   return root;
 }
 
-function insertIntoTree(
-  tree: RouteTree,
-  parents: string[],
-  selfKey: string,
-  node: RouteNode,
-): void {
+function insertIntoTree(tree: RouteTree, parents: string[], selfKey: string, node: RouteNode): void {
   let current = tree;
 
   for (const key of parents) {
@@ -96,12 +91,12 @@ function insertIntoTree(
 
   const existingNode = current[selfKey];
   const mergedChild: RouteTree = {
-    ...(existingNode?.child || {}),
-    ...(node.child || {}),
+    ...existingNode?.child,
+    ...node.child,
   };
 
   const mergedNode: RouteNode = {
-    ...(existingNode || {}),
+    ...existingNode,
     ...node,
     child: mergedChild,
   };
@@ -130,10 +125,7 @@ export function transformRoutes(tree?: RouteTree): RouteNode[] {
   });
 }
 
-export function findRouteNode(
-  routes: RouteNode[],
-  predicate: (node: RouteNode) => boolean,
-): RouteNode | undefined {
+export function findRouteNode(routes: RouteNode[], predicate: (node: RouteNode) => boolean): RouteNode | undefined {
   for (const route of routes) {
     if (predicate(route)) return route;
     if (route.children) {
@@ -147,8 +139,7 @@ export function findRouteNode(
 /** 因为vue router 的逻辑比较奇葩，如果父路由命名的话，它就不会自动的跳到子路由他必须要子路由没有名称才行。 */
 export function getTargetRouter(obj: RouteNode): RouteNode {
   if (obj.child) {
-    const targetRouter =
-      Object.values(obj.child ?? {}).find((el: RouteNode) => el.path === defaultRoute) ?? obj;
+    const targetRouter = Object.values(obj.child ?? {}).find((el: RouteNode) => el.path === defaultRoute) ?? obj;
     return getTargetRouter(targetRouter);
   } else {
     return obj;
@@ -161,9 +152,7 @@ export type ExpandRouteMap<T extends Record<string, RouteTree>> = {
 }[keyof T];
 
 /** 动态展开所有模块路由，等同于手动写 ...autoLoadRouteMap.template, ...autoLoadRouteMap.template2 的效果 */
-export function expandRouteMaps<T extends Record<string, RouteTree>>(
-  routeMaps: T
-): ExpandRouteMap<T> {
+export function expandRouteMaps<T extends Record<string, RouteTree>>(routeMaps: T): ExpandRouteMap<T> {
   const result: RouteTree = {};
 
   // 遍历所有模块路由映射并展开
@@ -175,6 +164,4 @@ export function expandRouteMaps<T extends Record<string, RouteTree>>(
 }
 
 /** 获取展开后的路由类型 */
-export type ExpandedRouteMap<T extends Record<string, RouteTree>> = ReturnType<
-  typeof expandRouteMaps<T>
->;
+export type ExpandedRouteMap<T extends Record<string, RouteTree>> = ReturnType<typeof expandRouteMaps<T>>;

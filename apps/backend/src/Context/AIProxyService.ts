@@ -51,11 +51,7 @@ const LOG_PREFIX = '[AIProxy]';
 /** AI 代理服务工具类 */
 class AIProxyServiceUtils {
   /** 检查频率限制 */
-  static checkRateLimit = (
-    clientIp: string,
-    userId: string | null,
-    aiModelId: number,
-  ) =>
+  static checkRateLimit = (clientIp: string, userId: string | null, aiModelId: number) =>
     Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
 
@@ -73,8 +69,11 @@ class AIProxyServiceUtils {
 
       /** 用单次 SQL 条件聚合替代 3 次 COUNT 查询（3 次 DB 往返 → 1 次） */
       /** 所有动态值必须通过 Prisma ${} 占位符参数化，禁止字符串拼接防 SQL 注入 */
-      const rawCounts = yield* dbTryOrDefault(LOG_PREFIX, '查询频率限制计数', async () => {
-        const rows = await dbClient.$queryRaw<{ rpm: number; rph: number; rpd: number }[]>`
+      const rawCounts = yield* dbTryOrDefault(
+        LOG_PREFIX,
+        '查询频率限制计数',
+        async () => {
+          const rows = await dbClient.$queryRaw<{ rpm: number; rph: number; rpd: number }[]>`
           SELECT
             SUM(CASE WHEN "timestamp" >= ${oneMinuteAgo.toISOString()} THEN 1 ELSE 0 END) AS rpm,
             SUM(CASE WHEN "timestamp" >= ${oneHourAgo.toISOString()} THEN 1 ELSE 0 END) AS rph,
@@ -82,19 +81,19 @@ class AIProxyServiceUtils {
           FROM "AiCallLog"
           WHERE ${userId ? `"userId" = ${userId} AND "aiModelId" = ${aiModelId}` : `"clientIp" = ${clientIp}`}
         `;
-        return rows[0] ?? { rpm: 0, rph: 0, rpd: 0 };
-      },
+          return rows[0] ?? { rpm: 0, rph: 0, rpd: 0 };
+        },
         { rpm: 0, rph: 0, rpd: 0 },
       );
       const counts: [number, number, number] = [rawCounts.rpm ?? 0, rawCounts.rph ?? 0, rawCounts.rpd ?? 0];
 
       const limits = !userId
-        ? [ANONYMOUS_RPM_LIMIT, ANONYMOUS_RPH_LIMIT, ANONYMOUS_RPD_LIMIT] as const
-        : [aiModel.rpmLimit, aiModel.rphLimit, aiModel.rpdLimit] as const;
+        ? ([ANONYMOUS_RPM_LIMIT, ANONYMOUS_RPH_LIMIT, ANONYMOUS_RPD_LIMIT] as const)
+        : ([aiModel.rpmLimit, aiModel.rphLimit, aiModel.rpdLimit] as const);
 
       const labels = !userId
-        ? ['未登录用户每分钟调用次数', '未登录用户每小时调用次数', '未登录用户每日调用次数'] as const
-        : ['用户每分钟调用次数', '用户每小时调用次数', '用户每日调用次数'] as const;
+        ? (['未登录用户每分钟调用次数', '未登录用户每小时调用次数', '未登录用户每日调用次数'] as const)
+        : (['用户每分钟调用次数', '用户每小时调用次数', '用户每日调用次数'] as const);
 
       const exceeded = checkLimits(counts, limits, labels);
       if (exceeded) return exceeded;
@@ -144,7 +143,7 @@ class AIProxyServiceUtils {
           orderBy: { weight: 'desc' },
         }),
       );
-      cachedModels = models.map(model => ({
+      cachedModels = models.map((model) => ({
         id: model.id,
         name: model.name,
         model: model.model,
@@ -164,9 +163,7 @@ class AIProxyServiceUtils {
   };
 
   /** 选择AI模型（负载均衡，纯同步函数） */
-  static selectModel = (
-    models: AIModelConfig[],
-  ): AIModelConfig | null => {
+  static selectModel = (models: AIModelConfig[]): AIModelConfig | null => {
     if (models.length === 0) {
       return null;
     }
@@ -189,10 +186,7 @@ class AIProxyServiceUtils {
   };
 
   /** 调用OpenAI API */
-  static callOpenAI = (
-    request: OpenAIRequest,
-    aiModel: AIModelConfig,
-  ) =>
+  static callOpenAI = (request: OpenAIRequest, aiModel: AIModelConfig) =>
     Effect.tryPromise({
       try: async () => {
         const url = `${aiModel.baseUrl}/chat/completions`;
@@ -217,14 +211,20 @@ class AIProxyServiceUtils {
           }
         }
 
-        const response = await fetch(url, withFetchTimeout({
-          method: 'POST',
-          headers: {
-            ...JSON_CONTENT_HEADERS,
-            Authorization: `Bearer ${aiModel.apiKey}`,
-          },
-          body: JSON.stringify(requestBody),
-        }, FETCH_TIMEOUTS.openaiProxy));
+        const response = await fetch(
+          url,
+          withFetchTimeout(
+            {
+              method: 'POST',
+              headers: {
+                ...JSON_CONTENT_HEADERS,
+                Authorization: `Bearer ${aiModel.apiKey}`,
+              },
+              body: JSON.stringify(requestBody),
+            },
+            FETCH_TIMEOUTS.openaiProxy,
+          ),
+        );
 
         if (!response.ok) {
           const errorText = await response.text();
@@ -241,10 +241,7 @@ class AIProxyServiceUtils {
     });
 
   /** 代理OpenAI请求 */
-  static proxyOpenAIRequest = (
-    request: OpenAIRequest,
-    clientIp: string,
-  ) =>
+  static proxyOpenAIRequest = (request: OpenAIRequest, clientIp: string) =>
     Effect.gen(function* () {
       const auth = yield* AuthContext;
       const currentUserId = auth.user?.id ?? null;
@@ -256,21 +253,16 @@ class AIProxyServiceUtils {
       }
 
       // 选择模型
-      const selectedModel = yield* requireOrFail(
-        AIProxyServiceUtils.selectModel(availableModels),
-        '模型选择失败',
-      );
+      const selectedModel = yield* requireOrFail(AIProxyServiceUtils.selectModel(availableModels), '模型选择失败');
 
       // 检查频率限制
-      const rateLimitCheck = yield* AIProxyServiceUtils.checkRateLimit(
-        clientIp,
-        currentUserId,
-        selectedModel.id,
-      );
+      const rateLimitCheck = yield* AIProxyServiceUtils.checkRateLimit(clientIp, currentUserId, selectedModel.id);
       if (!rateLimitCheck.allowed) {
         yield* AIProxyServiceUtils.recordApiCall({
-          clientIp, userId: currentUserId,
-          aiModelId: selectedModel.id, modelName: selectedModel.model,
+          clientIp,
+          userId: currentUserId,
+          aiModelId: selectedModel.id,
+          modelName: selectedModel.model,
           success: false,
         });
         return yield* fail(rateLimitCheck.reason ?? '请求频率超限');
@@ -343,10 +335,7 @@ export class AIProxyService extends Context.Tag('AIProxyService')<
     selectModel: (models: AIModelConfig[]) => AIModelConfig | null;
 
     /** 调用OpenAI API */
-    callOpenAI: (
-      request: OpenAIRequest,
-      aiModel: AIModelConfig,
-    ) => Effect.Effect<OpenAIResponse, Error, never>;
+    callOpenAI: (request: OpenAIRequest, aiModel: AIModelConfig) => Effect.Effect<OpenAIResponse, Error, never>;
 
     /** 代理OpenAI请求 */
     proxyOpenAIRequest: (

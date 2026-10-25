@@ -28,7 +28,7 @@ export class ToolRegistry {
       timeout: 30000,
       autoLoad: false,
       enablePermissions: true,
-      ...config
+      ...config,
     };
     this.logger = logger;
   }
@@ -72,7 +72,7 @@ export class ToolRegistry {
 
   async execute(toolName: string, input: any, context?: string): Promise<ToolExecutionResult> {
     const startTime = Date.now();
-    
+
     try {
       // Get tool
       const tool = this.tools.get(toolName);
@@ -102,18 +102,21 @@ export class ToolRegistry {
       stats.count++;
       stats.totalTime += duration;
 
-      this.logger.debug(`Tool ${toolName} executed successfully`, { 
-        duration, 
-        output: typeof result === 'object' ? 'object' : result 
-      }, context || 'ToolExecution');
+      this.logger.debug(
+        `Tool ${toolName} executed successfully`,
+        {
+          duration,
+          output: typeof result === 'object' ? 'object' : result,
+        },
+        context || 'ToolExecution',
+      );
 
       return {
         success: true,
         output: result,
         duration,
-        toolName
+        toolName,
       };
-
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -124,17 +127,21 @@ export class ToolRegistry {
         stats.errors++;
       }
 
-      this.logger.error(`Tool ${toolName} execution failed`, { 
-        error: errorMessage, 
-        input, 
-        duration 
-      }, context || 'ToolExecution');
+      this.logger.error(
+        `Tool ${toolName} execution failed`,
+        {
+          error: errorMessage,
+          input,
+          duration,
+        },
+        context || 'ToolExecution',
+      );
 
       return {
         success: false,
         error: errorMessage,
         duration,
-        toolName
+        toolName,
       };
     }
   }
@@ -142,9 +149,9 @@ export class ToolRegistry {
   private async safeExecute(tool: ToolDefinition, input: any, timeout: number): Promise<any> {
     return Promise.race([
       tool.execute(input),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error(`Tool execution timeout after ${timeout}ms`)), timeout)
-      )
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Tool execution timeout after ${timeout}ms`)), timeout),
+      ),
     ]);
   }
 
@@ -162,9 +169,12 @@ export class ToolRegistry {
 
   private validateToolDefinition(tool: ToolDefinition): boolean {
     return (
-      typeof tool.name === 'string' && tool.name.length > 0 &&
-      typeof tool.description === 'string' && tool.description.length > 0 &&
-      typeof tool.version === 'string' && tool.version.length > 0 &&
+      typeof tool.name === 'string' &&
+      tool.name.length > 0 &&
+      typeof tool.description === 'string' &&
+      tool.description.length > 0 &&
+      typeof tool.version === 'string' &&
+      tool.version.length > 0 &&
       typeof tool.execute === 'function' &&
       Array.isArray(tool.permissions) &&
       typeof tool.inputSchema === 'object'
@@ -196,7 +206,7 @@ export class ToolRegistry {
     try {
       const fs = await import('fs');
       const path = await import('path');
-      
+
       // Check if directory exists
       if (!fs.existsSync(toolDir)) {
         this.logger.warn(`Tool directory ${toolDir} does not exist`, null, 'ToolRegistry');
@@ -211,10 +221,10 @@ export class ToolRegistry {
           try {
             const toolPath = path.join(toolDir, file);
             const toolModule = require(toolPath);
-            
+
             // Handle different export formats
             let tool = toolModule.default || toolModule.tool || toolModule;
-            
+
             if (Array.isArray(tool)) {
               // Multiple tools in one file
               for (const t of tool) {
@@ -227,9 +237,13 @@ export class ToolRegistry {
               loadedCount++;
             }
           } catch (error) {
-            this.logger.error(`Failed to load tool from ${file}`, { 
-              error: error instanceof Error ? error.message : String(error) 
-            }, 'ToolRegistry');
+            this.logger.error(
+              `Failed to load tool from ${file}`,
+              {
+                error: error instanceof Error ? error.message : String(error),
+              },
+              'ToolRegistry',
+            );
           }
         }
       }
@@ -237,10 +251,14 @@ export class ToolRegistry {
       this.logger.info(`Loaded ${loadedCount} tools from directory`, { directory: toolDir }, 'ToolRegistry');
       return loadedCount;
     } catch (error) {
-      this.logger.error(`Failed to load tools from directory`, { 
-        directory: toolDir, 
-        error: error instanceof Error ? error.message : String(error) 
-      }, 'ToolRegistry');
+      this.logger.error(
+        `Failed to load tools from directory`,
+        {
+          directory: toolDir,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'ToolRegistry',
+      );
       return 0;
     }
   }
@@ -254,7 +272,7 @@ export class ToolRegistry {
         toolName,
         ...stats,
         averageTime: stats.count > 0 ? stats.totalTime / stats.count : 0,
-        successRate: stats.count > 0 ? ((stats.count - stats.errors) / stats.count) * 100 : 0
+        successRate: stats.count > 0 ? ((stats.count - stats.errors) / stats.count) * 100 : 0,
       };
     }
 
@@ -265,14 +283,17 @@ export class ToolRegistry {
         toolName: name,
         ...stats,
         averageTime: stats.count > 0 ? stats.totalTime / stats.count : 0,
-        successRate: stats.count > 0 ? ((stats.count - stats.errors) / stats.count) * 100 : 0
+        successRate: stats.count > 0 ? ((stats.count - stats.errors) / stats.count) * 100 : 0,
       });
     }
 
     return allStats;
   }
 
-  async validateAllTools(): Promise<{ valid: ToolDefinition[]; invalid: { tool: ToolDefinition; errors: string[] }[] }> {
+  async validateAllTools(): Promise<{
+    valid: ToolDefinition[];
+    invalid: { tool: ToolDefinition; errors: string[] }[];
+  }> {
     const valid: ToolDefinition[] = [];
     const invalid: { tool: ToolDefinition; errors: string[] }[] = [];
 
@@ -311,10 +332,14 @@ export class ToolRegistry {
       }
     }
 
-    this.logger.info(`Tool validation completed`, { 
-      valid: valid.length, 
-      invalid: invalid.length 
-    }, 'ToolRegistry');
+    this.logger.info(
+      `Tool validation completed`,
+      {
+        valid: valid.length,
+        invalid: invalid.length,
+      },
+      'ToolRegistry',
+    );
 
     return { valid, invalid };
   }

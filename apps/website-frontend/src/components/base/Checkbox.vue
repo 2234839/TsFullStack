@@ -8,7 +8,7 @@
  * <Checkbox v-model="checked">复选框文字</Checkbox>
  * ```
  */
-import { CheckboxRoot, CheckboxIndicator } from "reka-ui";
+import { CheckboxRoot, CheckboxIndicator } from 'reka-ui';
 
 defineOptions({ inheritAttrs: false });
 
@@ -27,11 +27,11 @@ withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  "update:modelValue": [value: boolean];
+  'update:modelValue': [value: boolean];
 }>();
 
 /** reka CheckboxRoot 的值域含 "indeterminate"（三态），本组件只对外暴露 boolean */
-const handleRootUpdate = (v: boolean | "indeterminate") => emit("update:modelValue", v === true);
+const handleRootUpdate = (v: boolean | 'indeterminate') => emit('update:modelValue', v === true);
 </script>
 
 <template>

@@ -10,10 +10,10 @@
 
 <script setup lang="ts">
 interface Props {
-  tips: string
-  title: string
-  icon: string
+  tips: string;
+  title: string;
+  icon: string;
 }
 
-defineProps<Props>()
+defineProps<Props>();
 </script>

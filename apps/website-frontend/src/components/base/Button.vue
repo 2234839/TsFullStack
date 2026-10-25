@@ -26,13 +26,17 @@ interface Props {
 
 /** 按钮变体样式映射（静态常量，不依赖 props） */
 const VARIANT_CLASSES: Record<string, string> = {
-  primary: 'bg-primary-900 hover:bg-primary-950 text-white focus:ring-primary-700 dark:bg-primary-50 dark:hover:bg-primary-100 dark:text-primary-950 dark:focus:ring-primary-300',
-  secondary: 'bg-secondary-700 hover:bg-secondary-800 text-white focus:ring-secondary-500 dark:bg-secondary-600 dark:hover:bg-secondary-700',
+  primary:
+    'bg-primary-900 hover:bg-primary-950 text-white focus:ring-primary-700 dark:bg-primary-50 dark:hover:bg-primary-100 dark:text-primary-950 dark:focus:ring-primary-300',
+  secondary:
+    'bg-secondary-700 hover:bg-secondary-800 text-white focus:ring-secondary-500 dark:bg-secondary-600 dark:hover:bg-secondary-700',
   text: 'text-primary-700 hover:bg-primary-50 focus:ring-primary-500 dark:text-primary-300 dark:hover:bg-primary-800',
-  danger: 'bg-danger-600 hover:bg-danger-700 text-white focus:ring-danger-500 dark:bg-danger-500 dark:hover:bg-danger-600',
+  danger:
+    'bg-danger-600 hover:bg-danger-700 text-white focus:ring-danger-500 dark:bg-danger-500 dark:hover:bg-danger-600',
   ghost: 'text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-200',
   icon: 'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
-  'text-button': 'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
+  'text-button':
+    'text-primary-600 hover:bg-primary-100 active:bg-primary-200 focus:ring-primary-500 dark:text-primary-400 dark:hover:bg-primary-800 dark:active:bg-primary-700',
 };
 
 /** text-button 变体的尺寸映射 */
@@ -50,7 +54,16 @@ const DEFAULT_SIZE: Record<string, string> = {
   lg: 'px-6 py-3 text-lg',
 };
 
-const { variant = 'primary', size = 'md', disabled = false, type = 'button', loading = false, rounded = false, label, icon } = defineProps<Props>();
+const {
+  variant = 'primary',
+  size = 'md',
+  disabled = false,
+  type = 'button',
+  loading = false,
+  rounded = false,
+  label,
+  icon,
+} = defineProps<Props>();
 defineOptions({ inheritAttrs: false });
 
 /** 按钮样式类 */
@@ -65,24 +78,23 @@ const buttonClasses = computed(() => {
   const getSizeClass = (): string => {
     if (variant === 'ghost') return size === 'lg' ? 'text-lg' : size === 'md' ? 'text-base' : 'text-sm';
     if (variant === 'text-button') return TEXT_BUTTON_SIZE[size] ?? 'text-sm';
-    if (variant === 'icon') return hasLabel
-      ? (DEFAULT_SIZE[size] ?? 'px-3 py-1.5 text-sm')
-      : { sm: 'p-1.5 text-sm', small: 'p-1.5 text-sm', md: 'p-2 text-base', lg: 'p-3 text-lg' }[size] ?? 'p-2 text-base';
+    if (variant === 'icon')
+      return hasLabel
+        ? (DEFAULT_SIZE[size] ?? 'px-3 py-1.5 text-sm')
+        : ({ sm: 'p-1.5 text-sm', small: 'p-1.5 text-sm', md: 'p-2 text-base', lg: 'p-3 text-lg' }[size] ??
+            'p-2 text-base');
     return DEFAULT_SIZE[size] ?? 'px-3 py-1.5 text-sm';
   };
 
-  const iconOnlyClass = icon && !label && variant !== 'ghost' && variant !== 'icon' && variant !== 'text-button' ? 'p-2' : '';
+  const iconOnlyClass =
+    icon && !label && variant !== 'ghost' && variant !== 'icon' && variant !== 'text-button' ? 'p-2' : '';
 
   return `${base} ${getSizeClass()} ${VARIANT_CLASSES[variant]} ${iconOnlyClass}`;
 });
 </script>
 
 <template>
-  <button
-    v-bind="$attrs"
-    :type="type"
-    :disabled="disabled || loading"
-    :class="buttonClasses">
+  <button v-bind="$attrs" :type="type" :disabled="disabled || loading" :class="buttonClasses">
     <slot>
       <i v-if="loading" :class="['pi pi-spin pi-spinner', { 'mr-2': label }]"></i>
       <i v-else-if="icon" :class="[icon, { 'mr-2': label }]"></i>

@@ -3,13 +3,17 @@
     <div class="space-y-4">
       <!-- 标题输入 - 回复时默认折叠 -->
       <div v-if="isReply">
-        <Button variant="ghost" size="sm" @click="showTitle = !showTitle"
-          class="flex items-center gap-2">
+        <Button variant="ghost" size="sm" @click="showTitle = !showTitle" class="flex items-center gap-2">
           <i :class="showTitle ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
           <span>{{ showTitle ? t('收起标题') : t('添加标题（可选）') }}</span>
         </Button>
         <div v-if="showTitle" class="mt-2">
-          <Input v-model="formData.title" :placeholder="t('请输入标题（1-256个字符）')" :maxlength="256" class="w-full" />
+          <Input
+            v-model="formData.title"
+            :placeholder="t('请输入标题（1-256个字符）')"
+            :maxlength="256"
+            class="w-full"
+          />
         </div>
       </div>
 
@@ -26,7 +30,12 @@
         <label class="block text-sm font-medium text-primary-label mb-1">
           {{ t('内容') }}
         </label>
-        <Textarea v-model="formData.content" :placeholder="isReply ? t('说点什么吧...') : t('说点什么吧...')" :rows="4" class="w-full" />
+        <Textarea
+          v-model="formData.content"
+          :placeholder="isReply ? t('说点什么吧...') : t('说点什么吧...')"
+          :rows="4"
+          class="w-full"
+        />
       </div>
 
       <!-- 可见性选择 -->
@@ -35,11 +44,14 @@
           {{ t('可见性') }}
         </label>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          <Button v-for="option in visibilityOptions" :key="option.value"
+          <Button
+            v-for="option in visibilityOptions"
+            :key="option.value"
             @click="formData.visibility = option.value"
             size="sm"
             :variant="formData.visibility === option.value ? 'primary' : 'secondary'"
-            class="justify-center!">
+            class="justify-center!"
+          >
             <i :class="option.icon"></i>
             <span class="ml-1">{{ option.label }}</span>
           </Button>
@@ -52,15 +64,19 @@
       <!-- 操作按钮 -->
       <div class="flex justify-end gap-2">
         <Button v-if="showCancel" :label="t('取消')" variant="secondary" @click="emit('cancel')" />
-        <Button :label="t('发布')" :icon="isSubmitting ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
-          :disabled="!isValid || isSubmitting" @click="handleSubmit" />
+        <Button
+          :label="t('发布')"
+          :icon="isSubmitting ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
+          :disabled="!isValid || isSubmitting"
+          @click="handleSubmit"
+        />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed , shallowRef } from 'vue';
+import { ref, computed, shallowRef } from 'vue';
 import { useAPI } from '@/api';
 import { useToast } from '@/composables/useToast';
 import type { ContentVisibility } from '@tsfullstack/backend';
@@ -76,7 +92,7 @@ interface Props {
   showCancel?: boolean;
 }
 
-const { parentId = null, showCancel = false } = defineProps<Props>()
+const { parentId = null, showCancel = false } = defineProps<Props>();
 
 const emit = defineEmits<{
   submit: [];
@@ -142,7 +158,7 @@ const isValid = computed(() => {
   const hasTitle = formData.value.title.trim().length > 0;
 
   // 回复时只需要内容，发主题帖时需要标题+内容
-  return isReply.value ? hasContent : (hasTitle && hasContent);
+  return isReply.value ? hasContent : hasTitle && hasContent;
 });
 
 /**

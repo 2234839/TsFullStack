@@ -1,25 +1,25 @@
 /**
  * 像素对比 + manifest 管理
  */
-import { createHash } from "crypto";
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
-import { join, dirname } from "path";
-import { PNG } from "pngjs";
-import pixelmatch from "pixelmatch";
-import type { Manifest, ManifestEntry, ScenarioResult, TestEnv } from "./types";
-import { diffDomJson } from "./dom-serializer";
+import { createHash } from 'crypto';
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { PNG } from 'pngjs';
+import pixelmatch from 'pixelmatch';
+import type { Manifest, ManifestEntry, ScenarioResult, TestEnv } from './types';
+import { diffDomJson } from './dom-serializer';
 
 /**
  * 读取 manifest.json，不存在则返回空结构
  * manifest 按环境分开存放（像素基准的审批状态随环境不同）
  */
 export function loadManifest(baselineDir: string, env: TestEnv): Manifest {
-  const manifestPath = join(baselineDir, env, "manifest.json");
+  const manifestPath = join(baselineDir, env, 'manifest.json');
   if (!existsSync(manifestPath)) {
     return { version: 1, scenarios: {} };
   }
   try {
-    return JSON.parse(readFileSync(manifestPath, "utf-8"));
+    return JSON.parse(readFileSync(manifestPath, 'utf-8'));
   } catch {
     return { version: 1, scenarios: {} };
   }
@@ -29,7 +29,7 @@ export function loadManifest(baselineDir: string, env: TestEnv): Manifest {
  * 保存 manifest.json（按环境）
  */
 export function saveManifest(baselineDir: string, env: TestEnv, manifest: Manifest): void {
-  const manifestPath = join(baselineDir, env, "manifest.json");
+  const manifestPath = join(baselineDir, env, 'manifest.json');
   mkdirSync(dirname(manifestPath), { recursive: true });
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
 }
@@ -38,7 +38,7 @@ export function saveManifest(baselineDir: string, env: TestEnv, manifest: Manife
  * 计算内容的 hash（用于快速判断是否变化）
  */
 export function contentHash(content: string | Buffer): string {
-  return createHash("sha256").update(content).digest("hex").slice(0, 16);
+  return createHash('sha256').update(content).digest('hex').slice(0, 16);
 }
 
 /**
@@ -61,14 +61,7 @@ export function compareImages(
   }
 
   const diff = new PNG({ width, height });
-  const diffPixels = pixelmatch(
-    img1.data as Buffer,
-    img2.data as Buffer,
-    diff.data,
-    width,
-    height,
-    { threshold: 0.1 },
-  );
+  const diffPixels = pixelmatch(img1.data as Buffer, img2.data as Buffer, diff.data, width, height, { threshold: 0.1 });
 
   // 保存 diff 图
   mkdirSync(dirname(diffPath), { recursive: true });
@@ -83,10 +76,7 @@ export function compareImages(
 /**
  * 对比 DOM 结构
  */
-export function compareDom(
-  baselineDomJson: string,
-  currentDomJson: string,
-): { identical: boolean; diff?: string } {
+export function compareDom(baselineDomJson: string, currentDomJson: string): { identical: boolean; diff?: string } {
   return diffDomJson(baselineDomJson, currentDomJson);
 }
 
@@ -98,15 +88,15 @@ export function determineStatus(
   domIdentical: boolean,
   pixelDiffPercent: number | null,
   threshold: number,
-): ScenarioResult["status"] {
+): ScenarioResult['status'] {
   // 无基准 → 待审批新建
-  if (!manifestEntry || manifestEntry.status === "pendingNew") {
-    return "pendingNew";
+  if (!manifestEntry || manifestEntry.status === 'pendingNew') {
+    return 'pendingNew';
   }
 
   // 已拒绝 → 保持拒绝
-  if (manifestEntry.status === "rejected") {
-    return "rejected";
+  if (manifestEntry.status === 'rejected') {
+    return 'rejected';
   }
 
   // 已批准的基准，对比结果
@@ -114,11 +104,11 @@ export function determineStatus(
   const pixelPassed = pixelDiffPercent === null || pixelDiffPercent <= threshold;
 
   if (domPassed && pixelPassed) {
-    return "approved";
+    return 'approved';
   }
 
   // 有差异 → 待审批变更
-  return "pendingDiff";
+  return 'pendingDiff';
 }
 
 /**
@@ -130,7 +120,7 @@ export function getBaselinePaths(baselineDir: string, scenarioName: string, env:
     /** 像素基准：按环境分目录 */
     image: join(baselineDir, env, `${scenarioName}.png`),
     /** DOM 结构基准：环境无关，放 shared 目录 */
-    dom: join(baselineDir, "shared", `${scenarioName}.dom.json`),
+    dom: join(baselineDir, 'shared', `${scenarioName}.dom.json`),
   };
 }
 

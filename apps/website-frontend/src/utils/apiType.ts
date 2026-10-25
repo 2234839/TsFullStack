@@ -20,10 +20,10 @@ type LeafTypes = Date | Uint8Array | bigint | JsonValue;
 export type AsyncAPI<T> = T extends LeafTypes
   ? T
   : T extends (...args: infer A) => infer R
-  ? (...args: A) => Promise<UnEffect<Awaited<R>>>
-  : T extends object
-  ? { [K in keyof T]: AsyncAPI<T[K]> }
-  : T;
+    ? (...args: A) => Promise<UnEffect<Awaited<R>>>
+    : T extends object
+      ? { [K in keyof T]: AsyncAPI<T[K]> }
+      : T;
 
 /** 前端可用的完整 API 类型（解开 Effect → Promise） */
 type FrontendAPI = AsyncAPI<__API__>;
@@ -57,10 +57,11 @@ type DbModelName = keyof FrontendAPI['db'];
  * type PackageItem = DbListItem<'tokenPackage'>;
  * type TokenItem = DbListItem<'token'>;
  */
-export type DbListItem<M extends DbModelName> =
-  FrontendAPI['db'][M] extends { findMany: (...args: any[]) => Promise<(infer E)[]> }
-    ? E
-    : FrontendAPI['db'][M] extends { findMany: (...args: any[]) => any }
+export type DbListItem<M extends DbModelName> = FrontendAPI['db'][M] extends {
+  findMany: (...args: any[]) => Promise<(infer E)[]>;
+}
+  ? E
+  : FrontendAPI['db'][M] extends { findMany: (...args: any[]) => any }
     ? ArrayElement<Awaited<ReturnType<FrontendAPI['db'][M]['findMany']>>>
     : never;
 
@@ -70,5 +71,4 @@ export type DbListItem<M extends DbModelName> =
  * @example
  * type OrderItem = PaymentApiResult<'adminListOrders'>;
  */
-export type PaymentApiResult<M extends keyof FrontendAPI['paymentApi']> =
-  ApiReturnType<FrontendAPI['paymentApi'][M]>;
+export type PaymentApiResult<M extends keyof FrontendAPI['paymentApi']> = ApiReturnType<FrontendAPI['paymentApi'][M]>;
