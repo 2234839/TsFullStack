@@ -39,11 +39,11 @@
     "dev": "vp build --watch"
   },
   "devDependencies": {
-    "@types/node": "^25.3.3",
+    "@types/node": "^26.6.5",
     "@vitejs/plugin-vue": "catalog:",
     "reka-ui": "catalog:",
     "typescript": "catalog:",
-    "vite": "catalog:",
+    "vite": "npm:@voidzero-dev/vite-plus-core@1.4.0",
     "vite-plus": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"

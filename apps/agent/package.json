@@ -35,15 +35,15 @@
     "example:all": "pnpm example:basic && pnpm example:files && pnpm example:http && pnpm example:multimedia && pnpm example:interactive && pnpm example:quick"
   },
   "dependencies": {
-    "dotenv": "^17.4.2"
+    "dotenv": "^18.0.9"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.3.3",
-    "jest": "^30.0.0",
-    "ts-jest": "^29.4.12",
-    "tsx": "^4.23.13",
-    "typescript": "^5.0.0"
+    "@types/node": "^26.6.5",
+    "jest": "^30.5.2",
+    "ts-jest": "^29.4.15",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   },
   "engines": {
     "node": ">=18.0.0"

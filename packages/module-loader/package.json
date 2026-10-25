@@ -25,14 +25,14 @@
     "prebuild": "pnpm clean"
   },
   "dependencies": {
-    "chokidar": "^4.0.3",
+    "chokidar": "^6.0.0",
     "commander": "^15.0.0",
     "fast-glob": "^3.3.3",
-    "fs-extra": "^11.4.0"
+    "fs-extra": "^11.4.1"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^25.3.3",
-    "typescript": "^5.9.2"
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
   }
 }

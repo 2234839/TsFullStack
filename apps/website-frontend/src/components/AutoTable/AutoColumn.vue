@@ -6,9 +6,9 @@
     </template>
     <template v-else-if="'relation' in field">
       <Tag>
-        <template #icon v-if="isRelationArray">
-          <div class="border-r pr-1">
-            {{ (row._count as Record<string, unknown>)?.[field.name] ?? '' }}
+        <template #icon>
+          <div v-if="isRelationArray" class="border-r pr-1">
+            {{ relationCount }}
           </div>
         </template>
         {{ field.type }}
@@ -23,23 +23,27 @@
     key="edit"
     :field="field"
     :row="row"
-    :cellData="row[field.name]" />
+    :cellData="row[field.name]"
+  />
 </template>
 <script setup lang="ts">
-  import { formatDate } from '@/utils/format';
-  import { computed, ref } from 'vue';
-  import AutoColumnEdit from './AutoColumnEdit.vue';
-  import type { FieldInfo } from './type';
-  import { isArrayField } from './type';
+import { formatDate } from '@/utils/format';
+import { computed, ref } from 'vue';
+import AutoColumnEdit from './AutoColumnEdit.vue';
+import type { FieldInfo } from './type';
+import { isArrayField } from './type';
 
-  const { field, row } = defineProps<{
-    field: FieldInfo;
-    row: Record<string, unknown>;
-  }>();
+const { field, row } = defineProps<{
+  field: FieldInfo;
+  row: Record<string, unknown>;
+}>();
 
-  const editValue = defineModel<unknown>('editValue');
-  const cellData = computed(() => row[field.name]);
-  const isRelationArray = computed(() => isArrayField(field));
+const editValue = defineModel<unknown>('editValue');
+const cellData = computed(() => row[field.name]);
+const isRelationArray = computed(() => isArrayField(field));
 
-  const editMode = ref(false);
+/** 关系数组字段的关联计数（_count 聚合，动态字段系统无法静态确定） */
+const relationCount = computed(() => (row._count as Record<string, unknown> | undefined)?.[field.name] ?? '');
+
+const editMode = ref(false);
 </script>

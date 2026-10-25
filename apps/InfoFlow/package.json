@@ -19,18 +19,18 @@
     "release:prepare": "pnpm install && pnpm tsc && pnpm release"
   },
   "dependencies": {
-    "@primeuix/themes": "^1.2.5",
+    "@primeuix/themes": "^3.1.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tsfullstack/backend": "workspace:*",
     "@tsfullstack/shared-frontend": "workspace:*",
-    "@vueuse/core": "^14.4.0",
+    "@vueuse/core": "^15.0.0",
     "@webext-core/messaging": "^4.0.0",
     "@webext-core/proxy-service": "^3.0.2",
     "date-fns": "^4.4.0",
-    "dexie": "^4.4.5",
+    "dexie": "^4.4.7",
     "html-to-text": "^10.0.1",
     "primeicons": "^7.0.0",
-    "primevue": "^4.5.5",
+    "primevue": "^5.0.4",
     "reka-ui": "catalog:",
     "superjson": "^2.2.6",
     "tailwindcss": "^4.3.3",
@@ -39,9 +39,9 @@
   },
   "devDependencies": {
     "@wxt-dev/module-vue": "^1.0.3",
-    "typescript": "5.9.2",
+    "typescript": "^7.0.2",
     "vite-plugin-vue-devtools": "^8.2.1",
-    "vue-tsc": "^3.3.11",
+    "vue-tsc": "^3.3.13",
     "wxt": "^0.21.4"
   }
 }
