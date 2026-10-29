@@ -14,6 +14,8 @@
 
 [문서 주소](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 
+[![扫码加入开发者社群](https://tsfullstack.heartstack.space/group/gs.svg?from=tsfullstack)](https://tsfullstack.heartstack.space/group/gs?from=tsfullstack)
+
 ## 특징
 
 - 백엔드

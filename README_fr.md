@@ -14,6 +14,8 @@ Ceci est mon projet de meilleures pratiques TypeScript full-stack. Après avoir 
 
 [Adresse de la documentation](https://shenzilong.cn/index/TsFullStack.html#20250413211142-d533spm)
 
+[![扫码加入开发者社群](https://tsfullstack.heartstack.space/group/gs.svg?from=tsfullstack)](https://tsfullstack.heartstack.space/group/gs?from=tsfullstack)
+
 ## Fonctionnalités
 
 - Backend
