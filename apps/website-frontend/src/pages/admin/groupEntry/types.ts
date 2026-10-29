@@ -21,6 +21,13 @@ export function publicSpaceUrl(spaceName: string, from?: string): string {
   return url.toString();
 }
 
+/** 生成与落地页携带来源参数一致的无缓存动态 SVG 地址 */
+export function publicGroupSvgUrl(spaceName: string, from?: string): string {
+  const url = new URL(publicSpaceUrl(spaceName, from));
+  url.pathname = `${url.pathname}.svg`;
+  return url.toString();
+}
+
 /** 后台上传的公众号码走后端公开路由，配置文件中的外部 URL 原样使用 */
 export function officialAccountQrUrl(qrUrl: string): string {
   if (!qrUrl.startsWith('/')) return qrUrl;

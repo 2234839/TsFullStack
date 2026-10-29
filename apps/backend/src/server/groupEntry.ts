@@ -4,12 +4,16 @@ import { readFile } from 'node:fs/promises';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
 import { GroupEntryService, isQrEffective, MAX_QR_UPLOAD_BYTES } from '../services/GroupEntryService';
 import { extractErrorMessage } from '../util/error';
+import { buildGroupEntrySvg } from './groupEntrySvg';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[GroupEntry]';
 
 /** 动态图客户端缓存 5 分钟（过期切换最多延迟 5 分钟可见，GitHub CDN 可接受） */
 const IMG_CACHE_CONTROL = 'public, max-age=300';
+
+/** README SVG 必须在每次加载时重新获取当前群码，同时禁止共享缓存与 CDN 缓存 */
+const SVG_CACHE_CONTROL = 'no-cache, no-store, max-age=0, must-revalidate';
 
 /** 管理令牌最小长度（弱值拒绝服务启动） */
 const MIN_ADMIN_TOKEN_LEN = 16;
@@ -176,6 +180,43 @@ async function reachableAccountQrUrl(url: string | null | undefined): Promise<st
   return ok ? url : undefined;
 }
 
+/** 图片响应转 data URL；仅接受与上传白名单一致的位图格式，避免在 SVG 中嵌入主动内容 */
+function bitmapDataUrl(buffer: Buffer, mime: string): string | undefined {
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(mime)) return undefined;
+  if (buffer.length === 0 || buffer.length > MAX_QR_UPLOAD_BYTES) return undefined;
+  return `data:${mime};base64,${buffer.toString('base64')}`;
+}
+
+/** 读取公众号码并内嵌到 SVG；未配置或外部图片不可用时保留公众号文字引导 */
+async function officialQrDataUrl(
+  space: string,
+  qrUrl: string | null,
+  appConfig: AppConfig,
+  reply: FastifyReply,
+): Promise<string | undefined> {
+  if (!qrUrl) return undefined;
+  if (qrUrl.startsWith('data:')) {
+    return /^data:image\/(?:png|jpeg|webp);base64,[a-zA-Z0-9+/]+={0,2}$/.test(qrUrl) ? qrUrl : undefined;
+  }
+  if (qrUrl === `/group/official-qr/${space}.png`) {
+    const image = await runEffect(GroupEntryService.getOfficialQrImage(space), appConfig, reply, null);
+    if (!image || reply.sent) return undefined;
+    const buffer = await readFile(image.absPath);
+    return bitmapDataUrl(buffer, image.mime);
+  }
+  if (!qrUrl.startsWith('https://') && !qrUrl.startsWith('http://')) return undefined;
+  try {
+    const response = await fetch(qrUrl, { signal: AbortSignal.timeout(3000) });
+    const mime = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() ?? '';
+    const contentLength = Number(response.headers.get('content-length') ?? 0);
+    if (!response.ok || contentLength > MAX_QR_UPLOAD_BYTES) return undefined;
+    return bitmapDataUrl(Buffer.from(await response.arrayBuffer()), mime);
+  } catch (error: unknown) {
+    console.error(`${LOG_PREFIX} 内嵌外部公众号二维码失败:`, extractErrorMessage(error));
+    return undefined;
+  }
+}
+
 /** HTML 转义（落地页注入防护） */
 function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
@@ -191,7 +232,8 @@ function formatLocalTime(d: Date): string {
  * 注册私域引流路由
  *
  * 公开路由（无鉴权，面向项目 README 访客）：
- * - GET /group/:space.png            动态图（有效期内返回群码，否则返回公众号引导 SVG）
+ * - GET /group/:space.png            动态位图（有效期内返回群码，否则返回公众号引导 SVG）
+ * - GET /group/:space.svg            无缓存动态 SVG（双码并排，无群码时仅公众号）
  * - GET /group/:space                落地页（移动端优先，两态切换；?from= 记录来源）
  * - GET /group/official-qr/:space.png 空间公众号二维码图片
  *
@@ -204,9 +246,9 @@ function formatLocalTime(d: Date): string {
  * @param appConfig 已加载的应用配置（服务启动后不可变，供 Effect 依赖注入与文案渲染）
  */
 export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: AppConfig) {
-  /** 解析路由参数里的空间名（:space 或 :space.png），统一去掉 .png 后缀并转小写 */
+  /** 解析公开路由参数里的空间名，统一去掉图片后缀并转小写 */
   function parseSpace(raw: string): string | null {
-    const space = raw.toLowerCase().replace(/\.png$/, '');
+    const space = raw.toLowerCase().replace(/\.(?:png|svg)$/, '');
     return /^[a-z0-9][a-z0-9-]{0,63}$/.test(space) ? space : null;
   }
 
@@ -269,6 +311,47 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
       replyKeyword: official?.replyKeyword || '加群',
     });
     reply.type('image/svg+xml; charset=utf-8').header('Cache-Control', IMG_CACHE_CONTROL).send(svg);
+  });
+
+  /** README 动态 SVG：双码并排；无有效群码时只展示公众号。所有二维码内嵌，响应禁止缓存 */
+  fastify.get('/group/:space.svg', async (req: FastifyRequest, reply: FastifyReply) => {
+    const space = parseSpace((req.params as { space: string }).space);
+    if (!space) {
+      reply.code(400).send({ error: '非法空间标识' });
+      return;
+    }
+
+    const active = await runEffect(GroupEntryService.getActiveQr(space), appConfig, reply, null);
+    if (reply.sent) return;
+    GroupEntryService.recordStat(space, parseFrom(req), appConfig, 'imgPv');
+
+    const activeQr = active?.qr && isQrEffective(active.qr) ? active.qr : null;
+    const group = activeQr
+      ? {
+          dataUrl: bitmapDataUrl(await readFile(activeQr.absPath), activeQr.imageMime),
+          title: activeQr.groupName || '微信群',
+          hint: '微信扫码入群',
+        }
+      : undefined;
+    const official = active?.official;
+    const accountName = official?.name || '公众号';
+    const replyKeyword = official?.replyKeyword || '加群';
+    const svg = buildGroupEntrySvg({
+      group,
+      official: {
+        dataUrl: await officialQrDataUrl(space, official?.qrUrl ?? null, appConfig, reply),
+        title: accountName,
+        hint: `关注后回复「${replyKeyword}」`,
+      },
+    });
+    if (reply.sent) return;
+    return reply
+      .type('image/svg+xml; charset=utf-8')
+      .header('Cache-Control', SVG_CACHE_CONTROL)
+      .header('CDN-Cache-Control', 'no-store')
+      .header('Pragma', 'no-cache')
+      .header('Expires', '0')
+      .send(svg);
   });
 
   /** 落地页：微信内打开的主场景 */

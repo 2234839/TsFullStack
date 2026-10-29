@@ -60,6 +60,51 @@
         </section>
 
         <section class="border-t border-primary-default pt-5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h3 class="font-semibold text-primary-title">{{ t('GitHub README 动态图') }}</h3>
+            <Tag variant="info">{{ t('SVG · 不缓存') }}</Tag>
+          </div>
+          <p class="mt-1 text-xs leading-5 text-primary-theme">
+            {{ t('有群码时与公众号左右展示；无有效群码时只展示公众号。点击图片可打开落地页。') }}
+          </p>
+          <a
+            :href="landingUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="mt-3 block overflow-hidden rounded-lg border border-primary-default bg-white"
+            :aria-label="t('打开扫码入群落地页')"
+          >
+            <img
+              :key="svgPreviewVersion"
+              :src="svgImageUrl"
+              :alt="t('动态 SVG 预览：微信群码与公众号二维码')"
+              class="block h-auto w-full"
+            />
+          </a>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <Button
+              variant="text-button"
+              size="sm"
+              icon="pi pi-refresh"
+              :label="t('刷新预览')"
+              @click="svgPreviewVersion++"
+            />
+            <Button
+              variant="text-button"
+              size="sm"
+              icon="pi pi-external-link"
+              :label="t('打开 SVG')"
+              @click="openSvg"
+            />
+            <Button size="sm" icon="pi pi-copy" :label="t('复制 README')" @click="copyReadme" />
+          </div>
+          <code
+            class="mt-3 block whitespace-pre-wrap break-all rounded bg-primary-card p-3 text-xs text-primary-theme"
+            >{{ readmeSnippet }}</code
+          >
+        </section>
+
+        <section class="border-t border-primary-default pt-5">
           <h3 class="font-semibold text-primary-title">{{ t('公众号引导（长期入口）') }}</h3>
           <p class="mt-1 text-xs leading-5 text-primary-theme">
             {{ t('群码失效或群满时，公开页以此为主要引导。每个空间独立配置。') }}
@@ -290,6 +335,7 @@ import {
   GROUP_FROM_PATTERN,
   MAX_QR_FILE_SIZE,
   officialAccountQrUrl,
+  publicGroupSvgUrl,
   publicSpaceUrl,
   type SpaceQrCode,
   type GroupSpace,
@@ -305,6 +351,12 @@ const confirm = useConfirm();
 /** 来源参数输入（空 = 不带 from 的基础链接） */
 const fromInput = ref('');
 const fromValid = computed(() => GROUP_FROM_PATTERN.test(fromInput.value.trim()));
+const fromParam = computed(() => fromInput.value.trim() || undefined);
+const landingUrl = computed(() => publicSpaceUrl(props.space.name, fromParam.value));
+const svgImageUrl = computed(() => publicGroupSvgUrl(props.space.name, fromParam.value));
+const readmeSnippet = computed(() => `[![扫码加入微信群](${svgImageUrl.value})](${landingUrl.value})`);
+/** 仅改变图片 key 以重新请求同一地址，验证服务端 no-store 的实际更新效果 */
+const svgPreviewVersion = ref(0);
 
 /** 公众号配置表单（以空间当前值为初值） */
 const officialName = ref(props.space.official.name);
@@ -335,8 +387,21 @@ function waitingPosition(qr: SpaceQrCode): number {
 
 async function copyLink() {
   try {
-    await copyToClipboard(publicSpaceUrl(props.space.name, fromInput.value.trim() || undefined));
+    await copyToClipboard(landingUrl.value);
     toast.success(t('公开链接已复制'));
+  } catch (error: unknown) {
+    toast.error(t('复制失败'), getErrorMessage(error));
+  }
+}
+
+function openSvg() {
+  window.open(svgImageUrl.value, '_blank', 'noopener,noreferrer');
+}
+
+async function copyReadme() {
+  try {
+    await copyToClipboard(readmeSnippet.value);
+    toast.success(t('README 嵌入代码已复制'));
   } catch (error: unknown) {
     toast.error(t('复制失败'), getErrorMessage(error));
   }
