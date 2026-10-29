@@ -112,7 +112,7 @@ timer_start
     rsync -avz --compress-level=9 -e "ssh $SSH_OPTS" \
         ./schema.zmodel \
         ./package.remote.json \
-        ./pnpm-lock.yaml \
+        ../../pnpm-lock.yaml \
         ../../pnpm-workspace.yaml \
         ./migrations \
         ./config.schema.json \
@@ -125,8 +125,18 @@ timer_start
         ./prisma-deploy/ \
         "$SSH_TARGET:$REMOTE_PATH/prisma-deploy/" &
 
-    wait $BACKEND_PID $DISTLIB_PID $FRONTEND_PID $DB_PID 
+    wait $BACKEND_PID $DISTLIB_PID $FRONTEND_PID $DB_PID
 } || { show_error "文件同步失败"; exit 1; }
+
+# 依赖指纹：lockfile + 远端专用 package.json 任一变化才需要在远端重装依赖
+DEPS_HASH=$(cat ../../pnpm-lock.yaml ./package.remote.json | sha256sum | cut -d' ' -f1)
+REMOTE_DEPS_HASH=$(ssh $SSH_OPTS "$SSH_TARGET" "cat $REMOTE_PATH/.deps-hash 2>/dev/null || echo none")
+if [ "$DEPS_HASH" = "$REMOTE_DEPS_HASH" ]; then
+    SKIP_INSTALL=1
+    show_progress "依赖未变化，跳过远端 pnpm install"
+else
+    SKIP_INSTALL=0
+fi
 
 show_success "文件同步完成"
 timer_end
@@ -138,37 +148,34 @@ timer_start
 ssh $SSH_OPTS "$SSH_TARGET" "
     cd $REMOTE_PATH/
 
-    # 停止应用服务，释放数据库锁定
+    # 安装依赖放在停服之前（耗时大头，此阶段服务持续在线；prisma CLI 在 devDependencies，不能 --prod；
+    # zenstack 生成物已随 dist 内联，远端跑不了 zenstack CLI，迁移用 prisma CLI + 本地预生成 schema）
+    if [ "$SKIP_INSTALL" != "1" ]; then
+        echo '安装依赖...'
+        mv package.remote.json package.json
+        pnpm install --no-frozen-lockfile || exit 1
+
+        # better-sqlite3 被 ignoredBuiltDependencies 跳过原生编译，需显式 rebuild（否则运行时 bindings 报错）
+        pnpm rebuild better-sqlite3 || exit 1
+    fi
+
+    # 停服后迁移：SQLite 运行期持有写锁，迁移必须在应用停止后执行；
+    # 停服窗口内只做迁移 + 启动，无依赖安装等耗时操作
     echo '停止应用服务...'
     pm2 stop TsFullStack || true
-
-    # 等待进程完全停止
-    sleep 10
-
-    # 数据库迁移（生产环境使用 migrate deploy）
-    echo '执行数据库迁移...'
-
-    # 安装依赖（prisma CLI 在 devDependencies，不能 --prod；zenstack 生成物已随 dist 内联，
-    # 远端 Node20 跑不了 zenstack CLI，迁移用 prisma CLI + 本地预生成的 schema）
-    echo '安装依赖...'
-    mv package.remote.json package.json
-    pnpm install --no-frozen-lockfile || exit 1
-
-    # better-sqlite3 被 ignoredBuiltDependencies 跳过原生编译，需显式 rebuild（否则运行时 bindings 报错）
-    pnpm rebuild better-sqlite3 || exit 1
+    sleep 3
 
     echo '应用数据库迁移...'
-    DATABASE_URL="file:$REMOTE_PATH/prisma/dev.db" \
+    DATABASE_URL=\"file:$REMOTE_PATH/prisma/dev.db\" \
       node node_modules/prisma/build/index.js migrate deploy --schema ./prisma-deploy/schema.prisma || exit 1
 
-    # 重启应用（设置 DATABASE_URL 环境变量）
-    echo '重启应用服务...'
-    pm2 delete TsFullStack || true
+    echo '启动应用服务...'
     cd $REMOTE_PATH/
-    DATABASE_URL="file:$REMOTE_PATH/prisma/dev.db" \
-      pm2 start ./dist/index.mjs --name "TsFullStack" --node-args="--enable-source-maps" || exit 1
+    DATABASE_URL=\"file:$REMOTE_PATH/prisma/dev.db\" \
+      pm2 start TsFullStack || exit 1
     pm2 save
 
+    echo '$DEPS_HASH' > $REMOTE_PATH/.deps-hash
     echo '部署完成'
 " || { show_error "远程部署失败"; exit 1; }
 
