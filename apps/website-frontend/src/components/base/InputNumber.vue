@@ -73,7 +73,7 @@ const formatOptions = computed(() => ({
     :step="step"
     :disabled="disabled"
     :format-options="formatOptions"
-    @update:model-value="emit('update:modelValue', $event)"
+    @update:model-value="emit('update:modelValue', $event ?? null)"
   >
     <NumberFieldInput v-bind="$attrs" :placeholder="placeholder" :class="inputClasses" />
     <div v-if="showButtons" class="ml-2 flex flex-col gap-1">

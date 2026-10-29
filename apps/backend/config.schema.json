@@ -156,7 +156,7 @@
           "description": "上传新码成功后的回调通知 URL（server酱/bark 等，可选）"
         }
       },
-      "required": ["adminToken", "officialAccountQrUrl"],
+      "required": ["adminToken"],
       "additionalProperties": false
     }
   },

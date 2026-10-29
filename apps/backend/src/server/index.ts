@@ -125,8 +125,14 @@ async function parseParams(req: FastifyRequest): Promise<unknown[]> {
     }
     throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
   } else if (contentType?.startsWith('multipart/form-data')) {
-    // 在接口中使用 ReqCtx 获取值（为了文件流的优化）
-    return [];
+    /** 文件本体走 multipart，其余 RPC 参数通过查询字符串传输；首参数保留 File 占位 */
+    const query = req.query as { args?: string };
+    if (!query.args) return [];
+    const parsed: unknown = superjson.parse(query.args);
+    if (!Array.isArray(parsed)) {
+      throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
+    }
+    return [undefined, ...parsed];
   } else if (req.method === 'GET') {
     const query = req.query as {
       args?: string;

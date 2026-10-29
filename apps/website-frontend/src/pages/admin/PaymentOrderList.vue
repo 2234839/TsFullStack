@@ -44,7 +44,7 @@
 
 <script setup lang="ts">
 import { ref, shallowRef, computed, watch, h } from 'vue';
-import { useNow } from '@vueuse/core';
+import { useIntervalFn, useNow } from '@vueuse/core';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
@@ -67,7 +67,7 @@ const { t } = useI18n();
 const toast = useToast();
 const confirm = useConfirm();
 /** 响应式当前时间（30秒更新，用于过期倒计时显示） */
-const now = useNow({ interval: ADMIN_TIME_REFRESH_MS });
+const now = useNow({ scheduler: (update) => useIntervalFn(update, ADMIN_TIME_REFRESH_MS) });
 const { API } = useAPI();
 
 /** 订单列表 */

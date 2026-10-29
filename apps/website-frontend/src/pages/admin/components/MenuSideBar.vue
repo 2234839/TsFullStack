@@ -320,6 +320,12 @@ const menuItems = reactive([
         to: routerUtil.to(routeMap.admin.child.ShareList, {}),
       },
       {
+        key: 'groupEntry',
+        label: t('私域引流'),
+        icon: routeMap.admin.child.groupEntry.meta.icon,
+        to: routerUtil.to(routeMap.admin.child.groupEntry, {}),
+      },
+      {
         key: 'resourceGallery',
         label: t('资源库'),
         icon: routeMap.admin.child.resourceGallery.meta.icon,

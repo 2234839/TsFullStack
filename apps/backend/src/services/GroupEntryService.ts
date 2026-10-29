@@ -7,13 +7,14 @@ import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
 import { fail, tryOrFail, MsgError, extractErrorMessage } from '../util/error';
 import { MS_PER_HOUR } from '../util/constants';
-import type { GroupQRCode } from '../../.zenstack/models';
+import type { GroupQRCode, GroupSpace } from '../../.zenstack/models';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[GroupEntry]';
 
-/** 微信群码有效期：7 天 */
-const QR_TTL_MS = 7 * 24 * MS_PER_HOUR;
+/** 微信群码默认有效天数 */
+export const GROUP_QR_TTL_DAYS = 7;
+const QR_TTL_MS = GROUP_QR_TTL_DAYS * 24 * MS_PER_HOUR;
 
 /** 到期提前量：5 分钟（宁早勿晚，用户扫到过期码体验最差） */
 const EXPIRY_EARLY_MS = 5 * 60 * 1000;
@@ -28,21 +29,30 @@ function todayStr(): string {
 /** 允许上传的图片 MIME 白名单 */
 const ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
-/** 上传大小上限 5MB */
-const MAX_QR_UPLOAD_BYTES = 5 * 1024 * 1024;
+/** 上传大小上限 5MB，同时供服务层校验与 multipart 读取限制使用 */
+export const MAX_QR_UPLOAD_BYTES = 5 * 1024 * 1024;
 
-/** 群码存储子目录（相对 uploadDir） */
+/** 群码与公众号码存储子目录（相对 uploadDir） */
 const QR_SUBDIR = 'group-entry';
+const OFFICIAL_QR_SUBDIR = 'group-entry/official-account';
 
-/** 入口标识白名单正则（小写字母/数字/连字符，防路径注入与怪异 entry） */
-const ENTRY_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
+/** 空间标识白名单（公开链接 /group/<name> 的永久锚点） */
+const KEY_RE = /^[a-z0-9][a-z0-9-]{0,63}$/;
 
-/** 校验入口标识格式，非法直接失败 */
-function assertEntry(entry: string): Effect.Effect<void, MsgError> {
-  if (!ENTRY_RE.test(entry)) {
-    return Effect.fail(MsgError.msg(`非法入口标识: ${entry}`));
-  }
+/** 来源参数白名单（链接 ?from= 的值，自由但需 URL 安全） */
+const FROM_RE = /^[a-zA-Z0-9_-]{0,64}$/;
+
+/** 校验空间标识格式 */
+function assertKey(key: string): Effect.Effect<void, MsgError> {
+  if (!KEY_RE.test(key)) return Effect.fail(MsgError.msg(`非法标识: ${key}`));
   return Effect.succeed(undefined);
+}
+
+/** 图片路径统一限制在 uploadDir 内 */
+function resolveImagePath(uploadDir: string, imagePath: string): string {
+  const absPath = resolve(uploadDir, imagePath);
+  if (!absPath.startsWith(resolve(uploadDir) + sep)) throw new Error(`图片路径越界: ${imagePath}`);
+  return absPath;
 }
 
 /** 群码是否仍有效（按 expiresAt - 5min 惰性计算，无定时任务） */
@@ -51,83 +61,126 @@ export function isQrEffective(qr: Pick<GroupQRCode, 'status' | 'expiresAt'>): bo
 }
 
 /** 出口视图：管理列表项（不暴露 imagePath 原始路径） */
-export type GroupQRCodeView = Omit<GroupQRCode, 'imagePath'>;
+export type GroupQRCodeView = Omit<GroupQRCode, 'imagePath'> & {
+  /** 该表当前只保存限时微信群码，长期公众号二维码由独立配置管理 */
+  kind: 'WECHAT_GROUP';
+  /** 与公开路由使用相同的有效期和状态判断 */
+  effective: boolean;
+};
 
 function toView(qr: GroupQRCode): GroupQRCodeView {
   const { imagePath: _hidden, ...view } = qr;
-  return view;
+  return { ...view, kind: 'WECHAT_GROUP', effective: isQrEffective(qr) };
+}
+
+/** 空间的公众号引导配置（空间字段 + config.json 回退后的公开视图） */
+export interface SpaceOfficialView {
+  /** 公众号名称（空间未配置时回退配置文件） */
+  name: string;
+  /** 回复关键词 */
+  replyKeyword: string;
+  /** 引导语 */
+  guideText: string | null;
+  /** 二维码公开地址（后台上传时为内部路由，否则回退配置文件 URL） */
+  qrUrl: string | null;
+}
+
+/** 空间主视图：公众号引导 + 群码池 */
+export interface GroupSpaceView {
+  /** 空间 id */
+  id: number;
+  /** 空间标识（/group/<name>） */
+  name: string;
+  /** 显示名 */
+  displayName: string | null;
+  /** 公众号引导（含回退） */
+  official: SpaceOfficialView;
+  /** 群码池（含 serving 标记） */
+  qrcodes: (GroupQRCodeView & { serving: boolean })[];
+}
+
+/** 空间公众号公开视图：空间字段优先，未配置时回退 config.json */
+function spaceOfficialView(
+  space: Pick<
+    GroupSpace,
+    'name' | 'officialName' | 'officialReplyKeyword' | 'officialGuideText' | 'officialQrImagePath'
+  >,
+  config?: AppConfig['groupEntry'],
+): SpaceOfficialView {
+  return {
+    name: space.officialName || config?.officialAccountName || '公众号',
+    replyKeyword: space.officialReplyKeyword || config?.replyKeyword || '加群',
+    guideText: space.officialGuideText,
+    qrUrl: space.officialQrImagePath ? `/group/official-qr/${space.name}.png` : (config?.officialAccountQrUrl ?? null),
+  };
 }
 
 /**
- * 私域引流服务
- *
- * 事件驱动维护模型：群码过期 → 提示关注公众号 → 博主收到催更 → 上传新码（即时生效）。
- * 没有人进群 = 永远零维护，无 cron、无轮询，过期判断全部请求时惰性计算。
+ * 私域引流服务：私域空间持有公众号引导 + 群码池。
+ * 公开链接 = /group/<空间名>，永久不变；来源项目/渠道用链接 ?from= 参数记录（不建实体）。
+ * 有效群码按上传时间先进先出；标满或过期后自动切下一个，无有效码时以公众号为主要引导。
  */
 export const GroupEntryService = {
-  /** 查询某入口当前生效的群码（含图片绝对路径，仅服务端内部使用，不外泄） */
-  getActiveQr(entry: string): Effect.Effect<{ qr: GroupQRCode; absPath: string } | null, Error, AppConfigService> {
+  /** 查询空间的当前出码与公众号配置；空间不存在时返回 null；qr 非空时必带 absPath */
+  getActiveQr(
+    spaceName: string,
+  ): Effect.Effect<
+    { qr: (GroupQRCode & { absPath: string }) | null; spaceName: string; official: SpaceOfficialView } | null,
+    Error,
+    AppConfigService
+  > {
     return Effect.gen(function* () {
-      yield* assertEntry(entry);
+      yield* assertKey(spaceName);
       const db = yield* DbClientEffect;
-      const qr = yield* tryOrFail('查询生效群码', () =>
-        db.groupQRCode.findFirst({
-          where: { entry, status: 'ACTIVE' },
-          orderBy: { uploadedAt: 'desc' },
+      const space = yield* tryOrFail('查询空间', () => db.groupSpace.findUnique({ where: { name: spaceName } }));
+      if (!space) return null;
+      const pool = yield* tryOrFail('查询空间群码池', () =>
+        db.groupQRCode.findMany({
+          where: { spaceId: space.id, status: 'ACTIVE' },
+          orderBy: { uploadedAt: 'asc' },
         }),
       );
-      if (!qr || !isQrEffective(qr)) return null;
-
-      const { uploadDir } = yield* AppConfigService;
-      /** imagePath 是受控生成的相对路径（uploadDir/group-entry/<uuid>.<ext>），join 后再做一次边界校验 */
-      const absPath = resolve(uploadDir, qr.imagePath);
-      const base = resolve(uploadDir);
-      if (!absPath.startsWith(base + sep)) {
-        return yield* fail(`群码图片路径越界: ${qr.imagePath}`);
-      }
-      return { qr, absPath };
+      const { uploadDir, groupEntry: config } = yield* AppConfigService;
+      const official = spaceOfficialView(space, config);
+      const qr = pool.find(isQrEffective);
+      if (!qr) return { qr: null, spaceName: space.name, official };
+      return {
+        qr: { ...qr, absPath: resolveImagePath(uploadDir, qr.imagePath) },
+        spaceName: space.name,
+        official,
+      };
     });
   },
 
-  /**
-   * 上传新群码（上传时刻即生效时刻）：同 entry 旧 ACTIVE 码自动转 ARCHIVED
-   * @param entry 入口标识
-   * @param groupName 群名（备注）
-   * @param note 博主备注
-   * @param buffer 图片二进制
-   * @param mime MIME 类型
-   */
+  /** 上传群码到空间池，不归档其他有效码，多个码按上传顺序轮换 */
   uploadQr(options: {
-    entry: string;
+    spaceId: number;
     groupName?: string;
     note?: string;
     buffer: Buffer;
     mime: string;
   }): Effect.Effect<GroupQRCodeView, Error, AppConfigService> {
     return Effect.gen(function* () {
-      yield* assertEntry(options.entry);
       if (!ALLOWED_MIME.has(options.mime)) {
         return yield* fail(`不支持的图片类型: ${options.mime}（仅 png/jpeg/webp）`);
       }
       if (options.buffer.length === 0 || options.buffer.length > MAX_QR_UPLOAD_BYTES) {
         return yield* fail(`图片大小须在 1B ~ 5MB 之间，当前 ${options.buffer.length} 字节`);
       }
-
       const db = yield* DbClientEffect;
+      const space = yield* tryOrFail('查询空间', () => db.groupSpace.findUnique({ where: { id: options.spaceId } }));
+      if (!space) return yield* fail(`私域空间不存在: ${options.spaceId}`);
       const { uploadDir } = yield* AppConfigService;
-
-      /** 先落盘（uuid 文件名，不用用户文件名，杜绝路径注入） */
       const ext = options.mime === 'image/png' ? 'png' : options.mime === 'image/webp' ? 'webp' : 'jpg';
       const relPath = join(QR_SUBDIR, `${uuidv7()}.${ext}`);
       const absPath = join(uploadDir, relPath);
       yield* tryOrFail('创建群码目录', () => mkdir(dirname(absPath), { recursive: true }));
       yield* tryOrFail('写入群码图片', () => writeFile(absPath, options.buffer));
-
       const now = new Date();
       const created = yield* tryOrFail('创建群码记录', () =>
         db.groupQRCode.create({
           data: {
-            entry: options.entry,
+            spaceId: options.spaceId,
             groupName: options.groupName,
             imagePath: relPath,
             imageSize: options.buffer.length,
@@ -139,64 +192,186 @@ export const GroupEntryService = {
           },
         }),
       );
-
-      /** 同入口旧 ACTIVE 码 → ARCHIVED（事务外尽力而为：上一个码已不可能再被选中——查询按 uploadedAt desc） */
-      yield* tryOrFail('归档旧码', () =>
-        db.groupQRCode.updateMany({
-          where: { entry: options.entry, status: 'ACTIVE', id: { not: created.id } },
-          data: { status: 'ARCHIVED' },
-        }),
-      );
-
-      console.log(
-        `${LOG_PREFIX} 入口 ${options.entry} 新群码已生效: id=${created.id}, 过期于 ${created.expiresAt.toISOString()}`,
-      );
+      console.log(`${LOG_PREFIX} 空间 ${space.name} 新群码已入池: id=${created.id}`);
       return toView(created);
     });
   },
 
-  /** 手动下线某码（群满 100 人换码场景，等价过期） */
-  archiveQr(id: number): Effect.Effect<{ success: true }, Error, AppConfigService> {
+  /** 切换群码状态：FULL 表示群已满，公开链接自动切到下一个有效码 */
+  setQrStatus(
+    id: number,
+    status: 'FULL' | 'ARCHIVED' | 'ACTIVE',
+  ): Effect.Effect<{ success: true }, Error, AppConfigService> {
     return Effect.gen(function* () {
       const db = yield* DbClientEffect;
-      const updated = yield* tryOrFail('下线群码', () =>
-        db.groupQRCode.update({
-          where: { id },
-          data: { status: 'ARCHIVED' },
-        }),
+      const updated = yield* tryOrFail('更新群码状态', () =>
+        db.groupQRCode.update({ where: { id }, data: { status } }),
       );
-      console.log(`${LOG_PREFIX} 群码 id=${id}（entry=${updated.entry}）已手动下线`);
+      console.log(`${LOG_PREFIX} 群码 id=${id}（空间=${updated.spaceId}）状态切换为 ${status}`);
       return { success: true as const };
     });
   },
 
-  /** 列出群码池（全部入口，按上传时间倒序；不暴露 imagePath） */
-  listQrs(): Effect.Effect<GroupQRCodeView[], Error, AppConfigService> {
+  /** 空间主视图：公众号引导 + 群码池 */
+  listSpaces(): Effect.Effect<GroupSpaceView[], Error, AppConfigService> {
     return Effect.gen(function* () {
       const db = yield* DbClientEffect;
-      const list = yield* tryOrFail('查询群码池', () => db.groupQRCode.findMany({ orderBy: { uploadedAt: 'desc' } }));
-      return list.map(toView);
+      const { groupEntry: config } = yield* AppConfigService;
+      const spaces = yield* tryOrFail('查询空间列表', () =>
+        db.groupSpace.findMany({
+          include: { qrcodes: { orderBy: { uploadedAt: 'asc' } } },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        }),
+      );
+      return spaces.map((space) => {
+        const servingId = space.qrcodes.find(isQrEffective)?.id;
+        return {
+          id: space.id,
+          name: space.name,
+          displayName: space.displayName,
+          official: spaceOfficialView(space, config),
+          qrcodes: space.qrcodes.map((qr) => ({ ...toView(qr), serving: qr.id === servingId })),
+        };
+      });
+    });
+  },
+
+  /** 兼容旧脚本：空间不存在时自动创建，存在则直接返回 */
+  ensureSpace(name: string): Effect.Effect<{ id: number; name: string }, Error, AppConfigService> {
+    return Effect.gen(function* () {
+      const key = name.trim().toLowerCase();
+      yield* assertKey(key);
+      const db = yield* DbClientEffect;
+      const space = yield* tryOrFail('确保空间存在', () =>
+        db.groupSpace.upsert({ where: { name: key }, create: { name: key }, update: {} }),
+      );
+      return { id: space.id, name: space.name };
+    });
+  },
+
+  /** 创建私域空间 */
+  createSpace(options: { name: string; displayName?: string }): Effect.Effect<{ id: number }, Error, AppConfigService> {
+    return Effect.gen(function* () {
+      const name = options.name.trim().toLowerCase();
+      yield* assertKey(name);
+      const db = yield* DbClientEffect;
+      const created = yield* tryOrFail('创建空间', () =>
+        db.groupSpace.create({ data: { name, displayName: options.displayName?.trim() || null } }),
+      );
+      return { id: created.id };
+    });
+  },
+
+  /** 删除空间及其群码记录；历史统计与已上传图片文件保留 */
+  deleteSpace(id: number): Effect.Effect<{ success: true }, Error, AppConfigService> {
+    return Effect.gen(function* () {
+      const db = yield* DbClientEffect;
+      const space = yield* tryOrFail('删除空间及关联数据', () =>
+        db.$transaction(async (tx) => {
+          const existing = await tx.groupSpace.findUnique({ where: { id } });
+          if (!existing) throw new Error(`私域空间不存在: ${id}`);
+          await tx.groupQRCode.deleteMany({ where: { spaceId: id } });
+          await tx.groupSpace.delete({ where: { id } });
+          return existing;
+        }),
+      );
+      console.log(`${LOG_PREFIX} 空间 ${space.name} 及其群码记录已删除`);
+      return { success: true as const };
+    });
+  },
+
+  /** 保存空间的公众号名称、关键词和引导语 */
+  updateOfficialAccount(
+    spaceId: number,
+    options: { name: string; replyKeyword?: string; guideText?: string },
+  ): Effect.Effect<SpaceOfficialView, Error, AppConfigService> {
+    return Effect.gen(function* () {
+      const name = options.name.trim();
+      if (!name) return yield* fail('公众号名称不能为空');
+      const db = yield* DbClientEffect;
+      const space = yield* tryOrFail('更新空间公众号配置', () =>
+        db.groupSpace.update({
+          where: { id: spaceId },
+          data: {
+            officialName: name,
+            officialReplyKeyword: options.replyKeyword?.trim() || '加群',
+            officialGuideText: options.guideText?.trim() || null,
+          },
+        }),
+      );
+      const { groupEntry: config } = yield* AppConfigService;
+      return spaceOfficialView(space, config);
+    });
+  },
+
+  /** 上传空间的公众号二维码 */
+  uploadOfficialQr(options: {
+    spaceId: number;
+    buffer: Buffer;
+    mime: string;
+  }): Effect.Effect<SpaceOfficialView, Error, AppConfigService> {
+    return Effect.gen(function* () {
+      if (!ALLOWED_MIME.has(options.mime)) {
+        return yield* fail(`不支持的图片类型: ${options.mime}（仅 png/jpeg/webp）`);
+      }
+      if (options.buffer.length === 0 || options.buffer.length > MAX_QR_UPLOAD_BYTES) {
+        return yield* fail(`图片大小须在 1B ~ 5MB 之间，当前 ${options.buffer.length} 字节`);
+      }
+      const db = yield* DbClientEffect;
+      const space = yield* tryOrFail('查询空间', () => db.groupSpace.findUnique({ where: { id: options.spaceId } }));
+      if (!space) return yield* fail(`私域空间不存在: ${options.spaceId}`);
+      const { uploadDir } = yield* AppConfigService;
+      const ext = options.mime === 'image/png' ? 'png' : options.mime === 'image/webp' ? 'webp' : 'jpg';
+      const relPath = join(OFFICIAL_QR_SUBDIR, `${uuidv7()}.${ext}`);
+      const absPath = join(uploadDir, relPath);
+      yield* tryOrFail('创建公众号码目录', () => mkdir(dirname(absPath), { recursive: true }));
+      yield* tryOrFail('写入公众号二维码', () => writeFile(absPath, options.buffer));
+      const updated = yield* tryOrFail('更新公众号码路径', () =>
+        db.groupSpace.update({ where: { id: space.id }, data: { officialQrImagePath: relPath } }),
+      );
+      const { groupEntry: config } = yield* AppConfigService;
+      return spaceOfficialView(updated, config);
+    });
+  },
+
+  /** 空间的公众号二维码图片（公开路由出图用） */
+  getOfficialQrImage(
+    spaceName: string,
+  ): Effect.Effect<{ absPath: string; mime: string } | null, Error, AppConfigService> {
+    return Effect.gen(function* () {
+      yield* assertKey(spaceName);
+      const db = yield* DbClientEffect;
+      const space = yield* tryOrFail('查询空间公众号二维码', () =>
+        db.groupSpace.findUnique({ where: { name: spaceName } }),
+      );
+      if (!space?.officialQrImagePath) return null;
+      const { uploadDir } = yield* AppConfigService;
+      const extension = space.officialQrImagePath.split('.').pop();
+      const mime = extension === 'jpg' ? 'image/jpeg' : extension === 'webp' ? 'image/webp' : 'image/png';
+      return { absPath: resolveImagePath(uploadDir, space.officialQrImagePath), mime };
     });
   },
 
   /**
    * 引流埋点（fire-and-forget）：upsert 当日计数，失败仅记日志不影响响应
-   * @param entry 入口标识
+   * @param space 空间标识（/group/<space>）
+   * @param from 来源参数（链接 ?from= 的值，空字符串 = 未携带）
    * @param appConfig 应用配置（DbClientEffect 的运行依赖）
    * @param kind 埋点类型：imgPv（动态图）/ pagePv（落地页）/ pageUv（落地页当日新 cookie）
    */
-  recordStat(entry: string, appConfig: AppConfig, kind: 'imgPv' | 'pagePv' | 'pageUv'): void {
-    if (!ENTRY_RE.test(entry)) return;
+  recordStat(space: string, from: string, appConfig: AppConfig, kind: 'imgPv' | 'pagePv' | 'pageUv'): void {
+    if (!KEY_RE.test(space) || !FROM_RE.test(from)) return;
     Effect.runPromise(
       Effect.gen(function* () {
         const db = yield* DbClientEffect;
         const today = todayStr();
         yield* tryOrFail('记录引流埋点', () =>
           db.groupStatDaily.upsert({
-            where: { date_entry: { date: today, entry } },
+            where: { date_space_from: { date: today, space, from } },
             create: {
               date: today,
-              entry,
+              space,
+              from,
               imgPv: kind === 'imgPv' ? 1 : 0,
               pagePv: kind === 'pagePv' ? 1 : 0,
               pageUv: kind === 'pageUv' ? 1 : 0,
@@ -212,11 +387,12 @@ export const GroupEntryService = {
       }).pipe(Effect.provideService(AppConfigService, appConfig)),
     ).catch((e) => console.error(`${LOG_PREFIX} 埋点失败（不影响响应）:`, extractErrorMessage(e)));
   },
-  /** 引流统计：近 N 天按入口聚合（date 倒序） */
+
+  /** 引流统计：近 N 天按 空间+来源 聚合（date 倒序） */
   getStats(days: number): Effect.Effect<
     {
       days: number;
-      items: { date: string; entry: string; imgPv: number; pagePv: number; pageUv: number }[];
+      items: { date: string; space: string; from: string; imgPv: number; pagePv: number; pageUv: number }[];
     },
     Error,
     AppConfigService
@@ -233,14 +409,15 @@ export const GroupEntryService = {
       const items = yield* tryOrFail('查询引流统计', () =>
         db.groupStatDaily.findMany({
           where: { date: { gte: sinceDate } },
-          orderBy: [{ date: 'desc' }, { entry: 'asc' }],
+          orderBy: [{ date: 'desc' }, { space: 'asc' }, { from: 'asc' }],
         }),
       );
       return {
         days: clampedDays,
         items: items.map((i) => ({
           date: i.date,
-          entry: i.entry,
+          space: i.space,
+          from: i.from,
           imgPv: i.imgPv,
           pagePv: i.pagePv,
           pageUv: i.pageUv,
@@ -253,15 +430,18 @@ export const GroupEntryService = {
    * 上传成功后的回调通知（server酱/bark，GET 一次，失败仅记日志）
    * @param appConfig 应用配置（读取 notifyUrl）
    */
-  notifyUpload(appConfig: AppConfig, entry: string, groupName?: string): void {
+  notifyUpload(appConfig: AppConfig, spaceName: string, groupName?: string): void {
     Effect.runPromise(
       Effect.gen(function* () {
         const { groupEntry } = yield* AppConfigService;
         if (!groupEntry?.notifyUrl) return;
         const url = new URL(groupEntry.notifyUrl);
-        url.searchParams.set('title', encodeURIComponent(`群码已更新: ${entry}${groupName ? `（${groupName}）` : ''}`));
+        url.searchParams.set(
+          'title',
+          encodeURIComponent(`群码已更新: ${spaceName}${groupName ? `（${groupName}）` : ''}`),
+        );
         yield* tryOrFail('发送上传回执通知', () => fetch(url, { signal: AbortSignal.timeout(10_000) }));
-        console.log(`${LOG_PREFIX} 上传回执通知已发送: ${entry}`);
+        console.log(`${LOG_PREFIX} 上传回执通知已发送: ${spaceName}`);
       }).pipe(Effect.provideService(AppConfigService, appConfig)),
     ).catch((e) => console.error(`${LOG_PREFIX} 回执通知失败（忽略）:`, extractErrorMessage(e)));
   },

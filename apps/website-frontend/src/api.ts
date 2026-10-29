@@ -60,11 +60,15 @@ export function useAPI() {
     function remoteCall(method: string, data: unknown[]) {
       let body: BodyInit;
       let content_type;
+      let requestUrl = `${baseUrl}${method}`;
       if (data[0] instanceof File) {
         const formData = new FormData();
         formData.append('file', data[0]);
         body = formData;
         content_type = undefined;
+        if (data.length > 1) {
+          requestUrl += `?args=${encodeURIComponent(superjson.stringify(data.slice(1)))}`;
+        }
       } else {
         body = superjson.stringify(data);
         content_type = 'application/json';
@@ -74,7 +78,7 @@ export function useAPI() {
       };
       if (content_type) headers['Content-Type'] = content_type;
 
-      return fetch(`${baseUrl}${method}`, {
+      return fetch(requestUrl, {
         method: 'POST',
         body,
         headers,

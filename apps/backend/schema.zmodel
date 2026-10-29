@@ -757,17 +757,49 @@ model Task with Base {
 
 /// 群二维码状态枚举
 enum GroupQRCodeStatus {
-    ACTIVE      // 生效中（当前出码）
-    ARCHIVED    // 已下线（手动换码或群满）
+    ACTIVE      // 排队出码中（多码轮换）
+    FULL        // 群已满，不再出码
+    ARCHIVED    // 已下线（手动停用）
+}
+
+/// 私域空间（核心维度）：一个空间持有公众号引导 + 轮换的微信群码池。
+/// 公开链接就是 /group/<空间名>，永久不变；「用户从哪个项目/渠道来」用 ?from= 参数记录，不建项目实体
+model GroupSpace with Base {
+    /** 空间标识（URL 中的永久锚点，/group/<name>，如 tsfullstack / silkpulse），创建后不可修改 */
+    name String @unique
+
+    /** 空间显示名 */
+    displayName String?
+
+    /** 排序权重（小的在前） */
+    sortOrder Int @default(0)
+
+    /** 公众号名称（该空间的长期引导，随群码失效成为主引导） */
+    officialName String?
+
+    /** 公众号回复关键词 */
+    officialReplyKeyword String @default('加群')
+
+    /** 公众号关注引导语 */
+    officialGuideText String?
+
+    /** 公众号二维码图片相对路径（相对 uploadDir；空 = 未上传，回退 config.json 的 URL） */
+    officialQrImagePath String?
+
+    qrcodes GroupQRCode[]
+
+    @@index([sortOrder])
 }
 
 /// 微信群二维码（私域引流）
-/// 维护模型：事件驱动——群码过期后用户关注公众号催更，博主上传新码（上传即生效）
+/// 维护模型：一个空间维护一个群码池，可同时存在多个 ACTIVE 码排队轮换——
+/// 出码按上传时间先进先出，当前码扫满（手动标 FULL）或过期后自动切到下一个，公开链接不变
 model GroupQRCode with Base {
-    /** 入口标识（silkpulse / tsfullstack / ccdd ...），README 中的永久锚点 */
-    entry String
+    /** 所属私域空间（群码池按空间维度共享） */
+    spaceId Int
+    space GroupSpace @relation(fields: [spaceId], references: [id])
 
-    /** 群名称（备注用，如「TsFullStack 交流群 2 号」） */
+    /** 群名称（如「TsFullStack 交流群 2 号」） */
     groupName String?
 
     /** 图片存储相对路径（相对 uploadDir，不含原图文件名，防路径猜测） */
@@ -785,25 +817,28 @@ model GroupQRCode with Base {
     /** 过期时刻 = uploadedAt + 7 天（含 5 分钟提前量，宁早勿晚） */
     expiresAt DateTime
 
-    /** 状态（同一 entry 同时最多一个 ACTIVE） */
+    /** 状态：ACTIVE 排队出码 / FULL 已扫满 / ARCHIVED 已下线（同空间可多个 ACTIVE 排队） */
     status GroupQRCodeStatus @default(ACTIVE)
 
     /** 博主备注 */
     note String?
 
-    /** 索引优化：按入口查当前生效码 / 按上传时间列池 */
-    @@index([entry, status])
-    @@index([entry, uploadedAt])
+    /** 索引优化：按空间取出码队列 / 按上传时间列池 */
+    @@index([spaceId, status])
+    @@index([spaceId, uploadedAt])
 }
 
-/// 引流统计（按日聚合，date+entry 联合主键）
-/// 回答「哪个 repo 真的在带人进群」，指导后续在哪些项目投入
+/// 引流统计（按日聚合，date+space+from 联合主键）
+/// from 是链接上的来源参数（?from=ccdd），自由文本，回答「哪个项目/repo 真的在带人进群」
 model GroupStatDaily {
     /** 日期（本地时区 YYYY-MM-DD） */
     date String
 
-    /** 入口标识 */
-    entry String
+    /** 私域空间标识（/group/<space>） */
+    space String
+
+    /** 来源参数（链接 ?from= 的值，空字符串 = 未携带来源） */
+    from String @default("")
 
     /** 动态图 PV（README 内嵌图展示次数） */
     imgPv Int @default(0)
@@ -817,7 +852,8 @@ model GroupStatDaily {
     created DateTime @default(now())
     updated DateTime @updatedAt
 
-    @@id([date, entry])
+    @@id([date, space, from])
     @@index([date])
+    @@index([space])
 }
 

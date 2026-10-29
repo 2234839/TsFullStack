@@ -1,7 +1,8 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Effect } from 'effect';
+import { readFile } from 'node:fs/promises';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
-import { GroupEntryService, isQrEffective } from '../services/GroupEntryService';
+import { GroupEntryService, isQrEffective, MAX_QR_UPLOAD_BYTES } from '../services/GroupEntryService';
 import { extractErrorMessage } from '../util/error';
 
 /** 日志前缀 */
@@ -47,15 +48,14 @@ async function runEffect<T>(
   }
 }
 /**
- * 生成「群码更新中」提示 SVG（shields.io 同款方案：服务器只拼字符串，中文由浏览器渲染，
- * 无 sharp/无服务器字体依赖；文案 + 公众号码引导关注）
+ * 生成无法入群时的提示 SVG：服务器只拼字符串，中文由浏览器渲染，无服务器字体依赖
  */
 function buildFallbackSvg(options: { accountName: string; replyKeyword: string }): string {
-  const line1 = '群码更新中';
-  const line2 = `关注公众号「${options.accountName}」`;
-  const line3 = `回复「${options.replyKeyword}」获取最新入群口令`;
+  const line1 = '暂时无法扫码入群';
+  const line2 = `微信关注公众号「${options.accountName}」`;
+  const line3 = `回复「${options.replyKeyword}」获取最新入群方式`;
   return [
-    '<svg xmlns="http://www.w3.org/2000/svg" width="560" height="180" viewBox="0 0 560 180" role="img" aria-label="群码更新中">',
+    '<svg xmlns="http://www.w3.org/2000/svg" width="560" height="180" viewBox="0 0 560 180" role="img" aria-label="暂时无法扫码入群">',
     '<defs>',
     '<linearGradient id="g" x1="0" y1="0" x2="1" y2="1">',
     '<stop offset="0" stop-color="#1e293b"/><stop offset="1" stop-color="#0f172a"/>',
@@ -69,12 +69,9 @@ function buildFallbackSvg(options: { accountName: string; replyKeyword: string }
   ].join('');
 }
 
-/**
- * 落地页 HTML（移动端优先，微信内打开为主场景；无外部资源依赖）
- * 状态机：有效 → 展示群码大图；过期/缺失 → 展示公众号码 + 引导文案
- */
+/** 落地页 HTML：有效时同时展示群码与公众号，失效时以公众号为主引导 */
 function buildLandingHtml(options: {
-  entry: string;
+  space: string;
   effective: boolean;
   qrDataUrl?: string;
   expiresAt?: string;
@@ -82,46 +79,101 @@ function buildLandingHtml(options: {
   accountQrUrl?: string;
   accountName: string;
   replyKeyword: string;
+  guideText: string;
 }): string {
-  const { entry, effective } = options;
-  const mainBlock =
+  const { effective } = options;
+  const groupBlock =
     effective && options.qrDataUrl
       ? [
-          `<h1 class="title">扫码进群</h1>`,
+          '<section class="card">',
+          '<p class="eyebrow">微信群</p>',
+          '<h1 class="title">扫码加入微信群</h1>',
           options.groupName ? `<p class="sub">${escapeHtml(options.groupName)}</p>` : '',
           `<img class="qr" src="${options.qrDataUrl}" alt="微信群二维码"/>`,
-          options.expiresAt ? `<p class="meta">本码有效期至 ${escapeHtml(options.expiresAt)}</p>` : '',
-          `<p class="tip">长按识别 / 扫码加入交流群</p>`,
+          options.expiresAt ? `<p class="meta">本群码预计于 ${escapeHtml(options.expiresAt)} 过期，请尽快扫码</p>` : '',
+          '<p class="tip">使用微信扫码或长按识别二维码入群</p>',
+          '</section>',
         ].join('')
       : [
-          `<h1 class="title">群码更新中</h1>`,
-          options.accountQrUrl ? `<img class="qr" src="${escapeHtml(options.accountQrUrl)}" alt="公众号二维码"/>` : '',
-          `<p class="tip">关注公众号「${escapeHtml(options.accountName)}」</p>`,
-          `<p class="tip">回复「${escapeHtml(options.replyKeyword)}」，我会收到推送马上更新</p>`,
+          '<section class="card unavailable">',
+          '<h1 class="title">暂时无法扫码入群</h1>',
+          '<p class="tip">当前微信群二维码可能已过期、群已满或暂时停用。请通过下方公众号获取最新入群方式。</p>',
+          '</section>',
         ].join('');
+  const officialBlock = [
+    '<section class="card">',
+    '<p class="eyebrow">长期联系入口</p>',
+    `<h2 class="title small">关注 ${escapeHtml(options.accountName)}</h2>`,
+    options.accountQrUrl
+      ? `<img class="qr official" src="${escapeHtml(options.accountQrUrl)}" alt="${escapeHtml(options.accountName)}公众号二维码"/>`
+      : '<p class="tip">公众号二维码暂未配置，可在微信中搜索公众号名称。</p>',
+    `<p class="tip">${escapeHtml(options.guideText)}<br/>在公众号回复「<strong>${escapeHtml(options.replyKeyword)}</strong>」获取最新入群方式。</p>`,
+    '</section>',
+  ].join('');
   return [
     '<!DOCTYPE html>',
     '<html lang="zh-CN">',
     '<head>',
     '<meta charset="utf-8"/>',
     '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>',
-    `<title>${escapeHtml(entry)} 交流群</title>`,
+    '<meta name="referrer" content="no-referrer"/>',
+    `<title>${effective ? '扫码加入微信群' : '关注公众号获取入群方式'}</title>`,
     '<style>',
-    ':root{color-scheme:dark}',
-    'body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f172a;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;color:#f8fafc}',
-    '.card{max-width:420px;width:calc(100% - 48px);padding:40px 24px;margin:24px 0;background:#1e293b;border-radius:20px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.35)}',
-    '.title{font-size:24px;margin:0 0 8px}',
-    '.sub{color:#94a3b8;margin:0 0 16px;font-size:15px}',
-    '.qr{width:min(72vw,300px);height:auto;border-radius:12px;background:#fff;padding:8px}',
-    '.meta{color:#64748b;font-size:13px;margin:16px 0 0}',
-    '.tip{color:#cbd5e1;font-size:15px;margin:16px 0 0;line-height:1.7}',
+    ':root{color-scheme:light dark}',
+    '*{box-sizing:border-box}',
+    'body{margin:0;min-height:100vh;background:#f4f7f5;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;color:#17251d}',
+    'main{max-width:460px;width:calc(100% - 32px);margin:0 auto;padding:28px 0}',
+    '.brand{text-align:center;color:#16844b;font-size:13px;font-weight:700;letter-spacing:.08em;margin:0 0 18px}',
+    '.card{padding:26px 22px;background:#fff;border:1px solid #e1e8e3;border-radius:20px;text-align:center;box-shadow:0 12px 40px rgba(15,23,42,.06)}',
+    '.card+.card{margin-top:16px}',
+    '.title{font-size:24px;line-height:1.4;margin:6px 0 12px}',
+    '.title.small{font-size:21px}',
+    '.eyebrow{color:#16844b;font-size:12px;font-weight:700;letter-spacing:.1em;margin:0}',
+    '.sub{color:#64748b;margin:0 0 16px;font-size:15px}',
+    '.qr{display:block;width:min(70vw,270px);height:min(70vw,270px);object-fit:contain;margin:0 auto;border-radius:12px;background:#fff}',
+    '.qr.official{width:min(58vw,220px);height:min(58vw,220px)}',
+    '.meta{color:#94a3b8;font-size:12px;line-height:1.6;margin:14px 0 0}',
+    '.tip{color:#526159;font-size:14px;margin:16px 0 0;line-height:1.8}',
+    '.unavailable{background:#fff9f1;border-color:#f3d5ae}.unavailable .title{color:#9a4d12}',
+    '.footer{text-align:center;color:#94a3b8;font-size:12px;line-height:1.7;margin:18px 12px 0}',
+    '@media(prefers-color-scheme:dark){body{background:#101713;color:#e2e8f0}.card{background:#18211c;border-color:#2b3930}.sub,.tip{color:#a3b0a8}.unavailable{background:#2a2118;border-color:#70461f}.unavailable .title{color:#fdba74}.qr{padding:7px}}',
     '</style>',
     '</head>',
     '<body>',
-    `<div class="card">${mainBlock}</div>`,
+    '<main><p class="brand">TSFULLSTACK</p>',
+    groupBlock,
+    officialBlock,
+    `<p class="footer">微信群码可能过期或群满，${escapeHtml(options.accountName)} 会保留最新入群方式。</p></main>`,
     '</body>',
     '</html>',
   ].join('');
+}
+
+/** 公众号二维码可达性缓存：url -> { ok, checkedAt }（命中期内不再探测，与图片缓存粒度一致） */
+const accountQrReachability = new Map<string, { ok: boolean; checkedAt: number }>();
+const ACCOUNT_QR_CHECK_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * 探测公众号二维码图片可达性：失败时不输出 <img>，避免落地页出现裂图
+ * 内部路由（/group/...）直接视为可用；外部 URL 探测失败按不可达处理（宁可少一张图，不给用户裂图）
+ */
+async function reachableAccountQrUrl(url: string | null | undefined): Promise<string | undefined> {
+  if (!url) return undefined;
+  if (url.startsWith('/')) return url;
+  if (url.startsWith('data:')) return url;
+  const cached = accountQrReachability.get(url);
+  if (cached && Date.now() - cached.checkedAt < ACCOUNT_QR_CHECK_TTL_MS) {
+    return cached.ok ? url : undefined;
+  }
+  let ok = false;
+  try {
+    const response = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
+    ok = response.ok && (response.headers.get('content-type') ?? '').startsWith('image/');
+  } catch {
+    ok = false;
+  }
+  accountQrReachability.set(url, { ok, checkedAt: Date.now() });
+  return ok ? url : undefined;
 }
 
 /** HTML 转义（落地页注入防护） */
@@ -138,71 +190,96 @@ function formatLocalTime(d: Date): string {
 /**
  * 注册私域引流路由
  *
- * 公开路由（无鉴权，面向 GitHub README 访客）：
- * - GET /group/:entry.png   动态图（有效期内返回群码，否则返回提示 SVG）
- * - GET /group/:entry       落地页（移动端优先，两态切换）
+ * 公开路由（无鉴权，面向项目 README 访客）：
+ * - GET /group/:space.png            动态图（有效期内返回群码，否则返回公众号引导 SVG）
+ * - GET /group/:space                落地页（移动端优先，两态切换；?from= 记录来源）
+ * - GET /group/official-qr/:space.png 空间公众号二维码图片
  *
  * 管理路由（x-admin-token）：
- * - POST /group/admin/qrcode            上传新群码（multipart，上传即生效）
+ * - POST /group/admin/qrcode            上传新群码（multipart，space 即空间名，不存在自动建）
  * - GET  /group/admin/qrcodes           群码池列表
  * - POST /group/admin/qrcode/:id/archive 手动下线
- * - GET  /group/admin/stats?days=30     引流统计
+ * - GET  /group/admin/stats?days=30     引流统计（按 空间+来源 聚合）
  *
  * @param appConfig 已加载的应用配置（服务启动后不可变，供 Effect 依赖注入与文案渲染）
  */
 export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: AppConfig) {
-  /** 解析路由参数里的 entry（:entry 或 :entry.png），统一去掉 .png 后缀并转小写 */
-  function parseEntry(raw: string): string | null {
-    const entry = raw.toLowerCase().replace(/\.png$/, '');
-    return /^[a-z0-9][a-z0-9-]{0,63}$/.test(entry) ? entry : null;
+  /** 解析路由参数里的空间名（:space 或 :space.png），统一去掉 .png 后缀并转小写 */
+  function parseSpace(raw: string): string | null {
+    const space = raw.toLowerCase().replace(/\.png$/, '');
+    return /^[a-z0-9][a-z0-9-]{0,63}$/.test(space) ? space : null;
   }
 
+  /** 读取链接上的来源参数（?from=），非法值视为空 */
+  function parseFrom(req: FastifyRequest): string {
+    const from = (req.query as { from?: string }).from ?? '';
+    return /^[a-zA-Z0-9_-]{0,64}$/.test(from.trim()) ? from.trim() : '';
+  }
+
+  /** 空间的公众号二维码图片 */
+  fastify.get('/group/official-qr/:space.png', async (req: FastifyRequest, reply: FastifyReply) => {
+    const space = parseSpace((req.params as { space: string }).space);
+    if (!space) {
+      reply.code(400).send({ error: '非法空间标识' });
+      return;
+    }
+    const image = await runEffect(GroupEntryService.getOfficialQrImage(space), appConfig, reply, null);
+    if (reply.sent) return;
+    if (!image) {
+      reply.code(404).send({ error: '公众号二维码尚未配置' });
+      return;
+    }
+    try {
+      const buffer = await readFile(image.absPath);
+      /** 公众号码更新频率低但必须换图立即可见，禁用缓存（管理员上传后马上要看到新图） */
+      return reply.type(image.mime).header('Cache-Control', 'no-cache').send(buffer);
+    } catch (error: unknown) {
+      console.error(`${LOG_PREFIX} 读取公众号二维码失败:`, extractErrorMessage(error));
+      reply.code(404).send({ error: '公众号二维码不可用' });
+    }
+  });
+
   /** 动态图：README `<img>` 直接引用 */
-  fastify.get('/group/:entry.png', async (req: FastifyRequest, reply: FastifyReply) => {
-    const { entry: rawEntry } = req.params as { entry: string };
-    const entry = parseEntry(rawEntry);
-    if (!entry) {
-      reply.code(400).send({ error: '非法入口标识' });
+  fastify.get('/group/:space.png', async (req: FastifyRequest, reply: FastifyReply) => {
+    const space = parseSpace((req.params as { space: string }).space);
+    if (!space) {
+      reply.code(400).send({ error: '非法空间标识' });
       return;
     }
 
-    const config = appConfig.groupEntry;
-
-    const active = await runEffect(GroupEntryService.getActiveQr(entry), appConfig, reply, null);
+    const active = await runEffect(GroupEntryService.getActiveQr(space), appConfig, reply, null);
     if (reply.sent) return;
 
-    /** 埋点放行后记录（fire-and-forget） */
-    GroupEntryService.recordStat(entry, appConfig, 'imgPv');
+    /** 埋点放行后记录（fire-and-forget），from 记录来源项目/渠道 */
+    GroupEntryService.recordStat(space, parseFrom(req), appConfig, 'imgPv');
 
-    if (active && isQrEffective(active.qr)) {
+    if (active?.qr && isQrEffective(active.qr)) {
       reply
         .type(active.qr.imageMime)
         .header('Cache-Control', IMG_CACHE_CONTROL)
         .header('Content-Length', active.qr.imageSize);
       /** fastify v5：async handler 中发送 stream 必须 return reply.send()，否则 handler resolve undefined 会把未发送的流覆盖为空 body */
-      return reply.send(GroupEntryService.openQrStream(active.absPath));
+      return reply.send(GroupEntryService.openQrStream(active.qr.absPath));
     }
 
-    /** 过期/缺失：提示图（同样 200，README 里的图不能裂） */
+    /** 过期/缺失：公众号引导图（同样 200，README 里的图不能裂） */
+    const official = active?.official;
     const svg = buildFallbackSvg({
-      accountName: config?.officialAccountName ?? '公众号',
-      replyKeyword: config?.replyKeyword ?? '加群',
+      accountName: official?.name || '公众号',
+      replyKeyword: official?.replyKeyword || '加群',
     });
     reply.type('image/svg+xml; charset=utf-8').header('Cache-Control', IMG_CACHE_CONTROL).send(svg);
   });
 
   /** 落地页：微信内打开的主场景 */
-  fastify.get('/group/:entry', async (req: FastifyRequest, reply: FastifyReply) => {
-    const { entry: rawEntry } = req.params as { entry: string };
-    const entry = parseEntry(rawEntry);
-    if (!entry) {
-      reply.code(400).send({ error: '非法入口标识' });
+  fastify.get('/group/:space', async (req: FastifyRequest, reply: FastifyReply) => {
+    const space = parseSpace((req.params as { space: string }).space);
+    if (!space) {
+      reply.code(400).send({ error: '非法空间标识' });
       return;
     }
 
-    const config = appConfig.groupEntry;
-
-    const active = await runEffect(GroupEntryService.getActiveQr(entry), appConfig, reply, null);
+    const active = await runEffect(GroupEntryService.getActiveQr(space), appConfig, reply, null);
     if (reply.sent) return;
 
     /** UV：当日首次访问写 cookie（path 限定 /group，无 @fastify/cookie 时降级为只记 PV） */
@@ -211,28 +288,34 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     if (isNewUv) {
       reply.header('Set-Cookie', `${UV_COOKIE}=${Date.now()}; Path=/group; Max-Age=${UV_COOKIE_MAX_AGE}; SameSite=Lax`);
     }
-    GroupEntryService.recordStat(entry, appConfig, 'pagePv');
-    if (isNewUv) GroupEntryService.recordStat(entry, appConfig, 'pageUv');
+    /** from 记录用户从哪个项目/渠道过来（链接 ?from= 参数） */
+    const from = parseFrom(req);
+    GroupEntryService.recordStat(space, from, appConfig, 'pagePv');
+    if (isNewUv) GroupEntryService.recordStat(space, from, appConfig, 'pageUv');
 
     /** 群码转 data URL 内嵌（落地页 no-store 避免缓存旧码；也不暴露原图路径） */
+    const activeQr = active?.qr && isQrEffective(active.qr) ? active.qr : null;
     let qrDataUrl: string | undefined;
     let effective = false;
-    if (active && isQrEffective(active.qr)) {
+    if (activeQr) {
       effective = true;
-      const { readFile } = await import('fs/promises');
-      const buf = await readFile(active.absPath);
-      qrDataUrl = `data:${active.qr.imageMime};base64,${buf.toString('base64')}`;
+      const buf = await readFile(activeQr.absPath);
+      qrDataUrl = `data:${activeQr.imageMime};base64,${buf.toString('base64')}`;
     }
 
+    /** 公众号引导：空间配置优先（内部路由直接可用），外部回退 URL 需探测可达性 */
+    const official = active?.official;
+    const accountQrUrl = official?.qrUrl ? await reachableAccountQrUrl(official.qrUrl) : undefined;
     const html = buildLandingHtml({
-      entry,
+      space,
       effective,
       qrDataUrl,
-      expiresAt: active && isQrEffective(active.qr) ? formatLocalTime(active.qr.expiresAt) : undefined,
-      groupName: active?.qr.groupName ?? undefined,
-      accountQrUrl: config?.officialAccountQrUrl,
-      accountName: config?.officialAccountName ?? '公众号',
-      replyKeyword: config?.replyKeyword ?? '加群',
+      expiresAt: activeQr ? formatLocalTime(activeQr.expiresAt) : undefined,
+      groupName: activeQr?.groupName ?? undefined,
+      accountQrUrl,
+      accountName: official?.name || '公众号',
+      replyKeyword: official?.replyKeyword || '加群',
+      guideText: official?.guideText || '关注公众号，群码更新和入群方式有变化时可以及时收到通知。',
     });
     reply.type('text/html; charset=utf-8').header('Cache-Control', 'no-store').send(html);
   });
@@ -248,11 +331,11 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     return true;
   }
 
-  /** 上传新群码（multipart：file + entry + groupName? + note?） */
+  /** 上传新群码（multipart：file + space + groupName? + note?） */
   fastify.post('/group/admin/qrcode', async (req: FastifyRequest, reply: FastifyReply) => {
     if (!guard(req, reply)) return;
 
-    const file = await req.file();
+    const file = await req.file({ limits: { fileSize: MAX_QR_UPLOAD_BYTES } });
     if (!file) {
       reply.code(400).send({ error: '缺少图片文件（multipart 字段名 file）' });
       return;
@@ -267,14 +350,17 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
       return undefined;
     };
 
-    const entry = (fieldValue('entry') ?? '').trim().toLowerCase();
+    /** 兼容旧脚本的 entry 字段名，语义即空间名；空间不存在自动创建 */
+    const space = (fieldValue('space') ?? fieldValue('entry') ?? '').trim().toLowerCase();
     const groupName = fieldValue('groupName');
     const note = fieldValue('note');
 
     const buffer = await file.toBuffer();
+    const ensured = await runEffect(GroupEntryService.ensureSpace(space), appConfig, reply, null);
+    if (reply.sent || !ensured) return;
 
     const created = await runEffect(
-      GroupEntryService.uploadQr({ entry, groupName, note, buffer, mime: file.mimetype }),
+      GroupEntryService.uploadQr({ spaceId: ensured.id, groupName, note, buffer, mime: file.mimetype }),
       appConfig,
       reply,
       null,
@@ -282,15 +368,18 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     if (reply.sent) return;
 
     /** 上传回执（fire-and-forget，失败不影响响应） */
-    GroupEntryService.notifyUpload(appConfig, entry, groupName);
+    GroupEntryService.notifyUpload(appConfig, ensured.name, groupName);
     reply.send({ success: true, qrcode: created });
   });
 
   /** 群码池列表 */
   fastify.get('/group/admin/qrcodes', async (req: FastifyRequest, reply: FastifyReply) => {
     if (!guard(req, reply)) return;
-    const list = await runEffect(GroupEntryService.listQrs(), appConfig, reply, []);
+    const spaces = await runEffect(GroupEntryService.listSpaces(), appConfig, reply, []);
     if (reply.sent) return;
+    const list = spaces.flatMap((space) =>
+      space.qrcodes.map((qr) => ({ ...qr, spaceId: space.id, spaceName: space.name })),
+    );
     reply.send({ items: list });
   });
 
@@ -302,7 +391,7 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
       reply.code(400).send({ error: '非法 id' });
       return;
     }
-    const result = await runEffect(GroupEntryService.archiveQr(id), appConfig, reply, null);
+    const result = await runEffect(GroupEntryService.setQrStatus(id, 'ARCHIVED'), appConfig, reply, null);
     if (reply.sent) return;
     reply.send(result);
   });
@@ -316,5 +405,5 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     reply.send(stats);
   });
 
-  console.log(`${LOG_PREFIX} 私域引流路由已注册: /group/:entry(.png), /group/admin/*`);
+  console.log(`${LOG_PREFIX} 私域引流路由已注册: /group/:space(.png), /group/official-qr/:space.png, /group/admin/*`);
 }

@@ -75,6 +75,14 @@ export const routeMap = reactive({
           icon: 'pi pi-share-alt',
         },
       },
+      groupEntry: {
+        path: 'groupEntry',
+        component: () => import('@/pages/admin/GroupEntryManagement.vue'),
+        meta: {
+          title: t('私域引流'),
+          icon: 'pi pi-qrcode',
+        },
+      },
       aiModelManager: {
         path: 'aiModelManager',
         component: () => import('@/pages/admin/AiModelManager.vue'),

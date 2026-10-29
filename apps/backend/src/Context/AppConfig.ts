@@ -75,8 +75,8 @@ export type AppConfig = {
   groupEntry?: {
     /** 管理接口令牌（x-admin-token），未配置则管理接口整体禁用；拒绝弱值（<16 字符） */
     adminToken: string;
-    /** 公众号二维码图片的公开 URL（永不过期的兜底入口，提示图/落地页引用） */
-    officialAccountQrUrl: string;
+    /** 配置文件中的公众号码 URL；后台上传后优先使用后台图片 */
+    officialAccountQrUrl?: string;
     /** 公众号名称（文案展示用） */
     officialAccountName?: string;
     /** 关注后回复的关键词（文案展示用，默认「加群」） */
