@@ -30,6 +30,7 @@ import {
 import { getAuthFromCache } from './authCache';
 import { registerWebhookRoutes } from './webhook';
 import { registerGroupEntryRoutes } from './groupEntry';
+import { registerWechatRoutes } from './wechat';
 import { CORS_MAX_AGE_SECONDS, MAX_UPLOAD_BYTES, SERVER_PORT, SERVER_HOST, MAX_WAIT_MS, MSG } from '../util/constants';
 
 /** 通用 RPC 调用辅助（消除 app-api/api 两分支的重复 tryPromise+isEffect 模式） */
@@ -481,6 +482,9 @@ export const startServer = Effect.gen(function* () {
 
   /** 注册私域引流路由（微信群动态入口：/group/:entry(.png) + /group/admin/*） */
   registerGroupEntryRoutes(fastify, appConfig);
+
+  /** 注册微信公众号消息路由（GET/POST /wechat，未配置 config.wechat 时不注册） */
+  registerWechatRoutes(fastify, appConfig);
 
   /** 处理 SPA 路由回退 */
   fastify.setNotFoundHandler((request, reply) => {

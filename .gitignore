@@ -85,3 +85,4 @@ backup/
 # agent 测试运行产物（tasks.json/tools.json/backups），不入库
 test-data/
 test-data-fast/
+.chatcode/

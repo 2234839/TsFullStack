@@ -9,6 +9,11 @@
   "ApiProxy": {
     "github": "https://api-proxy.example.com"
   },
+  "wechat": {
+    "appId": "your-wechat-appid",
+    "appSecret": "your-wechat-appsecret",
+    "token": "your-wechat-server-token"
+  },
   "groupEntry": {
     "adminToken": "your-group-entry-admin-token-at-least-16-chars",
     "officialAccountQrUrl": "https://your-cdn.example.com/official-account-qr.png",

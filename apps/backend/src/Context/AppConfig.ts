@@ -71,6 +71,15 @@ export type AppConfig = {
     /** 订单过期时间（分钟） */
     orderExpireMinutes?: number;
   };
+  /** 微信公众号服务器配置（接收/回复用户消息），未配置则 /wechat 路由不注册 */
+  wechat?: {
+    /** 公众号 AppID */
+    appId: string;
+    /** 公众号 AppSecret */
+    appSecret: string;
+    /** 服务器配置的 Token（用于校验微信签名） */
+    token: string;
+  };
   /** 私域引流（微信群入口）配置 */
   groupEntry?: {
     /** 管理接口令牌（x-admin-token），未配置则管理接口整体禁用；拒绝弱值（<16 字符） */

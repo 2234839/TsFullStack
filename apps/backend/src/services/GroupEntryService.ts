@@ -152,6 +152,49 @@ export const GroupEntryService = {
     });
   },
 
+  /** 按公众号回复关键词查空间出码：先精确匹配空间关键词，未命中且等于默认关键词时取排序最前的空间 */
+  getActiveQrByReplyKeyword(
+    keyword: string,
+  ): Effect.Effect<
+    { qr: (GroupQRCode & { absPath: string }) | null; spaceName: string; official: SpaceOfficialView } | null,
+    Error,
+    AppConfigService
+  > {
+    return Effect.gen(function* () {
+      const db = yield* DbClientEffect;
+      const kw = keyword.trim();
+      const { groupEntry: config } = yield* AppConfigService;
+      const exact = yield* tryOrFail('按关键词查询空间', () =>
+        db.groupSpace.findFirst({
+          where: { officialReplyKeyword: kw },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        }),
+      );
+      let space = exact;
+      if (!space && kw === (config?.replyKeyword || '加群')) {
+        space = yield* tryOrFail('按默认关键词查询空间', () =>
+          db.groupSpace.findFirst({ orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] }),
+        );
+      }
+      if (!space) return null;
+      const pool = yield* tryOrFail('查询空间群码池', () =>
+        db.groupQRCode.findMany({
+          where: { spaceId: space.id, status: 'ACTIVE' },
+          orderBy: { uploadedAt: 'asc' },
+        }),
+      );
+      const { uploadDir } = yield* AppConfigService;
+      const official = spaceOfficialView(space, config);
+      const qr = pool.find(isQrEffective);
+      if (!qr) return { qr: null, spaceName: space.name, official };
+      return {
+        qr: { ...qr, absPath: resolveImagePath(uploadDir, qr.imagePath) },
+        spaceName: space.name,
+        official,
+      };
+    });
+  },
+
   /** 上传群码到空间池，不归档其他有效码，多个码按上传顺序轮换 */
   uploadQr(options: {
     spaceId: number;

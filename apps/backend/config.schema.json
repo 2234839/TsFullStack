@@ -127,6 +127,26 @@
       },
       "additionalProperties": false
     },
+    "wechat": {
+      "type": "object",
+      "description": "微信公众号服务器配置（接收用户消息自动回复群码），未配置则 /wechat 路由不注册",
+      "properties": {
+        "appId": {
+          "type": "string",
+          "description": "公众号 AppID"
+        },
+        "appSecret": {
+          "type": "string",
+          "description": "公众号 AppSecret"
+        },
+        "token": {
+          "type": "string",
+          "description": "公众号后台服务器配置的 Token（用于签名校验）"
+        }
+      },
+      "required": ["appId", "appSecret", "token"],
+      "additionalProperties": false
+    },
     "groupEntry": {
       "type": "object",
       "description": "私域引流（微信群入口）配置，未配置则 /group 路由仅做统计、出公众号引导",
