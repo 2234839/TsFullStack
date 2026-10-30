@@ -26,6 +26,8 @@ export interface RecentRequestRow {
   sqlTotalMs: number;
   sqlMaxMs: number;
   loopLagMaxMs: number;
+  /** 卡顿归属：self=自身同步执行冻结了事件循环；other=排队期间被他人冻结（受害者）；undefined=无显著卡顿或旧版本记录 */
+  lagOwner?: 'self' | 'other';
   error: boolean;
   timeline: Array<Record<string, unknown>>;
   created: string;

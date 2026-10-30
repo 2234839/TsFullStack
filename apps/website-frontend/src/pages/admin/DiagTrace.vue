@@ -147,11 +147,18 @@
               blockingType === '硬阻塞' ? 'bg-danger-500/10 text-danger-600 dark:text-danger-400' : 'bg-primary-500/10'
             "
           >
-            {{ t('判定') }}: <b>{{ blockingType }}</b>
-            <template v-if="blockingType === '硬阻塞'">
-              — {{ t('同步执行冻结了事件循环（同步 SQL / 大对象序列化），期间整个进程无法响应') }}</template
-            >
-            <template v-else> — {{ t('耗时在外部 IO / API 等待，进程本身未冻结') }}</template>
+            <template v-if="blockingType === '硬阻塞' && lagOwner === 'other'">
+              判定: <b>受连带冻结</b> —
+              {{ t('卡顿发生在自身执行之外：是同时段其他请求的同步执行冻结了事件循环，本请求自身耗时短，无需优化') }}
+            </template>
+            <template v-else-if="blockingType === '硬阻塞'">
+              判定: <b>{{ blockingType }}</b> —
+              {{ t('同步执行冻结了事件循环（同步 SQL / 大对象序列化），期间整个进程无法响应') }}
+            </template>
+            <template v-else>
+              判定: <b>{{ blockingType }}</b> —
+              {{ t('耗时在外部 IO / API 等待，进程本身未冻结') }}
+            </template>
           </div>
           <div class="mt-3">
             <div class="text-primary-theme mb-2">
@@ -357,6 +364,14 @@ const netPhase = computed(() => {
   return tl.find((el) => (el as { phase?: string }).phase === 'net') as
     | { uploadMs?: number; sendMs?: number; respBytes?: number }
     | undefined;
+});
+
+/** 卡顿归属（timeline 的 loopLag 阶段：self=自身冻结事件循环；other=排队时被他人冻结） */
+const lagOwner = computed<'self' | 'other' | undefined>(() => {
+  const tl = detail.value?.timeline;
+  if (!Array.isArray(tl)) return undefined;
+  const ev = tl.find((el) => (el as { phase?: string }).phase === 'loopLag');
+  return ev && (ev.owner === 'self' || ev.owner === 'other') ? ev.owner : undefined;
 });
 
 /** 驱动层真实执行语句（timeline 的 driverSql 阶段，含 SQL 文本与真实耗时） */
@@ -588,7 +603,10 @@ const columns = computed<ColumnDef<TraceRow | RecentRow>[]>(() => [
     title: t('事件循环卡顿'),
     render: (row) => {
       const tag = lagTag(row.loopLagMaxMs);
-      return h(Tag, { value: `${tag.value} ${row.loopLagMaxMs}ms`, variant: tag.variant });
+      /** 实时行带 lagOwner：other = 卡顿落在自身执行之外，是被同刻其他请求连带冻结的受害者 */
+      const owner = (row as RecentRow).lagOwner;
+      const suffix = owner === 'other' ? `（${t('受连带')}）` : owner === 'self' ? `（${t('自身冻结')}）` : '';
+      return h(Tag, { value: `${tag.value} ${row.loopLagMaxMs}ms${suffix}`, variant: tag.variant });
     },
   },
   {

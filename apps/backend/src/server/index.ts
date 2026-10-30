@@ -350,16 +350,30 @@ function finalizeDiag(input: {
     if (tree.length > 0) timeline.push({ phase: 'spanTree', tree });
   }
   if (error) timeline.push({ phase: 'error', note: '请求以错误结束，总耗时含错误序列化' });
-  /** 事件循环卡顿样本（仅保留有实际卡顿的），叠加展示在时间轴上 */
+  /** 卡顿归属：卡顿样本落在自身执行区间（auth/rpc span）内 = 自己冻结了事件循环（肇事者）；
+  落在间隙 = 自己只是在排队时被别人冻结（受害者，自身耗时很短，无需优化） */
+  const ownSpans: Array<[number, number]> = [];
+  if (authAt != null && authMs != null) ownSpans.push([authAt, authAt + authMs]);
+  if (rpcAt != null && rpcMs != null) ownSpans.push([rpcAt, rpcAt + rpcMs]);
+  const lagOverlapsSelf = (lag: { at: number; ms: number }) =>
+    ownSpans.some(([s, e]) => lag.at < e && lag.at + lag.ms > s);
   const lagItems = lagSlices.filter((s) => s.ms >= 5);
   if (lagItems.length > 0) {
+    /** 最大卡顿样本的归属作为请求级判定 */
+    const maxLag = lagItems.reduce((a, b) => (b.ms > a.ms ? b : a));
     timeline.push({
       phase: 'loopLag',
       maxMs: loopLagMaxMs,
+      owner: lagOverlapsSelf(maxLag) ? 'self' : 'other',
       items: lagItems.slice(0, DIAG_SQL_EVENTS_LIMIT),
     });
   }
 
+  const lagPhase = timeline.find((t) => t.phase === 'loopLag');
+  const lagOwner =
+    lagPhase && typeof lagPhase.owner === 'string' && (lagPhase.owner === 'self' || lagPhase.owner === 'other')
+      ? lagPhase.owner
+      : undefined;
   const row = {
     method,
     totalMs: Math.round(totalMs),
@@ -369,6 +383,8 @@ function finalizeDiag(input: {
     sqlTotalMs,
     sqlMaxMs,
     loopLagMaxMs,
+    /** 卡顿归属：self=自身同步执行冻结了事件循环；other=排队期间被他人冻结（受害者） */
+    lagOwner: lagPhase?.owner,
     timeline,
   };
 
@@ -382,6 +398,7 @@ function finalizeDiag(input: {
     sqlTotalMs: row.sqlTotalMs,
     sqlMaxMs: row.sqlMaxMs,
     loopLagMaxMs: row.loopLagMaxMs,
+    lagOwner: row.lagOwner,
     error,
     timeline,
   });
