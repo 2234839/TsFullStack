@@ -320,23 +320,28 @@ export const router = createRouter({
 });
 
 /**
- * 路由错误兜底：当懒加载 chunk 因部署更新而 404 时，自动检测并刷新。
- * 这是主动轮询（useUpdateChecker）的补充——覆盖用户在两次轮询之间导航的场景。
+ * 路由错误兜底：当懒加载 chunk 因部署更新而 404 时，刷新页面加载新资源。
+ * 发版窗口期的旧页面引用的 chunk 已被删除，检测是否因更新并不可靠（index.html 可能命中缓存），
+ * 因此 chunk 错误一律先无脑 reload 一次（sessionStorage 防循环），reload 后仍失败才回首页。
  */
 router.onError(async (error) => {
   const isChunkLoadError =
     error?.message?.includes('Failed to fetch dynamically imported module') ||
     error?.message?.includes('Importing a module script failed') ||
-    error?.message?.includes('error loading dynamically imported module');
+    error?.message?.includes('error loading dynamically imported module') ||
+    /** Safari 的 chunk 404 报的是找不到模块 */
+    error?.message?.includes("Couldn't find the module");
   if (!isChunkLoadError) return;
 
-  const { handleChunkLoadError } = await import('@/composables/useUpdateChecker');
-  const handled = await handleChunkLoadError();
-  if (!handled) {
-    /** 不是更新导致的 chunk 加载失败（可能是网络问题），跳首页避免白屏 */
-    console.error('[Router] chunk 加载失败且非更新导致', error);
-    window.location.href = '/';
+  const RELOADED_KEY = 'tfs_chunkErrorReloaded';
+  if (!sessionStorage.getItem(RELOADED_KEY)) {
+    sessionStorage.setItem(RELOADED_KEY, '1');
+    window.location.reload();
+    return;
   }
+  /** reload 过仍失败（可能是网络问题），跳首页避免白屏 */
+  console.error('[Router] chunk 加载失败且 reload 无效', error);
+  window.location.href = '/';
 });
 
 export type RouteObjProps<T extends { component?: ((...args: any) => any) | null | undefined }> =
