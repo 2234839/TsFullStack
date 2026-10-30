@@ -12,10 +12,16 @@
       <div class="flex-1 overflow-hidden">
         <div class="h-full w-full overflow-auto custom-scrollbar">
           <RouterView :key="$route.fullPath" v-slot="{ Component }">
+            <!-- keepAlive 分支包 Suspense：DataBaseStudio 等组件的 setup 含顶层 await（异步 setup），
+                 无 Suspense 边界时导航进入会静默渲染为空（白屏），直接刷新首屏则可能由外层兜住 -->
             <keep-alive>
-              <component :is="Component" v-if="$route.meta.keepAlive" />
+              <Suspense>
+                <component :is="Component" v-if="$route.meta.keepAlive" />
+              </Suspense>
             </keep-alive>
-            <component :is="Component" v-if="!$route.meta.keepAlive" />
+            <Suspense>
+              <component :is="Component" v-if="!$route.meta.keepAlive" />
+            </Suspense>
           </RouterView>
         </div>
       </div>
