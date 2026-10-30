@@ -58,7 +58,7 @@ let _cachedDatabase: InstanceType<typeof Database> | null = null;
 interface DriverTiming {
   /** 语句注释 id（/*sN*\/ 前缀），全局唯一，供 onQuery 认领 */
   id: number;
-  /** 语句开始，相对进程启动的毫秒（hrtime.bigint()/1e6，与 performance.now 同基） */
+  /** 语句开始，performance.now 同基毫秒（由 hrtime 换算），可跨模块比较 */
   atMs: number;
   /** 语句耗时 ms */
   ms: number;
@@ -74,6 +74,15 @@ const DRIVER_TIMINGS_CAP = 2000;
 /** 语句注释 id 自增序号 */
 let _stmtSeq = 0;
 
+/** hrtime 与 performance.now 的原点差：hrtime.bigint 是开机纳秒，performance.now 是进程启动毫秒，同为单调钟但原点不同，需换算后才能比较 */
+const _hrtimeOrigin = process.hrtime.bigint();
+const _perfOrigin = performance.now();
+
+/** 把 hrtime.bigint 换算到 performance.now 毫秒时基 */
+function hrtimeToPerfMs(t: bigint): number {
+  return Number(t - _hrtimeOrigin) / 1e6 + _perfOrigin;
+}
+
 /** 统计一条语句执行，写入缓冲 */
 function recordDriverTiming(id: number, sql: string, fn: () => unknown): unknown {
   const start = process.hrtime.bigint();
@@ -82,7 +91,7 @@ function recordDriverTiming(id: number, sql: string, fn: () => unknown): unknown
   } finally {
     const ms = Number(process.hrtime.bigint() - start) / 1e6;
     if (_driverTimings.length >= DRIVER_TIMINGS_CAP) _driverTimings.splice(0, 500);
-    _driverTimings.push({ id, atMs: Number(start) / 1e6, ms, sql, claimed: false });
+    _driverTimings.push({ id, atMs: hrtimeToPerfMs(start), ms, sql, claimed: false });
   }
 }
 
@@ -110,8 +119,8 @@ function withDriverTiming(db: InstanceType<typeof Database>): InstanceType<typeo
 
 /** 认领 [t0, t1]（hrtime 纳秒）窗口内的未认领驱动语句，返回真实执行总耗时 ms；认领后语句不再计入其他查询。查询嵌套时内层先认领（先结束先认领），外层拿到的是剔除内层后的剩余 */
 function claimDriverExecMs(t0: bigint, t1: bigint): number {
-  const w0 = Number(t0) / 1e6;
-  const w1 = Number(t1) / 1e6;
+  const w0 = hrtimeToPerfMs(t0);
+  const w1 = hrtimeToPerfMs(t1);
   let total = 0;
   for (const t of _driverTimings) {
     if (t.claimed) continue;

@@ -119,6 +119,15 @@
             <span
               ><span class="text-primary-theme">{{ t('排队') }}: </span>{{ detail.queueWaitMs }}ms</span
             >
+            <span v-if="netPhase?.uploadMs != null" :title="t('请求到达（headers 完）→ 入参接收并解析完毕')">
+              <span class="text-primary-theme">{{ t('上传') }}: </span>{{ netPhase.uploadMs }}ms
+            </span>
+            <span
+              v-if="netPhase?.sendMs != null"
+              :title="t('响应开始写出 → 发送完毕') + (netPhase.respBytes != null ? `（${netPhase.respBytes}B）` : '')"
+            >
+              <span class="text-primary-theme">{{ t('响应传输') }}: </span>{{ netPhase.sendMs }}ms
+            </span>
             <span v-if="detail.authMs != null"
               ><span class="text-primary-theme">{{ t('鉴权') }}: </span>{{ detail.authMs }}ms</span
             >
@@ -322,6 +331,15 @@ const sqlItems = computed(() => {
     | { items?: Array<{ model: string; operation: string; ms: number; execMs?: number; at: number }> }
     | undefined;
   return ev?.items ?? [];
+});
+
+/** 网络阶段（timeline 的 net 阶段：上传/响应传输耗时与响应字节） */
+const netPhase = computed(() => {
+  const tl = detail.value?.timeline;
+  if (!Array.isArray(tl)) return null;
+  return tl.find((el) => (el as { phase?: string }).phase === 'net') as
+    | { uploadMs?: number; sendMs?: number; respBytes?: number }
+    | undefined;
 });
 
 /** 驱动层真实执行语句（timeline 的 driverSql 阶段，含 SQL 文本与真实耗时） */

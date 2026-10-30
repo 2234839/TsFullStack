@@ -208,6 +208,28 @@ type ApiCtx = {
   pathPrefix: string;
   onEnd: () => void;
   enqueueTime: number;
+  /** 入队时刻（performance.now 单调时基），与驱动计时/tHeaders 同基 */
+  enqueuePerf: number;
+};
+
+/** 请求网络阶段时间戳（performance.now 单调时基），由 Fastify 生命周期钩子写入 */
+type NetPhases = {
+  /** 请求到达（onRequest：headers 解析完，body 未读） */
+  tHeaders?: number;
+  /** 响应开始（onSend：payload 序列化完即将写 socket） */
+  tSendStart?: number;
+  /** 响应完毕回调（handleReq 预置，onResponse 触发，拿到 tSendDone 后落盘诊断） */
+  finalize?: (tSendDone: number, respBytes?: number) => void;
+};
+const netPhases = new WeakMap<FastifyRequest, NetPhases>();
+
+/** 出站响应字节数（onResponse 时读 content-length，无则 undefined） */
+const contentLengthOf = (request: FastifyRequest): number | undefined => {
+  const v =
+    request.raw.headers['content-length'] ??
+    (request as unknown as { reply?: { getHeader?: (k: string) => unknown } }).reply?.getHeader?.('content-length');
+  const n = typeof v === 'string' ? Number(v) : NaN;
+  return Number.isFinite(n) ? n : undefined;
 };
 
 /** rpc 实例，提到外部可避免每次重新创建 */
@@ -241,6 +263,12 @@ function finalizeDiag(input: {
   error: boolean;
   /** 本请求的 span 采集器（有则落盘 span 树） */
   spanCollector?: SpanCollector;
+  /** 入队时刻（performance.now 单调时基），与驱动计时同基，用于 driverSql 窗口与上传耗时 */
+  enqueuePerf?: number;
+  /** 响应完毕时刻（onResponse 触发，performance.now） */
+  tSendDone?: number;
+  /** 出站响应字节数（content-length，无则 undefined） */
+  respBytes?: number;
 }) {
   const {
     reqCtx,
@@ -255,16 +283,28 @@ function finalizeDiag(input: {
     totalMs,
     error,
     spanCollector,
+    enqueuePerf,
+    tSendDone,
+    respBytes,
   } = input;
   const sqlEvents = reqCtx.sqlEvents;
   const sqlTotalMs = sqlEvents.reduce((sum, el) => sum + el.ms, 0);
   const sqlMaxMs = sqlEvents.reduce((max, el) => Math.max(max, el.ms), 0);
   const loopLagMaxMs = maxLoopLagBetween(startPerf, endPerf);
-  const queueWaitMs = Math.max(0, startPerf - enqueueTime);
+  const queueWaitMs = enqueuePerf != null ? Math.max(0, startPerf - enqueuePerf) : Math.max(0, startPerf - enqueueTime);
 
   const timeline: Array<Record<string, unknown>> = [
     { phase: 'queue', ms: Math.round(queueWaitMs), at: 0, note: '请求在处理队列中的等待' },
   ];
+  /** 网络阶段：上传（请求到达→入参完毕）、响应传输（onSend→onResponse） */
+  const ph = netPhases.get(reqCtx.req);
+  const uploadMs =
+    enqueuePerf != null && ph?.tHeaders != null ? Math.max(0, Math.round(enqueuePerf - ph.tHeaders)) : undefined;
+  const sendMs =
+    ph?.tSendStart != null && tSendDone != null ? Math.max(0, Math.round(tSendDone - ph.tSendStart)) : undefined;
+  if (uploadMs != null || sendMs != null) {
+    timeline.push({ phase: 'net', uploadMs, sendMs, respBytes });
+  }
   if (authMs != null)
     timeline.push({
       phase: 'auth',
@@ -287,7 +327,7 @@ function finalizeDiag(input: {
     items: sqlEvents.slice(0, DIAG_SQL_EVENTS_LIMIT),
   });
   /** 驱动层真实执行语句（自描述事件，与 sqlEvents 的差值即 ORM 校验/建查询开销） */
-  const driverSql = snapshotDriverTimings(enqueueTime, endPerf).slice(0, DIAG_SQL_EVENTS_LIMIT);
+  const driverSql = snapshotDriverTimings(enqueuePerf ?? 0, endPerf).slice(0, DIAG_SQL_EVENTS_LIMIT);
   if (driverSql.length > 0) {
     timeline.push({
       phase: 'driverSql',
@@ -343,7 +383,7 @@ function finalizeDiag(input: {
 }
 
 /** 注意，这里必须要等待发送数据完毕，否则 onEnd 之后数据将无法发送 */
-function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
+function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: ApiCtx) {
   const startTime = Date.now();
   const startPerf = performance.now();
   const diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number } = { t0: startPerf };
@@ -426,20 +466,29 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
 
     onEnd();
     const endTime = Date.now();
-    finalizeDiag({
-      reqCtx,
-      method,
-      enqueueTime,
-      authMs: diag.authMs,
-      authAt: diag.authAt,
-      rpcMs: diag.rpcMs,
-      rpcAt: diag.rpcAt,
-      startPerf,
-      endPerf: performance.now(),
-      totalMs: endTime - startTime,
-      error: failed,
-      spanCollector,
-    });
+    const endPerf = performance.now();
+    /** 诊断落盘延迟到 onResponse（响应发完）：拿到响应传输耗时后一次性归档 */
+    const finalize = (tSendDone: number, respBytes?: number) =>
+      finalizeDiag({
+        reqCtx,
+        method,
+        enqueueTime,
+        enqueuePerf,
+        authMs: diag.authMs,
+        authAt: diag.authAt,
+        rpcMs: diag.rpcMs,
+        rpcAt: diag.rpcAt,
+        startPerf,
+        endPerf,
+        totalMs: endTime - startTime,
+        error: failed,
+        spanCollector,
+        tSendDone,
+        respBytes,
+      });
+    const ph = netPhases.get(req);
+    if (ph) ph.finalize = finalize;
+    else finalize(endPerf);
     return yield* systemLog({ level: 'info', message: `${endTime - startTime}ms ${method}` }, reqCtx);
   });
 }
@@ -575,7 +624,13 @@ export const startServer = Effect.gen(function* () {
    * - CSP: script-src 仅同源（防注入外链脚本）；img/media 允许外部源（头像 ui-avatars.com、
    *   AI 生图 pollinations.ai 等业务依赖）；connect-src 允许任意 https（用户可自定义 OpenAI 兼容端点）
    */
+  fastify.addHook('onRequest', async (request) => {
+    netPhases.set(request, { tHeaders: performance.now() });
+  });
+
   fastify.addHook('onSend', async (request, reply) => {
+    const ph = netPhases.get(request);
+    if (ph) ph.tSendStart = performance.now();
     const pathname = new URL(request.url, 'http://localhost').pathname.replace(/\/+$/, '');
     const allowCrossOriginFrame = pathname === '/noteCalc' || pathname === '/noteCalc/embed';
 
@@ -602,6 +657,11 @@ export const startServer = Effect.gen(function* () {
       ].join('; '),
     );
   });
+  /** 响应发完才落盘诊断：拿到响应完毕时刻与出站字节，避免响应未完成就归档 */
+  fastify.addHook('onResponse', async (request) => {
+    netPhases.get(request)?.finalize?.(performance.now(), contentLengthOf(request));
+  });
+
   //#endregion
 
   /** 创建一个无界队列 */
@@ -634,6 +694,7 @@ export const startServer = Effect.gen(function* () {
           reply,
           pathPrefix,
           enqueueTime: Date.now(),
+          enqueuePerf: performance.now(),
           onEnd: onceResolve,
         });
       });
