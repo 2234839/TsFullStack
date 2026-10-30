@@ -1,22 +1,12 @@
 <template>
   <div class="min-h-screen bg-primary-surface text-primary-heading">
-    <RouterView v-slot="{ Component, route: innerRoute }">
+    <RouterView v-slot="{ Component }">
       <template v-if="Component">
+        <!-- 单一分支 + Suspense：曾按 meta.keepAlive 切 KeepAlive/裸 Suspense 双分支，
+             配合 Transition out-in 与懒加载 chunk，生产构建下导航进 keepAlive 路由会
+             静默渲染为空（无任何报错）。页面级缓存由 AdminLayout 内层 RouterView 负责 -->
         <Transition mode="out-in">
-          <KeepAlive v-if="innerRoute.meta.keepAlive">
-            <Suspense>
-              <component :is="Component" />
-              <template #fallback>
-                <div class="flex items-center justify-center min-h-screen">
-                  <div class="text-center">
-                    <ProgressSpinner />
-                    <p class="mt-4 text-primary-theme">{{ t('正在加载...') }}</p>
-                  </div>
-                </div>
-              </template>
-            </Suspense>
-          </KeepAlive>
-          <Suspense v-else>
+          <Suspense>
             <component :is="Component" />
             <template #fallback>
               <div class="flex items-center justify-center min-h-screen">
