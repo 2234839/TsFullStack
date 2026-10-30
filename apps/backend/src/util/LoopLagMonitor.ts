@@ -98,6 +98,24 @@ export function stopLoopLagMonitor() {
   }
 }
 
+/** 单条卡顿样本（导出给诊断时间线叠加展示） */
+export type LagSlice = { at: number; lagMs: number };
+
+/**
+ * 取 [startMs, endMs] 时间窗内的卡顿样本（时基与 performance.now 一致），
+ * 供诊断时间线在瀑布图上叠加展示「哪些时段事件循环被冻结」。
+ */
+export function lagSamplesBetween(startMs: number, endMs: number): LagSlice[] {
+  const out: LagSlice[] = [];
+  for (const s of samples) {
+    if (s.at > endMs) break;
+    if (s.at + Math.max(s.lagMs, SAMPLE_INTERVAL_MS) >= startMs) {
+      out.push({ at: s.at, lagMs: s.lagMs });
+    }
+  }
+  return out;
+}
+
 /**
  * 取 [startMs, endMs] 时间窗内的最大卡顿 ms（时基与 performance.now 一致）
  *

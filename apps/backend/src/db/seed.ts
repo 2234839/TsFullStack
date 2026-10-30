@@ -17,13 +17,24 @@ export const seedDB: Effect.Effect<void, Error, AppConfigService> = Effect.gen(f
   yield* seedAdmin();
 });
 
-/** 配置 SQLite 数据库为 WAL 模式 */
+/** 配置 SQLite 数据库为 WAL 模式 + NORMAL 同步级别 */
 const seedWAL = () =>
   Effect.gen(function* () {
     const dbClient = yield* DbClientEffect;
 
     const result = yield* tryOrFail('配置 WAL 模式', () => dbClient.$queryRaw`PRAGMA journal_mode = WAL`);
     console.log(`${LOG_PREFIX} SQLite 数据库已配置为 WAL 模式:`, result);
+
+    /**
+     * WAL 下 synchronous=NORMAL：事务提交只写 WAL 不 fsync，仅在 checkpoint 时落盘。
+     * 相比默认 FULL 大幅减少同步写阻塞事件循环的时长；掉电最多丢最近若干已提交事务，
+     * 应用崩溃不丢数据、库不损坏——对可重建的业务日志/诊断数据完全可接受。
+     */
+    const syncResult = yield* tryOrFail(
+      '配置 synchronous=NORMAL',
+      () => dbClient.$queryRaw`PRAGMA synchronous = NORMAL`,
+    );
+    console.log(`${LOG_PREFIX} SQLite synchronous 已配置为 NORMAL:`, syncResult);
   });
 
 /** 创建管理员账户及其角色 */

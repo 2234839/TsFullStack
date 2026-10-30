@@ -14,7 +14,7 @@ import { AppConfigService } from '../Context/AppConfig';
 import { systemLog } from '../Context/SystemLog';
 import { insertDiagTrace, snapshotDriverTimings } from '../Context/DbService';
 import { ConfigLive } from '../Context/AppLive';
-import { maxLoopLagBetween, startLoopLagMonitor } from '../util/LoopLagMonitor';
+import { maxLoopLagBetween, lagSamplesBetween, startLoopLagMonitor } from '../util/LoopLagMonitor';
 import { buildSpanTree, makeSpanCollector, type SpanCollector } from '../util/EffectSpanCollector';
 import { GithubAuthLive } from '../OAuth/github';
 import { LinuxDoAuthLive } from '../OAuth/linuxdo';
@@ -291,6 +291,11 @@ function finalizeDiag(input: {
   const sqlTotalMs = sqlEvents.reduce((sum, el) => sum + el.ms, 0);
   const sqlMaxMs = sqlEvents.reduce((max, el) => Math.max(max, el.ms), 0);
   const loopLagMaxMs = maxLoopLagBetween(startPerf, endPerf);
+  /** 窗口内卡顿样本（at 相对请求起点），供前端在瀑布图上叠加暗红条 */
+  const lagSlices = lagSamplesBetween(startPerf, endPerf).map((s) => ({
+    at: Math.round(s.at - startPerf),
+    ms: Math.round(s.lagMs),
+  }));
   const queueWaitMs = enqueuePerf != null ? Math.max(0, startPerf - enqueuePerf) : Math.max(0, startPerf - enqueueTime);
 
   const timeline: Array<Record<string, unknown>> = [
@@ -345,6 +350,15 @@ function finalizeDiag(input: {
     if (tree.length > 0) timeline.push({ phase: 'spanTree', tree });
   }
   if (error) timeline.push({ phase: 'error', note: '请求以错误结束，总耗时含错误序列化' });
+  /** 事件循环卡顿样本（仅保留有实际卡顿的），叠加展示在时间轴上 */
+  const lagItems = lagSlices.filter((s) => s.ms >= 5);
+  if (lagItems.length > 0) {
+    timeline.push({
+      phase: 'loopLag',
+      maxMs: loopLagMaxMs,
+      items: lagItems.slice(0, DIAG_SQL_EVENTS_LIMIT),
+    });
+  }
 
   const row = {
     method,

@@ -170,6 +170,23 @@
                   />
                 </div>
               </div>
+              <!-- 事件循环卡顿叠加行：暗红条标出哪些时段进程被同步代码冻结 -->
+              <div v-if="lagItems.length > 0" class="flex items-center gap-2">
+                <span class="w-64 shrink-0 font-mono text-danger-500">{{ t('事件循环卡顿') }}</span>
+                <span class="w-14 shrink-0 text-right text-danger-500">{{ detail?.loopLagMaxMs }}ms</span>
+                <div class="relative h-4 flex-1 rounded bg-danger-500/10">
+                  <div
+                    v-for="(lag, i) in lagItems"
+                    :key="i"
+                    class="absolute top-0 h-4 rounded bg-danger-500/70"
+                    :style="{
+                      left: (lag.at / Math.max(detail?.totalMs ?? 1, 1)) * 100 + '%',
+                      width: Math.max((lag.ms / Math.max(detail?.totalMs ?? 1, 1)) * 100, 0.8) + '%',
+                    }"
+                    :title="`${t('第')} ${lag.at}ms ${t('起冻结')} ${lag.ms}ms`"
+                  />
+                </div>
+              </div>
             </div>
           </div>
           <div class="mt-3">
@@ -353,6 +370,16 @@ const driverSqlItems = computed(() => {
 });
 
 const driverSqlTotalMs = computed(() => Math.round(driverSqlItems.value.reduce((s, el) => s + el.ms, 0) * 100) / 100);
+
+/** 事件循环卡顿样本（timeline 的 loopLag 阶段：at 为相对请求起点的时刻，ms 为该时段冻结时长） */
+const lagItems = computed(() => {
+  const tl = detail.value?.timeline;
+  if (!Array.isArray(tl)) return [];
+  const ev = tl.find((el) => (el as { phase?: string }).phase === 'loopLag') as
+    | { items?: Array<{ at: number; ms: number }> }
+    | undefined;
+  return ev?.items ?? [];
+});
 
 /** 阻塞类型判定文案（与后端口径一致：lag≥50 视为硬阻塞） */
 const blockingType = computed(() => ((detail.value?.loopLagMaxMs ?? 0) >= 50 ? t('硬阻塞') : t('事件等待')));
