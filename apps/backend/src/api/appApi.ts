@@ -13,6 +13,7 @@ import { linuxdoApi } from './appApi/linuxdo';
 import { shareApi } from './appApi/share';
 import { treeholeApi } from './appApi/treehole';
 import { noteCalcApi } from './appApi/noteCalc';
+import { passcodeApi } from './appApi/passcode';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[AppApi]';
@@ -109,6 +110,7 @@ export const appApis = {
   },
   githubApi,
   linuxdoApi,
+  passcodeApi,
   /** 获取已配置的 OAuth 提供者列表（供前端判断显示哪些登录按钮） */
   oauthProviders() {
     return Effect.gen(function* () {
@@ -116,6 +118,8 @@ export const appApis = {
       const providers: string[] = [];
       if (appConfig.OAuth_github) providers.push('github');
       if (appConfig.OAuth_linuxdo) providers.push('linuxdo');
+      /** 微信口令登录：配置了公众号服务器即可用（前端据此显示入口） */
+      if (appConfig.wechat) providers.push('wechat');
       return providers;
     });
   },

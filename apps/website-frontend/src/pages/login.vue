@@ -195,6 +195,16 @@
               class="flex-1"
             />
           </div>
+          <!-- 微信口令登录 -->
+          <Button
+            v-if="configuredProviders.includes('wechat')"
+            :label="t('微信口令登录')"
+            icon="pi pi-comments"
+            :loading="wechatPasscode.isLoading.value"
+            @click="startWechatPasscode"
+            variant="secondary"
+            class="w-full"
+          />
         </form>
 
         <!-- 底部切换登录/注册 -->
@@ -213,6 +223,44 @@
 
     <!-- 动态光圈效果 - 跟随鼠标 -->
     <div ref="cursorLight" class="cursor-light cursor-light-glow"></div>
+
+    <!-- 微信口令登录弹层 -->
+    <div
+      v-if="passcodeDialog.visible"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      @click.self="closePasscodeDialog"
+    >
+      <div class="w-full max-w-sm rounded-2xl bg-white dark:bg-primary-950 shadow-2xl p-6 space-y-4">
+        <div class="text-center space-y-1">
+          <h3 class="text-lg font-bold">{{ t('微信口令登录') }}</h3>
+          <p class="text-sm text-primary-500">
+            {{ t('关注公众号并回复口令，即可完成登录') }}
+          </p>
+        </div>
+        <!-- 口令展示 -->
+        <div class="text-center">
+          <div
+            class="text-4xl font-extrabold tracking-[0.4em] tabular-nums py-3 rounded-xl bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300"
+          >
+            {{ passcodeDialog.code }}
+          </div>
+          <p class="mt-2 text-xs text-primary-400">
+            {{ t('口令 5 分钟内有效，剩余') }} {{ passcodeDialog.remainSec }}s
+          </p>
+        </div>
+        <!-- 公众号引导 -->
+        <div v-if="passcodeDialog.official.qrUrl" class="flex flex-col items-center gap-1">
+          <img
+            :src="passcodeDialog.official.qrUrl"
+            :alt="passcodeDialog.official.name"
+            class="w-40 h-40 object-contain rounded-lg border border-primary-200 dark:border-primary-800"
+          />
+          <p class="text-xs text-primary-500">{{ t('扫码关注') }}「{{ passcodeDialog.official.name }}」</p>
+        </div>
+        <p class="text-center text-xs text-primary-400">{{ t('验证成功后将自动登录...') }}</p>
+        <Button :label="t('取消')" variant="secondary" class="w-full" @click="closePasscodeDialog" />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -226,7 +274,7 @@ import { useAsyncState, useEventListener } from '@vueuse/core';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { getErrorMessage } from '@/utils/error';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 const { t } = useI18n();
 
@@ -266,6 +314,76 @@ const oauthLogin = useAsyncState(
 
 /** 已配置的 OAuth 提供者列表 */
 const configuredProviders = ref<string[]>([]);
+
+/** 微信口令弹层状态 */
+const passcodeDialog = ref({
+  visible: false,
+  code: '',
+  ticket: '',
+  remainSec: 0,
+  official: { name: '', qrUrl: null as string | null },
+});
+
+/** 口令轮询定时器 */
+let passcodeTimer: ReturnType<typeof setInterval> | null = null;
+
+/** 停止轮询并关闭弹层 */
+function closePasscodeDialog() {
+  passcodeDialog.value.visible = false;
+  if (passcodeTimer) {
+    clearInterval(passcodeTimer);
+    passcodeTimer = null;
+  }
+}
+
+onUnmounted(() => {
+  if (passcodeTimer) clearInterval(passcodeTimer);
+});
+
+/** 发起微信口令登录：展示口令 + 公众号引导，并轮询验证结果 */
+const wechatPasscode = useAsyncState(
+  async () => {
+    const res = await AppAPI.passcodeApi.createWechatLogin();
+    passcodeDialog.value = {
+      visible: true,
+      code: res.code,
+      ticket: res.ticket,
+      remainSec: Math.max(0, Math.floor((new Date(res.expiresAt).getTime() - Date.now()) / 1000)),
+      official: res.official,
+    };
+    /** 轮询：每 2s 查一次，VERIFIED 即自动登录 */
+    passcodeTimer = setInterval(async () => {
+      const dlg = passcodeDialog.value;
+      if (!dlg.visible) return;
+      dlg.remainSec = Math.max(0, dlg.remainSec - 2);
+      if (dlg.remainSec <= 0) {
+        closePasscodeDialog();
+        toast.error(t('登录失败'), t('口令已过期，请重新发起'));
+        return;
+      }
+      const result = await AppAPI.passcodeApi.checkWechatLogin(dlg.ticket);
+      if (result.status === 'LOGIN') {
+        closePasscodeDialog();
+        loginGoto(result.login, { r });
+        toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
+      } else if (result.status === 'EXPIRED') {
+        closePasscodeDialog();
+        toast.error(t('登录失败'), t('口令已过期，请重新发起'));
+      }
+    }, 2000);
+  },
+  undefined,
+  { immediate: false },
+);
+
+/** 发起按钮入口（含异常提示） */
+async function startWechatPasscode() {
+  try {
+    await wechatPasscode.execute(0);
+  } catch (error: unknown) {
+    toast.error(t('发起失败'), getErrorMessage(error));
+  }
+}
 
 onMounted(async () => {
   useEventListener(document, 'mousemove', handleMouseMove);

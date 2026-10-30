@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Effect } from 'effect';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
 import { GroupEntryService } from '../services/GroupEntryService';
+import { PasscodeService } from '../services/PasscodeService';
 import { extractErrorMessage } from '../util/error';
 import {
   buildImageReplyXml,
@@ -125,6 +126,18 @@ export function registerWechatRoutes(fastify: FastifyInstance, appConfig: AppCon
 
     if (msg.MsgType === 'text' && msg.Content && msg.MsgId) {
       const content = msg.Content;
+      /** 口令验证优先于关键词出码：命中则回填 openid 并提示回网页完成操作 */
+      const passcodeVerified = await runEffect(
+        PasscodeService.verify('WECHAT_OFFICIAL', content.trim(), toUser),
+        appConfig,
+        false,
+      );
+      if (passcodeVerified) {
+        wechatLog(`口令验证成功 openid=${toUser.slice(0, 8)}***`);
+        const xml = buildTextReplyXml(toUser, fromUser, '✅ 验证成功！请回到网页继续操作');
+        reply.type('application/xml').send(xml);
+        return;
+      }
       const xml = await cachedReply(`${toUser}:${msg.MsgId}`, () =>
         handleTextMessage(appConfig, toUser, fromUser, content, baseUrlOf(req)),
       );

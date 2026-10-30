@@ -172,7 +172,64 @@ model UserSession with Base {
 enum OauthProvider {
     GITHUB
     LINUXDO
+    WECHAT
 }
+
+/// 口令验证通道：口令通过哪个渠道回传（微信只是第一个通道，将来可扩展邮箱/短信）
+enum PasscodeChannel {
+    WECHAT_OFFICIAL // 微信公众号回复口令
+}
+
+/// 口令用途：登录只是第一种，将来可扩展资源访问/激活码等
+enum PasscodePurpose {
+    LOGIN // 登录
+}
+
+/// 口令状态机：PENDING 待验证 → VERIFIED 已验证（待消费）→ CONSUMED 已消费
+enum PasscodeStatus {
+    PENDING
+    VERIFIED
+    CONSUMED
+}
+
+/// 通用验证口令：发起方生成 code + ticket 并轮询；用户经通道（如公众号回复）回传 code；
+/// 通道处理器回填 channelIdentity；发起方消费后按 purpose 执行业务（登录/授权等）
+model VerificationPasscode with Base {
+    /** 一次性数字口令（6 位，用户在通道侧回传） */
+    code String
+
+    /** 发起方轮询票据（secret，仅发起方持有） */
+    ticket String @unique @default(cuid())
+
+    /** 回传通道 */
+    channel PasscodeChannel
+
+    /** 业务用途 */
+    purpose PasscodePurpose
+
+    /** 状态机 */
+    status PasscodeStatus @default(PENDING)
+
+    /** 通道侧身份标识（微信=openid，邮箱=邮箱地址），验证通过时回填 */
+    channelIdentity String?
+
+    /** 发起方上下文（其他用途时存放业务数据） */
+    payload Json?
+
+    /** 过期时间（创建后 5 分钟） */
+    expiresAt DateTime
+
+    /** 验证通过时间 */
+    verifiedAt DateTime?
+
+    /** 消费时间 */
+    consumedAt DateTime?
+
+    /** 同通道内口令唯一（创建时惰性清理过期记录避免冲突） */
+    @@unique([channel, code])
+    @@index([status, expiresAt])
+}
+
 /// 第三方账号关联
 model OAuthAccount with Base {
     userId     String        // 关联的用户ID
