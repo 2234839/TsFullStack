@@ -33,7 +33,7 @@
   </div>
 </template>
 
-<script setup lang="ts" generic="T extends PasscodeCheckBase">
+<script setup lang="ts" generic="T extends { status: string }">
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { getErrorMessage } from '@/utils/error';
@@ -48,9 +48,6 @@ interface PasscodeCreateResult {
 }
 
 /** 轮询结果：PENDING/EXPIRED 之外即为终态（LOGIN/BOUND），原样抛给父组件 */
-interface PasscodeCheckBase {
-  status: string;
-}
 
 const props = defineProps<{
   visible: boolean;
@@ -60,8 +57,7 @@ const props = defineProps<{
   waitingText: string;
   /** 发起口令（登录或绑定各自调后端） */
   create: () => Promise<PasscodeCreateResult>;
-  /** 轮询验证结果（泛型 T 保留后端精确联合类型，父组件可安全窄化） */
-  check: (ticket: string) => Promise<T>;
+  /** 轮询验证结果（泛型 T 保留后端精确联合类型，父组件可安全窄化） */ check: (ticket: string) => Promise<T>;
 }>();
 
 const emit = defineEmits<{

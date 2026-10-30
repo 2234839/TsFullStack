@@ -33,7 +33,7 @@
             :label="t('解绑')"
             severity="danger"
             size="small"
-            variant="outlined"
+            variant="danger"
             :loading="unbinding === binding.provider"
             @click="unbind(binding.provider)"
           />
