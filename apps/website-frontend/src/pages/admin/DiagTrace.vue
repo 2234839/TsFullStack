@@ -164,7 +164,13 @@
             </div>
           </div>
           <div class="mt-3">
-            <div class="text-primary-theme mb-1">{{ t('SQL 明细') }}（{{ sqlItems.length }} 条）:</div>
+            <div class="text-primary-theme mb-1">
+              {{ t('SQL 明细') }}（{{ sqlItems.length }} 条）<span
+                v-if="sqlItems.length === 0"
+                class="text-xs opacity-60"
+                >— {{ t('诊断接口自身的 SQL（SystemLog/DiagTrace 模型）不进统计，避免诊断污染诊断') }}</span
+              >:
+            </div>
             <div class="mb-1 flex gap-2 text-xs text-primary-theme">
               <span class="w-16 text-right">{{ t('发生时刻') }}</span>
               <span class="w-16 text-right">{{ t('耗时') }}</span>
@@ -180,10 +186,36 @@
                 <span
                   :class="el.ms >= 100 ? 'text-danger-500 font-bold' : ''"
                   class="w-16 text-right"
-                  :title="t('这条 SQL 本身执行了 ') + el.ms + t(' ms')"
+                  :title="
+                    t('含 ORM 校验/建查询共 ') +
+                    el.ms +
+                    t(' ms，其中真实 SQL 执行 ') +
+                    (el.execMs ?? '?') +
+                    t(' ms，差值为 ZenStack 包装开销')
+                  "
                   >{{ el.ms }}ms</span
                 >
+                <span
+                  v-if="el.execMs != null"
+                  class="w-20 shrink-0 text-right text-xs opacity-70"
+                  :title="t('驱动层真实执行耗时')"
+                  >执行{{ el.execMs }}ms</span
+                >
                 <span>{{ el.model }}.{{ el.operation }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="driverSqlItems.length > 0" class="mt-3">
+            <div class="text-primary-theme mb-1">
+              {{ t('驱动层真实执行') }}（{{ driverSqlItems.length }} {{ t('条，总计') }} {{ driverSqlTotalMs }}ms，{{
+                t('与上方包装耗时差值即 ORM 开销')
+              }}）:
+            </div>
+            <div class="max-h-48 overflow-auto font-mono text-xs space-y-0.5">
+              <div v-for="(el, i) in driverSqlItems" :key="i" class="flex gap-2">
+                <span class="text-primary-theme w-16 shrink-0 text-right">{{ el.at }}ms</span>
+                <span class="w-16 shrink-0 text-right">{{ el.ms }}ms</span>
+                <span class="break-all text-xs opacity-80">{{ el.sql }}</span>
               </div>
             </div>
           </div>
@@ -287,10 +319,22 @@ const sqlItems = computed(() => {
   const tl = detail.value?.timeline;
   if (!Array.isArray(tl)) return [];
   const ev = tl.find((el) => (el as { phase?: string }).phase === 'sqlEvents') as
-    | { items?: Array<{ model: string; operation: string; ms: number; at: number }> }
+    | { items?: Array<{ model: string; operation: string; ms: number; execMs?: number; at: number }> }
     | undefined;
   return ev?.items ?? [];
 });
+
+/** 驱动层真实执行语句（timeline 的 driverSql 阶段，含 SQL 文本与真实耗时） */
+const driverSqlItems = computed(() => {
+  const tl = detail.value?.timeline;
+  if (!Array.isArray(tl)) return [];
+  const ev = tl.find((el) => (el as { phase?: string }).phase === 'driverSql') as
+    | { items?: Array<{ ms: number; at: number; sql: string }> }
+    | undefined;
+  return ev?.items ?? [];
+});
+
+const driverSqlTotalMs = computed(() => Math.round(driverSqlItems.value.reduce((s, el) => s + el.ms, 0) * 100) / 100);
 
 /** 阻塞类型判定文案（与后端口径一致：lag≥50 视为硬阻塞） */
 const blockingType = computed(() => ((detail.value?.loopLagMaxMs ?? 0) >= 50 ? t('硬阻塞') : t('事件等待')));
@@ -358,7 +402,7 @@ const waterfallRows = computed<WaterfallRow[]>(() => {
   }
 
   /** 数据源 2：手工埋点（老记录兜底） */
-  type Ev = { key: string; label: string; at: number; ms: number; color: string };
+  type Ev = { key: string; label: string; at: number; ms: number; execMs?: number; color: string };
   const events: Ev[] = [];
   for (const el of d.timeline as Array<Record<string, unknown>>) {
     const phase = el.phase as string | undefined;
@@ -388,13 +432,14 @@ const waterfallRows = computed<WaterfallRow[]>(() => {
       });
     } else if (phase === 'sqlEvents' && Array.isArray(el.items)) {
       for (const [i, item] of (
-        el.items as Array<{ model: string; operation: string; ms: number; at: number }>
+        el.items as Array<{ model: string; operation: string; ms: number; execMs?: number; at: number }>
       ).entries()) {
         events.push({
           key: `sql-${i}`,
           label: `SQL · ${item.model}.${item.operation}`,
           at: item.at,
           ms: item.ms,
+          execMs: item.execMs,
           color: item.ms >= 100 ? 'bg-danger-500' : 'bg-violet-500',
         });
       }

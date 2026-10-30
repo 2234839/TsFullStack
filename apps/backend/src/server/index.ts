@@ -12,7 +12,7 @@ import { AuthContext } from '../Context/Auth';
 import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
 import { AppConfigService } from '../Context/AppConfig';
 import { systemLog } from '../Context/SystemLog';
-import { insertDiagTrace } from '../Context/DbService';
+import { insertDiagTrace, snapshotDriverTimings } from '../Context/DbService';
 import { ConfigLive } from '../Context/AppLive';
 import { maxLoopLagBetween, startLoopLagMonitor } from '../util/LoopLagMonitor';
 import { buildSpanTree, makeSpanCollector, type SpanCollector } from '../util/EffectSpanCollector';
@@ -286,6 +286,20 @@ function finalizeDiag(input: {
     sqlMaxMs,
     items: sqlEvents.slice(0, DIAG_SQL_EVENTS_LIMIT),
   });
+  /** 驱动层真实执行语句（自描述事件，与 sqlEvents 的差值即 ORM 校验/建查询开销） */
+  const driverSql = snapshotDriverTimings(enqueueTime, endPerf).slice(0, DIAG_SQL_EVENTS_LIMIT);
+  if (driverSql.length > 0) {
+    timeline.push({
+      phase: 'driverSql',
+      count: driverSql.length,
+      execTotalMs: Math.round(driverSql.reduce((s, t) => s + t.ms, 0) * 100) / 100,
+      items: driverSql.map((t) => ({
+        ms: Math.round(t.ms * 100) / 100,
+        at: Math.round(t.atMs - startPerf),
+        sql: t.sql.length > 120 ? t.sql.slice(0, 120) + '…' : t.sql,
+      })),
+    });
+  }
   if (spanCollector) {
     const tree = buildSpanTree(spanCollector.spans);
     if (tree.length > 0) timeline.push({ phase: 'spanTree', tree });

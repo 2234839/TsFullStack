@@ -54,6 +54,90 @@ let _cachedDbNoLog: DbClient | null = null;
 /** 底层 better-sqlite3 连接实例，用于路径变化时正确关闭 */
 let _cachedDatabase: InstanceType<typeof Database> | null = null;
 
+/** 驱动层真实执行计时记录（better-sqlite3 同步执行，语句之间不会交错） */
+interface DriverTiming {
+  /** 语句注释 id（/*sN*\/ 前缀），全局唯一，供 onQuery 认领 */
+  id: number;
+  /** 语句开始，相对进程启动的毫秒（hrtime.bigint()/1e6，与 performance.now 同基） */
+  atMs: number;
+  /** 语句耗时 ms */
+  ms: number;
+  /** 语句 SQL 文本（带注释 id 前缀） */
+  sql: string;
+  /** 是否已被某条 onQuery 认领（认领后不再重复计入其他查询） */
+  claimed: boolean;
+}
+
+/** 进程级驱动计时缓冲（环形，溢出丢最旧）；onQuery 按时间窗认领，请求结束快照进诊断时间线 */
+const _driverTimings: DriverTiming[] = [];
+const DRIVER_TIMINGS_CAP = 2000;
+/** 语句注释 id 自增序号 */
+let _stmtSeq = 0;
+
+/** 统计一条语句执行，写入缓冲 */
+function recordDriverTiming(id: number, sql: string, fn: () => unknown): unknown {
+  const start = process.hrtime.bigint();
+  try {
+    return fn();
+  } finally {
+    const ms = Number(process.hrtime.bigint() - start) / 1e6;
+    if (_driverTimings.length >= DRIVER_TIMINGS_CAP) _driverTimings.splice(0, 500);
+    _driverTimings.push({ id, atMs: Number(start) / 1e6, ms, sql, claimed: false });
+  }
+}
+
+/** 给 better-sqlite3 语句包计时；SQL 开头已注入注释 id（prepare 时改写），语句凭 id 被唯一认领 */
+function timeStatement(id: number, stmt: { source?: string } & Record<string, unknown>): unknown {
+  const sql: string = stmt.source ?? '';
+  for (const m of ['get', 'all', 'run', 'iterate'] as const) {
+    const raw = (stmt as Record<string, ((...a: unknown[]) => unknown) | undefined>)[m]?.bind(stmt);
+    if (!raw) continue;
+    stmt[m] = (...args: unknown[]) => recordDriverTiming(id, sql, () => raw(...args));
+  }
+  return stmt;
+}
+
+function withDriverTiming(db: InstanceType<typeof Database>): InstanceType<typeof Database> {
+  const rawPrepare = db.prepare.bind(db) as unknown as (sql: string) => { source?: string } & Record<string, unknown>;
+  /** 改写 SQL：开头注入注释 id（SQLite 支持 /* 注释），让驱动层语句可被 onQuery 唯一认领 */
+  (db as unknown as Record<string, unknown>).prepare = (sqlArg: unknown) => {
+    const id = ++_stmtSeq;
+    const stmt = rawPrepare(`/*s${id}*/ ${String(sqlArg)}`);
+    return timeStatement(id, stmt);
+  };
+  return db;
+}
+
+/** 认领 [t0, t1]（hrtime 纳秒）窗口内的未认领驱动语句，返回真实执行总耗时 ms；认领后语句不再计入其他查询。查询嵌套时内层先认领（先结束先认领），外层拿到的是剔除内层后的剩余 */
+function claimDriverExecMs(t0: bigint, t1: bigint): number {
+  const w0 = Number(t0) / 1e6;
+  const w1 = Number(t1) / 1e6;
+  let total = 0;
+  for (const t of _driverTimings) {
+    if (t.claimed) continue;
+    /** 语句开始落在窗口内即认领（better-sqlite3 同步执行，语句不会跨查询边界） */
+    if (t.atMs >= w0 && t.atMs <= w1) {
+      t.claimed = true;
+      total += t.ms;
+    }
+  }
+  return total;
+}
+
+/** 快照 [fromMs, toMs]（相对进程启动，与 performance.now 同基）窗口内的驱动层语句执行记录，供诊断时间线展示真实执行耗时 */
+export function snapshotDriverTimings(fromMs: number, toMs: number): DriverTiming[] {
+  const rest: DriverTiming[] = [];
+  const hits: DriverTiming[] = [];
+  for (const t of _driverTimings) {
+    if (t.atMs < fromMs) continue;
+    if (t.atMs > toMs + 1000) rest.push(t);
+    else hits.push(t);
+  }
+  _driverTimings.length = 0;
+  _driverTimings.push(...rest);
+  return hits;
+}
+
 /** 获取无权限检查的 dbClient，慎用！！ 使用时需要明确场景，避免权限系统被跳过 */
 export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService> = Effect.gen(function* () {
   const appConfig = yield* AppConfigService;
@@ -66,7 +150,7 @@ export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService>
       _cachedDatabase.close();
       _cachedDatabase = null;
     }
-    const db = new Database(databasePath);
+    const db = withDriverTiming(new Database(databasePath));
     _cachedDatabase = db;
     _cachedDbRaw = new ZenStackClient(schema, {
       dialect: new SqliteDialect({ database: db }),
@@ -130,6 +214,8 @@ function withCostLogger(base: DbClient, reqCtx: ReqCtx): DbClient {
           return proceed(args);
         }
         const start = Date.now();
+        /** 窗口计时用 hrtime（与驱动计时同基），语句凭注释 id 被唯一认领 */
+        const t0 = process.hrtime.bigint();
         /** 先挂根 span 保证入采集链，组树阶段会按时间区间重定到真正包裹它的业务 span（裸回调读不到 fiber context） */
         const parent = collector.rootSpan;
         const now = collector.nowNanos();
@@ -152,13 +238,17 @@ function withCostLogger(base: DbClient, reqCtx: ReqCtx): DbClient {
         }
         span.end(collector.nowNanos(), Exit.succeed(undefined));
         const ms = Date.now() - start;
-        const logText = `sql ${ms}ms > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
+        /** 认领窗口内未认领的驱动语句：execMs 为真实 SQL 执行耗时，ms - execMs 即 ORM 校验/建查询开销 */
+        const execMs = claimDriverExecMs(t0, process.hrtime.bigint());
+        const logText = `sql ${ms}ms (exec ${Math.round(execMs * 100) / 100}ms) > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
         reqCtx.log(logText);
         /** 结构化 SQL 明细，供慢请求诊断时间线使用 */
         reqCtx.sqlEvents.push({
           model,
           operation,
           ms,
+          /** 驱动层真实执行耗时，ms-execMs 即 ZenStack 包装开销 */
+          execMs: Math.round(execMs * 100) / 100,
           at: Math.round(performance.now() - reqCtx.t0),
         });
         return result;

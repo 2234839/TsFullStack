@@ -12,8 +12,10 @@ export type SqlEvent = {
   model: string;
   /** 操作（findFirst/create/update...） */
   operation: string;
-  /** 耗时 ms */
+  /** 耗时 ms（含 ORM 校验/建查询的包装开销） */
   ms: number;
+  /** 驱动层真实执行耗时 ms（注释 id 认领），ms - execMs 即 ZenStack 包装开销 */
+  execMs?: number;
   /** 请求内相对时刻 ms（自请求开始） */
   at: number;
 };
