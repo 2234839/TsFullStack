@@ -8,7 +8,8 @@ export type TaskMap = Record<string, { payload: unknown; result: unknown }>;
 
 /** 队列运行时常量 */
 const HEARTBEAT_INTERVAL_MS = 30_000;
-const STUCK_TIMEOUT_MS = 60_000;
+/** 必须大于 2×HEARTBEAT_INTERVAL_MS：心跳写库失败被 catch 吞掉不重试，若阈值只留 2 倍余量，连续两次心跳失败会把仍在执行的任务误判 stuck 被其他实例重复执行。3 倍余量容忍一次心跳抖动 */
+const STUCK_TIMEOUT_MS = 90_000;
 const MONITOR_INTERVAL_MS = 60_000;
 /** 指数退避最大延迟（1分钟） */
 const MAX_BACKOFF_MS = 60_000;

@@ -55,7 +55,6 @@ import { startUpdatePolling } from '@/composables/useUpdateChecker';
 const { t } = useI18n();
 import { toastBus, authBus } from '@/buses';
 import { authInfo_logout } from '@/storage';
-import { MsgError } from '@tsfullstack/backend';
 
 //#region 设置页面标题
 const route = useRoute();
@@ -74,9 +73,9 @@ const unsubscribeToast = toastBus.subscribe((message) => {
   toast.add(message);
 });
 
-// 订阅 authBus，处理登出事件
-const unsubscribeAuth = authBus.subscribe(MsgError.op_logout, () => {
-  authInfo_logout();
+// 订阅 authBus，处理登出事件（携带当前页面地址，登录后回跳原页面）
+const unsubscribeAuth = authBus.subscribe('logout', () => {
+  authInfo_logout(route.fullPath);
 });
 
 onUnmounted(() => {

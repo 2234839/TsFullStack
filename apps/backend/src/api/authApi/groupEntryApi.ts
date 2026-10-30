@@ -2,6 +2,7 @@ import { Effect } from 'effect';
 import { AppConfigService } from '../../Context/AppConfig';
 import { requireAdmin } from '../../Context/Auth';
 import { ReqCtxService } from '../../Context/ReqCtx';
+import { extractErrorMessage } from '../../util/error';
 import { GroupEntryService, GROUP_QR_TTL_DAYS, MAX_QR_UPLOAD_BYTES } from '../../services/GroupEntryService';
 import { fail, tryOrFail } from '../../util/error';
 
@@ -20,22 +21,34 @@ function readMultipartImage() {
 export const groupEntryApi = {
   /** 空间主视图：公众号引导 + 群码池 */
   listSpaces() {
-    return requireAdmin().pipe(Effect.andThen(GroupEntryService.listSpaces()));
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      return yield* GroupEntryService.listSpaces();
+    });
   },
 
   /** 创建私域空间 */
   createSpace(name: string, displayName?: string) {
-    return requireAdmin().pipe(Effect.andThen(GroupEntryService.createSpace({ name, displayName })));
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      return yield* GroupEntryService.createSpace({ name, displayName });
+    });
   },
 
   /** 删除空间及其群码记录 */
   deleteSpace(id: number) {
-    return requireAdmin().pipe(Effect.andThen(GroupEntryService.deleteSpace(id)));
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      return yield* GroupEntryService.deleteSpace(id);
+    });
   },
 
   /** 标记群已满、手动下线或重新启用 */
   setQrStatus(id: number, status: 'FULL' | 'ARCHIVED' | 'ACTIVE') {
-    return requireAdmin().pipe(Effect.andThen(GroupEntryService.setQrStatus(id, status)));
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      return yield* GroupEntryService.setQrStatus(id, status);
+    });
   },
 
   /** 群码元信息（有效期等，供管理页展示） */
@@ -50,9 +63,10 @@ export const groupEntryApi = {
 
   /** 保存空间的公众号名称、回复关键词和引导语 */
   updateOfficialAccount(spaceId: number, name: string, replyKeyword?: string, guideText?: string) {
-    return requireAdmin().pipe(
-      Effect.andThen(GroupEntryService.updateOfficialAccount(spaceId, { name, replyKeyword, guideText })),
-    );
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      return yield* GroupEntryService.updateOfficialAccount(spaceId, { name, replyKeyword, guideText });
+    });
   },
 
   /** 上传空间的公众号二维码 */
@@ -73,13 +87,22 @@ export const groupEntryApi = {
       const reqCtx = yield* ReqCtxService;
       reqCtx.log('[GroupEntryApi] 管理员上传群码', spaceId, created.id);
       const appConfig = yield* AppConfigService;
-      GroupEntryService.notifyUpload(appConfig, String(spaceId), groupName);
+      /** 上传回执通知 fire-and-forget：失败仅记日志，不阻塞上传响应 */
+      Effect.runFork(
+        GroupEntryService.notifyUpload(String(spaceId), groupName).pipe(
+          Effect.provideService(AppConfigService, appConfig),
+          Effect.catch((e) => Effect.logWarning(`[GroupEntryApi] 上传回执通知失败（忽略）: ${extractErrorMessage(e)}`)),
+        ),
+      );
       return created;
     });
   },
 
   /** 按日、按 空间+来源 查询引流统计 */
   getStats(days: number) {
-    return requireAdmin().pipe(Effect.andThen(GroupEntryService.getStats(days)));
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      return yield* GroupEntryService.getStats(days);
+    });
   },
 };

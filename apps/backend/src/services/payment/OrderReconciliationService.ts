@@ -4,7 +4,7 @@ import { PaymentAdapterRegistry } from './adapter-registry';
 import { grantTokensForPackage } from './grantTokensForPackage';
 import { asGrantTx } from '../TokenGrantService';
 import { Effect } from 'effect';
-import { PaymentConfigService, type PaymentConfig } from '../../Context/PaymentConfig';
+import { PaymentConfigService } from '../../Context/PaymentConfig';
 import { MS_PER_MINUTE } from '../../util/constants';
 import { extractErrorMessage } from '../../util/error';
 
@@ -35,32 +35,31 @@ function pendingOrderWhere(now: Date) {
  *       开发环境自动使用更短的轮询间隔。
  */
 
-type QueryResult = { tradeNo: string; status: 'success' | 'pending' | 'closed' | 'failed'; paidAmount: number } | null;
+type QueryResult = { tradeNo: string; status: 'success' | 'pending'; paidAmount: number } | null;
 
-/** Effect 上下文查询函数（由 index.ts 启动时注入） */
-let queryRunner: (provider: PaymentProvider, orderNo: string) => Promise<QueryResult> = () => Promise.resolve(null);
+/**
+ * 查询订单真实支付状态（Effect 版）
+ *
+ * R 为 AdapterDeps，由调用方 provide；查询失败兜底为 null 并记录日志
+ */
+export const queryOrderStatus = (
+  provider: PaymentProvider,
+  orderNo: string,
+): Effect.Effect<QueryResult, never, PaymentConfigService> =>
+  PaymentAdapterRegistry.getAdapter(provider).pipe(
+    Effect.flatMap((adapter) => adapter.queryOrderStatus(orderNo)),
+    Effect.tapError((error) =>
+      Effect.logError(
+        `${LOG_PREFIX} queryOrderStatus failed for ${provider}/${orderNo}: ${extractErrorMessage(error)}`,
+      ),
+    ),
+    Effect.catch(() => Effect.succeed(null)),
+  );
+
+/** 订单状态查询函数（由调用方注入 PaymentConfigService 后传入） */
+export type OrderQuery = (provider: PaymentProvider, orderNo: string) => Promise<QueryResult>;
 
 export const OrderReconciliationService = {
-  /**
-   * 初始化 Effect 上下文查询运行器
-   */
-  initQueryRunner(paymentConfig: PaymentConfig) {
-    queryRunner = (provider: PaymentProvider, orderNo: string): Promise<QueryResult> => {
-      const program = Effect.flatMap(PaymentAdapterRegistry.getAdapter(provider), (adapter) =>
-        adapter.queryOrderStatus(orderNo),
-      ).pipe(
-        Effect.provideService(PaymentConfigService, paymentConfig),
-        Effect.tapError((error) =>
-          Effect.logError(
-            `${LOG_PREFIX} queryOrderStatus failed for ${provider}/${orderNo}: ${extractErrorMessage(error)}`,
-          ),
-        ),
-        Effect.catch(() => Effect.succeed(null)),
-      );
-      return Effect.runPromise(program as Effect.Effect<QueryResult, never, never>);
-    };
-  },
-
   /**
    * 快速检查是否存在需要处理的订单（不执行实际对账）
    *
@@ -76,7 +75,10 @@ export const OrderReconciliationService = {
    *
    * 返回统计信息，无待处理订单时返回全零。
    */
-  reconcile: async (db: DbClient): Promise<{ processed: number; paid: number; cancelled: number }> => {
+  reconcile: async (
+    db: DbClient,
+    query: OrderQuery,
+  ): Promise<{ processed: number; paid: number; cancelled: number }> => {
     const now = new Date();
     const where = pendingOrderWhere(now);
 
@@ -99,7 +101,7 @@ export const OrderReconciliationService = {
 
     for (const order of pendingOrders) {
       try {
-        const result = await queryRunner(order.provider, order.orderNo);
+        const result = await query(order.provider, order.orderNo);
 
         if (!result) continue;
 
@@ -130,15 +132,8 @@ export const OrderReconciliationService = {
           });
           paid++;
           console.log(`${LOG_PREFIX} 对账补偿成功: orderNo=${order.orderNo}, provider=${order.provider}`);
-        } else if (result.status === 'closed' || result.status === 'failed') {
-          /** 支付平台返回关闭/失败状态，标记为取消 */
-          await db.order.update({
-            where: { id: order.id },
-            data: { status: OrderStatus.CANCELLED, providerData: { source: 'reconciliation' } },
-          });
-          cancelled++;
-          console.log(`${LOG_PREFIX} 对账关闭订单: orderNo=${order.orderNo}, provider=${order.provider}`);
         }
+        /** status 为 pending 时本轮不处理，等待支付平台状态推进 */
       } catch (error: unknown) {
         console.error(`${LOG_PREFIX} 处理订单 ${order.orderNo} 失败:`, error);
       }

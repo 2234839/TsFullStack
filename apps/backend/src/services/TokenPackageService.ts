@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { dbTry, dbTryRequire } from '../util/dbEffect';
-import { fail } from '../util/error';
+import { fail, MsgError } from '../util/error';
 import { TokenType } from '../../.zenstack/models';
 import { DEFAULT_PAGE_SIZE_LARGE, MSG } from '../util/constants';
 
@@ -126,7 +126,7 @@ export const TokenPackageService = {
             where: { packageId, active: true },
           });
           if (subscriptionsCount > 0) {
-            throw new Error(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
+            throw MsgError.msg(`还有 ${subscriptionsCount} 个活跃订阅，无法删除套餐`);
           }
           await tx.tokenPackage.delete({ where: { id: packageId } });
         }),

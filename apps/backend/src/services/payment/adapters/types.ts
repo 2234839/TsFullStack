@@ -4,7 +4,7 @@ import type { PaymentConfigService } from '../../../Context/PaymentConfig';
 import type { ReqCtxService } from '../../../Context/ReqCtx';
 
 /** 支付适配器方法所需的 Context 依赖 */
-type AdapterDeps = PaymentConfigService | ReqCtxService;
+export type AdapterDeps = PaymentConfigService | ReqCtxService;
 
 /** 创建支付请求参数 */
 export interface CreatePaymentParams {
@@ -57,6 +57,6 @@ export interface PaymentAdapter {
       paidAmount: number;
     } | null,
     Error,
-    AdapterDeps
+    PaymentConfigService
   >;
 }

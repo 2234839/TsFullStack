@@ -44,8 +44,7 @@ export type { TreeholeAuthor, TreeholePost, TreeholePostsQuery, TreeholePostsRes
 export * as SessionAuthSign from './SessionAuthSign';
 
 /** Error handling types - required for API error handling */
-export { MsgError } from '../util/error';
-export type { MsgErrorOpValues } from '../util/error';
+export { MsgError, LogoutError, ToLoginError } from '../util/error';
 
 /** Payment constants - shared between backend and frontend */
 export { WECHAT_PAY_URL } from '../services/payment/adapters/wechat.adapter';

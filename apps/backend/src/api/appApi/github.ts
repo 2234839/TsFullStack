@@ -1,9 +1,10 @@
 import { OauthProvider } from '../../../.zenstack/models';
 import type { JsonValue } from '@zenstackhq/orm';
-import { Effect } from 'effect';
-import { requireOrFail } from '../../util/error';
+import { Effect, Option } from 'effect';
+import { fail, requireOrFail } from '../../util/error';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
+import { AuthContext } from '../../Context/Auth';
 import { dbTry } from '../../util/dbEffect';
 import { hashPassword } from '../../util/crypto';
 import { GithubAuthService } from '../../OAuth/github';
@@ -13,17 +14,66 @@ import { generateSecureRandomPassword, generateFakeEmail } from './_oauthUtil';
 /** 日志前缀 */
 const LOG_PREFIX = '[GithubApi]';
 
+/**
+ * 读取当前登录用户 ID（无鉴权分支不提供 AuthContext，用 serviceOption 安全读取）
+ * null 表示未登录
+ */
+const currentUserId = () =>
+  Effect.map(Effect.serviceOption(AuthContext), (opt) => (Option.isSome(opt) ? opt.value.user.id : null));
+
 /** 通过 Github 登录 */
 export const githubApi = {
   getAuthorizationUrl() {
     return Effect.flatMap(githubAuth, (auth) => auth.getAuthorizationUrl());
+  },
+  /** 发起 GitHub 绑定（需登录态）：state 标记绑定意图，回调走绑定分支 */
+  getBindAuthorizationUrl() {
+    return Effect.gen(function* () {
+      const userId = yield* currentUserId();
+      if (!userId) return yield* fail('请先登录');
+      const auth = yield* githubAuth;
+      const url = yield* auth.getAuthorizationUrl(true);
+      const reqCtx = yield* ReqCtxService;
+      reqCtx.log(`${LOG_PREFIX} 发起 GitHub 绑定 userId=${userId}`);
+      return url;
+    });
   },
   authenticate(code: string, state?: string) {
     return Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
       const reqCtx = yield* ReqCtxService;
       const auth = yield* githubAuth;
-      const { user: githubUser } = yield* auth.authenticate(code, state);
+      const { user: githubUser, bind } = yield* auth.authenticate(code, state);
+
+      /** 绑定意图：把 GitHub 身份挂到当前登录账号，不建号不发 session */
+      if (bind) {
+        const userId = yield* currentUserId();
+        if (!userId) return yield* fail('绑定需要先登录');
+
+        const owner = yield* dbTry(LOG_PREFIX, '查询 GitHub 归属', () =>
+          dbClient.oAuthAccount.findFirst({
+            where: { provider: OauthProvider.GITHUB, providerId: String(githubUser.id) },
+          }),
+        );
+        if (owner) {
+          return yield* fail(
+            owner.userId === userId ? '该 GitHub 已绑定当前账号' : '该 GitHub 已绑定其他账号，请先在对方账号解绑',
+          );
+        }
+
+        yield* dbTry(LOG_PREFIX, '绑定 GitHub', () =>
+          dbClient.oAuthAccount.create({
+            data: {
+              userId,
+              provider: OauthProvider.GITHUB,
+              providerId: String(githubUser.id),
+              profile: githubUser as unknown as JsonValue,
+            },
+          }),
+        );
+        reqCtx.log(`${LOG_PREFIX} GitHub 绑定成功 userId=${userId}`);
+        return { bound: true };
+      }
 
       let user = yield* dbTry(LOG_PREFIX, '查询用户', () =>
         dbClient.user.findFirst({

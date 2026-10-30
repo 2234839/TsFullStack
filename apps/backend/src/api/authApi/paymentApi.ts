@@ -94,7 +94,11 @@ const adminListOrders = (options?: { userId?: string; status?: OrderStatus; skip
 /**
  * 管理：获取当前支付配置（只读）
  */
-const getPaymentConfig = () => requireAdmin().pipe(Effect.andThen(() => PaymentConfigService));
+const getPaymentConfig = () =>
+  Effect.gen(function* () {
+    yield* requireAdmin();
+    return yield* PaymentConfigService;
+  });
 
 /**
  * 管理：保存支付配置（写入 config.json）

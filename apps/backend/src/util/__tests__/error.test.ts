@@ -25,11 +25,11 @@ describe('extractErrorMessage', () => {
 });
 
 describe('MsgError', () => {
-  it('msg 创建 op_msgError 类型错误', () => {
+  it('msg 创建普通消息错误', () => {
     const err = MsgError.msg('something failed');
     expect(err).toBeInstanceOf(MsgError);
     expect(err.message).toBe('something failed');
-    expect(err.op).toBe(MsgError.op_msgError);
+    expect(err._tag).toBe('MsgError');
   });
 
   it('isMsgError 正确识别 MsgError 实例', () => {

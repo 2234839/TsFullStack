@@ -4,6 +4,7 @@ import { AIConfigContext } from '../../Context/AIConfig';
 import { MsgError, fail, tryOrFail } from '../../util/error';
 import { JSON_CONTENT_HEADERS, MSG } from '../../util/constants';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../util/http';
+import { fetchJsonOrThrow } from '../../util/fetchJson';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[InfoQuality]';
@@ -45,7 +46,8 @@ function createOptimizedPrompt(content: string): string {
 }
 
 async function callOllamaAPI(prompt: string, model: string, ollamaUrl: string): Promise<string> {
-  const response = await fetch(
+  const data = (await fetchJsonOrThrow(
+    'Ollama 质量检测',
     `${ollamaUrl}/api/generate`,
     withFetchTimeout(
       {
@@ -60,13 +62,7 @@ async function callOllamaAPI(prompt: string, model: string, ollamaUrl: string): 
       },
       FETCH_TIMEOUTS.ollama,
     ),
-  );
-
-  if (!response.ok) {
-    throw MsgError.msg(`Ollama API request failed: ${response.status} ${response.statusText}`);
-  }
-
-  const data = (await response.json()) as { response: string; done: boolean };
+  )) as { response: string; done: boolean };
   return data.response.trim();
 }
 

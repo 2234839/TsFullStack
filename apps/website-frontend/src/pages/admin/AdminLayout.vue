@@ -28,6 +28,10 @@ import MenuSideBar from '@/pages/admin/components/MenuSideBar.vue';
 import TabsBar from '@/pages/admin/components/TabsBar.vue';
 import { provideTabsStore } from '@/pages/admin/stores/tabsStore';
 import { routeMap, routerUtil } from '@/router';
+import { useRoute } from 'vue-router';
+
+/** 当前路由（登录回跳用） */
+const route = useRoute();
 import { authInfo_isLogin } from '@/storage';
 import { onMounted } from 'vue';
 provideTabsStore();
@@ -35,7 +39,7 @@ provideTabsStore();
 onMounted(async () => {
   /** 未登录则跳转到登录页 */
   if (!authInfo_isLogin.value) {
-    routerUtil.push(routeMap.login, {});
+    routerUtil.push(routeMap.login, {}, { r: route.fullPath });
   }
 });
 </script>

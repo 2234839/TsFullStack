@@ -16,7 +16,7 @@
  * </Dialog>
  * ```
  */
-import { computed } from 'vue';
+import { computed, useAttrs } from 'vue';
 import {
   DialogRoot,
   DialogTrigger,
@@ -34,6 +34,10 @@ const props = withDefaults(defineProps<UiDialogProps>(), {
   modal: true,
   defaultOpen: false,
 });
+
+/** 外部 class/attrs 透传到 DialogContent 面板（而非 DialogRoot），用于外部覆盖宽度等样式 */
+defineOptions({ inheritAttrs: false });
+const attrs = useAttrs();
 
 /** 使用 defineModel 定义双向绑定的 open 状态 */
 const openModel = defineModel<boolean>('open', {
@@ -85,6 +89,7 @@ defineExpose({
         class="fixed inset-0 bg-black/50 z-50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
       />
       <DialogContent
+        v-bind="attrs"
         class="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-primary-50 dark:bg-primary-950 p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg max-h-[85vh]"
       >
         <!-- 关闭按钮 -->

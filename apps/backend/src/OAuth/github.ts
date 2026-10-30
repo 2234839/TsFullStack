@@ -13,19 +13,19 @@ const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 /** state 存储上限（防内存膨胀；单实例部署下 10 分钟内不可能积累这么多登录） */
 const OAUTH_STATE_MAX_ENTRIES = 10_000;
 
-/** state 登记表：state → 过期时间 */
-const oauthStates = new Map<string, number>();
+/** state 登记表：state → 过期时间 + 是否绑定意图 */
+const oauthStates = new Map<string, { expiresAt: number; bind?: boolean }>();
 
 /**
  * 登记 state（getAuthorizationUrl 时调用）
  * 超限时淘汰最旧条目；过期条目在读写时顺手清理
  */
-export function registerOAuthState(state: string): void {
+export function registerOAuthState(state: string, bind?: boolean): void {
   const now = Date.now();
   if (oauthStates.size >= OAUTH_STATE_MAX_ENTRIES) {
     /** 淘汰全部已过期项；若仍超限则删除最早插入项 */
-    for (const [k, exp] of oauthStates) {
-      if (exp < now) oauthStates.delete(k);
+    for (const [k, entry] of oauthStates) {
+      if (entry.expiresAt < now) oauthStates.delete(k);
     }
     while (oauthStates.size >= OAUTH_STATE_MAX_ENTRIES) {
       const oldest = oauthStates.keys().next().value;
@@ -33,19 +33,26 @@ export function registerOAuthState(state: string): void {
       oauthStates.delete(oldest);
     }
   }
-  oauthStates.set(state, now + OAUTH_STATE_TTL_MS);
+  oauthStates.set(state, { expiresAt: now + OAUTH_STATE_TTL_MS, ...(bind ? { bind } : {}) });
 }
 
 /**
- * 消费 state（authenticate 时调用，一次性防重放）
- * @returns true = state 有效且未过期；false = 未知/过期/重放
+ * 消费 state 并返回详情（authenticate 时调用，一次性防重放）
+ * @returns valid = state 有效且未过期；bind = 发起时是否为绑定意图
+ */
+export function consumeOAuthStateDetail(state: string | undefined): { valid: boolean; bind: boolean } {
+  if (!state) return { valid: false, bind: false };
+  const entry = oauthStates.get(state);
+  oauthStates.delete(state);
+  if (!entry) return { valid: false, bind: false };
+  return { valid: Date.now() <= entry.expiresAt, bind: entry.bind === true };
+}
+
+/**
+ * 消费 state（兼容旧调用：仅判断有效性）
  */
 export function consumeOAuthState(state: string | undefined): boolean {
-  if (!state) return false;
-  const expiresAt = oauthStates.get(state);
-  oauthStates.delete(state);
-  if (expiresAt === undefined) return false;
-  return Date.now() <= expiresAt;
+  return consumeOAuthStateDetail(state).valid;
 }
 
 /** ===== 常量定义 ===== */
@@ -175,10 +182,12 @@ export class GithubAuthService extends Context.Service<
       {
         user: GitHubUser;
         accessToken: string;
+        /** 发起时是否为绑定意图（state 标记回传） */
+        bind: boolean;
       },
       GitHubAuthError
     >;
-    readonly getAuthorizationUrl: () => Effect.Effect<string>;
+    readonly getAuthorizationUrl: (bind?: boolean) => Effect.Effect<string>;
   }
 >()('GithubAuthService') {}
 
@@ -283,21 +292,22 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
   return {
     authenticate(code: string, state?: string) {
       return Effect.gen(function* () {
-        /** CSRF 防护：state 必须是本服务签发且未被使用过的（一次性消费防重放） */
-        if (!consumeOAuthState(state)) {
+        /** CSRF 防护：state 必须是本服务签发且未被使用过的（一次性消费防重放）；bind = 发起时绑定意图 */
+        const stateDetail = consumeOAuthStateDetail(state);
+        if (!stateDetail.valid) {
           return yield* Effect.fail(
             new GitHubAuthError('Invalid or expired OAuth state', GitHubAuthErrorCode.INVALID_STATE),
           );
         }
         const tokenResponse = yield* getAccessToken(code);
         const user = yield* getUser(tokenResponse.accessToken);
-        return { user, accessToken: tokenResponse.accessToken };
+        return { user, accessToken: tokenResponse.accessToken, bind: stateDetail.bind };
       });
     },
-    getAuthorizationUrl: () => {
-      /** 服务端签发随机 state 并登记，回调时验证（防 CSRF 登录劫持） */
+    getAuthorizationUrl: (bind?: boolean) => {
+      /** 服务端签发随机 state 并登记（bind=true 标记绑定意图），回调时验证（防 CSRF 登录劫持） */
       const state = randomBytes(16).toString('hex');
-      registerOAuthState(state);
+      registerOAuthState(state, bind);
       const params = new URLSearchParams({
         client_id: config.clientId,
         redirect_uri: config.redirectUri,

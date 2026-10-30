@@ -1,4 +1,4 @@
-import { Context, Effect, Exit } from 'effect';
+import { Cache, Context, Duration, Effect, Exit } from 'effect';
 import { AuthContext } from '../Context/Auth';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { DbClientEffect } from './DbService';
@@ -20,9 +20,40 @@ const AI_CALL_LOG_RETENTION_DAYS = 30;
 /** 模型列表缓存 TTL（5 分钟，模型变更频率极低） */
 const MODEL_CACHE_TTL_MS = 5 * MS_PER_MINUTE;
 
-/** 模型列表内存缓存 */
-let cachedModels: AIModelConfig[] | null = null;
-let cachedModelsAt = 0;
+/** 模型列表内存缓存（Effect Cache，5 分钟 TTL 自动失效） */
+const modelsCache = Effect.runSync(
+  Cache.make<string, AIModelConfig[], Error | MsgError, ReqCtxService | AppConfigService, 'lookup'>({
+    capacity: 1,
+    timeToLive: Duration.millis(MODEL_CACHE_TTL_MS),
+    requireServicesAt: 'lookup',
+    lookup: () =>
+      Effect.flatMap(DbClientEffect, (dbClient) =>
+        Effect.map(
+          dbTry(LOG_PREFIX, '获取AI模型列表', () =>
+            dbClient.aiModel.findMany({
+              where: { enabled: true },
+              orderBy: { weight: 'desc' },
+            }),
+          ),
+          (models) =>
+            models.map((model) => ({
+              id: model.id,
+              name: model.name,
+              model: model.model,
+              baseUrl: model.baseUrl,
+              apiKey: model.apiKey,
+              maxTokens: model.maxTokens,
+              temperature: model.temperature,
+              enabled: model.enabled,
+              weight: model.weight,
+              rpmLimit: model.rpmLimit,
+              rphLimit: model.rphLimit,
+              rpdLimit: model.rpdLimit,
+            })),
+        ),
+      ),
+  }),
+);
 
 /** 频率限制检查结果 */
 interface RateLimitCheck {
@@ -129,38 +160,7 @@ class AIProxyServiceUtils {
     );
 
   /** 获取可用的AI模型列表（带 5 分钟内存缓存） */
-  static getAvailableModels = () => {
-    const now = Date.now();
-    if (cachedModels && now - cachedModelsAt < MODEL_CACHE_TTL_MS) {
-      return Effect.succeed(cachedModels);
-    }
-
-    return Effect.gen(function* () {
-      const dbClient = yield* DbClientEffect;
-      const models = yield* dbTry(LOG_PREFIX, '获取AI模型列表', () =>
-        dbClient.aiModel.findMany({
-          where: { enabled: true },
-          orderBy: { weight: 'desc' },
-        }),
-      );
-      cachedModels = models.map((model) => ({
-        id: model.id,
-        name: model.name,
-        model: model.model,
-        baseUrl: model.baseUrl,
-        apiKey: model.apiKey,
-        maxTokens: model.maxTokens,
-        temperature: model.temperature,
-        enabled: model.enabled,
-        weight: model.weight,
-        rpmLimit: model.rpmLimit,
-        rphLimit: model.rphLimit,
-        rpdLimit: model.rpdLimit,
-      }));
-      cachedModelsAt = now;
-      return cachedModels;
-    });
-  };
+  static getAvailableModels = () => Cache.get(modelsCache, 'models');
 
   /** 选择AI模型（负载均衡，纯同步函数） */
   static selectModel = (models: AIModelConfig[]): AIModelConfig | null => {
@@ -279,9 +279,13 @@ class AIProxyServiceUtils {
               inputTokens: usage?.prompt_tokens,
               outputTokens: usage?.completion_tokens,
               success: true,
-            }).pipe(Effect.ignore);
+            }).pipe(
+              Effect.catch((e) => Effect.logWarning(`${LOG_PREFIX} 记录API调用日志失败: ${extractErrorMessage(e)}`)),
+            );
           }
-          return AIProxyServiceUtils.recordApiCall({ ...base, success: false }).pipe(Effect.ignore);
+          return AIProxyServiceUtils.recordApiCall({ ...base, success: false }).pipe(
+            Effect.catch((e) => Effect.logWarning(`${LOG_PREFIX} 记录API调用失败日志失败: ${extractErrorMessage(e)}`)),
+          );
         }),
       );
 

@@ -1,16 +1,16 @@
-import { definePlugin, ZenStackClient, type ClientContract } from '@zenstackhq/orm';
+import { definePlugin, InputValidator, ZenStackClient, type ClientContract } from '@zenstackhq/orm';
 import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import { SoftDeletePlugin } from '@zenstackhq/plugin-soft-delete';
 import Database from 'better-sqlite3';
-import { Effect, Option } from 'effect';
+import { Context, Effect, Exit, Option } from 'effect';
 import type { UserFindFirstArgs } from '../../.zenstack/input';
 import type { Role, User, UserSession } from '../../.zenstack/models';
 import { schema, type SchemaType } from '../../.zenstack/schema';
-import { fail, MsgError, tryOrFail } from '../util/error';
+import { fail, MsgError, LogoutError, ToLoginError, tryOrFail } from '../util/error';
 import { MSG } from '../util/constants';
 import { AppConfigService } from './AppConfig';
-import { ReqCtxService } from './ReqCtx';
+import { ReqCtxService, type ReqCtx } from './ReqCtx';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[DbService]';
@@ -82,31 +82,116 @@ export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService>
   /** 无 ctx 时复用缓存的客户端，避免每次调用都创建 $use 包装 */
   if (Option.isNone(ctx)) {
     if (!_cachedDbNoLog) {
-      _cachedDbNoLog = _cachedDbRaw.$use(
+      const noLog = _cachedDbRaw.$use(
         definePlugin({
           id: 'cost-logger',
           onQuery: async ({ args, proceed }) => proceed(args),
         }),
       );
+      shareInputValidator(_cachedDbRaw, noLog);
+      _cachedDbNoLog = noLog;
     }
     return _cachedDbNoLog;
   }
 
-  return _cachedDbRaw.$use(
+  return withCostLogger(_cachedDbRaw, ctx.value);
+});
+
+/**
+ * ZenStack 客户端实现上持有的输入校验器（公开导出的 InputValidator，但字段不在 ClientContract 类型面上）
+ */
+interface ValidatorHolder {
+  inputValidator: InputValidator<SchemaType>;
+}
+
+/** 运行时断言窄化：ZenStack 的 ClientImpl 实际都有 inputValidator 字段（含类型以获得成员检查） */
+const asValidatorHolder = (client: DbClient): ValidatorHolder => client as unknown as ValidatorHolder;
+
+/**
+ * 共享基座客户端的 InputValidator 到派生客户端。
+ *
+ * ZenStack 的 ClientImpl 构造函数本来就继承父客户端的 validator，但 $use/$setAuth 路径
+ * 会强制 new 一个新的（其 zod schema 缓存是实例字段，新实例首查重编译，实测 20~50ms），
+ * 使每条 SQL 都背上这笔固定开销；validator 只依赖 schema 与校验开关、与插件/auth 无关，
+ * 共享安全（实测查询从 ~35ms 降到 ~2ms）。
+ */
+function shareInputValidator(base: DbClient, derived: DbClient): void {
+  asValidatorHolder(derived).inputValidator = asValidatorHolder(base).inputValidator;
+}
+
+function withCostLogger(base: DbClient, reqCtx: ReqCtx): DbClient {
+  const client = base.$use(
     definePlugin({
       id: 'cost-logger',
       onQuery: async ({ model, operation, args, proceed }) => {
-        const start = Date.now();
-        const result = await proceed(args);
-        if (model !== 'SystemLog') {
-          const logText = `sql ${Date.now() - start}ms > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
-          ctx.value.log(logText);
+        const collector = reqCtx.spanCollector;
+        /** 诊断自身模型不进统计也不建 span，避免诊断污染诊断 */
+        if (!collector || model === 'SystemLog' || model === 'DiagTrace') {
+          return proceed(args);
         }
+        const start = Date.now();
+        /** 先挂根 span 保证入采集链，组树阶段会按时间区间重定到真正包裹它的业务 span（裸回调读不到 fiber context） */
+        const parent = collector.rootSpan;
+        const now = collector.nowNanos();
+        const span = collector.tracer.span({
+          name: `sql:db·${model}.${operation}`,
+          startTime: now,
+          parent: parent ? Option.some(parent) : Option.none(),
+          annotations: Context.empty(),
+          links: [],
+          kind: 'internal',
+          root: !parent,
+          sampled: true,
+        });
+        let result: Awaited<ReturnType<typeof proceed>>;
+        try {
+          result = await proceed(args);
+        } catch (error) {
+          span.end(collector.nowNanos(), Exit.fail(error));
+          throw error;
+        }
+        span.end(collector.nowNanos(), Exit.succeed(undefined));
+        const ms = Date.now() - start;
+        const logText = `sql ${ms}ms > ${model}.${operation} ${sanitizeArgsForLog(args)}`;
+        reqCtx.log(logText);
+        /** 结构化 SQL 明细，供慢请求诊断时间线使用 */
+        reqCtx.sqlEvents.push({
+          model,
+          operation,
+          ms,
+          at: Math.round(performance.now() - reqCtx.t0),
+        });
         return result;
       },
     }),
   );
-});
+  shareInputValidator(base, client);
+  return client;
+}
+
+/**
+ * 慢请求诊断追踪落盘。
+ *
+ * 只在请求超过慢阈值时由 server/index.ts 调用（fire-and-forget fork），
+ * 表仅追加不读取于业务链路，查询走 diagApi（管理员接口）。
+ */
+export const insertDiagTrace = (row: {
+  method: string;
+  totalMs: number;
+  queueWaitMs: number;
+  authMs?: number;
+  sqlCount: number;
+  sqlTotalMs: number;
+  sqlMaxMs: number;
+  loopLagMaxMs: number;
+  timeline: unknown;
+}) =>
+  Effect.gen(function* () {
+    const dbClient = yield* DbClientEffect;
+    yield* tryOrFail('诊断落盘', () =>
+      dbClient.diagTrace.create({ data: { ...row, timeline: row.timeline as never } }),
+    );
+  });
 
 /**
  * 根据用户对象创建带权限检查的 db 客户端
@@ -121,13 +206,21 @@ export const createAuthDbClient = (
   user:
     | (User & { role: Role[]; userSession: UserSession[] })
     | (Omit<User, 'password'> & { role: Role[]; userSession: UserSession[] }),
-) => Effect.map(DbClientEffect, (dbClient) => dbClient.$use(new PolicyPlugin()).$setAuth(user));
+) =>
+  Effect.map(DbClientEffect, (dbClient) => {
+    /** $use(PolicyPlugin) 与 $setAuth 各派生一次客户端，两次都要共享 validator，否则每请求业务 SQL 仍背冷编译税 */
+    const withPolicy = dbClient.$use(new PolicyPlugin());
+    shareInputValidator(dbClient, withPolicy);
+    const authed = withPolicy.$setAuth(user);
+    shareInputValidator(withPolicy, authed);
+    return authed;
+  });
 
 /** 根据入参获取有权限检查的 dbClinet，慎用！！只应该在登录鉴权等场景使用，避免入参直接由用户传入 */
 export const getDbAuthEffect = (opt: { userId?: string; email?: string; sessionToken?: string; sessionID?: number }) =>
   Effect.gen(function* () {
     if (!Object.values(opt).some(Boolean)) {
-      return yield* Effect.fail(new MsgError(MsgError.op_toLogin, 'Invalid options: 需要提供认证信息'));
+      return yield* Effect.fail(ToLoginError.msg('Invalid options: 需要提供认证信息'));
     }
     const ctx = yield* ReqCtxService;
     ctx.log(`${LOG_PREFIX} getDbAuth: userId=${opt.userId ?? 'null'}, hasSession=${!!opt.sessionToken}`);
@@ -169,16 +262,19 @@ export const getDbAuthEffect = (opt: { userId?: string; email?: string; sessionT
         },
       },
     } satisfies UserFindFirstArgs;
-    const user = yield* tryOrFail(
-      '查询用户',
-      () =>
-        dbClient.user.findFirst(findFirstArgs) as unknown as Promise<
-          (User & { role: Role[]; userSession: UserSession[] }) | null
-        >,
+    const user = yield* Effect.withSpan(
+      tryOrFail(
+        '查询用户',
+        () =>
+          dbClient.user.findFirst(findFirstArgs) as unknown as Promise<
+            (User & { role: Role[]; userSession: UserSession[] }) | null
+          >,
+      ),
+      'sql:auth·鉴权用户会话查询',
     );
 
     if (!user) {
-      return yield* Effect.fail(new MsgError(MsgError.op_logout, '用户登录状态失效'));
+      return yield* Effect.fail(LogoutError.msg('用户登录状态失效'));
     }
 
     /** 使用统一的函数创建带权限的 db 客户端 */

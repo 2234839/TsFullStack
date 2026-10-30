@@ -446,6 +446,12 @@ const menuItems = reactive([
         icon: 'pi pi-list',
         to: routerUtil.to(routeMap.admin.child.systemLog, {}),
       },
+      {
+        key: 'diagTrace',
+        label: t('慢请求诊断'),
+        icon: 'pi pi-chart-line',
+        to: routerUtil.to(routeMap.admin.child.diagTrace, {}),
+      },
     ],
   },
 ]) as MenuCategory[];

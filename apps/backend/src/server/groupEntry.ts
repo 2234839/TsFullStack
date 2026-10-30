@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { Effect } from 'effect';
+import { Cache, Duration, Effect } from 'effect';
 import { readFile } from 'node:fs/promises';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
 import { GroupEntryService, isQrEffective, MAX_QR_UPLOAD_BYTES } from '../services/GroupEntryService';
@@ -37,6 +37,16 @@ function checkAdminToken(config: AppConfig['groupEntry'], req: FastifyRequest): 
 }
 
 /** 统一的 Effect 运行辅助：为 Service 层程序注入 AppConfigService（DbClientEffect 亦依赖它），失败时回 500 并返回 fallback */
+/** fire-and-forget：provide 后 runFork，失败仅记日志 */
+function forkEffect(program: Effect.Effect<void, Error, AppConfigService>, appConfig: AppConfig): void {
+  Effect.runFork(
+    program.pipe(
+      Effect.provideService(AppConfigService, appConfig),
+      Effect.catch((e) => Effect.logWarning(`[GroupEntry] 后台任务失败（忽略）: ${extractErrorMessage(e)}`)),
+    ),
+  );
+}
+
 async function runEffect<T>(
   program: Effect.Effect<T, Error, AppConfigService>,
   appConfig: AppConfig,
@@ -153,9 +163,22 @@ function buildLandingHtml(options: {
   ].join('');
 }
 
-/** 公众号二维码可达性缓存：url -> { ok, checkedAt }（命中期内不再探测，与图片缓存粒度一致） */
-const accountQrReachability = new Map<string, { ok: boolean; checkedAt: number }>();
+/** 公众号二维码可达性缓存：url -> ok（命中期内不再探测，与图片缓存粒度一致） */
 const ACCOUNT_QR_CHECK_TTL_MS = 5 * 60 * 1000;
+const accountQrReachability = Effect.runSync(
+  Cache.make<string, boolean, never, never, never>({
+    capacity: 200,
+    timeToLive: Duration.millis(ACCOUNT_QR_CHECK_TTL_MS),
+    lookup: (url) =>
+      Effect.catch(
+        Effect.map(
+          Effect.promise(() => fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(3000) })),
+          (response) => response.ok && (response.headers.get('content-type') ?? '').startsWith('image/'),
+        ),
+        () => Effect.succeed(false),
+      ),
+  }),
+);
 
 /**
  * 探测公众号二维码图片可达性：失败时不输出 <img>，避免落地页出现裂图
@@ -165,18 +188,7 @@ async function reachableAccountQrUrl(url: string | null | undefined): Promise<st
   if (!url) return undefined;
   if (url.startsWith('/')) return url;
   if (url.startsWith('data:')) return url;
-  const cached = accountQrReachability.get(url);
-  if (cached && Date.now() - cached.checkedAt < ACCOUNT_QR_CHECK_TTL_MS) {
-    return cached.ok ? url : undefined;
-  }
-  let ok = false;
-  try {
-    const response = await fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(3000) });
-    ok = response.ok && (response.headers.get('content-type') ?? '').startsWith('image/');
-  } catch {
-    ok = false;
-  }
-  accountQrReachability.set(url, { ok, checkedAt: Date.now() });
+  const ok = await Effect.runPromise(Cache.get(accountQrReachability, url));
   return ok ? url : undefined;
 }
 
@@ -293,7 +305,7 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     if (reply.sent) return;
 
     /** 埋点放行后记录（fire-and-forget），from 记录来源项目/渠道 */
-    GroupEntryService.recordStat(space, parseFrom(req), appConfig, 'imgPv');
+    forkEffect(GroupEntryService.recordStat(space, parseFrom(req), 'imgPv') ?? Effect.void, appConfig);
 
     if (active?.qr && isQrEffective(active.qr)) {
       reply
@@ -323,7 +335,7 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
 
     const active = await runEffect(GroupEntryService.getActiveQr(space), appConfig, reply, null);
     if (reply.sent) return;
-    GroupEntryService.recordStat(space, parseFrom(req), appConfig, 'imgPv');
+    forkEffect(GroupEntryService.recordStat(space, parseFrom(req), 'imgPv') ?? Effect.void, appConfig);
 
     const activeQr = active?.qr && isQrEffective(active.qr) ? active.qr : null;
     const group = activeQr
@@ -373,8 +385,8 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     }
     /** from 记录用户从哪个项目/渠道过来（链接 ?from= 参数） */
     const from = parseFrom(req);
-    GroupEntryService.recordStat(space, from, appConfig, 'pagePv');
-    if (isNewUv) GroupEntryService.recordStat(space, from, appConfig, 'pageUv');
+    forkEffect(GroupEntryService.recordStat(space, from, 'pagePv') ?? Effect.void, appConfig);
+    if (isNewUv) forkEffect(GroupEntryService.recordStat(space, from, 'pageUv') ?? Effect.void, appConfig);
 
     /** 群码转 data URL 内嵌（落地页 no-store 避免缓存旧码；也不暴露原图路径） */
     const activeQr = active?.qr && isQrEffective(active.qr) ? active.qr : null;
@@ -451,7 +463,7 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     if (reply.sent) return;
 
     /** 上传回执（fire-and-forget，失败不影响响应） */
-    GroupEntryService.notifyUpload(appConfig, ensured.name, groupName);
+    forkEffect(GroupEntryService.notifyUpload(ensured.name, groupName), appConfig);
     reply.send({ success: true, qrcode: created });
   });
 

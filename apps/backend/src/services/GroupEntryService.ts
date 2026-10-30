@@ -312,7 +312,7 @@ export const GroupEntryService = {
       const space = yield* tryOrFail('删除空间及关联数据', () =>
         db.$transaction(async (tx) => {
           const existing = await tx.groupSpace.findUnique({ where: { id } });
-          if (!existing) throw new Error(`私域空间不存在: ${id}`);
+          if (!existing) throw MsgError.msg(`私域空间不存在: ${id}`);
           await tx.groupQRCode.deleteMany({ where: { spaceId: id } });
           await tx.groupSpace.delete({ where: { id } });
           return existing;
@@ -396,39 +396,41 @@ export const GroupEntryService = {
   },
 
   /**
-   * 引流埋点（fire-and-forget）：upsert 当日计数，失败仅记日志不影响响应
+   * 引流埋点：upsert 当日计数。返回 Effect 由调用方 provide AppConfigService 并 runFork（fire-and-forget，失败仅记日志）
    * @param space 空间标识（/group/<space>）
    * @param from 来源参数（链接 ?from= 的值，空字符串 = 未携带）
-   * @param appConfig 应用配置（DbClientEffect 的运行依赖）
    * @param kind 埋点类型：imgPv（动态图）/ pagePv（落地页）/ pageUv（落地页当日新 cookie）
+   * @returns 入参非法时返回 null
    */
-  recordStat(space: string, from: string, appConfig: AppConfig, kind: 'imgPv' | 'pagePv' | 'pageUv'): void {
-    if (!KEY_RE.test(space) || !FROM_RE.test(from)) return;
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const db = yield* DbClientEffect;
-        const today = todayStr();
-        yield* tryOrFail('记录引流埋点', () =>
-          db.groupStatDaily.upsert({
-            where: { date_space_from: { date: today, space, from } },
-            create: {
-              date: today,
-              space,
-              from,
-              imgPv: kind === 'imgPv' ? 1 : 0,
-              pagePv: kind === 'pagePv' ? 1 : 0,
-              pageUv: kind === 'pageUv' ? 1 : 0,
-            },
-            update:
-              kind === 'imgPv'
-                ? { imgPv: { increment: 1 } }
-                : kind === 'pagePv'
-                  ? { pagePv: { increment: 1 } }
-                  : { pageUv: { increment: 1 } },
-          }),
-        );
-      }).pipe(Effect.provideService(AppConfigService, appConfig)),
-    ).catch((e) => console.error(`${LOG_PREFIX} 埋点失败（不影响响应）:`, extractErrorMessage(e)));
+  recordStat(
+    space: string,
+    from: string,
+    kind: 'imgPv' | 'pagePv' | 'pageUv',
+  ): Effect.Effect<void, MsgError, AppConfigService> | null {
+    if (!KEY_RE.test(space) || !FROM_RE.test(from)) return null;
+    return Effect.gen(function* () {
+      const db = yield* DbClientEffect;
+      const today = todayStr();
+      yield* tryOrFail('记录引流埋点', () =>
+        db.groupStatDaily.upsert({
+          where: { date_space_from: { date: today, space, from } },
+          create: {
+            date: today,
+            space,
+            from,
+            imgPv: kind === 'imgPv' ? 1 : 0,
+            pagePv: kind === 'pagePv' ? 1 : 0,
+            pageUv: kind === 'pageUv' ? 1 : 0,
+          },
+          update:
+            kind === 'imgPv'
+              ? { imgPv: { increment: 1 } }
+              : kind === 'pagePv'
+                ? { pagePv: { increment: 1 } }
+                : { pageUv: { increment: 1 } },
+        }),
+      );
+    });
   },
 
   /** 引流统计：近 N 天按 空间+来源 聚合（date 倒序） */
@@ -470,23 +472,22 @@ export const GroupEntryService = {
   },
 
   /**
-   * 上传成功后的回调通知（server酱/bark，GET 一次，失败仅记日志）
-   * @param appConfig 应用配置（读取 notifyUrl）
+   * 上传成功后的回调通知（server酱/bark，GET 一次）。返回 Effect 由调用方 provide AppConfigService 并 runFork（失败仅记日志）
+   * @param spaceName 空间名称
+   * @param groupName 可选分组名
    */
-  notifyUpload(appConfig: AppConfig, spaceName: string, groupName?: string): void {
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const { groupEntry } = yield* AppConfigService;
-        if (!groupEntry?.notifyUrl) return;
-        const url = new URL(groupEntry.notifyUrl);
-        url.searchParams.set(
-          'title',
-          encodeURIComponent(`群码已更新: ${spaceName}${groupName ? `（${groupName}）` : ''}`),
-        );
-        yield* tryOrFail('发送上传回执通知', () => fetch(url, { signal: AbortSignal.timeout(10_000) }));
-        console.log(`${LOG_PREFIX} 上传回执通知已发送: ${spaceName}`);
-      }).pipe(Effect.provideService(AppConfigService, appConfig)),
-    ).catch((e) => console.error(`${LOG_PREFIX} 回执通知失败（忽略）:`, extractErrorMessage(e)));
+  notifyUpload(spaceName: string, groupName?: string): Effect.Effect<void, MsgError, AppConfigService> {
+    return Effect.gen(function* () {
+      const { groupEntry } = yield* AppConfigService;
+      if (!groupEntry?.notifyUrl) return;
+      const url = new URL(groupEntry.notifyUrl);
+      url.searchParams.set(
+        'title',
+        encodeURIComponent(`群码已更新: ${spaceName}${groupName ? `（${groupName}）` : ''}`),
+      );
+      yield* tryOrFail('发送上传回执通知', () => fetch(url, { signal: AbortSignal.timeout(10_000) }));
+      console.log(`${LOG_PREFIX} 上传回执通知已发送: ${spaceName}`);
+    });
   },
 
   /** 读取群码图片流（动态图接口用） */

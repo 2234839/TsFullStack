@@ -8,6 +8,8 @@
  */
 
 import type { AiImageProvider } from '../util/constants';
+import type { PricingConfig } from '../Context/PricingConfig';
+import { defaultPricingConfig } from '../Context/PricingConfig';
 
 /** AI 图片生成选项 */
 interface AiImageOptions {
@@ -35,30 +37,6 @@ interface TokenCostResult {
 
 /** 代币价格计算器 */
 export class TokenPricingCalculator {
-  /** 图片基础价格（代币/张） */
-  private static readonly IMAGE_BASE_PRICE = 10;
-
-  /** 尺寸倍数映射 */
-  private static readonly SIZE_MULTIPLIER: Record<string, number> = {
-    '512x512': 0.5,
-    '1024x768': 0.75,
-    '768x1024': 0.75,
-    '1024x1024': 1,
-    '1344x768': 1.25,
-    '768x1344': 1.25,
-    '864x1152': 1.5,
-    '1152x864': 1.5,
-    '2048x2048': 2,
-  };
-
-  /** 服务商倍数映射 */
-  private static readonly PROVIDER_MULTIPLIER: Record<string, number> = {
-    qwen: 1,
-    dalle: 2,
-    stability: 1.5,
-    glm: 1.2,
-  };
-
   /**
    * AI 图片生成代币计算
    *
@@ -68,25 +46,26 @@ export class TokenPricingCalculator {
    * - 服务商倍数：通义千问 1x，DALL-E 2x，Stability 1.5x
    *
    * @param options 图片生成选项
+   * @param pricing 定价配置（来自 PricingConfigService，未传时用默认定价）
    * @returns 代币消耗计算结果
    */
-  static aiImageGeneration(options: AiImageOptions): TokenCostResult {
+  static aiImageGeneration(options: AiImageOptions, pricing: PricingConfig = defaultPricingConfig): TokenCostResult {
     if (!Number.isFinite(options.count) || options.count <= 0) {
       throw new Error('count 必须为正整数');
     }
-    const sizeMult = TokenPricingCalculator.SIZE_MULTIPLIER[options.size] ?? 1;
-    const providerMult = TokenPricingCalculator.PROVIDER_MULTIPLIER[options.provider] ?? 1;
+    const sizeMult = pricing.sizeMultiplier[options.size] ?? 1;
+    const providerMult = pricing.providerMultiplier[options.provider] ?? 1;
 
-    const total = Math.ceil(TokenPricingCalculator.IMAGE_BASE_PRICE * options.count * sizeMult * providerMult);
+    const total = Math.ceil(pricing.imageBasePrice * options.count * sizeMult * providerMult);
 
     const breakdown = `AI图片生成: ${options.provider} ${options.size} x${options.count}`;
-    const formula = `${TokenPricingCalculator.IMAGE_BASE_PRICE} × ${options.count} × ${sizeMult}(尺寸) × ${providerMult}(服务商) = ${total}`;
+    const formula = `${pricing.imageBasePrice} × ${options.count} × ${sizeMult}(尺寸) × ${providerMult}(服务商) = ${total}`;
 
     return {
       total,
       breakdown,
       details: {
-        basePrice: TokenPricingCalculator.IMAGE_BASE_PRICE,
+        basePrice: pricing.imageBasePrice,
         multipliers: {
           count: options.count,
           size: sizeMult,

@@ -5,21 +5,23 @@ import {
   type API as __API__,
   type AppAPI as __AppAPI__,
   MsgError,
-  type MsgErrorOpValues,
   SessionAuthSign,
 } from '@tsfullstack/backend';
 
 import superjson, { type SuperJSONResult } from 'superjson';
-import { routeMap, routerUtil } from './router';
+import { routeMap, router, routerUtil } from './router';
 import { t } from '@/i18n';
 
 import type { AsyncAPI } from '@/utils/apiType';
+
+/** 错误动作类型：后端 handleCause 按 _tag 输出 kind */
+export type ErrorKind = 'MsgError' | 'LogoutError' | 'ToLoginError';
 
 /** RPC 响应的统一结构 */
 interface APIResponse<T = unknown> {
   result?: T;
   error?: {
-    op?: MsgErrorOpValues;
+    kind?: ErrorKind;
     message?: string;
   };
 }
@@ -104,17 +106,16 @@ export function useAPI() {
               summary: t('网络错误'),
               detail: errorMessage,
               life: 5000,
-              op: MsgError.op_msgError,
             });
             /** 抛出错误，让调用方能够捕获 */
-            throw new MsgError(MsgError.op_msgError, errorMessage);
+            throw MsgError.msg(errorMessage);
           }
           return res.text().then((text) => {
             let parsed: SuperJSONResult;
             try {
               parsed = JSON.parse(text);
             } catch {
-              throw new MsgError(MsgError.op_msgError, `服务器返回了非 JSON 响应 (${res.status})`);
+              throw MsgError.msg(`服务器返回了非 JSON 响应 (${res.status})`);
             }
             return superjson.deserialize(parsed) as APIResponse;
           });
@@ -123,7 +124,7 @@ export function useAPI() {
           if (!res.error) {
             return res.result;
           }
-          const op = res.error.op as MsgErrorOpValues | undefined;
+          const kind = res.error.kind;
 
           /** 统一发布错误 toast */
           const errorDetail = res.error?.message ?? '';
@@ -133,20 +134,22 @@ export function useAPI() {
               summary: t('错误'),
               detail: errorDetail,
               life: 3000,
-              op,
             });
           };
 
-          if (op === MsgError.op_logout) {
-            authBus.publish(MsgError.op_logout);
+          if (kind === 'LogoutError') {
+            authBus.publish('logout');
             publishErrorToast();
-          } else if (op === MsgError.op_toLogin) {
-            routerUtil.push(routeMap.login, {});
+          } else if (kind === 'ToLoginError') {
+            /** 带上当前页面地址，登录后回跳原页面（已是登录页时不带，避免死循环） */
+            const current = router.currentRoute.value;
+            const r = current.path === routeMap.login.path ? undefined : current.fullPath;
+            routerUtil.push(routeMap.login, {}, r ? { r } : undefined);
             publishErrorToast();
           } else {
             publishErrorToast();
           }
-          throw new MsgError(op ?? MsgError.op_msgError, res.error.message ?? t('未知错误'));
+          throw MsgError.msg(res.error.message ?? t('未知错误'));
         });
     }
     return remoteCall;

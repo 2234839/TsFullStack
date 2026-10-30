@@ -3,6 +3,8 @@ import { Effect } from 'effect';
 import { PaymentService } from '../services/payment/PaymentService';
 import { PaymentProvider } from '../../.zenstack/models';
 import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
+import { AppConfigService, type AppConfig } from '../Context/AppConfig';
+import { PaymentConfigService } from '../Context/PaymentConfig';
 import { extractErrorMessage } from '../util/error';
 import { WEBHOOK_MAX_LOG_PAYLOAD } from '../util/constants';
 
@@ -12,18 +14,23 @@ const LOG_PREFIX = '[Webhook]';
 /**
  * 注册 Webhook 回调路由
  */
-export function registerWebhookRoutes(fastify: FastifyInstance) {
+export function registerWebhookRoutes(fastify: FastifyInstance, appConfig: AppConfig) {
   fastify.post('/webhook/mbd', async (req: FastifyRequest, reply: FastifyReply) => {
-    return handleWebhookRequest(PaymentProvider.MBD, req, reply);
+    return handleWebhookRequest(PaymentProvider.MBD, appConfig, req, reply);
   });
 
   fastify.post('/webhook/afdian', async (req: FastifyRequest, reply: FastifyReply) => {
-    return handleWebhookRequest(PaymentProvider.AFDIAN, req, reply);
+    return handleWebhookRequest(PaymentProvider.AFDIAN, appConfig, req, reply);
   });
 }
 
 /** 统一 Webhook 请求处理器 */
-async function handleWebhookRequest(provider: PaymentProvider, req: FastifyRequest, reply: FastifyReply) {
+async function handleWebhookRequest(
+  provider: PaymentProvider,
+  appConfig: AppConfig,
+  req: FastifyRequest,
+  reply: FastifyReply,
+) {
   const startTime = Date.now();
 
   const reqCtx: ReqCtx = {
@@ -33,6 +40,9 @@ async function handleWebhookRequest(provider: PaymentProvider, req: FastifyReque
     },
     req,
     reqId: 0,
+    /** webhook 无队列，起点即当前时刻 */
+    t0: performance.now(),
+    sqlEvents: [],
   };
 
   try {
@@ -45,8 +55,13 @@ async function handleWebhookRequest(provider: PaymentProvider, req: FastifyReque
       Effect.provideService(ReqCtxService, reqCtx),
     );
 
-    /** adapter 接口 R 包含 DbClientEffect 等（各适配器依赖不同 Context），provideService 仅注入了 ReqCtxService，DbClientEffect 在 Effect 运行时自动提供。此处 cast 为无依赖 Effect，避免 Effect.runPromise 要求 R=never 的类型约束 */
-    const result = await Effect.runPromise(program as Effect.Effect<unknown, never, never>);
+    /** 显式补全 R 通道：DbClientEffect 依赖 AppConfigService，ReqCtxService 用于日志追踪，无需 as 强转 */
+    const result = await Effect.runPromise(
+      program.pipe(
+        Effect.provideService(AppConfigService, appConfig),
+        Effect.provideService(PaymentConfigService, appConfig.payment ?? {}),
+      ),
+    );
 
     const elapsed = Date.now() - startTime;
     reqCtx.log(`${LOG_PREFIX} ${provider} 处理完成 (${elapsed}ms):`, JSON.stringify(result));

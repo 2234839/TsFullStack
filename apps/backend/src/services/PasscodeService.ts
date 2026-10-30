@@ -24,7 +24,7 @@ const CREATE_MAX_RETRY = 5;
 export type PasscodeChannelKey = 'WECHAT_OFFICIAL';
 
 /** 用途标识 */
-export type PasscodePurposeKey = 'LOGIN';
+export type PasscodePurposeKey = 'LOGIN' | 'BIND';
 
 /**
  * 通用验证口令服务：与通道无关的口令底座。
@@ -41,6 +41,8 @@ export const PasscodeService = {
   create(
     channel: PasscodeChannelKey,
     purpose: PasscodePurposeKey,
+    /** 发起方上下文（BIND 用途存发起绑定的 userId 等） */
+    payload?: NonNullable<VerificationPasscode['payload']>,
   ): Effect.Effect<VerificationPasscode, Error, AppConfigService> {
     return Effect.gen(function* () {
       const db = yield* DbClientEffect;
@@ -57,6 +59,7 @@ export const PasscodeService = {
               code,
               channel,
               purpose,
+              payload,
               expiresAt: new Date(now.getTime() + PASSCODE_TTL_MS),
             },
           }),

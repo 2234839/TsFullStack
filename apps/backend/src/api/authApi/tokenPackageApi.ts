@@ -69,14 +69,13 @@ const updateTokenPackage = (
  * 删除代币套餐
  */
 const deleteTokenPackage = (packageId: number) =>
-  requireAdmin().pipe(
-    Effect.andThen(() => TokenPackageService.deletePackage(packageId)),
-    Effect.tap(() =>
-      Effect.map(ReqCtxService, (ctx) => {
-        ctx.log(`${LOG_PREFIX} 删除套餐 ${packageId}`);
-      }),
-    ),
-  );
+  Effect.gen(function* () {
+    yield* requireAdmin();
+    const result = yield* TokenPackageService.deletePackage(packageId);
+    const ctx = yield* ReqCtxService;
+    ctx.log(`${LOG_PREFIX} 删除套餐 ${packageId}`);
+    return result;
+  });
 
 /**
  * 获取套餐列表
@@ -204,20 +203,22 @@ const subscribePackage = (request: { userId: string; packageId: number }) =>
  * 取消订阅
  */
 const cancelSubscription = (subscriptionId: number) =>
-  requireAdmin().pipe(
-    Effect.andThen(() => TokenPackageService.cancelSubscription(subscriptionId)),
-    Effect.tap(() =>
-      Effect.map(ReqCtxService, (ctx) => {
-        ctx.log(`${LOG_PREFIX} 取消订阅 ${subscriptionId}`);
-      }),
-    ),
-  );
+  Effect.gen(function* () {
+    yield* requireAdmin();
+    const result = yield* TokenPackageService.cancelSubscription(subscriptionId);
+    const ctx = yield* ReqCtxService;
+    ctx.log(`${LOG_PREFIX} 取消订阅 ${subscriptionId}`);
+    return result;
+  });
 
 /**
  * 获取用户订阅列表（需要管理员权限）
  */
 const listUserSubscriptions = (options?: { userId?: string; active?: boolean; skip?: number; take?: number }) =>
-  requireAdmin().pipe(Effect.andThen(() => TokenPackageService.listSubscriptions(options)));
+  Effect.gen(function* () {
+    yield* requireAdmin();
+    return yield* TokenPackageService.listSubscriptions(options);
+  });
 
 /**
  * 套餐管理 API

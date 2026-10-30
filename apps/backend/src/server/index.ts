@@ -2,7 +2,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { ORMError, ORMErrorReason } from '@zenstackhq/orm';
-import { Cause, Effect, Exit, Layer, Queue, Semaphore } from 'effect';
+import { Cause, Effect, Exit, Layer, Queue, Semaphore, Tracer } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import os from 'os';
 import path from 'path';
@@ -12,6 +12,10 @@ import { AuthContext } from '../Context/Auth';
 import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
 import { AppConfigService } from '../Context/AppConfig';
 import { systemLog } from '../Context/SystemLog';
+import { insertDiagTrace } from '../Context/DbService';
+import { ConfigLive } from '../Context/AppLive';
+import { maxLoopLagBetween, startLoopLagMonitor } from '../util/LoopLagMonitor';
+import { buildSpanTree, makeSpanCollector, type SpanCollector } from '../util/EffectSpanCollector';
 import { GithubAuthLive } from '../OAuth/github';
 import { LinuxDoAuthLive } from '../OAuth/linuxdo';
 import { apis, type APIRaw } from '../api';
@@ -19,7 +23,7 @@ import { appApis } from '../api/appApi';
 import { FileWrapItem } from '../util/file-types';
 import { verifySignByToken } from '../lib/SessionAuthSign';
 import { createRPC } from '../rpc';
-import { MsgError, fail, tryOrFail, extractErrorMessage } from '../util/error';
+import { MsgError, LogoutError, ToLoginError, fail, tryOrFail, extractErrorMessage } from '../util/error';
 import { FetchWithProxy, FetchWithProxyLive } from '../util/github-proxy';
 import {
   createDetailedErrorMessage,
@@ -28,6 +32,7 @@ import {
   isZenStackValidationError,
 } from '../util/zenstack-error';
 import { getAuthFromCache } from './authCache';
+import { pushRecentRequest } from '../api/authApi/diagApi';
 import { registerWebhookRoutes } from './webhook';
 import { registerGroupEntryRoutes } from './groupEntry';
 import { registerWechatRoutes } from './wechat';
@@ -56,10 +61,11 @@ const REQUESTS_PER_CPU_CORE = 10;
 
 /** 统一错误序列化函数 */
 function handleCause(cause: Cause.Cause<unknown>) {
-  let err: { message: string; op?: string } | undefined;
+  let err: { message: string; kind?: string } | undefined;
   function setErr(error: unknown): string {
-    if (MsgError.isMsgError(error)) {
-      err = { message: error.message, op: error.op };
+    if (MsgError.isMsgError(error) || error instanceof LogoutError || error instanceof ToLoginError) {
+      /** kind = 错误类 _tag，前端按它分流（logout/toLogin/msgError） */
+      err = { message: error.message, kind: error._tag };
     } else if (error instanceof ORMError) {
       /**
        * https://zenstack.dev/docs/orm/access-control/query#setting-auth-user
@@ -181,7 +187,7 @@ function parseParamsAndAuth(req: FastifyRequest) {
     if (querySignMode) {
       const session = user.userSession[0];
       if (!session) {
-        return yield* Effect.fail(new MsgError(MsgError.op_toLogin, '请提供有效的 session'));
+        return yield* Effect.fail(ToLoginError.msg('请提供有效的 session'));
       }
       const verify = yield* Effect.try({
         try: () => verifySignByToken(query.args ?? '', session.token, query.sign ?? ''),
@@ -207,9 +213,128 @@ type ApiCtx = {
 /** rpc 实例，提到外部可避免每次重新创建 */
 const appApisRpc = createRPC('apiProvider', { genApiModule: async () => appApis });
 let reqId = 0;
+
+/** 慢请求落盘阈值：总耗时 / 单条 SQL / 事件循环卡顿任一超阈值即记录 */
+const SLOW_TOTAL_MS = 500;
+const SLOW_SQL_MS = 100;
+const SLOW_LOOP_LAG_MS = 50;
+/** 诊断时间线里 SQL 明细条数上限（防异常请求生成超大 JSON） */
+const DIAG_SQL_EVENTS_LIMIT = 50;
+
+/**
+ * 请求结束后构建观测数据：全量推入内存环形缓冲（含快请求），超阈值的慢请求额外落盘。
+ *
+ * 阻塞判定：loopLagMaxMs ≈ sqlMaxMs → 硬阻塞（同步冻结事件循环，
+ * better-sqlite3 是同步驱动）；loopLagMaxMs ≈ 0 但总耗时长 → 纯事件等待。
+ */
+function finalizeDiag(input: {
+  reqCtx: ReqCtx;
+  method: string;
+  enqueueTime: number;
+  authMs?: number;
+  authAt?: number;
+  rpcMs?: number;
+  rpcAt?: number;
+  startPerf: number;
+  endPerf: number;
+  totalMs: number;
+  error: boolean;
+  /** 本请求的 span 采集器（有则落盘 span 树） */
+  spanCollector?: SpanCollector;
+}) {
+  const {
+    reqCtx,
+    method,
+    enqueueTime,
+    authMs,
+    authAt,
+    rpcMs,
+    rpcAt,
+    startPerf,
+    endPerf,
+    totalMs,
+    error,
+    spanCollector,
+  } = input;
+  const sqlEvents = reqCtx.sqlEvents;
+  const sqlTotalMs = sqlEvents.reduce((sum, el) => sum + el.ms, 0);
+  const sqlMaxMs = sqlEvents.reduce((max, el) => Math.max(max, el.ms), 0);
+  const loopLagMaxMs = maxLoopLagBetween(startPerf, endPerf);
+  const queueWaitMs = Math.max(0, startPerf - enqueueTime);
+
+  const timeline: Array<Record<string, unknown>> = [
+    { phase: 'queue', ms: Math.round(queueWaitMs), at: 0, note: '请求在处理队列中的等待' },
+  ];
+  if (authMs != null)
+    timeline.push({
+      phase: 'auth',
+      ms: Math.round(authMs),
+      at: authAt != null ? Math.round(authAt) : null,
+      note: '鉴权 getDbAuth（含用户查询 SQL）',
+    });
+  if (rpcMs != null)
+    timeline.push({
+      phase: 'rpc',
+      ms: Math.round(rpcMs),
+      at: rpcAt != null ? Math.round(rpcAt) : null,
+      note: 'RPC 业务处理（含其中全部 SQL/出站请求）',
+    });
+  timeline.push({
+    phase: 'sqlEvents',
+    count: sqlEvents.length,
+    sqlTotalMs,
+    sqlMaxMs,
+    items: sqlEvents.slice(0, DIAG_SQL_EVENTS_LIMIT),
+  });
+  if (spanCollector) {
+    const tree = buildSpanTree(spanCollector.spans);
+    if (tree.length > 0) timeline.push({ phase: 'spanTree', tree });
+  }
+  if (error) timeline.push({ phase: 'error', note: '请求以错误结束，总耗时含错误序列化' });
+
+  const row = {
+    method,
+    totalMs: Math.round(totalMs),
+    queueWaitMs: Math.round(queueWaitMs),
+    authMs: authMs != null ? Math.round(authMs) : undefined,
+    sqlCount: sqlEvents.length,
+    sqlTotalMs,
+    sqlMaxMs,
+    loopLagMaxMs,
+    timeline,
+  };
+
+  /** 全量推入内存环形缓冲（实时请求流，含快请求） */
+  pushRecentRequest({
+    method: row.method,
+    totalMs: row.totalMs,
+    queueWaitMs: row.queueWaitMs,
+    authMs: row.authMs,
+    sqlCount: row.sqlCount,
+    sqlTotalMs: row.sqlTotalMs,
+    sqlMaxMs: row.sqlMaxMs,
+    loopLagMaxMs: row.loopLagMaxMs,
+    error,
+    timeline,
+  });
+
+  const isSlow = totalMs >= SLOW_TOTAL_MS || sqlMaxMs >= SLOW_SQL_MS || loopLagMaxMs >= SLOW_LOOP_LAG_MS;
+  if (!isSlow) return;
+
+  const note = `阻塞判定: ${loopLagMaxMs >= SLOW_LOOP_LAG_MS ? `硬阻塞(lag=${loopLagMaxMs}ms${sqlMaxMs >= SLOW_SQL_MS ? ` ≈ sqlMax=${sqlMaxMs}ms，疑似同步 SQL/序列化冻结进程` : ''})` : '事件等待(lag≈0，耗时在外部 IO/等待)'} | 慢点: ${timeline.map((t) => `${t.phase}=${(t as { ms?: number }).ms ?? '-'}ms`).join(' ')}`;
+  reqCtx.log('[diag]', note);
+
+  /** fire-and-forget：落盘不阻塞响应，ConfigLive 提供 AppConfigService（DbClientEffect 依赖） */
+  Effect.runFork(Effect.provide(insertDiagTrace(row), ConfigLive));
+}
+
 /** 注意，这里必须要等待发送数据完毕，否则 onEnd 之后数据将无法发送 */
 function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
   const startTime = Date.now();
+  const startPerf = performance.now();
+  const diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number } = { t0: startPerf };
+  /** 请求级 span 采集器：把 Effect Tracer 采集的 span 树落盘到诊断记录 */
+  const spanCollector = makeSpanCollector();
   const reqCtx: ReqCtx = {
     logs: [],
     log(...args) {
@@ -217,6 +342,9 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
     },
     req,
     reqId: ++reqId,
+    t0: startPerf,
+    sqlEvents: [],
+    spanCollector,
   };
   let method: string;
   try {
@@ -227,7 +355,7 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
     return Effect.void;
   }
 
-  const program = buildReqProgram({ req, reply, pathPrefix, method, enqueueTime });
+  const program = buildReqProgram({ req, reply, pathPrefix, method, enqueueTime, diag });
 
   /** 合成层，避免其他 service 还在依赖 FetchWithProxy */
   const unFetchProxyLayer = Layer.provide(GithubAuthLive, FetchWithProxyLive);
@@ -239,19 +367,22 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
   const unReqLayer = Layer.provide(allOAuthLayers, reqLayer);
 
   const apiLayer = unReqLayer;
-  const runnable = Effect.provide(program, [
+  const runnable = Effect.provide(Effect.withSpan(program, method), [
     apiLayer,
     /**
     Q:为什么这里还要传递 reqLayer，前面已经传递了 unReqLayer (apiLayer) 啊？
     A:要注意 unReqLayer 解决的是 unReqLayer 这个声明中的层依赖 ReqCtxService 的问题，但是并没有给 program 提供 ReqCtxService，所以这里主要就是给 program 提供
       理论上就可以不要使用 unReqLayer 了,但为了代码逻辑清晰还是使用 unReqLayer
     */ reqLayer,
+    Layer.succeed(Tracer.Tracer, spanCollector.tracer),
   ]);
 
   /** 拦截并处理所有错误 */
   return Effect.gen(function* () {
+    let failed = false;
     const exit = yield* Effect.exit(runnable);
     if (Exit.isFailure(exit)) {
+      failed = true;
       const cause = exit.cause;
 
       /** 记录详细的错误信息 */
@@ -281,6 +412,20 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, onEnd }: ApiCtx) {
 
     onEnd();
     const endTime = Date.now();
+    finalizeDiag({
+      reqCtx,
+      method,
+      enqueueTime,
+      authMs: diag.authMs,
+      authAt: diag.authAt,
+      rpcMs: diag.rpcMs,
+      rpcAt: diag.rpcAt,
+      startPerf,
+      endPerf: performance.now(),
+      totalMs: endTime - startTime,
+      error: failed,
+      spanCollector,
+    });
     return yield* systemLog({ level: 'info', message: `${endTime - startTime}ms ${method}` }, reqCtx);
   });
 }
@@ -292,6 +437,8 @@ function buildReqProgram(opts: {
   pathPrefix: string;
   method: string;
   enqueueTime: number;
+  /** 诊断阶段耗时收集器（handleReq 创建，落盘时读取；t0 为相对时基，at = performance.now() - t0） */
+  diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number };
 }) {
   return Effect.gen(function* () {
     const waitTime = Date.now() - opts.enqueueTime;
@@ -302,17 +449,29 @@ function buildReqProgram(opts: {
     let result: unknown;
     if (opts.pathPrefix === '/app-api/') {
       const params = yield* tryOrFail('参数解析', () => parseParams(opts.req));
-      result = yield* callRpc(appApisRpc, opts.method, params);
+      const rpcStart = performance.now();
+      result = yield* Effect.withSpan(callRpc(appApisRpc, opts.method, params), `rpc:${opts.method}`);
+      opts.diag.rpcMs = performance.now() - rpcStart;
+      opts.diag.rpcAt = rpcStart - opts.diag.t0;
     } else if (opts.pathPrefix === '/api/') {
       /** 处理需要鉴权的 API */
-      const { params, db, user } = yield* parseParamsAndAuth(opts.req);
+      const authStart = performance.now();
+      const { params, db, user } = yield* Effect.withSpan(parseParamsAndAuth(opts.req), 'auth:鉴权(含用户查询SQL)');
+      opts.diag.authMs = performance.now() - authStart;
+      opts.diag.authAt = authStart - opts.diag.t0;
+      const rpcStart = performance.now();
       const apisRpc = createRPC('apiProvider', {
         /** apis + db → APIRaw: 动态合并的模块对象无法在编译期精确匹配 APIRaw 接口，运行时结构一致 */
         genApiModule: async () => ({ ...apis, db }) as unknown as APIRaw,
       });
-      result = yield* callRpc(apisRpc, opts.method, params)
-        // 提供 apis 模块所需要的依赖
-        .pipe(Effect.provideService(AuthContext, { db, user }));
+      result = yield* Effect.withSpan(
+        callRpc(apisRpc, opts.method, params)
+          // 提供 apis 模块所需要的依赖
+          .pipe(Effect.provideService(AuthContext, { db, user })),
+        `rpc:${opts.method}`,
+      );
+      opts.diag.rpcMs = performance.now() - rpcStart;
+      opts.diag.rpcAt = rpcStart - opts.diag.t0;
     }
     if (result instanceof FileWrapItem) {
       yield* sendFileResponse(opts.reply, result);
@@ -478,7 +637,7 @@ export const startServer = Effect.gen(function* () {
   }));
 
   /** 注册支付 Webhook 回调路由（不走 RPC 系统，由第三方平台直接调用） */
-  registerWebhookRoutes(fastify);
+  registerWebhookRoutes(fastify, appConfig);
 
   /** 注册私域引流路由（微信群动态入口：/group/:entry(.png) + /group/admin/*） */
   registerGroupEntryRoutes(fastify, appConfig);
@@ -498,6 +657,8 @@ export const startServer = Effect.gen(function* () {
   //#region 启动服务器
   const address = yield* tryOrFail('服务器启动', () => fastify.listen({ port: SERVER_PORT, host: SERVER_HOST }));
   console.log(`${LOG_PREFIX} listening on ${address}`);
+  /** 启动事件循环卡顿采样（慢请求诊断的硬阻塞判据） */
+  startLoopLagMonitor();
   //#endregion
 
   /** 创建控制最大并发数的信号量 */

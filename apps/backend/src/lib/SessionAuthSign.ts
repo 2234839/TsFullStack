@@ -1,34 +1,36 @@
+import { Cache, Duration, Effect } from 'effect';
+
 /** 复用无状态的 TextEncoder 实例 */
 const textEncoder = new TextEncoder();
 
 /**
- * 使用 Web Crypto API 的 HMAC-SHA256 签名（兼容浏览器和 Node.js）
- * cryptoKey 按缓存 key 复用，避免重复 importKey 开销
+ * CryptoKey 缓存：Effect Cache 承担容量淘汰（防止按 sessionToken 无界增长）
+ * + 并发单飞（同 key 只 importKey 一次）
  */
-const cryptoKeyCache = new Map<string, CryptoKey>();
+const cryptoKeyCache = Effect.runSync(
+  Cache.make<string, CryptoKey, never, never, never>({
+    capacity: 2048,
+    timeToLive: Duration.hours(1),
+    lookup: (key) =>
+      Effect.promise(() =>
+        crypto.subtle.importKey('raw', textEncoder.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']),
+      ),
+  }),
+);
 
-async function hmacSha256(key: string, data: string): Promise<string> {
-  let cryptoKey = cryptoKeyCache.get(key);
-  if (!cryptoKey) {
-    cryptoKey = await crypto.subtle.importKey(
-      'raw',
-      textEncoder.encode(key),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign'],
-    );
-    cryptoKeyCache.set(key, cryptoKey);
-  }
-
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, textEncoder.encode(data));
-  return Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('');
+function hmacSha256(key: string, data: string) {
+  return Effect.gen(function* () {
+    const cryptoKey = yield* Cache.get(cryptoKeyCache, key);
+    const signature = yield* Effect.promise(() => crypto.subtle.sign('HMAC', cryptoKey, textEncoder.encode(data)));
+    return Array.from(new Uint8Array(signature))
+      .map((b) => b.toString(16).padStart(2, '0'))
+      .join('');
+  });
 }
 
 /** 使用 sessionToken 对原始字符串签名 */
-export async function signByToken(originStr: string, sessionToken: string): Promise<string> {
-  return hmacSha256(sessionToken, originStr);
+export function signByToken(originStr: string, sessionToken: string) {
+  return Effect.runPromise(hmacSha256(sessionToken, originStr));
 }
 
 /** 将 hex 字符串转为 Uint8Array（非法 hex 返回 null，避免 NaN 字节导致的未定义行为） */

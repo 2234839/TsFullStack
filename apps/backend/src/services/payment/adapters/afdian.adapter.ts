@@ -6,6 +6,7 @@ import { withFetchTimeout, FETCH_TIMEOUTS } from '../../../util/http';
 import type { PaymentAdapter, CreatePaymentParams, CreatePaymentResult, ParsedWebhookResult } from './types';
 import { PaymentProvider } from '../../../../.zenstack/models';
 import { PaymentConfigService } from '../../../Context/PaymentConfig';
+import { fetchJsonOrThrow } from '../../../util/fetchJson';
 import { ReqCtxService } from '../../../Context/ReqCtx';
 
 const LOG_PREFIX = '[AfdianAdapter]';
@@ -139,7 +140,8 @@ export const AfdianAdapter: PaymentAdapter = {
       const sign = afdianSign(afdianConfig.apiKey, params, ts, afdianConfig.apiUserId);
 
       const response = yield* tryOrFail('爱发电查询', () =>
-        fetch(
+        fetchJsonOrThrow(
+          '爱发电查询',
           `${AFDIAN_API_BASE}/query-order`,
           withFetchTimeout(
             {
@@ -149,7 +151,7 @@ export const AfdianAdapter: PaymentAdapter = {
             },
             FETCH_TIMEOUTS.payment,
           ),
-        ).then((r) => r.json()),
+        ),
       );
 
       const data = response as {

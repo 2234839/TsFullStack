@@ -17,14 +17,17 @@ export function dbTry<T>(
   fn: () => Promise<T>,
 ): Effect.Effect<T, Error, ReqCtxService> {
   return Effect.flatMap(ReqCtxService, (reqCtx) =>
-    Effect.tryPromise({
-      try: fn,
-      catch: (error: unknown) => {
-        reqCtx.log(`${label} ${operation}失败:`, extractErrorMessage(error));
-        if (error instanceof MsgError) return error;
-        return MsgError.msg(`${operation}失败`);
-      },
-    }),
+    Effect.withSpan(
+      Effect.tryPromise({
+        try: fn,
+        catch: (error: unknown) => {
+          reqCtx.log(`${label} ${operation}失败:`, extractErrorMessage(error));
+          if (error instanceof MsgError) return error;
+          return MsgError.msg(`${operation}失败`);
+        },
+      }),
+      `sql:${label}·${operation}`,
+    ),
   );
 }
 
@@ -38,15 +41,18 @@ export function dbTryOrDefault<T>(
   defaultValue: T,
 ): Effect.Effect<T, never, ReqCtxService> {
   return Effect.flatMap(ReqCtxService, (reqCtx) =>
-    Effect.catch(
-      Effect.tryPromise({
-        try: fn,
-        catch: (error: unknown) => {
-          reqCtx.log(`${label} ${operation}失败，使用默认值:`, extractErrorMessage(error));
-          return MsgError.msg(`${operation}失败（静默）`);
-        },
-      }),
-      () => Effect.succeed(defaultValue),
+    Effect.withSpan(
+      Effect.catch(
+        Effect.tryPromise({
+          try: fn,
+          catch: (error: unknown) => {
+            reqCtx.log(`${label} ${operation}失败，使用默认值:`, extractErrorMessage(error));
+            return MsgError.msg(`${operation}失败（静默）`);
+          },
+        }),
+        () => Effect.succeed(defaultValue),
+      ),
+      `sql:${label}·${operation}`,
     ),
   );
 }

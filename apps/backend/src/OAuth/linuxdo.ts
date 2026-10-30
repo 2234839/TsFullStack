@@ -6,7 +6,7 @@ import { MSG } from '../util/constants';
 import { FetchWithProxy } from '../util/github-proxy';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../util/http';
 import { JSON_CONTENT_HEADERS } from '../util/constants';
-import { registerOAuthState, consumeOAuthState } from './github';
+import { registerOAuthState, consumeOAuthStateDetail } from './github';
 
 /** ===== 常量定义 ===== */
 
@@ -53,8 +53,11 @@ export class LinuxDoAuthService extends Context.Service<
     readonly authenticate: (
       code: string,
       state?: string,
-    ) => Effect.Effect<{ user: LinuxDoUser; accessToken: string }, Error>;
-    readonly getAuthorizationUrl: () => Effect.Effect<string>;
+    ) => Effect.Effect<
+      { user: LinuxDoUser; accessToken: string; /** 发起时是否为绑定意图（state 标记回传） */ bind: boolean },
+      Error
+    >;
+    readonly getAuthorizationUrl: (bind?: boolean) => Effect.Effect<string>;
   }
 >()('LinuxDoAuthService') {}
 
@@ -147,19 +150,20 @@ const LinuxDoAuthLiveEffect = Effect.gen(function* () {
   return {
     authenticate(code: string, state?: string) {
       return Effect.gen(function* () {
-        /** CSRF 防护：state 必须是本服务签发且未被使用过的（一次性消费防重放） */
-        if (!consumeOAuthState(state)) {
+        /** CSRF 防护：state 必须是本服务签发且未被使用过的（一次性消费防重放）；bind = 发起时绑定意图 */
+        const stateDetail = consumeOAuthStateDetail(state);
+        if (!stateDetail.valid) {
           return yield* Effect.fail(new Error('Invalid or expired OAuth state'));
         }
         const accessToken = yield* getAccessToken(code);
         const user = yield* getUser(accessToken);
-        return { user, accessToken };
+        return { user, accessToken, bind: stateDetail.bind };
       });
     },
-    getAuthorizationUrl() {
-      /** 服务端签发随机 state 并登记，回调时验证（防 CSRF 登录劫持） */
+    getAuthorizationUrl(bind?: boolean) {
+      /** 服务端签发随机 state 并登记（bind=true 标记绑定意图），回调时验证（防 CSRF 登录劫持） */
       const state = randomBytes(16).toString('hex');
-      registerOAuthState(state);
+      registerOAuthState(state, bind);
       const params = new URLSearchParams({
         client_id: config.clientId,
         redirect_uri: config.redirectUri,

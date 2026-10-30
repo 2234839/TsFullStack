@@ -3,16 +3,14 @@
  * 使用发布-订阅模式，支持消息积攒和延迟消费
  */
 
-import { MsgError, type MsgErrorOpValues } from '@tsfullstack/backend';
-
 interface ToastMessage {
   variant?: 'success' | 'error' | 'info' | 'warn';
   summary: string;
   detail?: string;
   life?: number;
-  /** 操作类型，用于去重判断 */
-  op?: MsgErrorOpValues;
 }
+
+export type { ToastMessage };
 
 type ToastListener = (message: ToastMessage) => void;
 
@@ -32,26 +30,24 @@ class ToastBus {
    * 即使没有监听器，消息也会被保存到队列中等待消费
    */
   publish(message: ToastMessage): void {
-    // 只对 op_toLogin 进行去重处理
-    if (message.op === MsgError.op_toLogin) {
-      const existing = this.latestMessages.get(MsgError.op_toLogin);
+    /** 相同 detail 的登录跳转类消息去重（连续多个请求同时失效时只弹一条） */
+    const existing = this.latestMessages.get(message.detail ?? '');
 
-      if (existing) {
-        // 如果已有 op_toLogin 消息，延长时间而不是新增
-        const currentLife = existing.life ?? 3000;
-        const newLife = Math.max(currentLife, message.life ?? 3000) + 2000; // 取较大值并额外延长
+    if (existing) {
+      // 延长时间而不是新增
+      const currentLife = existing.life ?? 3000;
+      const newLife = Math.max(currentLife, message.life ?? 3000) + 2000;
 
-        this.latestMessages.set(MsgError.op_toLogin, {
-          ...existing,
-          life: newLife,
-        });
+      this.latestMessages.set(message.detail ?? '', {
+        ...existing,
+        life: newLife,
+      });
 
-        return;
-      }
-
-      // 记录第一条 op_toLogin 消息
-      this.latestMessages.set(MsgError.op_toLogin, message);
+      return;
     }
+
+    // 记录最近消息
+    this.latestMessages.set(message.detail ?? '', message);
 
     // 添加到队列并通知监听器
     this._addToQueue(message);

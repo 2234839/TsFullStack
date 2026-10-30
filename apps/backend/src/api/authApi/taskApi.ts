@@ -10,6 +10,7 @@ import { TaskService } from '../../services/TaskService';
 import { ResourceService } from '../../services/ResourceService';
 import { aiImageGenerateService } from '../../services/aiImageGenerateService';
 import { TokenPricingCalculator } from '../../services/TokenPricingCalculator';
+import { PricingConfigService } from '../../Context/PricingConfig';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../util/http';
 import { TaskType, TaskStatus, ResourceType } from '../../../.zenstack/models';
 import { tokenConsumeRateLimiter } from '../../middleware/rateLimit';
@@ -184,7 +185,8 @@ const generateAIImage = (request: { prompt: string; provider?: AiImageProvider; 
     const { prompt, provider, count, size } = yield* validateImageParams(request);
 
     // 3. 代币消耗计算
-    const pricingResult = TokenPricingCalculator.aiImageGeneration({ count, size, provider });
+    const pricingConfig = yield* PricingConfigService;
+    const pricingResult = TokenPricingCalculator.aiImageGeneration({ count, size, provider }, pricingConfig);
     const tokenCost = pricingResult.total;
 
     if (tokenCost <= 0 || tokenCost > MAX_TOKEN_COST) {
@@ -208,51 +210,47 @@ const generateAIImage = (request: { prompt: string; provider?: AiImageProvider; 
     yield* TaskService.startTask(task.id);
 
     /** 图片生成 → 创建资源 → 完成任务 → 消耗代币 的完整管道，失败时标记任务为 failed */
-    const result = yield* aiImageGenerateService(prompt, { provider, count, size }).pipe(
-      Effect.tap((generateResult) => {
-        ctx.log(`${LOG_PREFIX} AI 服务返回 ${generateResult.images.length} 张图片`);
-        return Effect.void;
-      }),
-      Effect.andThen((generateResult) =>
-        Effect.gen(function* () {
-          // 7. 批量创建资源记录
-          const [rawWidth, rawHeight] = size.split('x');
-          /** parseInt 防御：非法格式回退到默认值 */
-          const width = Math.max(1, parseInt(rawWidth ?? '') || DEFAULT_IMAGE_DIMENSION);
-          const height = Math.max(1, parseInt(rawHeight ?? '') || DEFAULT_IMAGE_DIMENSION);
-          const createManyResult = yield* dbTry(LOG_PREFIX, '批量创建资源', () =>
-            auth.db.resource.createMany({
-              data: generateResult.images.map((imageUrl: string) => ({
-                userId: auth.user.id,
-                type: ResourceType.IMAGE,
-                title: `AI 生成图片 - ${prompt.substring(0, PROMPT_TRUNCATE_LENGTH)}`,
-                metadata: {
-                  externalUrl: imageUrl,
-                  width,
-                  height,
-                  provider,
-                },
-                taskId: task.id,
-                status: 'completed',
-              })),
-            }),
-          );
+    const result = yield* Effect.gen(function* () {
+      const generateResult = yield* aiImageGenerateService(prompt, { provider, count, size });
+      ctx.log(`${LOG_PREFIX} AI 服务返回 ${generateResult.images.length} 张图片`);
 
-          ctx.log(`${LOG_PREFIX} 批量创建 ${createManyResult.count} 个资源记录`);
-
-          // 8. 完成任务
-          yield* TaskService.completeTask(task.id, {
-            imagesCount: generateResult.images.length,
-            externalTaskId: generateResult.taskId,
-          });
-
-          // 9. 消耗代币
-          yield* TokenService.consumeTokens(auth.user.id, tokenCost, task.id);
-          ctx.log(`${LOG_PREFIX} 消耗代币成功, total=${tokenCost}`);
-
-          return { taskId: task.id, imagesCount: generateResult.images.length, images: generateResult.images };
+      // 7. 批量创建资源记录
+      const [rawWidth, rawHeight] = size.split('x');
+      /** parseInt 防御：非法格式回退到默认值 */
+      const width = Math.max(1, parseInt(rawWidth ?? '') || DEFAULT_IMAGE_DIMENSION);
+      const height = Math.max(1, parseInt(rawHeight ?? '') || DEFAULT_IMAGE_DIMENSION);
+      const createManyResult = yield* dbTry(LOG_PREFIX, '批量创建资源', () =>
+        auth.db.resource.createMany({
+          data: generateResult.images.map((imageUrl: string) => ({
+            userId: auth.user.id,
+            type: ResourceType.IMAGE,
+            title: `AI 生成图片 - ${prompt.substring(0, PROMPT_TRUNCATE_LENGTH)}`,
+            metadata: {
+              externalUrl: imageUrl,
+              width,
+              height,
+              provider,
+            },
+            taskId: task.id,
+            status: 'completed',
+          })),
         }),
-      ),
+      );
+
+      ctx.log(`${LOG_PREFIX} 批量创建 ${createManyResult.count} 个资源记录`);
+
+      // 8. 完成任务
+      yield* TaskService.completeTask(task.id, {
+        imagesCount: generateResult.images.length,
+        externalTaskId: generateResult.taskId,
+      });
+
+      // 9. 消耗代币
+      yield* TokenService.consumeTokens(auth.user.id, tokenCost, task.id);
+      ctx.log(`${LOG_PREFIX} 消耗代币成功, total=${tokenCost}`);
+
+      return { taskId: task.id, imagesCount: generateResult.images.length, images: generateResult.images };
+    }).pipe(
       /** 失败时标记任务为 FAILED 并传播原始错误 */
       Effect.tapError((error) => TaskService.failTask(task.id, extractErrorMessage(error)).pipe(Effect.ignore)),
     );

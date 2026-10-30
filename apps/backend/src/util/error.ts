@@ -1,4 +1,44 @@
-import { Effect } from 'effect';
+import { Data, Effect } from 'effect';
+
+/**
+ * 普通消息错误（展示提示，无跳转动作）
+ */
+export class MsgError extends Data.TaggedError('MsgError')<{
+  /** 可读错误消息 */
+  readonly message: string;
+}> {
+  /** 快捷构造普通消息错误 */
+  static msg(message: string) {
+    return new MsgError({ message });
+  }
+  static isMsgError(err: unknown): err is MsgError {
+    return err instanceof MsgError;
+  }
+}
+
+/**
+ * 登出错误：前端收到后清理本地认证信息并跳转登录页
+ */
+export class LogoutError extends Data.TaggedError('LogoutError')<{
+  /** 可读错误消息 */
+  readonly message: string;
+}> {
+  static msg(message: string) {
+    return new LogoutError({ message });
+  }
+}
+
+/**
+ * 跳转登录页错误：不清理本地数据，仅跳转
+ */
+export class ToLoginError extends Data.TaggedError('ToLoginError')<{
+  /** 可读错误消息 */
+  readonly message: string;
+}> {
+  static msg(message: string) {
+    return new ToLoginError({ message });
+  }
+}
 
 /** 从未知错误中提取可读消息 */
 export function extractErrorMessage(error: unknown): string {
@@ -36,33 +76,3 @@ export function tryOrFail<T>(label: string, fn: () => Promise<T>) {
     },
   });
 }
-
-export class MsgError extends Error {
-  static errorTag = 'MsgError';
-  /** 登出：清理本地认证信息并跳转登录页 */
-  static op_logout = 'op_logout' as const;
-  /** 跳转登录页：不清理本地数据，仅跳转 */
-  static op_toLogin = 'op_toLogin' as const;
-  /** 普通消息错误：显示错误提示 */
-  static op_msgError = 'op_msgError' as const;
-
-  static msg(message: string) {
-    return new MsgError(MsgError.op_msgError, message);
-  }
-  static isMsgError(err: unknown): err is MsgError {
-    return err instanceof MsgError;
-  }
-  errorTag = MsgError.errorTag;
-  constructor(
-    public op: MsgErrorOpValues,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'MsgError';
-  }
-}
-type ExtractOpKeys<T> = {
-  [K in keyof T]: K extends `op_${string}` ? T[K] : never;
-}[keyof T];
-
-export type MsgErrorOpValues = ExtractOpKeys<typeof MsgError>;

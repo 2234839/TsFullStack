@@ -3,7 +3,8 @@
  * 处理登出、登录等认证相关事件
  */
 
-import { type MsgErrorOpValues } from '@tsfullstack/backend';
+/** 认证事件类型 */
+export type AuthEvent = 'logout' | 'login';
 
 /** 认证事件监听器 */
 type AuthEventListener = () => void;
@@ -18,7 +19,7 @@ class AuthBus {
    * @param listener 事件监听器
    * @returns 取消订阅函数
    */
-  subscribe(event: MsgErrorOpValues, listener: AuthEventListener): () => void {
+  subscribe(event: AuthEvent, listener: AuthEventListener): () => void {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set());
     }
@@ -36,9 +37,9 @@ class AuthBus {
 
   /**
    * 发布认证事件
-   * @param event 事件类型（使用后端 MsgError.op_* 常量）
+   * @param event 事件类型（如 'logout'）
    */
-  publish(event: string): void {
+  publish(event: AuthEvent): void {
     const listeners = this.listeners.get(event);
     if (listeners && listeners.size > 0) {
       listeners.forEach((listener) => {

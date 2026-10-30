@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { Effect } from 'effect';
 import { fail, MsgError, tryOrFail } from '../../../util/error';
+import { fetchJsonOrThrow } from '../../../util/fetchJson';
 import { JSON_CONTENT_HEADERS, deepCloneToJson, MSG } from '../../../util/constants';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../../util/http';
 import type { PaymentAdapter, CreatePaymentParams, CreatePaymentResult } from './types';
@@ -61,7 +62,8 @@ export const MbdAdapter: PaymentAdapter = {
 
       // 使用支付宝接口（PC/H5通用，返回 HTML form 自动提交）
       const result = yield* tryOrFail('面包多创建支付', async () => {
-        const response = await fetch(
+        const data = (await fetchJsonOrThrow(
+          '面包多下单',
           `${MBD_API_BASE}/release/alipay/pay`,
           withFetchTimeout(
             {
@@ -71,8 +73,11 @@ export const MbdAdapter: PaymentAdapter = {
             },
             FETCH_TIMEOUTS.payment,
           ),
-        );
-        const data = (await response.json()) as { error?: string; body?: string; h5_url?: string };
+        )) as {
+          error?: string;
+          body?: string;
+          h5_url?: string;
+        };
         if (data.error) throw MsgError.msg(`面包多API错误: ${data.error}`);
         return data;
       });
@@ -157,7 +162,8 @@ export const MbdAdapter: PaymentAdapter = {
       const sign = mbdSign(signParams, mbdConfig.appKey);
 
       const response = yield* tryOrFail('面包多查询', () =>
-        fetch(
+        fetchJsonOrThrow(
+          '面包多查询',
           `${MBD_API_BASE}/release/main/search_order`,
           withFetchTimeout(
             {
@@ -167,7 +173,7 @@ export const MbdAdapter: PaymentAdapter = {
             },
             FETCH_TIMEOUTS.payment,
           ),
-        ).then((r) => r.json()),
+        ),
       );
 
       const data = response as {

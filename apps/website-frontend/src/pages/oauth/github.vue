@@ -30,6 +30,7 @@
 <script setup lang="ts">
 import { useAPI } from '@/api';
 import { loginGoto } from '@/pages/loginUtil';
+import { routeMap, routerUtil } from '@/router';
 import { useAsyncState } from '@vueuse/core';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -41,7 +42,13 @@ const toast = useToast();
 const userInfo = useAsyncState(async () => {
   if (!code) return undefined;
   const res = await AppAPI.githubApi.authenticate(code, state);
-  loginGoto(res, { r });
+  if (res.bound) {
+    /** 绑定流程：不登录跳转，回账号设置页刷新绑定列表 */
+    toast.success(t('绑定成功'), t('GitHub 已绑定到当前账号'));
+    routerUtil.push(routeMap.account, {});
+    return undefined;
+  }
+  loginGoto('token' in res && res.token ? res : undefined, { r });
   toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
   return res;
 }, undefined);

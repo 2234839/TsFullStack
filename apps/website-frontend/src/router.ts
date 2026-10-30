@@ -59,6 +59,14 @@ export const routeMap = reactive({
           icon: 'pi pi-file',
         },
       },
+      diagTrace: {
+        path: 'diagTrace',
+        component: () => import('@/pages/admin/DiagTrace.vue'),
+        meta: {
+          title: t('慢请求诊断'),
+          icon: 'pi pi-chart-line',
+        },
+      },
       UploadList: {
         path: 'UploadList',
         component: () => import('@/pages/admin/UploadList.vue'),
@@ -275,6 +283,14 @@ export const routeMap = reactive({
     component: () => import('@/pages/login.vue'),
     meta: {
       title: t('登录'),
+      hideTab: true,
+    },
+  },
+  account: {
+    path: '/account',
+    component: () => import('@/pages/account/AccountSettings.vue'),
+    meta: {
+      title: t('账号设置'),
       hideTab: true,
     },
   },

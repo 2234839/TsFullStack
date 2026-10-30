@@ -182,7 +182,8 @@ enum PasscodeChannel {
 
 /// 口令用途：登录只是第一种，将来可扩展资源访问/激活码等
 enum PasscodePurpose {
-    LOGIN // 登录
+    LOGIN // 登录：验证通过后自动登录/建号
+    BIND // 绑定：把通道身份（如微信 openid）挂到已登录账号上
 }
 
 /// 口令状态机：PENDING 待验证 → VERIFIED 已验证（待消费）→ CONSUMED 已消费
@@ -912,5 +913,41 @@ model GroupStatDaily {
     @@id([date, space, from])
     @@index([date])
     @@index([space])
+}
+
+/// API 慢请求诊断追踪：仅落盘超过阈值的请求（正常请求零写入开销）
+/// timeline 记录各阶段耗时切分，loopLagMaxMs 用于区分硬阻塞（同步冻结事件循环）与事件等待
+model DiagTrace with BaseId,BaseGlobalAuth {
+    /// RPC 方法名（如 groupEntryApi.listSpaces，非 RPC 路由填路径）
+    method String
+
+    /// 请求总耗时 ms
+    totalMs Int
+
+    /// 请求在处理队列中的排队等待 ms（进程繁忙程度指标）
+    queueWaitMs Int
+
+    /// 鉴权（getDbAuth 含用户查询）耗时 ms
+    authMs Int?
+
+    /// SQL 执行次数
+    sqlCount Int @default(0)
+
+    /// SQL 累计耗时 ms
+    sqlTotalMs Int @default(0)
+
+    /// 单条 SQL 最大耗时 ms
+    sqlMaxMs Int @default(0)
+
+    /// 请求时间窗内事件循环最大卡顿 ms（≈SQL 最大耗时=硬阻塞；≈0 但总耗时长=事件等待）
+    loopLagMaxMs Int @default(0)
+
+    /// 结构化阶段时间线（排队/鉴权/RPC/SQL 明细等，JSON 数组）
+    timeline Json?
+
+    created DateTime @default(now())
+
+    @@index([created])
+    @@index([totalMs])
 }
 
