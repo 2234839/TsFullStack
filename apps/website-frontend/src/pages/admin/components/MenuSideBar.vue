@@ -247,6 +247,7 @@ import type { RouteLocationRaw } from 'vue-router';
 import UserAvatar from '@/components/base/UserAvatar.vue';
 import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
 import { useUserProfile } from '@/composables/useUserProfile';
+import { adminSidebarCollapsed } from '@/storage';
 
 /** 获取用户信息 */
 const { displayName, avatarFileId, userProfile } = useUserProfile();
@@ -269,7 +270,7 @@ interface MenuCategory {
 }
 
 // 侧边栏状态
-const isCollapsed = ref(false);
+const isCollapsed = adminSidebarCollapsed;
 const searchQuery = ref('');
 
 /** 存储 Dropdown 打开状态的响应式对象 */

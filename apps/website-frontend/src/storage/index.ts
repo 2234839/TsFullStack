@@ -78,6 +78,9 @@ export const i18nStore = useStorage<'zh-CN' | 'en'>(appId + 'i18nStore', null);
 /** 用于控制悬浮github star按钮显示隐藏的storage key值 */
 export const githubStarShow = useStorage<'show' | 'hide'>(appId + 'githubStarShow', 'show');
 
+/** 管理后台侧边栏折叠状态持久化 */
+export const adminSidebarCollapsed = useStorage<boolean>(appId + 'adminSidebarCollapsed', false);
+
 //#region OpenAI 配置
 export interface OpenAIConfig {
   /** OpenAI API Base URL */
