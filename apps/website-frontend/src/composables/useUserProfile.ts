@@ -146,6 +146,9 @@ export const useUserProfile = createSharedComposable(() => {
 
   /**
    * 更新用户头像
+   *
+   * 头像会在树洞等公开场景展示，其他用户/匿名访客通过签名 URL 访问，
+   * 因此设置头像时必须同步把该文件置为 public，否则对所有人都是裂图。
    */
   async function updateAvatar(avatarUrl: string) {
     if (!authInfo.value?.userId) {
@@ -157,6 +160,10 @@ export const useUserProfile = createSharedComposable(() => {
         where: { id: authInfo.value.userId },
         data: { avatar: avatarUrl },
       });
+
+      if (avatarUrl) {
+        await API.fileApi.updateFileStatus(Number(avatarUrl), 'public');
+      }
 
       if (userProfile.value) {
         userProfile.value.avatar = avatarUrl;

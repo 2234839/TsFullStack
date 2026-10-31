@@ -207,9 +207,11 @@ export const fileApi = {
       const auth = yield* AuthContext;
 
       const fileRow = yield* requireOrFail(yield* fetchFileById(id), MSG.FILE_NOT_FOUND);
+      /** 公开文件（头像等）任何登录用户可读；私有文件仅作者/超管（checkOwnership 对超管自动放行） */
+      const isAdmin = yield* authUserIsAdmin();
       // 使用文件访问服务验证权限并获取安全路径
       const fileWrapItem = yield* FileAccessService.createFileWrapItemEffect(fileRow, {
-        checkOwnership: yield* checkOwnership(true),
+        checkOwnership: fileRow.status !== 'public' && !isAdmin,
         userId: auth.user.id,
         publicOnly: false,
       });

@@ -279,6 +279,8 @@ model File with Base {
     resources Resource[]
 
     @@allow('read,create,delete', auth() == author)
+    /** 公开文件（头像/树洞配图等公开场景）任何登录用户可读 */
+    @@allow('read', auth() != null && status == 'public')
 }
 
 
