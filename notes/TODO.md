@@ -1,6 +1,6 @@
 # TODO
 
-> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 36 项待办。
+> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 42 项待办。
 
 ## 新增：[账号合并只迁登录关系，不做业务数据迁移](index.md)
 
@@ -58,313 +58,6 @@
 + 持续安全审计记录：每块是一个待修复的安全发现（只记录、不改代码）。按严重度排列，修复后逐块 `pact todo --done` 并回填实现链接。
 ```
 
-## 新增：[会话令牌与口令轮询票据使用 cuid2 生成，熵源是 Math.random 而非 CSPRNG](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.session-token-cuid`
-
-```diff
-+ 两处安全敏感字段都用 `@default(cuid())`（[schema.zmodel](apps/backend/schema.zmodel)）：
-+
-+ - `UserSession.token`（第 161 行）——登录会话令牌，即全部鉴权凭据（`x-token-id` 头、GET 签名模式的 HMAC 密钥）
-+ - `VerificationPasscode.ticket`（第 208 行）——schema 注释自述"secret，仅发起方持有"，是口令登录/绑定/合并验证的轮询凭据
-+
-+ 已确认 ZenStack v3 的 `cuid()` 底层是 @paralleldrive/cuid2@2.3.1，其随机源是 **`Math.random()`**（xorshift128+，非密码学安全，见 node_modules 源码 `createEntropy(random = Math.random)`），再混入时间戳/计数器/进程指纹后 sha3。
-+
-+ 风险：本进程内所有模型 id（userId、fileId 等大量返回给客户端的 cuid）都来自同一个 Math.random 流。V8 的 Math.random 状态可由若干个连续输出反推（公开研究），攻击者拿到自己请求响应里的一批 cuid 后有可能预测/恢复内部状态，进而：
-+
-+ 1. 伪造其他用户的**会话令牌**（完全接管）
-+ 2. 预测他人的**口令轮询 ticket** → 在真实发起者轮询前抢先 `checkWechatLogin` 消费 VERIFIED 口令，**登录成正在登录中的他人账号**（会话劫持）
-+
-+ 建议：两处都改为 `randomBytes(32).toString('base64url')`（项目里 [passcode.ts](apps/backend/src/api/appApi/passcode.ts) 的 mergeTicket 已是这种正确做法，保持一致）。存量 cuid 令牌在用户下次登录时自然轮换。
-+
-+ 严重度：高。
-+ ### 验收
-+ - UserSession.token 与 VerificationPasscode.ticket 不再由 cuid 生成，改用 crypto 随机源
-+ - 存量令牌无需迁移脚本即可平滑过渡
-```
-
-## 新增：[鉴权用户缓存 10 分钟，会话撤销/禁用密码登录延迟生效](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.auth-cache-staleness`
-
-```diff
-+ [authCache.ts](apps/backend/src/server/authCache.ts) 的 `userCache` TTL 10 分钟，key 含 sessionToken/sessionID。`getDbAuthEffect` 查询本身校验 `expiresAt > now`（[DbService.ts](apps/backend/src/Context/DbService.ts)），但命中缓存后不再查库，导致：
-+
-+ - 登出、账号合并的 `userSession.deleteMany`（[accountApi.ts](apps/backend/src/api/authApi/accountApi.ts)）后，旧会话最长 10 分钟内仍可通过 `/api/*` 鉴权
-+ - `passwordLoginDisabled` 切换后最长 10 分钟内旧状态仍生效
-+
-+ 风险：账号被合并/主动登出后凭据残留窗口；共享设备场景登出后他人仍可用。属于会话撤销时效问题。
-+
-+ 严重度：中。
-+ ### 验收
-+ - 会话删除/用户状态变更后，该会话的后续鉴权请求立即（或秒级）失效
-+ - 可用 Cache.invalidate 按精确 key 失效，或缩短敏感场景 TTL
-```
-
-## 新增：[GET 签名认证：签名只覆盖 args，不含方法名，且无时效可永久重放](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.get-sign-no-binding`
-
-```diff
-+ [server/index.ts](apps/backend/src/server/index.ts) 的 `parseParamsAndAuth`：GET 请求用 `?session=<id>&sign=<hex>` 认证，`verifySignByToken(query.args, session.token, sign)` 只对 **args 字符串** 做 HMAC（[SessionAuthSign.ts](apps/backend/src/lib/SessionAuthSign.ts)）。问题：
-+
-+ 1. 签名不绑定请求的方法名/路径——相同 args 的签名可在接受同形参数的其他 GET 端点间复用（跨端点重放）
-+ 2. 无时间戳/nonce——`UserSession` 无过期上限语义下，泄露一次 URL（Referrer、日志、分享链接）即永久可用
-+
-+ 建议：签名原文改为 `method + '?' + args`，并附加过期时间戳参与签名与校验。
-+
-+ 严重度：中。
-+ ### 验收
-+ - 签名校验的输入包含 RPC 方法名与参数，跨方法不可复用
-+ - 签名带有效期，过期拒绝
-```
-
-## 新增：[密码爆破防护仅账号维度递增延迟，无 IP 维度限制](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.bruteforce-account-only`
-
-```diff
-+ [auth.ts](apps/backend/src/api/appApi/auth.ts) 的失败延迟按 email 计数（Cache 10 分钟 TTL，封顶 5 秒）。攻击者对单账号可持续每 ~5 秒试一次且无锁定上限；换 IP/分布式对多账号喷洒时每账号独立计数，防护趋近于零。`mergeIntoAccount`、`setPasswordLoginDisabled`、`verifyByEmailPwd` 各自的 randomDelay(500-1000ms) 同样只是固定限速。
-+
-+ 建议：补 IP/全局维度的失败限速（如复用 PasscodeService 的失败计数+封禁模式），并考虑连续失败 N 次后临时锁定账号。
-+
-+ 严重度：中低。
-+ ### 验收
-+ - 同 IP 高频密码失败触发封禁/验证码
-+ - 单账号失败有累计上限（不止延迟递增）
-```
-
-## 新增：[登录响应时序差异泄露邮箱注册状态](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.login-timing-enumeration`
-
-```diff
-+ [auth.ts](apps/backend/src/api/appApi/auth.ts)：`!user || !(yield* comparePassword(password, user.password))` 短路求值——用户不存在时跳过 bcrypt compare（约 100ms），与「用户存在但密码错」响应时序不同，可枚举已注册邮箱。失败延迟对两条路径相同，无法抵消 bcrypt 时长差。
-+
-+ 建议：用户不存在时对固定长度的 dummy hash 做 compare，抹平时序。
-+
-+ 严重度：低。
-+ ### 验收
-+ - 用户不存在与密码错误两条路径的响应耗时统计上不可区分
-```
-
-## 新增：[全局口令验证封禁可被恶意触发，DoS 全站口令登录](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.global-verify-ban-dos`
-
-```diff
-+ [PasscodeService.ts](apps/backend/src/services/PasscodeService.ts) `verify` 的 `globalKey = 'verify:global'` 失败 10 次/10 分钟即封禁**所有人**的微信口令登录 5 分钟。攻击者向公众号随意发 10 个错误 code 即可周期性拒绝全部用户口令登录。单身份封禁是必要的，全局封禁把可用性交给了攻击者。
-+
-+ 建议：全局门限提高或改为按 IP/按 code 维度计数；保留单身份封禁。
-+
-+ 严重度：低。
-+ ### 验收
-+ - 攻击者无法通过少量失败请求阻塞其他正常用户的口令验证
-```
-
-## 新增：[匿名口令创建接口无速率限制，可灌库](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.passcode-create-nolimit`
-
-```diff
-+ `passcodeApi.createWechatLogin / createWechatMergeVerify`（app-api 匿名）每次调用执行一条 `deleteMany(过期)` + 一条 `create`，无任何限流/Captcha。脚本可高频调用造成 SQLite 写放大与表膨胀（虽然有过期清理，但清理只删已过期记录，持续高频创建会持续占用写吞吐）。
-+
-+ 建议：按 IP 限流（如每分钟 N 次）。
-+
-+ 严重度：低。
-+ ### 验收
-+ - 匿名创建口令接口有按 IP 的速率上限
-```
-
-## 新增：[支付发货前不校验回调金额，MBD 与爱发电金额单位还不一致](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.payment-amount-unchecked`
-
-```diff
-+ [PaymentService.ts](apps/backend/src/services/payment/PaymentService.ts) `handleWebhook`：回调验签通过且 `paymentStatus === 'success'` 即标记 PAID 并发代币，**从不比较 `parsed.paidAmount` 与订单应付金额**（`order.amount`，单位为分，见 [schema.zmodel](apps/backend/schema.zmodel) 的 `price（分）`）。
-+
-+ 两个问题：
-+
-+ 1. **少付多发**：金额校验完全缺位。任何导致回调金额与订单不符的场景（平台侧自定义金额/赞助金额可改、渠道配置异常、未来接入新渠道忘了校验）都会按原套餐全额发货。正确做法：发货前 `paidAmount >= order.amount` 不满足则拒绝并告警走人工。
-+ 2. **单位不一致**：爱发电适配器把回调金额 `* 100` 转分（[afdian.adapter.ts](apps/backend/src/services/payment/adapters/afdian.adapter.ts) `YUAN_TO_FEN`），MBD 适配器直接 `Number(data.amount)` 存库（[mbd.adapter.ts](apps/backend/src/services/payment/adapters/mbd.adapter.ts)）。若面包多回调单位是元，则两渠道的 paidAmount 落库单位不同，一旦后续补上金额校验，MBD 渠道会全部误判。需核实面包多回调文档后统一为分。
-+
-+ 严重度：中（验签挡住了直接伪造，但业务逻辑缺一道关键闸门）。
-+ ### 验收
-+ - 发货前校验 `paidAmount >= order.amount`，不足时拒绝发货并记录告警日志
-+ - 两个渠道的 paidAmount 落库单位统一为分，且有注释说明
-```
-
-## 新增：[文件上传无用户配额，注册账号可耗尽存储](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.upload-no-quota`
-
-```diff
-+ [file.ts](apps/backend/src/api/authApi/file.ts) `upload`：单文件上限 1GB（`MAX_UPLOAD_BYTES`），但无每用户总容量/文件数配额，且注册无门槛（无验证码）。脚本注册账号后循环上传 1GB 文件即可耗尽服务器磁盘，影响全站可用性（SQLite 同盘写入也会受牵连）。
-+
-+ 建议：按用户统计已用容量设上限（如 1-5GB），超限拒绝；配合 [[sec.passcode-create-nolimit]] 一起加注册限流。
-+
-+ 严重度：低（但 DoS 成本极低，建议尽早做）。
-+ ### 验收
-+ - 单用户存储总量有上限，超限上传被拒绝
-+ - 匿名/新注册账号的滥用成本显著提高
-```
-
-## 新增：[分享详情接口保留自增 id 查询，UUID 防枚举被兼容逻辑绕过](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.share-legacy-id-enumerable`
-
-```diff
-+ [share.ts](apps/backend/src/api/appApi/share.ts) `detail(idOrKey)`：新链接是不可预测的 UUID key，但纯数字时直接按自增 `id` 查询（注释自述"兼容旧版存量分享不失效"）。自增 id 可被遍历（`id=1,2,3…`），匿名即可枚举拉取**所有**用户的分享内容——UUID 的防枚举设计被这一条 OR 分支整体绕过。
-+
-+ 建议：给存量分享批量补 key 后下线数字 id 分支；或至少对数字 id 查询限流并确认 shareInfo 内容无敏感数据。
-+
-+ 严重度：中低。
-+ ### 验收
-+ - 无法通过遍历数字 id 获取非自己创建的分享
-+ - 存量分享链接有迁移方案（跳转或失效）
-```
-
-## 新增：[OAuth login/merge 意图不绑定发起会话，存在登录 CSRF 面](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.oauth-login-csrf`
-
-```diff
-+ OAuth state 已做一次性+过期校验，bind 意图还校验了 `initiatorUserId === 当前会话`（[github.ts](apps/backend/src/api/appApi/github.ts) 第 74-80 行，正确）。但：
-+
-+ 1. **login 意图**：state 与发起浏览器无任何绑定（无 cookie 关联）。攻击者可自己走完授权前半程拿到 code+state，再诱导受害者浏览器提交这对 code+state 到 authenticate——受害者会在无感知下**登录为攻击者的账号**（login CSRF），后续往"自己"账号里输入的数据实际进了攻击者账号。
-+ 2. **merge 意图**：同样不记录发起者。被诱导者在登录态下完成渠道授权后，前端持有的 mergeTicket 对应攻击者的渠道身份。前端证据：[AccountSettings.vue](apps/website-frontend/src/pages/account/AccountSettings.vue) 的 `consumeMergeVerifyFromSession` 在页面加载时**直接自动调用 `doMergeByTicket` 执行合并**（弹窗只是同时打开的提示，合并不等用户确认）——诱导链接一旦命中，合并即刻完成。
-+
-+ 建议：发起 OAuth 时向浏览器种一个随机 nonce cookie，回调时校验 code+state+nonce 三者配对；merge 确认页强制展示被合并账号的渠道与身份信息。
-+
-+ 严重度：中低（利用需要诱导交互，但后果是账号级）。
-+ ### 验收
-+ - OAuth 回调校验发起浏览器身份（nonce cookie 或等价机制）
-+ - login CSRF 攻击路径不可行
-```
-
-## 新增：[AI 代理接口登录即可用且不扣代币，注册无门槛可白嫖 LLM 额度](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.ai-proxy-no-cost`
-
-```diff
-+ [AiApi/index.ts](apps/backend/src/api/AiApi/index.ts) `proxyOpenAI` 注册在 `/api`（仅需登录，非管理员），转发到服务端配置的 OpenAI 兼容模型。有 IP/用户/模型三维度限速（默认 60/min、1000/h、10000/day，[AIProxyService.ts](apps/backend/src/Context/AIProxyService.ts)），但**不消耗代币**——代币经济只在任务侧（taskApi）生效。baseUrl/apiKey 均取自服务端 DB 配置，无 SSRF 面（✓）。
-+
-+ 风险：注册无门槛（无验证码），脚本注册+轮换 IP 可批量消耗 LLM 配额/真金费用。若"免费代理"是设计意图，至少该把额度与代币或账号信誉挂钩。
-+
-+ 严重度：中低（取决于模型接入的真实成本）。
-+ ### 验收
-+ - proxyOpenAI 消耗代币或有等价的成本约束（与设计意图对齐后确认）
-+ - 限速维度补充账号年龄/信誉等反滥用因子（可选）
-```
-
-## 新增：[AI 生图先出图后扣费，无余额账号可反复触发真实 AI 调用产生坏账](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.ai-image-pay-after-delivery`
-
-```diff
-+ [taskApi.ts](apps/backend/src/api/authApi/taskApi.ts) `generateAIImage` 的时序：`createTask`（**不检查余额**，[TaskService.ts](apps/backend/src/services/TaskService.ts) 仅建记录）→ `startTask` → 调用 AI 服务商（真实成本发生）→ `completeTask` → **最后才 `consumeTokens`**（此时才检查余额，失败仅把任务标记 failed）。
-+
-+ 后果：余额为 0 的账号每次请求都能让服务端完成一次真实的 AI 生图调用，扣费必然失败，坏账无人承担。脚本循环调用即可持续消耗 AI 服务商配额/费用（每用户 10 次/分钟的限速只是减速带，不设防）。
-+
-+ 建议：把余额检查+预扣（或冻结）提到 `createTask`/AI 调用之前；执行失败时再解冻退回。
-+
-+ 严重度：高（直接资金损失面，利用成本极低）。
-+ ### 验收
-+ - AI 调用发生前校验并预扣/冻结代币，失败退回
-+ - 无余额账号的请求在触达 AI 服务商之前被拒绝
-```
-
-## 新增：[consumeTokens 并发截断增量导致少扣多发](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.consume-tokens-partial-deduct`
-
-```diff
-+ [TokenService.ts](apps/backend/src/services/TokenService.ts) `consumeTokens`：余额检查（事务外）→ 事务内重读 `used` 并计算 `actualIncrement = Math.min(expectedIncrement, current.amount - current.used)`，注释意图是"按实际增量防超支"，但**截断后不回滚**——`actualIncrement > 0 但 < expectedIncrement` 时事务照常提交。
-+
-+ 场景：余额 15，两个并发请求各需 10。请求 A 扣 10 余 5；请求 B 事务内读到余 5，截断后只扣 5 提交成功，但调用方任务按"消耗 10"照常执行（图已生成、任务已 complete）。净效果：成本 10 的任务只付了 5，**并发可稳定超支**。前置的 `totalAvailable < amount` 检查是 check-then-act，挡不住这个窗口。
-+
-+ 建议：`actualIncrement !== expectedIncrement` 时直接 throw 回滚整个事务（余额不足就走余额不足错误），而不是截断。
-+
-+ 严重度：中（配合上一条坏账问题被放大；单看会造成代币账目与实际服务不对等）。
-+ ### 验收
-+ - 并发消耗同一批代币时，任何一笔增量被截断都会整体回滚
-+ - 账面消耗总和恒等于实际服务成本
-```
-
-## 新增：[ZenStack 策略对 Token/Order/Task 开放用户级 create/update，违背最小权限](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.zenstack-overbroad-create`
-
-```diff
-+ [schema.zmodel](apps/backend/schema.zmodel) 中多个资金/业务敏感模型对 `auth() == user` 开放了写权限：
-+
-+ - `Token @@allow('read,create,update,delete', auth() == user)`（第 732 行）——**create Token 即自发代币**
-+ - `TokenTransaction @@allow('read', ...)` 只读 ✓，但 `Task @@allow('read,create,update,delete', auth() == user)`（第 841 行）——用户可改自己任务的 `status: COMPLETED`
-+ - `Order @@allow('create', auth() != null && auth() == user)`（第 607 行）——用户可插入 `status: PAID` 的伪造订单记录
-+
-+ 当前没有直接利用路径：RPC 只暴露固定注册的 API 函数，前端拿不到 `auth.db` 通用 CRUD 入口，发货也不由"订单 status==PAID"驱动。但这是**一踩就响的地雷**：将来任何 API 把用户输入透传给 `auth.db.token.create` / `order.create`（或加一个通用 CRUD 端点）就是资金级漏洞。代币/订单的创建语义只应存在于服务端（DbClientEffect 路径）。
-+
-+ 建议：把这些模型的策略收窄为 `@@allow('read', auth() == user)`，写操作全部走服务端无权限客户端。
-+
-+ 严重度：中低（当下不可利用，属高危建模卫生问题）。
-+ ### 验收
-+ - Token / TokenTransaction / Order / Task 对普通用户只保留 read
-+ - 全库 grep 确认无用户输入直达这些模型写操作的路径
-```
-
-## 新增：[登录成功跳转 r 参数未校验协议与域名，构成 open redirect 与 javascript: DOM XSS](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.login-open-redirect`
-
-```diff
-+ 调用链：各页面未登录时 `routerUtil.push(routeMap.login, {}, { r: route.fullPath })` 把回跳地址放进 **query**（[index.vue](apps/website-frontend/src/pages/index.vue)、[api.ts](apps/website-frontend/src/api.ts)、[storage/index.ts](apps/website-frontend/src/storage/index.ts)、[AdminLayout.vue](apps/website-frontend/src/pages/admin/AdminLayout.vue) 等）；[routeUtil.ts](packages/shared-frontend/src/utils/routeUtil.ts) 第 117-118 行对未配置 props 的路由自动执行 `props = (route) => ({ ...route.query, ...route.params })`，query 里的 `r` 直接注入 [login.vue](apps/website-frontend/src/pages/login.vue) 的 `r` prop；登录成功后 [loginUtil.ts](apps/website-frontend/src/pages/loginUtil.ts) `loginGoto` 执行 `location.href = decodeURIComponent(options.r)`，**对协议和域名零校验**。OAuth 回调页（[github.vue](apps/website-frontend/src/pages/oauth/github.vue)、[linuxdo.vue](apps/website-frontend/src/pages/oauth/linuxdo.vue)）的 `r` 同样来自 query 注入。
-+
-+ 攻击：诱导受害者打开 `https://站点/login?r=https%3A%2F%2Fevil.com%2Fphish`——登录成功后被重定向到钓鱼站（open redirect，可仿冒登录流程二次收割密码）；或 `?r=javascript%3A<脚本>`——`javascript:` URI 导航在部分浏览器以站点 origin 执行，而此刻 `authInfo.value`（会话令牌）**刚刚写入 storage**，脚本可直接读取令牌外传（DOM XSS → 完全会话接管）。
-+
-+ 建议：`loginGoto` 中校验 `redirectUrl` 必须以 `/` 开头且不以 `//` 开头（只允许站内相对路径），否则忽略走默认跳转；封装成 `safeRedirect` 工具函数供所有 `r` 消费点复用。
-+
-+ 严重度：中高（需要诱导点击，但后果是登录态接管，且登录页正是钓鱼攻击的自然入口）。
-+ ### 验收
-+ - `?r=` 为外部 URL / `javascript:` / `data:` 时登录后不跳转，走站内默认路径
-+ - 站内相对路径（含 `/admin` 等深链）登录后正常回跳
-```
-
-## 新增：[「记住密码」把明文密码持久化到 localStorage，加密密钥是公开的前端静态常量](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.localstorage-credentials`
-
-```diff
-+ [storage/index.ts](apps/website-frontend/src/storage/index.ts) 的 `localUserPwd` 在勾选 rememberMe 时把**用户名+密码原文**写入 localStorage（[login.vue](apps/website-frontend/src/pages/login.vue) 第 393-394 行、[AuthCard.vue](apps/website-frontend/src/components/common/AuthCard.vue) 第 156-157 行）。落盘前经过 [encryptSerializer.ts](apps/website-frontend/src/utils/encryptSerializer.ts) 的 AES-GCM 加密，但该文件自述已承认：密钥是构建期静态常量（`VITE_SECRET_KEY` 打进 bundle，全用户共用同一把；未配置时用默认值 `__default_frontend_key__`）。**密钥公开的加密 = 可逆混淆**，不构成机密性。
-+
-+ 后果：任何能读到 localStorage 的攻击者（XSS——与 [[sec.login-open-redirect]] 的 `javascript:` 链直接组合；共享电脑的下一个使用者；用户安装的任何浏览器扩展）可解密拿到用户**明文密码**。密码比会话 token（同存 localStorage，但有过期时间）严重得多：用户大概率在其他站点复用密码，且无法「过期」。
-+
-+ 建议：rememberMe 只记住用户名，不存密码（业界通行做法）；`authInfo`（token）留在 localStorage 属常见权衡，可在块内一并评估 HttpOnly cookie 方案。若保留现状，至少在登录页明确提示风险。
-+
-+ 严重度：中（依赖 XSS/本地访问前提，但后果是跨站密码泄露）。
-+ ### 验收
-+ - localStorage 中不再出现可解密的用户密码（记住密码功能移除或改为只记用户名）
-+ - 登录页对保留的凭据存储方式有明确风险提示（如保留 token 存储）
-```
-
-## 新增：[加密分享的密码被写回 URL hash，泄露进浏览器历史与云同步](安全审查.md)
-
-- 块 ID: `安全审查.md#sec.share-password-in-history`
-
-```diff
-+ [ShareEditor.vue](apps/website-frontend/src/pages/share/ShareEditor.vue) 第 310-313 行：用户手动输入密码解锁后，执行 `history.replaceState(null, '', pathname + '#k=<salt>&p=<password>')`，把**密码原文写进 URL hash**（注释自述"使分享链接/二维码自动包含密码"）。
-+
-+ hash 不随请求发给服务器、不进 Referrer ✓，端侧加密本体（[shareCrypto.ts](apps/website-frontend/src/utils/shareCrypto.ts)：PBKDF2 100k + AES-GCM + 随机 IV）实现正确 ✓。但写回 hash 后：
-+
-+ 1. **浏览器历史明文保存含密码的完整 URL**（历史记录包含 hash），共享电脑/他人借用时翻历史即可解密分享内容；
-+ 2. **浏览器账号同步**（Chrome Sync / Firefox Sync）会把历史记录同步到用户全部设备——密码随之进入 Google/Mozilla 的云端；
-+ 3. 「链接即钥匙」与「加密分享」的叙事冲突：用户看到"需要密码"会以为转发链接不泄露内容，实际复制链接即交出密码。若这是产品意图（便捷优先），至少应在 UI 明示"密码已包含在链接中"；若不是，应去掉自动写回，密码仅存 sessionStorage 供本次会话使用。
-+
-+ 严重度：中低（取决于分享内容的敏感度；机制上密码确实离开了「仅用户记忆」的位置）。
-+ ### 验收
-+ - 浏览器历史中不出现含密码的 URL（不自动写回 hash，或提供"不记住密码"的默认选项）
-+ - 若保留链接即钥匙模式，分享 UI 明确告知密码包含在链接里
-```
-
 ## 新增：[其余备忘（暂不成块，持续观察）](安全审查.md)
 
 - 块 ID: `安全审查.md#sec.misc-notes`
@@ -390,6 +83,64 @@
 + - 登录重定向发现见独立块 [[sec.login-open-redirect]]（第八轮主发现）。
 ```
 
+## 新增：[（匿名块）](架构切割面审查.md)
+
+- 块 ID: `架构切割面审查.md#架构切割面审查`
+
+```diff
++ [[架构切割面审查]]
+```
+
+## 新增：[背景：KVStore 收口完成后，对全仓（backend/frontend/shared-frontend）做的一次「应有一层但没做，导致多处重复」的系统排查。按重复度×风险排序：](架构切割面审查.md)
+
+- 块 ID: `架构切割面审查.md#背景：KVStore 收口完成后，对全仓（backend/frontend/shared-frontend）做的一次「应有一层但没做，导致多处重复」的系统排查。按重复度×风险排序：`
+
+```diff
++ 背景：KVStore 收口完成后，对全仓（backend/frontend/shared-frontend）做的一次「应有一层但没做，导致多处重复」的系统排查。按重复度×风险排序：
+```
+
+## 新增：[后端](架构切割面审查.md)
+
+- 块 ID: `架构切割面审查.md#后端`
+
+```diff
++ 1. **分页逻辑散落**（8 处/6 文件）：`dbPaginatedFindMany`（util/dbEffect.ts:65）只有 treehole 用；diagApi 两套手写 clamp、tokenApi/paymentApi 裸 `skip ?? 0` 无 clamp、accountApi/groupEntryApi 逐字重复 `take: Math.min(Math.max(limit,1),100)`。→ 补 clamp 进 `dbPaginatedFindMany` 并全部改走它
++ 2. **paymentApi 绕过配置层手写 config.json 读写**（paymentApi.ts:110-119 自拼 `process.cwd()/config.json`，与 config/loader.ts 分叉风险）→ 收敛为 AppConfigService 的 update 方法
++ 3. **optionalUserId 三胞胎**：appApi/github.ts / linuxdo.ts / treehole.ts 逐字复制 `serviceOption(AuthContext)` → 抽到 Context/Auth.ts
++ 4. **公众号 qrUrl 构造四处重复**：passcode.ts×2 + accountApi.ts + GroupEntryService → 抽 officialQrUrl()
++ 5. **图片类型/大小校验规则散落**：groupEntry 路由白名单、groupEntryApi 只限大小、taskApi 按扩展名推断、前端两处 hardcode「PNG/JPEG/WebP 2MB」→ 抽 util/image.ts 常量+校验
++ 6. **fetch 漏网**：server/groupEntry.ts 两处手写 AbortSignal.timeout 未走 withFetchTimeout；AIProxyService.ts:216 裸 fetch 无错误分类
+```
+
+## 新增：[前端](架构切割面审查.md)
+
+- 块 ID: `架构切割面审查.md#前端`
+
+```diff
++ 7. **toastApiError 样板**（约 90 处/42 文件）：`toast.error(t('xx失败'), getErrorMessage(error))` 三件套 + 两种风格混用（字符串拼接 vs fallback 参数）→ 抽 `toastApiError(prefix, error)` 进 utils/error.ts
++ 8. **分页口径不一**：usePaginatedQuery 只有 2 个使用方；AutoTable 1-based、TokenHistory/OrderList 0-based → 统一后推广
++ 9. 小项：NoteCalc.vue 手写 clipboard（不走 copyToClipboard 回退）；4 处直调 toLocaleString 未走 formatDate/i18n
+```
+
+## 新增：[明确不做（看似重复实则合理）](架构切割面审查.md)
+
+- 块 ID: `架构切割面审查.md#明确不做（看似重复实则合理）`
+
+```diff
++ - tryOrFail/dbTry/adminDbTry 三套：职责分层，不算重复
++ - process.env.NODE_ENV 5 处：启动期分支
++ - dbQueue/wechat/scripts 的裸 try/catch：非 Effect 上下文
++ - taskApi 自写 sharp 最小类型：有意为之
+```
+
+## 新增：[顺带发现的安全问题](架构切割面审查.md)
+
+- 块 ID: `架构切割面审查.md#顺带发现的安全问题`
+
+```diff
++ - **注册接口返回值带出 password 哈希**：POST /app-api/system.register 响应 result 含 `password: "$2b$10$..."`（appApi/auth.ts register 返回 newUser 未剔除 password）——需立即修
+```
+
 ## 新增：[需求以 `## 标题` 为块单位，正文自由描述，`` 双链绑定代码，](示例需求.md)
 
 - 块 ID: `示例需求.md#锚点`
@@ -405,7 +156,7 @@
 
 ```diff
 + 这里写需求正文：什么场景下代码必须怎么做。
-+
++ 
 + 实现：[[src/example.ts#doSomething]]
 + 测试：[[tests/example.test.ts]]
 + ### 验收
@@ -418,7 +169,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.layer-trunk`
 
 ```diff
-+
++ 
 ```
 
 ## 用户修改：[effect.tagged-errors](effect-v4-精致化改造.md)
@@ -426,7 +177,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.tagged-errors`
 
 ```diff
-+
++ 
 ```
 
 ## 用户修改：[effect.fiber-timers](effect-v4-精致化改造.md)
@@ -434,7 +185,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.fiber-timers`
 
 ```diff
-+
++ 
 ```
 
 ## 用户修改：[effect.cache-module](effect-v4-精致化改造.md)
@@ -442,8 +193,8 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.cache-module`
 
 ```diff
-+
-+
++ 
++ 
 ```
 
 ## 用户修改：[effect.queue-lock-renewal](effect-v4-精致化改造.md)
@@ -451,7 +202,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.queue-lock-renewal`
 
 ```diff
-+
++ 
 ```
 
 ## 用户修改：[effect.api-style-unify](effect-v4-精致化改造.md)
@@ -459,7 +210,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.api-style-unify`
 
 ```diff
-+
++ 
 ```
 
 ## 用户修改：[effect.wechat-service-v4](effect-v4-精致化改造.md)
@@ -467,7 +218,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.wechat-service-v4`
 
 ```diff
-+
++ 
 ```
 
 ## 用户修改：[effect.token-cleanup-v4](effect-v4-精致化改造.md)
@@ -475,7 +226,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.token-cleanup-v4`
 
 ```diff
-+
++ 
 ```
 
 ## 用户修改：[effect.fetchjson-common](effect-v4-精致化改造.md)
@@ -483,7 +234,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.fetchjson-common`
 
 ```diff
-+
++ 
 ```
 
 ## 用户修改：[需求笔记](index.md)
@@ -492,4 +243,219 @@
 
 ```diff
 + - [安全审查](安全审查.md) — 持续安全审计：已发现的漏洞与待修复项（只记录，修复时逐块 done）
++ - [架构切割面审查](架构切割面审查.md) — 全仓「应有抽象层但缺失」清单：分页/配置写入/错误提示样板等，按重复度×风险排序
+```
+
+## 用户修改：[会话令牌与口令轮询票据使用 cuid2 生成，熵源是 Math.random 而非 CSPRNG](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.session-token-cuid`
+
+```diff
+- 两处安全敏感字段都用 `@default(cuid())`（[schema.zmodel](apps/backend/schema.zmodel)）：
++ > 两处安全敏感字段都用 `@default(cuid())`（[schema.zmodel](apps/backend/schema.zmodel)）：
++ ### 验收
++ - UserSession.token 与 VerificationPasscode.ticket 不再由 cuid 生成，改用 crypto 随机源
++ - 存量令牌无需迁移脚本即可平滑过渡
+```
+
+## 用户修改：[鉴权用户缓存 10 分钟，会话撤销/禁用密码登录延迟生效](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.auth-cache-staleness`
+
+```diff
+- [authCache.ts](apps/backend/src/server/authCache.ts) 的 `userCache` TTL 10 分钟，key 含 sessionToken/sessionID。`getDbAuthEffect` 查询本身校验 `expiresAt > now`（[DbService.ts](apps/backend/src/Context/DbService.ts)），但命中缓存后不再查库，导致：
++ > [authCache.ts](apps/backend/src/server/authCache.ts) 的 `userCache` TTL 10 分钟，key 含 sessionToken/sessionID。`getDbAuthEffect` 查询本身校验 `expiresAt > now`（[DbService.ts](apps/backend/src/Context/DbService.ts)），但命中缓存后不再查库，导致：
++ ### 验收
++ - 会话删除/用户状态变更后，该会话的后续鉴权请求立即（或秒级）失效
++ - 可用 Cache.invalidate 按精确 key 失效，或缩短敏感场景 TTL
+```
+
+## 用户修改：[GET 签名认证：签名只覆盖 args，不含方法名，且无时效可永久重放](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.get-sign-no-binding`
+
+```diff
+- [server/index.ts](apps/backend/src/server/index.ts) 的 `parseParamsAndAuth`：GET 请求用 `?session=<id>&sign=<hex>` 认证，`verifySignByToken(query.args, session.token, sign)` 只对 **args 字符串** 做 HMAC（[SessionAuthSign.ts](apps/backend/src/lib/SessionAuthSign.ts)）。问题：
++ > [server/index.ts](apps/backend/src/server/index.ts) 的 `parseParamsAndAuth`：GET 请求用 `?session=<id>&sign=<hex>` 认证，`verifySignByToken(query.args, session.token, sign)` 只对 **args 字符串** 做 HMAC（[SessionAuthSign.ts](apps/backend/src/lib/SessionAuthSign.ts)）。问题：
++ ### 验收
++ - 签名校验的输入包含 RPC 方法名与参数，跨方法不可复用
++ - 签名带有效期，过期拒绝
+```
+
+## 用户修改：[密码爆破防护仅账号维度递增延迟，无 IP 维度限制](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.bruteforce-account-only`
+
+```diff
+- [auth.ts](apps/backend/src/api/appApi/auth.ts) 的失败延迟按 email 计数（Cache 10 分钟 TTL，封顶 5 秒）。攻击者对单账号可持续每 ~5 秒试一次且无锁定上限；换 IP/分布式对多账号喷洒时每账号独立计数，防护趋近于零。`mergeIntoAccount`、`setPasswordLoginDisabled`、`verifyByEmailPwd` 各自的 randomDelay(500-1000ms) 同样只是固定限速。
++ > [auth.ts](apps/backend/src/api/appApi/auth.ts) 的失败延迟按 email 计数（Cache 10 分钟 TTL，封顶 5 秒）。攻击者对单账号可持续每 ~5 秒试一次且无锁定上限；换 IP/分布式对多账号喷洒时每账号独立计数，防护趋近于零。`mergeIntoAccount`、`setPasswordLoginDisabled`、`verifyByEmailPwd` 各自的 randomDelay(500-1000ms) 同样只是固定限速。
++ ### 验收
++ - 同 IP 高频密码失败触发封禁/验证码
++ - 单账号失败有累计上限（不止延迟递增）
+```
+
+## 用户修改：[登录响应时序差异泄露邮箱注册状态](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.login-timing-enumeration`
+
+```diff
+- [auth.ts](apps/backend/src/api/appApi/auth.ts)：`!user || !(yield* comparePassword(password, user.password))` 短路求值——用户不存在时跳过 bcrypt compare（约 100ms），与「用户存在但密码错」响应时序不同，可枚举已注册邮箱。失败延迟对两条路径相同，无法抵消 bcrypt 时长差。
++ > [auth.ts](apps/backend/src/api/appApi/auth.ts)：`!user || !(yield* comparePassword(password, user.password))` 短路求值——用户不存在时跳过 bcrypt compare（约 100ms），与「用户存在但密码错」响应时序不同，可枚举已注册邮箱。失败延迟对两条路径相同，无法抵消 bcrypt 时长差。
++ ### 验收
++ - 用户不存在与密码错误两条路径的响应耗时统计上不可区分
+```
+
+## 用户修改：[全局口令验证封禁可被恶意触发，DoS 全站口令登录](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.global-verify-ban-dos`
+
+```diff
+- [PasscodeService.ts](apps/backend/src/services/PasscodeService.ts) `verify` 的 `globalKey = 'verify:global'` 失败 10 次/10 分钟即封禁**所有人**的微信口令登录 5 分钟。攻击者向公众号随意发 10 个错误 code 即可周期性拒绝全部用户口令登录。单身份封禁是必要的，全局封禁把可用性交给了攻击者。
++ > [PasscodeService.ts](apps/backend/src/services/PasscodeService.ts) `verify` 的 `globalKey = 'verify:global'` 失败 10 次/10 分钟即封禁**所有人**的微信口令登录 5 分钟。攻击者向公众号随意发 10 个错误 code 即可周期性拒绝全部用户口令登录。单身份封禁是必要的，全局封禁把可用性交给了攻击者。
++ ### 验收
++ - 攻击者无法通过少量失败请求阻塞其他正常用户的口令验证
+```
+
+## 用户修改：[匿名口令创建接口无速率限制，可灌库](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.passcode-create-nolimit`
+
+```diff
+- `passcodeApi.createWechatLogin / createWechatMergeVerify`（app-api 匿名）每次调用执行一条 `deleteMany(过期)` + 一条 `create`，无任何限流/Captcha。脚本可高频调用造成 SQLite 写放大与表膨胀（虽然有过期清理，但清理只删已过期记录，持续高频创建会持续占用写吞吐）。
++ > `passcodeApi.createWechatLogin / createWechatMergeVerify`（app-api 匿名）每次调用执行一条 `deleteMany(过期)` + 一条 `create`，无任何限流/Captcha。脚本可高频调用造成 SQLite 写放大与表膨胀（虽然有过期清理，但清理只删已过期记录，持续高频创建会持续占用写吞吐）。
++ ### 验收
++ - 匿名创建口令接口有按 IP 的速率上限
+```
+
+## 用户修改：[支付发货前不校验回调金额，MBD 与爱发电金额单位还不一致](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.payment-amount-unchecked`
+
+```diff
+- [PaymentService.ts](apps/backend/src/services/payment/PaymentService.ts) `handleWebhook`：回调验签通过且 `paymentStatus === 'success'` 即标记 PAID 并发代币，**从不比较 `parsed.paidAmount` 与订单应付金额**（`order.amount`，单位为分，见 [schema.zmodel](apps/backend/schema.zmodel) 的 `price（分）`）。
++ > [PaymentService.ts](apps/backend/src/services/payment/PaymentService.ts) `handleWebhook`：回调验签通过且 `paymentStatus === 'success'` 即标记 PAID 并发代币，**从不比较 `parsed.paidAmount` 与订单应付金额**（`order.amount`，单位为分，见 [schema.zmodel](apps/backend/schema.zmodel) 的 `price（分）`）。
++ ### 验收
++ - 发货前校验 `paidAmount >= order.amount`，不足时拒绝发货并记录告警日志
++ - 两个渠道的 paidAmount 落库单位统一为分，且有注释说明
+```
+
+## 用户修改：[文件上传无用户配额，注册账号可耗尽存储](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.upload-no-quota`
+
+```diff
+- [file.ts](apps/backend/src/api/authApi/file.ts) `upload`：单文件上限 1GB（`MAX_UPLOAD_BYTES`），但无每用户总容量/文件数配额，且注册无门槛（无验证码）。脚本注册账号后循环上传 1GB 文件即可耗尽服务器磁盘，影响全站可用性（SQLite 同盘写入也会受牵连）。
++ > [file.ts](apps/backend/src/api/authApi/file.ts) `upload`：单文件上限 1GB（`MAX_UPLOAD_BYTES`），但无每用户总容量/文件数配额，且注册无门槛（无验证码）。脚本注册账号后循环上传 1GB 文件即可耗尽服务器磁盘，影响全站可用性（SQLite 同盘写入也会受牵连）。
++ ### 验收
++ - 单用户存储总量有上限，超限上传被拒绝
++ - 匿名/新注册账号的滥用成本显著提高
+```
+
+## 用户修改：[分享详情接口保留自增 id 查询，UUID 防枚举被兼容逻辑绕过](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.share-legacy-id-enumerable`
+
+```diff
+- [share.ts](apps/backend/src/api/appApi/share.ts) `detail(idOrKey)`：新链接是不可预测的 UUID key，但纯数字时直接按自增 `id` 查询（注释自述"兼容旧版存量分享不失效"）。自增 id 可被遍历（`id=1,2,3…`），匿名即可枚举拉取**所有**用户的分享内容——UUID 的防枚举设计被这一条 OR 分支整体绕过。
++ > [share.ts](apps/backend/src/api/appApi/share.ts) `detail(idOrKey)`：新链接是不可预测的 UUID key，但纯数字时直接按自增 `id` 查询（注释自述"兼容旧版存量分享不失效"）。自增 id 可被遍历（`id=1,2,3…`），匿名即可枚举拉取**所有**用户的分享内容——UUID 的防枚举设计被这一条 OR 分支整体绕过。
++ ### 验收
++ - 无法通过遍历数字 id 获取非自己创建的分享
++ - 存量分享链接有迁移方案（跳转或失效）
+```
+
+## 用户修改：[OAuth login/merge 意图不绑定发起会话，存在登录 CSRF 面](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.oauth-login-csrf`
+
+```diff
+- OAuth state 已做一次性+过期校验，bind 意图还校验了 `initiatorUserId === 当前会话`（[github.ts](apps/backend/src/api/appApi/github.ts) 第 74-80 行，正确）。但：
++ > OAuth state 已做一次性+过期校验，bind 意图还校验了 `initiatorUserId === 当前会话`（[github.ts](apps/backend/src/api/appApi/github.ts) 第 74-80 行，正确）。但：
++ ### 验收
++ - OAuth 回调校验发起浏览器身份（nonce cookie 或等价机制）
++ - login CSRF 攻击路径不可行
+```
+
+## 用户修改：[AI 代理接口登录即可用且不扣代币，注册无门槛可白嫖 LLM 额度](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.ai-proxy-no-cost`
+
+```diff
+- > 决策（2026-10-31）：与设计意图对齐——免费代理是有意为之，保持现状不扣费。已有 IP/用户/模型三维限速兜底，不动代码。
+- 
++ > 决策（2026-10-31 二次拍板）：免费代理收窄为白名单制——AiModel 新增 `freeForLoginUser` 标注（默认 false），只有后台标注「登录用户免费可用」的模型才可通过 proxyOpenAI 调用，未标注一律拒绝（提示无可用模型）。实现见 [schema.zmodel](../apps/backend/schema.zmodel)、[AIProxyService.ts](../apps/backend/src/Context/AIProxyService.ts)（按标注过滤后再负载均衡）、[AiApi/index.ts](../apps/backend/src/api/AiApi/index.ts)、[AiModelForm.vue](../apps/website-frontend/src/pages/admin/components/AiModelForm.vue)、[AiModelManager.vue](../apps/website-frontend/src/pages/admin/AiModelManager.vue)；迁移 20261031180000。存量模型默认全部不开放，需管理员在后台逐个打开。
++ ### 验收
++ - proxyOpenAI 消耗代币或有等价的成本约束（与设计意图对齐后确认）
++ - 限速维度补充账号年龄/信誉等反滥用因子（可选）
+```
+
+## 用户修改：[AI 生图先出图后扣费，无余额账号可反复触发真实 AI 调用产生坏账](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.ai-image-pay-after-delivery`
+
+```diff
+- [taskApi.ts](apps/backend/src/api/authApi/taskApi.ts) `generateAIImage` 的时序：`createTask`（**不检查余额**，[TaskService.ts](apps/backend/src/services/TaskService.ts) 仅建记录）→ `startTask` → 调用 AI 服务商（真实成本发生）→ `completeTask` → **最后才 `consumeTokens`**（此时才检查余额，失败仅把任务标记 failed）。
++ > [taskApi.ts](apps/backend/src/api/authApi/taskApi.ts) `generateAIImage` 的时序：`createTask`（**不检查余额**，[TaskService.ts](apps/backend/src/services/TaskService.ts) 仅建记录）→ `startTask` → 调用 AI 服务商（真实成本发生）→ `completeTask` → **最后才 `consumeTokens`**（此时才检查余额，失败仅把任务标记 failed）。
++ ### 验收
++ - AI 调用发生前校验并预扣/冻结代币，失败退回
++ - 无余额账号的请求在触达 AI 服务商之前被拒绝
+```
+
+## 用户修改：[consumeTokens 并发截断增量导致少扣多发](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.consume-tokens-partial-deduct`
+
+```diff
+- [TokenService.ts](apps/backend/src/services/TokenService.ts) `consumeTokens`：余额检查（事务外）→ 事务内重读 `used` 并计算 `actualIncrement = Math.min(expectedIncrement, current.amount - current.used)`，注释意图是"按实际增量防超支"，但**截断后不回滚**——`actualIncrement > 0 但 < expectedIncrement` 时事务照常提交。
++ > [TokenService.ts](apps/backend/src/services/TokenService.ts) `consumeTokens`：余额检查（事务外）→ 事务内重读 `used` 并计算 `actualIncrement = Math.min(expectedIncrement, current.amount - current.used)`，注释意图是"按实际增量防超支"，但**截断后不回滚**——`actualIncrement > 0 但 < expectedIncrement` 时事务照常提交。
++ ### 验收
++ - 并发消耗同一批代币时，任何一笔增量被截断都会整体回滚
++ - 账面消耗总和恒等于实际服务成本
+```
+
+## 用户修改：[ZenStack 策略对 Token/Order/Task 开放用户级 create/update，违背最小权限](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.zenstack-overbroad-create`
+
+```diff
+- [schema.zmodel](apps/backend/schema.zmodel) 中多个资金/业务敏感模型对 `auth() == user` 开放了写权限：
++ > [schema.zmodel](apps/backend/schema.zmodel) 中多个资金/业务敏感模型对 `auth() == user` 开放了写权限：
++ ### 验收
++ - Token / TokenTransaction / Order / Task 对普通用户只保留 read
++ - 全库 grep 确认无用户输入直达这些模型写操作的路径
+```
+
+## 用户修改：[登录成功跳转 r 参数未校验协议与域名，构成 open redirect 与 javascript: DOM XSS](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.login-open-redirect`
+
+```diff
+- 调用链：各页面未登录时 `routerUtil.push(routeMap.login, {}, { r: route.fullPath })` 把回跳地址放进 **query**（[index.vue](apps/website-frontend/src/pages/index.vue)、[api.ts](apps/website-frontend/src/api.ts)、[storage/index.ts](apps/website-frontend/src/storage/index.ts)、[AdminLayout.vue](apps/website-frontend/src/pages/admin/AdminLayout.vue) 等）；[routeUtil.ts](packages/shared-frontend/src/utils/routeUtil.ts) 第 117-118 行对未配置 props 的路由自动执行 `props = (route) => ({ ...route.query, ...route.params })`，query 里的 `r` 直接注入 [login.vue](apps/website-frontend/src/pages/login.vue) 的 `r` prop；登录成功后 [loginUtil.ts](apps/website-frontend/src/pages/loginUtil.ts) `loginGoto` 执行 `location.href = decodeURIComponent(options.r)`，**对协议和域名零校验**。OAuth 回调页（[github.vue](apps/website-frontend/src/pages/oauth/github.vue)、[linuxdo.vue](apps/website-frontend/src/pages/oauth/linuxdo.vue)）的 `r` 同样来自 query 注入。
++ > 调用链：各页面未登录时 `routerUtil.push(routeMap.login, {}, { r: route.fullPath })` 把回跳地址放进 **query**（[index.vue](apps/website-frontend/src/pages/index.vue)、[api.ts](apps/website-frontend/src/api.ts)、[storage/index.ts](apps/website-frontend/src/storage/index.ts)、[AdminLayout.vue](apps/website-frontend/src/pages/admin/AdminLayout.vue) 等）；[routeUtil.ts](packages/shared-frontend/src/utils/routeUtil.ts) 第 117-118 行对未配置 props 的路由自动执行 `props = (route) => ({ ...route.query, ...route.params })`，query 里的 `r` 直接注入 [login.vue](apps/website-frontend/src/pages/login.vue) 的 `r` prop；登录成功后 [loginUtil.ts](apps/website-frontend/src/pages/loginUtil.ts) `loginGoto` 执行 `location.href = decodeURIComponent(options.r)`，**对协议和域名零校验**。OAuth 回调页（[github.vue](apps/website-frontend/src/pages/oauth/github.vue)、[linuxdo.vue](apps/website-frontend/src/pages/oauth/linuxdo.vue)）的 `r` 同样来自 query 注入。
++ ### 验收
++ - `?r=` 为外部 URL / `javascript:` / `data:` 时登录后不跳转，走站内默认路径
++ - 站内相对路径（含 `/admin` 等深链）登录后正常回跳
+```
+
+## 用户修改：[「记住密码」把明文密码持久化到 localStorage，加密密钥是公开的前端静态常量](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.localstorage-credentials`
+
+```diff
+- [storage/index.ts](apps/website-frontend/src/storage/index.ts) 的 `localUserPwd` 在勾选 rememberMe 时把**用户名+密码原文**写入 localStorage（[login.vue](apps/website-frontend/src/pages/login.vue) 第 393-394 行、[AuthCard.vue](apps/website-frontend/src/components/common/AuthCard.vue) 第 156-157 行）。落盘前经过 [encryptSerializer.ts](apps/website-frontend/src/utils/encryptSerializer.ts) 的 AES-GCM 加密，但该文件自述已承认：密钥是构建期静态常量（`VITE_SECRET_KEY` 打进 bundle，全用户共用同一把；未配置时用默认值 `__default_frontend_key__`）。**密钥公开的加密 = 可逆混淆**，不构成机密性。
++ > [storage/index.ts](apps/website-frontend/src/storage/index.ts) 的 `localUserPwd` 在勾选 rememberMe 时把**用户名+密码原文**写入 localStorage（[login.vue](apps/website-frontend/src/pages/login.vue) 第 393-394 行、[AuthCard.vue](apps/website-frontend/src/components/common/AuthCard.vue) 第 156-157 行）。落盘前经过 [encryptSerializer.ts](apps/website-frontend/src/utils/encryptSerializer.ts) 的 AES-GCM 加密，但该文件自述已承认：密钥是构建期静态常量（`VITE_SECRET_KEY` 打进 bundle，全用户共用同一把；未配置时用默认值 `__default_frontend_key__`）。**密钥公开的加密 = 可逆混淆**，不构成机密性。
++ ### 验收
++ - localStorage 中不再出现可解密的用户密码（记住密码功能移除或改为只记用户名）
++ - 登录页对保留的凭据存储方式有明确风险提示（如保留 token 存储）
+```
+
+## 用户修改：[加密分享的密码被写回 URL hash，泄露进浏览器历史与云同步](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.share-password-in-history`
+
+```diff
+- [ShareEditor.vue](apps/website-frontend/src/pages/share/ShareEditor.vue) 第 310-313 行：用户手动输入密码解锁后，执行 `history.replaceState(null, '', pathname + '#k=<salt>&p=<password>')`，把**密码原文写进 URL hash**（注释自述"使分享链接/二维码自动包含密码"）。
++ > [ShareEditor.vue](apps/website-frontend/src/pages/share/ShareEditor.vue) 第 310-313 行：用户手动输入密码解锁后，执行 `history.replaceState(null, '', pathname + '#k=<salt>&p=<password>')`，把**密码原文写进 URL hash**（注释自述"使分享链接/二维码自动包含密码"）。
++ ### 验收
++ - 浏览器历史中不出现含密码的 URL（不自动写回 hash，或提供"不记住密码"的默认选项）
++ - 若保留链接即钥匙模式，分享 UI 明确告知密码包含在链接里
 ```
