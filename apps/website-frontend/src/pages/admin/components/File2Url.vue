@@ -2,11 +2,9 @@
   <slot :url="fileUrl" :loading="loading" />
 </template>
 <script setup lang="ts">
-import { useAPI } from '@/api';
-import { authInfo_isLogin } from '@/storage';
+import { resolveFileObjectUrl } from '@/composables/useFileUrl';
 import { ref, watch } from 'vue';
 
-const { AppAPIGetUrl, APIGetUrl } = useAPI();
 const { fileId } = defineProps<{
   fileId: number | string;
 }>();
@@ -21,11 +19,7 @@ watch(
     loading.value = true;
     const fileIdVal = typeof fileId === 'string' ? Number(fileId) : fileId;
     try {
-      if (authInfo_isLogin.value) {
-        fileUrl.value = await APIGetUrl.fileApi.file(fileIdVal);
-      } else {
-        fileUrl.value = await AppAPIGetUrl.fileApi.file(fileIdVal);
-      }
+      fileUrl.value = await resolveFileObjectUrl(fileIdVal);
     } catch {
       fileUrl.value = '';
     } finally {
