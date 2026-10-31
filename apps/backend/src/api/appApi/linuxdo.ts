@@ -84,7 +84,7 @@ export const linuxdoApi = {
           return yield* fail('该 LINUX DO 未绑定任何账号，无需合并验证');
         }
         reqCtx.log(`${LOG_PREFIX} LINUX DO 合并验证通过 providerUserId=${linuxdoUser.id}，登记票据`);
-        return { mergeVerified: true, mergeTicket: registerMergeTicket('LINUXDO', String(linuxdoUser.id)) };
+        return { mergeVerified: true, mergeTicket: yield* registerMergeTicket('LINUXDO', String(linuxdoUser.id)) };
       }
 
       /** 绑定意图：把 LINUX DO 身份挂到当前登录账号，不建号不发 session */

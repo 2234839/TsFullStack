@@ -12,23 +12,17 @@ import { OauthProvider } from '../../../.zenstack/models';
 import type { JsonValue } from '@zenstackhq/orm';
 import type { User, Role, UserSession } from '../../../.zenstack/models';
 import { randomBytes } from 'node:crypto';
-import { Cache, Ref } from 'effect';
+import { KVStore } from '../../Context/KVStore';
 
-/** 匿名创建口令的 IP 限流：10 分钟窗口内最多 20 次，防无成本批量生成口令打满 DB */
+/** 匿名创建口令的 IP 限流：10 分钟固定窗口内最多 20 次，防无成本批量生成口令打满 DB（走 KVStore） */
 const PASSCODE_CREATE_IP_LIMIT = 20;
-const passcodeCreateCache = Effect.runSync(
-  Cache.make({
-    capacity: 10_000,
-    timeToLive: '10 minutes',
-    lookup: (ip: string) => Ref.make(0),
-  }),
-);
+const PASSCODE_CREATE_WINDOW_MS = 10 * 60 * 1000;
 
 /** 匿名创建限流：超限抛错（fail 快速返回，不生成口令） */
-function passcodeCreateRateLimit(ip: string): Effect.Effect<void, Error> {
+function passcodeCreateRateLimit(ip: string): Effect.Effect<void, Error, KVStore> {
   return Effect.gen(function* () {
-    const ref = yield* Cache.get(passcodeCreateCache, ip);
-    const count = yield* Ref.modify(ref, (n) => [n + 1, n + 1] as const);
+    const kv = yield* KVStore;
+    const count = yield* kv.incr(`passcode:create:${ip}`, PASSCODE_CREATE_WINDOW_MS);
     if (count > PASSCODE_CREATE_IP_LIMIT) {
       return yield* fail('创建过于频繁，请稍后再试');
     }
@@ -43,43 +37,43 @@ const LOG_PREFIX = '[PasscodeApi]';
 /** 票据有效期（分钟）：验证通过后留给用户确认合并的时间 */
 const MERGE_TICKET_TTL_MS = 10 * 60 * 1000;
 
-/** 票据存储上限 */
-const MERGE_TICKET_MAX = 10_000;
+/** 渠道身份（票据内携带） */
+export interface MergeTicketIdentity {
+  provider: 'GITHUB' | 'LINUXDO' | 'WECHAT';
+  providerId: string;
+}
 
-/** 一次性票据：ticket → 渠道身份 + 过期时间。
+/**
+ * 一次性票据：ticket → 渠道身份，存储走 KVStore（TTL 过期与容量淘汰由实现负责）。
  * 安全模型：渠道身份验证（OAuth merge 回调 / 微信 MERGE_VERIFY）成功后由服务端登记，
- * 前端只拿到不透明 ticket，合并时凭 ticket 原子消费。
+ * 前端只拿到不透明 ticket，合并时凭 ticket 原子消费（get + compare-and-delete，并发只有一个成功）。
  * 防止攻击者不经渠道验证、直接用可枚举的 providerId（GitHub/LINUX DO 数字 ID）调合并接口接管他人账号。
  */
-const mergeTickets = new Map<
-  string,
-  { provider: 'GITHUB' | 'LINUXDO' | 'WECHAT'; providerId: string; expiresAt: number }
->();
 
 /** 渠道验证通过后登记一次性合并票据，返回不透明 ticket 给前端 */
-export function registerMergeTicket(provider: 'GITHUB' | 'LINUXDO' | 'WECHAT', providerId: string): string {
-  const now = Date.now();
-  if (mergeTickets.size >= MERGE_TICKET_MAX) {
-    for (const [k, e] of mergeTickets) if (e.expiresAt < now) mergeTickets.delete(k);
-    while (mergeTickets.size >= MERGE_TICKET_MAX) {
-      const oldest = mergeTickets.keys().next().value;
-      if (oldest === undefined) break;
-      mergeTickets.delete(oldest);
-    }
-  }
-  const ticket = randomBytes(32).toString('base64url');
-  mergeTickets.set(ticket, { provider, providerId, expiresAt: now + MERGE_TICKET_TTL_MS });
-  return ticket;
+export function registerMergeTicket(
+  provider: MergeTicketIdentity['provider'],
+  providerId: string,
+): Effect.Effect<string, never, KVStore> {
+  return Effect.gen(function* () {
+    const kv = yield* KVStore;
+    const ticket = randomBytes(32).toString('base64url');
+    yield* kv.set(`merge:ticket:${ticket}`, JSON.stringify({ provider, providerId }), MERGE_TICKET_TTL_MS);
+    return ticket;
+  });
 }
 
 /** 原子消费合并票据：一次性，未过期才返回渠道身份（鉴权侧 accountApi.mergeByMergeTicket 调用） */
-export function consumeMergeTicket(
-  ticket: string,
-): { provider: 'GITHUB' | 'LINUXDO' | 'WECHAT'; providerId: string } | null {
-  const entry = mergeTickets.get(ticket);
-  mergeTickets.delete(ticket);
-  if (!entry || entry.expiresAt < Date.now()) return null;
-  return { provider: entry.provider, providerId: entry.providerId };
+export function consumeMergeTicket(ticket: string): Effect.Effect<MergeTicketIdentity | null, never, KVStore> {
+  return Effect.gen(function* () {
+    const kv = yield* KVStore;
+    const key = `merge:ticket:${ticket}`;
+    const raw = yield* kv.get(key);
+    if (!raw) return null;
+    const consumed = yield* kv.takeIfEqual(key, raw);
+    if (!consumed) return null;
+    return JSON.parse(raw) as MergeTicketIdentity;
+  });
 }
 
 /** 防口令/密码验证爆破：随机延迟毫秒数 */
@@ -122,7 +116,7 @@ export const passcodeApi = {
   createWechatLogin(): Effect.Effect<
     { code: string; ticket: string; expiresAt: Date; official: PasscodeOfficialView },
     Error,
-    AppConfigService | ReqCtxService
+    AppConfigService | KVStore | ReqCtxService
   > {
     return Effect.gen(function* () {
       const appConfig = yield* AppConfigService;
@@ -292,7 +286,7 @@ export const passcodeApi = {
   createWechatMergeVerify(): Effect.Effect<
     { code: string; ticket: string; expiresAt: Date; official: PasscodeOfficialView },
     Error,
-    AppConfigService | ReqCtxService
+    AppConfigService | KVStore | ReqCtxService
   > {
     return Effect.gen(function* () {
       const appConfig = yield* AppConfigService;
@@ -329,7 +323,7 @@ export const passcodeApi = {
   ): Effect.Effect<
     PasscodePendingView | { status: 'VERIFIED'; mergeTicket: string },
     Error,
-    AppConfigService | ReqCtxService
+    AppConfigService | KVStore | ReqCtxService
   > {
     return Effect.gen(function* () {
       const record = yield* PasscodeService.findByTicket(ticket);
@@ -360,7 +354,7 @@ export const passcodeApi = {
 
       const reqCtx = yield* ReqCtxService;
       reqCtx.log(`${LOG_PREFIX} 微信合并验证通过 openid=${openid.slice(0, 8)}***，登记票据`);
-      return { status: 'VERIFIED', mergeTicket: registerMergeTicket('WECHAT', openid) };
+      return { status: 'VERIFIED', mergeTicket: yield* registerMergeTicket('WECHAT', openid) };
     });
   },
 };

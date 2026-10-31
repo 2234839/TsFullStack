@@ -84,7 +84,7 @@ export const githubApi = {
           return yield* fail('该 GitHub 未绑定任何账号，无需合并验证');
         }
         reqCtx.log(`${LOG_PREFIX} GitHub 合并验证通过 providerUserId=${githubUser.id}，登记票据`);
-        return { mergeVerified: true, mergeTicket: registerMergeTicket('GITHUB', String(githubUser.id)) };
+        return { mergeVerified: true, mergeTicket: yield* registerMergeTicket('GITHUB', String(githubUser.id)) };
       }
 
       /** 绑定意图：把 GitHub 身份挂到当前登录账号，不建号不发 session */

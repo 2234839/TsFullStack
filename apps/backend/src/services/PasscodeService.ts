@@ -1,8 +1,8 @@
 import { Effect } from 'effect';
 import { randomBytes, randomInt } from 'node:crypto';
-import { Cache, Ref } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService } from '../Context/AppConfig';
+import { KVStore } from '../Context/KVStore';
 import { tryOrFail } from '../util/error';
 import { MS_PER_MINUTE } from '../util/constants';
 import type { VerificationPasscode } from '../../.zenstack/models';
@@ -21,16 +21,10 @@ function genCode(): string {
 /** code 唯一冲突时的最大重试次数 */
 const CREATE_MAX_RETRY = 5;
 
-/** ===== 验证尝试限速（防 6 位口令爆破） ===== */
+/** ===== 验证尝试限速（防 6 位口令爆破，计数/封禁标记走 KVStore） ===== */
 
-/** 验证尝试失败计数缓存：key 为 '全局' 或 '渠道:身份'，TTL 内失败次数超限后短封禁 */
-const verifyFailCache = Effect.runSync(
-  Cache.make({
-    capacity: 10_000,
-    timeToLive: '10 minutes',
-    lookup: (key: string) => Ref.make(0),
-  }),
-);
+/** 失败计数窗口（10 分钟固定窗口） */
+const VERIFY_FAIL_WINDOW_MS = 10 * 60 * 1000;
 
 /** 单 key 在 TTL 窗口内允许的验证失败次数（命中真口令不算失败） */
 const VERIFY_FAIL_LIMIT = 10;
@@ -41,31 +35,21 @@ const VERIFY_GLOBAL_FAIL_LIMIT = 500;
 /** 触发限流后的封禁时长 */
 const VERIFY_BAN_MS = 5 * 60 * 1000;
 
-/** 封禁标记缓存（命中后直接拒绝，不再查库） */
-const verifyBanCache = Effect.runSync(
-  Cache.make({
-    capacity: 10_000,
-    timeToLive: `${Math.floor(VERIFY_BAN_MS / 1000)} seconds`,
-    lookup: (key: string) => Ref.make(false),
-  }),
-);
-
 /** 检查是否被封禁（被封禁时直接拒绝，不消耗 DB 查询） */
-function isVerifyBanned(key: string): Effect.Effect<boolean> {
+function isVerifyBanned(key: string): Effect.Effect<boolean, never, KVStore> {
   return Effect.gen(function* () {
-    const banned = yield* Cache.get(verifyBanCache, key);
-    return yield* Ref.get(banned);
+    const kv = yield* KVStore;
+    return (yield* kv.get(`passcode:ban:${key}`)) === '1';
   });
 }
 
 /** 记录一次验证失败，超限后置封禁标记（limit 可按 key 粒度覆盖，全局门限更宽） */
-function recordVerifyFail(key: string, limit: number = VERIFY_FAIL_LIMIT): Effect.Effect<void> {
+function recordVerifyFail(key: string, limit: number = VERIFY_FAIL_LIMIT): Effect.Effect<void, never, KVStore> {
   return Effect.gen(function* () {
-    const ref = yield* Cache.get(verifyFailCache, key);
-    const count = yield* Ref.modify(ref, (n) => [n + 1, n + 1] as const);
+    const kv = yield* KVStore;
+    const count = yield* kv.incr(`passcode:fail:${key}`, VERIFY_FAIL_WINDOW_MS);
     if (count > limit) {
-      const ban = yield* Cache.get(verifyBanCache, key);
-      yield* Ref.set(ban, true);
+      yield* kv.set(`passcode:ban:${key}`, '1', VERIFY_BAN_MS);
     }
   });
 }
@@ -131,7 +115,7 @@ export const PasscodeService = {
     channel: PasscodeChannelKey,
     code: string,
     channelIdentity: string,
-  ): Effect.Effect<boolean, Error, AppConfigService> {
+  ): Effect.Effect<boolean, Error, AppConfigService | KVStore> {
     return Effect.gen(function* () {
       const globalKey = 'verify:global';
       const identityKey = `verify:${channel}:${channelIdentity}`;

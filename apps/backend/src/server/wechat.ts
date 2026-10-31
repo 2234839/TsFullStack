@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Effect } from 'effect';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
+import { KVStore, localKVStore } from '../Context/KVStore';
 import { GroupEntryService } from '../services/GroupEntryService';
 import { PasscodeService } from '../services/PasscodeService';
 import { extractErrorMessage } from '../util/error';
@@ -21,12 +22,14 @@ const LOG_PREFIX = '[Wechat]';
 
 /** 统一的 Effect 运行辅助：为 Service 层程序注入 AppConfigService，失败时返回 fallback */
 async function runEffect<T>(
-  program: Effect.Effect<T, Error, AppConfigService>,
+  program: Effect.Effect<T, Error, AppConfigService | KVStore>,
   appConfig: AppConfig,
   fallback: T,
 ): Promise<T> {
   try {
-    return await Effect.runPromise(Effect.provideService(program, AppConfigService, appConfig));
+    return await Effect.runPromise(
+      Effect.provideService(Effect.provideService(program, AppConfigService, appConfig), KVStore, localKVStore),
+    );
   } catch (e) {
     console.error(`${LOG_PREFIX} 处理失败:`, extractErrorMessage(e));
     return fallback;

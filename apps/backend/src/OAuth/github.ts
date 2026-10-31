@@ -2,75 +2,59 @@ import { Context, Effect, Layer } from 'effect';
 import { randomBytes } from 'node:crypto';
 import { FetchWithProxy } from '../util/github-proxy';
 import { AppConfigService } from '../Context/AppConfig';
+import { KVStore } from '../Context/KVStore';
 import { fail } from '../util/error';
 import { MSG } from '../util/constants';
 
-/** ===== OAuth state CSRF 防护 ===== */
+/** ===== OAuth state CSRF 防护（存储走 KVStore，多实例下任意实例可消费） ===== */
 
 /** state 有效期（10 分钟，覆盖正常 OAuth 往返时间） */
 const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 
-/** state 存储上限（防内存膨胀；单实例部署下 10 分钟内不可能积累这么多登录） */
-const OAUTH_STATE_MAX_ENTRIES = 10_000;
-
-/** state 登记表：state → 过期时间 + 意图 + 发起者（bind 时防止被诱导绑到他人账号） */
-const oauthStates = new Map<
-  string,
-  { expiresAt: number; intent?: 'login' | 'bind' | 'merge'; initiatorUserId?: string }
->();
-
-/**
- * 登记 state（getAuthorizationUrl 时调用）
- * 超限时淘汰最旧条目；过期条目在读写时顺手清理
- * bind 意图必须携带发起者 userId，回调时校验会话一致，防止诱导绑定（CSRF）
- */
-export function registerOAuthState(state: string, intent: OAuthIntent = 'login', initiatorUserId?: string): void {
-  const now = Date.now();
-  if (oauthStates.size >= OAUTH_STATE_MAX_ENTRIES) {
-    /** 淘汰全部已过期项；若仍超限则删除最早插入项 */
-    for (const [k, entry] of oauthStates) {
-      if (entry.expiresAt < now) oauthStates.delete(k);
-    }
-    while (oauthStates.size >= OAUTH_STATE_MAX_ENTRIES) {
-      const oldest = oauthStates.keys().next().value;
-      if (oldest === undefined) break;
-      oauthStates.delete(oldest);
-    }
-  }
-  oauthStates.set(state, { expiresAt: now + OAUTH_STATE_TTL_MS, intent, initiatorUserId });
-}
-
 /** OAuth 回调意图：login 登录 / bind 绑定到当前账号 / merge 验证被合并账号身份 */
 export type OAuthIntent = 'login' | 'bind' | 'merge';
 
-/**
- * 消费 state 并返回详情（authenticate 时调用，一次性防重放）
- * @returns valid = state 有效且未过期；intent = 发起时的意图；initiatorUserId = bind 发起者
- */
-export function consumeOAuthStateDetail(state: string | undefined): {
+/** state 消费结果 */
+export interface OAuthStateDetail {
   valid: boolean;
   bind: boolean;
   intent: OAuthIntent;
   initiatorUserId?: string;
-} {
-  if (!state) return { valid: false, bind: false, intent: 'login' };
-  const entry = oauthStates.get(state);
-  oauthStates.delete(state);
-  if (!entry) return { valid: false, bind: false, intent: 'login' };
-  const valid = Date.now() <= entry.expiresAt;
-  return {
-    valid,
-    bind: entry.intent === 'bind',
-    intent: valid ? (entry.intent ?? 'login') : 'login',
-    initiatorUserId: entry.initiatorUserId,
-  };
+}
+
+const INVALID_STATE_DETAIL: OAuthStateDetail = { valid: false, bind: false, intent: 'login' };
+
+/**
+ * 登记 state（getAuthorizationUrl 时调用）。
+ * bind 意图必须携带发起者 userId，回调时校验会话一致，防止诱导绑定（CSRF）。
+ */
+export function registerOAuthState(
+  state: string,
+  intent: OAuthIntent = 'login',
+  initiatorUserId?: string,
+): Effect.Effect<void, never, KVStore> {
+  return Effect.gen(function* () {
+    const kv = yield* KVStore;
+    yield* kv.set(`oauth:state:${state}`, JSON.stringify({ intent, initiatorUserId }), OAUTH_STATE_TTL_MS);
+  });
 }
 
 /**
- * 消费 state（兼容旧调用：仅判断有效性）
+ * 消费 state 并返回详情（authenticate 时调用，一次性防重放）。
+ * get + compare-and-delete：并发回调只有一个消费成功。
  */
-export function consumeOAuthState(state: string | undefined): boolean {
-  return consumeOAuthStateDetail(state).valid;
+export function consumeOAuthStateDetail(state: string | undefined): Effect.Effect<OAuthStateDetail, never, KVStore> {
+  return Effect.gen(function* () {
+    if (!state) return INVALID_STATE_DETAIL;
+    const kv = yield* KVStore;
+    const key = `oauth:state:${state}`;
+    const raw = yield* kv.get(key);
+    if (!raw) return INVALID_STATE_DETAIL;
+    const consumed = yield* kv.takeIfEqual(key, raw);
+    if (!consumed) return INVALID_STATE_DETAIL;
+    const { intent, initiatorUserId } = JSON.parse(raw) as { intent: OAuthIntent; initiatorUserId?: string };
+    return { valid: true, bind: intent === 'bind', intent, initiatorUserId };
+  });
 }
 
 /** ===== 常量定义 ===== */
@@ -207,9 +191,13 @@ export class GithubAuthService extends Context.Service<
         /** bind 发起者（state 记录回传，回调校验会话一致） */
         initiatorUserId?: string;
       },
-      GitHubAuthError
+      GitHubAuthError,
+      KVStore
     >;
-    readonly getAuthorizationUrl: (intent?: OAuthIntent, initiatorUserId?: string) => Effect.Effect<string>;
+    readonly getAuthorizationUrl: (
+      intent?: OAuthIntent,
+      initiatorUserId?: string,
+    ) => Effect.Effect<string, never, KVStore>;
   }
 >()('GithubAuthService') {}
 
@@ -315,7 +303,7 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
     authenticate(code: string, state?: string) {
       return Effect.gen(function* () {
         /** CSRF 防护：state 必须是本服务签发且未被使用过的（一次性消费防重放）；bind = 发起时绑定意图 */
-        const stateDetail = consumeOAuthStateDetail(state);
+        const stateDetail = yield* consumeOAuthStateDetail(state);
         if (!stateDetail.valid) {
           return yield* Effect.fail(
             new GitHubAuthError('Invalid or expired OAuth state', GitHubAuthErrorCode.INVALID_STATE),

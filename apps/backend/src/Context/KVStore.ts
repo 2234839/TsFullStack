@@ -84,39 +84,42 @@ function getValid(key: string): Entry | undefined {
   return entry;
 }
 
-export const LocalKVStoreLive = Layer.succeed(
-  KVStore,
-  KVStore.of({
-    incr: (key, ttlMs) =>
-      Effect.sync(() => {
-        evictIfNeeded();
-        const existing = getValid(key);
-        const next = (existing ? Number(existing.value) : 0) + 1;
-        store.set(key, { value: String(next), expiresAt: Date.now() + ttlMs });
-        return next;
-      }),
-    get: (key) => Effect.sync(() => getValid(key)?.value ?? null),
-    set: (key, value, ttlMs) =>
-      Effect.sync(() => {
-        evictIfNeeded();
-        store.set(key, { value, expiresAt: Date.now() + ttlMs });
-      }),
-    del: (key) =>
-      Effect.sync(() => {
-        store.delete(key);
-      }),
-    takeIfEqual: (key, expected) =>
-      Effect.sync(() => {
-        const entry = getValid(key);
-        if (!entry || entry.value !== expected) return false;
-        store.delete(key);
-        return true;
-      }),
-    delByPrefix: (prefix) =>
-      Effect.sync(() => {
-        for (const k of store.keys()) {
-          if (k.startsWith(prefix)) store.delete(k);
-        }
-      }),
-  }),
-);
+export const localKVStore: KVStoreApi = {
+  incr: (key, ttlMs) =>
+    Effect.sync(() => {
+      evictIfNeeded();
+      const existing = getValid(key);
+      if (!existing) {
+        store.set(key, { value: '1', expiresAt: Date.now() + ttlMs });
+        return 1;
+      }
+      const next = Number(existing.value) + 1;
+      existing.value = String(next);
+      return next;
+    }),
+  get: (key) => Effect.sync(() => getValid(key)?.value ?? null),
+  set: (key, value, ttlMs) =>
+    Effect.sync(() => {
+      evictIfNeeded();
+      store.set(key, { value, expiresAt: Date.now() + ttlMs });
+    }),
+  del: (key) =>
+    Effect.sync(() => {
+      store.delete(key);
+    }),
+  takeIfEqual: (key, expected) =>
+    Effect.sync(() => {
+      const entry = getValid(key);
+      if (!entry || entry.value !== expected) return false;
+      store.delete(key);
+      return true;
+    }),
+  delByPrefix: (prefix) =>
+    Effect.sync(() => {
+      for (const k of store.keys()) {
+        if (k.startsWith(prefix)) store.delete(k);
+      }
+    }),
+};
+
+export const LocalKVStoreLive = Layer.succeed(KVStore, localKVStore);

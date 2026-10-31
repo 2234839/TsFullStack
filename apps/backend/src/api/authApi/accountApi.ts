@@ -6,7 +6,7 @@ import { AuthContext } from '../../Context/Auth';
 import { fail, tryOrFail } from '../../util/error';
 import { comparePassword } from '../../util/crypto';
 import { PasscodeService } from '../../services/PasscodeService';
-import { registerMergeTicket, consumeMergeTicket, type PasscodeOfficialView } from '../appApi/passcode';
+import { consumeMergeTicket, type PasscodeOfficialView } from '../appApi/passcode';
 import { githubApi } from '../appApi/github';
 import { linuxdoApi } from '../appApi/linuxdo';
 import { invalidateAuthUserCache } from '../../server/authCache';
@@ -180,7 +180,7 @@ export const accountApi = {
   mergeByMergeTicket(mergeTicket: string) {
     return Effect.gen(function* () {
       const { user } = yield* AuthContext;
-      const identity = consumeMergeTicket(mergeTicket);
+      const identity = yield* consumeMergeTicket(mergeTicket);
       if (!identity) return yield* fail('合并票据无效或已过期，请重新验证');
 
       const db = yield* DbClientEffect;

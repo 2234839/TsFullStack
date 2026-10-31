@@ -13,7 +13,7 @@ import { TokenPricingCalculator } from '../../services/TokenPricingCalculator';
 import { PricingConfigService } from '../../Context/PricingConfig';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../../util/http';
 import { TaskType, TaskStatus, ResourceType } from '../../../.zenstack/models';
-import { tokenConsumeRateLimiter } from '../../middleware/rateLimit';
+import { checkTokenConsumeRate } from '../../middleware/rateLimit';
 import {
   DEFAULT_IMAGE_SIZE,
   DEFAULT_IMAGE_DIMENSION,
@@ -175,8 +175,8 @@ const generateAIImage = (request: { prompt: string; provider?: AiImageProvider; 
     const auth = yield* AuthContext;
     const ctx = yield* ReqCtxService;
 
-    // 1. 速率限制检查
-    const rateLimitResult = tokenConsumeRateLimiter.check(auth.user.id);
+    // 1. 速率限制检查（走 KVStore）
+    const rateLimitResult = yield* checkTokenConsumeRate(auth.user.id);
     if (!rateLimitResult.allowed) {
       return yield* fail(MSG.RATE_LIMITED);
     }

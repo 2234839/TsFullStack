@@ -1,6 +1,7 @@
 import { Context, Effect, Layer } from 'effect';
 import { randomBytes } from 'node:crypto';
 import { AppConfigService } from '../Context/AppConfig';
+import { KVStore } from '../Context/KVStore';
 import { fail, tryOrFail } from '../util/error';
 import { MSG } from '../util/constants';
 import { FetchWithProxy } from '../util/github-proxy';
@@ -61,9 +62,13 @@ export class LinuxDoAuthService extends Context.Service<
         /** 发起时的意图 */ intent: OAuthIntent;
         /** bind 发起者（state 记录回传，回调校验会话一致） */ initiatorUserId?: string;
       },
-      Error
+      Error,
+      KVStore
     >;
-    readonly getAuthorizationUrl: (intent?: OAuthIntent, initiatorUserId?: string) => Effect.Effect<string>;
+    readonly getAuthorizationUrl: (
+      intent?: OAuthIntent,
+      initiatorUserId?: string,
+    ) => Effect.Effect<string, never, KVStore>;
   }
 >()('LinuxDoAuthService') {}
 
@@ -157,7 +162,7 @@ const LinuxDoAuthLiveEffect = Effect.gen(function* () {
     authenticate(code: string, state?: string) {
       return Effect.gen(function* () {
         /** CSRF 防护：state 必须是本服务签发且未被使用过的（一次性消费防重放）；bind = 发起时绑定意图 */
-        const stateDetail = consumeOAuthStateDetail(state);
+        const stateDetail = yield* consumeOAuthStateDetail(state);
         if (!stateDetail.valid) {
           return yield* Effect.fail(new Error('Invalid or expired OAuth state'));
         }
@@ -175,16 +180,17 @@ const LinuxDoAuthLiveEffect = Effect.gen(function* () {
     getAuthorizationUrl(intent: OAuthIntent = 'login', initiatorUserId?: string) {
       /** 服务端签发随机 state 并登记（intent 标记登录/绑定/合并验证意图；bind 记录发起者），回调时验证（防 CSRF 登录劫持） */
       const state = randomBytes(16).toString('hex');
-      registerOAuthState(state, intent, intent === 'bind' ? initiatorUserId : undefined);
-      const params = new URLSearchParams({
-        client_id: config.clientId,
-        redirect_uri: config.redirectUri,
-        response_type: 'code',
-        scope: 'openid profile email',
-        state,
+      return Effect.gen(function* () {
+        yield* registerOAuthState(state, intent, intent === 'bind' ? initiatorUserId : undefined);
+        const params = new URLSearchParams({
+          client_id: config.clientId,
+          redirect_uri: config.redirectUri,
+          response_type: 'code',
+          scope: 'openid profile email',
+          state,
+        });
+        return `${LINUXDO_OAUTH_URL}/authorize?${params.toString()}`;
       });
-
-      return Effect.succeed(`${LINUXDO_OAUTH_URL}/authorize?${params.toString()}`);
     },
   };
 });
