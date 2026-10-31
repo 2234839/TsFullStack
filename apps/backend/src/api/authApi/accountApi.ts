@@ -231,6 +231,23 @@ export const accountApi = {
       return { status: 'OK' as const };
     });
   },
+
+  /**
+   * 查看自己相关的渠道消息（公众号对话存档，只含自己账号绑定的 openid）
+   */
+  myChannelMessages(limit: number, beforeId?: number) {
+    return Effect.gen(function* () {
+      const { user } = yield* AuthContext;
+      const db = yield* DbClientEffect;
+      return yield* tryOrFail(`${LOG_PREFIX} 查询自己的渠道消息`, () =>
+        db.channelMessage.findMany({
+          where: { userId: user.id, ...(beforeId ? { id: { lt: beforeId } } : {}) },
+          orderBy: { id: 'desc' },
+          take: Math.min(Math.max(limit, 1), 100),
+        }),
+      );
+    });
+  },
 };
 
 /**

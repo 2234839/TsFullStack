@@ -1,6 +1,6 @@
 # TODO
 
-> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 34 项待办。
+> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 38 项待办。
 
 ## 新增：[账号合并只迁登录关系，不做业务数据迁移](index.md)
 
@@ -50,6 +50,27 @@
 + - 实现见 [wechat.ts](../../apps/backend/src/server/wechat.ts) 与 [WechatCommandService](../../apps/backend/src/services/WechatCommandService.ts)（实现后回填）
 ```
 
+## 新增：[权限与身份](公众号消息指令.md)
+
+- 块 ID: `公众号消息指令.md#wechat-command-auth`
+
+```diff
++ - 权限本质是「账号对引流空间的操作权」，与消息渠道无关：`GroupSpaceOperator`（userId×spaceId，@@unique），公众号只是当前唯一渠道
++ - 用户已有账号（微信登录/绑定后 openid→OAuthAccount→userId），不需要额外绑定机制；未绑定/未授权发指令直接拒绝
++ - zmodel 行级策略：管理员可增删查；用户只能读自己的授权记录
+```
+
+## 新增：[消息存档](公众号消息指令.md)
+
+- 块 ID: `公众号消息指令.md#wechat-command-archive`
+
+```diff
++ - 新模型 `ChannelMessage`（channel/direction/msgType/peerId/content/mediaId/userId），收发全量留痕
++ - 存档在 /wechat 回调 fire-and-forget，失败不影响回复；openid 绑定时回填 userId
++ - 权限：管理员看全部消息，普通用户只能看自己的（@@allow('read', userId == auth().id)）
++ - 消息列表已落地：管理页 [ChannelMessages.vue](../../apps/website-frontend/src/pages/admin/ChannelMessages.vue)（管理员全部），用户自查在 AccountSettings「公众号消息」区块（accountApi.myChannelMessages）
+```
+
 ## 新增：[验收](公众号消息指令.md)
 
 - 块 ID: `公众号消息指令.md#wechat-command-accept`
@@ -58,6 +79,20 @@
 + - 未绑定用户发 `/帮助` 收到绑定引导
 + - 已绑定授权用户 `/更新群码 <空间>` 后发图片，GroupQRCode 新增一条且公众号关键词立即出新码
 + - 微信重试（同 msgId）不产生重复入库
++ - 消息收发均可在 ChannelMessage 查到，普通用户只见自己的
+```
+
+## 新增：[实现](公众号消息指令.md)
+
+- 块 ID: `公众号消息指令.md#wechat-command-impl`
+
+```diff
++ - 模型：`GroupSpaceOperator`、`ChannelMessage`（schema.zmodel + migrations/20261031120000_add_group_space_operator）
++ - 指令服务：[WechatCommandService.ts](../../apps/backend/src/services/WechatCommandService.ts)（resolveOperator / handleTextCommand / handleImageMessage / archiveMessage）
++ - 素材下载：[WechatService.ts](../../apps/backend/src/services/WechatService.ts) 的 downloadMediaImage；cachedReply 支持可空返回
++ - 路由接线：[wechat.ts](../../apps/backend/src/server/wechat.ts)（口令 → 指令 → 关键词；图片消息待图会话消费；IN/OUT 存档）
++ - 管理接口：[groupEntryApi.ts](../../apps/backend/src/api/authApi/groupEntryApi.ts) 的 listOperators/addOperator/removeOperator/listChannelMessages；操作员管理 UI 在 [GroupEntryManagement.vue](../../apps/website-frontend/src/pages/admin/GroupEntryManagement.vue)「空间操作员」区块，消息列表页路由 /admin/channelMessages
++ - 待做：管理员数据合并能力（另条需求）
 ```
 
 ## 新增：[持续安全审计记录：每块是一个待修复的安全发现（只记录、不改代码）。按严重度排列，修复后逐块 `pact todo --done` 并回填实现链接。](安全审查.md)
@@ -322,6 +357,23 @@
 + - 全库 grep 确认无用户输入直达这些模型写操作的路径
 ```
 
+## 新增：[登录成功跳转 r 参数未校验协议与域名，构成 open redirect 与 javascript: DOM XSS](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.login-open-redirect`
+
+```diff
++ 调用链：各页面未登录时 `routerUtil.push(routeMap.login, {}, { r: route.fullPath })` 把回跳地址放进 **query**（[index.vue](apps/website-frontend/src/pages/index.vue)、[api.ts](apps/website-frontend/src/api.ts)、[storage/index.ts](apps/website-frontend/src/storage/index.ts)、[AdminLayout.vue](apps/website-frontend/src/pages/admin/AdminLayout.vue) 等）；[routeUtil.ts](packages/shared-frontend/src/utils/routeUtil.ts) 第 117-118 行对未配置 props 的路由自动执行 `props = (route) => ({ ...route.query, ...route.params })`，query 里的 `r` 直接注入 [login.vue](apps/website-frontend/src/pages/login.vue) 的 `r` prop；登录成功后 [loginUtil.ts](apps/website-frontend/src/pages/loginUtil.ts) `loginGoto` 执行 `location.href = decodeURIComponent(options.r)`，**对协议和域名零校验**。OAuth 回调页（[github.vue](apps/website-frontend/src/pages/oauth/github.vue)、[linuxdo.vue](apps/website-frontend/src/pages/oauth/linuxdo.vue)）的 `r` 同样来自 query 注入。
++
++ 攻击：诱导受害者打开 `https://站点/login?r=https%3A%2F%2Fevil.com%2Fphish`——登录成功后被重定向到钓鱼站（open redirect，可仿冒登录流程二次收割密码）；或 `?r=javascript%3A<脚本>`——`javascript:` URI 导航在部分浏览器以站点 origin 执行，而此刻 `authInfo.value`（会话令牌）**刚刚写入 storage**，脚本可直接读取令牌外传（DOM XSS → 完全会话接管）。
++
++ 建议：`loginGoto` 中校验 `redirectUrl` 必须以 `/` 开头且不以 `//` 开头（只允许站内相对路径），否则忽略走默认跳转；封装成 `safeRedirect` 工具函数供所有 `r` 消费点复用。
++
++ 严重度：中高（需要诱导点击，但后果是登录态接管，且登录页正是钓鱼攻击的自然入口）。
++ ### 验收
++ - `?r=` 为外部 URL / `javascript:` / `data:` 时登录后不跳转，走站内默认路径
++ - 站内相对路径（含 `/admin` 等深链）登录后正常回跳
+```
+
 ## 新增：[其余备忘（暂不成块，持续观察）](安全审查.md)
 
 - 块 ID: `安全审查.md#sec.misc-notes`
@@ -339,6 +391,8 @@
 + - `register` 无验证码，可批量注册空账号（配合上条限流一起处理）。
 + - 微信回调签名比较 `sha1 === signature` 非恒定时间（[WechatService.ts](apps/backend/src/services/WechatService.ts)）：远程时序噪声下实际不可利用，改用 `timingSafeEqual` 属顺手加固。
 + - 支付 webhook 无重放保护（签名不含时间戳）：发货幂等（PAID 跳过）已挡住重复发货，风险低，记录备查。
++ - 第八轮（前端 XSS 面）结论：全仓 `v-html` 仅 [Img2Svg.vue](apps/website-frontend/src/components/Img2Svg.vue)（程序化生成，无外部输入 ✓）与 InfoFlow 的 [ExecutionDetails.vue](apps/InfoFlow/components/ExecutionDetails.vue) 两处；`window.open` 全带 noopener ✓。InfoFlow 观察备查：`host_permissions: ['<all_urls>']` + `tabs`/`activeTab` 是高权限组合（产品功能所需，采集任意网页）；content.ts 的 `new Function` 执行的 `method.code` 来自扩展自身规则存储（`browser.tabs.sendMessage` 仅扩展内部可发，无 externally_connectable），等同用户脚本管理器语义，非漏洞。但 ExecutionDetails.vue 用 `v-html` 渲染**采集到的外部网页 HTML 片段**（`el.outerHTML`），恶意网页可内嵌 `<img onerror>` 等载荷进入扩展 UI：MV3 默认 CSP（`script-src 'self'`）会挡住扩展页面里的内联执行，content script 侧即便执行也在页面自身 origin（页面本就对自己有权），实际可利用性低——属「防御纵深」项，建议改用文本化渲染。
++ - 登录重定向发现见独立块 [[sec.login-open-redirect]]（第八轮主发现）。
 ```
 
 ## 新增：[需求以 `## 标题` 为块单位，正文自由描述，`` 双链绑定代码，](示例需求.md)

@@ -89,6 +89,105 @@
       </Card>
     </section>
 
+    <section class="mb-8">
+      <div class="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 class="text-xl font-semibold text-primary-title">{{ t('空间操作员') }}</h2>
+          <p class="mt-1 text-sm text-primary-theme">
+            {{
+              t(
+                '被授权的账号可通过公众号消息指令（/更新群码 等）管理对应空间的群码与公众号码，授权粒度为「账号×空间」。',
+              )
+            }}
+          </p>
+        </div>
+        <Button
+          icon="pi pi-refresh"
+          variant="secondary"
+          :label="t('刷新')"
+          :loading="operatorsLoading"
+          @click="loadOperators"
+        />
+      </div>
+      <Card class="p-5">
+        <form class="flex flex-wrap items-end gap-3" @submit.prevent="addOperator">
+          <div class="min-w-48 flex-1">
+            <label class="mb-1.5 block text-sm font-medium text-primary-title" for="operator-space">
+              {{ t('空间') }}
+            </label>
+            <Select
+              id="operator-space"
+              v-model="operatorSpaceId"
+              class="w-full"
+              :options="spaceOptions"
+              option-label="label"
+              option-value="value"
+              :placeholder="t('选择空间')"
+            />
+          </div>
+          <div class="min-w-56 flex-1">
+            <label class="mb-1.5 block text-sm font-medium text-primary-title" for="operator-email">
+              {{ t('账号邮箱') }}
+            </label>
+            <Input
+              id="operator-email"
+              v-model="operatorEmail"
+              class="w-full"
+              type="email"
+              :placeholder="t('被授权账号的登录邮箱')"
+              :disabled="addingOperator"
+            />
+          </div>
+          <Button
+            type="submit"
+            icon="pi pi-user-plus"
+            :label="t('授权')"
+            :loading="addingOperator"
+            :disabled="!operatorSpaceId || !operatorEmail.trim()"
+          />
+        </form>
+        <div v-if="operators.length" class="mt-5 overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-primary-100 text-left text-primary-theme dark:border-primary-900">
+                <th class="py-2 pr-4 font-medium">{{ t('账号') }}</th>
+                <th class="py-2 pr-4 font-medium">{{ t('空间') }}</th>
+                <th class="py-2 pr-4 font-medium">{{ t('授权时间') }}</th>
+                <th class="py-2 font-medium"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                v-for="op in operators"
+                :key="op.id"
+                class="border-b border-primary-50 last:border-0 dark:border-primary-950"
+              >
+                <td class="py-2 pr-4">
+                  <div class="font-medium text-primary-title">{{ op.user.nickname || op.user.email }}</div>
+                  <div class="text-xs text-primary-theme">{{ op.user.email }}</div>
+                </td>
+                <td class="py-2 pr-4 text-primary-title">{{ op.space.name }}</td>
+                <td class="py-2 pr-4 text-xs text-primary-theme">{{ formatTime(op.created) }}</td>
+                <td class="py-2 text-right">
+                  <Button
+                    icon="pi pi-trash"
+                    variant="text-button"
+                    severity="danger"
+                    size="small"
+                    :label="t('移除')"
+                    @click="removeOperator(op)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p v-else class="mt-5 text-sm text-primary-theme">
+          {{ operatorsLoading ? t('正在加载操作员…') : t('尚未授权任何空间操作员。') }}
+        </p>
+      </Card>
+    </section>
+
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
       <div>
         <h2 class="text-xl font-semibold text-primary-title">{{ t('引流统计') }}</h2>
@@ -133,10 +232,23 @@ import GroupSpaceCard from './groupEntry/GroupSpaceCard.vue';
 import { GROUP_ENTRY_KEY_PATTERN, type GroupSpace } from './groupEntry/types';
 
 type StatItem = Awaited<ReturnType<typeof API.groupEntryApi.getStats>>['items'][number];
+type OperatorItem = Awaited<ReturnType<typeof API.groupEntryApi.listOperators>>[number];
 
 const { API } = useAPI();
 const { t } = useI18n();
 const toast = useToast();
+const operators = shallowRef<OperatorItem[]>([]);
+const operatorsLoading = ref(false);
+const operatorSpaceId = ref<string | null>(null);
+const operatorEmail = ref('');
+const addingOperator = ref(false);
+const spaceOptions = computed(() =>
+  spaces.value.map((space) => ({ label: space.displayName || space.name, value: String(space.id) })),
+);
+
+function formatTime(value: string | Date) {
+  return new Date(value).toLocaleString();
+}
 const spaces = shallowRef<GroupSpace[]>([]);
 const spacesLoading = ref(false);
 const stats = shallowRef<StatItem[]>([]);
@@ -199,7 +311,43 @@ async function loadStats() {
 }
 
 async function refreshAll() {
-  await Promise.all([loadSpaces(), loadStats()]);
+  await Promise.all([loadSpaces(), loadStats(), loadOperators()]);
+}
+
+async function loadOperators() {
+  operatorsLoading.value = true;
+  try {
+    operators.value = await API.groupEntryApi.listOperators();
+  } catch (error: unknown) {
+    toast.error(t('加载空间操作员失败'), getErrorMessage(error));
+  } finally {
+    operatorsLoading.value = false;
+  }
+}
+
+async function addOperator() {
+  if (!operatorSpaceId.value || addingOperator.value) return;
+  addingOperator.value = true;
+  try {
+    await API.groupEntryApi.addOperator(operatorEmail.value.trim(), Number(operatorSpaceId.value));
+    operatorEmail.value = '';
+    toast.success(t('已授权'));
+    await loadOperators();
+  } catch (error: unknown) {
+    toast.error(t('授权失败'), getErrorMessage(error));
+  } finally {
+    addingOperator.value = false;
+  }
+}
+
+async function removeOperator(op: OperatorItem) {
+  try {
+    await API.groupEntryApi.removeOperator(op.id);
+    toast.success(t('已移除授权'));
+    await loadOperators();
+  } catch (error: unknown) {
+    toast.error(t('移除授权失败'), getErrorMessage(error));
+  }
 }
 
 async function createSpace() {

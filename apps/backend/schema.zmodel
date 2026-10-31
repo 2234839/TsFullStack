@@ -88,6 +88,7 @@ model User with NotIdBase {
     oAuthAccount OAuthAccount[]
     /** 被授权管理的引流空间（多对多） */
     spaceOperators GroupSpaceOperator[]
+    channelMessages ChannelMessage[]
     word         Word[]
     /** 代币记录 */
     tokens Token[]
@@ -913,6 +914,7 @@ model ChannelMessage with Base {
 
     /** 关联账号（openid 已绑定时回填，方便直接看是谁） */
     userId String?
+    user User? @relation(fields: [userId], references: [id])
 
     /** 权限：管理员看全部；登录用户只能看自己（openid 已绑定到自己账号）的消息 */
     @@allow('read', auth() != null && userId == auth().id)

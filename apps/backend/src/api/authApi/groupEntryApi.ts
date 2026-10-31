@@ -5,6 +5,7 @@ import { ReqCtxService } from '../../Context/ReqCtx';
 import { extractErrorMessage } from '../../util/error';
 import { GroupEntryService, GROUP_QR_TTL_DAYS, MAX_QR_UPLOAD_BYTES } from '../../services/GroupEntryService';
 import { fail, tryOrFail } from '../../util/error';
+import { DbClientEffect } from '../../Context/DbService';
 
 /** 读取当前 RPC 请求中的 multipart 图片 */
 function readMultipartImage() {
@@ -103,6 +104,74 @@ export const groupEntryApi = {
     return Effect.gen(function* () {
       yield* requireAdmin();
       return yield* GroupEntryService.getStats(days);
+    });
+  },
+
+  /** 空间操作员列表（带账号信息；spaceId 为空查全部） */
+  listOperators(spaceId?: number) {
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      const db = yield* DbClientEffect;
+      return yield* tryOrFail('查询空间操作员', () =>
+        db.groupSpaceOperator.findMany({
+          where: spaceId ? { spaceId } : undefined,
+          include: {
+            space: { select: { name: true } },
+            user: { select: { email: true, nickname: true } },
+          },
+          orderBy: [{ spaceId: 'asc' }, { id: 'asc' }],
+        }),
+      );
+    });
+  },
+
+  /** 添加空间操作员（按邮箱定位账号） */
+  addOperator(email: string, spaceId: number) {
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      const db = yield* DbClientEffect;
+      const user = yield* tryOrFail('查询账号', () =>
+        db.user.findUnique({ where: { email: email.trim().toLowerCase() } }),
+      );
+      if (!user) return yield* fail(`账号不存在: ${email}`);
+      const space = yield* tryOrFail('查询空间', () => db.groupSpace.findUnique({ where: { id: spaceId } }));
+      if (!space) return yield* fail(`空间不存在: ${spaceId}`);
+      const existing = yield* tryOrFail('查询已有授权', () =>
+        db.groupSpaceOperator.findFirst({ where: { userId: user.id, spaceId } }),
+      );
+      if (existing) return yield* fail('该账号已被授权管理此空间');
+      const created = yield* tryOrFail('添加空间操作员', () =>
+        db.groupSpaceOperator.create({ data: { userId: user.id, spaceId } }),
+      );
+      const reqCtx = yield* ReqCtxService;
+      reqCtx.log(`[GroupEntryApi] 授权 ${email} 管理空间 ${space.name}`);
+      return { id: created.id };
+    });
+  },
+
+  /** 移除空间操作员授权 */
+  removeOperator(id: number) {
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      const db = yield* DbClientEffect;
+      yield* tryOrFail('移除空间操作员', () => db.groupSpaceOperator.deleteMany({ where: { id } }));
+      return { success: true as const };
+    });
+  },
+
+  /** 渠道消息列表（管理员看全部，倒序分页） */
+  listChannelMessages(limit: number, beforeId?: number) {
+    return Effect.gen(function* () {
+      yield* requireAdmin();
+      const db = yield* DbClientEffect;
+      return yield* tryOrFail('查询渠道消息', () =>
+        db.channelMessage.findMany({
+          where: beforeId ? { id: { lt: beforeId } } : undefined,
+          include: { user: { select: { email: true, nickname: true } } },
+          orderBy: { id: 'desc' },
+          take: Math.min(Math.max(limit, 1), 100),
+        }),
+      );
     });
   },
 };

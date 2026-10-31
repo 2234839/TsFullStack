@@ -102,6 +102,41 @@
         />
       </Card>
 
+      <!-- 公众号消息存档（仅自己） -->
+      <Card class="p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-lg font-semibold">{{ t('公众号消息') }}</h2>
+          <Button :label="t('刷新')" size="small" variant="secondary" :loading="msgLoading" @click="loadMyMessages" />
+        </div>
+        <p class="text-sm text-primary-500">
+          {{ t('绑定微信后在公众号发的消息和系统回复会存档在这里，仅自己可见。') }}
+        </p>
+        <div v-if="myMessages.length" class="divide-y divide-primary-100 dark:divide-primary-800">
+          <div v-for="msg in myMessages" :key="msg.id" class="flex items-start gap-2 py-2 text-sm">
+            <i
+              :class="[
+                'pi mt-1 text-xs',
+                msg.direction === 'IN' ? 'pi-arrow-down-left text-info-500' : 'pi-arrow-up-right text-success-500',
+              ]"
+            />
+            <div class="min-w-0 flex-1">
+              <span class="mr-2 text-xs text-primary-500">{{ new Date(msg.created).toLocaleString() }}</span>
+              <span class="break-all">{{ msg.content || (msg.mediaId ? t('[图片]') : '—') }}</span>
+            </div>
+          </div>
+          <div v-if="myMsgHasMore" class="pt-2 text-center">
+            <Button
+              :label="t('加载更多')"
+              size="small"
+              variant="text-button"
+              :loading="msgLoading"
+              @click="loadMoreMyMessages"
+            />
+          </div>
+        </div>
+        <p v-else class="text-sm text-primary-400">{{ msgLoading ? t('加载中...') : t('暂无消息') }}</p>
+      </Card>
+
       <div class="text-center">
         <Button :label="t('返回首页')" variant="secondary" text @click="routerUtil.push(routeMap.index, {})" />
       </div>
@@ -230,6 +265,35 @@ const methods = ref<Awaited<ReturnType<typeof API.accountApi.myLoginMethods>> | 
 
 /** 是否配置了微信公众号（决定是否显示绑定微信按钮） */
 const wechatConfigured = ref(false);
+
+/** 自己的公众号消息存档 */
+type MyChannelMessage = Awaited<ReturnType<typeof API.accountApi.myChannelMessages>>[number];
+const MY_MSG_PAGE_SIZE = 30;
+const myMessages = ref<MyChannelMessage[]>([]);
+const myMsgHasMore = ref(true);
+const msgLoading = ref(false);
+
+async function fetchMyMessages(beforeId?: number) {
+  msgLoading.value = true;
+  try {
+    const page = await API.accountApi.myChannelMessages(MY_MSG_PAGE_SIZE, beforeId);
+    myMessages.value = beforeId ? [...myMessages.value, ...page] : page;
+    myMsgHasMore.value = page.length === MY_MSG_PAGE_SIZE;
+  } catch (error: unknown) {
+    toast.error(t('加载公众号消息失败'), getErrorMessage(error));
+  } finally {
+    msgLoading.value = false;
+  }
+}
+
+async function loadMyMessages() {
+  await fetchMyMessages();
+}
+
+async function loadMoreMyMessages() {
+  const last = myMessages.value[myMessages.value.length - 1];
+  if (last) await fetchMyMessages(last.id);
+}
 
 /** 已配置的 OAuth 提供者列表（github/linuxdo） */
 const providers = ref<string[]>([]);
@@ -416,6 +480,7 @@ async function submitPwdSwitch() {
 onMounted(async () => {
   consumeMergeVerifyFromSession();
   await refreshMethods();
+  fetchMyMessages();
   try {
     const list = await AppAPI.oauthProviders();
     wechatConfigured.value = list.includes('wechat');

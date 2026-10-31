@@ -91,6 +91,14 @@ export const routeMap = reactive({
           icon: 'pi pi-qrcode',
         },
       },
+      channelMessages: {
+        path: 'channelMessages',
+        component: () => import('@/pages/admin/ChannelMessages.vue'),
+        meta: {
+          title: t('渠道消息'),
+          icon: 'pi pi-comments',
+        },
+      },
       aiModelManager: {
         path: 'aiModelManager',
         component: () => import('@/pages/admin/AiModelManager.vue'),
