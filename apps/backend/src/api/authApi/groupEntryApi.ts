@@ -125,15 +125,13 @@ export const groupEntryApi = {
     });
   },
 
-  /** 添加空间操作员（按邮箱定位账号） */
-  addOperator(email: string, spaceId: number) {
+  /** 添加空间操作员（按账号 ID，可见范围由前端用户选择器按权限过滤） */
+  addOperator(userId: string, spaceId: number) {
     return Effect.gen(function* () {
       yield* requireAdmin();
       const db = yield* DbClientEffect;
-      const user = yield* tryOrFail('查询账号', () =>
-        db.user.findUnique({ where: { email: email.trim().toLowerCase() } }),
-      );
-      if (!user) return yield* fail(`账号不存在: ${email}`);
+      const user = yield* tryOrFail('查询账号', () => db.user.findUnique({ where: { id: userId } }));
+      if (!user) return yield* fail(`账号不存在: ${userId}`);
       const space = yield* tryOrFail('查询空间', () => db.groupSpace.findUnique({ where: { id: spaceId } }));
       if (!space) return yield* fail(`空间不存在: ${spaceId}`);
       const existing = yield* tryOrFail('查询已有授权', () =>
@@ -144,7 +142,7 @@ export const groupEntryApi = {
         db.groupSpaceOperator.create({ data: { userId: user.id, spaceId } }),
       );
       const reqCtx = yield* ReqCtxService;
-      reqCtx.log(`[GroupEntryApi] 授权 ${email} 管理空间 ${space.name}`);
+      reqCtx.log(`[GroupEntryApi] 授权 ${user.email} 管理空间 ${space.name}`);
       return { id: created.id };
     });
   },

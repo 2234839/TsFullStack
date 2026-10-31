@@ -1,6 +1,6 @@
 # TODO
 
-> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 38 项待办。
+> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 36 项待办。
 
 ## 新增：[账号合并只迁登录关系，不做业务数据迁移](index.md)
 
@@ -48,51 +48,6 @@
 + - 多步会话：内存 Map<openid, {cmd, spaceName, expiresAt}>，5 分钟超时
 + - 图片消息处理：优先 media_id 走 media/get 下载，失败回退 PicUrl；走 cachedReply(openid:msgId) 幂等防微信 5s 重试重复入库
 + - 实现见 [wechat.ts](../../apps/backend/src/server/wechat.ts) 与 [WechatCommandService](../../apps/backend/src/services/WechatCommandService.ts)（实现后回填）
-```
-
-## 新增：[权限与身份](公众号消息指令.md)
-
-- 块 ID: `公众号消息指令.md#wechat-command-auth`
-
-```diff
-+ - 权限本质是「账号对引流空间的操作权」，与消息渠道无关：`GroupSpaceOperator`（userId×spaceId，@@unique），公众号只是当前唯一渠道
-+ - 用户已有账号（微信登录/绑定后 openid→OAuthAccount→userId），不需要额外绑定机制；未绑定/未授权发指令直接拒绝
-+ - zmodel 行级策略：管理员可增删查；用户只能读自己的授权记录
-```
-
-## 新增：[消息存档](公众号消息指令.md)
-
-- 块 ID: `公众号消息指令.md#wechat-command-archive`
-
-```diff
-+ - 新模型 `ChannelMessage`（channel/direction/msgType/peerId/content/mediaId/userId），收发全量留痕
-+ - 存档在 /wechat 回调 fire-and-forget，失败不影响回复；openid 绑定时回填 userId
-+ - 权限：管理员看全部消息，普通用户只能看自己的（@@allow('read', userId == auth().id)）
-+ - 消息列表已落地：管理页 [ChannelMessages.vue](../../apps/website-frontend/src/pages/admin/ChannelMessages.vue)（管理员全部），用户自查在 AccountSettings「公众号消息」区块（accountApi.myChannelMessages）
-```
-
-## 新增：[验收](公众号消息指令.md)
-
-- 块 ID: `公众号消息指令.md#wechat-command-accept`
-
-```diff
-+ - 未绑定用户发 `/帮助` 收到绑定引导
-+ - 已绑定授权用户 `/更新群码 <空间>` 后发图片，GroupQRCode 新增一条且公众号关键词立即出新码
-+ - 微信重试（同 msgId）不产生重复入库
-+ - 消息收发均可在 ChannelMessage 查到，普通用户只见自己的
-```
-
-## 新增：[实现](公众号消息指令.md)
-
-- 块 ID: `公众号消息指令.md#wechat-command-impl`
-
-```diff
-+ - 模型：`GroupSpaceOperator`、`ChannelMessage`（schema.zmodel + migrations/20261031120000_add_group_space_operator）
-+ - 指令服务：[WechatCommandService.ts](../../apps/backend/src/services/WechatCommandService.ts)（resolveOperator / handleTextCommand / handleImageMessage / archiveMessage）
-+ - 素材下载：[WechatService.ts](../../apps/backend/src/services/WechatService.ts) 的 downloadMediaImage；cachedReply 支持可空返回
-+ - 路由接线：[wechat.ts](../../apps/backend/src/server/wechat.ts)（口令 → 指令 → 关键词；图片消息待图会话消费；IN/OUT 存档）
-+ - 管理接口：[groupEntryApi.ts](../../apps/backend/src/api/authApi/groupEntryApi.ts) 的 listOperators/addOperator/removeOperator/listChannelMessages；操作员管理 UI 在 [GroupEntryManagement.vue](../../apps/website-frontend/src/pages/admin/GroupEntryManagement.vue)「空间操作员」区块，消息列表页路由 /admin/channelMessages
-+ - 待做：管理员数据合并能力（另条需求）
 ```
 
 ## 新增：[持续安全审计记录：每块是一个待修复的安全发现（只记录、不改代码）。按严重度排列，修复后逐块 `pact todo --done` 并回填实现链接。](安全审查.md)
@@ -277,7 +232,7 @@
 + OAuth state 已做一次性+过期校验，bind 意图还校验了 `initiatorUserId === 当前会话`（[github.ts](apps/backend/src/api/appApi/github.ts) 第 74-80 行，正确）。但：
 +
 + 1. **login 意图**：state 与发起浏览器无任何绑定（无 cookie 关联）。攻击者可自己走完授权前半程拿到 code+state，再诱导受害者浏览器提交这对 code+state 到 authenticate——受害者会在无感知下**登录为攻击者的账号**（login CSRF），后续往"自己"账号里输入的数据实际进了攻击者账号。
-+ 2. **merge 意图**：同样不记录发起者。被诱导者在登录态下完成渠道授权后，前端持有的 mergeTicket 对应攻击者的渠道身份；若前端确认页只展示"验证成功"而不明确展示渠道归属，被诱导者可能确认合并，把自己账号并给攻击者。
++ 2. **merge 意图**：同样不记录发起者。被诱导者在登录态下完成渠道授权后，前端持有的 mergeTicket 对应攻击者的渠道身份。前端证据：[AccountSettings.vue](apps/website-frontend/src/pages/account/AccountSettings.vue) 的 `consumeMergeVerifyFromSession` 在页面加载时**直接自动调用 `doMergeByTicket` 执行合并**（弹窗只是同时打开的提示，合并不等用户确认）——诱导链接一旦命中，合并即刻完成。
 +
 + 建议：发起 OAuth 时向浏览器种一个随机 nonce cookie，回调时校验 code+state+nonce 三者配对；merge 确认页强制展示被合并账号的渠道与身份信息。
 +
@@ -374,6 +329,42 @@
 + - 站内相对路径（含 `/admin` 等深链）登录后正常回跳
 ```
 
+## 新增：[「记住密码」把明文密码持久化到 localStorage，加密密钥是公开的前端静态常量](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.localstorage-credentials`
+
+```diff
++ [storage/index.ts](apps/website-frontend/src/storage/index.ts) 的 `localUserPwd` 在勾选 rememberMe 时把**用户名+密码原文**写入 localStorage（[login.vue](apps/website-frontend/src/pages/login.vue) 第 393-394 行、[AuthCard.vue](apps/website-frontend/src/components/common/AuthCard.vue) 第 156-157 行）。落盘前经过 [encryptSerializer.ts](apps/website-frontend/src/utils/encryptSerializer.ts) 的 AES-GCM 加密，但该文件自述已承认：密钥是构建期静态常量（`VITE_SECRET_KEY` 打进 bundle，全用户共用同一把；未配置时用默认值 `__default_frontend_key__`）。**密钥公开的加密 = 可逆混淆**，不构成机密性。
++
++ 后果：任何能读到 localStorage 的攻击者（XSS——与 [[sec.login-open-redirect]] 的 `javascript:` 链直接组合；共享电脑的下一个使用者；用户安装的任何浏览器扩展）可解密拿到用户**明文密码**。密码比会话 token（同存 localStorage，但有过期时间）严重得多：用户大概率在其他站点复用密码，且无法「过期」。
++
++ 建议：rememberMe 只记住用户名，不存密码（业界通行做法）；`authInfo`（token）留在 localStorage 属常见权衡，可在块内一并评估 HttpOnly cookie 方案。若保留现状，至少在登录页明确提示风险。
++
++ 严重度：中（依赖 XSS/本地访问前提，但后果是跨站密码泄露）。
++ ### 验收
++ - localStorage 中不再出现可解密的用户密码（记住密码功能移除或改为只记用户名）
++ - 登录页对保留的凭据存储方式有明确风险提示（如保留 token 存储）
+```
+
+## 新增：[加密分享的密码被写回 URL hash，泄露进浏览器历史与云同步](安全审查.md)
+
+- 块 ID: `安全审查.md#sec.share-password-in-history`
+
+```diff
++ [ShareEditor.vue](apps/website-frontend/src/pages/share/ShareEditor.vue) 第 310-313 行：用户手动输入密码解锁后，执行 `history.replaceState(null, '', pathname + '#k=<salt>&p=<password>')`，把**密码原文写进 URL hash**（注释自述"使分享链接/二维码自动包含密码"）。
++
++ hash 不随请求发给服务器、不进 Referrer ✓，端侧加密本体（[shareCrypto.ts](apps/website-frontend/src/utils/shareCrypto.ts)：PBKDF2 100k + AES-GCM + 随机 IV）实现正确 ✓。但写回 hash 后：
++
++ 1. **浏览器历史明文保存含密码的完整 URL**（历史记录包含 hash），共享电脑/他人借用时翻历史即可解密分享内容；
++ 2. **浏览器账号同步**（Chrome Sync / Firefox Sync）会把历史记录同步到用户全部设备——密码随之进入 Google/Mozilla 的云端；
++ 3. 「链接即钥匙」与「加密分享」的叙事冲突：用户看到"需要密码"会以为转发链接不泄露内容，实际复制链接即交出密码。若这是产品意图（便捷优先），至少应在 UI 明示"密码已包含在链接中"；若不是，应去掉自动写回，密码仅存 sessionStorage 供本次会话使用。
++
++ 严重度：中低（取决于分享内容的敏感度；机制上密码确实离开了「仅用户记忆」的位置）。
++ ### 验收
++ - 浏览器历史中不出现含密码的 URL（不自动写回 hash，或提供"不记住密码"的默认选项）
++ - 若保留链接即钥匙模式，分享 UI 明确告知密码包含在链接里
+```
+
 ## 新增：[其余备忘（暂不成块，持续观察）](安全审查.md)
 
 - 块 ID: `安全审查.md#sec.misc-notes`
@@ -392,6 +383,9 @@
 + - 微信回调签名比较 `sha1 === signature` 非恒定时间（[WechatService.ts](apps/backend/src/services/WechatService.ts)）：远程时序噪声下实际不可利用，改用 `timingSafeEqual` 属顺手加固。
 + - 支付 webhook 无重放保护（签名不含时间戳）：发货幂等（PAID 跳过）已挡住重复发货，风险低，记录备查。
 + - 第八轮（前端 XSS 面）结论：全仓 `v-html` 仅 [Img2Svg.vue](apps/website-frontend/src/components/Img2Svg.vue)（程序化生成，无外部输入 ✓）与 InfoFlow 的 [ExecutionDetails.vue](apps/InfoFlow/components/ExecutionDetails.vue) 两处；`window.open` 全带 noopener ✓。InfoFlow 观察备查：`host_permissions: ['<all_urls>']` + `tabs`/`activeTab` 是高权限组合（产品功能所需，采集任意网页）；content.ts 的 `new Function` 执行的 `method.code` 来自扩展自身规则存储（`browser.tabs.sendMessage` 仅扩展内部可发，无 externally_connectable），等同用户脚本管理器语义，非漏洞。但 ExecutionDetails.vue 用 `v-html` 渲染**采集到的外部网页 HTML 片段**（`el.outerHTML`），恶意网页可内嵌 `<img onerror>` 等载荷进入扩展 UI：MV3 默认 CSP（`script-src 'self'`）会挡住扩展页面里的内联执行，content script 侧即便执行也在页面自身 origin（页面本就对自己有权），实际可利用性低——属「防御纵深」项，建议改用文本化渲染。
++ - 第九轮（WechatService / GroupEntryService / shared-frontend utils / groupEntry 路由）结论：群码落地页 `escapeHtml` 覆盖全部插值 ✓、`resolveImagePath` 路径穿越防御 ✓、MIME 白名单+5MB 上限 ✓、管理路由统一 `guard`（x-admin-token，弱值禁用）✓；shared-frontend utils 无安全敏感面 ✓。备忘三条：① `verifyWechatSignature` 的 `sha1 === signature` 非恒定时间（前已记）；② `buildTextReplyXml`/`buildImageReplyXml` 的 toUser/fromUser/mediaId 直接进 CDATA 无 `]]>` 逃逸防护——来源是已验签的微信回调与服务端数据，可利用性≈0，但若未来接入未验签数据源需先补；③ WechatService 的伴生注册表 `replyCacheBuilders`/`mediaCacheKeys`（[WechatService.ts](apps/backend/src/services/WechatService.ts)）只增不减，Cache 有 capacity 但伴生 Map 无上限，长期运行无限 openid×msgId 组合会缓慢泄漏内存（可用性，非越权）。另 `GroupEntryService.recordStat` 公开埋点无防刷，pageUv 仅靠 cookie，脚本可污染统计数据（低）。
++ - 第十二轮（shareCrypto/dbQueue/infoQuality/useFileUrl）结论：shareCrypto 密码学实现正确（PBKDF2 100k + AES-GCM 随机 IV + getRandomValues ✓，见独立块 [[sec.share-password-in-history]] 的 hash 写回问题）；dbQueue 任务领取/完成/失败恢复全程校验 `workerId === instanceId` 防跨实例误操作 ✓；useFileUrl 干净 ✓。备忘两条：① `generateRandomPassword`（[shareCrypto.ts](apps/website-frontend/src/utils/shareCrypto.ts)）`charset[val % 62]` 有取模偏差（256 % 62 = 8，前 8 个字符概率高 ~1.6%），16 字符下熵仍 >94 bits，实际影响可忽略，改 rejection sampling 属顺手加固；② `evaluateInfoQuality`（[infoQuality.ts](apps/backend/src/api/AiApi/infoQuality.ts)）注册在需登录的 `/api` 层且**无任何限速**，登录用户可无限调用自托管 Ollama 消耗算力（与 [[sec.ai-proxy-no-cost]] 同类，`model` 参数仅进 JSON body 无 SSRF 面，5000 字符上限 ✓，prompt 注入防护尽力而为、后果仅判定翻转，均低）。
++ - 第十三轮（前端 utils / DataBaseStudio / webhook / wechat 路由收尾）结论：全干净。`searchUsers` 走 `API.db.user.findMany` 但 User read 策略是 `auth() == this`，非管理员只能查到自己 ✓；webhook 路由无额外逻辑（验签在 PaymentService 已审 ✓）；wechat 路由全流程验签前置 ✓，指令图片经 `downloadMediaImage` 下载后复用 `uploadQr`/`uploadOfficialQr` 入库，MIME 白名单（png/jpeg/webp，SVG 被拒）+ 5MB 上限生效 ✓——无「恶意 SVG 直出成同源 XSS」的路径；`getResourceUrl` 的 `metadata.externalUrl` 直出 URL 仅作 img src/下载地址使用，无 `<a href>` 注入点（低，留意未来用法）。后端 server 目录至此全部审完。
 + - 登录重定向发现见独立块 [[sec.login-open-redirect]]（第八轮主发现）。
 ```
 

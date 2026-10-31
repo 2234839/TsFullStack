@@ -126,24 +126,61 @@
             />
           </div>
           <div class="min-w-56 flex-1">
-            <label class="mb-1.5 block text-sm font-medium text-primary-title" for="operator-email">
-              {{ t('账号邮箱') }}
+            <label class="mb-1.5 block text-sm font-medium text-primary-title" for="operator-user">
+              {{ t('账号') }}
             </label>
-            <Input
-              id="operator-email"
-              v-model="operatorEmail"
-              class="w-full"
-              type="email"
-              :placeholder="t('被授权账号的登录邮箱')"
-              :disabled="addingOperator"
-            />
+            <Dropdown v-model="userPickerOpen" align="start" @open="openUserPicker">
+              <template #trigger>
+                <div
+                  class="flex h-[38px] w-full cursor-pointer items-center gap-2 rounded-md border border-primary-200 px-3 text-sm text-primary-title transition-colors hover:border-primary-400 dark:border-primary-800 dark:hover:border-primary-600"
+                >
+                  <template v-if="selectedUser">
+                    <span class="truncate">{{ selectedUser.nickname || selectedUser.email }}</span>
+                    <span class="truncate text-xs text-primary-theme">{{ selectedUser.email }}</span>
+                  </template>
+                  <span v-else class="text-primary-theme/70">{{ t('搜索并选择账号…') }}</span>
+                  <i class="pi pi-chevron-down ml-auto shrink-0 text-xs text-primary-theme" />
+                </div>
+              </template>
+              <div class="w-72">
+                <div class="border-b border-primary-100 p-2 dark:border-primary-900">
+                  <Input
+                    v-model="userSearchText"
+                    class="w-full"
+                    :placeholder="t('邮箱 / 昵称搜索')"
+                    @update:model-value="debounceSearchUsers"
+                  />
+                </div>
+                <div class="max-h-64 overflow-y-auto p-1">
+                  <div v-if="userSearchLoading" class="p-3 text-center text-sm text-primary-theme">
+                    <i class="pi pi-spin pi-spinner mr-1"></i>{{ t('搜索中…') }}
+                  </div>
+                  <div
+                    v-else
+                    v-for="user in userOptions"
+                    :key="user.id"
+                    class="cursor-pointer rounded-md px-3 py-2 text-sm transition-colors hover:bg-primary-100 dark:hover:bg-primary-900"
+                    @click="selectUser(user)"
+                  >
+                    <div class="truncate font-medium text-primary-title">{{ user.nickname || user.email }}</div>
+                    <div class="truncate text-xs text-primary-theme">{{ user.email }}</div>
+                  </div>
+                  <div
+                    v-if="!userSearchLoading && userOptions.length === 0"
+                    class="p-3 text-center text-sm text-primary-theme"
+                  >
+                    {{ t('未找到匹配账号') }}
+                  </div>
+                </div>
+              </div>
+            </Dropdown>
           </div>
           <Button
             type="submit"
             icon="pi pi-user-plus"
             :label="t('授权')"
             :loading="addingOperator"
-            :disabled="!operatorSpaceId || !operatorEmail.trim()"
+            :disabled="!operatorSpaceId || !selectedUser"
           />
         </form>
         <div v-if="operators.length" class="mt-5 overflow-x-auto">
@@ -221,7 +258,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
-import { Select } from '@tsfullstack/shared-frontend/components';
+import { Dropdown, Select } from '@tsfullstack/shared-frontend/components';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
@@ -240,8 +277,47 @@ const toast = useToast();
 const operators = shallowRef<OperatorItem[]>([]);
 const operatorsLoading = ref(false);
 const operatorSpaceId = ref<string | null>(null);
-const operatorEmail = ref('');
 const addingOperator = ref(false);
+/** 可搜索用户选择器：数据走 ZenStack db.user（策略层自动按当前权限过滤可见范围） */
+type UserOption = { id: string; email: string; nickname: string | null };
+const userPickerOpen = ref(false);
+const selectedUser = shallowRef<UserOption | null>(null);
+const userSearchText = ref('');
+const userOptions = shallowRef<UserOption[]>([]);
+const userSearchLoading = ref(false);
+let userSearchTimer: ReturnType<typeof setTimeout> | undefined;
+
+async function searchUsers() {
+  userSearchLoading.value = true;
+  try {
+    const kw = userSearchText.value.trim();
+    const where = kw ? { OR: [{ email: { contains: kw } }, { nickname: { contains: kw } }] } : undefined;
+    userOptions.value = await API.db.user.findMany({
+      where,
+      take: 20,
+      select: { id: true, email: true, nickname: true },
+      orderBy: { created: 'desc' },
+    });
+  } catch (error: unknown) {
+    toast.error(t('搜索账号失败'), getErrorMessage(error));
+  } finally {
+    userSearchLoading.value = false;
+  }
+}
+
+function debounceSearchUsers() {
+  clearTimeout(userSearchTimer);
+  userSearchTimer = setTimeout(searchUsers, 300);
+}
+
+function openUserPicker() {
+  if (userOptions.value.length === 0) searchUsers();
+}
+
+function selectUser(user: UserOption) {
+  selectedUser.value = user;
+  userPickerOpen.value = false;
+}
 const spaceOptions = computed(() =>
   spaces.value.map((space) => ({ label: space.displayName || space.name, value: String(space.id) })),
 );
@@ -326,11 +402,11 @@ async function loadOperators() {
 }
 
 async function addOperator() {
-  if (!operatorSpaceId.value || addingOperator.value) return;
+  if (!operatorSpaceId.value || !selectedUser.value || addingOperator.value) return;
   addingOperator.value = true;
   try {
-    await API.groupEntryApi.addOperator(operatorEmail.value.trim(), Number(operatorSpaceId.value));
-    operatorEmail.value = '';
+    await API.groupEntryApi.addOperator(selectedUser.value.id, Number(operatorSpaceId.value));
+    selectedUser.value = null;
     toast.success(t('已授权'));
     await loadOperators();
   } catch (error: unknown) {
