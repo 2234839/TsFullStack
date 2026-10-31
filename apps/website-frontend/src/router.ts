@@ -144,7 +144,7 @@ export const routeMap = reactive({
         component: () => import('@/pages/admin/UserSettings.vue'),
         meta: {
           title: t('个人设置'),
-          icon: 'pi pi-user-cog',
+          icon: 'pi pi-user-edit',
         },
       },
       paymentConfig: {

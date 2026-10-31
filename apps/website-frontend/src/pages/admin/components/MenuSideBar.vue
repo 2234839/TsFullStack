@@ -342,14 +342,6 @@ const menuItems = reactive([
         to: routerUtil.to(routeMap.admin.child.index, {}),
       },
       {
-        key: 'studio',
-        label: t('模型管理'),
-        icon: 'pi pi-th-large',
-        to: routerUtil.to(routeMap.admin.child.studio, {}),
-        badgeVariant: 'info',
-        expanded: false,
-      },
-      {
         key: 'UploadList',
         label: t('上传列表'),
         icon: 'pi pi-upload',
@@ -441,30 +433,11 @@ const menuItems = reactive([
           },
         ],
       },
-    ],
-  },
-  {
-    category: t('用户与权限'),
-    items: [
       {
-        key: 'users',
-        label: t('用户管理'),
-        icon: 'pi pi-users',
-        expanded: false,
-        items: [
-          {
-            key: 'user-list',
-            label: t('用户列表'),
-            icon: 'pi pi-list',
-            to: routerUtil.to(routeMap.admin.child.studio, {}, { hideSwitch: 'true', modelName: 'User' }),
-          },
-        ],
-      },
-      {
-        key: 'roles',
-        label: t('角色权限'),
-        icon: 'pi pi-shield',
-        to: routerUtil.to(routeMap.admin.child.studio, {}, { hideSwitch: 'true', modelName: 'Role' }),
+        key: 'studio',
+        label: t('数据工作室'),
+        icon: 'pi pi-database',
+        to: routerUtil.to(routeMap.admin.child.studio, {}),
       },
     ],
   },
