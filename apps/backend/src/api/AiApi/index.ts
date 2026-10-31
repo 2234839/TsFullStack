@@ -37,6 +37,8 @@ export interface CreateAIModelRequest {
   rphLimit?: number;
   rpdLimit?: number;
   description?: string;
+  /** 登录用户免费可用标注：true 才可通过免费代理接口调用 */
+  freeForLoginUser?: boolean;
 }
 
 /** 更新AI模型请求 */
@@ -54,6 +56,8 @@ export interface UpdateAIModelRequest {
   rphLimit?: number;
   rpdLimit?: number;
   description?: string;
+  /** 登录用户免费可用标注：true 才可通过免费代理接口调用 */
+  freeForLoginUser?: boolean;
 }
 
 export const aiApi = {
@@ -90,6 +94,7 @@ export const aiApi = {
           rphLimit: true,
           rpdLimit: true,
           description: true,
+          freeForLoginUser: true,
           config: true,
           created: true,
           updated: true,
@@ -114,6 +119,7 @@ export const aiApi = {
           rphLimit: request.rphLimit ?? DEFAULT_AI_CONFIG.rphLimit,
           rpdLimit: request.rpdLimit ?? DEFAULT_AI_CONFIG.rpdLimit,
           description: request.description,
+          freeForLoginUser: request.freeForLoginUser ?? false,
         },
       }),
     ),
@@ -136,6 +142,7 @@ export const aiApi = {
           ...(request.rphLimit !== undefined && { rphLimit: request.rphLimit }),
           ...(request.rpdLimit !== undefined && { rpdLimit: request.rpdLimit }),
           ...(request.description !== undefined && { description: request.description }),
+          ...(request.freeForLoginUser !== undefined && { freeForLoginUser: request.freeForLoginUser }),
         },
       }),
     ),

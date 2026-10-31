@@ -86,4 +86,6 @@ export interface AIModel {
   rphLimit: number;
   rpdLimit: number;
   description?: string;
+  /** 登录用户免费可用标注：true 才可通过免费代理接口调用 */
+  freeForLoginUser: boolean;
 }

@@ -145,6 +145,8 @@ interface AiModelVO {
   provider?: string | null;
   baseUrl?: string | null;
   enabled?: boolean | null;
+  /** 登录用户免费可用标注：true 才可通过免费 AI 代理接口调用 */
+  freeForLoginUser?: boolean | null;
   weight?: number | null;
   maxTokens?: number | null;
   temperature?: number | null;
@@ -251,6 +253,17 @@ const aiModelColumns = computed(() => [
       h(Badge, {
         value: row.enabled ? t('启用') : t('禁用'),
         variant: row.enabled ? 'success' : 'danger',
+        size: 'small',
+      }),
+  },
+  {
+    key: 'freeForLoginUser',
+    title: t('免费代理'),
+    width: '100px',
+    render: (row: AiModelVO) =>
+      h(Badge, {
+        value: row.freeForLoginUser ? t('开放') : t('关闭'),
+        variant: row.freeForLoginUser ? 'success' : 'secondary',
         size: 'small',
       }),
   },

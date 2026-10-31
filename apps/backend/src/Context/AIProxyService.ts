@@ -49,6 +49,8 @@ const modelsCache = Effect.runSync(
               rpmLimit: model.rpmLimit,
               rphLimit: model.rphLimit,
               rpdLimit: model.rpdLimit,
+              /** 登录用户免费可用标注：免费代理只在此标注的模型中选 */
+              freeForLoginUser: model.freeForLoginUser,
             })),
         ),
       ),
@@ -246,8 +248,8 @@ class AIProxyServiceUtils {
       const auth = yield* AuthContext;
       const currentUserId = auth.user?.id ?? null;
 
-      // 获取可用模型
-      const availableModels = yield* AIProxyServiceUtils.getAvailableModels();
+      // 获取可用模型：只允许后台标注为「登录用户免费可用」的模型走免费代理，未标注的一律拒绝
+      const availableModels = (yield* AIProxyServiceUtils.getAvailableModels()).filter((m) => m.freeForLoginUser);
       if (availableModels.length === 0) {
         return yield* fail(MSG.NO_AI_MODEL_AVAILABLE);
       }

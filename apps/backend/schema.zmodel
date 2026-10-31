@@ -497,6 +497,8 @@ model AiModel with Base {
     rpdLimit    Int     @default(10000)
     /// 描述信息
     description String?
+    /// 登录用户免费可用：为 true 时才允许通过 AI 代理接口（proxyOpenAI）调用；未标注的模型不对免费代理开放
+    freeForLoginUser Boolean @default(false)
     /// 模型配置（JSON存储，用于存储不同类型模型的特定配置）
     config      Json?
     /// 软删除墓碑时间（null=未删除）；delete 被改写为设置此字段，读取自动过滤

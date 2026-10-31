@@ -140,6 +140,15 @@
           </label>
         </div>
       </div>
+
+      <div class="field">
+        <div class="flex items-center">
+          <Checkbox v-model="form.freeForLoginUser" />
+          <label for="freeForLoginUser" class="ml-2 text-sm font-medium text-primary-label">
+            {{ t('登录用户免费可用（允许通过 AI 代理接口调用）') }}
+          </label>
+        </div>
+      </div>
     </div>
 
     <template #footer>
@@ -175,6 +184,8 @@ interface AiModelData {
   rpdLimit?: number | null;
   description?: string | null;
   enabled?: boolean | null;
+  /** 登录用户免费可用标注：true 才可通过免费 AI 代理接口调用 */
+  freeForLoginUser?: boolean | null;
   [key: string]: unknown;
 }
 
@@ -223,6 +234,7 @@ const form = reactive({
   ...DEFAULT_MODEL_FORM,
   description: '',
   enabled: true,
+  freeForLoginUser: false,
 });
 
 /** 错误信息 */
@@ -269,6 +281,8 @@ const resetForm = () => {
     apiKey: '',
     ...DEFAULT_MODEL_FORM,
     description: '',
+    enabled: true,
+    freeForLoginUser: false,
   });
 
   Object.assign(errors, {
@@ -339,6 +353,7 @@ watch(
         rpdLimit: currentModel.rpdLimit ?? DEFAULT_MODEL_FORM.rpdLimit,
         description: currentModel.description || '',
         enabled: currentModel.enabled ?? true,
+        freeForLoginUser: currentModel.freeForLoginUser ?? false,
       });
     } else if (isVisible) {
       // 添加模式（对话框打开但无 model）
