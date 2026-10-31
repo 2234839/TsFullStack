@@ -14,6 +14,7 @@ import { AppConfigService } from '../Context/AppConfig';
 import { systemLog, insertBehaviorLog } from '../Context/SystemLog';
 import { insertDiagTrace, snapshotDriverTimings } from '../Context/DbService';
 import { ConfigLive } from '../Context/AppLive';
+import { LocalKVStoreLive } from '../Context/KVStore';
 import { maxLoopLagBetween, lagSamplesBetween, startLoopLagMonitor } from '../util/LoopLagMonitor';
 import { buildSpanTree, makeSpanCollector, type SpanCollector } from '../util/EffectSpanCollector';
 import { GithubAuthLive } from '../OAuth/github';
@@ -473,6 +474,8 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: 
     A:要注意 unReqLayer 解决的是 unReqLayer 这个声明中的层依赖 ReqCtxService 的问题，但是并没有给 program 提供 ReqCtxService，所以这里主要就是给 program 提供
       理论上就可以不要使用 unReqLayer 了,但为了代码逻辑清晰还是使用 unReqLayer
     */ reqLayer,
+    /** 安全状态 KV 接口层（单实例内存实现，多实例时换 RedisKVStore） */
+    LocalKVStoreLive,
     Layer.succeed(Tracer.Tracer, spanCollector.tracer),
   ]);
 

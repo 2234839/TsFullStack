@@ -5,6 +5,7 @@ import { AIProxyService, AIProxyServiceLive } from './AIProxyService';
 import { AppConfigService } from './AppConfig';
 import { PaymentConfigService } from './PaymentConfig';
 import { PricingConfigLive } from './PricingConfig';
+import { LocalKVStoreLive } from './KVStore';
 
 /** 配置层：从 config.json 加载并注入 AppConfigService */
 export const ConfigLive = Layer.effect(AppConfigService, loadAppConfig);
@@ -29,4 +30,6 @@ export const AppLive = Layer.mergeAll(
   AIConfigLive,
   AIProxyLive,
   PricingConfigLive,
+  /** 安全状态 KV 接口层（当前单实例内存实现，切多实例换 RedisKVStore） */
+  LocalKVStoreLive,
 );

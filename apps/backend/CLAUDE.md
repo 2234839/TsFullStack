@@ -37,7 +37,7 @@ vp run tsc:b     # 类型检查,修改代码后可自行按需运行此命令检
 
 现状是单实例 + SQLite，但**禁止再引入新的「跨请求安全状态放进程内存」的写法**，否则未来无法切多实例：
 
-- **进程内存只允许两类**：① 纯性能缓存（失效可接受最终一致，如 authCache/modelsCache）；② 进程内诊断（LoopLagMonitor/diag）。**安全状态（限速计数、封禁标记、一次性票据、OAuth state、防重放表）一律走 DB 或统一的分布式 KV 接口层**（规划中，接口见 doc/多实例演进分析.md），不允许直接 `new Map` / 裸 `Cache.make` 存安全语义数据
+- **进程内存只允许两类**：① 纯性能缓存（失效可接受最终一致，如 authCache/modelsCache）；② 进程内诊断（LoopLagMonitor/diag）。**安全状态（限速计数、封禁标记、一次性票据、OAuth state、防重放表）一律走 `src/Context/KVStore.ts` 接口层**（已建：`KVStore` Tag + `LocalKVStoreLive` 单实例内存实现，切多实例换 RedisKVStore 即可），或直接落 DB（参考 AiCallLog）。**禁止**对安全语义数据直接 `new Map` / 裸 `Cache.make`
 - 新增限速/封禁/一次性凭证时：优先落 DB（参考 AiCallLog 的做法），或走 KV 接口层；写注释标注「单实例内存态」或「多实例安全」
 - 失效广播：任何 `invalidateXxxCache` 类操作只影响本实例——设计上凡是「撤销需即时生效」的场景（登出、禁用），数据源必须可查 DB 兜底，不能只依赖内存缓存清除
 - **数据库层不在多实例改造范围**（gs 拍板 2026-10-31）：切多实例时换非嵌入式数据库或做代理收敛到单台 DB 服务器，一致性由基础设施解决，ZenStack/Prisma 查询代码无需为此改动；uploads 本地存储同理由部署层解决
