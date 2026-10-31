@@ -1,9 +1,4 @@
 import { defineConfig } from 'vite-plus';
-import { execSync } from 'child_process';
-
-/** 构建 commit hash（构建时注入，用于线上版本追踪） */
-const GIT_COMMIT = execSync('git rev-parse --short HEAD').toString().trim();
-const BUILD_TIME = new Date().toISOString();
 
 /**
  * backend 构建配置（vp pack 读取）
@@ -20,10 +15,6 @@ export default defineConfig({
       format: ['esm'],
       sourcemap: true,
       clean: true,
-      define: {
-        __GIT_COMMIT__: JSON.stringify(GIT_COMMIT),
-        __BUILD_TIME__: JSON.stringify(BUILD_TIME),
-      },
       deps: {
         alwaysBundle: ['@tsfullstack/note-calc-engine'],
         neverBundle: [

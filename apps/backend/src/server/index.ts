@@ -54,8 +54,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOG_PREFIX = '[Server]';
 
 /** 构建时由 vite define 注入的版本信息 */
-declare const __GIT_COMMIT__: string;
-declare const __BUILD_TIME__: string;
+import { GIT_COMMIT, BUILD_TIME } from '../generated/version';
 
 /** 每个 CPU 核心分配的请求并发数 */
 const REQUESTS_PER_CPU_CORE = 10;
@@ -793,8 +792,8 @@ export const startServer = Effect.gen(function* () {
 
   /** 版本信息端点（无需认证，用于验证线上部署版本） */
   fastify.get('/version', () => ({
-    commit: typeof __GIT_COMMIT__ !== 'undefined' ? __GIT_COMMIT__ : 'unknown',
-    buildTime: typeof __BUILD_TIME__ !== 'undefined' ? __BUILD_TIME__ : 'unknown',
+    commit: GIT_COMMIT,
+    buildTime: BUILD_TIME,
   }));
 
   /** 注册支付 Webhook 回调路由（不走 RPC 系统，由第三方平台直接调用） */

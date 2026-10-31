@@ -14,7 +14,7 @@
     "prebuild": "zenstack generate",
     "predev": "zenstack generate",
     "zenstack:generate": "zenstack generate",
-    "build": "vp pack",
+    "build": "node scripts/write-version.mjs && vp pack",
     "build:publish": "pnpm build && pnpm --filter website-frontend build && pnpm publish:server",
     "publish:server": "bash ./publish.sh",
     "tsc:b": "tsc -b",
