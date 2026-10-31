@@ -141,15 +141,9 @@ async function parseParams(req: FastifyRequest): Promise<unknown[]> {
     }
     return [undefined, ...parsed];
   } else if (req.method === 'GET') {
-    const query = req.query as {
-      args?: string;
-      sign?: string;
-      session?: string;
-      /** 签名过期时间戳（参与签名运算） */
-      e?: string;
-    };
-    if (!query.args) return [];
-    const parsed = superjson.parse(query.args) as unknown;
+    const args = rawQueryArg(req, 'args');
+    if (!args) return [];
+    const parsed = superjson.parse(args) as unknown;
     if (!Array.isArray(parsed)) {
       throw MsgError.msg(MSG.PARAM_FORMAT_ERROR);
     }
@@ -157,6 +151,18 @@ async function parseParams(req: FastifyRequest): Promise<unknown[]> {
   } else {
     throw MsgError.msg(`Unknown content type: ${contentType}`);
   }
+}
+
+/**
+ * 从原始 URL 提取解码后的单个 query 参数。
+ * fastify 默认 query parser（fast-querystring）会把 `{"json":...}` 形态的
+ * superjson 串解析成嵌套对象，导致签名原文与 superjson.parse 拿不到原始字符串；
+ * URLSearchParams 只做 URL 解码不做结构化解析，保持字符串原样。
+ */
+function rawQueryArg(req: FastifyRequest, name: string): string | undefined {
+  const qs = req.url.split('?')[1];
+  if (!qs) return undefined;
+  return new URLSearchParams(qs).get(name) ?? undefined;
 }
 /** 解析参数并通过参数获取鉴权对象 */
 function parseParamsAndAuth(req: FastifyRequest, pathPrefix: string) {
@@ -203,7 +209,7 @@ function parseParamsAndAuth(req: FastifyRequest, pathPrefix: string) {
        * 前端签名的 path 是裸方法名（如 fileApi.file），提取方式与 POST 分支同构（slice pathPrefix）。
        */
       const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
-      const origin = buildGetSignOrigin(method, query.args ?? '', expiresAt);
+      const origin = buildGetSignOrigin(method, rawQueryArg(req, 'args') ?? '', expiresAt);
       const verify = yield* Effect.try({
         try: () => verifySignByToken(origin, session.token, query.sign ?? ''),
         catch: (e) => MsgError.msg(`签名验证失败: ${extractErrorMessage(e)}`),
