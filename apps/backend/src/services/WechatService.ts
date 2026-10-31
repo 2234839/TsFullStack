@@ -70,7 +70,7 @@ const mediaCacheKeys = new Map<string, { appId: string; absPath: string; mime: s
 
 /** 微信回复消息去重缓存：key = `${fromUser}:${msgId}`（微信 5s 超时重试 3 次窗口内复用同一回复） */
 const replyCache = Effect.runSync(
-  Cache.make<string, string, never, never, never>({
+  Cache.make<string, string | null, never, never, never>({
     capacity: 1000,
     timeToLive: Duration.millis(REPLY_CACHE_TTL_MS),
     lookup: (key) => {
@@ -81,7 +81,7 @@ const replyCache = Effect.runSync(
   }),
 );
 /** cacheKey → 回复构造器 的伴生注册表（Cache lookup 无额外入参） */
-const replyCacheBuilders = new Map<string, () => string | Promise<string>>();
+const replyCacheBuilders = new Map<string, () => string | null | Promise<string | null>>();
 
 /** 微信公众号回调配置 */
 type WechatConfig = NonNullable<AppConfig['wechat']>;
@@ -215,10 +215,34 @@ function uploadTempImageUncached(entry: {
 }
 
 /**
+ * 从微信下载临时素材原图（media/get），用于指令上传图片（群码/公众号码）。
+ * 微信正常时返回图片二进制；出错时返回 JSON（errcode/errmsg），按 content-type 区分
+ */
+export async function downloadMediaImage(
+  config: WechatConfig,
+  mediaId: string,
+): Promise<{ buffer: Buffer; mime: string }> {
+  const token = await getAccessToken(config);
+  const res = await fetch(
+    `https://api.weixin.qq.com/cgi-bin/media/get?access_token=${token}&media_id=${encodeURIComponent(mediaId)}`,
+    withFetchTimeout({}, FETCH_TIMEOUTS.payment),
+  );
+  if (!res.ok) throw new WechatApiError(`下载素材 HTTP ${res.status}`, -1);
+  const contentType = res.headers.get('content-type') ?? '';
+  if (contentType.includes('json') || contentType.includes('text')) {
+    const body = (await res.json().catch(() => ({}))) as { errcode?: number; errmsg?: string };
+    throw new WechatApiError(`下载素材失败: ${body.errcode ?? '?'} ${body.errmsg ?? ''}`, body.errcode ?? -1);
+  }
+  const buffer = Buffer.from(await res.arrayBuffer());
+  if (buffer.length === 0) throw new WechatApiError('下载素材为空', -1);
+  return { buffer, mime: contentType.split(';')[0]?.trim() || 'image/jpeg' };
+}
+
+/**
  * 取（或重建）某条用户消息的回复：微信 5 秒超时会重试 3 次，相同 msgId 直接复用上次结果。
  * Cache 并发单飞保证重试不会触发多次 build
  */
-export function cachedReply(key: string, build: () => string | Promise<string>): Promise<string> {
+export function cachedReply(key: string, build: () => string | null | Promise<string | null>): Promise<string | null> {
   replyCacheBuilders.set(key, build);
   return Effect.runPromise(Cache.get(replyCache, key));
 }

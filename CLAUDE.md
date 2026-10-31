@@ -4,35 +4,31 @@ TsFullStack 是一个 TypeScript 全栈框架，支持前端直接操作数据�
 
 ### 核心技术栈
 
-- **后端**: TypeScript + ZenStack(类似Prisma) + Effect + Fastify
-- **前端**: TypeScript + Vue 3 + Tailwind CSS + reka-ui（自定义组件库）+ @vueuse/core (多多使用use来简化vue中的逻辑)
-- **浏览器扩展**: WXT + Vue 3 + Tailwind CSS
+后端: ts + ZenStack + Effect
+前端: ts + Vue 3 + Tailwind CSS + reka-ui+ @vueuse/core (多多使用use来简化vue中的逻辑)
+浏览器扩展: WXT + Vue 3 + Tailwind CSS
 
 ### 开发工作流
 
-> **本项目使用 Vite+ (`vp`) 作为统一工具链**，所有依赖安装、脚本运行、lint/format/type-check 均使用 `vp` 命令，禁止直接使用 pnpm。详见 `AGENTS.md`。
+> **本项目使用 Vite+ (`vp`) 作为统一工具链**，所有依赖安装、脚本运行、lint/format/type-check 均使用 `vp` 命令，禁止直接使用 pnpm
 
 ```bash
 # 后端开发,需要在 apps/backend/ 目录下执行
 vp run build:lib          # 构建后端api接口包供前端掉用
 vp run dev                # 启动开发服务器
-
 # 编译构建tsfullstack网站和后端并发布到服务器
 vp run --filter @tsfullstack/backend build:publish
-
 # 发布成功后打 tag 并推送
 git tag vX.X.X && git push origin main --tags
-
 # 前端开发 (apps/website-frontend/)
 vp run build              # 构建生产版本
 vp run tsc                # 类型检查
-
 # 浏览器扩展 (apps/InfoFlow/)
 vp run dev                # 启动开发服务器
 vp run build              # 构建扩展
 ```
 
-### [Shared Frontend Package](packages/shared-frontend)
+### [](packages/shared-frontend)
 
 这个子包提供在多个前端模块间共享的工具和组件
 
@@ -53,17 +49,7 @@ vp run build              # 构建扩展
 
 ### 重要说明
 
-**后端 Effect v4 编码约束（防止造轮子回潮）**
-
-后端以 Effect v4 为运行时标准，写新代码时禁止再手写 Effect 已有的原语。提交前自查：
-
-1. **内存缓存/TTL/并发单飞** → 用 `Cache.make`（`Effect.runSync` 创建，`requireServicesAt: 'lookup'` 延迟依赖）。禁止手写 `Map + expiresAt 时间戳` 缓存、禁止 setInterval 清理循环、禁止 destroy 簿记
-2. **定时任务** → 用 `Effect.repeat(Schedule.spaced/fixed)` + Fiber，禁止业务 `setInterval`；优雅关闭用 `Fiber.interruptAll`
-3. **错误** → 业务错误用 `Data.TaggedError` 家族（`util/error.ts` 的 MsgError/LogoutError/ToLoginError），E 通道收窄；禁止吞错（`Effect.ignore` 至少换 `Effect.catch` 记日志）
-4. **异步流程** → 用 `Effect.gen`，禁止 `.pipe(Effect.andThen)` 老风格；fire-and-forget 用 `Effect.runFork` 且在调用方 provide
-5. **出站 fetch+json** → 统一走 `util/fetchJson.ts` 的 `fetchJsonOrThrow`（网络/HTTP/JSON 三类错误拆分），且必须带 `withFetchTimeout` 超时信号；禁止裸 `await fetch().then(r => r.json())`
-6. **配置常量** → 可变业务参数（价格/限额等）进 Context Tag + Layer（参考 `Context/PricingConfig.ts`），不硬编码
-7. **例外白名单**（这些场景保留手写实现，不要强行 Effect 化）：一次性消费语义的 Map（如 oauthStates 读到即删）、需原地递增的计数器（如 rateLimit）、静态注册表（如 adapterMap）
+后端以 Effect v4 为运行时标准，写新代码时禁止再手写 Effect 已有的原语。提交前自查
 
 **数据库管理**
 

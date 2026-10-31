@@ -86,6 +86,8 @@ model User with NotIdBase {
     @@deny('post-update', auth().role?[name != 'admin'] && role?[name == 'admin'])
     userData     UserData[]
     oAuthAccount OAuthAccount[]
+    /** 被授权管理的引流空间（多对多） */
+    spaceOperators GroupSpaceOperator[]
     word         Word[]
     /** 代币记录 */
     tokens Token[]
@@ -870,9 +872,72 @@ model GroupSpace with Base {
     /** 公众号二维码图片相对路径（相对 uploadDir；空 = 未上传，回退 config.json 的 URL） */
     officialQrImagePath String?
 
+    /** 被授权管理该空间的操作员 */
+    operators GroupSpaceOperator[]
+
     qrcodes GroupQRCode[]
 
     @@index([sortOrder])
+}
+
+/// 消息渠道枚举（存档用，与口令通道独立；目前只有微信公众号）
+enum MessageChannel {
+    WECHAT_OFFICIAL
+}
+
+/// 消息方向：IN 用户发来 / OUT 系统回复
+enum MessageDirection {
+    IN
+    OUT
+}
+
+/// 渠道消息存档：公众号等消息渠道的收发全量留痕（管理页可查，指令操作审计的依据）
+model ChannelMessage with Base {
+    /** 渠道 */
+    channel MessageChannel
+
+    /** 方向 */
+    direction MessageDirection
+
+    /** 消息类型（text/image/event…） */
+    msgType String
+
+    /** 对端渠道身份（公众号=用户 openid） */
+    peerId String
+
+    /** 文本内容（指令原文也在这里；图片消息为空） */
+    content String?
+
+    /** 图片素材 ID（图片消息用） */
+    mediaId String?
+
+    /** 关联账号（openid 已绑定时回填，方便直接看是谁） */
+    userId String?
+
+    /** 权限：管理员看全部；登录用户只能看自己（openid 已绑定到自己账号）的消息 */
+    @@allow('read', auth() != null && userId == auth().id)
+
+    @@index([channel, peerId, created])
+    @@index([channel, created])
+}
+
+/// 空间操作员：授权某账号管理某引流空间（群码/公众号码上传与轮换）。
+/// 权限粒度是「账号×空间」，与消息渠道无关；公众号指令只是目前唯一的消息渠道，
+/// 鉴权链：渠道身份（openid）→ OAuthAccount → userId → 本表校验其对该空间的操作权
+model GroupSpaceOperator with Base {
+    /** 被授权的账号 */
+    userId String
+    user User @relation(fields: [userId], references: [id])
+
+    /** 可管理的空间 */
+    spaceId Int
+    space GroupSpace @relation(fields: [spaceId], references: [id])
+
+    /** 同一账号对同一空间只授权一次 */
+    @@unique([userId, spaceId])
+
+    /** 权限：管理员可增删查；用户只能看自己的授权（写入/撤销只能管理员） */
+    @@allow('read', auth() != null && userId == auth().id)
 }
 
 /// 微信群二维码（私域引流）

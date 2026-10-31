@@ -8,11 +8,13 @@ import {
   buildImageReplyXml,
   buildTextReplyXml,
   cachedReply,
+  downloadMediaImage,
   parseWechatMessage,
   uploadTempImage,
   verifyWechatSignature,
   wechatLog,
 } from '../services/WechatService';
+import { archiveMessage, handleImageMessage, handleTextCommand } from '../services/WechatCommandService';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[Wechat]';
@@ -76,6 +78,16 @@ async function handleTextMessage(
   return buildTextReplyXml(toUser, fromUser, text);
 }
 
+/** fire-and-forget：消息存档失败不影响回复（DbClientEffect 由 AppConfigService 派生） */
+function forkArchive(program: Effect.Effect<void, Error, AppConfigService>, appConfig: AppConfig): void {
+  Effect.runFork(
+    program.pipe(
+      Effect.provideService(AppConfigService, appConfig),
+      Effect.catch((e) => Effect.logWarning(`${LOG_PREFIX} 消息存档失败（忽略）: ${extractErrorMessage(e)}`)),
+    ),
+  );
+}
+
 /**
  * 注册微信公众号服务器路由（明文兼容模式）：
  * - GET /wechat  服务器配置验证（echostr 回显）
@@ -124,9 +136,24 @@ export function registerWechatRoutes(fastify: FastifyInstance, appConfig: AppCon
     const fromUser = msg.ToUserName ?? '';
     wechatLog(`收到消息 from=${toUser} type=${msg.MsgType} content=${msg.Content ?? ''}`);
 
+    /** 入站消息全量存档（含事件，fire-and-forget） */
+    if (toUser) {
+      forkArchive(
+        archiveMessage({
+          channel: 'WECHAT_OFFICIAL',
+          direction: 'IN',
+          msgType: msg.MsgType ?? 'unknown',
+          peerId: toUser,
+          content: msg.Content ?? undefined,
+          mediaId: msg.MediaId ?? undefined,
+        }),
+        appConfig,
+      );
+    }
+
     if (msg.MsgType === 'text' && msg.Content && msg.MsgId) {
       const content = msg.Content;
-      /** 口令验证优先于关键词出码：命中则回填 openid 并提示回网页完成操作 */
+      /** 口令验证优先于指令与关键词出码：命中则回填 openid 并提示回网页完成操作 */
       const passcodeVerified = await runEffect(
         PasscodeService.verify('WECHAT_OFFICIAL', content.trim(), toUser),
         appConfig,
@@ -134,8 +161,34 @@ export function registerWechatRoutes(fastify: FastifyInstance, appConfig: AppCon
       );
       if (passcodeVerified) {
         wechatLog(`口令验证成功 openid=${toUser.slice(0, 8)}***`);
-        const xml = buildTextReplyXml(toUser, fromUser, '✅ 验证成功！请回到网页继续操作');
-        reply.type('application/xml').send(xml);
+        const replyText = '✅ 验证成功！请回到网页继续操作';
+        forkArchive(
+          archiveMessage({
+            channel: 'WECHAT_OFFICIAL',
+            direction: 'OUT',
+            msgType: 'text',
+            peerId: toUser,
+            content: replyText,
+          }),
+          appConfig,
+        );
+        reply.type('application/xml').send(buildTextReplyXml(toUser, fromUser, replyText));
+        return;
+      }
+      /** `/` 前缀指令次优先；非指令（null）继续走关键词出码 */
+      const commandReply = await runEffect(handleTextCommand(toUser, content), appConfig, null);
+      if (commandReply !== null) {
+        forkArchive(
+          archiveMessage({
+            channel: 'WECHAT_OFFICIAL',
+            direction: 'OUT',
+            msgType: 'text',
+            peerId: toUser,
+            content: commandReply,
+          }),
+          appConfig,
+        );
+        reply.type('application/xml').send(buildTextReplyXml(toUser, fromUser, commandReply));
         return;
       }
       const xml = await cachedReply(`${toUser}:${msg.MsgId}`, () =>
@@ -144,6 +197,38 @@ export function registerWechatRoutes(fastify: FastifyInstance, appConfig: AppCon
       reply.type('application/xml').send(xml);
       return;
     }
+
+    /** 图片消息：有待图会话的操作员上传（群码/公众号码），否则不回复 */
+    if (msg.MsgType === 'image' && msg.MediaId && msg.MsgId) {
+      const mediaId = msg.MediaId;
+      const imageReplyText = await cachedReply(`cmd-image:${toUser}:${msg.MsgId}`, () =>
+        (async () => {
+          const result = await runEffect(
+            handleImageMessage(toUser, () => downloadMediaImage(config, mediaId)),
+            appConfig,
+            null,
+          );
+          return result;
+        })(),
+      );
+      if (imageReplyText !== null) {
+        forkArchive(
+          archiveMessage({
+            channel: 'WECHAT_OFFICIAL',
+            direction: 'OUT',
+            msgType: 'text',
+            peerId: toUser,
+            content: imageReplyText,
+          }),
+          appConfig,
+        );
+        reply.type('application/xml').send(buildTextReplyXml(toUser, fromUser, imageReplyText));
+        return;
+      }
+      reply.type('text/plain').send('success');
+      return;
+    }
+
     // 事件：subscribe 关注回复引导
     if (msg.MsgType === 'event' && msg.Event === 'subscribe') {
       const keyword = appConfig.groupEntry?.replyKeyword || '加群';
