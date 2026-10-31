@@ -109,6 +109,9 @@ export const authApi = {
           }),
         null,
       );
+      if (user?.passwordLoginDisabled) {
+        return yield* fail('该账号用户已禁用密码登录，请使用绑定的第三方渠道登录');
+      }
       if (!user || !(yield* comparePassword(password, user.password))) {
         /** 仅对失败账号递增延迟，正常用户零等待 */
         const delayMs = yield* loginFailDelay(email);
@@ -121,6 +124,46 @@ export const authApi = {
       ctx.log(LOG_PREFIX, 'user login', user.id);
       const { password: _password, ...userWithoutPassword } = user;
       return { ...userSession, user: userWithoutPassword };
+    });
+  },
+  /**
+   * 仅验证邮箱密码凭据，不创建会话。
+   * 供登录卡片「验证模式」等敏感操作前的身份确认复用（如账号合并验证目标账号所有权）。
+   * 防爆破策略与 loginByEmailPwd 一致：失败递增延迟，成功清零计数。
+   */
+  verifyByEmailPwd(email: string, password: string) {
+    return Effect.gen(function* () {
+      yield* validateEmail(email);
+      const dbClient = yield* DbClientEffect;
+
+      if (!password || typeof password !== 'string') {
+        return yield* fail(MSG.PASSWORD_REQUIRED);
+      }
+
+      const user = yield* dbTryOrDefault(
+        LOG_PREFIX,
+        '验证凭据查询用户',
+        () =>
+          dbClient.user.findUnique({
+            where: { email },
+            include: { role: true },
+          }),
+        null,
+      );
+      if (user?.passwordLoginDisabled) {
+        return yield* fail('该账号用户已禁用密码登录，密码不再作为有效验证因子');
+      }
+      if (!user || !(yield* comparePassword(password, user.password))) {
+        const delayMs = yield* loginFailDelay(email);
+        yield* Effect.sleep(`${delayMs / 1000} seconds`).pipe(Effect.withSpan('loginFailDelay(失败递增延迟)'));
+        return yield* fail(MSG.LOGIN_FAILED);
+      }
+      yield* clearLoginFails(email);
+      const ctx = yield* ReqCtxService;
+      ctx.log(`${LOG_PREFIX} 凭据验证通过 userId=${user.id}`);
+      /** 返回脱敏用户信息（使用方校验「验证的目标」是否符合预期，如合并非当前账号） */
+      const { password: _password, ...userWithoutPassword } = user;
+      return { verified: true as const, user: userWithoutPassword };
     });
   },
 };

@@ -10,6 +10,7 @@ import { hashPassword } from '../../util/crypto';
 import { GithubAuthService } from '../../OAuth/github';
 import { genUserSession } from './_genUserSession';
 import { generateSecureRandomPassword, generateFakeEmail } from './_oauthUtil';
+import { registerMergeTicket } from './passcode';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[GithubApi]';
@@ -32,9 +33,19 @@ export const githubApi = {
       const userId = yield* currentUserId();
       if (!userId) return yield* fail('请先登录');
       const auth = yield* githubAuth;
-      const url = yield* auth.getAuthorizationUrl(true);
+      const url = yield* auth.getAuthorizationUrl('bind', userId);
       const reqCtx = yield* ReqCtxService;
       reqCtx.log(`${LOG_PREFIX} 发起 GitHub 绑定 userId=${userId}`);
+      return url;
+    });
+  },
+  /** 发起 GitHub 合并验证：state 标记合并验证意图，回调只验证身份不改动数据 */
+  getMergeAuthorizationUrl() {
+    return Effect.gen(function* () {
+      const auth = yield* githubAuth;
+      const url = yield* auth.getAuthorizationUrl('merge');
+      const reqCtx = yield* ReqCtxService;
+      reqCtx.log(`${LOG_PREFIX} 发起 GitHub 合并验证`);
       return url;
     });
   },
@@ -43,12 +54,30 @@ export const githubApi = {
       const dbClient = yield* DbClientEffect;
       const reqCtx = yield* ReqCtxService;
       const auth = yield* githubAuth;
-      const { user: githubUser, bind } = yield* auth.authenticate(code, state);
+      const { user: githubUser, bind, intent, initiatorUserId } = yield* auth.authenticate(code, state);
+
+      /** 合并验证意图：认证成功即代表被合并账号身份确认，返回其归属供前端发起合并，不建号不发 session */
+      if (intent === 'merge') {
+        const owner = yield* dbTry(LOG_PREFIX, '查询 GitHub 归属(merge)', () =>
+          dbClient.oAuthAccount.findFirst({
+            where: { provider: OauthProvider.GITHUB, providerId: String(githubUser.id) },
+          }),
+        );
+        if (!owner) {
+          return yield* fail('该 GitHub 未绑定任何账号，无需合并验证');
+        }
+        reqCtx.log(`${LOG_PREFIX} GitHub 合并验证通过 providerUserId=${githubUser.id}，登记票据`);
+        return { mergeVerified: true, mergeTicket: registerMergeTicket('GITHUB', String(githubUser.id)) };
+      }
 
       /** 绑定意图：把 GitHub 身份挂到当前登录账号，不建号不发 session */
       if (bind) {
         const userId = yield* currentUserId();
         if (!userId) return yield* fail('绑定需要先登录');
+        /** 发起绑定者与完成回调者必须是同一账号，防止诱导他人完成绑定（CSRF） */
+        if (!initiatorUserId || initiatorUserId !== userId) {
+          return yield* fail('绑定会话已失效，请重新发起绑定');
+        }
 
         const owner = yield* dbTry(LOG_PREFIX, '查询 GitHub 归属', () =>
           dbClient.oAuthAccount.findFirst({

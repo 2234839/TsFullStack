@@ -81,6 +81,18 @@ vp run build              # 构建扩展
 
 - 前端开发规范详见 [apps/website-frontend/CLAUDE.md](apps/website-frontend/CLAUDE.md)
 
+## Working With ZenStack
+
+This project uses ZenStack V3. When working on ZenStack-related tasks:
+
+- Use the installed ZenStack skills (schema modeling, access control,
+  querying, migrations, CRUD server, etc.) for guidance on the correct
+  patterns and APIs.
+- When you need authoritative API details or run into uncertainty, consult
+  the ZenStack documentation via the Context7 MCP server (the `websites/zenstack_dev`
+  project) rather than relying on prior knowledge — ZenStack V3 differs
+  significantly from V2.
+
 <!-- pact:start -->
 
 ## pact 需求契约系统

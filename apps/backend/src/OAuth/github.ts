@@ -13,14 +13,18 @@ const OAUTH_STATE_TTL_MS = 10 * 60 * 1000;
 /** state 存储上限（防内存膨胀；单实例部署下 10 分钟内不可能积累这么多登录） */
 const OAUTH_STATE_MAX_ENTRIES = 10_000;
 
-/** state 登记表：state → 过期时间 + 是否绑定意图 */
-const oauthStates = new Map<string, { expiresAt: number; bind?: boolean }>();
+/** state 登记表：state → 过期时间 + 意图 + 发起者（bind 时防止被诱导绑到他人账号） */
+const oauthStates = new Map<
+  string,
+  { expiresAt: number; intent?: 'login' | 'bind' | 'merge'; initiatorUserId?: string }
+>();
 
 /**
  * 登记 state（getAuthorizationUrl 时调用）
  * 超限时淘汰最旧条目；过期条目在读写时顺手清理
+ * bind 意图必须携带发起者 userId，回调时校验会话一致，防止诱导绑定（CSRF）
  */
-export function registerOAuthState(state: string, bind?: boolean): void {
+export function registerOAuthState(state: string, intent: OAuthIntent = 'login', initiatorUserId?: string): void {
   const now = Date.now();
   if (oauthStates.size >= OAUTH_STATE_MAX_ENTRIES) {
     /** 淘汰全部已过期项；若仍超限则删除最早插入项 */
@@ -33,19 +37,33 @@ export function registerOAuthState(state: string, bind?: boolean): void {
       oauthStates.delete(oldest);
     }
   }
-  oauthStates.set(state, { expiresAt: now + OAUTH_STATE_TTL_MS, ...(bind ? { bind } : {}) });
+  oauthStates.set(state, { expiresAt: now + OAUTH_STATE_TTL_MS, intent, initiatorUserId });
 }
+
+/** OAuth 回调意图：login 登录 / bind 绑定到当前账号 / merge 验证被合并账号身份 */
+export type OAuthIntent = 'login' | 'bind' | 'merge';
 
 /**
  * 消费 state 并返回详情（authenticate 时调用，一次性防重放）
- * @returns valid = state 有效且未过期；bind = 发起时是否为绑定意图
+ * @returns valid = state 有效且未过期；intent = 发起时的意图；initiatorUserId = bind 发起者
  */
-export function consumeOAuthStateDetail(state: string | undefined): { valid: boolean; bind: boolean } {
-  if (!state) return { valid: false, bind: false };
+export function consumeOAuthStateDetail(state: string | undefined): {
+  valid: boolean;
+  bind: boolean;
+  intent: OAuthIntent;
+  initiatorUserId?: string;
+} {
+  if (!state) return { valid: false, bind: false, intent: 'login' };
   const entry = oauthStates.get(state);
   oauthStates.delete(state);
-  if (!entry) return { valid: false, bind: false };
-  return { valid: Date.now() <= entry.expiresAt, bind: entry.bind === true };
+  if (!entry) return { valid: false, bind: false, intent: 'login' };
+  const valid = Date.now() <= entry.expiresAt;
+  return {
+    valid,
+    bind: entry.intent === 'bind',
+    intent: valid ? (entry.intent ?? 'login') : 'login',
+    initiatorUserId: entry.initiatorUserId,
+  };
 }
 
 /**
@@ -184,10 +202,14 @@ export class GithubAuthService extends Context.Service<
         accessToken: string;
         /** 发起时是否为绑定意图（state 标记回传） */
         bind: boolean;
+        /** 发起时的意图（login/bind/merge） */
+        intent: OAuthIntent;
+        /** bind 发起者（state 记录回传，回调校验会话一致） */
+        initiatorUserId?: string;
       },
       GitHubAuthError
     >;
-    readonly getAuthorizationUrl: (bind?: boolean) => Effect.Effect<string>;
+    readonly getAuthorizationUrl: (intent?: OAuthIntent, initiatorUserId?: string) => Effect.Effect<string>;
   }
 >()('GithubAuthService') {}
 
@@ -301,13 +323,19 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
         }
         const tokenResponse = yield* getAccessToken(code);
         const user = yield* getUser(tokenResponse.accessToken);
-        return { user, accessToken: tokenResponse.accessToken, bind: stateDetail.bind };
+        return {
+          user,
+          accessToken: tokenResponse.accessToken,
+          bind: stateDetail.bind,
+          intent: stateDetail.intent,
+          initiatorUserId: stateDetail.initiatorUserId,
+        };
       });
     },
-    getAuthorizationUrl: (bind?: boolean) => {
-      /** 服务端签发随机 state 并登记（bind=true 标记绑定意图），回调时验证（防 CSRF 登录劫持） */
+    getAuthorizationUrl: (intent: OAuthIntent = 'login', initiatorUserId?: string) => {
+      /** 服务端签发随机 state 并登记（intent 标记登录/绑定/合并验证意图；bind 记录发起者），回调时验证（防 CSRF 登录劫持） */
       const state = randomBytes(16).toString('hex');
-      registerOAuthState(state, bind);
+      registerOAuthState(state, intent, intent === 'bind' ? initiatorUserId : undefined);
       const params = new URLSearchParams({
         client_id: config.clientId,
         redirect_uri: config.redirectUri,

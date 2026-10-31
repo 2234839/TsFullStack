@@ -31,6 +31,10 @@ import {
   SelectViewport,
 } from 'reka-ui';
 import type { UiSelectEmits, UiSelectProps } from './types';
+import { usePortalTarget } from '../../utils/portalTarget';
+
+/** 弹层插入点（使用方通过 providePortalTarget 注入，未注入回退 body） */
+const portalTarget = usePortalTarget();
 
 /** 定义 props */
 const props = withDefaults(defineProps<UiSelectProps>(), {
@@ -140,7 +144,7 @@ const itemTextPlClass = computed(() => {
       </svg>
     </SelectTrigger>
 
-    <SelectPortal>
+    <SelectPortal :to="portalTarget">
       <SelectContent
         :collision-padding="16"
         :avoid-collisions="true"

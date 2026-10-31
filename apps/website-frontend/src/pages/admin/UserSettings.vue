@@ -86,6 +86,22 @@
       </div>
     </Card>
 
+    <!-- 账号与登录方式入口 -->
+    <Card class="p-6 mt-6">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <i class="pi pi-objects-column text-primary-theme text-xl"></i>
+          <div>
+            <h3 class="font-medium text-primary-900 dark:text-primary-50">
+              {{ t('账号与登录方式') }}
+            </h3>
+            <p class="text-sm text-primary-theme">{{ t('管理第三方登录绑定、邮箱密码与账号合并') }}</p>
+          </div>
+        </div>
+        <Button :label="t('去管理')" icon="pi pi-arrow-right" variant="primary" @click="goToAccount" />
+      </div>
+    </Card>
+
     <!-- 充值入口 -->
     <Card class="p-6 mt-6">
       <div class="flex items-center justify-between">
@@ -136,6 +152,11 @@ const removing = shallowRef(false);
 /** 跳转到购买页 */
 function goToPricing() {
   routerUtil.push(routeMap.pricing, {});
+}
+
+/** 跳转到账号设置页（绑定渠道/账号合并） */
+function goToAccount() {
+  routerUtil.push(routeMap.account, {});
 }
 const savingNickname = shallowRef(false);
 /** 昵称输入 */

@@ -221,5 +221,20 @@
     --scrollbar-thumb-hover: color-mix(in srgb, var(--color-slate-400) 50%, transparent);
   }
 }
+/**
+ * body 级默认颜色兜底：Dialog/Popover/Toast 等 reka-ui 组件会把内容 teleport 到 body，
+ * 逃出布局根 div 的颜色作用域，必须让 body 自身就有正确的文字/背景色，
+ * portal 内容才能自然继承到与主题一致的配色。
+ */
+@layer base {
+  body {
+    background-color: var(--color-primary-50);
+    color: var(--color-primary-700);
+  }
+  .dark body {
+    background-color: var(--color-primary-950);
+    color: var(--color-primary-300);
+  }
+}
 @custom-variant dark (&:where(.dark, .dark *));
 @config '../tailwind.config.ts';

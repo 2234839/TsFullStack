@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-primary-surface text-primary-heading">
+  <div ref="layoutRoot" class="min-h-screen bg-primary-surface text-primary-heading">
     <RouterView v-slot="{ Component }">
       <template v-if="Component">
         <!-- 单一分支 + Suspense：曾按 meta.keepAlive 切 KeepAlive/裸 Suspense 双分支，
@@ -36,7 +36,8 @@ import RouteProgressBar from '@/components/system/RouteProgressBar.vue';
 import { allRoutes, findRouteNode } from '@/router';
 import { useTitle } from '@vueuse/core';
 import Toast from '@/components/system/Toast.vue';
-import { computed, onUnmounted, onErrorCaptured } from 'vue';
+import { computed, onUnmounted, onErrorCaptured, useTemplateRef } from 'vue';
+import { providePortalTarget } from '@tsfullstack/shared-frontend/utils';
 import { useRoute } from 'vue-router';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
@@ -45,6 +46,14 @@ import { startUpdatePolling } from '@/composables/useUpdateChecker';
 const { t } = useI18n();
 import { toastBus, authBus } from '@/buses';
 import { authInfo_logout } from '@/storage';
+
+//#region 弹层插入点
+// 布局根元素 provide 给共享弹层组件（Dialog/Popover/Select/Dropdown），
+// 弹窗 teleport 进布局树内，文字颜色随 text-primary-heading 继承自然适配明暗主题，
+// 避免 teleport 到 body 后逃出配色作用域导致暗色模式黑字黑底
+const layoutRoot = useTemplateRef<HTMLElement>('layoutRoot');
+providePortalTarget(layoutRoot);
+//#endregion
 
 //#region 设置页面标题
 const route = useRoute();

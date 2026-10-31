@@ -6,7 +6,7 @@ import { MSG } from '../util/constants';
 import { FetchWithProxy } from '../util/github-proxy';
 import { withFetchTimeout, FETCH_TIMEOUTS } from '../util/http';
 import { JSON_CONTENT_HEADERS } from '../util/constants';
-import { registerOAuthState, consumeOAuthStateDetail } from './github';
+import { registerOAuthState, consumeOAuthStateDetail, type OAuthIntent } from './github';
 
 /** ===== 常量定义 ===== */
 
@@ -54,10 +54,16 @@ export class LinuxDoAuthService extends Context.Service<
       code: string,
       state?: string,
     ) => Effect.Effect<
-      { user: LinuxDoUser; accessToken: string; /** 发起时是否为绑定意图（state 标记回传） */ bind: boolean },
+      {
+        user: LinuxDoUser;
+        accessToken: string;
+        /** 发起时是否为绑定意图（state 标记回传） */ bind: boolean;
+        /** 发起时的意图 */ intent: OAuthIntent;
+        /** bind 发起者（state 记录回传，回调校验会话一致） */ initiatorUserId?: string;
+      },
       Error
     >;
-    readonly getAuthorizationUrl: (bind?: boolean) => Effect.Effect<string>;
+    readonly getAuthorizationUrl: (intent?: OAuthIntent, initiatorUserId?: string) => Effect.Effect<string>;
   }
 >()('LinuxDoAuthService') {}
 
@@ -157,13 +163,19 @@ const LinuxDoAuthLiveEffect = Effect.gen(function* () {
         }
         const accessToken = yield* getAccessToken(code);
         const user = yield* getUser(accessToken);
-        return { user, accessToken, bind: stateDetail.bind };
+        return {
+          user,
+          accessToken,
+          bind: stateDetail.bind,
+          intent: stateDetail.intent,
+          initiatorUserId: stateDetail.initiatorUserId,
+        };
       });
     },
-    getAuthorizationUrl(bind?: boolean) {
-      /** 服务端签发随机 state 并登记（bind=true 标记绑定意图），回调时验证（防 CSRF 登录劫持） */
+    getAuthorizationUrl(intent: OAuthIntent = 'login', initiatorUserId?: string) {
+      /** 服务端签发随机 state 并登记（intent 标记登录/绑定/合并验证意图；bind 记录发起者），回调时验证（防 CSRF 登录劫持） */
       const state = randomBytes(16).toString('hex');
-      registerOAuthState(state, bind);
+      registerOAuthState(state, intent, intent === 'bind' ? initiatorUserId : undefined);
       const params = new URLSearchParams({
         client_id: config.clientId,
         redirect_uri: config.redirectUri,

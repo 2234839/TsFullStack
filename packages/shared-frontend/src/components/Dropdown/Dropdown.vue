@@ -14,7 +14,11 @@
  * ```
  */
 import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuPortal } from 'reka-ui';
+import { usePortalTarget } from '../../utils/portalTarget';
 import type { UiDropdownEmits, UiDropdownProps } from './types';
+
+/** 弹层插入点（使用方通过 providePortalTarget 注入，未注入回退 body） */
+const portalTarget = usePortalTarget();
 
 /** 定义 props */
 const props = withDefaults(defineProps<UiDropdownProps>(), {
@@ -69,7 +73,7 @@ const contentStyle = {
       <slot name="trigger" :open="openState" :toggle="toggle" />
     </DropdownMenuTrigger>
 
-    <DropdownMenuPortal>
+    <DropdownMenuPortal :to="portalTarget">
       <DropdownMenuContent
         :collision-padding="16"
         :avoid-collisions="true"

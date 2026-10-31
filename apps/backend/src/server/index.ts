@@ -2,7 +2,7 @@ import fastifyCors from '@fastify/cors';
 import fastifyMultipart from '@fastify/multipart';
 import fastifyStatic from '@fastify/static';
 import { ORMError, ORMErrorReason } from '@zenstackhq/orm';
-import { Cause, Effect, Exit, Layer, Queue, Semaphore, Tracer } from 'effect';
+import { Cause, Effect, Exit, Layer, Option, Queue, Semaphore, Tracer } from 'effect';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
 import os from 'os';
 import path from 'path';
@@ -11,7 +11,7 @@ import { fileURLToPath } from 'url';
 import { AuthContext } from '../Context/Auth';
 import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
 import { AppConfigService } from '../Context/AppConfig';
-import { systemLog } from '../Context/SystemLog';
+import { systemLog, insertBehaviorLog } from '../Context/SystemLog';
 import { insertDiagTrace, snapshotDriverTimings } from '../Context/DbService';
 import { ConfigLive } from '../Context/AppLive';
 import { maxLoopLagBetween, lagSamplesBetween, startLoopLagMonitor } from '../util/LoopLagMonitor';
@@ -416,7 +416,9 @@ function finalizeDiag(input: {
 function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: ApiCtx) {
   const startTime = Date.now();
   const startPerf = performance.now();
-  const diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number } = { t0: startPerf };
+  const diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number; userId?: string } = {
+    t0: startPerf,
+  };
   /** 请求级 span 采集器：把 Effect Tracer 采集的 span 树落盘到诊断记录 */
   const spanCollector = makeSpanCollector();
   const reqCtx: ReqCtx = {
@@ -519,7 +521,27 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: 
     const ph = netPhases.get(req);
     if (ph) ph.finalize = finalize;
     else finalize(endPerf);
-    return yield* systemLog({ level: 'info', message: `${endTime - startTime}ms ${method}` }, reqCtx);
+
+    /** 行为记录：每请求一条摘要 + 请求内日志行，fire-and-forget 不阻塞响应；
+     * 错误请求 level=error，正常 info */
+    const level = failed ? 'error' : 'info';
+    const message = `${endTime - startTime}ms ${method}`;
+    yield* systemLog({ level, message }, reqCtx);
+    Effect.runFork(
+      Effect.provide(
+        insertBehaviorLog({
+          level,
+          message,
+          logs: reqCtx.logs,
+          authUserId: diag.userId,
+          reqId: reqCtx.reqId,
+          method,
+          totalMs: endTime - startTime,
+          error: failed,
+        }),
+        ConfigLive,
+      ),
+    );
   });
 }
 
@@ -531,7 +553,7 @@ function buildReqProgram(opts: {
   method: string;
   enqueueTime: number;
   /** 诊断阶段耗时收集器（handleReq 创建，落盘时读取；t0 为相对时基，at = performance.now() - t0） */
-  diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number };
+  diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number; userId?: string };
 }) {
   return Effect.gen(function* () {
     const waitTime = Date.now() - opts.enqueueTime;
@@ -543,7 +565,23 @@ function buildReqProgram(opts: {
     if (opts.pathPrefix === '/app-api/') {
       const params = yield* tryOrFail('参数解析', () => parseParams(opts.req));
       const rpcStart = performance.now();
-      result = yield* Effect.withSpan(callRpc(appApisRpc, opts.method, params), `rpc:${opts.method}`);
+      /** app-api 可选鉴权：带 x-token-id 时解析登录态并提供 AuthContext；
+       * 未带或令牌失效则不提供（接口内部用 serviceOption 判定未登录），解析失败不算请求失败 */
+      const rawToken = opts.req.headers['x-token-id'];
+      const sessionToken = Array.isArray(rawToken) ? rawToken[0] : rawToken;
+      /** 可选登录态：令牌无效时置 null，接口内部用 serviceOption 判定未登录 */
+      const authDatabase = sessionToken
+        ? yield* getAuthFromCache({ sessionToken }).pipe(
+            Effect.catch(() => Effect.succeed(null)),
+            Effect.withSpan('auth:app-api可选鉴权'),
+          )
+        : null;
+      const call = Effect.suspend(() => {
+        const rpc = callRpc<unknown>(appApisRpc, opts.method, params);
+        return authDatabase ? Effect.provideService(rpc, AuthContext, authDatabase) : rpc;
+      });
+      if (authDatabase) opts.diag.userId = authDatabase.user.id;
+      result = yield* Effect.withSpan(call, `rpc:${opts.method}`);
       opts.diag.rpcMs = performance.now() - rpcStart;
       opts.diag.rpcAt = rpcStart - opts.diag.t0;
     } else if (opts.pathPrefix === '/api/') {
@@ -552,6 +590,8 @@ function buildReqProgram(opts: {
       const { params, db, user } = yield* Effect.withSpan(parseParamsAndAuth(opts.req), 'auth:鉴权(含用户查询SQL)');
       opts.diag.authMs = performance.now() - authStart;
       opts.diag.authAt = authStart - opts.diag.t0;
+      /** 行为记录用户归属：鉴权成功后立即存入 diag，供请求尾部落 SystemLog */
+      opts.diag.userId = user.id;
       const rpcStart = performance.now();
       const apisRpc = createRPC('apiProvider', {
         /** apis + db → APIRaw: 动态合并的模块对象无法在编译期精确匹配 APIRaw 接口，运行时结构一致 */

@@ -1,7 +1,7 @@
 <template>
   <div
     class="sidebar-container h-screen transition-all duration-300 ease-in-out relative shadow"
-    :class="[isCollapsed ? 'w-20' : '']"
+    :class="[isCollapsed ? 'w-20' : 'w-64']"
   >
     <!-- 主侧边栏 -->
     <div
@@ -18,11 +18,21 @@
         @click="isCollapsed ? toggleCollapse() : null"
       >
         <div class="flex items-center space-x-3">
-          <div
-            @click.stop="navigateToHome"
-            class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-linear-to-br from-info-500 to-info-400 dark:from-info-400 dark:to-info-600 shadow-info-200 dark:shadow-info-500/20"
-          >
-            <i class="pi pi-bolt text-white text-xl"></i>
+          <div class="relative">
+            <div
+              @click.stop="navigateToHome"
+              class="logo-icon cursor-pointer flex items-center justify-center w-10 h-10 rounded-xl shadow-lg bg-linear-to-br from-info-500 to-info-400 dark:from-info-400 dark:to-info-600 shadow-info-200 dark:shadow-info-500/20"
+            >
+              <i class="pi pi-bolt text-white text-xl"></i>
+            </div>
+            <!-- 折叠状态下的可见展开入口：叠在 logo 右下角的箭头角标，点击 logo 区任意处展开 -->
+            <span
+              class="absolute -bottom-1 -right-1 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-primary-500 text-white shadow-md transition-all duration-300"
+              :class="isCollapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-0'"
+              aria-label="展开菜单"
+            >
+              <i class="pi pi-chevron-right text-[8px]"></i>
+            </span>
           </div>
           <h1
             class="font-bold text-xl tracking-wide transition-all duration-300 overflow-hidden whitespace-nowrap text-primary-800 dark:text-primary-50"
@@ -79,39 +89,147 @@
         class="menu-container flex-1 overflow-y-auto custom-scrollbar px-3 py-2"
         style="--scrollbar-size: 4px; --scrollbar-radius: 20px"
       >
-        <div v-if="isCollapsed" class="collapsed-menu">
-          <ul class="flex flex-col items-center space-y-1">
-            <li v-for="item in collapsedMenuItems" :key="item.key" class="w-full relative">
-              <!-- 如果有子菜单，使用 Dropdown -->
-              <Dropdown
-                v-if="hasSubmenuItems(item)"
-                v-model="dropdownOpenStates[item.key]"
-                side="right"
-                align="start"
-                :sideOffset="4"
+        <!-- 折叠/展开双态切换：out-in 保证旧内容先淡出、新内容再淡入，条目错峰入场 -->
+        <!-- 方向感知的推入/推回过渡：展开时内容随侧栏变宽从左推入，收起时沿原轨迹推回 -->
+        <Transition :name="swapName" mode="out-in">
+          <div v-if="isCollapsed" key="collapsed" class="collapsed-menu">
+            <ul class="flex flex-col items-center space-y-1">
+              <li
+                v-for="(item, i) in collapsedMenuItems"
+                :key="item.key"
+                class="stagger-item w-full relative"
+                :style="{ '--stagger-i': i }"
               >
-                <template #trigger>
-                  <Button
-                    variant="icon"
-                    :icon="item.icon"
-                    :class="[
-                      'w-full justify-center',
-                      isActiveRoute(item) ? 'text-primary-600 dark:text-info-400' : '',
-                      'has-submenu',
-                    ]"
-                    :title="item.label"
-                  />
+                <!-- 如果有子菜单，使用 Dropdown -->
+                <Dropdown
+                  v-if="hasSubmenuItems(item)"
+                  v-model="dropdownOpenStates[item.key]"
+                  side="right"
+                  align="start"
+                  :sideOffset="4"
+                >
+                  <template #trigger>
+                    <Button
+                      variant="icon"
+                      :icon="item.icon"
+                      :class="[
+                        'w-full justify-center text-xl',
+                        isActiveRoute(item) ? 'text-primary-600 dark:text-info-400' : '',
+                        'has-submenu',
+                      ]"
+                      :title="item.label"
+                    />
+                  </template>
+                  <div class="py-1">
+                    <div
+                      v-for="subItem in getSubmenuItems(item)"
+                      :key="subItem.key"
+                      @click="navigateTo(subItem)"
+                      class="flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-primary-100 dark:hover:bg-secondary-700/50 rounded"
+                      :class="[
+                        isActiveRoute(subItem)
+                          ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-info-500/10 dark:to-info-500/5 text-primary-700 dark:text-primary-50'
+                          : 'text-primary-600 dark:text-secondary-400',
+                      ]"
+                    >
+                      <i
+                        :class="[
+                          subItem.icon,
+                          'mr-3 text-sm',
+                          isActiveRoute(subItem) ? 'text-primary-600 dark:text-info-400' : '',
+                        ]"
+                      ></i>
+                      <span class="flex-1 text-sm whitespace-nowrap">{{ subItem.label }}</span>
+                      <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
+                    </div>
+                  </div>
+                </Dropdown>
+
+                <!-- 如果没有子菜单，直接使用 Tooltip + Button -->
+                <template v-else>
+                  <Tooltip :content="item.label" side="right">
+                    <Button
+                      variant="icon"
+                      :icon="item.icon"
+                      :class="[
+                        'w-full justify-center text-xl',
+                        isActiveRoute(item) ? 'text-primary-600 dark:text-info-400' : '',
+                      ]"
+                      @click="navigateTo(item)"
+                    />
+                  </Tooltip>
+                  <Badge
+                    v-if="item.badge"
+                    :value="item.badge"
+                    :variant="getBadgeVariant(item)"
+                    class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"
+                  ></Badge>
                 </template>
-                <div class="py-1">
+              </li>
+            </ul>
+          </div>
+          <div v-else key="expanded" class="expanded-menu">
+            <div
+              v-for="(category, index) in filteredMenuItems"
+              :key="category.category"
+              class="stagger-item menu-category mb-4"
+              :style="{ '--stagger-i': index }"
+            >
+              <div
+                class="menu-category-header flex items-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-primary-500 dark:text-secondary-400"
+                v-if="index > 0"
+              >
+                {{ category.category }}
+              </div>
+              <div v-for="menuItem in category.items" :key="menuItem.key" class="menu-item relative">
+                <div
+                  @click="toggleSubmenu(menuItem)"
+                  class="menu-item-header flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 mb-1"
+                  :class="[
+                    isActiveRoute(menuItem)
+                      ? 'bg-primary-50 dark:bg-linear-to-r dark:from-info-500/60 dark:to-info-500/30 text-primary-700 dark:text-primary-50'
+                      : 'text-primary-700 hover:bg-primary-100 hover:text-primary-900 dark:text-secondary-300 dark:hover:bg-secondary-700/50 dark:hover:text-primary-50',
+                  ]"
+                >
+                  <i
+                    :class="[
+                      menuItem.icon,
+                      'mr-3 text-lg',
+                      isActiveRoute(menuItem) ? 'text-primary-600 dark:text-info-400' : '',
+                    ]"
+                  ></i>
+                  <span class="flex-1">{{ menuItem.label }}</span>
+                  <Badge
+                    v-if="menuItem.badge"
+                    :value="menuItem.badge"
+                    :variant="getBadgeVariant(menuItem)"
+                    class="mr-2"
+                  >
+                  </Badge>
+                  <i
+                    v-if="menuItem.items && menuItem.items.length"
+                    :class="[
+                      menuItem.expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right',
+                      'text-xs transition-transform duration-200',
+                    ]"
+                  ></i>
+                </div>
+
+                <!-- 子菜单 -->
+                <div
+                  v-if="menuItem.items && menuItem.items.length"
+                  class="submenu pl-4 overflow-hidden transition-all duration-300 ease-in-out"
+                  :class="[menuItem.expanded ? 'max-h-96' : 'max-h-0']"
+                >
                   <div
-                    v-for="subItem in getSubmenuItems(item)"
+                    v-for="subItem in menuItem.items"
                     :key="subItem.key"
                     @click="navigateTo(subItem)"
-                    class="flex items-center px-4 py-2 cursor-pointer transition-all duration-200 hover:bg-primary-100 dark:hover:bg-secondary-700/50 rounded"
+                    class="submenu-item flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-1"
                     :class="[
                       isActiveRoute(subItem)
                         ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-info-500/10 dark:to-info-500/5 text-primary-700 dark:text-primary-50'
-                        : 'text-primary-600 dark:text-secondary-400',
+                        : 'text-primary-600 hover:bg-primary-100 hover:text-primary-800 dark:text-secondary-400 dark:hover:bg-secondary-700/30 dark:hover:text-primary-50',
                     ]"
                   >
                     <i
@@ -121,100 +239,14 @@
                         isActiveRoute(subItem) ? 'text-primary-600 dark:text-info-400' : '',
                       ]"
                     ></i>
-                    <span class="flex-1 text-sm whitespace-nowrap">{{ subItem.label }}</span>
+                    <span class="flex-1 text-sm">{{ subItem.label }}</span>
                     <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
                   </div>
-                </div>
-              </Dropdown>
-
-              <!-- 如果没有子菜单，直接使用 Tooltip + Button -->
-              <template v-else>
-                <Tooltip :content="item.label" side="right">
-                  <Button
-                    variant="icon"
-                    :icon="item.icon"
-                    :class="['w-full justify-center', isActiveRoute(item) ? 'text-primary-600 dark:text-info-400' : '']"
-                    @click="navigateTo(item)"
-                  />
-                </Tooltip>
-                <Badge
-                  v-if="item.badge"
-                  :value="item.badge"
-                  :variant="getBadgeVariant(item)"
-                  class="absolute top-0 right-0 transform translate-x-1 -translate-y-1 scale-75"
-                ></Badge>
-              </template>
-            </li>
-          </ul>
-        </div>
-        <div v-else class="expanded-menu">
-          <div v-for="(category, index) in filteredMenuItems" :key="category.category" class="menu-category mb-4">
-            <div
-              class="menu-category-header flex items-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-primary-500 dark:text-secondary-400"
-              v-if="index > 0"
-            >
-              {{ category.category }}
-            </div>
-            <div v-for="menuItem in category.items" :key="menuItem.key" class="menu-item relative">
-              <div
-                @click="toggleSubmenu(menuItem)"
-                class="menu-item-header flex items-center px-3 py-2.5 rounded-lg cursor-pointer transition-all duration-200 mb-1"
-                :class="[
-                  isActiveRoute(menuItem)
-                    ? 'bg-primary-50 dark:bg-linear-to-r dark:from-info-500/60 dark:to-info-500/30 text-primary-700 dark:text-primary-50'
-                    : 'text-primary-700 hover:bg-primary-100 hover:text-primary-900 dark:text-secondary-300 dark:hover:bg-secondary-700/50 dark:hover:text-primary-50',
-                ]"
-              >
-                <i
-                  :class="[
-                    menuItem.icon,
-                    'mr-3 text-lg',
-                    isActiveRoute(menuItem) ? 'text-primary-600 dark:text-info-400' : '',
-                  ]"
-                ></i>
-                <span class="flex-1">{{ menuItem.label }}</span>
-                <Badge v-if="menuItem.badge" :value="menuItem.badge" :variant="getBadgeVariant(menuItem)" class="mr-2">
-                </Badge>
-                <i
-                  v-if="menuItem.items && menuItem.items.length"
-                  :class="[
-                    menuItem.expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right',
-                    'text-xs transition-transform duration-200',
-                  ]"
-                ></i>
-              </div>
-
-              <!-- 子菜单 -->
-              <div
-                v-if="menuItem.items && menuItem.items.length"
-                class="submenu pl-4 overflow-hidden transition-all duration-300 ease-in-out"
-                :class="[menuItem.expanded ? 'max-h-96' : 'max-h-0']"
-              >
-                <div
-                  v-for="subItem in menuItem.items"
-                  :key="subItem.key"
-                  @click="navigateTo(subItem)"
-                  class="submenu-item flex items-center px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 mb-1"
-                  :class="[
-                    isActiveRoute(subItem)
-                      ? 'bg-primary-50/70 dark:bg-linear-to-r dark:from-info-500/10 dark:to-info-500/5 text-primary-700 dark:text-primary-50'
-                      : 'text-primary-600 hover:bg-primary-100 hover:text-primary-800 dark:text-secondary-400 dark:hover:bg-secondary-700/30 dark:hover:text-primary-50',
-                  ]"
-                >
-                  <i
-                    :class="[
-                      subItem.icon,
-                      'mr-3 text-sm',
-                      isActiveRoute(subItem) ? 'text-primary-600 dark:text-info-400' : '',
-                    ]"
-                  ></i>
-                  <span class="flex-1 text-sm">{{ subItem.label }}</span>
-                  <Badge v-if="subItem.badge" :value="subItem.badge" :variant="getBadgeVariant(subItem)"></Badge>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </Transition>
       </div>
 
       <!-- 底部操作区 -->
@@ -242,7 +274,7 @@ import ThemeSwitch from '@/components/system/ThemeToggle.vue';
 import { useI18n } from '@/composables/useI18n';
 import { routeMap, router, routerUtil } from '@/router';
 import { Dropdown, Tooltip } from '@tsfullstack/shared-frontend/components';
-import { computed, reactive, ref } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import type { RouteLocationRaw } from 'vue-router';
 import UserAvatar from '@/components/base/UserAvatar.vue';
 import UserSettingBtn from '@/components/system/UserSettingBtn.vue';
@@ -272,6 +304,17 @@ interface MenuCategory {
 // 侧边栏状态
 const isCollapsed = adminSidebarCollapsed;
 const searchQuery = ref('');
+
+// 窄屏下默认折叠侧边栏，给主内容区留出宽度（点 logo 可展开）
+if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+  isCollapsed.value = true;
+}
+
+/** 双态切换过渡的方向名：展开用 push（从左推入），收起用 pop（向左推回），形成对称动画 */
+const swapName = ref('sidebar-swap');
+watch(isCollapsed, (collapsed, prev) => {
+  swapName.value = collapsed && prev !== undefined && !prev ? 'sidebar-swap-pop' : 'sidebar-swap';
+});
 
 /** 存储 Dropdown 打开状态的响应式对象 */
 const dropdownOpenStates = reactive<Record<string, boolean>>({});
@@ -443,8 +486,8 @@ const menuItems = reactive([
       },
       {
         key: 'logs',
-        label: t('系统日志'),
-        icon: 'pi pi-list',
+        label: t('行为记录'),
+        icon: 'pi pi-history',
         to: routerUtil.to(routeMap.admin.child.systemLog, {}),
       },
       {
@@ -648,6 +691,53 @@ const getBadgeVariant = (item: MenuItem): string => {
   opacity: 0.3;
 }
 
+/* 双态内容切换过渡（方向感知对称动画，可复用于任意 A/B 互斥切换场景）
+   swap-push-x：正向（展开）——新内容从左侧推入；swap-pop-x：反向（收起）——旧内容向左侧推回。
+   进出沿同一条水平轨迹正反播放，形成「怎么出来就怎么回去」的对称感 */
+.sidebar-swap-enter-active {
+  transition:
+    opacity 0.2s ease,
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.sidebar-swap-leave-active {
+  transition:
+    opacity 0.15s ease-in,
+    transform 0.2s ease-in;
+}
+/* 展开：内容跟随侧栏向右推入 */
+.sidebar-swap-enter-from {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+.sidebar-swap-leave-to {
+  opacity: 0;
+}
+/* 收起：内容沿原轨迹向左推回 */
+.sidebar-swap-pop-enter-from {
+  opacity: 0;
+}
+.sidebar-swap-pop-leave-to {
+  opacity: 0;
+  transform: translateX(-24px);
+}
+
+/* 条目级：进入时逐项错峰上滑入场，延迟由 --stagger-i 索引驱动 */
+.sidebar-swap-enter-active .stagger-item,
+.sidebar-swap-pop-enter-active .stagger-item {
+  animation: stagger-slide-in 0.25s ease both;
+  animation-delay: calc(var(--stagger-i, 0) * 30ms);
+}
+@keyframes stagger-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 /* 动画 */
 @keyframes float {
   0% {
@@ -723,19 +813,11 @@ const getBadgeVariant = (item: MenuItem): string => {
   }
 }
 
-/* 响应式调整 */
+/* 响应式调整：窄屏下侧边栏保持在父级 flex 布局流内，
+   不使用 fixed 定位（fixed 会脱离文档流导致遮挡主内容区） */
 @media (max-width: 768px) {
   .sidebar-container {
-    position: fixed;
-    left: 0;
-    top: 0;
-    z-index: 100;
-    transform: translateX(0);
-    transition: transform 0.3s ease;
-  }
-
-  .sidebar-container.collapsed {
-    transform: translateX(-100%);
+    flex-shrink: 0;
   }
 }
 </style>

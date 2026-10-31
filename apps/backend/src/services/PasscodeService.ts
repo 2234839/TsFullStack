@@ -1,5 +1,6 @@
 import { Effect } from 'effect';
 import { randomInt } from 'node:crypto';
+import { Cache, Ref } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService } from '../Context/AppConfig';
 import { tryOrFail } from '../util/error';
@@ -20,11 +21,57 @@ function genCode(): string {
 /** code 唯一冲突时的最大重试次数 */
 const CREATE_MAX_RETRY = 5;
 
+/** ===== 验证尝试限速（防 6 位口令爆破） ===== */
+
+/** 验证尝试失败计数缓存：key 为 '全局' 或 '渠道:身份'，TTL 内失败次数超限后短封禁 */
+const verifyFailCache = Effect.runSync(
+  Cache.make({
+    capacity: 10_000,
+    timeToLive: '10 minutes',
+    lookup: (key: string) => Ref.make(0),
+  }),
+);
+
+/** 单 key 在 TTL 窗口内允许的验证失败次数（命中真口令不算失败） */
+const VERIFY_FAIL_LIMIT = 10;
+
+/** 触发限流后的封禁时长 */
+const VERIFY_BAN_MS = 5 * 60 * 1000;
+
+/** 封禁标记缓存（命中后直接拒绝，不再查库） */
+const verifyBanCache = Effect.runSync(
+  Cache.make({
+    capacity: 10_000,
+    timeToLive: `${Math.floor(VERIFY_BAN_MS / 1000)} seconds`,
+    lookup: (key: string) => Ref.make(false),
+  }),
+);
+
+/** 检查是否被封禁（被封禁时直接拒绝，不消耗 DB 查询） */
+function isVerifyBanned(key: string): Effect.Effect<boolean> {
+  return Effect.gen(function* () {
+    const banned = yield* Cache.get(verifyBanCache, key);
+    return yield* Ref.get(banned);
+  });
+}
+
+/** 记录一次验证失败，超限后置封禁标记 */
+function recordVerifyFail(key: string): Effect.Effect<void> {
+  return Effect.gen(function* () {
+    const ref = yield* Cache.get(verifyFailCache, key);
+    const count = yield* Ref.modify(ref, (n) => [n + 1, n + 1] as const);
+    if (count > VERIFY_FAIL_LIMIT) {
+      const ban = yield* Cache.get(verifyBanCache, key);
+      yield* Ref.set(ban, true);
+    }
+  });
+}
+
 /** 通道标识（与 PasscodeChannel 枚举值对应的字符串字面量类型） */
 export type PasscodeChannelKey = 'WECHAT_OFFICIAL';
 
-/** 用途标识 */
-export type PasscodePurposeKey = 'LOGIN' | 'BIND';
+/** 用途标识：LOGIN 登录 / BIND 绑定到当前账号 / MERGE_VERIFY 验证被合并账号身份 */
+export type PasscodePurposeKey = 'LOGIN' | 'BIND' | 'MERGE_VERIFY';
 
 /**
  * 通用验证口令服务：与通道无关的口令底座。
@@ -73,6 +120,7 @@ export const PasscodeService = {
   /**
    * 通道侧回传验证：code 命中且 PENDING 且未过期时，回填身份并标记 VERIFIED。
    * 原子更新（updateMany 带 status 条件）天然防并发重复验证。
+   * 限速：全局与单渠道身份双重失败计数，超限封禁 5 分钟，防 6 位口令爆破
    */
   verify(
     channel: PasscodeChannelKey,
@@ -80,6 +128,11 @@ export const PasscodeService = {
     channelIdentity: string,
   ): Effect.Effect<boolean, Error, AppConfigService> {
     return Effect.gen(function* () {
+      const globalKey = 'verify:global';
+      const identityKey = `verify:${channel}:${channelIdentity}`;
+      if (yield* isVerifyBanned(globalKey)) return false;
+      if (yield* isVerifyBanned(identityKey)) return false;
+
       const db = yield* DbClientEffect;
       const now = new Date();
       const result = yield* tryOrFail(`${LOG_PREFIX} 验证口令`, () =>
@@ -88,7 +141,13 @@ export const PasscodeService = {
           data: { status: 'VERIFIED', channelIdentity, verifiedAt: now },
         }),
       );
-      return result.count === 1;
+      if (result.count !== 1) {
+        /** 未命中：双 key 记失败，超限即封（全局门限制总尝试速率，单身份门防绕过全局后定向爆破） */
+        yield* recordVerifyFail(globalKey);
+        yield* recordVerifyFail(identityKey);
+        return false;
+      }
+      return true;
     });
   },
 

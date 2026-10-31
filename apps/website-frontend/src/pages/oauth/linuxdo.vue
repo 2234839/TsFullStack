@@ -42,6 +42,13 @@ const toast = useToast();
 const userInfo = useAsyncState(async () => {
   if (!code) return undefined;
   const res = await AppAPI.linuxdoApi.authenticate(code, state);
+  /** 合并验证流程：存验证结果后回账号设置页继续合并 */
+  if ('mergeVerified' in res && res.mergeVerified) {
+    sessionStorage.setItem('mergeVerify', JSON.stringify({ mergeTicket: res.mergeTicket }));
+    toast.success(t('身份验证通过'), t('已确认该渠道归属的账号，即将继续合并'));
+    routerUtil.push(routeMap.account, {});
+    return undefined;
+  }
   if (res.bound) {
     /** 绑定流程：不登录跳转，回账号设置页刷新绑定列表 */
     toast.success(t('绑定成功'), t('LINUX DO 已绑定到当前账号'));

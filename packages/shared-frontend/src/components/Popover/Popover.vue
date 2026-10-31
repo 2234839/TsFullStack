@@ -15,8 +15,12 @@
  */
 import { computed } from 'vue';
 import { PopoverRoot, PopoverTrigger, PopoverContent, PopoverPortal, PopoverArrow } from 'reka-ui';
+import { usePortalTarget } from '../../utils/portalTarget';
 import type { PopoverRootProps } from 'reka-ui';
 import type { UiPopoverEmits, UiPopoverProps } from './types';
+
+/** 弹层插入点（使用方通过 providePortalTarget 注入，未注入回退 body） */
+const portalTarget = usePortalTarget();
 
 /** 定义 props，带有类型默认值 */
 const props = withDefaults(defineProps<UiPopoverProps>(), {
@@ -83,12 +87,12 @@ defineExpose({
 </script>
 
 <template>
-  <PopoverRoot v-bind="popoverRootProps">
+  <PopoverRoot v-bind="popoverRootProps" @update:open="openModel = $event">
     <PopoverTrigger as-child>
       <slot name="trigger" :open="isOpen" :toggle="toggle" />
     </PopoverTrigger>
 
-    <PopoverPortal>
+    <PopoverPortal :to="portalTarget">
       <PopoverContent
         class="ui-popover-content"
         :side="side"

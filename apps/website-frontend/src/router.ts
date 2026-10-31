@@ -53,10 +53,10 @@ export const routeMap = reactive({
       },
       systemLog: {
         path: 'systemLog',
-        component: () => import('@/pages/admin/SystemLog.vue'),
+        component: () => import('@/pages/admin/BehaviorLog.vue'),
         meta: {
-          title: t('系统日志'),
-          icon: 'pi pi-file',
+          title: t('行为记录'),
+          icon: 'pi pi-history',
         },
       },
       diagTrace: {

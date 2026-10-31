@@ -71,6 +71,8 @@ model User with NotIdBase {
 
     avatar       String?      
     nickname     String?
+    /** 禁用账号密码登录（只允许第三方渠道登录，类似可信设备授权；需至少绑定一个渠道才可开启） */
+    passwordLoginDisabled Boolean @default(false)
 
     /** 允许用户读取自己的完整信息 */
     @@allow('read', auth() == this)
@@ -184,6 +186,7 @@ enum PasscodeChannel {
 enum PasscodePurpose {
     LOGIN // 登录：验证通过后自动登录/建号
     BIND // 绑定：把通道身份（如微信 openid）挂到已登录账号上
+    MERGE_VERIFY // 合并验证：验证通道身份归属的账号，作为被合并账号身份确认
 }
 
 /// 口令状态机：PENDING 待验证 → VERIFIED 已验证（待消费）→ CONSUMED 已消费
@@ -282,11 +285,34 @@ enum LogLevel {
     ERROR
 }
 model SystemLog with BaseId,BaseGlobalAuth {
-    level      LogLevel
-    message    String?
-    logs       Json?
+    level LogLevel
+
+    /// 摘要消息（如 "35ms db.user.findMany"）
+    message String?
+
+    /// 请求内全部日志行（reqCtx.logs 数组）
+    logs Json?
+
+    /// 触发请求的用户 ID（未认证请求为 null）
     authUserId String?
-    created    DateTime @default(now())
+
+    /// 进程内请求序号（与 console 日志 #N 前缀一致，可反查 DiagTrace 时间线）
+    reqId Int?
+
+    /// RPC 方法名（如 db.user.findMany，非 RPC 请求为路径）
+    method String?
+
+    /// 请求总耗时 ms
+    totalMs Int?
+
+    /// 是否以错误结束
+    error Boolean @default(false)
+
+    created DateTime @default(now())
+
+    /// 行为记录保留 183 天（网安法第 21 条：网络日志留存不少于六个月；清理任务见 index.ts behaviorLogCleanupLoop）
+    @@index([created])
+    @@index([authUserId, created])
 }
 /// 用户数据存储模型 - 用于存储用户的应用JSON数据
 model UserData with Base {

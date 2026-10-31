@@ -148,6 +148,27 @@ const tokenCleanupLoop = Effect.gen(function* () {
   Effect.repeat(Schedule.spaced(MS_PER_HOUR)),
 );
 
+/** 行为记录保留天数：网络安全法第 21 条要求网络日志留存不少于六个月，
+ * 同时个保法要求个人信息保存期限最短必要——収在 183 天（首次启动即清理超期记录） */
+const BEHAVIOR_LOG_RETENTION_DAYS = 183;
+/** 行为记录清理间隔：每天一次 */
+const BEHAVIOR_LOG_CLEANUP_INTERVAL_MS = 24 * 60 * 60 * 1000;
+
+/** 行为记录清理循环：每天删除保留期外的 SystemLog（每请求一条，不清理会无限增长） */
+const behaviorLogCleanupLoop = Effect.gen(function* () {
+  const dbClient = yield* DbClientEffect;
+  const cutoff = new Date(Date.now() - BEHAVIOR_LOG_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const deleted = yield* tryOrFail('清理过期行为记录', () =>
+    dbClient.systemLog.deleteMany({ where: { created: { lt: cutoff } } }),
+  );
+  if (deleted.count > 0) {
+    console.log(`[BehaviorLogCleanup] 已删除 ${deleted.count} 条过期行为记录（>${BEHAVIOR_LOG_RETENTION_DAYS}天）`);
+  }
+}).pipe(
+  Effect.catch((error) => Effect.sync(() => console.error('[BehaviorLogCleanup] 清理任务失败:', error))),
+  Effect.repeat(Schedule.spaced(BEHAVIOR_LOG_CLEANUP_INTERVAL_MS)),
+);
+
 /** 支付订单对账循环：延迟启动，仅有待处理订单时才执行实际查询 */
 const reconcileLoop = Effect.gen(function* () {
   yield* Effect.sleep(Duration.millis(RECONCILE_STARTUP_DELAY_MS));
@@ -195,6 +216,7 @@ const mainFiber = Effect.runFork(program);
 /** 后台定时任务 Fiber */
 loopFibers.push(Effect.runFork(memoryLogLoop.pipe(Effect.provide(AppLive))));
 loopFibers.push(Effect.runFork(tokenCleanupLoop.pipe(Effect.provide(AppLive))));
+loopFibers.push(Effect.runFork(behaviorLogCleanupLoop.pipe(Effect.provide(AppLive))));
 loopFibers.push(Effect.runFork(reconcileLoop.pipe(Effect.provide(AppLive))));
 
 /** 优雅关闭：中断所有 Fiber、停止队列并退出 */

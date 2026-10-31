@@ -27,32 +27,47 @@
         }}
       </p>
       <form
-        class="mt-4 grid gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)_auto]"
+        class="mt-5 grid items-start gap-4 md:grid-cols-2 lg:grid-cols-[minmax(200px,1fr)_minmax(200px,1fr)_auto]"
         @submit.prevent="createSpace"
       >
         <div>
+          <label class="mb-1.5 block text-sm font-medium text-primary-title" for="new-space-key">
+            {{ t('空间标识') }}
+          </label>
           <Input
+            id="new-space-key"
             v-model="spaceName"
             class="w-full"
             placeholder="space-key"
             :invalid="spaceName.length > 0 && !spaceNameValid"
             :disabled="creatingSpace"
           />
-          <p class="mt-1 text-xs text-primary-theme">{{ t('空间标识：小写字母、数字和连字符') }}</p>
+          <p class="mt-1.5 text-xs text-primary-theme">{{ t('小写字母、数字和连字符，创建后不可修改') }}</p>
         </div>
-        <Input
-          v-model="spaceDisplayName"
-          class="w-full"
-          :placeholder="t('空间显示名称（可选）')"
-          :disabled="creatingSpace"
-        />
-        <Button
-          type="submit"
-          icon="pi pi-plus"
-          :label="t('创建空间')"
-          :loading="creatingSpace"
-          :disabled="!spaceNameValid"
-        />
+        <div>
+          <label class="mb-1.5 block text-sm font-medium text-primary-title" for="new-space-display-name">
+            {{ t('显示名称') }}
+            <span class="ml-1 font-normal text-primary-theme">{{ t('（可选）') }}</span>
+          </label>
+          <Input
+            id="new-space-display-name"
+            v-model="spaceDisplayName"
+            class="w-full"
+            :placeholder="t('空间显示名称（可选）')"
+            :disabled="creatingSpace"
+          />
+          <p class="mt-1.5 text-xs text-primary-theme">{{ t('展示在落地页上的名称，留空则使用空间标识') }}</p>
+        </div>
+        <div class="md:col-span-2 md:pt-[26px] lg:col-span-1">
+          <Button
+            type="submit"
+            class="h-[42px] w-full md:w-auto"
+            icon="pi pi-plus"
+            :label="t('创建空间')"
+            :loading="creatingSpace"
+            :disabled="!spaceNameValid"
+          />
+        </div>
       </form>
     </Card>
 

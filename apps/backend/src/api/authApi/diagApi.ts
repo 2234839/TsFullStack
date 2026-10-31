@@ -9,8 +9,10 @@ import { requireAdmin } from '../../Context/Auth';
 const DEFAULT_PAGE_SIZE = 20;
 /** 诊断查询最大页大小（timeline JSON 较大，防一次拉爆） */
 const MAX_PAGE_SIZE = 100;
-/** 最远可回溯天数 */
+/** 最远可回溯天数：慢请求诊断只需近期数据，30 天足够 */
 const MAX_DAYS = 30;
+/** 行为记录最远可回溯天数：与保留期一致（网安法 ≥ 6 个月） */
+const BEHAVIOR_MAX_DAYS = 183;
 
 /** 实时请求环形缓冲容量：只存最近 N 条（含快请求），新顶旧，零写库压力 */
 const RECENT_CAPACITY = 500;
@@ -169,6 +171,74 @@ const listRecent = (opt: { limit?: number; minTotalMs?: number }) =>
     return { items: recentRequests.filter((r) => r.totalMs >= minTotalMs).slice(0, limit), capacity: RECENT_CAPACITY };
   });
 
+/**
+ * 行为记录查询：SystemLog 每请求一条（用户在什么时间段触发了什么请求 + 请求内日志）。
+ *
+ * 时间维度：不传用户筛选，按时间倒序列全部用户；
+ * 用户维度：传 userIds（多选）只看所选用户的行为，不传/空数组 = 全部用户。
+ * 用户名/邮箱批量补齐（SystemLog.authUserId 无外键关联，展示名从 User 表查）。
+ */
+const listBehavior = (opt: {
+  page?: number;
+  pageSize?: number;
+  days?: number;
+  userIds?: string[];
+  errorOnly?: boolean;
+}) =>
+  Effect.gen(function* () {
+    yield* requireAdmin();
+    const page = Math.max(1, opt.page ?? 1);
+    const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, opt.pageSize ?? DEFAULT_PAGE_SIZE));
+    const days = Math.min(BEHAVIOR_MAX_DAYS, Math.max(1, opt.days ?? 7));
+    const db = yield* DbClientEffect;
+    const createdGte = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    /** 非空 userIds = 只看所选用户；空/不传 = 全部用户 */
+    const userIds = opt.userIds?.filter(Boolean) ?? [];
+    const where = {
+      created: { gte: createdGte },
+      ...(userIds.length > 0 ? { authUserId: { in: userIds } } : {}),
+      ...(opt.errorOnly ? { error: true } : {}),
+    };
+    const [items, total, users] = yield* Effect.all([
+      dbTry('查询行为记录', 'listBehavior', () =>
+        db.systemLog.findMany({
+          where,
+          orderBy: { created: 'desc' },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          select: {
+            id: true,
+            level: true,
+            message: true,
+            logs: true,
+            authUserId: true,
+            reqId: true,
+            method: true,
+            totalMs: true,
+            error: true,
+            created: true,
+          },
+        }),
+      ),
+      dbTry('统计行为总数', 'listBehavior', () => db.systemLog.count({ where })),
+      dbTry('查询行为用户', 'listBehavior', () =>
+        db.user.findMany({ select: { id: true, email: true, nickname: true } }),
+      ),
+    ]);
+    /** 行为记录涉及的用户展示信息（内存小表全量取，站点用户量级下无压力） */
+    const userMap = new Map(users.map((u) => [u.id, u]));
+    return {
+      items: items.map((it) => ({
+        ...it,
+        userEmail: it.authUserId ? (userMap.get(it.authUserId)?.email ?? null) : null,
+        userName: it.authUserId ? (userMap.get(it.authUserId)?.nickname ?? null) : null,
+      })),
+      total,
+      page,
+      pageSize,
+    };
+  });
+
 /** API 慢请求诊断接口：查询慢请求追踪、阻塞类型判定、事件循环健康（全部要求管理员） */
 export const diagApi = {
   /** 分页查询慢请求诊断记录 */
@@ -182,4 +252,7 @@ export const diagApi = {
 
   /** 诊断总览（近 24h 慢因聚合 + 最慢接口排行 + 事件循环健康） */
   getOverview,
+
+  /** 行为记录分页查询（SystemLog：时间维度全量 / 用户维度按 userIds 多选筛选，空=全部） */
+  listBehavior,
 };

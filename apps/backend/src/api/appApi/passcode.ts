@@ -12,9 +12,52 @@ import { hashPassword } from '../../util/crypto';
 import { OauthProvider } from '../../../.zenstack/models';
 import type { JsonValue } from '@zenstackhq/orm';
 import type { User, Role, UserSession } from '../../../.zenstack/models';
+import { randomBytes } from 'node:crypto';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[PasscodeApi]';
+
+/** ===== 合并验证票据（防账号接管） ===== */
+
+/** 票据有效期（分钟）：验证通过后留给用户确认合并的时间 */
+const MERGE_TICKET_TTL_MS = 10 * 60 * 1000;
+
+/** 票据存储上限 */
+const MERGE_TICKET_MAX = 10_000;
+
+/** 一次性票据：ticket → 渠道身份 + 过期时间。
+ * 安全模型：渠道身份验证（OAuth merge 回调 / 微信 MERGE_VERIFY）成功后由服务端登记，
+ * 前端只拿到不透明 ticket，合并时凭 ticket 原子消费。
+ * 防止攻击者不经渠道验证、直接用可枚举的 providerId（GitHub/LINUX DO 数字 ID）调合并接口接管他人账号。
+ */
+const mergeTickets = new Map<
+  string,
+  { provider: 'GITHUB' | 'LINUXDO' | 'WECHAT'; providerId: string; expiresAt: number }
+>();
+
+/** 渠道验证通过后登记一次性合并票据，返回不透明 ticket 给前端 */
+export function registerMergeTicket(provider: 'GITHUB' | 'LINUXDO' | 'WECHAT', providerId: string): string {
+  const now = Date.now();
+  if (mergeTickets.size >= MERGE_TICKET_MAX) {
+    for (const [k, e] of mergeTickets) if (e.expiresAt < now) mergeTickets.delete(k);
+    while (mergeTickets.size >= MERGE_TICKET_MAX) {
+      const oldest = mergeTickets.keys().next().value;
+      if (oldest === undefined) break;
+      mergeTickets.delete(oldest);
+    }
+  }
+  const ticket = randomBytes(32).toString('base64url');
+  mergeTickets.set(ticket, { provider, providerId, expiresAt: now + MERGE_TICKET_TTL_MS });
+  return ticket;
+}
+
+/** 原子消费合并票据：一次性，未过期才返回渠道身份 */
+function consumeMergeTicket(ticket: string): { provider: 'GITHUB' | 'LINUXDO' | 'WECHAT'; providerId: string } | null {
+  const entry = mergeTickets.get(ticket);
+  mergeTickets.delete(ticket);
+  if (!entry || entry.expiresAt < Date.now()) return null;
+  return { provider: entry.provider, providerId: entry.providerId };
+}
 
 /** 防口令/密码验证爆破：随机延迟毫秒数 */
 const VERIFY_DELAY_MS = 500;
@@ -43,6 +86,8 @@ export interface BindingView {
 export interface MyLoginMethodsView {
   /** 邮箱密码登录是否可用（伪邮箱 @oauth.local 不可用） */
   emailLogin: boolean;
+  /** 用户主动禁用了密码登录（仅渠道登录，类似可信设备授权） */
+  passwordLoginDisabled: boolean;
   email: string;
   bindings: BindingView[];
 }
@@ -86,7 +131,8 @@ export const passcodeApi = {
       if (!appConfig.wechat) {
         return yield* fail('微信公众号未配置，口令登录不可用');
       }
-      const record = yield* PasscodeService.create('WECHAT_OFFICIAL', 'LOGIN');
+      const reqCtx = yield* ReqCtxService;
+      const record = yield* PasscodeService.create('WECHAT_OFFICIAL', 'LOGIN', { fromIp: reqCtx.req.ip });
 
       /** 公众号引导：任一空间后台上传过公众号码即用其路由，否则回退 config 的外部 URL */
       const db = yield* DbClientEffect;
@@ -101,7 +147,6 @@ export const passcodeApi = {
         qrUrl: space ? `/group/official-qr/${space.name}.png` : (appConfig.groupEntry?.officialAccountQrUrl ?? null),
       };
 
-      const reqCtx = yield* ReqCtxService;
       reqCtx.log(`${LOG_PREFIX} 发起微信口令登录 id=${record.id}`);
       return { code: record.code, ticket: record.ticket, expiresAt: record.expiresAt, official };
     });
@@ -197,6 +242,7 @@ export const passcodeApi = {
 
       const view: MyLoginMethodsView = {
         emailLogin: !user.email.endsWith('@oauth.local'),
+        passwordLoginDisabled: user.passwordLoginDisabled,
         email: user.email,
         bindings: user.oAuthAccount.map((acc) => ({
           provider: acc.provider,
@@ -314,6 +360,83 @@ export const passcodeApi = {
   },
 
   /**
+   * 发起微信合并验证：purpose=MERGE_VERIFY，回调验证通过后返回 openid 归属供前端发起合并。
+   */
+  createWechatMergeVerify(): Effect.Effect<
+    { code: string; ticket: string; expiresAt: Date; official: PasscodeOfficialView },
+    Error,
+    AppConfigService | ReqCtxService
+  > {
+    return Effect.gen(function* () {
+      const appConfig = yield* AppConfigService;
+      if (!appConfig.wechat) {
+        return yield* fail('微信公众号未配置，合并验证不可用');
+      }
+      const record = yield* PasscodeService.create('WECHAT_OFFICIAL', 'MERGE_VERIFY');
+
+      const db = yield* DbClientEffect;
+      const space = yield* tryOrFail(`${LOG_PREFIX} 查询公众号引导`, () =>
+        db.groupSpace.findFirst({
+          where: { officialQrImagePath: { not: null } },
+          orderBy: { sortOrder: 'asc' },
+        }),
+      );
+      const official: PasscodeOfficialView = {
+        name: space?.officialName || appConfig.groupEntry?.officialAccountName || '公众号',
+        qrUrl: space ? `/group/official-qr/${space.name}.png` : (appConfig.groupEntry?.officialAccountQrUrl ?? null),
+      };
+
+      const reqCtx = yield* ReqCtxService;
+      reqCtx.log(`${LOG_PREFIX} 发起微信合并验证 id=${record.id}`);
+      return { code: record.code, ticket: record.ticket, expiresAt: record.expiresAt, official };
+    });
+  },
+
+  /**
+   * 轮询微信合并验证结果：VERIFIED 时原子消费，返回一次性合并票据。
+   * 前端不得直接拿 providerId 调合并（防接管），只能凭 ticket 调 mergeByMergeTicket。
+   */
+  checkWechatMergeVerify(
+    ticket: string,
+  ): Effect.Effect<
+    PasscodePendingView | { status: 'VERIFIED'; mergeTicket: string },
+    Error,
+    AppConfigService | ReqCtxService
+  > {
+    return Effect.gen(function* () {
+      const record = yield* PasscodeService.findByTicket(ticket);
+      if (!record) return yield* fail('口令不存在或已失效');
+      if (record.purpose !== 'MERGE_VERIFY') return yield* fail('口令用途不匹配');
+
+      if (record.status !== 'CONSUMED' && record.expiresAt.getTime() < Date.now()) {
+        return { status: 'EXPIRED', expiresAt: record.expiresAt };
+      }
+      if (record.status === 'PENDING') {
+        return { status: 'PENDING', expiresAt: record.expiresAt };
+      }
+      if (record.status === 'CONSUMED') {
+        return yield* fail('口令已使用，请重新发起');
+      }
+
+      const consumed = yield* PasscodeService.consume(ticket);
+      if (!consumed || !consumed.channelIdentity) {
+        return yield* fail('口令已被使用，请重新发起');
+      }
+      const openid = consumed.channelIdentity;
+
+      const db = yield* DbClientEffect;
+      const owner = yield* tryOrFail(`${LOG_PREFIX} 查询微信归属(merge)`, () =>
+        db.oAuthAccount.findFirst({ where: { provider: OauthProvider.WECHAT, providerId: openid } }),
+      );
+      if (!owner) return yield* fail('该微信未绑定任何账号，无需合并验证');
+
+      const reqCtx = yield* ReqCtxService;
+      reqCtx.log(`${LOG_PREFIX} 微信合并验证通过 openid=${openid.slice(0, 8)}***，登记票据`);
+      return { status: 'VERIFIED', mergeTicket: registerMergeTicket('WECHAT', openid) };
+    });
+  },
+
+  /**
    * 解绑当前账号的一个第三方登录方式（需登录态）。
    * 保护：解绑后必须至少保留一种可用登录方式（其他绑定，或真实邮箱密码）。
    */
@@ -329,9 +452,9 @@ export const passcodeApi = {
       if (!user) return yield* fail('用户不存在');
 
       const rest = user.oAuthAccount.filter((acc) => acc.provider !== provider);
-      const emailLoginUsable = !user.email.endsWith('@oauth.local');
+      const emailLoginUsable = !user.email.endsWith('@oauth.local') && !user.passwordLoginDisabled;
       if (rest.length === 0 && !emailLoginUsable) {
-        return yield* fail('解绑后将没有任何登录方式，请先绑定邮箱或保留至少一种登录方式');
+        return yield* fail('解绑后将没有任何登录方式，请先绑定其他渠道或恢复密码登录');
       }
 
       yield* tryOrFail(`${LOG_PREFIX} 解绑 ${provider}`, () =>
@@ -343,121 +466,204 @@ export const passcodeApi = {
   },
 
   /**
-   * 账号合并（需登录态）：当前账号（源，数据并入目标）并入目标账号。
-   * 通过目标账号的邮箱+密码验证所有权；事务内把源账号全部数据 reassign 给目标后删除源账号。
-   * 返回目标账号的新会话（前端直接 loginGoto，当前会话随源账号一并失效）。
+   * 账号合并执行（需登录态，内部共用）：把 sourceUserId 的全部数据 reassign 给当前账号后删除源账号。
+   * 调用方负责先验证被合并账号的身份（邮箱密码或第三方渠道认证）。
+   * 当前登录态保持不变（会话不失效），合并完成后刷新即可看到新数据。
    */
   mergeIntoAccount(
-    targetEmail: string,
-    targetPassword: string,
-  ): Effect.Effect<{ status: 'MERGED'; login: PasscodeLoginView }, Error, AppConfigService | ReqCtxService> {
+    mergedEmail: string,
+    mergedPassword: string,
+  ): Effect.Effect<{ status: 'MERGED' }, Error, AppConfigService | ReqCtxService> {
     return Effect.gen(function* () {
-      const sourceUserId = yield* currentUserId();
-      if (!sourceUserId) return yield* fail('请先登录');
+      const targetUserId = yield* currentUserId();
+      if (!targetUserId) return yield* fail('请先登录');
 
       const db = yield* DbClientEffect;
-      const target = yield* tryOrFail(`${LOG_PREFIX} 查询目标账号`, () =>
+      const merged = yield* tryOrFail(`${LOG_PREFIX} 查询被合并账号`, () =>
         db.user.findUnique({
-          where: { email: targetEmail },
-          include: { oAuthAccount: true, role: true },
+          where: { email: mergedEmail },
         }),
       );
 
       /** 防爆破：无论账号存在与否都消耗随机时间 */
       yield* randomDelay();
-      if (!target) return yield* fail('目标账号不存在');
-      if (target.id === sourceUserId) return yield* fail('目标账号不能是当前账号');
+      if (!merged) return yield* fail('被合并账号不存在');
+      if (merged.id === targetUserId) return yield* fail('不能合并当前账号自己');
+      if (merged.passwordLoginDisabled) {
+        return yield* fail('该账号用户已禁用密码登录，密码不再作为有效验证因子');
+      }
 
-      const passwordOk = yield* comparePassword(targetPassword, target.password);
-      if (!passwordOk) return yield* fail('目标账号密码错误');
+      const passwordOk = yield* comparePassword(mergedPassword, merged.password);
+      if (!passwordOk) return yield* fail('被合并账号密码错误');
 
-      const source = yield* tryOrFail(`${LOG_PREFIX} 查询源账号`, () =>
-        db.user.findUnique({
-          where: { id: sourceUserId },
-          include: { oAuthAccount: true, role: true },
+      return yield* executeMerge(targetUserId, merged.id);
+    });
+  },
+
+  /**
+   * 凭一次性合并票据执行合并（需登录态）：票据由渠道验证成功时服务端登记，
+   * 原子消费后用票据内携带的渠道身份定位被合并账号。
+   * 安全性：服务端不信任前端传入的 providerId（可枚举伪造），只认渠道验证后发出的票据。
+   */
+  mergeByMergeTicket(
+    mergeTicket: string,
+  ): Effect.Effect<{ status: 'MERGED' }, Error, AppConfigService | ReqCtxService> {
+    return Effect.gen(function* () {
+      const targetUserId = yield* currentUserId();
+      if (!targetUserId) return yield* fail('请先登录');
+
+      const identity = consumeMergeTicket(mergeTicket);
+      if (!identity) return yield* fail('合并票据无效或已过期，请重新验证');
+
+      const db = yield* DbClientEffect;
+      const binding = yield* tryOrFail(`${LOG_PREFIX} 查询渠道身份归属`, () =>
+        db.oAuthAccount.findFirst({
+          where: { provider: identity.provider, providerId: identity.providerId },
         }),
       );
-      if (!source) return yield* fail('当前账号不存在');
+      if (!binding) return yield* fail('该渠道未绑定任何账号');
+      if (binding.userId === targetUserId) return yield* fail('该渠道已绑定当前账号，无需合并');
 
-      /**
-       * 事务内数据迁移（源 → 目标）：
-       * - userId 字段模型：Resource/UserSession/OAuthAccount/UserData/AiCallLog/Order/UserTokenSubscription/Token/TokenTransaction/Task
-       * - authorId 字段模型：File/Content/Word
-       * - 冲突处理：OAuthAccount 同 provider 已被目标绑定时丢弃源的该条（目标优先）；UserData 同 key 冲突丢弃源的（目标优先）
-       * - 角色：源的独有角色连接给目标
-       * - 源账号会话全部失效，最后删除源账号
-       */
-      yield* tryOrFail(`${LOG_PREFIX} 执行合并事务`, () =>
-        db.$transaction(async (tx) => {
-          /** OAuthAccount：目标已有的同 provider 绑定直接丢弃源记录 */
-          const targetProviders = new Set(target.oAuthAccount.map((acc) => acc.provider));
-          const sourceAccounts = source.oAuthAccount;
-          const keepAccounts = sourceAccounts.filter((acc) => !targetProviders.has(acc.provider));
-          const dropAccountIds = sourceAccounts.filter((acc) => targetProviders.has(acc.provider)).map((acc) => acc.id);
-          if (dropAccountIds.length > 0) {
-            await tx.oAuthAccount.deleteMany({ where: { id: { in: dropAccountIds } } });
-          }
-          if (keepAccounts.length > 0) {
-            await tx.oAuthAccount.updateMany({
-              where: { id: { in: keepAccounts.map((a) => a.id) } },
-              data: { userId: target.id },
-            });
-          }
+      return yield* executeMerge(targetUserId, binding.userId);
+    });
+  },
 
-          /** UserData：先删与目标同 key+appId 冲突的源记录，再迁移 */
-          await tx.userData.deleteMany({
-            where: {
-              userId: source.id,
-              key: {
-                in: await tx.userData
-                  .findMany({ where: { userId: target.id }, select: { key: true } })
-                  .then((rs) => rs.map((r) => r.key)),
-              },
-            },
-          });
-          await tx.userData.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+  /**
+   * 设置禁用/恢复账号密码登录（需登录态，类似可信设备授权）：
+   * - 禁用：必须至少绑定一个第三方渠道；邮箱密码可用时须验证当前密码
+   * - 恢复：必须验证当前密码（确保是账号本人操作）
+   */
+  setPasswordLoginDisabled(
+    disabled: boolean,
+    password: string,
+  ): Effect.Effect<{ status: 'OK' }, Error, AppConfigService | ReqCtxService> {
+    return Effect.gen(function* () {
+      const userId = yield* currentUserId();
+      if (!userId) return yield* fail('请先登录');
 
-          /** 常规 userId 迁移 */
-          await tx.resource.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
-          await tx.order.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
-          await tx.userTokenSubscription.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
-          await tx.token.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
-          await tx.tokenTransaction.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
-          await tx.task.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
-          await tx.aiCallLog.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
-
-          /** authorId 迁移 */
-          await tx.file.updateMany({ where: { authorId: source.id }, data: { authorId: target.id } });
-          await tx.content.updateMany({ where: { authorId: source.id }, data: { authorId: target.id } });
-          await tx.word.updateMany({ where: { authorId: source.id }, data: { authorId: target.id } });
-
-          /** 角色：源的独有角色连接给目标 */
-          const targetRoleNames = new Set(target.role.map((r) => r.name));
-          const rolesToConnect = source.role.filter((r) => !targetRoleNames.has(r.name)).map((r) => r.name);
-          if (rolesToConnect.length > 0) {
-            await tx.user.update({
-              where: { id: target.id },
-              data: { role: { connect: rolesToConnect.map((name) => ({ name })) } },
-            });
-          }
-
-          /** 源会话全部失效（含当前会话），删除源账号 */
-          await tx.userSession.deleteMany({ where: { userId: source.id } });
-          await tx.user.delete({ where: { id: source.id } });
-        }),
+      const db = yield* DbClientEffect;
+      const user = yield* tryOrFail(`${LOG_PREFIX} 查询用户(密码开关)`, () =>
+        db.user.findUnique({ where: { id: userId }, include: { oAuthAccount: true } }),
       );
+      if (!user) return yield* fail('用户不存在');
+      if (user.passwordLoginDisabled === disabled) return { status: 'OK' as const };
 
-      /** 给目标账号发新会话，前端直接登录态切换 */
-      const mergedUser = yield* tryOrFail(`${LOG_PREFIX} 查询合并后用户`, () =>
-        db.user.findUnique({ where: { id: target.id }, include: { role: true } }),
+      /** 任何开关操作都需验证密码，确保本人操作（伪邮箱用户密码随机不可知，本功能对其无意义） */
+      yield* randomDelay();
+      const passwordOk = yield* comparePassword(password, user.password);
+      if (!passwordOk) return yield* fail('密码错误');
+
+      if (disabled) {
+        if (user.email.endsWith('@oauth.local')) {
+          return yield* fail('OAuth 创建的账号本就无密码登录，无需设置');
+        }
+        if (user.oAuthAccount.length === 0) {
+          return yield* fail('请先绑定至少一个第三方登录渠道，否则禁用后将无法登录');
+        }
+      }
+
+      yield* tryOrFail(`${LOG_PREFIX} 更新密码登录开关`, () =>
+        db.user.update({ where: { id: userId }, data: { passwordLoginDisabled: disabled } }),
       );
-      const finalUser = yield* requireOrFail(mergedUser, '合并后用户查询失败');
-      const session = yield* genUserSession(finalUser.id);
-
       const reqCtx = yield* ReqCtxService;
-      reqCtx.log(`${LOG_PREFIX} 账号合并 ${sourceUserId} -> ${target.id}`);
-      const { password: _pwd, ...userWithoutPassword } = finalUser;
-      return { status: 'MERGED', login: { ...session, user: userWithoutPassword } };
+      reqCtx.log(`${LOG_PREFIX} 密码登录开关 disabled=${disabled} userId=${userId}`);
+      return { status: 'OK' as const };
     });
   },
 };
+
+/** 合并事务执行体（passcodeApi 内部共用）：sourceUserId 全部数据迁入 targetUserId 后删除源账号 */
+function executeMerge(
+  targetUserId: string,
+  sourceUserId: string,
+): Effect.Effect<{ status: 'MERGED' }, Error, AppConfigService | ReqCtxService> {
+  return Effect.gen(function* () {
+    const db = yield* DbClientEffect;
+    const target = yield* tryOrFail(`${LOG_PREFIX} 查询当前账号(接收方)`, () =>
+      db.user.findUnique({
+        where: { id: targetUserId },
+        include: { oAuthAccount: true, role: true },
+      }),
+    );
+    if (!target) return yield* fail('当前账号不存在');
+    const source = yield* tryOrFail(`${LOG_PREFIX} 查询被合并账号`, () =>
+      db.user.findUnique({
+        where: { id: sourceUserId },
+        include: { oAuthAccount: true, role: true },
+      }),
+    );
+    if (!source) return yield* fail('被合并账号不存在');
+
+    /**
+     * 事务内数据迁移（源 → 目标）：
+     * - userId 字段模型：Resource/UserSession/OAuthAccount/UserData/AiCallLog/Order/UserTokenSubscription/Token/TokenTransaction/Task
+     * - authorId 字段模型：File/Content/Word
+     * - 冲突处理：OAuthAccount 同 provider 已被目标绑定时丢弃源的该条（目标优先）；UserData 同 key 冲突丢弃源的（目标优先）
+     * - 角色：源的独有角色连接给目标
+     * - 源账号会话全部失效，最后删除源账号
+     */
+    yield* tryOrFail(`${LOG_PREFIX} 执行合并事务`, () =>
+      db.$transaction(async (tx) => {
+        /** OAuthAccount：目标已有的同 provider 绑定直接丢弃源记录 */
+        const targetProviders = new Set(target.oAuthAccount.map((acc) => acc.provider));
+        const sourceAccounts = source.oAuthAccount;
+        const keepAccounts = sourceAccounts.filter((acc) => !targetProviders.has(acc.provider));
+        const dropAccountIds = sourceAccounts.filter((acc) => targetProviders.has(acc.provider)).map((acc) => acc.id);
+        if (dropAccountIds.length > 0) {
+          await tx.oAuthAccount.deleteMany({ where: { id: { in: dropAccountIds } } });
+        }
+        if (keepAccounts.length > 0) {
+          await tx.oAuthAccount.updateMany({
+            where: { id: { in: keepAccounts.map((a) => a.id) } },
+            data: { userId: target.id },
+          });
+        }
+
+        /** UserData：先删与目标同 key+appId 冲突的源记录，再迁移 */
+        await tx.userData.deleteMany({
+          where: {
+            userId: source.id,
+            key: {
+              in: await tx.userData
+                .findMany({ where: { userId: target.id }, select: { key: true } })
+                .then((rs) => rs.map((r) => r.key)),
+            },
+          },
+        });
+        await tx.userData.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+
+        /** 常规 userId 迁移 */
+        await tx.resource.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+        await tx.order.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+        await tx.userTokenSubscription.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+        await tx.token.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+        await tx.tokenTransaction.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+        await tx.task.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+        await tx.aiCallLog.updateMany({ where: { userId: source.id }, data: { userId: target.id } });
+
+        /** authorId 迁移 */
+        await tx.file.updateMany({ where: { authorId: source.id }, data: { authorId: target.id } });
+        await tx.content.updateMany({ where: { authorId: source.id }, data: { authorId: target.id } });
+        await tx.word.updateMany({ where: { authorId: source.id }, data: { authorId: target.id } });
+
+        /** 角色：源的独有角色连接给目标 */
+        const targetRoleNames = new Set(target.role.map((r) => r.name));
+        const rolesToConnect = source.role.filter((r) => !targetRoleNames.has(r.name)).map((r) => r.name);
+        if (rolesToConnect.length > 0) {
+          await tx.user.update({
+            where: { id: target.id },
+            data: { role: { connect: rolesToConnect.map((name) => ({ name })) } },
+          });
+        }
+
+        /** 源会话全部失效，删除源账号（当前账号会话不受影响） */
+        await tx.userSession.deleteMany({ where: { userId: source.id } });
+        await tx.user.delete({ where: { id: source.id } });
+      }),
+    );
+
+    const reqCtx = yield* ReqCtxService;
+    reqCtx.log(`${LOG_PREFIX} 账号合并 ${source.id} -> ${target.id}（当前账号为接收方）`);
+    return { status: 'MERGED' as const };
+  });
+}
