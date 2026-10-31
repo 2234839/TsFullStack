@@ -31,6 +31,7 @@ export type WebhookPayload = Record<string, unknown>;
 export interface ParsedWebhookResult {
   tradeNo: string;
   orderNo: string;
+  /** 实付金额，单位统一为「分」（与 order.amount 一致）；适配器负责归一化 */
   paidAmount: number;
   paymentStatus: 'success' | 'closed' | 'other';
   paidAt: Date;

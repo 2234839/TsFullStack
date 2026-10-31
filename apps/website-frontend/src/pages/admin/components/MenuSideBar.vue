@@ -301,14 +301,16 @@ interface MenuCategory {
   items: MenuItem[];
 }
 
-// 侧边栏状态
-const isCollapsed = adminSidebarCollapsed;
-const searchQuery = ref('');
+const props = defineProps<{ forceExpanded?: boolean }>();
 
-// 窄屏下默认折叠侧边栏，给主内容区留出宽度（点 logo 可展开）
-if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-  isCollapsed.value = true;
-}
+/** 抽屉模式下强制展开侧边栏，避免图标列浪费抽屉宽度 */
+const isCollapsed = computed({
+  get: () => !props.forceExpanded && adminSidebarCollapsed.value,
+  set: (value) => {
+    adminSidebarCollapsed.value = value;
+  },
+});
+const searchQuery = ref('');
 
 /** 双态切换过渡的方向名：展开用 push（从左推入），收起用 pop（向左推回），形成对称动画 */
 const swapName = ref('sidebar-swap');

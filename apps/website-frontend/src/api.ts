@@ -48,8 +48,12 @@ export function useAPI() {
     }
     const superjsonStr = superjson.stringify(args);
     const argsStr = encodeURIComponent(superjsonStr);
-    const sgin = await SessionAuthSign.signByToken(superjsonStr, token);
-    return `${baseServer}/api/${path}?args=${argsStr}&sign=${sgin}&session=${authInfo.value.id}`;
+    const expiresAt = Date.now() + SessionAuthSign.GET_SIGN_EXPIRY_MS;
+    const sgin = await SessionAuthSign.signByToken(
+      SessionAuthSign.buildGetSignOrigin(path, superjsonStr, expiresAt),
+      token,
+    );
+    return `${baseServer}/api/${path}?args=${argsStr}&sign=${sgin}&session=${authInfo.value.id}&e=${expiresAt}`;
   });
   const AppAPIGetUrl = proxyCall(AppAPI, ([path, args]) => {
     const superjsonStr = superjson.stringify(args);

@@ -26,6 +26,8 @@ export type ReqCtx = {
   logs: JsonValue[];
   log(...args: JsonValue[]): void;
   req: FastifyRequest;
+  /** 响应对象（如 set-cookie 需要在 RPC 内部写入响应头） */
+  reply?: import('fastify').FastifyReply;
   reqId: number;
   /** 请求开始时刻（performance.now 时基，与 LoopLagMonitor 一致） */
   t0: number;

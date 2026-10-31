@@ -12,6 +12,28 @@ import { OauthProvider } from '../../../.zenstack/models';
 import type { JsonValue } from '@zenstackhq/orm';
 import type { User, Role, UserSession } from '../../../.zenstack/models';
 import { randomBytes } from 'node:crypto';
+import { Cache, Ref } from 'effect';
+
+/** 匿名创建口令的 IP 限流：10 分钟窗口内最多 20 次，防无成本批量生成口令打满 DB */
+const PASSCODE_CREATE_IP_LIMIT = 20;
+const passcodeCreateCache = Effect.runSync(
+  Cache.make({
+    capacity: 10_000,
+    timeToLive: '10 minutes',
+    lookup: (ip: string) => Ref.make(0),
+  }),
+);
+
+/** 匿名创建限流：超限抛错（fail 快速返回，不生成口令） */
+function passcodeCreateRateLimit(ip: string): Effect.Effect<void, Error> {
+  return Effect.gen(function* () {
+    const ref = yield* Cache.get(passcodeCreateCache, ip);
+    const count = yield* Ref.modify(ref, (n) => [n + 1, n + 1] as const);
+    if (count > PASSCODE_CREATE_IP_LIMIT) {
+      return yield* fail('创建过于频繁，请稍后再试');
+    }
+  });
+}
 
 /** 日志前缀 */
 const LOG_PREFIX = '[PasscodeApi]';
@@ -108,6 +130,7 @@ export const passcodeApi = {
         return yield* fail('微信公众号未配置，口令登录不可用');
       }
       const reqCtx = yield* ReqCtxService;
+      yield* passcodeCreateRateLimit(reqCtx.req.ip || 'unknown');
       const record = yield* PasscodeService.create('WECHAT_OFFICIAL', 'LOGIN', { fromIp: reqCtx.req.ip });
 
       /** 公众号引导：任一空间后台上传过公众号码即用其路由，否则回退 config 的外部 URL */
@@ -276,6 +299,8 @@ export const passcodeApi = {
       if (!appConfig.wechat) {
         return yield* fail('微信公众号未配置，合并验证不可用');
       }
+      const reqCtx = yield* ReqCtxService;
+      yield* passcodeCreateRateLimit(reqCtx.req.ip || 'unknown');
       const record = yield* PasscodeService.create('WECHAT_OFFICIAL', 'MERGE_VERIFY');
 
       const db = yield* DbClientEffect;
@@ -290,7 +315,6 @@ export const passcodeApi = {
         qrUrl: space ? `/group/official-qr/${space.name}.png` : (appConfig.groupEntry?.officialAccountQrUrl ?? null),
       };
 
-      const reqCtx = yield* ReqCtxService;
       reqCtx.log(`${LOG_PREFIX} 发起微信合并验证 id=${record.id}`);
       return { code: record.code, ticket: record.ticket, expiresAt: record.expiresAt, official };
     });

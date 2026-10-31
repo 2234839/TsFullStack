@@ -4,6 +4,7 @@ import { DbClientEffect } from '../Context/DbService';
 import { AuthContext } from '../Context/Auth';
 import { dbTry } from '../util/dbEffect';
 import { ReqCtxService } from '../Context/ReqCtx';
+import { invalidateAuthUserCache } from '../server/authCache';
 
 export const systemApis = {
   getModelMeta() {
@@ -32,6 +33,8 @@ export const systemApis = {
       );
 
       reqCtx.log('[SystemApi] logout, userId=', user.id, 'revoked=', result.count);
+      /** 会话撤销后立即失效鉴权缓存，旧凭据不再残留 */
+      invalidateAuthUserCache(user.id);
       return { success: true as const, revokedSessions: result.count };
     });
   },

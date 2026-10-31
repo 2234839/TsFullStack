@@ -15,13 +15,13 @@ export const authInfo_isLogin = computed(() => {
   return !!authInfo.value && new Date(authInfo.value.expiresAt).getTime() > Date.now();
 });
 
+/** 记住登录：只记用户名与开关，不再存储密码（密码属敏感凭据，不入 localStorage） */
 export const localUserPwd = useStorageAsync<{
   username: string;
-  password: string;
   rememberMe: boolean;
 }>(
   /** v2: 密钥派生方式变更（SHA-256），不兼容旧数据 */ appId + '__test_v2__',
-  { username: '', password: '', rememberMe: false },
+  { username: '', rememberMe: false },
   undefined,
   {
     serializer: encryptSerializer,

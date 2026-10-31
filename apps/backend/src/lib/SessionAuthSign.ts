@@ -33,6 +33,14 @@ export function signByToken(originStr: string, sessionToken: string) {
   return Effect.runPromise(hmacSha256(sessionToken, originStr));
 }
 
+/** GET 签名有效期：签名带时间戳参与运算，过期拒绝（防链接泄露后永久重放） */
+export const GET_SIGN_EXPIRY_MS = 10 * 60 * 1000;
+
+/** GET 签名原文：RPC 方法名 + args + 过期时间戳（跨方法不可复用） */
+export function buildGetSignOrigin(method: string, argsStr: string, expiresAt: number) {
+  return `${method}?${argsStr}&e=${expiresAt}`;
+}
+
 /** 将 hex 字符串转为 Uint8Array（非法 hex 返回 null，避免 NaN 字节导致的未定义行为） */
 function hexToUint8(hex: string): Uint8Array | null {
   if (!/^[0-9a-fA-F]*$/.test(hex) || hex.length % 2 !== 0) {

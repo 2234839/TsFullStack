@@ -16,6 +16,12 @@ import { dbTry, dbTryOrDefault } from '../../util/dbEffect';
 /** 日志前缀 */
 const LOG_PREFIX = '[FileApi]';
 
+/** 用户上传总容量配额（字节）：DB 记录的 size 求和超限后拒绝新上传 */
+const USER_UPLOAD_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
+
+/** 单文件大小上限（字节），超限直接拒绝（防 multipart 大流量 DoS） */
+const SINGLE_FILE_MAX_BYTES = 100 * 1024 * 1024;
+
 /**
  * 禁止上传的扩展名（active content，浏览器直接打开会执行代码 → 存储型 XSS）
  * 即使有 nosniff 头，防御也不应依赖单层：在入口直接拒绝最可靠。
@@ -46,8 +52,8 @@ const saveFile = (options: {
   mimetype: string;
   /** Buffer 模式：直接传入完整数据 */
   buffer?: Buffer;
-  /** 流式模式：传入可读流和已知大小（用于大文件/上传场景） */
-  stream?: NodeJS.ReadableStream;
+  /** 流式模式：传入可读流和已知大小（用于大文件上传场景）；destroy 可选（部分流实现支持中止） */
+  stream?: NodeJS.ReadableStream & { destroy?: (error?: Error) => void };
   byteLength?: number;
 }) =>
   Effect.gen(function* () {
@@ -67,6 +73,10 @@ const saveFile = (options: {
       let fileSize = options.byteLength ?? 0;
       const trackedStream = options.stream.on('data', (chunk: Buffer) => {
         if (!options.byteLength) fileSize += chunk.length;
+        /** 流式写入超限即销毁流中止上传（防超大文件打满磁盘） */
+        if (fileSize > SINGLE_FILE_MAX_BYTES) {
+          trackedStream.destroy?.(new Error(`文件超出单文件上限 ${Math.floor(SINGLE_FILE_MAX_BYTES / 1024 / 1024)}MB`));
+        }
       });
       const writeStream = createWriteStream(filePath);
       trackedStream.pipe(writeStream);
@@ -139,6 +149,17 @@ export const fileApi = {
       );
 
       reqCtx.log(`${LOG_PREFIX} 用户上传文件: ${reqFile.filename}, mimetype=${reqFile.mimetype}`);
+
+      const auth = yield* AuthContext;
+      const uploaded = yield* tryOrFail('统计用户已用容量', () =>
+        auth.db.file.aggregate({ _sum: { size: true }, where: { authorId: auth.user.id } }),
+      );
+      const usedBytes = uploaded._sum.size ?? 0;
+      if (usedBytes >= USER_UPLOAD_QUOTA_BYTES) {
+        return yield* fail(
+          `存储空间已满（配额 ${Math.floor(USER_UPLOAD_QUOTA_BYTES / 1024 / 1024 / 1024)}GB），请先删除旧文件`,
+        );
+      }
 
       /** 安全：拒绝 active content 文件（防存储型 XSS，详见 FORBIDDEN_UPLOAD_EXTENSIONS 注释） */
       const ext = getFileExtension(reqFile.filename);

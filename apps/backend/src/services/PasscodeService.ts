@@ -1,5 +1,5 @@
 import { Effect } from 'effect';
-import { randomInt } from 'node:crypto';
+import { randomBytes, randomInt } from 'node:crypto';
 import { Cache, Ref } from 'effect';
 import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService } from '../Context/AppConfig';
@@ -35,6 +35,9 @@ const verifyFailCache = Effect.runSync(
 /** 单 key 在 TTL 窗口内允许的验证失败次数（命中真口令不算失败） */
 const VERIFY_FAIL_LIMIT = 10;
 
+/** 全局门限：多租户正常用户可能同时验错，全局封禁过严会被单个身份的错误打挂所有人，放宽到 500 */
+const VERIFY_GLOBAL_FAIL_LIMIT = 500;
+
 /** 触发限流后的封禁时长 */
 const VERIFY_BAN_MS = 5 * 60 * 1000;
 
@@ -55,12 +58,12 @@ function isVerifyBanned(key: string): Effect.Effect<boolean> {
   });
 }
 
-/** 记录一次验证失败，超限后置封禁标记 */
-function recordVerifyFail(key: string): Effect.Effect<void> {
+/** 记录一次验证失败，超限后置封禁标记（limit 可按 key 粒度覆盖，全局门限更宽） */
+function recordVerifyFail(key: string, limit: number = VERIFY_FAIL_LIMIT): Effect.Effect<void> {
   return Effect.gen(function* () {
     const ref = yield* Cache.get(verifyFailCache, key);
     const count = yield* Ref.modify(ref, (n) => [n + 1, n + 1] as const);
-    if (count > VERIFY_FAIL_LIMIT) {
+    if (count > limit) {
       const ban = yield* Cache.get(verifyBanCache, key);
       yield* Ref.set(ban, true);
     }
@@ -104,6 +107,8 @@ export const PasscodeService = {
           db.verificationPasscode.create({
             data: {
               code,
+              /** 轮询票据用 CSPRNG（cuid2 的熵源是 Math.random，不可作鉴权凭据） */
+              ticket: randomBytes(32).toString('base64url'),
               channel,
               purpose,
               payload,
@@ -142,8 +147,8 @@ export const PasscodeService = {
         }),
       );
       if (result.count !== 1) {
-        /** 未命中：双 key 记失败，超限即封（全局门限制总尝试速率，单身份门防绕过全局后定向爆破） */
-        yield* recordVerifyFail(globalKey);
+        /** 未命中：双 key 记失败，超限即封（全局门限制总尝试速率且门限更宽，单身份门防定向爆破） */
+        yield* recordVerifyFail(globalKey, VERIFY_GLOBAL_FAIL_LIMIT);
         yield* recordVerifyFail(identityKey);
         return false;
       }

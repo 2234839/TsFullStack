@@ -159,7 +159,8 @@ model Resource with Base {
 
 /// UserSession 用于存储用户的登录会话信息。每个会话都有一个唯一的 token 和过期时间。
 model UserSession with Base {
-    token     String   @default(cuid())
+    /** 会话令牌（CSPRNG 生成，代码层填充，见 _genUserSession.ts） */
+    token     String
     expiresAt DateTime
     userId    String
     user      User     @relation(fields: [userId], references: [id])
@@ -205,8 +206,8 @@ model VerificationPasscode with Base {
     /** 一次性数字口令（6 位，用户在通道侧回传） */
     code String
 
-    /** 发起方轮询票据（secret，仅发起方持有） */
-    ticket String @unique @default(cuid())
+    /** 发起方轮询票据（secret，仅发起方持有；CSPRNG 生成，代码层填充，见 PasscodeService.ts） */
+    ticket String @unique
 
     /** 回传通道 */
     channel PasscodeChannel
@@ -603,9 +604,8 @@ model Order with Base {
   @@index([orderNo])
   @@index([status, created])
 
-  /** 权限控制：用户可读自己的订单，登录用户可创建（但 userId 必须是本人） */
+  /** 权限控制：用户可读自己的订单；创建/更新全走服务端 PaymentService，RPC 不开放 */
   @@allow('read', auth() == user)
-  @@allow('create', auth() != null && auth() == user)
 }
 
 /// ==================== 代币系统 ====================
@@ -838,8 +838,8 @@ model Task with Base {
     @@index([status, created])
     @@index([type, created])
 
-    /** 权限控制 */
-    @@allow('read,create,update,delete', auth() == user)
+    /** 权限控制：RPC 只开放读；写操作全部走服务端代码路径（TaskService / TokenService 等），防客户端伪造任务/代币记录 */
+    @@allow('read', auth() == user)
 }
 
 /// 群二维码状态枚举

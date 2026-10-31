@@ -60,6 +60,9 @@ export function getAuthFromCache(opt: AuthOpt) {
 
     const user = yield* Cache.get(userCache, cacheKey);
 
+    /** 反向登记 userId → cacheKey，供会话撤销时精确失效（索引容量上限保护内存） */
+    indexUserKey(user.id, cacheKey);
+
     // 每次请求都重新创建 db 客户端，确保有正确的 ReqCtxService
     // 这是关键：db 对象的 onQuery 钩子会捕获当前请求的 ReqCtxService
     const db = yield* createAuthDbClient(user);
@@ -70,4 +73,29 @@ export function getAuthFromCache(opt: AuthOpt) {
     };
     return res;
   });
+}
+
+/** userId → 缓存 key 集合的反向索引；超限整体重建（退化为 TTL 失效，安全兜底） */
+const userKeysIndex = new Map<string, Set<string>>();
+const USER_KEYS_INDEX_MAX = 2000;
+
+function indexUserKey(userId: string, cacheKey: string) {
+  if (userKeysIndex.size > USER_KEYS_INDEX_MAX) userKeysIndex.clear();
+  let keys = userKeysIndex.get(userId);
+  if (!keys) {
+    keys = new Set();
+    userKeysIndex.set(userId, keys);
+  }
+  keys.add(cacheKey);
+}
+
+/**
+ * 会话撤销/用户状态变更后立即失效该用户的全部鉴权缓存条目
+ * （登出、账号合并等删除会话后调用，消除最长 10 分钟的凭据残留窗口）
+ */
+export function invalidateAuthUserCache(userId: string) {
+  const keys = userKeysIndex.get(userId);
+  if (!keys) return;
+  for (const key of keys) Effect.runSync(Cache.invalidate(userCache, key));
+  userKeysIndex.delete(userId);
 }

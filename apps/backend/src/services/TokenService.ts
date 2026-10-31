@@ -262,22 +262,27 @@ export const TokenService = {
       /** 消耗前余额快照（用于审计） */
       const balanceSnapshot = calculateBalanceSnapshot(generalTokens, specificTokens);
 
-      /** 代币扣减 + 消耗记录写入在同一事务中，保证原子性（扣减成功则必有审计记录） */
+      /** 代币扣减 + 消耗记录写入在同一事务中，保证原子性（扣减成功则必有审计记录）
+       * 实际增量不足额时直接抛错回滚（余额不足），不做截断部分提交 */
       /** 构建代币 ID → Token 的索引，避免事务内每次迭代合并数组 + find */
       const tokenById = new Map([...specificTokens, ...generalTokens].map((t) => [t.id, t]));
 
-      yield* dbTry(LOG_PREFIX, '代币扣减与消耗记录', () =>
+      /** 实际应用的增量明细（含 tokenId），供失败退回精确反转 */
+      const applied = yield* dbTry(LOG_PREFIX, '代币扣减与消耗记录', () =>
         db.$transaction(async (tx) => {
+          const appliedUpdates: Array<{ id: number; increment: number }> = [];
           for (const u of updates) {
             /** 乐观锁：在事务内重新读取当前 used 值，防止并发超支 */
             const current = await tx.token.findUnique({ where: { id: u.id }, select: { used: true, amount: true } });
             if (!current) throw MsgError.msg(`代币记录不存在: ${u.id}`);
             const token = tokenById.get(u.id);
             const expectedIncrement = token ? u.newUsed - token.used : 0;
-            /** 并发场景下 used 可能已被其他请求增加，按实际增量而非快照增量执行 */
-            const actualIncrement = Math.min(expectedIncrement, current.amount - current.used);
-            if (actualIncrement <= 0) throw MsgError.msg(MSG.TOKEN_INSUFFICIENT);
-            await tx.token.update({ where: { id: u.id }, data: { used: { increment: actualIncrement } } });
+            /** 并发下余额已变时整体回滚，绝不部分提交（截断会造成账实不符） */
+            const actualIncrement = current.amount - current.used;
+            if (actualIncrement < expectedIncrement) throw MsgError.msg(MSG.TOKEN_INSUFFICIENT);
+            if (expectedIncrement <= 0) continue;
+            await tx.token.update({ where: { id: u.id }, data: { used: { increment: expectedIncrement } } });
+            appliedUpdates.push({ id: u.id, increment: expectedIncrement });
           }
           await tx.tokenTransaction.createMany({
             data: details.map((d) => ({
@@ -289,13 +294,34 @@ export const TokenService = {
               note: `任务 ${taskId} 消耗 ${d.amount} ${d.type} 代币`,
             })),
           });
+          return appliedUpdates;
         }),
       );
 
       // 4. 计算剩余额度（基于内存数据，无额外 DB 查询）
       const remaining = calculateRemaining(generalTokens, specificTokens, details);
 
-      return { details, total: amount, remaining };
+      return { details, total: amount, remaining, applied };
+    }),
+
+  /**
+   * 退回已消耗代币（预扣后任务失败时调用）：
+   * 按 consumeTokens 返回的实际增量精确反转 used，并删除该任务的消耗审计记录
+   */
+  refundTokens: (userId: string, taskId: number, applied: Array<{ id: number; increment: number }>) =>
+    Effect.gen(function* () {
+      const db = yield* DbClientEffect;
+      const reqCtx = yield* ReqCtxService;
+      if (applied.length === 0) return;
+      yield* dbTry(LOG_PREFIX, '代币退回', () =>
+        db.$transaction(async (tx) => {
+          for (const u of applied) {
+            await tx.token.update({ where: { id: u.id }, data: { used: { decrement: u.increment } } });
+          }
+          await tx.tokenTransaction.deleteMany({ where: { taskId, userId } });
+        }),
+      );
+      reqCtx.log(`${LOG_PREFIX} 已退回任务 ${taskId} 预扣代币（${applied.length} 条记录）`);
     }),
 
   /**

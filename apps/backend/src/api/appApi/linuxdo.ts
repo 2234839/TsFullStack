@@ -9,7 +9,12 @@ import { dbTry } from '../../util/dbEffect';
 import { hashPassword } from '../../util/crypto';
 import { LinuxDoAuthService } from '../../OAuth/linuxdo';
 import { genUserSession } from './_genUserSession';
-import { generateSecureRandomPassword, generateFakeEmail } from './_oauthUtil';
+import {
+  generateSecureRandomPassword,
+  generateFakeEmail,
+  setOAuthStateCookie,
+  verifyOAuthStateCookie,
+} from './_oauthUtil';
 import { registerMergeTicket } from './passcode';
 
 /** 日志前缀 */
@@ -25,7 +30,15 @@ const currentUserId = () =>
 /** 通过 LINUX DO 登录 */
 export const linuxdoApi = {
   getAuthorizationUrl() {
-    return Effect.flatMap(LinuxDoAuthService, (auth) => auth.getAuthorizationUrl());
+    return Effect.gen(function* () {
+      const auth = yield* LinuxDoAuthService;
+      const url = yield* auth.getAuthorizationUrl();
+      /** state 绑定当前浏览器（httpOnly cookie），回调时校验，防 login CSRF */
+      const state = new URL(url).searchParams.get('state') ?? '';
+      const reqCtx = yield* ReqCtxService;
+      setOAuthStateCookie(reqCtx, 'linuxdo', state);
+      return url;
+    });
   },
   /** 发起 LINUX DO 绑定（需登录态）：state 标记绑定意图，回调走绑定分支 */
   getBindAuthorizationUrl() {
@@ -53,6 +66,10 @@ export const linuxdoApi = {
     return Effect.gen(function* () {
       const dbClient = yield* DbClientEffect;
       const reqCtx = yield* ReqCtxService;
+      /** 回调浏览器必须携带发起时种下的 state cookie，防止攻击者预签 state 诱导登录（login CSRF） */
+      if (!verifyOAuthStateCookie(reqCtx, 'linuxdo', state)) {
+        return yield* fail('登录会话已失效，请重新发起登录');
+      }
       const auth = yield* LinuxDoAuthService;
       const { user: linuxdoUser, bind, intent, initiatorUserId } = yield* auth.authenticate(code, state);
 

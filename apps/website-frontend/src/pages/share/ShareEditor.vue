@@ -240,6 +240,9 @@ const needsPassword = ref(false);
 /** 手动输入的密码 */
 const manualPassword = ref('');
 
+/** 本会话解锁密码的 sessionStorage key（按分享 id 隔离，不写 URL/history） */
+const sharePasswordStorageKey = `share-pwd:${id}`;
+
 /** 密码错误信息 */
 const passwordError = ref('');
 
@@ -259,14 +262,25 @@ const loadShareDetail = async () => {
   rawShareData.value = parsed;
 
   if (parsed && isEncryptedData(parsed.data)) {
-    /** 加密分享：尝试从 URL hash 获取密码自动解密 */
+    /** 加密分享：优先从 URL hash（他人分享链接携带）获取密码，其次 sessionStorage（本会话内自己解锁过的，刷新页面免重输）。
+     * 密码不回写 URL/history，避免长期留在地址栏被浏览器记录/复制泄漏 */
     const hashParams = parseShareHashParams(window.location.hash);
-    if (hashParams) {
-      const decrypted = await decryptShareData(parsed.data, hashParams.password, hashParams.salt);
+    const sessionPassword = sessionStorage.getItem(sharePasswordStorageKey) ?? '';
+    const candidates: Array<{ password: string; salt: string }> = hashParams
+      ? [hashParams, { password: sessionPassword, salt: hashParams.salt }]
+      : [];
+    if (!hashParams && sessionPassword) {
+      const salt = isEncryptedData(parsed.data) ? parsed.data.salt : '';
+      candidates.push({ password: sessionPassword, salt });
+    }
+    for (const cand of candidates) {
+      if (!cand.password) continue;
+      const decrypted = await decryptShareData(parsed.data, cand.password, cand.salt);
       if (decrypted) {
         const { ShareCrypto: SC } = await import('@/utils/shareCrypto');
-        activeCrypto.value = await SC.fromPassword(hashParams.password, hashParams.salt);
+        activeCrypto.value = await SC.fromPassword(cand.password, cand.salt);
         decryptedShare.value = decrypted;
+        sessionStorage.setItem(sharePasswordStorageKey, cand.password);
         return parsed;
       }
     }
@@ -301,17 +315,12 @@ async function tryDecryptWithManualPassword() {
     const salt = isEncryptedData(encryptedData) ? encryptedData.salt : '';
     const decrypted = await decryptShareData(rawShareData.value.data, manualPassword.value, salt);
     if (decrypted) {
-      const { ShareCrypto: SC, base64UrlEncode } = await import('@/utils/shareCrypto');
+      const { ShareCrypto: SC } = await import('@/utils/shareCrypto');
       activeCrypto.value = await SC.fromPassword(manualPassword.value, salt);
       decryptedShare.value = decrypted;
       needsPassword.value = false;
-      /** 解锁成功后将密码写回 URL hash，使分享链接/二维码自动包含密码 */
-      const encodedP = base64UrlEncode(new TextEncoder().encode(manualPassword.value));
-      const newHash = `#k=${salt}&p=${encodedP}`;
-      if (window.location.hash !== newHash) {
-        window.history.replaceState(null, '', `${window.location.pathname}${newHash}`);
-        currentHash.value = newHash;
-      }
+      /** 解锁密码存 sessionStorage（刷新免重输），不写 URL hash/history，防地址栏与浏览器记录泄漏 */
+      sessionStorage.setItem(sharePasswordStorageKey, manualPassword.value);
     } else {
       passwordError.value = t('密码错误');
     }

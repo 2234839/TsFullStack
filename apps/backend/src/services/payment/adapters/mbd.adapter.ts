@@ -25,6 +25,8 @@ const LOG_PREFIX = '[MbdAdapter]';
 const MBD_API_BASE = 'https://newapi.mbd.pub';
 
 /** 面包多订单状态：支付成功 */
+/** 面包多金额单位为元，×100 归一化为分 */
+const YUAN_TO_FEN = 100;
 const MBD_STATE_SUCCESS = '1';
 
 /** 生成面包多签名 */
@@ -128,7 +130,8 @@ export const MbdAdapter: PaymentAdapter = {
         return {
           tradeNo: '',
           orderNo: String(data?.out_trade_no ?? ''),
-          paidAmount: Number(data?.amount ?? 0),
+          /** 面包多金额单位为元，归一化为分 */
+          paidAmount: Math.round(Number(data?.amount ?? 0) * YUAN_TO_FEN),
           paymentStatus: 'other' as const,
           paidAt: new Date(),
           rawPayload: deepCloneToJson(payload),
@@ -144,7 +147,8 @@ export const MbdAdapter: PaymentAdapter = {
       return {
         tradeNo: String(data?.charge_id ?? ''),
         orderNo: String(data?.out_trade_no ?? ''),
-        paidAmount: Number(data?.amount ?? 0),
+        /** 面包多金额单位为元，归一化为分 */
+        paidAmount: Math.round(Number(data?.amount ?? 0) * YUAN_TO_FEN),
         paymentStatus: 'success',
         paidAt: new Date(),
         rawPayload: deepCloneToJson(payload),
@@ -187,7 +191,8 @@ export const MbdAdapter: PaymentAdapter = {
       return {
         tradeNo: data.order_id,
         status: data.state === MBD_STATE_SUCCESS ? 'success' : 'pending',
-        paidAmount: Number(data.amount ?? 0),
+        /** 面包多金额单位为元，归一化为分 */
+        paidAmount: Math.round(Number(data.amount ?? 0) * YUAN_TO_FEN),
       };
     }),
 };

@@ -3,6 +3,7 @@
     class="tabs-bar custom-scrollbar bg-primary-50 dark:bg-primary-800 border-b border-primary-default h-10 px-4 relative overflow-x-auto overflow-y-hidden"
   >
     <div class="tabs-wrapper flex items-center h-full">
+      <slot name="left"></slot>
       <div
         v-for="tab of tabsStore.tabs"
         :key="tab.value.fullPath"

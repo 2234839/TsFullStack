@@ -309,7 +309,6 @@ onMounted(async () => {
   useEventListener(document, 'mousemove', handleMouseMove);
   if (localUserPwd.value.rememberMe) {
     form.value.username = localUserPwd.value.username;
-    form.value.password = localUserPwd.value.password;
   }
   // 开发环境下默认填充本地测试账号（来自 apps/backend/config.json 的 systemAdminUser），方便调试
   if (import.meta.env.DEV && !form.value.username) {
@@ -391,7 +390,6 @@ const handleSubmit = async () => {
       loginGoto(res, { r });
       if (localUserPwd.value.rememberMe) {
         localUserPwd.value.username = form.value.username;
-        localUserPwd.value.password = form.value.password;
       }
       toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
     } else {

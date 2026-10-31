@@ -1,4 +1,5 @@
 import { Effect } from 'effect';
+import { randomBytes } from 'node:crypto';
 import { getDbAuthEffect } from '../../Context/DbService';
 import { dbTry } from '../../util/dbEffect';
 import type { User } from '../../../.zenstack/models';
@@ -14,6 +15,8 @@ export function genUserSession(userId: User['id']) {
       db.userSession.create({
         data: {
           userId: userId,
+          /** 会话令牌用 CSPRNG（cuid2 的熵源是 Math.random，不可作鉴权凭据） */
+          token: randomBytes(32).toString('base64url'),
           expiresAt: new Date(Date.now() + SESSION_EXPIRY_MS),
         },
       }),

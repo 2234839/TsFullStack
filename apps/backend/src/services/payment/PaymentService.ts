@@ -200,6 +200,20 @@ export const PaymentService = {
 
       // 4. 处理支付结果
       if (parsed.paymentStatus === 'success') {
+        /** 金额校验：实付金额不得低于订单金额（单位均为分），不足则拒绝发货并告警 */
+        if (parsed.paidAmount < order.amount) {
+          reqCtx.log(
+            LOG_PREFIX,
+            '⚠️ 支付金额不足，拒绝发货:',
+            'orderNo=',
+            order.orderNo,
+            'paidAmount(分)=',
+            parsed.paidAmount,
+            'orderAmount(分)=',
+            order.amount,
+          );
+          return { success: false as const, reason: 'AMOUNT_MISMATCH' as const };
+        }
         const pkg = order.package;
         if (!pkg) {
           reqCtx.log(LOG_PREFIX, '订单缺少关联套餐:', order.orderNo);

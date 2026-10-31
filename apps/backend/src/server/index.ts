@@ -21,7 +21,7 @@ import { LinuxDoAuthLive } from '../OAuth/linuxdo';
 import { apis, type APIRaw } from '../api';
 import { appApis } from '../api/appApi';
 import { FileWrapItem } from '../util/file-types';
-import { verifySignByToken } from '../lib/SessionAuthSign';
+import { verifySignByToken, buildGetSignOrigin, GET_SIGN_EXPIRY_MS } from '../lib/SessionAuthSign';
 import { createRPC } from '../rpc';
 import { MsgError, LogoutError, ToLoginError, fail, tryOrFail, extractErrorMessage } from '../util/error';
 import { FetchWithProxy, FetchWithProxyLive } from '../util/github-proxy';
@@ -145,6 +145,8 @@ async function parseParams(req: FastifyRequest): Promise<unknown[]> {
       args?: string;
       sign?: string;
       session?: string;
+      /** 签名过期时间戳（参与签名运算） */
+      e?: string;
     };
     if (!query.args) return [];
     const parsed = superjson.parse(query.args) as unknown;
@@ -163,6 +165,8 @@ function parseParamsAndAuth(req: FastifyRequest) {
       args?: string;
       sign?: string;
       session?: string;
+      /** 签名过期时间戳（参与签名运算） */
+      e?: string;
     };
 
     const querySignMode = req.method === 'GET';
@@ -189,8 +193,16 @@ function parseParamsAndAuth(req: FastifyRequest) {
       if (!session) {
         return yield* Effect.fail(ToLoginError.msg('请提供有效的 session'));
       }
+      /** 签名时效：时间戳参与签名且偏差超过有效期即拒绝 */
+      const expiresAt = Number(query.e);
+      if (!Number.isFinite(expiresAt) || Math.abs(Date.now() - expiresAt) > GET_SIGN_EXPIRY_MS) {
+        return yield* fail(MSG.SIGNATURE_INVALID);
+      }
+      /** 签名原文绑定 RPC 方法名（去掉 /api 前缀）+ args + 时间戳，跨方法不可复用 */
+      const method = req.url.split('?')[0]!.replace(/^\/.*?\/api\//, '');
+      const origin = buildGetSignOrigin(method, query.args ?? '', expiresAt);
       const verify = yield* Effect.try({
-        try: () => verifySignByToken(query.args ?? '', session.token, query.sign ?? ''),
+        try: () => verifySignByToken(origin, session.token, query.sign ?? ''),
         catch: (e) => MsgError.msg(`签名验证失败: ${extractErrorMessage(e)}`),
       });
       if (!verify) {
@@ -427,6 +439,7 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: 
       reqCtx.logs.push(args);
     },
     req,
+    reply,
     reqId: ++reqId,
     t0: startPerf,
     sqlEvents: [],

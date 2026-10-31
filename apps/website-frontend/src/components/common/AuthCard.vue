@@ -154,7 +154,6 @@ async function handleSubmit() {
       const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
       if (rememberMe.value) {
         localUserPwd.value.username = form.value.username;
-        localUserPwd.value.password = form.value.password;
         localUserPwd.value.rememberMe = true;
       } else {
         localUserPwd.value.rememberMe = false;

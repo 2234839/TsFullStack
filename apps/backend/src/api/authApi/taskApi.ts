@@ -209,7 +209,12 @@ const generateAIImage = (request: { prompt: string; provider?: AiImageProvider; 
     // 5. 开始任务
     yield* TaskService.startTask(task.id);
 
-    /** 图片生成 → 创建资源 → 完成任务 → 消耗代币 的完整管道，失败时标记任务为 failed */
+    /** 6. 预扣代币：在触达 AI 服务商前完成余额检查与扣减，无余额账号在此被拒绝；失败同步标记任务 */
+    const consumed = yield* TokenService.consumeTokens(auth.user.id, tokenCost, task.id).pipe(
+      Effect.tapError((error) => TaskService.failTask(task.id, extractErrorMessage(error)).pipe(Effect.ignore)),
+    );
+
+    /** 图片生成 → 创建资源 → 完成任务 的完整管道，失败时退回预扣代币并标记任务为 failed */
     const result = yield* Effect.gen(function* () {
       const generateResult = yield* aiImageGenerateService(prompt, { provider, count, size });
       ctx.log(`${LOG_PREFIX} AI 服务返回 ${generateResult.images.length} 张图片`);
@@ -245,14 +250,17 @@ const generateAIImage = (request: { prompt: string; provider?: AiImageProvider; 
         externalTaskId: generateResult.taskId,
       });
 
-      // 9. 消耗代币
-      yield* TokenService.consumeTokens(auth.user.id, tokenCost, task.id);
-      ctx.log(`${LOG_PREFIX} 消耗代币成功, total=${tokenCost}`);
+      ctx.log(`${LOG_PREFIX} 预扣代币已确认, total=${tokenCost}`);
 
       return { taskId: task.id, imagesCount: generateResult.images.length, images: generateResult.images };
     }).pipe(
-      /** 失败时标记任务为 FAILED 并传播原始错误 */
-      Effect.tapError((error) => TaskService.failTask(task.id, extractErrorMessage(error)).pipe(Effect.ignore)),
+      /** 失败时退回预扣代币并标记任务为 FAILED，传播原始错误 */
+      Effect.tapError((error) =>
+        Effect.gen(function* () {
+          yield* TokenService.refundTokens(auth.user.id, task.id, consumed.applied).pipe(Effect.ignore);
+          yield* TaskService.failTask(task.id, extractErrorMessage(error)).pipe(Effect.ignore);
+        }),
+      ),
     );
 
     return result;

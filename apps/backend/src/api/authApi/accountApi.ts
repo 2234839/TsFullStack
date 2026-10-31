@@ -9,6 +9,7 @@ import { PasscodeService } from '../../services/PasscodeService';
 import { registerMergeTicket, consumeMergeTicket, type PasscodeOfficialView } from '../appApi/passcode';
 import { githubApi } from '../appApi/github';
 import { linuxdoApi } from '../appApi/linuxdo';
+import { invalidateAuthUserCache } from '../../server/authCache';
 import { OauthProvider } from '../../../.zenstack/models';
 
 /** 日志前缀 */
@@ -308,6 +309,8 @@ function executeMerge(targetUserId: string, sourceUserId: string) {
     reqCtx.log(
       `${LOG_PREFIX} 登录关系合并 ${source.id} -> ${target.id}（当前账号为接收方，源账号成为幽灵账号，数据未迁移）`,
     );
+    /** 源账号会话已全部撤销，立即失效其鉴权缓存 */
+    invalidateAuthUserCache(source.id);
     return { status: 'MERGED' as const };
   });
 }

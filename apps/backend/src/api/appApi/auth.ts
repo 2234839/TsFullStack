@@ -17,6 +17,41 @@ const LOGIN_FAIL_DELAY_MAX_MS = 5_000;
 /** 失败记录表容量上限，超出由 Cache 按 TTL/容量自动淘汰，防止账号无限累积 */
 const LOGIN_FAIL_CACHE_CAPACITY = 10_000;
 
+/** 同 IP 登录失败封禁阈值（10 分钟窗口内） */
+const IP_FAIL_BAN_THRESHOLD = 50;
+
+/** 固定 dummy 哈希（明文为无意义占位串）：用户不存在时也做一次真实 bcrypt compare，抹平「用户是否存在」的时序差异 */
+const DUMMY_PASSWORD_HASH = '$2b$10$cKBhelZvPWbGgu9W0lLLpf.8r8rXRQ86p.1/g2FuK4XpU61UIL5ni.';
+
+/**
+ * 每 IP 登录失败计数缓存：防止单账号限速下攻击者换账号名爆破（TTL 10 分钟自动归零）
+ * 成功登录不清零（避免攻击者登自己账号洗白计数），阈值放宽以兼容 NAT 共享出口
+ */
+const ipFailCache = Effect.runSync(
+  Cache.make({
+    capacity: LOGIN_FAIL_CACHE_CAPACITY,
+    timeToLive: '10 minutes',
+    lookup: (ip: string) => Ref.make(0),
+  }),
+);
+
+/** IP 失败计数 +1，超过阈值返回 true（应直接拒绝） */
+function ipFailTick(ip: string): Effect.Effect<boolean> {
+  return Effect.gen(function* () {
+    const ref = yield* Cache.get(ipFailCache, ip);
+    const count = yield* Ref.modify(ref, (n) => [n + 1, n + 1] as const);
+    return count > IP_FAIL_BAN_THRESHOLD;
+  });
+}
+
+/** 取请求来源 IP（无请求上下文时退化为 'unknown'） */
+function getReqIp(): Effect.Effect<string, never, ReqCtxService> {
+  return Effect.gen(function* () {
+    const ctx = yield* ReqCtxService;
+    return ctx.req.ip || 'unknown';
+  });
+}
+
 /**
  * 每账号登录失败计数缓存：TTL 内连续失败递增，过期自动归零，容量超限自动淘汰
  */
@@ -99,6 +134,12 @@ export const authApi = {
         return yield* fail(MSG.PASSWORD_REQUIRED);
       }
 
+      const ip = yield* getReqIp();
+      if (yield* ipFailTick(ip)) {
+        const ctx = yield* ReqCtxService;
+        ctx.log(LOG_PREFIX, 'IP 登录失败超限，拒绝:', ip);
+        return yield* fail(MSG.LOGIN_FAILED);
+      }
       const user = yield* dbTryOrDefault(
         LOG_PREFIX,
         '查询用户(含角色)',
@@ -113,6 +154,10 @@ export const authApi = {
         return yield* fail('该账号用户已禁用密码登录，请使用绑定的第三方渠道登录');
       }
       if (!user || !(yield* comparePassword(password, user.password))) {
+        /** 用户不存在时也对 dummy 哈希做一次真实 compare，抹平时序差异 */
+        if (!user) {
+          yield* comparePassword(password, DUMMY_PASSWORD_HASH);
+        }
         /** 仅对失败账号递增延迟，正常用户零等待 */
         const delayMs = yield* loginFailDelay(email);
         yield* Effect.sleep(`${delayMs / 1000} seconds`).pipe(Effect.withSpan('loginFailDelay(失败递增延迟)'));
@@ -140,6 +185,12 @@ export const authApi = {
         return yield* fail(MSG.PASSWORD_REQUIRED);
       }
 
+      const ip = yield* getReqIp();
+      if (yield* ipFailTick(ip)) {
+        const ctx = yield* ReqCtxService;
+        ctx.log(LOG_PREFIX, 'IP 登录失败超限，拒绝:', ip);
+        return yield* fail(MSG.LOGIN_FAILED);
+      }
       const user = yield* dbTryOrDefault(
         LOG_PREFIX,
         '验证凭据查询用户',
@@ -154,6 +205,10 @@ export const authApi = {
         return yield* fail('该账号用户已禁用密码登录，密码不再作为有效验证因子');
       }
       if (!user || !(yield* comparePassword(password, user.password))) {
+        /** 用户不存在时也对 dummy 哈希做一次真实 compare，抹平时序差异 */
+        if (!user) {
+          yield* comparePassword(password, DUMMY_PASSWORD_HASH);
+        }
         const delayMs = yield* loginFailDelay(email);
         yield* Effect.sleep(`${delayMs / 1000} seconds`).pipe(Effect.withSpan('loginFailDelay(失败递增延迟)'));
         return yield* fail(MSG.LOGIN_FAILED);
