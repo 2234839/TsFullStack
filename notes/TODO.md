@@ -1,6 +1,6 @@
 # TODO
 
-> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 42 项待办。
+> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 36 项待办。
 
 ## 新增：[账号合并只迁登录关系，不做业务数据迁移](index.md)
 
@@ -83,64 +83,6 @@
 + - 登录重定向发现见独立块 [[sec.login-open-redirect]]（第八轮主发现）。
 ```
 
-## 新增：[（匿名块）](架构切割面审查.md)
-
-- 块 ID: `架构切割面审查.md#架构切割面审查`
-
-```diff
-+ [[架构切割面审查]]
-```
-
-## 新增：[背景：KVStore 收口完成后，对全仓（backend/frontend/shared-frontend）做的一次「应有一层但没做，导致多处重复」的系统排查。按重复度×风险排序：](架构切割面审查.md)
-
-- 块 ID: `架构切割面审查.md#背景：KVStore 收口完成后，对全仓（backend/frontend/shared-frontend）做的一次「应有一层但没做，导致多处重复」的系统排查。按重复度×风险排序：`
-
-```diff
-+ 背景：KVStore 收口完成后，对全仓（backend/frontend/shared-frontend）做的一次「应有一层但没做，导致多处重复」的系统排查。按重复度×风险排序：
-```
-
-## 新增：[后端](架构切割面审查.md)
-
-- 块 ID: `架构切割面审查.md#后端`
-
-```diff
-+ 1. **分页逻辑散落**（8 处/6 文件）：`dbPaginatedFindMany`（util/dbEffect.ts:65）只有 treehole 用；diagApi 两套手写 clamp、tokenApi/paymentApi 裸 `skip ?? 0` 无 clamp、accountApi/groupEntryApi 逐字重复 `take: Math.min(Math.max(limit,1),100)`。→ 补 clamp 进 `dbPaginatedFindMany` 并全部改走它
-+ 2. **paymentApi 绕过配置层手写 config.json 读写**（paymentApi.ts:110-119 自拼 `process.cwd()/config.json`，与 config/loader.ts 分叉风险）→ 收敛为 AppConfigService 的 update 方法
-+ 3. **optionalUserId 三胞胎**：appApi/github.ts / linuxdo.ts / treehole.ts 逐字复制 `serviceOption(AuthContext)` → 抽到 Context/Auth.ts
-+ 4. **公众号 qrUrl 构造四处重复**：passcode.ts×2 + accountApi.ts + GroupEntryService → 抽 officialQrUrl()
-+ 5. **图片类型/大小校验规则散落**：groupEntry 路由白名单、groupEntryApi 只限大小、taskApi 按扩展名推断、前端两处 hardcode「PNG/JPEG/WebP 2MB」→ 抽 util/image.ts 常量+校验
-+ 6. **fetch 漏网**：server/groupEntry.ts 两处手写 AbortSignal.timeout 未走 withFetchTimeout；AIProxyService.ts:216 裸 fetch 无错误分类
-```
-
-## 新增：[前端](架构切割面审查.md)
-
-- 块 ID: `架构切割面审查.md#前端`
-
-```diff
-+ 7. **toastApiError 样板**（约 90 处/42 文件）：`toast.error(t('xx失败'), getErrorMessage(error))` 三件套 + 两种风格混用（字符串拼接 vs fallback 参数）→ 抽 `toastApiError(prefix, error)` 进 utils/error.ts
-+ 8. **分页口径不一**：usePaginatedQuery 只有 2 个使用方；AutoTable 1-based、TokenHistory/OrderList 0-based → 统一后推广
-+ 9. 小项：NoteCalc.vue 手写 clipboard（不走 copyToClipboard 回退）；4 处直调 toLocaleString 未走 formatDate/i18n
-```
-
-## 新增：[明确不做（看似重复实则合理）](架构切割面审查.md)
-
-- 块 ID: `架构切割面审查.md#明确不做（看似重复实则合理）`
-
-```diff
-+ - tryOrFail/dbTry/adminDbTry 三套：职责分层，不算重复
-+ - process.env.NODE_ENV 5 处：启动期分支
-+ - dbQueue/wechat/scripts 的裸 try/catch：非 Effect 上下文
-+ - taskApi 自写 sharp 最小类型：有意为之
-```
-
-## 新增：[顺带发现的安全问题](架构切割面审查.md)
-
-- 块 ID: `架构切割面审查.md#顺带发现的安全问题`
-
-```diff
-+ - **注册接口返回值带出 password 哈希**：POST /app-api/system.register 响应 result 含 `password: "$2b$10$..."`（appApi/auth.ts register 返回 newUser 未剔除 password）——需立即修
-```
-
 ## 新增：[需求以 `## 标题` 为块单位，正文自由描述，`` 双链绑定代码，](示例需求.md)
 
 - 块 ID: `示例需求.md#锚点`
@@ -156,7 +98,7 @@
 
 ```diff
 + 这里写需求正文：什么场景下代码必须怎么做。
-+ 
++
 + 实现：[[src/example.ts#doSomething]]
 + 测试：[[tests/example.test.ts]]
 + ### 验收
@@ -169,7 +111,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.layer-trunk`
 
 ```diff
-+ 
++
 ```
 
 ## 用户修改：[effect.tagged-errors](effect-v4-精致化改造.md)
@@ -177,7 +119,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.tagged-errors`
 
 ```diff
-+ 
++
 ```
 
 ## 用户修改：[effect.fiber-timers](effect-v4-精致化改造.md)
@@ -185,7 +127,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.fiber-timers`
 
 ```diff
-+ 
++
 ```
 
 ## 用户修改：[effect.cache-module](effect-v4-精致化改造.md)
@@ -193,8 +135,8 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.cache-module`
 
 ```diff
-+ 
-+ 
++
++
 ```
 
 ## 用户修改：[effect.queue-lock-renewal](effect-v4-精致化改造.md)
@@ -202,7 +144,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.queue-lock-renewal`
 
 ```diff
-+ 
++
 ```
 
 ## 用户修改：[effect.api-style-unify](effect-v4-精致化改造.md)
@@ -210,7 +152,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.api-style-unify`
 
 ```diff
-+ 
++
 ```
 
 ## 用户修改：[effect.wechat-service-v4](effect-v4-精致化改造.md)
@@ -218,7 +160,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.wechat-service-v4`
 
 ```diff
-+ 
++
 ```
 
 ## 用户修改：[effect.token-cleanup-v4](effect-v4-精致化改造.md)
@@ -226,7 +168,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.token-cleanup-v4`
 
 ```diff
-+ 
++
 ```
 
 ## 用户修改：[effect.fetchjson-common](effect-v4-精致化改造.md)
@@ -234,7 +176,7 @@
 - 块 ID: `effect-v4-精致化改造.md#effect.fetchjson-common`
 
 ```diff
-+ 
++
 ```
 
 ## 用户修改：[需求笔记](index.md)
@@ -381,7 +323,7 @@
 
 ```diff
 - > 决策（2026-10-31）：与设计意图对齐——免费代理是有意为之，保持现状不扣费。已有 IP/用户/模型三维限速兜底，不动代码。
-- 
+-
 + > 决策（2026-10-31 二次拍板）：免费代理收窄为白名单制——AiModel 新增 `freeForLoginUser` 标注（默认 false），只有后台标注「登录用户免费可用」的模型才可通过 proxyOpenAI 调用，未标注一律拒绝（提示无可用模型）。实现见 [schema.zmodel](../apps/backend/schema.zmodel)、[AIProxyService.ts](../apps/backend/src/Context/AIProxyService.ts)（按标注过滤后再负载均衡）、[AiApi/index.ts](../apps/backend/src/api/AiApi/index.ts)、[AiModelForm.vue](../apps/website-frontend/src/pages/admin/components/AiModelForm.vue)、[AiModelManager.vue](../apps/website-frontend/src/pages/admin/AiModelManager.vue)；迁移 20261031180000。存量模型默认全部不开放，需管理员在后台逐个打开。
 + ### 验收
 + - proxyOpenAI 消耗代币或有等价的成本约束（与设计意图对齐后确认）
