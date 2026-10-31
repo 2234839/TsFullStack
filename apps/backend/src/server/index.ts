@@ -159,7 +159,7 @@ async function parseParams(req: FastifyRequest): Promise<unknown[]> {
   }
 }
 /** 解析参数并通过参数获取鉴权对象 */
-function parseParamsAndAuth(req: FastifyRequest) {
+function parseParamsAndAuth(req: FastifyRequest, pathPrefix: string) {
   return Effect.gen(function* () {
     const query = req.query as {
       args?: string;
@@ -199,10 +199,10 @@ function parseParamsAndAuth(req: FastifyRequest) {
         return yield* fail(MSG.SIGNATURE_INVALID);
       }
       /**
-       * 签名原文绑定 RPC 方法名（剥掉 /api 或 /app-api 前缀）+ args + 时间戳，跨方法不可复用。
-       * 前端签名的 path 是裸方法名（如 fileApi.file），这里的提取必须与之一致。
+       * 签名原文绑定 RPC 方法名（剱掉 /api 前缀）+ args + 时间戳，跨方法不可复用。
+       * 前端签名的 path 是裸方法名（如 fileApi.file），提取方式与 POST 分支同构（slice pathPrefix）。
        */
-      const method = req.url.split('?')[0]!.replace(/^\/(?:app-)?api\//, '');
+      const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
       const origin = buildGetSignOrigin(method, query.args ?? '', expiresAt);
       const verify = yield* Effect.try({
         try: () => verifySignByToken(origin, session.token, query.sign ?? ''),
@@ -605,7 +605,10 @@ function buildReqProgram(opts: {
     } else if (opts.pathPrefix === '/api/') {
       /** 处理需要鉴权的 API */
       const authStart = performance.now();
-      const { params, db, user } = yield* Effect.withSpan(parseParamsAndAuth(opts.req), 'auth:鉴权(含用户查询SQL)');
+      const { params, db, user } = yield* Effect.withSpan(
+        parseParamsAndAuth(opts.req, opts.pathPrefix),
+        'auth:鉴权(含用户查询SQL)',
+      );
       opts.diag.authMs = performance.now() - authStart;
       opts.diag.authAt = authStart - opts.diag.t0;
       /** 行为记录用户归属：鉴权成功后立即存入 diag，供请求尾部落 SystemLog */
