@@ -199,9 +199,18 @@ function parseParamsAndAuth(req: FastifyRequest, pathPrefix: string) {
       if (!session) {
         return yield* Effect.fail(ToLoginError.msg('请提供有效的 session'));
       }
-      /** 签名时效：时间戳参与签名且偏差超过有效期即拒绝 */
+      /**
+       * 签名时效：e 是「过期时刻」，只需校验未过期且未超发过远（留时钟偏差余量）。
+       * 不能用 Math.abs(now - e) > 有效期 判断：前端按 now+有效期 签发，
+       * 请求到达时 diff 必然略超有效期，会把合法签名全部拒绝。
+       */
       const expiresAt = Number(query.e);
-      if (!Number.isFinite(expiresAt) || Math.abs(Date.now() - expiresAt) > GET_SIGN_EXPIRY_MS) {
+      const SIGN_SKEW_MS = 60 * 1000;
+      if (
+        !Number.isFinite(expiresAt) ||
+        expiresAt < Date.now() ||
+        expiresAt > Date.now() + GET_SIGN_EXPIRY_MS + SIGN_SKEW_MS
+      ) {
         return yield* fail(MSG.SIGNATURE_INVALID);
       }
       /**
