@@ -1,6 +1,6 @@
 /* eslint-disable */
 // 由 scripts/write-version.mjs 构建前生成，勿手改
 /** 构建时的 git commit（短 hash） */
-export const GIT_COMMIT = 'fba6631';
+export const GIT_COMMIT = 'bd24f69';
 /** 构建时间（ISO 字符串） */
-export const BUILD_TIME = '2026-10-31T07:35:02.143Z';
+export const BUILD_TIME = '2026-10-31T07:38:34.203Z';

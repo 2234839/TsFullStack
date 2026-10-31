@@ -210,7 +210,8 @@ function parseParamsAndAuth(req: FastifyRequest, pathPrefix: string) {
        */
       const method = decodeURIComponent(req.url.split('?')[0]?.slice(pathPrefix.length) ?? '');
       const origin = buildGetSignOrigin(method, rawQueryArg(req, 'args') ?? '', expiresAt);
-      const verify = yield* Effect.try({
+      /** verifySignByToken 是 async（WebCrypto），必须用 tryPromise 承接；tryPromise 包 async 会把 Promise 当值导致验签结果不可靠 */
+      const verify = yield* Effect.tryPromise({
         try: () => verifySignByToken(origin, session.token, query.sign ?? ''),
         catch: (e) => MsgError.msg(`签名验证失败: ${extractErrorMessage(e)}`),
       });
