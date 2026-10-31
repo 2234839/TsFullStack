@@ -198,8 +198,11 @@ function parseParamsAndAuth(req: FastifyRequest) {
       if (!Number.isFinite(expiresAt) || Math.abs(Date.now() - expiresAt) > GET_SIGN_EXPIRY_MS) {
         return yield* fail(MSG.SIGNATURE_INVALID);
       }
-      /** 签名原文绑定 RPC 方法名（去掉 /api 前缀）+ args + 时间戳，跨方法不可复用 */
-      const method = req.url.split('?')[0]!.replace(/^\/.*?\/api\//, '');
+      /**
+       * 签名原文绑定 RPC 方法名（剥掉 /api 或 /app-api 前缀）+ args + 时间戳，跨方法不可复用。
+       * 前端签名的 path 是裸方法名（如 fileApi.file），这里的提取必须与之一致。
+       */
+      const method = req.url.split('?')[0]!.replace(/^\/(?:app-)?api\//, '');
       const origin = buildGetSignOrigin(method, query.args ?? '', expiresAt);
       const verify = yield* Effect.try({
         try: () => verifySignByToken(origin, session.token, query.sign ?? ''),
