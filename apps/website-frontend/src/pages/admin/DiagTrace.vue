@@ -187,10 +187,16 @@
                     :key="i"
                     class="absolute top-0 h-4 rounded bg-danger-500/70"
                     :style="{
-                      left: (lag.at / Math.max(detail?.totalMs ?? 1, 1)) * 100 + '%',
-                      width: Math.max((lag.ms / Math.max(detail?.totalMs ?? 1, 1)) * 100, 0.8) + '%',
+                      left: (Math.max(lag.at, 0) / Math.max(detail?.totalMs ?? 1, 1)) * 100 + '%',
+                      width:
+                        Math.max(
+                          ((Math.min(lag.at + lag.ms, detail?.totalMs ?? lag.ms) - Math.max(lag.at, 0)) /
+                            Math.max(detail?.totalMs ?? 1, 1)) *
+                            100,
+                          0.8,
+                        ) + '%',
                     }"
-                    :title="`${t('第')} ${lag.at}ms ${t('起冻结')} ${lag.ms}ms`"
+                    :title="`${t('第')} ${Math.max(lag.at, 0)}ms ${t('起冻结')} ${lag.ms}ms`"
                   />
                 </div>
               </div>

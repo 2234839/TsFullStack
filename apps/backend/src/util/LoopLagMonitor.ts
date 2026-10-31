@@ -109,7 +109,9 @@ export function lagSamplesBetween(startMs: number, endMs: number): LagSlice[] {
   const out: LagSlice[] = [];
   for (const s of samples) {
     if (s.at > endMs) break;
-    if (s.at + Math.max(s.lagMs, SAMPLE_INTERVAL_MS) >= startMs) {
+    /** 只按真实冻结区间 [s.at, s.at+lagMs] 判交集；不得用采样间隔扩窗，
+     * 否则请求开始前的冻结会被硬蹭进本请求窗口，画出「第 -10ms 起冻结」的错位条 */
+    if (s.lagMs > 0 && s.at < endMs && s.at + s.lagMs > startMs) {
       out.push({ at: s.at, lagMs: s.lagMs });
     }
   }
@@ -126,8 +128,8 @@ export function maxLoopLagBetween(startMs: number, endMs: number): number {
   let max = 0;
   for (const s of samples) {
     if (s.at > endMs) break;
-    // 样本窗口 [s.at, s.at + s.lagMs] 与请求窗口有交集即计入
-    if (s.at + Math.max(s.lagMs, SAMPLE_INTERVAL_MS) >= startMs && s.lagMs > max) {
+    /** 只按真实冻结区间 [s.at, s.at+lagMs] 判交集，与 lagSamplesBetween 同口径 */
+    if (s.lagMs > 0 && s.at < endMs && s.at + s.lagMs > startMs && s.lagMs > max) {
       max = s.lagMs;
     }
   }

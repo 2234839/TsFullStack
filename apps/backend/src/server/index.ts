@@ -369,11 +369,10 @@ function finalizeDiag(input: {
     });
   }
 
-  const lagPhase = timeline.find((t) => t.phase === 'loopLag');
-  const lagOwner =
-    lagPhase && typeof lagPhase.owner === 'string' && (lagPhase.owner === 'self' || lagPhase.owner === 'other')
-      ? lagPhase.owner
-      : undefined;
+  const lagPhaseOwner = timeline.find((t) => t.phase === 'loopLag')?.owner;
+  /** 从 unknown 收窄到字面量联合；Record 索引访问不会被 === 比较收窄，需先落到 const */
+  const lagOwner: 'self' | 'other' | undefined =
+    lagPhaseOwner === 'self' || lagPhaseOwner === 'other' ? lagPhaseOwner : undefined;
   const row = {
     method,
     totalMs: Math.round(totalMs),
@@ -384,7 +383,7 @@ function finalizeDiag(input: {
     sqlMaxMs,
     loopLagMaxMs,
     /** 卡顿归属：self=自身同步执行冻结了事件循环；other=排队期间被他人冻结（受害者） */
-    lagOwner: lagPhase?.owner,
+    lagOwner,
     timeline,
   };
 
