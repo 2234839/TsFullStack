@@ -6,3 +6,10 @@
 
 - [示例需求](示例需求.md) — 示例：需求块、实现链接与验收清单的写法
 - [Effect v4 精致化改造](effect-v4-精致化改造.md) — Layer 主干 / TaggedError / Fiber 定时 / Cache / 队列锁续期 / API 风格
+
+## 账号合并只迁登录关系，不做业务数据迁移 [[merge-login-only]]
+
+- 用户侧账号合并（mergeIntoAccount / mergeByMergeTicket）只迁移 OAuth 登录绑定：源账号删除全部会话并置 passwordLoginDisabled=true，成为无法登录的幽灵账号
+- 禁止在用户侧自动迁移业务数据（token/task/order/userData/file 等）：以后新建表无法保证记得更新迁移清单，自动迁移必然腐化
+- 确实需要数据迁移时由管理员处理，后续在管理员页面提供该能力（待做）
+- 实现见 [accountApi.ts](apps/backend/src/api/authApi/accountApi.ts)

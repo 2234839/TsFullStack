@@ -58,7 +58,7 @@
         :loading="loading"
         :icon="mode === 'verify' ? 'pi pi-check-circle' : 'pi pi-sign-in'"
         :disabled="!isFormValid || loading"
-        :label="submitLabel"
+        :label="submitLabel ?? (mode === 'verify' ? t('验证身份') : t('登录'))"
       />
 
       <!-- 底部切换注册（仅登录模式且允许时显示） -->
@@ -82,7 +82,7 @@ import { loginGoto } from '@/pages/loginUtil';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { getErrorMessage } from '@/utils/error';
-import { API } from '@/api';
+import { useAPI } from '@/api';
 import { computed, ref, shallowRef } from 'vue';
 
 /** 验证成功时回传给使用方的上下文（含原始凭据，供使用方执行后续动作如账号合并） */
@@ -90,7 +90,7 @@ export interface AuthCardVerifiedPayload {
   email: string;
   password: string;
   /** 验证通过的用户（脱敏，不含密码） */
-  user: Awaited<ReturnType<typeof API.system.verifyByEmailPwd>>['user'];
+  user: Awaited<ReturnType<typeof AppAPI.system.verifyByEmailPwd>>['user'];
 }
 
 /** 卡片工作模式：login=登录并发会话跳转；verify=仅验证凭据不发会话 */
@@ -127,6 +127,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const toast = useToast();
+const { AppAPI } = useAPI();
 
 /** 提交中状态 */
 const loading = shallowRef(false);
@@ -137,9 +138,6 @@ const form = ref({ username: '', password: '' });
 /** 记住我（登录模式，读写本地存储） */
 const rememberMe = ref(localUserPwd.value.rememberMe);
 
-/** 实际提交按钮文案 */
-const actualSubmitLabel = computed(() => props.submitLabel ?? (props.mode === 'verify' ? t('验证身份') : t('登录')));
-
 /** 表单校验：用户名密码均非空 */
 const isFormValid = computed(() => Boolean(form.value.username && form.value.password));
 
@@ -149,11 +147,11 @@ async function handleSubmit() {
   loading.value = true;
   try {
     if (props.mode === 'verify') {
-      const res = await API.system.verifyByEmailPwd(form.value.username, form.value.password);
+      const res = await AppAPI.system.verifyByEmailPwd(form.value.username, form.value.password);
       emit('verified', { email: form.value.username, password: form.value.password, user: res.user });
       toast.success(t('验证通过'), t('身份确认成功'));
     } else {
-      const res = await API.system.loginByEmailPwd(form.value.username, form.value.password);
+      const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
       if (rememberMe.value) {
         localUserPwd.value.username = form.value.username;
         localUserPwd.value.password = form.value.password;

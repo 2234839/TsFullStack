@@ -105,7 +105,7 @@
           <div class="flex gap-4 flex-wrap">
             <span>
               <span class="text-primary-theme">耗时: </span>
-              <b :class="detail.totalMs >= 1000 ? 'text-danger-500' : ''">{{ detail.totalMs }}ms</b>
+              <b :class="(detail.totalMs ?? 0) >= 1000 ? 'text-danger-500' : ''">{{ detail.totalMs ?? '-' }}ms</b>
             </span>
             <span> <span class="text-primary-theme">reqId: </span>#{{ detail.reqId }} </span>
             <span>

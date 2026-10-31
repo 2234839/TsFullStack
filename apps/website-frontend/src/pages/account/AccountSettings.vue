@@ -112,7 +112,7 @@
       v-model:visible="bindDialogVisible"
       :title="t('绑定微信')"
       :waiting-text="t('验证成功后将自动完成绑定...')"
-      :create="() => AppAPI.passcodeApi.createWechatBind()"
+      :create="() => API.accountApi.createWechatBind()"
       :check="(ticket: string) => AppAPI.passcodeApi.checkWechatBind(ticket)"
       @success="onBindResult"
     />
@@ -184,17 +184,12 @@
               : t('恢复后将可重新使用邮箱密码登录。')
           }}
         </p>
-        <Input
-          v-model="pwdSwitchPassword"
-          type="password"
-          :placeholder="t('请输入当前密码确认')"
-          @keyup.enter="submitPwdSwitch"
-        />
+        <Input v-model="pwdSwitchPassword" :placeholder="t('请输入当前密码确认')" @keyup.enter="submitPwdSwitch" />
         <div class="flex gap-2">
           <Button :label="t('取消')" variant="secondary" class="flex-1" @click="pwdSwitchVisible = false" />
           <Button
             :label="t('确认')"
-            :variant="pwdSwitchTarget ? 'danger' : 'default'"
+            :variant="pwdSwitchTarget ? 'danger' : 'primary'"
             class="flex-1"
             :loading="pwdSwitchLoading"
             :disabled="!pwdSwitchPassword"
@@ -227,11 +222,11 @@ import { getErrorMessage } from '@/utils/error';
 import { computed, onMounted, ref } from 'vue';
 
 const { t } = useI18n();
-const { AppAPI } = useAPI();
+const { API, AppAPI } = useAPI();
 const toast = useToast();
 
 /** 登录方式总览（null=加载中） */
-const methods = ref<Awaited<ReturnType<typeof AppAPI.passcodeApi.myLoginMethods>> | null>(null);
+const methods = ref<Awaited<ReturnType<typeof API.accountApi.myLoginMethods>> | null>(null);
 
 /** 是否配置了微信公众号（决定是否显示绑定微信按钮） */
 const wechatConfigured = ref(false);
@@ -271,7 +266,7 @@ function providerLabel(provider: string) {
 /** 刷新登录方式总览 */
 async function refreshMethods() {
   try {
-    methods.value = await AppAPI.passcodeApi.myLoginMethods();
+    methods.value = await API.accountApi.myLoginMethods();
   } catch (error: unknown) {
     toast.error(t('加载失败'), getErrorMessage(error));
   }
@@ -281,7 +276,7 @@ async function refreshMethods() {
 async function unbind(provider: 'GITHUB' | 'LINUXDO' | 'WECHAT') {
   unbinding.value = provider;
   try {
-    await AppAPI.passcodeApi.unbind(provider);
+    await API.accountApi.unbind(provider);
     toast.success(t('解绑成功'), t('已解除绑定'));
     await refreshMethods();
   } catch (error: unknown) {
@@ -305,7 +300,7 @@ function onBindResult(result: { status: string }) {
 async function onVerifiedForMerge(payload: AuthCardVerifiedPayload) {
   merging.value = true;
   try {
-    await AppAPI.passcodeApi.mergeIntoAccount(payload.email, payload.password);
+    await API.accountApi.mergeIntoAccount(payload.email, payload.password);
     toast.success(t('合并成功'), t('该账号数据已并入当前账号'));
     await refreshMethods();
   } catch (error: unknown) {
@@ -339,7 +334,7 @@ async function onWechatMergeVerified(result: { status: string; mergeTicket?: str
 async function doMergeByTicket(mergeTicket: string) {
   merging.value = true;
   try {
-    await AppAPI.passcodeApi.mergeByMergeTicket(mergeTicket);
+    await API.accountApi.mergeByMergeTicket(mergeTicket);
     toast.success(t('合并成功'), t('该账号数据已并入当前账号'));
     await refreshMethods();
   } catch (error: unknown) {
@@ -368,10 +363,7 @@ function consumeMergeVerifyFromSession() {
  * 渠道被其他账号占用报错时，引导走「合并其他账号」流程把对方数据并过来 */
 async function bindOAuth(provider: 'github' | 'linuxdo') {
   try {
-    const url =
-      provider === 'github'
-        ? await AppAPI.githubApi.getBindAuthorizationUrl()
-        : await AppAPI.linuxdoApi.getBindAuthorizationUrl();
+    const url = await API.accountApi.getBindAuthorizationUrl(provider);
     location.href = url;
   } catch (error: unknown) {
     const msg = getErrorMessage(error);
@@ -407,7 +399,7 @@ function openPwdSwitchDialog(disabled: boolean) {
 async function submitPwdSwitch() {
   pwdSwitchLoading.value = true;
   try {
-    await AppAPI.passcodeApi.setPasswordLoginDisabled(pwdSwitchTarget.value, pwdSwitchPassword.value);
+    await API.accountApi.setPasswordLoginDisabled(pwdSwitchTarget.value, pwdSwitchPassword.value);
     toast.success(
       pwdSwitchTarget.value ? t('已禁用密码登录') : t('已恢复密码登录'),
       pwdSwitchTarget.value ? t('此后仅可通过第三方渠道登录') : t('现在可使用账号密码登录'),

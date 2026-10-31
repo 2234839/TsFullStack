@@ -3,7 +3,7 @@
  * teleport 到注入的容器，而不是写死 body。使用方（App 布局根）调用 providePortalTarget
  * 把自己的根元素 provide 出来，弹层落在配色作用域内，文字颜色随继承自然适配明暗主题。
  */
-import { computed, inject, provide, unref, type MaybeRefOrGetter, type InjectionKey, type Ref } from 'vue';
+import { computed, inject, provide, toValue, type MaybeRefOrGetter, type InjectionKey, type Ref } from 'vue';
 
 /** Portal 插入点注入键 */
 const PortalTargetKey: InjectionKey<MaybeRefOrGetter<string | HTMLElement | null>> = Symbol('PortalTarget');
@@ -21,6 +21,10 @@ export function providePortalTarget(target: MaybeRefOrGetter<string | HTMLElemen
  * @returns 响应式的 CSS 选择器或 DOM 元素（保证非空，可直接绑 Portal 的 to）
  */
 export function usePortalTarget(): Ref<string | HTMLElement> {
-  const injected = inject(PortalTargetKey, () => 'body', { treatDefaultAsFactory: true });
-  return computed(() => unref(injected) ?? 'body');
+  const injected = inject(PortalTargetKey, () => 'body');
+  return computed(() => {
+    const v = toValue(injected);
+    if (v === null) return 'body';
+    return v ?? 'body';
+  });
 }
