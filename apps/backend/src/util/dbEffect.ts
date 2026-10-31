@@ -4,6 +4,11 @@ import { AppConfigService } from '../Context/AppConfig';
 import { DbClientEffect, type DbClient } from '../Context/DbService';
 import { ReqCtxService } from '../Context/ReqCtx';
 import { MsgError, extractErrorMessage, requireOrFail } from './error';
+import { DEFAULT_PAGE_SIZE as _DEFAULT_PAGE_SIZE } from './constants';
+
+/** 分页常量统一从本模块导出（单源在 constants.ts） */
+export const DEFAULT_PAGE_SIZE = _DEFAULT_PAGE_SIZE;
+export const MAX_PAGE_SIZE = 100;
 
 /**
  * 封装数据库操作的 Effect.tryPromise，统一日志记录和错误处理
@@ -55,6 +60,19 @@ export function dbTryOrDefault<T>(
       `sql:${label}·${operation}`,
     ),
   );
+}
+
+/**
+ * 分页参数归一化（全后端唯一口径）：page 1-based，无值/非法回退 1；
+ * pageSize clamp 到 [1, MAX_PAGE_SIZE]，无值用默认。返回 ZenStack 的 skip/take。
+ */
+export function pageToSkipTake(page?: number | null, pageSize?: number | null): { skip: number; take: number } {
+  const p = Number.isFinite(page) && Number(page) >= 1 ? Math.floor(Number(page)) : 1;
+  const size =
+    Number.isFinite(pageSize) && Number(pageSize) >= 1
+      ? Math.min(MAX_PAGE_SIZE, Math.floor(Number(pageSize)))
+      : DEFAULT_PAGE_SIZE;
+  return { skip: (p - 1) * size, take: size };
 }
 
 /**

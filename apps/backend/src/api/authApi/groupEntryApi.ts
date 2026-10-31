@@ -5,6 +5,7 @@ import { ReqCtxService } from '../../Context/ReqCtx';
 import { extractErrorMessage } from '../../util/error';
 import { GroupEntryService, GROUP_QR_TTL_DAYS, MAX_QR_UPLOAD_BYTES } from '../../services/GroupEntryService';
 import { fail, tryOrFail } from '../../util/error';
+import { MAX_PAGE_SIZE } from '../../util/dbEffect';
 import { DbClientEffect } from '../../Context/DbService';
 
 /** 读取当前 RPC 请求中的 multipart 图片 */
@@ -167,7 +168,7 @@ export const groupEntryApi = {
           where: beforeId ? { id: { lt: beforeId } } : undefined,
           include: { user: { select: { email: true, nickname: true } } },
           orderBy: { id: 'desc' },
-          take: Math.min(Math.max(limit, 1), 100),
+          take: Math.min(Math.max(limit, 1), MAX_PAGE_SIZE),
         }),
       );
     });

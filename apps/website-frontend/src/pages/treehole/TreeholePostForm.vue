@@ -80,7 +80,7 @@ import { ref, computed, shallowRef } from 'vue';
 import { useAPI } from '@/api';
 import { useToast } from '@/composables/useToast';
 import type { ContentVisibility } from '@tsfullstack/backend';
-import { getErrorMessage } from '@/utils/error';
+import { apiErrorDetail } from '@/utils/error';
 import { $Enums } from '@tsfullstack/backend';
 import { authInfo } from '@/storage';
 import { useI18n } from '@/composables/useI18n';
@@ -205,7 +205,7 @@ async function handleSubmit() {
 
     emit('submit');
   } catch (error: unknown) {
-    toast.error(t('错误'), t('发布失败：') + getErrorMessage(error));
+    toast.error(t('错误'), apiErrorDetail(t('发布失败：'), error));
   } finally {
     isSubmitting.value = false;
   }

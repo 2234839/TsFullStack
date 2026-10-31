@@ -129,7 +129,7 @@ import { useConfirm } from '@/composables/useConfirm';
 import { useToast } from '@/composables/useToast';
 import AiModelForm from './components/AiModelForm.vue';
 import ModelStatsChart from './components/ModelStatsChart.vue';
-import { getErrorMessage } from '@/utils/error';
+import { apiErrorDetail } from '@/utils/error';
 import { DEFAULT_MAX_TOKENS } from '@/utils/constants';
 
 const { API } = useAPI();
@@ -351,7 +351,7 @@ const loadModels = async () => {
     });
     models.value = result;
   } catch (error: unknown) {
-    toast.error(t('失败'), t('加载失败：') + getErrorMessage(error));
+    toast.error(t('失败'), apiErrorDetail(t('加载失败：'), error));
   } finally {
     isLoading.value = false;
   }
@@ -396,7 +396,7 @@ const toggleModelStatus = (model: AiModelVO, event: MouseEvent) => {
         toast.success(t('成功'), t('{0}成功', model.enabled ? t('禁用') : t('启用')));
         await loadModels(); // 重新加载数据
       } catch (error: unknown) {
-        toast.error(t('失败'), t('操作失败：') + getErrorMessage(error));
+        toast.error(t('失败'), apiErrorDetail(t('操作失败：'), error));
       }
     },
     reject: () => {
@@ -431,7 +431,7 @@ const deleteModel = (model: AiModelVO, event: MouseEvent) => {
         toast.success(t('成功'), t('删除成功'));
         await loadModels(); // 重新加载数据
       } catch (error: unknown) {
-        toast.error(t('失败'), t('删除失败：') + getErrorMessage(error));
+        toast.error(t('失败'), apiErrorDetail(t('删除失败：'), error));
       }
     },
     reject: () => {
@@ -453,7 +453,7 @@ const refreshStats = async () => {
   try {
     await modelStatsChartRef.value.loadRequestStats();
   } catch (error: unknown) {
-    toast.error(t('失败'), t('刷新统计数据失败：') + getErrorMessage(error));
+    toast.error(t('失败'), apiErrorDetail(t('刷新统计数据失败：'), error));
   } finally {
     isStatsLoading.value = false;
   }

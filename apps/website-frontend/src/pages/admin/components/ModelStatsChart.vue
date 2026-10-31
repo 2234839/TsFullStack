@@ -53,7 +53,7 @@ import { ref, shallowRef, onMounted, computed, markRaw } from 'vue';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
-import { ONE_DAY_MS } from '@/utils/format';
+import { ONE_DAY_MS, formatDate } from '@/utils/format';
 import { DEFAULT_PAGE_SIZE } from '@/utils/constants';
 
 const { API } = useAPI();
@@ -339,7 +339,7 @@ const updateUserStatsDisplay = async () => {
     userEmail,
     requestCount: stats.requestCount,
     totalTokens: stats.totalTokens,
-    lastUsed: stats.lastUsed.toLocaleString(),
+    lastUsed: formatDate(stats.lastUsed),
   }));
 };
 
@@ -508,7 +508,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     requestCount: stats.count,
     successRate: stats.count > 0 ? Math.round((stats.success / stats.count) * 100) : 0,
     avgTokens: stats.count > 0 ? Math.round(stats.tokens / stats.count) : 0,
-    lastUsed: stats.lastUsed.toLocaleString(),
+    lastUsed: formatDate(stats.lastUsed),
   }));
 
   // Update user stats with pagination
@@ -526,7 +526,7 @@ const loadRequestStats = async (timeRange: '24h' | '7d' | '30d' = '24h') => {
     userEmail,
     requestCount: stats.requestCount,
     totalTokens: stats.totalTokens,
-    lastUsed: stats.lastUsed.toLocaleString(),
+    lastUsed: formatDate(stats.lastUsed),
   }));
 };
 

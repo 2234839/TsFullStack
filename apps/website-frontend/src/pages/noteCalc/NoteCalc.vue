@@ -257,7 +257,7 @@
     <Dialog v-model:open="showEmbedGuide" :title="ti18n('嵌入 & API 使用说明')">
       <div class="space-y-3 text-sm">
         <div class="flex justify-end">
-          <Button size="sm" @click="copyToClipboard(skillMdContent)">
+          <Button size="sm" @click="copyText(skillMdContent)">
             <i class="pi pi-copy mr-1" />
             {{ ti18n('复制 SKILL.md') }}
           </Button>
@@ -281,6 +281,7 @@ import CommonSettingBtns from '@/components/system/CommonSettingBtns.vue';
 import CodeMirrorEditor from '@/pages/noteCalc/CodeMirrorEditor.vue';
 import { routeMap, router, routerUtil } from '@/router';
 import { authInfo, authInfo_isLogin } from '@/storage';
+import { copyToClipboard } from '@/utils/clipboard';
 import { formatDate, truncateText, parseJsonField } from '@/utils/format';
 import { userDataAppid } from '@/storage/userDataAppid';
 import { useSharePlus } from '@/utils/hooks/useSharePlus';
@@ -318,9 +319,9 @@ const showEmbedGuide = ref(false);
 
 import skillMdContent from './skill.md?raw';
 
-/** 复制到剪贴板 */
-function copyToClipboard(text: string) {
-  navigator.clipboard.writeText(text).then(() => {
+/** 复制到剪贴板（成功后 toast 提示） */
+function copyText(text: string) {
+  copyToClipboard(text).then(() => {
     toast.success(ti18n('已复制'), ti18n('内容已复制到剪贴板'));
   });
 }

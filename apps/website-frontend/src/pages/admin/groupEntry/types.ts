@@ -8,6 +8,8 @@ export type GroupEntrySettings = Awaited<ReturnType<typeof API.groupEntryApi.get
 
 export const MAX_QR_FILE_SIZE = 5 * 1024 * 1024;
 export const ALLOWED_QR_FILE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+/** 文件选择器 accept 属性值，与 ALLOWED_QR_FILE_TYPES 保持同源 */
+export const QR_IMAGE_ACCEPT = 'image/png,image/jpeg,image/webp';
 export const GROUP_ENTRY_KEY_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/;
 export const GROUP_FROM_PATTERN = /^[a-zA-Z0-9_-]{0,64}$/;
 

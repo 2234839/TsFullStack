@@ -187,7 +187,7 @@ import QRCode from 'qrcode';
 import { reactive, ref, shallowRef } from 'vue';
 import { useConfirm } from '@/composables/useConfirm';
 import { useI18n } from '@/composables/useI18n';
-import { getErrorMessage } from '@/utils/error';
+import { apiErrorDetail, getErrorMessage } from '@/utils/error';
 import { copyToClipboard } from '@/utils/clipboard';
 
 const { API } = useAPI();
@@ -397,7 +397,7 @@ const handleDelete = (item: ShareItemJSON, event: MouseEvent) => {
         shareList.execute(); // 刷新列表
         toast.success(t('成功'), t('删除分享成功'));
       } catch (error: unknown) {
-        toast.error(t('失败'), t('删除分享失败：') + getErrorMessage(error));
+        toast.error(t('失败'), apiErrorDetail(t('删除分享失败：'), error));
       }
     },
     reject: () => {

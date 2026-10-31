@@ -1,7 +1,7 @@
 import { Effect } from 'effect';
 import { AuthContext } from '../../Context/Auth';
 import { TokenService } from '../../services/TokenService';
-import { DEFAULT_PAGE_SIZE } from '../../util/constants';
+import { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../../util/dbEffect';
 
 /**
  * 代币 API - 安全地暴露代币相关功能给前端
@@ -21,8 +21,8 @@ const getUserTokens = (options?: { skip?: number; take?: number }) =>
   AuthContext.pipe(
     Effect.flatMap((auth) =>
       TokenService.getUserTokens(auth.user.id, {
-        skip: options?.skip ?? 0,
-        take: options?.take ?? DEFAULT_PAGE_SIZE,
+        skip: Math.max(0, options?.skip ?? 0),
+        take: Math.min(MAX_PAGE_SIZE, Math.max(1, options?.take ?? DEFAULT_PAGE_SIZE)),
       }),
     ),
   );
@@ -32,8 +32,8 @@ const getTokenHistory = (options?: { skip?: number; take?: number; startDate?: D
   AuthContext.pipe(
     Effect.flatMap((auth) =>
       TokenService.getTokenHistory(auth.user.id, {
-        skip: options?.skip ?? 0,
-        take: options?.take ?? DEFAULT_PAGE_SIZE,
+        skip: Math.max(0, options?.skip ?? 0),
+        take: Math.min(MAX_PAGE_SIZE, Math.max(1, options?.take ?? DEFAULT_PAGE_SIZE)),
         startDate: options?.startDate,
         endDate: options?.endDate,
       }),

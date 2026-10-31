@@ -6,12 +6,11 @@ import { PaymentConfigService } from '../../Context/PaymentConfig';
 import { PaymentService } from '../../services/payment/PaymentService';
 import { PaymentProvider, OrderStatus } from '../../../.zenstack/models';
 import { MsgError, fail, requireOrFail, tryOrFail } from '../../util/error';
-import { adminDbTry, dbTry, dbTryRequire } from '../../util/dbEffect';
-import { DEFAULT_PAGE_SIZE, MSG, deepCloneToJson } from '../../util/constants';
+import { adminDbTry, dbTry, dbTryRequire, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from '../../util/dbEffect';
+import { MSG, deepCloneToJson } from '../../util/constants';
 import { grantTokensForPackage } from '../../services/payment/grantTokensForPackage';
 import { asGrantTx } from '../../services/TokenGrantService';
-import fs from 'fs/promises';
-import path from 'path';
+import { updateAppConfig } from '../../config/loader';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[PaymentApi]';
@@ -79,8 +78,8 @@ const adminListOrders = (options?: { userId?: string; status?: OrderStatus; skip
       db.order.findMany({
         where,
         orderBy: { created: 'desc' },
-        skip: options?.skip ?? 0,
-        take: options?.take ?? DEFAULT_PAGE_SIZE,
+        skip: Math.max(0, options?.skip ?? 0),
+        take: Math.min(MAX_PAGE_SIZE, Math.max(1, options?.take ?? DEFAULT_PAGE_SIZE)),
         include: {
           package: { select: { id: true, name: true, type: true, amount: true } },
           user: { select: { id: true, email: true, nickname: true } },
@@ -101,23 +100,14 @@ const getPaymentConfig = () =>
   });
 
 /**
- * 管理：保存支付配置（写入 config.json）
+ * 管理：保存支付配置（写入 config.json，走 config/loader 的统一入口）
  */
 const savePaymentConfig = (config: Record<string, unknown>) =>
   Effect.gen(function* () {
     yield* requireAdmin();
-
-    const configPath = path.join(process.cwd(), 'config.json');
-    const raw = yield* tryOrFail('读取配置文件', () => fs.readFile(configPath, 'utf-8'));
-
-    const current = yield* Effect.try({
-      try: () => JSON.parse(raw) as Record<string, unknown>,
-      catch: () => MsgError.msg('配置文件 JSON 格式无效'),
+    yield* updateAppConfig((current) => {
+      current.payment = config;
     });
-    current.payment = config;
-
-    yield* tryOrFail('写入配置文件', () => fs.writeFile(configPath, JSON.stringify(current, null, 2), 'utf-8'));
-
     return { success: true as const };
   });
 /**

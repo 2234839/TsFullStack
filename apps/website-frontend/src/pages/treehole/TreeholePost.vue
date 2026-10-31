@@ -148,7 +148,7 @@ import TreeholePostForm from './TreeholePostForm.vue';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
 import type { TreeholePost } from '@tsfullstack/backend';
-import { getErrorMessage } from '@/utils/error';
+import { apiErrorDetail } from '@/utils/error';
 import { useI18n } from '@/composables/useI18n';
 import { truncateText, formatDate } from '@/utils/format';
 
@@ -332,7 +332,7 @@ function handleDelete() {
         toast.success(t('成功'), t('删除成功'));
         emit('deleted');
       } catch (error: unknown) {
-        toast.error(t('错误'), t('删除失败：') + getErrorMessage(error));
+        toast.error(t('错误'), apiErrorDetail(t('删除失败：'), error));
       }
     },
   });

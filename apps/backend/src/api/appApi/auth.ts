@@ -107,7 +107,9 @@ export const authApi = {
       );
       const ctx = yield* ReqCtxService;
       ctx.log(LOG_PREFIX, 'register user', newUser.id);
-      return newUser;
+      /** 出接口不带密码哈希（登录态由后续 login 接口建立） */
+      const { password: _password, ...userWithoutPassword } = newUser;
+      return userWithoutPassword;
     });
   },
   loginByEmailPwd(email: string, password: string) {

@@ -1,17 +1,10 @@
 import { Effect, Option } from 'effect';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
-import { AuthContext } from '../../Context/Auth';
+import { AuthContext, optionalUserId as currentUserId } from '../../Context/Auth';
 import { dbTryOrDefault, dbPaginatedFindMany } from '../../util/dbEffect';
 import type { ContentVisibility } from '../../../.zenstack/models';
 import type { PostWhereInput } from '../../../.zenstack/input';
-
-/**
- * 可选读取当前登录用户 ID（app-api 无鉴权分支不提供 AuthContext，需用 serviceOption 安全读取）
- * 返回 null 表示匿名访问
- */
-const currentUserId = () =>
-  Effect.map(Effect.serviceOption(AuthContext), (opt) => (Option.isSome(opt) ? opt.value.user.id : null));
 
 /** 日志前缀 */
 const LOG_PREFIX = '[Treehole]';

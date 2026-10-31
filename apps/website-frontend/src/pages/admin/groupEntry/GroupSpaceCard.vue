@@ -131,7 +131,7 @@
             />
             <div class="flex flex-wrap items-center gap-3">
               <FileUpload
-                accept="image/png,image/jpeg,image/webp"
+                :accept="QR_IMAGE_ACCEPT"
                 :choose-label="officialFile ? t('重新选择公众号码') : t('上传公众号二维码')"
                 :disabled="busyKey === 'official-qr'"
                 @select="selectOfficialFile"
@@ -200,7 +200,7 @@
             />
             <div class="flex flex-wrap items-center gap-3">
               <FileUpload
-                accept="image/png,image/jpeg,image/webp"
+                :accept="QR_IMAGE_ACCEPT"
                 :choose-label="selectedFile ? t('重新选择群码') : t('选择群码图片')"
                 :disabled="uploading"
                 @select="selectFile"
@@ -337,6 +337,7 @@ import {
   officialAccountQrUrl,
   publicGroupSvgUrl,
   publicSpaceUrl,
+  QR_IMAGE_ACCEPT,
   type SpaceQrCode,
   type GroupSpace,
 } from './types';

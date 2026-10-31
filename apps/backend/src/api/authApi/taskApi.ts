@@ -5,6 +5,7 @@ import { AppConfigService, AppConfig } from '../../Context/AppConfig';
 import { MsgError, fail, tryOrFail, extractErrorMessage } from '../../util/error';
 import { saveFileFromBuffer } from './file';
 import { dbTry } from '../../util/dbEffect';
+import { imageMimeFromExt } from '../../util/image';
 import { TokenService } from '../../services/TokenService';
 import { TaskService } from '../../services/TaskService';
 import { ResourceService } from '../../services/ResourceService';
@@ -385,7 +386,7 @@ const selectAndDownloadImage = (request: {
 
     const fileRecord = yield* saveFileFromBuffer({
       filename,
-      mimetype: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+      mimetype: imageMimeFromExt(ext),
       buffer: finalBuffer,
     });
 

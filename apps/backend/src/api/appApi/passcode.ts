@@ -5,6 +5,7 @@ import { ReqCtxService } from '../../Context/ReqCtx';
 import { AuthContext } from '../../Context/Auth';
 import { fail, tryOrFail, requireOrFail } from '../../util/error';
 import { PasscodeService } from '../../services/PasscodeService';
+import { officialName, officialQrUrl } from '../../services/GroupEntryService';
 import { genUserSession } from './_genUserSession';
 import { generateSecureRandomPassword, generateFakeEmail } from './_oauthUtil';
 import { hashPassword } from '../../util/crypto';
@@ -136,8 +137,8 @@ export const passcodeApi = {
         }),
       );
       const official: PasscodeOfficialView = {
-        name: space?.officialName || appConfig.groupEntry?.officialAccountName || '公众号',
-        qrUrl: space ? `/group/official-qr/${space.name}.png` : (appConfig.groupEntry?.officialAccountQrUrl ?? null),
+        name: officialName(space, appConfig.groupEntry),
+        qrUrl: officialQrUrl(space, appConfig.groupEntry),
       };
 
       reqCtx.log(`${LOG_PREFIX} 发起微信口令登录 id=${record.id}`);
@@ -305,8 +306,8 @@ export const passcodeApi = {
         }),
       );
       const official: PasscodeOfficialView = {
-        name: space?.officialName || appConfig.groupEntry?.officialAccountName || '公众号',
-        qrUrl: space ? `/group/official-qr/${space.name}.png` : (appConfig.groupEntry?.officialAccountQrUrl ?? null),
+        name: officialName(space, appConfig.groupEntry),
+        qrUrl: officialQrUrl(space, appConfig.groupEntry),
       };
 
       reqCtx.log(`${LOG_PREFIX} 发起微信合并验证 id=${record.id}`);

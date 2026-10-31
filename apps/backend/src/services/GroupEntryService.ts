@@ -7,6 +7,7 @@ import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
 import { fail, tryOrFail, MsgError, extractErrorMessage } from '../util/error';
 import { MS_PER_HOUR } from '../util/constants';
+import { imageExtFromMime, isValidImageMime } from '../util/image';
 import type { GroupQRCode, GroupSpace } from '../../.zenstack/models';
 
 /** 日志前缀 */
@@ -25,9 +26,6 @@ function todayStr(): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
-
-/** 允许上传的图片 MIME 白名单 */
-const ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 /** 上传大小上限 5MB，同时供服务层校验与 multipart 读取限制使用 */
 export const MAX_QR_UPLOAD_BYTES = 5 * 1024 * 1024;
@@ -99,6 +97,22 @@ export interface GroupSpaceView {
   qrcodes: (GroupQRCodeView & { serving: boolean })[];
 }
 
+/** 公众号名称：空间字段优先，回退 config，最终回退「公众号」（口令登录/账号页/空间视图共用） */
+export function officialName(
+  space: Pick<GroupSpace, 'officialName'> | null | undefined,
+  config?: AppConfig['groupEntry'],
+): string {
+  return space?.officialName || config?.officialAccountName || '公众号';
+}
+
+/** 公众号二维码 URL：空间后台上传优先（走 /group/official-qr 路由），回退 config 外链 */
+export function officialQrUrl(
+  space: Pick<GroupSpace, 'name' | 'officialQrImagePath'> | null | undefined,
+  config?: AppConfig['groupEntry'],
+): string | null {
+  return space?.officialQrImagePath ? `/group/official-qr/${space.name}.png` : (config?.officialAccountQrUrl ?? null);
+}
+
 /** 空间公众号公开视图：空间字段优先，未配置时回退 config.json */
 function spaceOfficialView(
   space: Pick<
@@ -108,10 +122,10 @@ function spaceOfficialView(
   config?: AppConfig['groupEntry'],
 ): SpaceOfficialView {
   return {
-    name: space.officialName || config?.officialAccountName || '公众号',
+    name: officialName(space, config),
     replyKeyword: space.officialReplyKeyword || config?.replyKeyword || '加群',
     guideText: space.officialGuideText,
-    qrUrl: space.officialQrImagePath ? `/group/official-qr/${space.name}.png` : (config?.officialAccountQrUrl ?? null),
+    qrUrl: officialQrUrl(space, config),
   };
 }
 
@@ -204,7 +218,7 @@ export const GroupEntryService = {
     mime: string;
   }): Effect.Effect<GroupQRCodeView, Error, AppConfigService> {
     return Effect.gen(function* () {
-      if (!ALLOWED_MIME.has(options.mime)) {
+      if (!isValidImageMime(options.mime)) {
         return yield* fail(`不支持的图片类型: ${options.mime}（仅 png/jpeg/webp）`);
       }
       if (options.buffer.length === 0 || options.buffer.length > MAX_QR_UPLOAD_BYTES) {
@@ -214,7 +228,7 @@ export const GroupEntryService = {
       const space = yield* tryOrFail('查询空间', () => db.groupSpace.findUnique({ where: { id: options.spaceId } }));
       if (!space) return yield* fail(`私域空间不存在: ${options.spaceId}`);
       const { uploadDir } = yield* AppConfigService;
-      const ext = options.mime === 'image/png' ? 'png' : options.mime === 'image/webp' ? 'webp' : 'jpg';
+      const ext = imageExtFromMime(options.mime);
       const relPath = join(QR_SUBDIR, `${uuidv7()}.${ext}`);
       const absPath = join(uploadDir, relPath);
       yield* tryOrFail('创建群码目录', () => mkdir(dirname(absPath), { recursive: true }));
@@ -354,7 +368,7 @@ export const GroupEntryService = {
     mime: string;
   }): Effect.Effect<SpaceOfficialView, Error, AppConfigService> {
     return Effect.gen(function* () {
-      if (!ALLOWED_MIME.has(options.mime)) {
+      if (!isValidImageMime(options.mime)) {
         return yield* fail(`不支持的图片类型: ${options.mime}（仅 png/jpeg/webp）`);
       }
       if (options.buffer.length === 0 || options.buffer.length > MAX_QR_UPLOAD_BYTES) {
@@ -364,7 +378,7 @@ export const GroupEntryService = {
       const space = yield* tryOrFail('查询空间', () => db.groupSpace.findUnique({ where: { id: options.spaceId } }));
       if (!space) return yield* fail(`私域空间不存在: ${options.spaceId}`);
       const { uploadDir } = yield* AppConfigService;
-      const ext = options.mime === 'image/png' ? 'png' : options.mime === 'image/webp' ? 'webp' : 'jpg';
+      const ext = imageExtFromMime(options.mime);
       const relPath = join(OFFICIAL_QR_SUBDIR, `${uuidv7()}.${ext}`);
       const absPath = join(uploadDir, relPath);
       yield* tryOrFail('创建公众号码目录', () => mkdir(dirname(absPath), { recursive: true }));

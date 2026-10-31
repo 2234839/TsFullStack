@@ -2,13 +2,9 @@ import { Effect } from 'effect';
 import { DbClientEffect } from '../../Context/DbService';
 import { loopLagState } from '../../util/LoopLagMonitor';
 import { fail } from '../../util/error';
-import { dbTry } from '../../util/dbEffect';
+import { dbTry, pageToSkipTake, MAX_PAGE_SIZE, DEFAULT_PAGE_SIZE } from '../../util/dbEffect';
 import { requireAdmin } from '../../Context/Auth';
 
-/** 诊断查询默认页大小 */
-const DEFAULT_PAGE_SIZE = 20;
-/** 诊断查询最大页大小（timeline JSON 较大，防一次拉爆） */
-const MAX_PAGE_SIZE = 100;
 /** 最远可回溯天数：慢请求诊断只需近期数据，30 天足够 */
 const MAX_DAYS = 30;
 /** 行为记录最远可回溯天数：与保留期一致（网安法 ≥ 6 个月） */
@@ -58,6 +54,7 @@ const listTraces = (opt: { page?: number; pageSize?: number; days?: number; minT
     yield* requireAdmin();
     const page = Math.max(1, opt.page ?? 1);
     const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, opt.pageSize ?? DEFAULT_PAGE_SIZE));
+    const { skip, take } = pageToSkipTake(opt.page, opt.pageSize);
     const days = Math.min(MAX_DAYS, Math.max(1, opt.days ?? 7));
     const minTotalMs = Math.max(0, opt.minTotalMs ?? 0);
     const db = yield* DbClientEffect;
@@ -68,8 +65,8 @@ const listTraces = (opt: { page?: number; pageSize?: number; days?: number; minT
         db.diagTrace.findMany({
           where,
           orderBy: { created: 'desc' },
-          skip: (page - 1) * pageSize,
-          take: pageSize,
+          skip,
+          take,
         }),
       ),
       dbTry('统计诊断总数', 'listTraces', () => db.diagTrace.count({ where })),
@@ -189,6 +186,7 @@ const listBehavior = (opt: {
     yield* requireAdmin();
     const page = Math.max(1, opt.page ?? 1);
     const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, opt.pageSize ?? DEFAULT_PAGE_SIZE));
+    const { skip, take } = pageToSkipTake(opt.page, opt.pageSize);
     const days = Math.min(BEHAVIOR_MAX_DAYS, Math.max(1, opt.days ?? 7));
     const db = yield* DbClientEffect;
     const createdGte = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -204,8 +202,8 @@ const listBehavior = (opt: {
         db.systemLog.findMany({
           where,
           orderBy: { created: 'desc' },
-          skip: (page - 1) * pageSize,
-          take: pageSize,
+          skip,
+          take,
           select: {
             id: true,
             level: true,

@@ -4,7 +4,7 @@ import { Effect, Option } from 'effect';
 import { fail, requireOrFail } from '../../util/error';
 import { DbClientEffect } from '../../Context/DbService';
 import { ReqCtxService } from '../../Context/ReqCtx';
-import { AuthContext } from '../../Context/Auth';
+import { AuthContext, optionalUserId as currentUserId } from '../../Context/Auth';
 import { dbTry } from '../../util/dbEffect';
 import { hashPassword } from '../../util/crypto';
 import { GithubAuthService } from '../../OAuth/github';
@@ -19,13 +19,6 @@ import { registerMergeTicket } from './passcode';
 
 /** 日志前缀 */
 const LOG_PREFIX = '[GithubApi]';
-
-/**
- * 读取当前登录用户 ID（无鉴权分支不提供 AuthContext，用 serviceOption 安全读取）
- * null 表示未登录
- */
-const currentUserId = () =>
-  Effect.map(Effect.serviceOption(AuthContext), (opt) => (Option.isSome(opt) ? opt.value.user.id : null));
 
 /** 通过 Github 登录 */
 export const githubApi = {

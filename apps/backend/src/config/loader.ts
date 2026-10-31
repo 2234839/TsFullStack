@@ -8,6 +8,35 @@ import { type AppConfig as AppConfigType } from '../Context/AppConfig';
 /** 日志前缀 */
 const LOG_PREFIX = '[ConfigLoader]';
 
+/** config.json 路径的唯一真相（全后端只允许此处解析该路径） */
+export function configJsonPath(): string {
+  return path.join(process.cwd(), 'config.json');
+}
+
+/**
+ * 读-改-写 config.json 的统一入口（带完整校验）：
+ * 读取现有配置 → 应用 mutate → 校验 → 原子写回。
+ * 任何需要修改 config.json 的功能（如后台改支付配置）都必须走这里，
+ * 禁止各处自行拼路径读写（防与 loader 分叉）。
+ */
+export function updateAppConfig(
+  /** 对已解析配置对象做原地修改（修改后经 validateConfig 校验） */
+  mutate: (config: Record<string, unknown>) => void,
+): Effect.Effect<void, Error, never> {
+  return Effect.gen(function* () {
+    const configPath = configJsonPath();
+    const raw = yield* tryOrFail('读取配置文件', () => fs.readFile(configPath, 'utf-8'));
+    const current = yield* Effect.try({
+      try: () => JSON.parse(raw) as Record<string, unknown>,
+      catch: () => MsgError.msg('配置文件 JSON 格式无效'),
+    });
+    mutate(current);
+    /** 写回前完整校验，防止改坏关键字段导致服务无法重启 */
+    validateConfig(current);
+    yield* tryOrFail('写入配置文件', () => fs.writeFile(configPath, JSON.stringify(current, null, 2), 'utf-8'));
+  });
+}
+
 /** 校验配置关键字段是否存在 */
 function validateConfig(config: unknown): asserts config is AppConfigType {
   if (!config || typeof config !== 'object') {
@@ -33,7 +62,7 @@ function validateConfig(config: unknown): asserts config is AppConfigType {
  * 加载配置文件（仅支持 config.json）
  */
 export const loadAppConfig: Effect.Effect<AppConfigType, Error, never> = Effect.gen(function* () {
-  const configPath = path.join(process.cwd(), 'config.json');
+  const configPath = configJsonPath();
 
   const configExists = yield* tryOrFail('检查 config.json', async () => {
     try {

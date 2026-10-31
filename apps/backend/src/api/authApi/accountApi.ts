@@ -4,9 +4,11 @@ import { AppConfigService } from '../../Context/AppConfig';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { AuthContext } from '../../Context/Auth';
 import { fail, tryOrFail } from '../../util/error';
+import { MAX_PAGE_SIZE } from '../../util/dbEffect';
 import { comparePassword } from '../../util/crypto';
 import { PasscodeService } from '../../services/PasscodeService';
 import { consumeMergeTicket, type PasscodeOfficialView } from '../appApi/passcode';
+import { officialName, officialQrUrl } from '../../services/GroupEntryService';
 import { githubApi } from '../appApi/github';
 import { linuxdoApi } from '../appApi/linuxdo';
 import { invalidateAuthUserCache } from '../../server/authCache';
@@ -125,8 +127,8 @@ export const accountApi = {
         }),
       );
       const official: PasscodeOfficialView = {
-        name: space?.officialName || appConfig.groupEntry?.officialAccountName || '公众号',
-        qrUrl: space ? `/group/official-qr/${space.name}.png` : (appConfig.groupEntry?.officialAccountQrUrl ?? null),
+        name: officialName(space, appConfig.groupEntry),
+        qrUrl: officialQrUrl(space, appConfig.groupEntry),
       };
 
       const reqCtx = yield* ReqCtxService;
@@ -244,7 +246,7 @@ export const accountApi = {
         db.channelMessage.findMany({
           where: { userId: user.id, ...(beforeId ? { id: { lt: beforeId } } : {}) },
           orderBy: { id: 'desc' },
-          take: Math.min(Math.max(limit, 1), 100),
+          take: Math.min(Math.max(limit, 1), MAX_PAGE_SIZE),
         }),
       );
     });

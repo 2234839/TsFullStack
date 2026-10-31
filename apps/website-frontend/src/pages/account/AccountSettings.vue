@@ -120,7 +120,7 @@
               ]"
             />
             <div class="min-w-0 flex-1">
-              <span class="mr-2 text-xs text-primary-500">{{ new Date(msg.created).toLocaleString() }}</span>
+              <span class="mr-2 text-xs text-primary-500">{{ formatDate(msg.created) }}</span>
               <span class="break-all">{{ msg.content || (msg.mediaId ? t('[图片]') : '—') }}</span>
             </div>
           </div>
@@ -248,6 +248,7 @@
 
 <script setup lang="ts">
 import { useAPI } from '@/api';
+import { formatDate } from '@/utils/format';
 import WechatPasscodeDialog from '@/components/common/WechatPasscodeDialog.vue';
 import AuthCard, { type AuthCardVerifiedPayload } from '@/components/common/AuthCard.vue';
 import { routeMap, routerUtil } from '@/router';

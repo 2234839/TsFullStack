@@ -3,6 +3,8 @@ import { Cache, Duration, Effect } from 'effect';
 import { readFile } from 'node:fs/promises';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
 import { GroupEntryService, isQrEffective, MAX_QR_UPLOAD_BYTES } from '../services/GroupEntryService';
+import { isValidImageMime } from '../util/image';
+import { withFetchTimeout } from '../util/http';
 import { extractErrorMessage } from '../util/error';
 import { buildGroupEntrySvg } from './groupEntrySvg';
 
@@ -172,7 +174,7 @@ const accountQrReachability = Effect.runSync(
     lookup: (url) =>
       Effect.catch(
         Effect.map(
-          Effect.promise(() => fetch(url, { method: 'HEAD', signal: AbortSignal.timeout(3000) })),
+          Effect.promise(() => fetch(url, withFetchTimeout({ method: 'HEAD' }, 3000))),
           (response) => response.ok && (response.headers.get('content-type') ?? '').startsWith('image/'),
         ),
         () => Effect.succeed(false),
@@ -194,7 +196,7 @@ async function reachableAccountQrUrl(url: string | null | undefined): Promise<st
 
 /** 图片响应转 data URL；仅接受与上传白名单一致的位图格式，避免在 SVG 中嵌入主动内容 */
 function bitmapDataUrl(buffer: Buffer, mime: string): string | undefined {
-  if (!['image/png', 'image/jpeg', 'image/webp'].includes(mime)) return undefined;
+  if (!isValidImageMime(mime)) return undefined;
   if (buffer.length === 0 || buffer.length > MAX_QR_UPLOAD_BYTES) return undefined;
   return `data:${mime};base64,${buffer.toString('base64')}`;
 }
@@ -218,7 +220,7 @@ async function officialQrDataUrl(
   }
   if (!qrUrl.startsWith('https://') && !qrUrl.startsWith('http://')) return undefined;
   try {
-    const response = await fetch(qrUrl, { signal: AbortSignal.timeout(3000) });
+    const response = await fetch(qrUrl, withFetchTimeout({}, 3000));
     const mime = response.headers.get('content-type')?.split(';')[0]?.trim().toLowerCase() ?? '';
     const contentLength = Number(response.headers.get('content-length') ?? 0);
     if (!response.ok || contentLength > MAX_QR_UPLOAD_BYTES) return undefined;

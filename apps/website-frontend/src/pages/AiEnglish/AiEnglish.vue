@@ -658,7 +658,7 @@ import { useTTS } from '@/pages/AiEnglish/util';
 import { useApiStorage } from '@/utils/hooks/UseApiStorage';
 import { getMemoryColor, ONE_DAY_MS } from '@/utils/format';
 import { useToast } from '@/composables/useToast';
-import { getErrorMessage } from '@/utils/error';
+import { apiErrorDetail, getErrorMessage } from '@/utils/error';
 import { computed, reactive, ref, watch } from 'vue';
 import { Dialog, Tooltip } from '@tsfullstack/shared-frontend/components';
 import AiEnglishConfigPanel from '@/components/AiEnglishConfigPanel.vue';
@@ -1116,7 +1116,7 @@ const handleParagraphSelection = async (selectedWordsKey: string[]) => {
       wordsInSelection: selectedWordsKey,
     };
   } catch (error: unknown) {
-    toast.error(t('翻译失败'), t('段落翻译服务暂时不可用:') + getErrorMessage(error));
+    toast.error(t('翻译失败'), apiErrorDetail(t('段落翻译服务暂时不可用:'), error));
   } finally {
     isTranslating.value = false;
   }

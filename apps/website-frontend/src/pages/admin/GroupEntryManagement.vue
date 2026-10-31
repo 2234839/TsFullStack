@@ -258,6 +258,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
+import { formatDate } from '@/utils/format';
 import { Dropdown, Select } from '@tsfullstack/shared-frontend/components';
 import { useAPI } from '@/api';
 import { useI18n } from '@/composables/useI18n';
@@ -322,8 +323,9 @@ const spaceOptions = computed(() =>
   spaces.value.map((space) => ({ label: space.displayName || space.name, value: String(space.id) })),
 );
 
+/** 统一日期格式化（中文本地化、null 安全） */
 function formatTime(value: string | Date) {
-  return new Date(value).toLocaleString();
+  return formatDate(value);
 }
 const spaces = shallowRef<GroupSpace[]>([]);
 const spacesLoading = ref(false);

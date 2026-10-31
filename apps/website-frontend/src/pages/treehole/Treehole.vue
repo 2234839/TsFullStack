@@ -103,7 +103,7 @@ import { shallowRef, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { authInfo_isLogin, authInfo } from '@/storage';
 import { useAPI } from '@/api';
-import { getErrorMessage } from '@/utils/error';
+import { apiErrorDetail } from '@/utils/error';
 import TreeholePost from './TreeholePost.vue';
 import TreeholePostForm from './TreeholePostForm.vue';
 import { useDebounceFn } from '@vueuse/core';
@@ -216,7 +216,7 @@ async function loadPosts(reset = true) {
     // 判断是否还有更多数据
     hasMore.value = result.hasMore;
   } catch (err: unknown) {
-    error.value = t('加载失败：') + getErrorMessage(err);
+    error.value = apiErrorDetail(t('加载失败：'), err);
   } finally {
     isLoading.value = false;
   }
