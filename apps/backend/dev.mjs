@@ -1,9 +1,37 @@
 /**
  * 开发模式启动脚本
- * 1. 启动 tsdown watch 监听文件变化
- * 2. 编译完成后自动重启 HTTP 服务器
+ * 1. 对本地 dev 库执行 prisma migrate deploy（幂等，防 schema 与库漂移）
+ * 2. 启动 tsdown watch 监听文件变化
+ * 3. 编译完成后自动重启 HTTP 服务器
  */
 import { spawn, execSync } from 'child_process';
+import { cpSync, mkdirSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+/**
+ * 执行数据库迁移（对真实 dev 库 database/dev.db）：
+ * - schema 用 prisma-deploy/schema.prisma（datasource 走 env），migrations 目录随 publish.sh 同步自 ./migrations
+ * - DATABASE_URL 必须给绝对路径：Prisma 按 schema 所在目录解析相对路径，否则会打中 prisma-deploy/database 下的工件副本库
+ * - 迁移失败直接退出（let it crash），避免带着旧库跑新 schema 出 no such column
+ */
+function runMigrations() {
+  const dbFile = path.resolve(__dirname, 'database/dev.db');
+  if (!existsSync(dbFile)) return; // 首次克隆还没有库，跳过（Seed 会在启动时建库）
+  mkdirSync(path.resolve(__dirname, 'prisma-deploy'), { recursive: true });
+  cpSync(path.resolve(__dirname, 'migrations'), path.resolve(__dirname, 'prisma-deploy/migrations'), {
+    recursive: true,
+  });
+  console.log('[dev] Applying database migrations...');
+  execSync('npx prisma migrate deploy --schema prisma-deploy/schema.prisma', {
+    encoding: 'utf8',
+    stdio: 'inherit',
+    cwd: __dirname,
+    env: { ...process.env, DATABASE_URL: `file:${dbFile}` },
+  });
+}
 
 const PORT = 5209;
 let serverProcess = null;
@@ -56,6 +84,7 @@ function startServer() {
 
 /** 主流程 */
 console.log('[dev] Starting development mode...');
+runMigrations();
 
 let initialBuildDone = false;
 // 防抖定时器：数组配置下多个产物会各自报一次 Rebuilt，需合并处理
