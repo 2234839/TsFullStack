@@ -35,10 +35,7 @@ const inInputGroup = inject('inInputGroup', false);
 
 /** 输入框样式类 */
 const inputClasses = computed(() => {
-  // 在 InputGroup 中时，不需要圆角和 focus ring（由父容器控制）
-  const roundedClass = inInputGroup ? 'rounded-none' : 'rounded-lg';
-  const ringClass = inInputGroup ? '' : 'focus:ring-2 focus:ring-offset-0';
-
+  // INPUT_BASE_CLASSES 已含圆角与 focus ring，这里只拼状态色
   const stateClasses = invalid
     ? 'border-danger-500 focus:border-danger-500 dark:border-danger-400'
     : 'border-primary-default focus:border-primary-500 dark:focus:border-primary-400';
@@ -47,7 +44,10 @@ const inputClasses = computed(() => {
   const textClass = 'text-primary-title placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
-  return `${INPUT_BASE_CLASSES} ${roundedClass} ${ringClass} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
+  // InputGroup 中时圆角与 ring 由父容器控制，用 ! 后缀覆盖基础类
+  const groupOverride = inInputGroup ? 'rounded-none! focus:ring-0!' : '';
+
+  return `${INPUT_BASE_CLASSES} ${groupOverride} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
 });
 
 /** 处理输入事件 */

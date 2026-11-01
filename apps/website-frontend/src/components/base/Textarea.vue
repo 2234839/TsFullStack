@@ -35,10 +35,10 @@ const textareaClasses = computed(() => {
   const resizeNone = 'resize-none';
 
   const stateClasses = invalid
-    ? 'border-danger-500 focus:ring-danger-500 dark:border-danger-400'
-    : 'border-primary-default focus:ring-primary-500 dark:focus:ring-primary-400';
+    ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500 dark:border-danger-400'
+    : 'border-primary-default focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-400 dark:focus:ring-primary-400';
 
-  const bgClass = 'bg-white dark:bg-primary-900';
+  const bgClass = 'bg-primary-card';
   const textClass = 'text-primary-title placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
   const overflowClass = autoResize ? 'overflow-hidden' : '';

@@ -43,15 +43,15 @@ const handleRootUpdate = (v: boolean | 'indeterminate') => emit('update:modelVal
     @update:model-value="handleRootUpdate"
   >
     <span
-      class="h-5 w-5 shrink-0 rounded border transition-all duration-200"
+      class="flex h-5 w-5 shrink-0 items-center justify-center rounded border transition-all duration-200"
       :class="
         modelValue
           ? 'border-primary-600 bg-primary-600 dark:border-primary-500 dark:bg-primary-500'
           : 'border-primary-default bg-white hover:border-primary-300 dark:bg-primary-900 dark:hover:border-primary-600'
       "
     >
-      <CheckboxIndicator>
-        <i class="pi pi-check text-sm text-white"></i>
+      <CheckboxIndicator class="flex items-center justify-center">
+        <i class="pi pi-check text-sm leading-none text-white"></i>
       </CheckboxIndicator>
     </span>
     <slot />

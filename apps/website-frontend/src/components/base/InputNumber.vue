@@ -43,12 +43,13 @@ const emit = defineEmits<{
   'update:modelValue': [value: number | null];
 }>();
 
-/** 输入框样式类 */
+/** 输入框样式类（与 Input 统一配色） */
 const inputClasses = computed(() => {
-  const stateClasses = 'border-primary-300 dark:border-primary-700 focus:ring-info-600 dark:focus:ring-info-500';
+  const stateClasses =
+    'border-primary-default focus:border-primary-500 focus:ring-primary-500 dark:focus:border-primary-400 dark:focus:ring-primary-400';
 
   const bgClass = 'bg-primary-card';
-  const textClass = 'text-primary-950 dark:text-primary-50 placeholder-primary-500 dark:placeholder-primary-400';
+  const textClass = 'text-primary-title placeholder-primary-400 dark:placeholder-primary-500';
   const disabledClass = disabled ? 'opacity-50 cursor-not-allowed' : '';
 
   return `${INPUT_BASE_CLASSES} ${stateClasses} ${bgClass} ${textClass} ${disabledClass}`;
@@ -67,6 +68,7 @@ const formatOptions = computed(() => ({
 
 <template>
   <NumberFieldRoot
+    class="flex items-center"
     :model-value="modelValue"
     :min="min"
     :max="max"
