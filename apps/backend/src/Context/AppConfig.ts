@@ -7,6 +7,8 @@ export type AppConfig = {
   uploadDir: string;
   /** 数据库文件路径 */
   databasePath: string;
+  /** 数据库是否跑在 worker 线程（透明代理转发）：true=主线程不破同步 SQLite 阻塞（默认）；false=进程内直连（单文件零线程模式，退化回原行为） */
+  dbWorker?: boolean;
   /** 用于配置管理员帐号 */
   systemAdminUser: {
     email: string;

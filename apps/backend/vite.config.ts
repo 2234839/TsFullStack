@@ -10,7 +10,8 @@ import { defineConfig } from 'vite-plus';
 export default defineConfig({
   pack: [
     {
-      entry: ['src/index.ts'],
+      /** dbWorker 与主入口同目录输出（dist/index.mjs 与 dist/workerEntry.mjs），运行时用 import.meta.url 相对定位 */
+      entry: ['src/index.ts', 'src/Context/dbWorker/workerEntry.ts'],
       outDir: 'dist',
       format: ['esm'],
       sourcemap: true,
@@ -32,6 +33,7 @@ export default defineConfig({
           '@zenstackhq/runtime',
           '@zenstackhq/orm',
           '@zenstackhq/plugin-policy',
+          '@zenstackhq/plugin-soft-delete',
           '@zenstackhq/schema',
         ],
       },

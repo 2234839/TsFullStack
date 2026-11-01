@@ -37,6 +37,11 @@
       "default": "./database/dev.db",
       "examples": ["./database/dev.db", "./prisma/dev.db", "/var/data/tsfullstack.db"]
     },
+    "dbWorker": {
+      "type": "boolean",
+      "description": "数据库是否运行在独立 worker 线程（true=主线程不被同步 SQLite 阻塞；false=进程内直连，单文件零线程模式）",
+      "default": true
+    },
     "ApiProxy": {
       "type": "object",
       "description": "API 代理配置，用于代理一些无法直接访问的 API 请求",

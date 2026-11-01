@@ -8,6 +8,7 @@
 - [Effect v4 精致化改造](effect-v4-精致化改造.md) — Layer 主干 / TaggedError / Fiber 定时 / Cache / 队列锁续期 / API 风格
 - [安全审查](安全审查.md) — 持续安全审计：已发现的漏洞与待修复项（只记录，修复时逐块 done）
 - [架构切割面审查](架构切割面审查.md) — 全仓「应有抽象层但缺失」清单：分页/配置写入/错误提示样板等，按重复度×风险排序
+- [数据库 Worker 线程化](数据库Worker线程化.md) — ZenStack 客户端挪进 worker_threads，透明代理保持业务写法零变化（含交互式事务）
 
 ## 账号合并只迁登录关系，不做业务数据迁移 [[merge-login-only]]
 

@@ -111,7 +111,8 @@ export function createRPC<API_TYPE>(
         // 动态属性访问链 — any 不可避免：API 模块嵌套路径深度在编译期不可确定
         let currentObj: unknown = apiModule;
         for (const part of methodParts) {
-          if (currentObj == null || typeof currentObj !== 'object') {
+          /** 中间节点只要求非空：dbWorker 代理以函数为载体（支持 apply 陷阱），typeof 为 'function' 也是合法的中间节点 */
+          if (currentObj == null) {
             throw MsgError.msg(`方法 ${method} 未找到`);
           }
           currentObj = (currentObj as Record<string, unknown>)[part];

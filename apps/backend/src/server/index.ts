@@ -280,7 +280,7 @@ const DIAG_SQL_EVENTS_LIMIT = 50;
  * 阻塞判定：loopLagMaxMs ≈ sqlMaxMs → 硬阻塞（同步冻结事件循环，
  * better-sqlite3 是同步驱动）；loopLagMaxMs ≈ 0 但总耗时长 → 纯事件等待。
  */
-function finalizeDiag(input: {
+async function finalizeDiag(input: {
   reqCtx: ReqCtx;
   method: string;
   enqueueTime: number;
@@ -363,7 +363,7 @@ function finalizeDiag(input: {
     items: sqlEvents.slice(0, DIAG_SQL_EVENTS_LIMIT),
   });
   /** 驱动层真实执行语句（自描述事件，与 sqlEvents 的差值即 ORM 校验/建查询开销） */
-  const driverSql = snapshotDriverTimings(enqueuePerf ?? 0, endPerf).slice(0, DIAG_SQL_EVENTS_LIMIT);
+  const driverSql = (await snapshotDriverTimings(enqueuePerf ?? 0, endPerf)).slice(0, DIAG_SQL_EVENTS_LIMIT);
   if (driverSql.length > 0) {
     timeline.push({
       phase: 'driverSql',
@@ -554,7 +554,7 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: 
       });
     const ph = netPhases.get(req);
     if (ph) ph.finalize = finalize;
-    else finalize(endPerf);
+    else void finalize(endPerf);
 
     /** 行为记录：每请求一条摘要 + 请求内日志行，fire-and-forget 不阻塞响应；
      * 错误请求 level=error，正常 info */

@@ -6,6 +6,7 @@
   },
   "uploadDir": "./uploads",
   "databasePath": "./database/dev.db",
+  "dbWorker": true,
   "ApiProxy": {
     "github": "https://api-proxy.example.com"
   },

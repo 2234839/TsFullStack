@@ -1,6 +1,6 @@
 # TODO
 
-> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 36 项待办。
+> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 41 项待办。
 
 ## 新增：[账号合并只迁登录关系，不做业务数据迁移](index.md)
 
@@ -81,6 +81,60 @@
 + - 第十三轮（前端 utils / DataBaseStudio / webhook / wechat 路由收尾）结论：全干净。`searchUsers` 走 `API.db.user.findMany` 但 User read 策略是 `auth() == this`，非管理员只能查到自己 ✓；webhook 路由无额外逻辑（验签在 PaymentService 已审 ✓）；wechat 路由全流程验签前置 ✓，指令图片经 `downloadMediaImage` 下载后复用 `uploadQr`/`uploadOfficialQr` 入库，MIME 白名单（png/jpeg/webp，SVG 被拒）+ 5MB 上限生效 ✓——无「恶意 SVG 直出成同源 XSS」的路径；`getResourceUrl` 的 `metadata.externalUrl` 直出 URL 仅作 img src/下载地址使用，无 `<a href>` 注入点（低，留意未来用法）。后端 server 目录至此全部审完。
 + - 第十四轮（前端残余危险 API 面收尾）结论：全干净。全前端无 postMessage/srcdoc/document.cookie/insertAdjacentHTML/DOMParser 使用；`window.open` 全部 noopener 或硬编码 URL；各 `:href` 绑定源均为本地 blob/data URL、签名 API URL 或硬编码外链；ShareForm 加密分享的提交 payload 只含 `{encrypted, 密文, salt}`，**密码确实不出客户端**，与安全模型一致 ✓。主审查面（后端全部 + 前端高危面 + InfoFlow 扩展 + shared-frontend）至此系统扫完，共 17 块发现（2 高、2 中高、7 中/中低、6 低）+ 备忘。后续轮次转为巡检模式：优先审 git 新改动，无改动则 noop。
 + - 登录重定向发现见独立块 [[sec.login-open-redirect]]（第八轮主发现）。
+```
+
+## 新增：[背景](数据库Worker线程化.md)
+
+- 块 ID: `数据库Worker线程化.md#背景`
+
+```diff
++ 后端用 ZenStack v3（better-sqlite3 同步驱动）+ 自研 RPC。同步 SQLite 会阻塞主线程事件循环（loopLag 诊断的主要来源之一）。目标：把真实数据库客户端挪进 worker_threads，业务代码写法零变化（仍写 `db.user.findFirst(...)`、`db.$transaction(async tx => ...)`、`auth.db`），实际调用经消息 RPC 转发到 Worker。
+```
+
+## 新增：[架构](数据库Worker线程化.md)
+
+- 块 ID: `数据库Worker线程化.md#db-worker-arch`
+
+```diff
++ - Worker 侧（`src/Context/dbWorker/workerEntry.ts`）持有 better-sqlite3 + ZenStackClient + SoftDeletePlugin + PolicyPlugin + cost-logger；客户端注册表（base / auth 按 user 缓存派生）；交互式事务（挂起式：`$transaction` 回调内 await 不 settle 的 Promise，主线程 txEnd 时 resolve/reject 触发 commit/rollback）+ 5s 看门狗；驱动层计时（注释 id 认领机制整体迁入）。
++ - 主线程（`src/Context/dbWorker/DbWorkerClient.ts`）：深度 Proxy 实现 DbClient；拦截 `$setAuth`（惰性派生客户端）、`$transaction`（回调留在主线程，tx 操作带 txId 路由）、`$use`（空操作，插件统一在 Worker 装配）；每条调用的观测记录（耗时/sqlEvents）随响应回传并回灌 ReqCtx（log/sqlEvents/span）。
++ - 错误跨线程序列化保留 `code`/`meta`，`isZenStackPermissionError`/P2025 判定不受影响。
++ - 时钟：握手 round-trip 标定两线程 performance.now 原点偏移，诊断时间线换算对齐。
++ - 构建入口：`vite.config.ts` dist 产物含 `dist/Context/dbWorker/workerEntry.mjs`；开发/测试回退 tsx 拉起源文件；可用 `TSFS_DB_WORKER_FILE` 指定。
+```
+
+## 新增：[明确的取舍](数据库Worker线程化.md)
+
+- 块 ID: `数据库Worker线程化.md#db-worker-limits`
+
+```diff
++ - 主线程侧运行时 `$use` 动态注册插件不可用（插件统一在 Worker 装配；业务代码无此用法）
++ - 事务客户端上不支持嵌套 `$transaction` / `$setAuth` / `$use`
++ - 并发 RPC 调用的观测记录按时间窗认领，极端交错下可能错归（诊断精度问题，不影响正确性）
++ - 主进程退出时 Worker 被强制终止（unref），关机瞬间可能有未落盘写入
+```
+
+## 新增：[实现链接](数据库Worker线程化.md)
+
+- 块 ID: `数据库Worker线程化.md#实现链接`
+
+```diff
++ - 实现见 [workerEntry.ts](apps/backend/src/Context/dbWorker/workerEntry.ts)（Worker 侧）
++ - 实现见 [DbWorkerClient.ts](apps/backend/src/Context/dbWorker/DbWorkerClient.ts)（主线程代理）
++ - 实现见 [protocol.ts](apps/backend/src/Context/dbWorker/protocol.ts)（消息协议 + 错误序列化）
++ - 实现见 [DbService.ts](apps/backend/src/Context/DbService.ts)（DbClientEffect 换为代理，业务零改动）
++ - 实现见 [vite.config.ts](apps/backend/vite.config.ts)（worker 构建入口）
+```
+
+## 新增：[验收](数据库Worker线程化.md)
+
+- 块 ID: `数据库Worker线程化.md#db-worker-acceptance`
+
+```diff
++ - [ ] 后端构建产物含 worker 入口，启动后 `db.user.findFirst` 等 CRUD 正常
++ - [ ] 交互式事务 commit/rollback 正常（dbQueue 抢占、accountApi/paymentApi 事务）
++ - [ ] 权限错误（P2004）跨线程后仍被正确识别为 403 类错误
++ - [ ] 慢请求诊断：sqlEvents / driverSql / loopLag 时间线在 Worker 化后仍自洽
 ```
 
 ## 新增：[需求以 `## 标题` 为块单位，正文自由描述，`` 双链绑定代码，](示例需求.md)
@@ -186,6 +240,7 @@
 ```diff
 + - [安全审查](安全审查.md) — 持续安全审计：已发现的漏洞与待修复项（只记录，修复时逐块 done）
 + - [架构切割面审查](架构切割面审查.md) — 全仓「应有抽象层但缺失」清单：分页/配置写入/错误提示样板等，按重复度×风险排序
++ - [数据库 Worker 线程化](数据库Worker线程化.md) — ZenStack 客户端挪进 worker_threads，透明代理保持业务写法零变化（含交互式事务）
 ```
 
 ## 用户修改：[会话令牌与口令轮询票据使用 cuid2 生成，熵源是 Math.random 而非 CSPRNG](安全审查.md)
