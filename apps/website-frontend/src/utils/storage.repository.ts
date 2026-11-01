@@ -327,6 +327,31 @@ export class UserDataStrategy extends StorageStrategy {
   }
 }
 export class WordDataStrategy extends StorageStrategy {
+  /** Word 模型的可写业务字段白名单：数据库加载回来的行还带 id/authorId/created/updated 等元字段，
+   * 且可空字段为 null，都不能回传给 create/update 的校验输入 */
+  private static WRITABLE_FIELDS = new Set([
+    'word',
+    'memoryLevel',
+    'fsrsCard',
+    'clickCount',
+    'lastClickTime',
+    'familiarity',
+    'translations',
+    'aiTranslation',
+    'difficulty',
+    'examples',
+    'grammar',
+    'pronunciation',
+  ]);
+
+  /** 只保留白名单内且非 null 的字段（返回值保持输入的宽松类型，供 create/update 展开复用） */
+  private sanitize<T extends Record<string, unknown>>(data: T): T {
+    const out: Record<string, unknown> = { ...data };
+    for (const k of Object.keys(out)) {
+      if (!WordDataStrategy.WRITABLE_FIELDS.has(k) || out[k] === null) delete out[k];
+    }
+    return out as T;
+  }
   name = 'Remote API';
 
   api = { API, AppAPI };
@@ -354,6 +379,7 @@ export class WordDataStrategy extends StorageStrategy {
   protected async rawSave(key: string, data: any): Promise<void> {
     const start = performance.now();
     try {
+      const sanitized = this.sanitize(data);
       // 先尝试更新，如果受影响行数为0则创建
       await this.api.API.db.word.upsert({
         where: {
@@ -365,13 +391,9 @@ export class WordDataStrategy extends StorageStrategy {
         create: {
           key,
           authorId: this.authorId,
-          ...data,
+          ...sanitized,
         },
-        update: {
-          key,
-          authorId: this.authorId,
-          ...data,
-        },
+        update: sanitized,
       });
       this.stats.writeCount++;
       this.stats.writeTime += performance.now() - start;
@@ -439,7 +461,7 @@ export class WordDataStrategy extends StorageStrategy {
           data: toCreate.map((item) => ({
             key: item.key,
             authorId: this.authorId,
-            ...item.data,
+            ...this.sanitize(item.data),
           })),
         });
       }
@@ -455,7 +477,7 @@ export class WordDataStrategy extends StorageStrategy {
                   authorId: this.authorId,
                 },
               },
-              data: { ...item.data },
+              data: this.sanitize(item.data),
             }),
           ),
         );

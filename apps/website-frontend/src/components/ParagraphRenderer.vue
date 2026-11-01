@@ -28,7 +28,6 @@
               :currentSession="currentSession"
               :selectionState="selectionState"
               :highlightedWordIndex="highlightedWordIndex"
-              :aiAnalysis="aiAnalysis"
               @wordMouseDown="handleWordMouseDown"
             />
           </template>
@@ -55,7 +54,7 @@ import LineRenderer from './LineRenderer.vue';
 
 const { t } = useI18n();
 import type { WordData } from '@/pages/AiEnglish/data';
-import type { StudySession, SelectionState, AIAnalysis } from '@/pages/AiEnglish/types';
+import type { StudySession, SelectionState } from '@/pages/AiEnglish/types';
 
 interface Props {
   text: string;
@@ -68,7 +67,6 @@ interface Props {
   currentSession: StudySession;
   selectionState: SelectionState;
   highlightedWordIndex: number;
-  aiAnalysis: AIAnalysis | null;
 }
 
 const {
@@ -82,7 +80,6 @@ const {
   currentSession,
   selectionState,
   highlightedWordIndex,
-  aiAnalysis,
 } = defineProps<Props>();
 
 // 按行分割文本，保留换行结构

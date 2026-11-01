@@ -20,7 +20,8 @@ interface Props {
 const { type = 'bar' as ChartType, data, options } = defineProps<Props>();
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
-const chartInstance = ref<ChartInstance | null>(null);
+/** 图表实例必须 shallowRef：深层 ref 会把 Chart 实例包进 reactive Proxy，update() 时插件 options 解析错乱（fullSize undefined 崩溃） */
+const chartInstance = shallowRef<ChartInstance | null>(null);
 /** 使用 shallowRef + triggerRef 实现响应式暴露 */
 const chartRef = shallowRef<ChartInstance | null>(null);
 
@@ -58,7 +59,6 @@ async function initChart() {
     options: options ?? {},
   });
   // 通过 updateChartRef 使 defineExpose 的 getter 返回最新实例
-  // @ts-expect-error Chart.js 类型比较过于复杂
   updateChartRef(chartInstance.value);
 }
 

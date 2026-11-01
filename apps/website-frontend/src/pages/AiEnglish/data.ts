@@ -5,12 +5,15 @@ import {
   WordDataStrategy,
 } from '@/utils/storage.repository';
 import { computed, ref } from 'vue';
+import type { SerializedCard } from './memoryModel';
 
 export interface WordData {
   /** 单词原文 */
   word: string;
-  /** 记忆等级 (掌握度 0-10) */
+  /** 记忆等级 (掌握度 0-10)，由 FSRS 遗忘曲线实时推导 */
   memoryLevel: number;
+  /** FSRS 卡片（难度/稳定性/复习历史），序列化存储，见 memoryModel.ts */
+  fsrsCard?: SerializedCard;
   /** 点击次数 */
   clickCount: number;
   /** 最后点击时间戳 */

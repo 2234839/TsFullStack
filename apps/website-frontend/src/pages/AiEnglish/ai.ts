@@ -2,10 +2,16 @@ import { useOpenAIConfig } from '@/storage';
 import { useAPI } from '@/api';
 import { t } from '@/i18n';
 import { type WordData } from './data';
-import type { AIAnalysis } from './types';
 import { getErrorMessage } from '@/utils/error';
 import { DEFAULT_OPENAI_BASE_URL, DEFAULT_MAX_TOKENS } from '@/utils/constants';
-export type { AIAnalysis };
+import {
+  createSegmentStreamParser,
+  parseUpstreamSseFrame,
+  splitArticleIntoChunks,
+  buildSegmentPrompt,
+  type SegmentEvent,
+  type SegmentMeta,
+} from '@tsfullstack/backend';
 
 export interface WordAnalysis {
   translation: string;
@@ -253,68 +259,6 @@ export const translateParagraphWithAI = async (text: string): Promise<string> =>
   return results[0] || '';
 };
 
-export const analyzeArticleWithAI = async (text: string): Promise<AIAnalysis> => {
-  const prompt = `作为英语教学专家，请全面分析以下英文文章的学习特征：
-
-"${text}"
-
-请提供结构化分析，评估文章的学习价值和难度，包括：
-- 基于词汇复杂度、句式结构、主题深度的综合难度评级（1-10分）
-- 合理估算阅读、词汇学习、理解验证所需时间（分钟）
-- 筛选5个最有学习价值的核心词汇（排除过于简单或罕见的词汇）
-- 提供3条具体、可操作的学习建议
-
-评分标准：
-- A1-A2 (1-3分): 简单词汇，基础句式，日常话题
-- B1-B2 (4-7分): 中等词汇，复合句式，通用话题
-- C1-C2 (8-10分): 高级词汇，复杂句式，专业话题`;
-
-  // 创建 Function Calling 的参数 schema
-  const parametersSchema: Record<string, unknown> = {
-    type: 'object',
-    properties: {
-      articleDifficulty: {
-        type: 'number',
-        description: '文章难度等级（1-10分）',
-      },
-      suggestedStudyTime: {
-        type: 'number',
-        description: '建议学习时间（分钟）',
-      },
-      keyWords: {
-        type: 'array',
-        items: { type: 'string' },
-        description: '核心词汇列表',
-      },
-      learningTips: {
-        type: 'array',
-        items: { type: 'string' },
-        description: '学习建议',
-      },
-    },
-    required: ['articleDifficulty', 'suggestedStudyTime', 'keyWords', 'learningTips'],
-  };
-
-  const result = await callAiWithFunctionCalling<AIAnalysis>(
-    prompt,
-    'analyzeArticle',
-    '分析英文文章的学习特征和难度',
-    parametersSchema,
-  );
-
-  if (result.success && result.data) {
-    return result.data;
-  }
-
-  // 分析失败时返回默认值
-  return {
-    articleDifficulty: 5,
-    suggestedStudyTime: 15,
-    keyWords: [],
-    learningTips: [result.error || t('AI分析服务暂时不可用')],
-  };
-};
-
 export function useCreateMixedTranslation({ getWordData }: { getWordData: (word: string) => WordData | undefined }) {
   return async (originalText: string, translatedText: string, wordsInSelection: string[]): Promise<string> => {
     try {
@@ -450,6 +394,144 @@ export const segmentArticleWithAI = async (text: string): Promise<SmartSegmentat
   };
 };
 
+/** 流式分段回调（由类型化 SegmentEvent 驱动，不感知模型输出协议） */
+export interface SmartSegmentStreamHandlers {
+  /** 一个段落的元信息就绪，文本即将开始流入 */
+  onParagraphStart?: (index: number, meta: SegmentMeta) => void;
+  /** 段落文本增量（textSoFar 为截至目前累计文本） */
+  onParagraphDelta?: (index: number, textSoFar: string) => void;
+  /** 一个段落完整产出 */
+  onParagraphEnd?: (index: number, paragraph: SmartParagraph) => void;
+}
+
+/** 把类型化 SegmentEvent 分发到业务回调 */
+const dispatchSegmentEvent = (handlers: SmartSegmentStreamHandlers, event: SegmentEvent): void => {
+  if (event.type === 'start') handlers.onParagraphStart?.(event.index, event.meta);
+  else if (event.type === 'delta') handlers.onParagraphDelta?.(event.index, event.textSoFar);
+  else handlers.onParagraphEnd?.(event.index, { text: event.text, ...event.meta });
+};
+
+/** 读取 SSE 流并喂给回调（直连模式：fetch ReadableStream） */
+const consumeSseStream = async (body: ReadableStream<Uint8Array>, onDelta: (delta: string) => void): Promise<void> => {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let sseBuffer = '';
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    sseBuffer += decoder.decode(value, { stream: true });
+    const lines = sseBuffer.split('\n');
+    sseBuffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const delta = parseUpstreamSseFrame(line.trim());
+      if (delta) onDelta(delta);
+    }
+  }
+};
+
+/**
+ * AI流式智能分段：段落边生成边上屏，超长文章自动分片逐片处理（顺序保证段落顺序）。
+ * 有直连 API Key 时直连上游 SSE（前端本地解析）；无 Key 时走后端流式分段 RPC（后端解析，前端只收类型化事件）。
+ */
+export async function segmentArticleWithAIStream(
+  text: string,
+  handlers: SmartSegmentStreamHandlers,
+): Promise<SmartSegmentationResult> {
+  const config = getAIConfig();
+  const chunks = splitArticleIntoChunks(text);
+  const collect: SmartParagraph[] = [];
+
+  /** 全局索引回调包装（事件携带的是分片内局部索引） */
+  const wrapHandlers = (baseIndex: number): SmartSegmentStreamHandlers => ({
+    onParagraphStart: (localIndex, meta) => handlers.onParagraphStart?.(baseIndex + localIndex, meta),
+    onParagraphDelta: (localIndex, textSoFar) => handlers.onParagraphDelta?.(baseIndex + localIndex, textSoFar),
+    onParagraphEnd: (localIndex, paragraph) => {
+      collect.push(paragraph);
+      handlers.onParagraphEnd?.(baseIndex + localIndex, paragraph);
+    },
+  });
+
+  for (const [chunkIndex, chunkText] of chunks.entries()) {
+    const chunkHandlers = wrapHandlers(collect.length);
+
+    if (!config.apiKey) {
+      // 后端流式分段 RPC：模型输出协议在后端解析，前端只消费类型化 SegmentEvent
+      const events = await API.aiApi.segmentArticleStream({
+        text: chunkText,
+        isFirstChunk: chunkIndex === 0,
+        isLastChunk: chunkIndex === chunks.length - 1,
+      });
+      for await (const event of events) {
+        dispatchSegmentEvent(chunkHandlers, event);
+      }
+      continue;
+    }
+
+    const response = await fetch(`${config.apiBase}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          {
+            role: 'user',
+            content: buildSegmentPrompt(chunkText, chunkIndex === 0, chunkIndex === chunks.length - 1),
+          },
+        ],
+        temperature: config.temperature,
+        max_tokens: config.maxTokens,
+        stream: true,
+        thinking: { type: 'disabled' },
+      }),
+    });
+
+    if (!response.ok || !response.body) {
+      throw new Error(`${t('流式分段请求失败:')} ${response.status}`);
+    }
+
+    // 直连模式：复用后端导出的同一协议解析器，本地解析
+    const parser = createSegmentStreamParser((event) => dispatchSegmentEvent(chunkHandlers, event));
+    let streamFailed = false;
+    try {
+      await consumeSseStream(response.body, (delta) => parser.push(delta));
+      parser.flush();
+    } catch (error: unknown) {
+      // 单片流中断：取消读取并回退到代理分段该片，已产出段落保留
+      streamFailed = true;
+      await response.body.cancel().catch(() => {});
+      console.error('[segmentArticleWithAIStream] 分片流式失败，回退代理分段', error);
+    }
+    if (streamFailed) {
+      const result = await segmentArticleWithAI(chunkText);
+      const retryBase = collect.length;
+      const retryHandlers = wrapHandlers(retryBase);
+      for (const [localIndex, paragraph] of result.paragraphs.entries()) {
+        const { text: _paragraphText, ...meta } = paragraph;
+        retryHandlers.onParagraphStart?.(localIndex, meta);
+        retryHandlers.onParagraphEnd?.(localIndex, paragraph);
+      }
+    }
+  }
+
+  if (collect.length === 0) {
+    throw new Error(t('流式分段未产出任何段落'));
+  }
+
+  return {
+    paragraphs: collect,
+    totalSegments: collect.length,
+    estimatedTotalTime: Math.ceil(collect.reduce((sum, p) => sum + p.estimatedReadingTime, 0) / 60),
+    segmentationStrategy:
+      chunks.length > 1
+        ? t('AI流式智能分段（长文自动分片，按内容逻辑与学习负荷逐段生成）')
+        : t('AI流式智能分段（按内容逻辑与学习负荷逐段生成）'),
+  };
+}
+
 /** JSON 模式定义，用于生成 prompt 中的格式说明 */
 interface JsonSchemaField {
   type: 'string' | 'number' | 'boolean' | 'array' | 'object';
@@ -548,7 +630,7 @@ export function JSON_parse_AIResponse<T = unknown>(resStr: string): T {
       repairedStr = repairedStr
         .replace(/'/g, '"') // 单引号转双引号
         .replace(/(\w+):/g, '"$1":') // 属性名加引号
-        .replace(/:\s*([^",[\]{\}][^",[\]{\}]*?)\s*([,\]}])/g, ': "$1"$2') // 未加引号的字符串值
+        .replace(/:\s*([^",[\]{}][^",[\]{}]*?)\s*([,\]}])/g, ': "$1"$2') // 未加引号的字符串值
         .replace(/:\s*"([^"]*)\n([^"]*?)"/g, ': "$1 $2"'); // 修复换行问题
 
       return JSON.parse(repairedStr);

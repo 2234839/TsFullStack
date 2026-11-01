@@ -4,9 +4,10 @@
 # 必须把 dev.db / dev.db-wal / dev.db-shm 一起打包拉下来，缺一不可
 set -euo pipefail
 
-cd "$(dirname "$0")/.."
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+cd "$SCRIPT_DIR/.."
 
-REPO_ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
+REPO_ROOT=$(cd "$SCRIPT_DIR/../../.." && pwd)
 if [ ! -f "$REPO_ROOT/.deploy-env" ]; then
   echo "错误: 找不到 $REPO_ROOT/.deploy-env（应包含 SSH_TARGET=root@host）" >&2
   exit 1

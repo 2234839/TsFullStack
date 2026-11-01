@@ -205,7 +205,7 @@ export class TaskManager {
         const contentMatch = description.match(/["']([^"']+)["']/) || description.match(/["']([^"']+)["']/);
         const content = contentMatch ? contentMatch[1] : 'Hello World';
 
-        const pathMatch = description.match(/([a-zA-Z0-9_\-.\/]+\.(txt|md|json|js|ts))/);
+        const pathMatch = description.match(/([a-zA-Z0-9_\-./]+\.(txt|md|json|js|ts))/);
         const filename = pathMatch ? pathMatch[1] : './data/test.txt';
 
         steps.push({

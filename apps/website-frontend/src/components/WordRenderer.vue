@@ -56,7 +56,8 @@ const className = computed(() => {
   if (isHighlighted) {
     base += ' bg-white dark:bg-primary-900 font-bold text-primary-body border-2 border-primary-default word-highlight';
   } else if (isSelected) {
-    base += ' bg-primary-100 dark:bg-primary-800 font-medium word-selected';
+    base +=
+      ' bg-primary-100 dark:bg-primary-800 text-primary-body dark:text-primary-100 font-medium ring-1 ring-primary-300 dark:ring-primary-600 shadow-sm word-selected';
   } else if (isClicked) {
     base += ' bg-primary-50/40 dark:bg-primary-800/40';
   }
@@ -115,7 +116,7 @@ const handleMouseDown = (e: MouseEvent | TouchEvent) => {
   left: -1px;
   right: -1px;
   bottom: -1px;
-  background: color-mix(in srgb, var(--color-primary-500) 20%, transparent);
+  background: color-mix(in srgb, var(--color-primary-500) 25%, transparent);
   border-radius: 3px;
   z-index: -1;
 }

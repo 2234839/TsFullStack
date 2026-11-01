@@ -131,6 +131,21 @@
             <span v-if="detail.authMs != null"
               ><span class="text-primary-theme">{{ t('鉴权') }}: </span>{{ detail.authMs }}ms</span
             >
+            <template v-if="streamPhase">
+              <span :title="t('请求起点 → 首个数据帧写出（首 token），流式请求的核心延迟指标')">
+                <span class="text-primary-theme">{{ t('首响应') }}: </span
+                ><b :class="streamPhase.ttffMs >= 3000 ? 'text-danger-500' : ''">{{ streamPhase.ttffMs }}ms</b>
+              </span>
+              <span :title="t('首帧 → 末帧的流式生成耗时（吞吐副产品，不算慢）')">
+                <span class="text-primary-theme">{{ t('流生成') }}: </span>{{ streamPhase.genMs }}ms
+              </span>
+              <span :title="t('相邻数据帧的最大间隔，判断中途断流')">
+                <span class="text-primary-theme">{{ t('最大帧间隔') }}: </span>{{ streamPhase.maxGapMs }}ms
+              </span>
+              <span
+                ><span class="text-primary-theme">{{ t('帧数') }}: </span>{{ streamPhase.frameCount }}</span
+              >
+            </template>
             <span
               ><span class="text-primary-theme">{{ t('SQL') }}: </span>{{ detail.sqlCount }} 条 / 共
               {{ detail.sqlTotalMs }}ms / 最慢 {{ detail.sqlMaxMs }}ms</span
@@ -413,7 +428,14 @@ const netPhase = computed(() => {
     | { uploadMs?: number; sendMs?: number; respBytes?: number }
     | undefined;
 });
-
+/** 流式阶段（timeline 的 stream 阶段：首帧 TTFF / 生成耗时 / 帧数 / 最大帧间隔） */
+const streamPhase = computed(() => {
+  const tl = detail.value?.timeline;
+  if (!Array.isArray(tl)) return undefined;
+  return tl.find((el) => (el as { phase?: string }).phase === 'stream') as
+    | { ttffMs: number; genMs: number; frameCount: number; maxGapMs: number }
+    | undefined;
+});
 /** 卡顿归属（timeline 的 loopLag 阶段：self=自身冻结事件循环；other=排队时被他人冻结） */
 const lagOwner = computed<'self' | 'other' | undefined>(() => {
   const tl = detail.value?.timeline;
@@ -513,6 +535,30 @@ const waterfallRows = computed<WaterfallRow[]>(() => {
       }
     };
     walk(spanEv.tree, 0, 's');
+    /** 流式请求追加两行分段：首响应（至首token）与流生成（首帧→末帧），直接可见 TTFF */
+    const sp = streamPhase.value;
+    if (sp) {
+      rows.push(
+        {
+          key: 'stream-ttff',
+          label: 'stream · 首响应(至首token)',
+          at: 0,
+          ms: sp.ttffMs,
+          left: 0,
+          width: Math.max(pct(sp.ttffMs, total), 0.8),
+          color: 'bg-cyan-500',
+        },
+        {
+          key: 'stream-gen',
+          label: 'stream · 流生成(首帧→末帧)',
+          at: sp.ttffMs,
+          ms: sp.genMs,
+          left: pct(sp.ttffMs, total),
+          width: Math.max(pct(sp.genMs, total), 0.8),
+          color: 'bg-teal-500',
+        },
+      );
+    }
     return rows;
   }
 
@@ -545,6 +591,18 @@ const waterfallRows = computed<WaterfallRow[]>(() => {
         ms: Number(el.ms ?? 0),
         color: 'bg-amber-500',
       });
+    } else if (phase === 'stream') {
+      const s = el as unknown as { ttffMs: number; genMs: number };
+      events.push(
+        { key: 'stream-ttff', label: `stream · ${t('首响应')}(ttff)`, at: 0, ms: s.ttffMs, color: 'bg-cyan-500' },
+        {
+          key: 'stream-gen',
+          label: `stream · ${t('流生成')}`,
+          at: s.ttffMs,
+          ms: s.genMs,
+          color: 'bg-teal-500',
+        },
+      );
     } else if (phase === 'sqlEvents' && Array.isArray(el.items)) {
       for (const [i, item] of (
         el.items as Array<{ model: string; operation: string; ms: number; execMs?: number; at: number }>

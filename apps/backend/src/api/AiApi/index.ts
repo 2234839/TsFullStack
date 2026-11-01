@@ -5,6 +5,12 @@ import { reqClientIpEffect } from '../../Context/ClientIPService';
 import { ReqCtxService } from '../../Context/ReqCtx';
 import { adminDbTry } from '../../util/dbEffect';
 import { OpenAIRequest as OpenAIProxyRequest } from '../../types/ai';
+import {
+  buildSegmentPrompt,
+  createSegmentStreamParser,
+  parseUpstreamSseFrame,
+  type SegmentEvent,
+} from './segmentStream';
 import { evaluateInfoQuality } from './infoQuality';
 
 /** 日志前缀 */
@@ -72,6 +78,57 @@ export const aiApi = {
         { ...request, model: request.model ?? DEFAULT_AI_MODEL },
         clientIp,
       );
+    }),
+
+  /**
+   * 流式代理OpenAI请求：返回上游 SSE 帧的异步迭代器。
+   * RPC 框架约定：返回 AsyncIterable 的接口自动切换为 SSE 流式传输（帧类型由接口自己声明，此处为字符串行）。
+   */
+  proxyOpenAIStream: (request: OpenAIProxyRequest) =>
+    Effect.gen(function* () {
+      const aiProxyService = yield* AIProxyService;
+      const clientIp = yield* reqClientIpEffect;
+      return yield* aiProxyService.proxyOpenAIStreamRequest(
+        { ...request, model: request.model ?? DEFAULT_AI_MODEL, stream: true },
+        clientIp,
+      );
+    }),
+
+  /**
+   * 流式智能分段：后端解析模型输出协议，产出类型化 SegmentEvent（应用层不感知协议标记）。
+   * 返回 AsyncIterable → RPC 流式通道以 superjson 帧逐事件下发。
+   */
+  segmentArticleStream: (request: { text: string; isFirstChunk: boolean; isLastChunk: boolean }) =>
+    Effect.gen(function* () {
+      const aiProxyService = yield* AIProxyService;
+      const clientIp = yield* reqClientIpEffect;
+      const upstream = yield* aiProxyService.proxyOpenAIStreamRequest(
+        {
+          messages: [
+            {
+              role: 'user',
+              content: buildSegmentPrompt(request.text, request.isFirstChunk, request.isLastChunk),
+            },
+          ],
+          thinking: { type: 'disabled' },
+        },
+        clientIp,
+      );
+
+      /** 事件缓冲：解析器是同步推模式，生成器是拉模式，用队列桥接 */
+      const events = async function* (): AsyncGenerator<SegmentEvent> {
+        const queue: SegmentEvent[] = [];
+        const parser = createSegmentStreamParser((event) => queue.push(event));
+        for await (const frame of upstream) {
+          const delta = parseUpstreamSseFrame(frame);
+          if (delta) parser.push(delta);
+          // 逐帧让出已产出的事件
+          while (queue.length > 0) yield queue.shift()!;
+        }
+        parser.flush();
+        while (queue.length > 0) yield queue.shift()!;
+      };
+      return events();
     }),
 
   /** 获取所有AI模型（管理员）

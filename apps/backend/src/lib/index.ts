@@ -49,6 +49,16 @@ export { MsgError, LogoutError, ToLoginError } from '../util/error';
 /** Payment constants - shared between backend and frontend */
 export { WECHAT_PAY_URL } from '../services/payment/adapters/wechat.adapter';
 
+/** AI 智能分段流 - 模型输出协议的唯一实现（前端直连模式复用同一解析器） */
+export {
+  createSegmentStreamParser,
+  parseUpstreamSseFrame,
+  splitArticleIntoChunks,
+  buildSegmentPrompt,
+  type SegmentEvent,
+  type SegmentMeta,
+} from '../api/AiApi/segmentStream';
+
 /** ZenStack v3 基础参数类型（用于 AutoTable CRUD 接口）。注意：这些类型非常复杂，前端应该通过 API 方法签名推断，而不是直接导入 */
 export type * from '@zenstackhq/orm';
 

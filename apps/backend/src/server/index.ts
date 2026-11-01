@@ -271,6 +271,21 @@ let reqId = 0;
 const SLOW_TOTAL_MS = 500;
 const SLOW_SQL_MS = 100;
 const SLOW_LOOP_LAG_MS = 50;
+/** 流式请求专属慢判定：总耗时是吞吐副产品不算慢，改看首帧时间（TTFF）与最大帧间隔（中途断流） */
+const SLOW_STREAM_TTFF_MS = 3000;
+const SLOW_STREAM_GAP_MS = 10000;
+
+/** 流式响应观测指标（sendRpcStreamResponse 采集，落 timeline 的 stream 阶段） */
+type StreamStats = {
+  /** 首数据帧时刻（相对请求起点；握手帧 __rpc_stream__ 不算，用户可见的首 token） */
+  ttffMs: number;
+  /** 首帧→末帧的生成耗时（流式主体，不含首帧等待） */
+  genMs: number;
+  /** 数据帧总数 */
+  frameCount: number;
+  /** 相邻数据帧最大间隔（中途断流判定） */
+  maxGapMs: number;
+};
 /** 诊断时间线里 SQL 明细条数上限（防异常请求生成超大 JSON） */
 const DIAG_SQL_EVENTS_LIMIT = 50;
 
@@ -300,6 +315,8 @@ async function finalizeDiag(input: {
   tSendDone?: number;
   /** 出站响应字节数（content-length，无则 undefined） */
   respBytes?: number;
+  /** 流式响应指标（流式请求才有：首帧/生成/帧间隔） */
+  stream?: StreamStats;
 }) {
   const {
     reqCtx,
@@ -317,6 +334,7 @@ async function finalizeDiag(input: {
     enqueuePerf,
     tSendDone,
     respBytes,
+    stream,
   } = input;
   const sqlEvents = reqCtx.sqlEvents;
   const sqlTotalMs = sqlEvents.reduce((sum, el) => sum + el.ms, 0);
@@ -354,6 +372,15 @@ async function finalizeDiag(input: {
       ms: Math.round(rpcMs),
       at: rpcAt != null ? Math.round(rpcAt) : null,
       note: 'RPC 业务处理（含其中全部 SQL/出站请求）',
+    });
+  if (stream)
+    timeline.push({
+      phase: 'stream',
+      ttffMs: stream.ttffMs,
+      genMs: stream.genMs,
+      frameCount: stream.frameCount,
+      maxGapMs: stream.maxGapMs,
+      note: '流式响应：ttffMs=首数据帧（首token）时刻，genMs=首帧→末帧生成耗时',
     });
   timeline.push({
     phase: 'sqlEvents',
@@ -431,7 +458,13 @@ async function finalizeDiag(input: {
     timeline,
   });
 
-  const isSlow = totalMs >= SLOW_TOTAL_MS || sqlMaxMs >= SLOW_SQL_MS || loopLagMaxMs >= SLOW_LOOP_LAG_MS;
+  /** 流式请求总耗时不算慢（吞吐副产品），改看 TTFF / 帧间隔 / SQL / 卡顿 */
+  const isSlow = stream
+    ? stream.ttffMs >= SLOW_STREAM_TTFF_MS ||
+      stream.maxGapMs >= SLOW_STREAM_GAP_MS ||
+      sqlMaxMs >= SLOW_SQL_MS ||
+      loopLagMaxMs >= SLOW_LOOP_LAG_MS
+    : totalMs >= SLOW_TOTAL_MS || sqlMaxMs >= SLOW_SQL_MS || loopLagMaxMs >= SLOW_LOOP_LAG_MS;
   if (!isSlow) return;
 
   const note = `阻塞判定: ${loopLagMaxMs >= SLOW_LOOP_LAG_MS ? `硬阻塞(lag=${loopLagMaxMs}ms${sqlMaxMs >= SLOW_SQL_MS ? ` ≈ sqlMax=${sqlMaxMs}ms，疑似同步 SQL/序列化冻结进程` : ''})` : '事件等待(lag≈0，耗时在外部 IO/等待)'} | 慢点: ${timeline.map((t) => `${t.phase}=${(t as { ms?: number }).ms ?? '-'}ms`).join(' ')}`;
@@ -445,7 +478,16 @@ async function finalizeDiag(input: {
 function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: ApiCtx) {
   const startTime = Date.now();
   const startPerf = performance.now();
-  const diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number; userId?: string } = {
+  const diag: {
+    t0: number;
+    authMs?: number;
+    authAt?: number;
+    rpcMs?: number;
+    rpcAt?: number;
+    userId?: string;
+    /** 流式响应指标（sendRpcStreamResponse 采集） */
+    stream?: StreamStats;
+  } = {
     t0: startPerf,
   };
   /** 请求级 span 采集器：把 Effect Tracer 采集的 span 树落盘到诊断记录 */
@@ -550,6 +592,7 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: 
         spanCollector,
         tSendDone,
         respBytes,
+        stream: diag.stream,
       });
     const ph = netPhases.get(req);
     if (ph) ph.finalize = finalize;
@@ -586,7 +629,16 @@ function buildReqProgram(opts: {
   method: string;
   enqueueTime: number;
   /** 诊断阶段耗时收集器（handleReq 创建，落盘时读取；t0 为相对时基，at = performance.now() - t0） */
-  diag: { t0: number; authMs?: number; authAt?: number; rpcMs?: number; rpcAt?: number; userId?: string };
+  diag: {
+    t0: number;
+    authMs?: number;
+    authAt?: number;
+    rpcMs?: number;
+    rpcAt?: number;
+    userId?: string;
+    /** 流式响应指标（sendRpcStreamResponse 采集） */
+    stream?: StreamStats;
+  };
 }) {
   return Effect.gen(function* () {
     const waitTime = Date.now() - opts.enqueueTime;
@@ -642,11 +694,93 @@ function buildReqProgram(opts: {
       opts.diag.rpcMs = performance.now() - rpcStart;
       opts.diag.rpcAt = rpcStart - opts.diag.t0;
     }
-    if (result instanceof FileWrapItem) {
+    if (isAsyncIterable(result)) {
+      yield* sendRpcStreamResponse(opts.reply, result, opts.diag);
+    } else if (result instanceof FileWrapItem) {
       yield* sendFileResponse(opts.reply, result);
     } else {
       yield* Effect.promise(async () => opts.reply.send(superjson.serialize({ result })));
     }
+  });
+}
+
+/** 判断是否为异步可迭代对象（RPC 流式传输约定：接口返回 AsyncIterable 时切换 SSE 分帧） */
+function isAsyncIterable(value: unknown): value is AsyncIterable<unknown> {
+  return typeof value === 'object' && value !== null && Symbol.asyncIterator in (value as Record<symbol, unknown>);
+}
+
+/**
+ * RPC 流式帧编码：字符串帧裸传（零开销）；其他类型（对象/Date/数组…）逐帧 superjson 序列化并加 __sj: 前缀。
+ * 帧类型由接口声明的 AsyncIterable<T> 决定，前端按前缀解码后拿到同样的 T。
+ */
+function encodeRpcStreamFrame(frame: unknown): string {
+  if (typeof frame === 'string') return frame;
+  return `__sj:${superjson.stringify(frame)}`;
+}
+
+/**
+ * RPC 流式响应：把 AsyncIterable<T> 逐帧以 SSE 透传（T 由接口声明：字符串帧裸传，其他类型 superjson 帧）。
+ * 协议：首帧握手 __rpc_stream__，随后为接口帧（约定不含换行，进入前统一清洗），终止帧 [DONE]，
+ * 中途失败发送 __rpc_error__:<message> 帧；客户端断开时中断迭代（触发生成器 finally 释放上游连接）。
+ * 完成时机在流末尾，因此 onEnd/诊断时间线覆盖完整流传输过程。
+ */
+function sendRpcStreamResponse(
+  reply: FastifyReply,
+  stream: AsyncIterable<unknown>,
+  /** 诊断收集器：流式指标写回此处（ttff/帧数/最大帧间隔），落盘时被 finalizeDiag 读取 */
+  diag?: { t0: number; stream?: StreamStats },
+) {
+  return Effect.gen(function* () {
+    reply.hijack(); // 接管响应生命周期，禁止 fastify 再发送任何 body（header 也须走 raw）
+    /** hijack 会跳过 @fastify/cors 的 onSend 注入，跨域场景需手动回显 CORS 头 */
+    const origin = reply.request.headers.origin;
+    reply.raw.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'X-Accel-Buffering': 'no',
+      ...(origin
+        ? {
+            'Access-Control-Allow-Origin': origin,
+            'Access-Control-Allow-Methods': 'POST, OPTIONS',
+            Vary: 'Origin',
+          }
+        : {}),
+    });
+    reply.raw.write('data: __rpc_stream__\n\n');
+    /** for await 需要原生 async 上下文，Effect.gen 生成器不满足，包在 Effect.promise 中。
+     *  span 覆盖整个流消费过程：上游生成器的执行（含上游 token 生成）都发生在本 promise 的 async 作用域内 */
+    yield* Effect.promise(async () => {
+      /** 流式指标采集：首帧时刻/帧数/相邻帧最大间隔（诊断慢判定的流式专属依据） */
+      let frameCount = 0;
+      let ttffPerf = 0;
+      let lastFramePerf = 0;
+      let maxGapMs = 0;
+      try {
+        for await (const frame of stream) {
+          if (!reply.raw.writable) return; // 客户端已断开：中断迭代释放上游资源
+          const now = performance.now();
+          if (frameCount === 0) ttffPerf = now;
+          else if (now - lastFramePerf > maxGapMs) maxGapMs = now - lastFramePerf;
+          lastFramePerf = now;
+          frameCount++;
+          reply.raw.write(`data: ${encodeRpcStreamFrame(frame).replace(/[\r\n]+/g, ' ')}\n\n`);
+        }
+        reply.raw.write('data: [DONE]\n\n');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        reply.raw.write(`data: __rpc_error__:${message}\n\n`);
+      } finally {
+        reply.raw.end();
+        if (diag && frameCount > 0) {
+          diag.stream = {
+            ttffMs: Math.round(ttffPerf - diag.t0),
+            genMs: Math.round(lastFramePerf - ttffPerf),
+            frameCount,
+            maxGapMs: Math.round(maxGapMs),
+          };
+        }
+      }
+    }).pipe(Effect.withSpan('rpc:流式传输(上游生成+下行写出)'));
   });
 }
 

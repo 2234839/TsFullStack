@@ -24,7 +24,7 @@
 import { computed } from 'vue';
 import WordRenderer from './WordRenderer.vue';
 import type { WordData } from '@/pages/AiEnglish/data';
-import type { StudySession, SelectionState, AIAnalysis } from '@/pages/AiEnglish/types';
+import type { StudySession, SelectionState } from '@/pages/AiEnglish/types';
 
 interface Props {
   line: string;
@@ -34,7 +34,6 @@ interface Props {
   currentSession: StudySession;
   selectionState: SelectionState;
   highlightedWordIndex: number;
-  aiAnalysis: AIAnalysis | null;
 }
 
 /** 单词渲染信息 */
@@ -56,7 +55,6 @@ const {
   currentSession,
   selectionState,
   highlightedWordIndex,
-  aiAnalysis,
 } = defineProps<Props>();
 
 const emit = defineEmits<{
@@ -95,7 +93,7 @@ const renderToken = (token: string, tokenIndex: number): TokenRenderInfo => {
     return { isWord: false };
   }
 
-  const isKeyWord = aiAnalysis?.keyWords?.includes(cleanWord) || currentParagraphKeyWords.includes(cleanWord);
+  const isKeyWord = currentParagraphKeyWords.includes(cleanWord);
   const isClicked = currentSession.clickedWords.has(cleanWord);
   const isSelected = selectionState.selectedWords.has(wordIndexMap.value[tokenIndex]);
   const isHighlighted = highlightedWordIndex === wordIndexMap.value[tokenIndex];

@@ -450,6 +450,8 @@ model Word with Base {
     familiarity   Int      @default(0)
     /// 翻译列表（存储为JSON数组）
     translations  Json
+    /// FSRS 记忆卡片（难度/稳定性/复习历史，见前端 memoryModel.ts）
+    fsrsCard      Json?
     /// AI翻译（可选）
     aiTranslation String?
     /// 难度系数（可选）

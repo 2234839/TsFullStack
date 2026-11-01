@@ -18,18 +18,6 @@ export interface SelectionState {
   selectedWords: Set<number>;
 }
 
-/** AI 分析结果 */
-export interface AIAnalysis {
-  /** 文章难度 (1-10) */
-  articleDifficulty: number;
-  /** 建议学习时间（分钟） */
-  suggestedStudyTime: number;
-  /** 关键词汇 */
-  keyWords: string[];
-  /** 学习建议 */
-  learningTips: string[];
-}
-
 /** 段落数据 */
 export interface ParagraphData {
   id: number;

@@ -88,73 +88,78 @@ export function useAPI() {
         method: 'POST',
         body,
         headers,
-      })
-        .then(async (res) => {
-          /** 检查 HTTP 状态码，处理服务器错误（502、503、504 等） */
-          if (!res.ok) {
-            /** 常见 HTTP 错误状态码的友好提示 */
-            const errorMessages: Record<number, string> = {
-              400: t('请求参数错误'),
-              401: t('未授权，请重新登录'),
-              403: t('没有权限访问'),
-              404: t('请求的资源不存在'),
-              500: t('服务器内部错误'),
-              502: t('网关错误，服务暂时不可用'),
-              503: t('服务暂时不可用'),
-              504: t('请求超时，服务器响应时间过长'),
-            };
-            const errorMessage = errorMessages[res.status] || t(`请求失败 (${res.status})`);
-            /** 显示错误提示 */
-            toastBus.publish({
-              variant: 'error',
-              summary: t('网络错误'),
-              detail: errorMessage,
-              life: 5000,
-            });
-            /** 抛出错误，让调用方能够捕获 */
-            throw MsgError.msg(errorMessage);
-          }
-          return res.text().then((text) => {
-            let parsed: SuperJSONResult;
-            try {
-              parsed = JSON.parse(text);
-            } catch {
-              throw MsgError.msg(`服务器返回了非 JSON 响应 (${res.status})`);
-            }
-            return superjson.deserialize(parsed) as APIResponse;
-          });
-        })
-        .then((res) => {
-          if (!res.error) {
-            return res.result;
-          }
-          const kind = res.error.kind;
-
-          /** 统一发布错误 toast */
-          const errorDetail = res.error?.message ?? '';
-          const publishErrorToast = () => {
-            toastBus.publish({
-              variant: 'error',
-              summary: t('错误'),
-              detail: errorDetail,
-              life: 3000,
-            });
+      }).then(async (res) => {
+        /** 检查 HTTP 状态码，处理服务器错误（502、503、504 等） */
+        if (!res.ok) {
+          /** 常见 HTTP 错误状态码的友好提示 */
+          const errorMessages: Record<number, string> = {
+            400: t('请求参数错误'),
+            401: t('未授权，请重新登录'),
+            403: t('没有权限访问'),
+            404: t('请求的资源不存在'),
+            500: t('服务器内部错误'),
+            502: t('网关错误，服务暂时不可用'),
+            503: t('服务暂时不可用'),
+            504: t('请求超时，服务器响应时间过长'),
           };
+          const errorMessage = errorMessages[res.status] || t(`请求失败 (${res.status})`);
+          /** 显示错误提示 */
+          toastBus.publish({
+            variant: 'error',
+            summary: t('网络错误'),
+            detail: errorMessage,
+            life: 5000,
+          });
+          /** 抛出错误，让调用方能够捕获 */
+          throw MsgError.msg(errorMessage);
+        }
+        /**
+         * RPC 流式响应：后端接口返回 AsyncIterable 时切换为 SSE 传输，
+         * 此处直接返回帧生成器（帧类型由接口声明，调用方 for await 消费；错误帧在生成器内抛出）
+         */
+        if ((res.headers.get('content-type') ?? '').includes('text/event-stream')) {
+          return consumeRpcSseStream(res);
+        }
 
-          if (kind === 'LogoutError') {
-            authBus.publish('logout');
-            publishErrorToast();
-          } else if (kind === 'ToLoginError') {
-            /** 带上当前页面地址，登录后回跳原页面（已是登录页时不带，避免死循环） */
-            const current = router.currentRoute.value;
-            const r = current.path === routeMap.login.path ? undefined : current.fullPath;
-            routerUtil.push(routeMap.login, {}, r ? { r } : undefined);
-            publishErrorToast();
-          } else {
-            publishErrorToast();
+        const parsed: APIResponse = await res.text().then((text) => {
+          let json: SuperJSONResult;
+          try {
+            json = JSON.parse(text);
+          } catch {
+            throw MsgError.msg(`服务器返回了非 JSON 响应 (${res.status})`);
           }
-          throw MsgError.msg(res.error.message ?? t('未知错误'));
+          return superjson.deserialize(json) as APIResponse;
         });
+        if (!parsed.error) {
+          return parsed.result;
+        }
+        const kind = parsed.error.kind;
+
+        /** 统一发布错误 toast */
+        const errorDetail = parsed.error?.message ?? '';
+        const publishErrorToast = () => {
+          toastBus.publish({
+            variant: 'error',
+            summary: t('错误'),
+            detail: errorDetail,
+            life: 3000,
+          });
+        };
+
+        if (kind === 'LogoutError') {
+          authBus.publish('logout');
+          publishErrorToast();
+        } else if (kind === 'ToLoginError') {
+          /** 带上当前页面地址，登录后回跳原页面（已是登录页时不带，避免死循环） */
+          const current = router.currentRoute.value;
+          const r = current.path === routeMap.login.path ? undefined : current.fullPath;
+          routerUtil.push(routeMap.login, {}, r ? { r } : undefined);
+          publishErrorToast();
+        } else {
+          publishErrorToast();
+        }
+        throw MsgError.msg(parsed.error.message ?? t('未知错误'));
+      });
     }
     return remoteCall;
   }
@@ -162,3 +167,54 @@ export function useAPI() {
 
 /** 全局的 API 实例，方便在非 vue 组件中使用， 一般情况请使用 useAPI()   */
 export const { API, AppAPI } = useAPI();
+
+/**
+ * RPC 流式帧解码：字符串帧裸传（零开销）；__sj: 前缀帧为 superjson 序列化的对象/Date 等，
+ * 解码后类型与后端接口声明的 AsyncIterable<T> 的 T 一致（运行时约定，类型由 API 类型链保证）。
+ */
+function decodeRpcStreamFrame(payload: string): unknown {
+  if (payload.startsWith('__sj:')) {
+    return superjson.parse(payload.slice('__sj:'.length));
+  }
+  return payload;
+}
+
+/**
+ * 消费 RPC 流式响应（SSE 分帧）：校验握手帧后逐帧产出接口声明的帧值，
+ * 终止帧结束生成器；错误帧转为 MsgError 抛出（for await 消费端可 try/catch）。
+ */
+async function* consumeRpcSseStream(res: Response): AsyncGenerator<unknown> {
+  const reader = res.body!.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let handshaken = false;
+
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() ?? '';
+      for (const event of events) {
+        const line = event.trim();
+        if (!line.startsWith('data:')) continue;
+        const payload = line.slice(5).trim();
+
+        if (!handshaken) {
+          if (payload !== '__rpc_stream__') throw MsgError.msg(t('RPC 流式响应握手失败'));
+          handshaken = true;
+          continue;
+        }
+        if (payload === '[DONE]') return;
+        if (payload.startsWith('__rpc_error__:')) {
+          throw MsgError.msg(payload.slice('__rpc_error__:'.length));
+        }
+        yield decodeRpcStreamFrame(payload);
+      }
+    }
+  } finally {
+    /** 消费端提前 break/throw 时释放连接（后端检测 writable=false 会中断上游请求） */
+    reader.cancel().catch(() => {});
+  }
+}
