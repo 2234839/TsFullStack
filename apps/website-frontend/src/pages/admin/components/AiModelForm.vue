@@ -46,7 +46,7 @@
         </label>
         <Password
           v-model="form.apiKey"
-          :placeholder="t('请输入API密钥')"
+          :placeholder="isEdit ? t('留空则沿用原有密钥') : t('请输入API密钥')"
           :feedback="false"
           toggleMask
           :class="{ 'ring-2 ring-danger-500': errors.apiKey }"
@@ -300,18 +300,37 @@ const onSubmit = async () => {
 
   loading.value = true;
   try {
-    const { apiKey, ...rest } = form;
+    const { apiKey, maxTokens, temperature, weight, rpmLimit, rphLimit, rpdLimit, ...others } = form;
+
+    /** 数字字段清空（null）时的清洗：编辑模式剔除该字段保留原值，新建模式回退默认值 */
+    const numericData = isEdit.value
+      ? {
+          ...(maxTokens != null && { maxTokens }),
+          ...(temperature != null && { temperature }),
+          ...(weight != null && { weight }),
+          ...(rpmLimit != null && { rpmLimit }),
+          ...(rphLimit != null && { rphLimit }),
+          ...(rpdLimit != null && { rpdLimit }),
+        }
+      : {
+          maxTokens: maxTokens ?? DEFAULT_MODEL_FORM.maxTokens,
+          temperature: temperature ?? DEFAULT_MODEL_FORM.temperature,
+          weight: weight ?? DEFAULT_MODEL_FORM.weight,
+          rpmLimit: rpmLimit ?? DEFAULT_MODEL_FORM.rpmLimit,
+          rphLimit: rphLimit ?? DEFAULT_MODEL_FORM.rphLimit,
+          rpdLimit: rpdLimit ?? DEFAULT_MODEL_FORM.rpdLimit,
+        };
 
     if (isEdit.value && model) {
       /** 编辑模式：apiKey 留空表示保留原密钥，不提交该字段 */
-      const submitData = apiKey.trim() ? { ...rest, apiKey } : rest;
+      const submitData = { ...others, ...numericData, ...(apiKey.trim() && { apiKey }) };
       await API.db.aiModel.update({
         where: { id: model?.id as number },
         data: submitData,
       });
     } else {
       /** 添加模式：新建必须提供 apiKey */
-      const submitData = { ...rest, apiKey };
+      const submitData = { ...others, ...numericData, apiKey };
       await API.db.aiModel.create({
         data: submitData,
       });
