@@ -344,6 +344,7 @@ const loadModels = async () => {
         rpmLimit: true,
         rphLimit: true,
         rpdLimit: true,
+        freeForLoginUser: true,
         description: true,
         created: true,
         updated: true,
