@@ -41,6 +41,8 @@ export const githubApi = {
       const auth = yield* githubAuth;
       const url = yield* auth.getAuthorizationUrl('bind', userId);
       const reqCtx = yield* ReqCtxService;
+      /** state 同样要绑定当前浏览器，回调时 verifyOAuthStateCookie 才能通过（与登录入口一致） */
+      setOAuthStateCookie(reqCtx, 'github', new URL(url).searchParams.get('state') ?? '');
       reqCtx.log(`${LOG_PREFIX} 发起 GitHub 绑定 userId=${userId}`);
       return url;
     });
@@ -51,6 +53,7 @@ export const githubApi = {
       const auth = yield* githubAuth;
       const url = yield* auth.getAuthorizationUrl('merge');
       const reqCtx = yield* ReqCtxService;
+      setOAuthStateCookie(reqCtx, 'github', new URL(url).searchParams.get('state') ?? '');
       reqCtx.log(`${LOG_PREFIX} 发起 GitHub 合并验证`);
       return url;
     });

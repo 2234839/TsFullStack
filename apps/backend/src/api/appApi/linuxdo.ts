@@ -41,6 +41,8 @@ export const linuxdoApi = {
       const auth = yield* LinuxDoAuthService;
       const url = yield* auth.getAuthorizationUrl('bind', userId);
       const reqCtx = yield* ReqCtxService;
+      /** state 同样要绑定当前浏览器，回调时 verifyOAuthStateCookie 才能通过（与登录入口一致） */
+      setOAuthStateCookie(reqCtx, 'linuxdo', new URL(url).searchParams.get('state') ?? '');
       reqCtx.log(`${LOG_PREFIX} 发起 LINUX DO 绑定 userId=${userId}`);
       return url;
     });
@@ -51,6 +53,7 @@ export const linuxdoApi = {
       const auth = yield* LinuxDoAuthService;
       const url = yield* auth.getAuthorizationUrl('merge');
       const reqCtx = yield* ReqCtxService;
+      setOAuthStateCookie(reqCtx, 'linuxdo', new URL(url).searchParams.get('state') ?? '');
       reqCtx.log(`${LOG_PREFIX} 发起 LINUX DO 合并验证`);
       return url;
     });
