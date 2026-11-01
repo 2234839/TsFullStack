@@ -1,4 +1,5 @@
 import { DefaultScheduler, Rating, type DefaultScheduler as Scheduler, type Grade } from 'ts-fsrs';
+import { toRaw } from 'vue';
 import type { WordData } from './data';
 
 /**
@@ -74,10 +75,14 @@ const currentRetrievability = (card: FsrsCard, now: Date): number => {
   );
 };
 
+/** 解除 Vue reactive 代理后再深拷贝：reactive 代理无法被 structuredClone 克隆（DataCloneError）；
+ * toRaw 返回的原始对象内部存的也是原始引用，克隆结果与代理层完全解耦 */
+const deepClone = <T>(value: T): T => structuredClone(toRaw(value));
+
 /** 由可提取性 R 推导 0-10 展示等级（R=90% → 9 档，随遗忘曲线自然下滑） */
 export const memoryLevelFromCard = (serialized: SerializedCard | undefined, now = new Date()): number => {
   if (!serialized) return 0;
-  const card = deserialize(structuredClone(serialized)) as FsrsCard;
+  const card = deserialize(deepClone(serialized)) as FsrsCard;
   return Math.max(0, Math.min(10, Math.round(currentRetrievability(card, now) * 10)));
 };
 
@@ -85,7 +90,7 @@ export const memoryLevelFromCard = (serialized: SerializedCard | undefined, now 
 export const applyReview = async (wordData: WordData, grade: Grade, now = new Date()): Promise<WordData> => {
   await initMemoryScheduler();
   const cardIn = wordData.fsrsCard
-    ? (deserialize(structuredClone(wordData.fsrsCard)) as FsrsCard)
+    ? (deserialize(deepClone(wordData.fsrsCard)) as FsrsCard)
     : getSchedulerSync().newCard({ now });
   const { card } = getSchedulerSync().review({ card: cardIn, grade, now });
   const serialized = serialize(card) as SerializedCard;
