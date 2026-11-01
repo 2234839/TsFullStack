@@ -9,7 +9,6 @@
  *
  * 两种模式共享装配与观测原语（./dbWorker/dbCore.ts），业务代码与诊断链路行为一致：
  * - 行级权限（PolicyPlugin + $setAuth）、软删除插件、cost-logger 观测
- * - 诊断快照（snapshotDriverTimings）在两种模式下都可用
  */
 import { Effect, Option } from 'effect';
 import type { UserFindFirstArgs } from '../../.zenstack/input';
@@ -19,8 +18,7 @@ import { MSG } from '../util/constants';
 import { AppConfigService } from './AppConfig';
 import { ReqCtxService, type ReqCtx } from './ReqCtx';
 import { getDbWorker } from './dbWorker/DbWorkerClient';
-import { getLocalDbClient, deriveLocalAuthClient, snapshotLocalDriverTimings } from './dbWorker/localDb';
-import type { CoreDriverTiming } from './dbWorker/dbCore';
+import { getLocalDbClient, deriveLocalAuthClient } from './dbWorker/localDb';
 import type { WorkerDbClient } from './dbWorker/clientType';
 
 /**
@@ -30,9 +28,6 @@ import type { WorkerDbClient } from './dbWorker/clientType';
  * 类型上都是 ClientContract，业务代码的写法两种模式完全一致。
  */
 export type DbClient = WorkerDbClient;
-
-/** 驱动层语句执行记录（atMs 为本进程 performance.now 时基毫秒；worker 模式已换算回主线程时基） */
-export type DriverTiming = CoreDriverTiming;
 
 /** 最近一次 DbClientEffect 评估到的运行模式与路径（诊断快照复用；配置在进程内不变） */
 let _lastMode: boolean | null = null;
@@ -59,19 +54,6 @@ export const DbClientEffect: Effect.Effect<DbClient, MsgError, AppConfigService>
   const session = yield* Effect.promise(() => sessionPromise);
   return session.proxyFor('base', reqCtx);
 });
-
-/**
- * 慢请求诊断：快照驱动层语句执行记录。
- *
- * 按当前模式分派（直连=同步快照；worker=跨线程快照+时钟换算），统一异步签名，调用方无感。
- */
-export async function snapshotDriverTimings(fromMs: number, toMs: number): Promise<DriverTiming[]> {
-  /** 尚无任何 DB 访问 = 无驱动语句可快照 */
-  if (_lastMode === null || _lastPath === null) return [];
-  if (!_lastMode) return snapshotLocalDriverTimings(fromMs, toMs);
-  const session = await getDbWorker(_lastPath);
-  return session.snapshotDriverTimings(fromMs, toMs);
-}
 
 /**
  * 慢请求诊断追踪落盘。

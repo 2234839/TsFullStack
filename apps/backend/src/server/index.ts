@@ -12,7 +12,7 @@ import { AuthContext } from '../Context/Auth';
 import { ReqCtxService, type ReqCtx } from '../Context/ReqCtx';
 import { AppConfigService } from '../Context/AppConfig';
 import { systemLog, insertBehaviorLog } from '../Context/SystemLog';
-import { insertDiagTrace, snapshotDriverTimings } from '../Context/DbService';
+import { insertDiagTrace } from '../Context/DbService';
 import { ConfigLive } from '../Context/AppLive';
 import { LocalKVStoreLive } from '../Context/KVStore';
 import { maxLoopLagBetween, lagSamplesBetween, startLoopLagMonitor } from '../util/LoopLagMonitor';
@@ -294,7 +294,7 @@ async function finalizeDiag(input: {
   error: boolean;
   /** 本请求的 span 采集器（有则落盘 span 树） */
   spanCollector?: SpanCollector;
-  /** 入队时刻（performance.now 单调时基），与驱动计时同基，用于 driverSql 窗口与上传耗时 */
+  /** 入队时刻（performance.now 单调时基），用于上传耗时与排队等待分解 */
   enqueuePerf?: number;
   /** 响应完毕时刻（onResponse 触发，performance.now） */
   tSendDone?: number;
@@ -362,18 +362,16 @@ async function finalizeDiag(input: {
     sqlMaxMs,
     items: sqlEvents.slice(0, DIAG_SQL_EVENTS_LIMIT),
   });
-  /** 驱动层真实执行语句（自描述事件，与 sqlEvents 的差值即 ORM 校验/建查询开销） */
-  const driverSql = (await snapshotDriverTimings(enqueuePerf ?? 0, endPerf)).slice(0, DIAG_SQL_EVENTS_LIMIT);
-  if (driverSql.length > 0) {
+  /** 跨线程 DB 调用三段分解（worker 模式：投递排队/worker 执行/回传；并发时排队段含单线程串行等待） */
+  const dbTimings = reqCtx.dbTimings.slice(0, DIAG_SQL_EVENTS_LIMIT);
+  if (dbTimings.length > 0) {
     timeline.push({
-      phase: 'driverSql',
-      count: driverSql.length,
-      execTotalMs: Math.round(driverSql.reduce((s, t) => s + t.ms, 0) * 100) / 100,
-      items: driverSql.map((t) => ({
-        ms: Math.round(t.ms * 100) / 100,
-        at: Math.round(t.atMs - startPerf),
-        sql: t.sql.length > 120 ? t.sql.slice(0, 120) + '…' : t.sql,
-      })),
+      phase: 'dbTiming',
+      count: dbTimings.length,
+      queueTotalMs: Math.round(dbTimings.reduce((s, t) => s + t.queueMs, 0)),
+      execTotalMs: Math.round(dbTimings.reduce((s, t) => s + t.execMs, 0) * 100) / 100,
+      returnTotalMs: Math.round(dbTimings.reduce((s, t) => s + t.returnMs, 0)),
+      items: dbTimings,
     });
   }
   if (spanCollector) {
@@ -462,6 +460,7 @@ function handleReq({ req, reply, pathPrefix, enqueueTime, enqueuePerf, onEnd }: 
     reqId: ++reqId,
     t0: startPerf,
     sqlEvents: [],
+    dbTimings: [],
     spanCollector,
   };
   let method: string;

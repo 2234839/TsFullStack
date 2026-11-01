@@ -43,6 +43,7 @@ async function handleWebhookRequest(
     /** webhook 无队列，起点即当前时刻 */
     t0: performance.now(),
     sqlEvents: [],
+    dbTimings: [],
   };
 
   try {

@@ -15,14 +15,8 @@ export interface WorkerSqlEvent {
   execMs: number;
   /** 语句开始时刻（worker 时基，主线程用 clockOffset 换算） */
   atMs: number;
-}
-
-/** 驱动层语句执行记录（快照诊断用；atMs 为 worker 时基） */
-export interface WorkerDriverTiming {
-  id: number;
-  atMs: number;
-  ms: number;
-  sql: string;
+  /** 本次操作认领的驱动层语句明细（归属精确，无时间窗串扰） */
+  driver?: Array<{ id: number; ms: number; sql: string }>;
 }
 
 /** Error 的可结构化克隆形态：保留 code/meta（P2004/P2025、zod 校验错误的判定全靠这两个字段） */
@@ -41,8 +35,7 @@ export type DbWorkerRequest =
   | { type: 'call'; id: number; clientId: string; txId?: string; method: string; args: unknown[] }
   | { type: 'createAuthClient'; id: number; user: unknown }
   | { type: 'txBegin'; id: number; clientId: string; timeoutMs: number }
-  | { type: 'txEnd'; id: number; txId: string; commit: boolean }
-  | { type: 'snapshot'; id: number; fromMs: number; toMs: number };
+  | { type: 'txEnd'; id: number; txId: string; commit: boolean };
 
 /** Omit 在联合类型上不分布，需经裸类型参数显式分布（请求体 = 各请求变体去掉 id） */
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
@@ -51,7 +44,14 @@ export type DbWorkerRequestBody = DistributiveOmit<DbWorkerRequest, 'id'>;
 
 /** worker → 主线程响应（events 仅供 call 响应附带，供主线程回灌 ReqCtx 诊断） */
 export type DbWorkerResponse =
-  | { id: number; ok: true; result: unknown; events?: WorkerSqlEvent[] }
+  | {
+      id: number;
+      ok: true;
+      result: unknown;
+      events?: WorkerSqlEvent[];
+      /** call 处理窗口起止（worker 时基）：主线程据此拆分「投递排队/worker 执行/回传」三段耗时 */
+      timing?: { startAtMs: number; endAtMs: number };
+    }
   | { id: number; ok: false; error: SerializedError };
 
 /** 把未知错误压平为可克隆纯数据 */

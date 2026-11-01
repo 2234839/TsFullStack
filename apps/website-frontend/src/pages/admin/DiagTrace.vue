@@ -202,6 +202,46 @@
               </div>
             </div>
           </div>
+          <div v-if="dbTimingItems.length > 0" class="mt-3">
+            <div class="text-primary-theme mb-1">
+              {{ t('DB 调用线程分解') }}（{{ dbTimingItems.length }} {{ t('次跨线程调用') }}：投递排队
+              {{ dbTimingTotals.queue }}ms + worker 执行 {{ dbTimingTotals.exec }}ms + 回传
+              {{ dbTimingTotals.return }}ms）：
+            </div>
+            <div class="mb-1 flex gap-2 text-xs text-primary-theme">
+              <span class="w-16 text-right">{{ t('发出时刻') }}</span>
+              <span class="w-20 text-right">{{ t('投递排队') }}</span>
+              <span class="w-20 text-right">{{ t('worker 执行') }}</span>
+              <span class="w-16 text-right">{{ t('回传') }}</span>
+              <span>{{ t('方法') }}</span>
+            </div>
+            <div class="max-h-40 overflow-auto font-mono text-xs space-y-0.5">
+              <div v-for="(el, i) in dbTimingItems" :key="i" class="flex gap-2">
+                <span
+                  class="text-primary-theme w-16 text-right"
+                  :title="t('请求开始后第 ') + el.at + t(' ms 发出这次调用')"
+                  >{{ el.at }}ms</span
+                >
+                <span
+                  :class="el.queueMs >= 5 ? 'text-warning-600 font-bold' : ''"
+                  class="w-20 text-right"
+                  :title="
+                    t(
+                      '主线程发出 → worker 开始处理；并发时含单线程串行等待（等前面的调用干完活），数值大不代表慢在计算',
+                    )
+                  "
+                  >{{ el.queueMs }}ms</span
+                >
+                <span class="w-20 text-right" :title="t('ORM 校验/建查询 + 驱动真实执行（含被并发调用插入的串行等待）')"
+                  >{{ el.execMs }}ms</span
+                >
+                <span class="w-16 text-right opacity-70" :title="t('worker 完成响应 → 主线程收到（结构化克隆回传）')"
+                  >{{ el.returnMs }}ms</span
+                >
+                <span class="break-all">{{ el.method }}</span>
+              </div>
+            </div>
+          </div>
           <div class="mt-3">
             <div class="text-primary-theme mb-1">
               {{ t('SQL 明细') }}（{{ sqlItems.length }} 条）<span
@@ -215,46 +255,39 @@
               <span class="w-16 text-right">{{ t('耗时') }}</span>
               <span>{{ t('语句') }}</span>
             </div>
-            <div class="max-h-64 overflow-auto font-mono text-xs space-y-0.5">
-              <div v-for="(el, i) in sqlItems" :key="i" class="flex gap-2">
-                <span
-                  class="text-primary-theme w-16 text-right"
-                  :title="t('请求开始后第 ') + el.at + t(' ms 才发出这条查询')"
-                  >{{ el.at }}ms</span
-                >
-                <span
-                  :class="el.ms >= 100 ? 'text-danger-500 font-bold' : ''"
-                  class="w-16 text-right"
-                  :title="
-                    t('含 ORM 校验/建查询共 ') +
-                    el.ms +
-                    t(' ms，其中真实 SQL 执行 ') +
-                    (el.execMs ?? '?') +
-                    t(' ms，差值为 ZenStack 包装开销')
-                  "
-                  >{{ el.ms }}ms</span
-                >
-                <span
-                  v-if="el.execMs != null"
-                  class="w-20 shrink-0 text-right text-xs opacity-70"
-                  :title="t('驱动层真实执行耗时')"
-                  >执行{{ el.execMs }}ms</span
-                >
-                <span>{{ el.model }}.{{ el.operation }}</span>
-              </div>
-            </div>
-          </div>
-          <div v-if="driverSqlItems.length > 0" class="mt-3">
-            <div class="text-primary-theme mb-1">
-              {{ t('驱动层真实执行') }}（{{ driverSqlItems.length }} {{ t('条，总计') }} {{ driverSqlTotalMs }}ms，{{
-                t('与上方包装耗时差值即 ORM 开销')
-              }}）:
-            </div>
-            <div class="max-h-48 overflow-auto font-mono text-xs space-y-0.5">
-              <div v-for="(el, i) in driverSqlItems" :key="i" class="flex gap-2">
-                <span class="text-primary-theme w-16 shrink-0 text-right">{{ el.at }}ms</span>
-                <span class="w-16 shrink-0 text-right">{{ el.ms }}ms</span>
-                <span class="break-all text-xs opacity-80">{{ el.sql }}</span>
+            <div class="max-h-64 overflow-auto font-mono text-xs space-y-1">
+              <div v-for="(el, i) in sqlItems" :key="i">
+                <div class="flex gap-2">
+                  <span
+                    class="text-primary-theme w-16 text-right"
+                    :title="t('请求开始后第 ') + el.at + t(' ms 才发出这条查询')"
+                    >{{ el.at }}ms</span
+                  >
+                  <span
+                    :class="el.ms >= 100 ? 'text-danger-500 font-bold' : ''"
+                    class="w-16 text-right"
+                    :title="
+                      t('含 ORM 校验/建查询共 ') +
+                      el.ms +
+                      t(' ms，其中真实 SQL 执行 ') +
+                      (el.execMs ?? '?') +
+                      t(' ms，差值为 ZenStack 包装开销')
+                    "
+                    >{{ el.ms }}ms</span
+                  >
+                  <span
+                    v-if="el.execMs != null"
+                    class="w-20 shrink-0 text-right text-xs opacity-70"
+                    :title="t('驱动层真实执行耗时')"
+                    >执行{{ el.execMs }}ms</span
+                  >
+                  <span>{{ el.model }}.{{ el.operation }}</span>
+                </div>
+                <!-- 本条查询认领的驱动层语句：归属精确（随调用回传），含权限检查子查询 -->
+                <div v-for="st in el.driver ?? []" :key="st.id" class="flex gap-2 pl-16 opacity-70">
+                  <span class="w-16 shrink-0 text-right">{{ Math.round(st.ms * 100) / 100 }}ms</span>
+                  <span class="break-all">{{ st.sql.slice(0, 160) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -358,7 +391,16 @@ const sqlItems = computed(() => {
   const tl = detail.value?.timeline;
   if (!Array.isArray(tl)) return [];
   const ev = tl.find((el) => (el as { phase?: string }).phase === 'sqlEvents') as
-    | { items?: Array<{ model: string; operation: string; ms: number; execMs?: number; at: number }> }
+    | {
+        items?: Array<{
+          model: string;
+          operation: string;
+          ms: number;
+          execMs?: number;
+          at: number;
+          driver?: Array<{ id: number; ms: number; sql: string }>;
+        }>;
+      }
     | undefined;
   return ev?.items ?? [];
 });
@@ -380,17 +422,24 @@ const lagOwner = computed<'self' | 'other' | undefined>(() => {
   return ev && (ev.owner === 'self' || ev.owner === 'other') ? ev.owner : undefined;
 });
 
-/** 驱动层真实执行语句（timeline 的 driverSql 阶段，含 SQL 文本与真实耗时） */
-const driverSqlItems = computed(() => {
+/** 跨线程 DB 调用三段分解（timeline 的 dbTiming 阶段） */
+const dbTimingItems = computed(() => {
   const tl = detail.value?.timeline;
   if (!Array.isArray(tl)) return [];
-  const ev = tl.find((el) => (el as { phase?: string }).phase === 'driverSql') as
-    | { items?: Array<{ ms: number; at: number; sql: string }> }
+  const ev = tl.find((el) => (el as { phase?: string }).phase === 'dbTiming') as
+    | { items?: Array<{ method: string; at: number; queueMs: number; execMs: number; returnMs: number }> }
     | undefined;
   return ev?.items ?? [];
 });
 
-const driverSqlTotalMs = computed(() => Math.round(driverSqlItems.value.reduce((s, el) => s + el.ms, 0) * 100) / 100);
+const dbTimingTotals = computed(() => {
+  const items = dbTimingItems.value;
+  return {
+    queue: items.reduce((s, el) => s + el.queueMs, 0),
+    exec: Math.round(items.reduce((s, el) => s + el.execMs, 0) * 100) / 100,
+    return: items.reduce((s, el) => s + el.returnMs, 0),
+  };
+});
 
 /** 事件循环卡顿样本（timeline 的 loopLag 阶段：at 为相对请求起点的时刻，ms 为该时段冻结时长） */
 const lagItems = computed(() => {

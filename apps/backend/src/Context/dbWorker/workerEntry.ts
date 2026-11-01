@@ -12,7 +12,7 @@
 import { parentPort } from 'node:worker_threads';
 import Database from 'better-sqlite3';
 import type { WorkerDbClient as DbClient } from './clientType';
-import type { DbWorkerRequest, DbWorkerResponse, WorkerDriverTiming, WorkerSqlEvent } from './protocol';
+import type { DbWorkerRequest, DbWorkerResponse, WorkerSqlEvent } from './protocol';
 import { serializeError } from './protocol';
 import {
   createBaseClient,
@@ -46,6 +46,7 @@ function bufferEvent(ev: CostLogEvent): void {
     ms: ev.ms,
     execMs: ev.execMs,
     atMs: ev.atMs,
+    driver: ev.driver,
     claimed: false,
   });
 }
@@ -74,7 +75,7 @@ function claimSqlEvents(t0: number, t1: number): WorkerSqlEvent[] {
     if (e.atMs > t1) break;
     if (e.claimed) continue;
     e.claimed = true;
-    hits.push({ model: e.model, operation: e.operation, ms: e.ms, execMs: e.execMs, atMs: e.atMs });
+    hits.push({ model: e.model, operation: e.operation, ms: e.ms, execMs: e.execMs, atMs: e.atMs, driver: e.driver });
   }
   return hits;
 }
@@ -271,7 +272,7 @@ async function resolveAndCall(client: DbClient, method: string, args: unknown[])
   return await (current as (...a: unknown[]) => unknown).apply(receiver, args);
 }
 
-/** 统一响应封装：错误压平为可克隆数据，call 附带窗口内观测记录 */
+/** 统一响应封装：错误压平为可克隆数据，call 附带窗口内观测记录与处理窗口起止时刻 */
 function send(
   port: NonNullable<typeof parentPort>,
   id: number,
@@ -282,8 +283,15 @@ function send(
     const t0 = performance.now();
     try {
       const result = await fn();
-      const events = withEvents ? claimSqlEvents(t0, performance.now()) : undefined;
-      port.postMessage({ id, ok: true, result, events } satisfies DbWorkerResponse);
+      const tEnd = performance.now();
+      const events = withEvents ? claimSqlEvents(t0, tEnd) : undefined;
+      port.postMessage({
+        id,
+        ok: true,
+        result,
+        events,
+        timing: { startAtMs: t0, endAtMs: tEnd },
+      } satisfies DbWorkerResponse);
     } catch (error) {
       port.postMessage({ id, ok: false, error: serializeError(error) } satisfies DbWorkerResponse);
     }
@@ -328,9 +336,6 @@ port.on('message', (msg: DbWorkerRequest) => {
       break;
     case 'txEnd':
       send(port, msg.id, () => txEnd(msg.txId, msg.commit));
-      break;
-    case 'snapshot':
-      send(port, msg.id, () => engine.snapshot(msg.fromMs, msg.toMs) as WorkerDriverTiming[]);
       break;
   }
 });

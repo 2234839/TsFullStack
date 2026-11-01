@@ -15,6 +15,7 @@ import { SqliteDialect } from '@zenstackhq/orm/dialects/sqlite';
 import { PolicyPlugin } from '@zenstackhq/plugin-policy';
 import { SoftDeletePlugin } from '@zenstackhq/plugin-soft-delete';
 import Database from 'better-sqlite3';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import type { WorkerDbClient as DbClient } from './clientType';
 import { schema, type SchemaType } from '../../../.zenstack/schema';
 
@@ -68,47 +69,38 @@ export function shareInputValidator(base: DbClient, derived: DbClient): void {
 // 驱动层计时引擎
 // ---------------------------------------------------------------------------
 
-/** 驱动层真实执行计时记录（better-sqlite3 同步执行，语句之间不会交错） */
-export interface CoreDriverTiming {
-  /** 语句注释 id（/*sN*\/ 前缀），全局唯一，供 onQuery 认领 */
+/** 被某次模型操作认领的驱动语句（归属精确到调用，非时间窗推断） */
+export interface CoreDriverStmt {
   id: number;
-  /** 语句开始时刻（本引擎的 performance.now 时基毫秒） */
-  atMs: number;
-  /** 语句耗时 ms */
   ms: number;
-  /** 语句 SQL 文本（带注释 id 前缀） */
   sql: string;
 }
 
-interface TrackedTiming extends CoreDriverTiming {
-  claimed: boolean;
+/** 认领作用域：作用域内执行的驱动语句直接归属，嵌套模型操作各自独立（子上下文覆盖父） */
+interface ClaimScope {
+  stmts: CoreDriverStmt[];
 }
 
 /**
  * 驱动层计时引擎：给 better-sqlite3 的 prepare 包计时（SQL 开头注入注释 id），
- * onQuery 按时间窗认领（先结束先认领，嵌套查询内层先认领），请求结束可快照。
+ * 认领基于 AsyncLocalStorage 上下文传递（不比较时间、不依赖调用序，免疫 await 点交错与并发串扰）。
  *
  * worker 模式与直连模式各建一个实例（进程/线程隔离，时基独立）。
  */
 export function createDriverTimingEngine() {
-  const timings: TrackedTiming[] = [];
-  const TIMINGS_CAP = 2000;
   let stmtSeq = 0;
-  /** hrtime 与 performance.now 的原点差：两个单调钟原点不同，需换算后才能跨模块比较 */
-  const hrtimeOrigin = process.hrtime.bigint();
-  const perfOrigin = performance.now();
+  /** 认领上下文：随异步调用链传播，每条语句在 record 时取当前执行上下文的归属 */
+  const claimAls = new AsyncLocalStorage<ClaimScope>();
 
-  const hrtimeToPerfMs = (t: bigint): number => Number(t - hrtimeOrigin) / 1e6 + perfOrigin;
-
-  /** 统计一条语句执行，写入缓冲 */
+  /** 统计一条语句执行：有认领上下文则直接归属，否则丢弃（无时间窗快照机制） */
   function record(id: number, sql: string, fn: () => unknown): unknown {
     const start = process.hrtime.bigint();
     try {
       return fn();
     } finally {
       const ms = Number(process.hrtime.bigint() - start) / 1e6;
-      if (timings.length >= TIMINGS_CAP) timings.splice(0, 500);
-      timings.push({ id, atMs: hrtimeToPerfMs(start), ms, sql, claimed: false });
+      const scope = claimAls.getStore();
+      if (scope) scope.stmts.push({ id, ms, sql });
     }
   }
 
@@ -132,34 +124,12 @@ export function createDriverTimingEngine() {
       return db;
     },
 
-    /** 认领 [t0, t1]（hrtime 纳秒）窗口内的未认领驱动语句，返回真实执行总耗时 ms；认领后不再计入其他查询 */
-    claimExecMs(t0: bigint, t1: bigint): number {
-      const w0 = hrtimeToPerfMs(t0);
-      const w1 = hrtimeToPerfMs(t1);
-      let total = 0;
-      for (const t of timings) {
-        if (t.claimed) continue;
-        /** 语句开始落在窗口内即认领（better-sqlite3 同步执行，语句不会跨查询边界） */
-        if (t.atMs >= w0 && t.atMs <= w1) {
-          t.claimed = true;
-          total += t.ms;
-        }
-      }
-      return total;
-    },
-
-    /** 快照 [fromMs, toMs]（本引擎时基）窗口内的驱动层语句执行记录，供诊断时间线展示真实执行耗时 */
-    snapshot(fromMs: number, toMs: number): CoreDriverTiming[] {
-      const rest: TrackedTiming[] = [];
-      const hits: CoreDriverTiming[] = [];
-      for (const t of timings) {
-        if (t.atMs < fromMs) continue;
-        if (t.atMs > toMs + 1000) rest.push(t);
-        else hits.push({ id: t.id, atMs: t.atMs, ms: t.ms, sql: t.sql });
-      }
-      timings.length = 0;
-      timings.push(...rest);
-      return hits;
+    /** 在认领上下文中执行 fn：fn 异步调用链内的驱动语句直接归属到返回的 scope，不基于时间、免疫并发交错 */
+    async claim<T>(fn: () => Promise<T>): Promise<{ result: T; totalMs: number; stmts: CoreDriverStmt[] }> {
+      const scope: ClaimScope = { stmts: [] };
+      const result = await claimAls.run(scope, fn);
+      const totalMs = scope.stmts.reduce((sum, s) => sum + s.ms, 0);
+      return { result, totalMs, stmts: scope.stmts };
     },
   };
 }
@@ -208,6 +178,8 @@ export interface CostLogEvent {
   atMs: number;
   /** 原始查询参数（脱敏由消费方按需处理） */
   args: Record<string, unknown> | undefined;
+  /** 本次操作认领的驱动层语句（含权限检查引发的子查询），归属精确、无并发串扰 */
+  driver: CoreDriverStmt[];
 }
 
 /** 诊断自身模型不进统计（避免诊断污染诊断） */
@@ -233,31 +205,27 @@ export function makeCostLoggerPlugin(
       if (isDiagModel(model)) {
         return proceed(args);
       }
-      const t0 = process.hrtime.bigint();
       const start = performance.now();
       const run = () => proceed(args);
-      if (opts.wrapProceed) {
-        const result = await opts.wrapProceed(`sql:db·${model}.${operation}`, run);
+      const finish = (exec: { totalMs: number; stmts: CoreDriverStmt[] }) => {
         opts.onResult({
           model,
           operation,
           ms: performance.now() - start,
-          execMs: engine.claimExecMs(t0, process.hrtime.bigint()),
+          execMs: exec.totalMs,
           atMs: start,
           args,
+          driver: exec.stmts,
         });
-        return result;
+      };
+      if (opts.wrapProceed) {
+        const exec = await engine.claim(() => opts.wrapProceed!(`sql:db·${model}.${operation}`, run));
+        finish(exec);
+        return exec.result;
       }
-      const result = await run();
-      opts.onResult({
-        model,
-        operation,
-        ms: performance.now() - start,
-        execMs: engine.claimExecMs(t0, process.hrtime.bigint()),
-        atMs: start,
-        args,
-      });
-      return result;
+      const exec = await engine.claim(run);
+      finish(exec);
+      return exec.result;
     },
   });
 }

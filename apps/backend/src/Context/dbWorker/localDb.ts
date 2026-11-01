@@ -17,16 +17,10 @@ import {
   makeCostLoggerPlugin,
   sanitizeArgsForLog,
   shareInputValidator,
-  type CoreDriverTiming,
 } from './dbCore';
 
 /** 直连模式的驱动计时引擎（与 worker 各自独立实例，时基即本进程 performance.now） */
 const engine = createDriverTimingEngine();
-
-/** 快照驱动层语句记录（同步版本，直连模式下诊断直接可用；atMs 为本进程时基） */
-export function snapshotLocalDriverTimings(fromMs: number, toMs: number): CoreDriverTiming[] {
-  return engine.snapshot(fromMs, toMs);
-}
 
 /** 模块级缓存（整个应用生命周期，路径变化时重建） */
 let _cachedDatabase: ReturnType<typeof createBaseClient>['database'] | null = null;
@@ -48,6 +42,7 @@ function withCostLogger(base: DbClient, reqCtx: ReqCtx): DbClient {
           ms: Math.round(ev.ms),
           execMs: Math.round(ev.execMs * 100) / 100,
           at: Math.round(ev.atMs - reqCtx.t0),
+          driver: ev.driver,
         });
       },
       /** span 挂根 span，组树阶段按时间区间重定到真正包裹它的业务 span（与原实现一致） */

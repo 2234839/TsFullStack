@@ -16,13 +16,7 @@ import { existsSync } from 'node:fs';
 import { Context, Exit, Option } from 'effect';
 import type { WorkerDbClient as DbClient } from './clientType';
 import type { ReqCtx } from '../ReqCtx';
-import type {
-  DbWorkerRequestBody,
-  DbWorkerRequest,
-  DbWorkerResponse,
-  WorkerDriverTiming,
-  WorkerSqlEvent,
-} from './protocol';
+import type { DbWorkerRequestBody, DbWorkerRequest, DbWorkerResponse, WorkerSqlEvent } from './protocol';
 import { deserializeError } from './protocol';
 import { sanitizeArgsForLog } from './dbCore';
 
@@ -126,15 +120,15 @@ export class DbWorkerSession {
     return new DbWorkerSession(channel);
   }
 
-  /** 发起一次模型调用，返回结果与 worker 侧观测记录 */
+  /** 发起一次模型调用，返回结果与 worker 侧观测记录（含处理窗口起止，worker 时基） */
   async call(
     clientId: string,
     txId: string | undefined,
     method: string,
     args: unknown[],
-  ): Promise<{ result: unknown; events?: WorkerSqlEvent[] }> {
+  ): Promise<{ result: unknown; events?: WorkerSqlEvent[]; timing?: { startAtMs: number; endAtMs: number } }> {
     const resp = await this.channel.request({ type: 'call', clientId, txId, method, args });
-    return { result: resp.result, events: resp.events };
+    return { result: resp.result, events: resp.events, timing: resp.timing };
   }
 
   /** 派生 auth 客户端（PolicyPlugin + $setAuth 在 worker 侧完成），返回 clientId */
@@ -156,18 +150,6 @@ export class DbWorkerSession {
   /** worker 内模型操作时刻（worker 时基）→ 主线程 performance.now 时基 */
   toMainClock(atMs: number): number {
     return atMs + this.channel.clockOffsetMs;
-  }
-
-  /** 快照驱动层语句记录（入参/出参均为主线程 performance.now 时基，内部做时钟换算） */
-  async snapshotDriverTimings(fromMs: number, toMs: number): Promise<WorkerDriverTiming[]> {
-    const offset = this.channel.clockOffsetMs;
-    const resp = await this.channel.request({
-      type: 'snapshot',
-      fromMs: fromMs - offset,
-      toMs: toMs - offset,
-    });
-    const items = resp.result as WorkerDriverTiming[];
-    return items.map((t) => ({ ...t, atMs: t.atMs + offset }));
   }
 
   /** 终止 worker 线程（会话重建/进程收尾用） */
@@ -244,8 +226,22 @@ async function doCall(
       sampled: true,
     });
   try {
-    const { result, events } = await session.call(clientId, binding.txId, method, args);
+    const tSend = performance.now();
+    const { result, events, timing } = await session.call(clientId, binding.txId, method, args);
+    const tRecv = performance.now();
     if (span) span.end(collector!.nowNanos(), Exit.succeed(undefined));
+    /** 线程分解：投递排队（发出→worker开始处理）/ worker 执行 / 回传（worker 完成响应→主线程收到） */
+    if (timing && reqCtx) {
+      const start = session.toMainClock(timing.startAtMs);
+      const end = session.toMainClock(timing.endAtMs);
+      reqCtx.dbTimings.push({
+        method,
+        at: Math.round(tSend - reqCtx.t0),
+        queueMs: Math.max(0, Math.round(start - tSend)),
+        execMs: Math.max(0, Math.round((end - start) * 100) / 100),
+        returnMs: Math.max(0, Math.round(tRecv - end)),
+      });
+    }
     /** 回灌观测：worker 侧窗口认领的模型操作（含权限检查引发的子查询）逐条还原成 sqlEvents/日志 */
     if (reqCtx) {
       for (const ev of events ?? []) {
@@ -259,6 +255,7 @@ async function doCall(
           execMs: Math.round(ev.execMs * 100) / 100,
           /** worker 时基 → 主线程时基 → 请求相对时刻 */
           at: Math.round(session.toMainClock(ev.atMs) - reqCtx.t0),
+          driver: ev.driver,
         });
       }
     }
