@@ -14,11 +14,11 @@ const LOG_PREFIX = '[GroupEntry]';
 /** 动态图客户端缓存 5 分钟（过期切换最多延迟 5 分钟可见，GitHub CDN 可接受） */
 const IMG_CACHE_CONTROL = 'public, max-age=300';
 
-/** README SVG 客户端缓存上限 2 分钟：内容随群码状态变化，不能缓存太久 */
-const SVG_MAX_AGE_SECONDS = 120;
+/** README SVG 客户端缓存上限 2 天：仍受群码剩余有效期硬约束，剩余有效期更短时只缓存到到期前 */
+const SVG_MAX_AGE_SECONDS = 2 * 24 * 60 * 60;
 
-/** 无有效群码时（仅公众号引导）的 SVG 缓存时长：管理员上传新群码后最多 1 分钟可见 */
-const SVG_FALLBACK_MAX_AGE_SECONDS = 60;
+/** 无有效群码时（仅公众号引导）的 SVG 缓存时长：管理员上传新群码后最多 1 天可见 */
+const SVG_FALLBACK_MAX_AGE_SECONDS = 24 * 60 * 60;
 
 /** 管理令牌最小长度（弱值拒绝服务启动） */
 const MIN_ADMIN_TOKEN_LEN = 16;
@@ -250,7 +250,7 @@ function formatLocalTime(d: Date): string {
  *
  * 公开路由（无鉴权，面向项目 README 访客）：
  * - GET /group/:space.png            动态位图（有效期内返回群码，否则返回公众号引导 SVG）
- * - GET /group/:space.svg            动态 SVG（缓存 ≤2 分钟且不超过群码剩余有效期）
+ * - GET /group/:space.svg            动态 SVG（缓存 ≤2 天且不超过群码剩余有效期）
  * - GET /group/:space                落地页（移动端优先，两态切换；?from= 记录来源）
  * - GET /group/official-qr/:space.png 空间公众号二维码图片
  *
@@ -362,7 +362,7 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
       },
     });
     if (reply.sent) return;
-    /** 缓存上界 = min(固定上限, 群码剩余有效期)，保证到期切换最多延迟一个缓存周期可见 */
+    /** 缓存上界 = min(固定上限, 群码剩余有效期)，绝不缓存超过二维码有效期 */
     const maxAge = activeQr
       ? Math.max(
           0,

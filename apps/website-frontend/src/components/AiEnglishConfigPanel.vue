@@ -54,7 +54,7 @@
 
 <script setup lang="ts">
 import { useOpenAIConfig } from '@/storage';
-import { reactive, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { DEFAULT_OPENAI_BASE_URL, DEFAULT_MAX_TOKENS } from '@/utils/constants';
 
@@ -65,7 +65,7 @@ const emit = defineEmits<{
   cancel: [];
 }>();
 const openAIConfig = useOpenAIConfig();
-const config = reactive({
+const config = ref({
   baseURL: openAIConfig.value.baseURL,
   apiKey: openAIConfig.value.apiKey,
   model: openAIConfig.value.model,
@@ -74,19 +74,19 @@ const config = reactive({
 });
 
 const saveConfig = () => {
-  openAIConfig.value = { ...config };
+  openAIConfig.value = { ...config.value };
   emit('save');
 };
 
 const resetConfig = () => {
-  Object.assign(config, {
+  config.value = {
     baseURL: DEFAULT_OPENAI_BASE_URL,
     apiKey: '',
     model: 'gpt-3.5-turbo',
     maxTokens: DEFAULT_MAX_TOKENS,
     temperature: 0.7,
-  });
-  openAIConfig.value = { ...config };
+  };
+  openAIConfig.value = { ...config.value };
 };
 
 watch(
@@ -98,7 +98,7 @@ watch(
     temperature: openAIConfig.value.temperature,
   }),
   (newConfig) => {
-    Object.assign(config, newConfig);
+    config.value = { ...newConfig };
   },
 );
 </script>
