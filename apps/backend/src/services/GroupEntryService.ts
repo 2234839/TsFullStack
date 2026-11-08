@@ -18,7 +18,7 @@ export const GROUP_QR_TTL_DAYS = 7;
 const QR_TTL_MS = GROUP_QR_TTL_DAYS * 24 * MS_PER_HOUR;
 
 /** 到期提前量：5 分钟（宁早勿晚，用户扫到过期码体验最差） */
-const EXPIRY_EARLY_MS = 5 * 60 * 1000;
+export const EXPIRY_EARLY_MS = 5 * 60 * 1000;
 
 /** 统计表当日日期字符串（本地时区，YYYY-MM-DD） */
 function todayStr(): string {

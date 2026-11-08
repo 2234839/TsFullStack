@@ -2,7 +2,7 @@ import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Cache, Duration, Effect } from 'effect';
 import { readFile } from 'node:fs/promises';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
-import { GroupEntryService, isQrEffective, MAX_QR_UPLOAD_BYTES } from '../services/GroupEntryService';
+import { GroupEntryService, isQrEffective, EXPIRY_EARLY_MS, MAX_QR_UPLOAD_BYTES } from '../services/GroupEntryService';
 import { isValidImageMime } from '../util/image';
 import { withFetchTimeout } from '../util/http';
 import { extractErrorMessage } from '../util/error';
@@ -14,8 +14,11 @@ const LOG_PREFIX = '[GroupEntry]';
 /** 动态图客户端缓存 5 分钟（过期切换最多延迟 5 分钟可见，GitHub CDN 可接受） */
 const IMG_CACHE_CONTROL = 'public, max-age=300';
 
-/** README SVG 必须在每次加载时重新获取当前群码，同时禁止共享缓存与 CDN 缓存 */
-const SVG_CACHE_CONTROL = 'no-cache, no-store, max-age=0, must-revalidate';
+/** README SVG 客户端缓存上限 2 分钟：内容随群码状态变化，不能缓存太久 */
+const SVG_MAX_AGE_SECONDS = 120;
+
+/** 无有效群码时（仅公众号引导）的 SVG 缓存时长：管理员上传新群码后最多 1 分钟可见 */
+const SVG_FALLBACK_MAX_AGE_SECONDS = 60;
 
 /** 管理令牌最小长度（弱值拒绝服务启动） */
 const MIN_ADMIN_TOKEN_LEN = 16;
@@ -247,7 +250,7 @@ function formatLocalTime(d: Date): string {
  *
  * 公开路由（无鉴权，面向项目 README 访客）：
  * - GET /group/:space.png            动态位图（有效期内返回群码，否则返回公众号引导 SVG）
- * - GET /group/:space.svg            无缓存动态 SVG（双码并排，无群码时仅公众号）
+ * - GET /group/:space.svg            动态 SVG（缓存 ≤2 分钟且不超过群码剩余有效期）
  * - GET /group/:space                落地页（移动端优先，两态切换；?from= 记录来源）
  * - GET /group/official-qr/:space.png 空间公众号二维码图片
  *
@@ -327,7 +330,7 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
     reply.type('image/svg+xml; charset=utf-8').header('Cache-Control', IMG_CACHE_CONTROL).send(svg);
   });
 
-  /** README 动态 SVG：双码并排；无有效群码时只展示公众号。所有二维码内嵌，响应禁止缓存 */
+  /** README 动态 SVG：双码并排；无有效群码时只展示公众号。缓存上界取群码剩余有效期 */
   fastify.get('/group/:space.svg', async (req: FastifyRequest, reply: FastifyReply) => {
     const space = parseSpace((req.params as { space: string }).space);
     if (!space) {
@@ -359,13 +362,17 @@ export function registerGroupEntryRoutes(fastify: FastifyInstance, appConfig: Ap
       },
     });
     if (reply.sent) return;
-    return reply
-      .type('image/svg+xml; charset=utf-8')
-      .header('Cache-Control', SVG_CACHE_CONTROL)
-      .header('CDN-Cache-Control', 'no-store')
-      .header('Pragma', 'no-cache')
-      .header('Expires', '0')
-      .send(svg);
+    /** 缓存上界 = min(固定上限, 群码剩余有效期)，保证到期切换最多延迟一个缓存周期可见 */
+    const maxAge = activeQr
+      ? Math.max(
+          0,
+          Math.min(
+            SVG_MAX_AGE_SECONDS,
+            Math.floor((activeQr.expiresAt.getTime() - EXPIRY_EARLY_MS - Date.now()) / 1000),
+          ),
+        )
+      : SVG_FALLBACK_MAX_AGE_SECONDS;
+    return reply.type('image/svg+xml; charset=utf-8').header('Cache-Control', `public, max-age=${maxAge}`).send(svg);
   });
 
   /** 落地页：微信内打开的主场景 */
