@@ -25,7 +25,7 @@ const commit = (() => {
 })();
 const buildTime = new Date().toISOString();
 
-const target = resolve(root, 'src/generated/version.ts');
+const target = resolve(root, '.generated/version.ts');
 const content = `/* eslint-disable */
 // 由 scripts/write-version.mjs 构建前生成，勿手改
 /** 构建时的 git commit（短 hash） */

@@ -7,8 +7,11 @@ import { PaymentConfigService } from './PaymentConfig';
 import { PricingConfigLive } from './PricingConfig';
 import { LocalKVStoreLive } from './KVStore';
 
+/** 配置只读一次（全进程缓存）：Layer 树被多处构建（fire-and-forget fork 等）时避免重复读 config.json */
+const cachedLoadAppConfig = Effect.flatten(Effect.cached(loadAppConfig));
+
 /** 配置层：从 config.json 加载并注入 AppConfigService */
-export const ConfigLive = Layer.effect(AppConfigService, loadAppConfig);
+export const ConfigLive = Layer.effect(AppConfigService, cachedLoadAppConfig);
 
 /** 支付配置层：从 AppConfigService 派生 PaymentConfigService */
 export const PaymentConfigLive = Layer.effect(

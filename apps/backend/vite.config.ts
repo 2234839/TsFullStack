@@ -16,26 +16,23 @@ export default defineConfig({
       format: ['esm'],
       sourcemap: true,
       clean: true,
+      // 冷启动优化：纯 JS 依赖全部内联进单文件，只保留原生模块类依赖
+      // （better-sqlite3 的 .node binding、bindings/node-gyp-build 的运行时原生解析无法内联）
       deps: {
-        alwaysBundle: ['@tsfullstack/note-calc-engine'],
-        neverBundle: [
-          'better-sqlite3',
-          'bindings',
-          'prebuild-install',
-          'node-gyp',
-          'node-gyp-build',
-          '@prisma/adapter-better-sqlite3',
-          '@prisma/client',
-          '@prisma/debug',
-          '@prisma/generator-helper',
-          '@prisma/runtime',
-          '@prisma/runtime-library',
-          '@zenstackhq/runtime',
+        // '*' 匹配常规 npm 依赖全量内联（vp pack 的 alwaysBundle 走 picomatch 匹配器，
+        // 布尔 true 在 1.4.0 会崩）；workspace 包与 peer 依赖语义独立，需显式列出才内联
+        alwaysBundle: [
+          '*',
+          '@tsfullstack/note-calc-engine',
           '@zenstackhq/orm',
           '@zenstackhq/plugin-policy',
           '@zenstackhq/plugin-soft-delete',
-          '@zenstackhq/schema',
+          '@zenstackhq/runtime',
+          '@fastify/cors',
+          '@fastify/multipart',
+          '@fastify/static',
         ],
+        neverBundle: ['better-sqlite3', 'bindings', 'prebuild-install', 'node-gyp', 'node-gyp-build'],
       },
     },
     {

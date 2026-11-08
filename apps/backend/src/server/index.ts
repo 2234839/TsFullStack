@@ -54,7 +54,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const LOG_PREFIX = '[Server]';
 
 /** 构建时由 vite define 注入的版本信息 */
-import { GIT_COMMIT, BUILD_TIME } from '../generated/version';
+import { GIT_COMMIT, BUILD_TIME } from '../../.generated/version';
 
 /** 每个 CPU 核心分配的请求并发数 */
 const REQUESTS_PER_CPU_CORE = 10;

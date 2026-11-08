@@ -24,5 +24,8 @@ node_modules
 # 部署脚本生成的临时文件（发布时远端专用 package.json）
 package.remote.json
 
+# 构建期生成的版本信息（write-version.mjs 产物，不进源码树）
+/.generated
+
 # 本地生成的 prisma schema 与迁移快照（部署产物）
 prisma-deploy/

@@ -1,4 +1,4 @@
-import { Duration, Effect, Fiber, Schedule } from 'effect';
+import { Duration, Effect, Fiber, Layer, Schedule, Scope } from 'effect';
 import fs from 'fs/promises';
 import { AppLive } from './Context/AppLive';
 import { AppConfigService } from './Context/AppConfig';
@@ -199,9 +199,20 @@ const reconcileLoop = Effect.gen(function* () {
   Effect.repeat(Schedule.spaced(OrderReconciliationService.getReconcileIntervalMs())),
 );
 
-/** 启动主程序：一次 provide 完整 Layer 树 */
+/** 启动主程序：Layer 树只构建一次（Layer.build + provideContext），
+ * 主程序与后台循环共享同一组服务实例；若各自 Effect.provide(AppLive)，
+ * 每个 runFork 都会重新构建 Layer，config.json 等启动逻辑被重复执行 */
+const appServices = await (async () => {
+  /** 长驻作用域：手动持有不关闭，服务随进程生命周期存活 */
+  const scope = await Effect.runPromise(Scope.make());
+  return await Effect.runPromise(Layer.buildWithScope(AppLive, scope));
+})();
+
+/** 提供共享服务 Context 的统一入口 */
+const withAppServices = <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.provideContext(effect, appServices);
+
 const program = main.pipe(
-  Effect.provide(AppLive),
+  withAppServices,
   Effect.catch((error) =>
     Effect.sync(() => {
       console.error(`${LOG_PREFIX_FATAL} 服务启动失败:`, error);
@@ -214,10 +225,10 @@ const program = main.pipe(
 const mainFiber = Effect.runFork(program);
 
 /** 后台定时任务 Fiber */
-loopFibers.push(Effect.runFork(memoryLogLoop.pipe(Effect.provide(AppLive))));
-loopFibers.push(Effect.runFork(tokenCleanupLoop.pipe(Effect.provide(AppLive))));
-loopFibers.push(Effect.runFork(behaviorLogCleanupLoop.pipe(Effect.provide(AppLive))));
-loopFibers.push(Effect.runFork(reconcileLoop.pipe(Effect.provide(AppLive))));
+loopFibers.push(Effect.runFork(memoryLogLoop.pipe(withAppServices)));
+loopFibers.push(Effect.runFork(tokenCleanupLoop.pipe(withAppServices)));
+loopFibers.push(Effect.runFork(behaviorLogCleanupLoop.pipe(withAppServices)));
+loopFibers.push(Effect.runFork(reconcileLoop.pipe(withAppServices)));
 
 /** 优雅关闭：中断所有 Fiber、停止队列并退出 */
 function gracefulShutdown(signal: string) {

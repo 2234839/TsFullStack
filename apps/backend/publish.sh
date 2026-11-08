@@ -59,11 +59,8 @@ timer_start
 # 1. 准备阶段
 show_progress "准备远程环境..."
 
-# 本地生成 prisma schema + 迁移目录快照（zenstack CLI 需 Node 21+，远端 Node 20 只能用 prisma CLI 跑迁移；
-# prisma migrate deploy 在 schema 同级 migrations/ 找迁移，故两者都放进 prisma-deploy/）
-show_progress "生成 prisma schema..."
-node ./scripts/gen-prisma-schema.mjs || { show_error "prisma schema 生成失败"; exit 1; }
-rm -rf ./prisma-deploy/migrations && cp -r ./migrations ./prisma-deploy/migrations
+# 远端 Node ≥ 21 已可直跑 zenstack CLI（generate/migrate 实测通过），迁移直接用
+# zenstack migrate deploy 应用 ./migrations（与 prisma 同一套迁移格式），无需本地预生成 prisma schema 快照
 
 # 生成远端专用 package.json：剥离 workspace 协议依赖（note-calc-engine 已 alwaysBundle 内联进 dist，
 # 远端运行时不需要；zenstack/prisma CLI 需真实安装）
@@ -81,7 +78,7 @@ require('fs').writeFileSync('./package.remote.json', JSON.stringify(pkg, null, 2
 "
 
 ssh $SSH_OPTS "$SSH_TARGET" "
-    mkdir -p $REMOTE_PATH/{dist/frontend,migrations,prisma-deploy} &&
+    mkdir -p $REMOTE_PATH/{dist/frontend,migrations} &&
     echo '环境准备完成'
 " || { show_error "环境准备失败"; exit 1; }
 show_success "远程环境准备完成"
@@ -120,11 +117,6 @@ timer_start
         ./CONFIG.md \
         "$SSH_TARGET:$REMOTE_PATH/" &
 
-    # prisma schema（多源 rsync 会摊平目录结构，单独传保持 prisma-deploy/ 路径）
-    rsync -avz --compress-level=9 -e "ssh $SSH_OPTS" \
-        ./prisma-deploy/ \
-        "$SSH_TARGET:$REMOTE_PATH/prisma-deploy/" &
-
     wait $BACKEND_PID $DISTLIB_PID $FRONTEND_PID $DB_PID
 } || { show_error "文件同步失败"; exit 1; }
 
@@ -148,8 +140,8 @@ timer_start
 ssh $SSH_OPTS "$SSH_TARGET" "
     cd $REMOTE_PATH/
 
-    # 安装依赖放在停服之前（耗时大头，此阶段服务持续在线；prisma CLI 在 devDependencies，不能 --prod；
-    # zenstack 生成物已随 dist 内联，远端跑不了 zenstack CLI，迁移用 prisma CLI + 本地预生成 schema）
+    # 安装依赖放在停服之前（耗时大头，此阶段服务持续在线；zenstack CLI 在 devDependencies，不能 --prod；
+    # 远端 Node ≥ 21，迁移用 zenstack migrate deploy + 远端已同步的 schema.zmodel/migrations）
     if [ "$SKIP_INSTALL" != "1" ]; then
         echo '安装依赖...'
         mv package.remote.json package.json
@@ -160,21 +152,17 @@ ssh $SSH_OPTS "$SSH_TARGET" "
     fi
 
     # 停服后迁移：SQLite 运行期持有写锁，迁移必须在应用停止后执行；
-    # 停服窗口内只做迁移 + 启动，无依赖安装等耗时操作
-    echo '停止应用服务...'
-    pm2 stop TsFullStack || true
+    # 停服窗口内只做迁移，无依赖安装等耗时操作
+    # 应用由 dynapm 网关按需管理：pkill 杀掉进程后网关下次收到请求会自动冷启动拉起
+    echo '停止应用服务（等待 dynapm 按需重启）...'
+    pkill -f '[d]ist/index.mjs' || true
     sleep 3
 
     echo '应用数据库迁移...'
     DATABASE_URL=\"file:$REMOTE_PATH/prisma/dev.db\" \
-      node node_modules/prisma/build/index.js migrate deploy --schema ./prisma-deploy/schema.prisma || exit 1
+      ./node_modules/.bin/zenstack migrate deploy --schema ./schema.zmodel --migrations . || exit 1
 
-    echo '启动应用服务...'
-    cd $REMOTE_PATH/
-    DATABASE_URL=\"file:$REMOTE_PATH/prisma/dev.db\" \
-      pm2 start TsFullStack || exit 1
-    pm2 save
-
+    # 不手动启动：dynapm 网关在下一次请求到达时按需冷启动（启动命令/环境变量在网关配置内维护）
     echo '$DEPS_HASH' > $REMOTE_PATH/.deps-hash
     echo '部署完成'
 " || { show_error "远程部署失败"; exit 1; }
