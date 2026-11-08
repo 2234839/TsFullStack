@@ -5,7 +5,7 @@
  * 3. 编译完成后自动重启 HTTP 服务器
  */
 import { spawn, execSync } from 'child_process';
-import { cpSync, mkdirSync, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -13,19 +13,14 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 /**
  * 执行数据库迁移（对真实 dev 库 database/dev.db）：
- * - schema 用 prisma-deploy/schema.prisma（datasource 走 env），migrations 目录随 publish.sh 同步自 ./migrations
- * - DATABASE_URL 必须给绝对路径：Prisma 按 schema 所在目录解析相对路径，否则会打中 prisma-deploy/database 下的工件副本库
+ * - 与部署链一致，用 zenstack migrate deploy 直接应用 ./migrations（与 prisma 同一套迁移格式）
  * - 迁移失败直接退出（let it crash），避免带着旧库跑新 schema 出 no such column
  */
 function runMigrations() {
   const dbFile = path.resolve(__dirname, 'database/dev.db');
   if (!existsSync(dbFile)) return; // 首次克隆还没有库，跳过（Seed 会在启动时建库）
-  mkdirSync(path.resolve(__dirname, 'prisma-deploy'), { recursive: true });
-  cpSync(path.resolve(__dirname, 'migrations'), path.resolve(__dirname, 'prisma-deploy/migrations'), {
-    recursive: true,
-  });
   console.log('[dev] Applying database migrations...');
-  execSync('npx prisma migrate deploy --schema prisma-deploy/schema.prisma', {
+  execSync('npx zenstack migrate deploy --schema ./schema.zmodel --migrations ./migrations', {
     encoding: 'utf8',
     stdio: 'inherit',
     cwd: __dirname,

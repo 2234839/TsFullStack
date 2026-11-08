@@ -38,7 +38,7 @@
     "dotenv": "^18.0.9"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "catalog:",
     "tsx": "^4.23.15",
     "typescript": "catalog:",
     "vitest": "catalog:"

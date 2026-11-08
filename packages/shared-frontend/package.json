@@ -39,7 +39,7 @@
     "dev": "vp build --watch"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "catalog:",
     "@vitejs/plugin-vue": "catalog:",
     "reka-ui": "catalog:",
     "typescript": "^6.0.3",

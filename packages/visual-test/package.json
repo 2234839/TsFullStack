@@ -20,12 +20,12 @@
   },
   "dependencies": {
     "pixelmatch": "^8.0.0",
-    "playwright": "^1.64.1",
+    "playwright": "^1.65.0",
     "pngjs": "^7.0.0",
     "superjson": "^2.2.6"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "catalog:",
     "@types/pngjs": "^6.0.5"
   }
 }

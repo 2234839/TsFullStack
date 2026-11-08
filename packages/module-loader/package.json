@@ -26,13 +26,13 @@
   },
   "dependencies": {
     "chokidar": "^6.0.0",
-    "commander": "^15.0.0",
+    "commander": "^15.1.0",
     "fast-glob": "^3.3.3",
     "fs-extra": "^11.4.1"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "@types/node": "^26.6.5",
+    "@types/node": "catalog:",
     "typescript": "^7.0.2"
   }
 }
