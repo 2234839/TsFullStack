@@ -131,6 +131,11 @@ export class DbWorkerSession {
     return { result: resp.result, events: resp.events, timing: resp.timing };
   }
 
+  /** 数据库初始化（seed）整体在 worker 内执行：一次 RPC，SQL 与 bcrypt 均不占主线程 */
+  async seed(admin: { adminEmail: string; adminPassword: string; production: boolean }): Promise<void> {
+    await this.channel.request({ type: 'seed', ...admin });
+  }
+
   /** 派生 auth 客户端（PolicyPlugin + $setAuth 在 worker 侧完成），返回 clientId */
   async createAuthClient(user: unknown): Promise<string> {
     const resp = await this.channel.request({ type: 'createAuthClient', user });

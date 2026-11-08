@@ -1,116 +1,35 @@
+/**
+ * 数据库初始化（seed）入口。
+ *
+ * 具体逻辑在 ./seedCore.ts（不依赖 Effect，worker/直连两模式共用）：
+ * - worker 模式（默认）：seed 整体作为一次 RPC 在 dbWorker 内执行，
+ *   SQL 与 bcrypt 哈希/比对均不占主线程，主线程只等完成标记
+ * - 直连模式（config.dbWorker === false）：进程内直接执行
+ */
 import { Effect } from 'effect';
-import { DbClientEffect } from '../Context/DbService';
 import { AppConfigService } from '../Context/AppConfig';
-import { requireOrFail, tryOrFail } from '../util/error';
-import { hashPassword, comparePassword } from '../util/crypto';
-import type { Role } from '../../.zenstack/models';
-
-/** 管理员角色名常量 */
-const ADMIN_ROLE_NAME = 'admin';
-
-/** 日志前缀 */
-const LOG_PREFIX = '[Seed]';
+import { getDbWorker } from '../Context/dbWorker/DbWorkerClient';
+import { getLocalDbClient } from '../Context/dbWorker/localDb';
+import { runSeed, type SeedAdminConfig } from './seedCore';
+import { tryOrFail } from '../util/error';
 
 /** 对数据库进行一些初始化设置 */
 export const seedDB: Effect.Effect<void, Error, AppConfigService> = Effect.gen(function* () {
-  yield* seedWAL();
-  yield* seedAdmin();
+  const config = yield* AppConfigService;
+
+  /** seed 所需的管理员配置（含生产环境保护标记） */
+  const admin: SeedAdminConfig = {
+    adminEmail: config.systemAdminUser.email,
+    adminPassword: config.systemAdminUser.password,
+    production: process.env.NODE_ENV === 'production',
+  };
+
+  if (config.dbWorker !== false) {
+    /** worker 模式：会话单例与业务调用共享（getDbWorker 进程级缓存），seed 前已完成 init + 时钟标定 */
+    const session = yield* Effect.promise(() => getDbWorker(config.databasePath));
+    yield* tryOrFail('数据库初始化', () => session.seed(admin));
+  } else {
+    /** 直连模式：复用 localDb 的缓存客户端 */
+    yield* tryOrFail('数据库初始化', () => runSeed(getLocalDbClient(config.databasePath), admin));
+  }
 });
-
-/** 配置 SQLite 数据库为 WAL 模式 + NORMAL 同步级别 */
-const seedWAL = () =>
-  Effect.gen(function* () {
-    const dbClient = yield* DbClientEffect;
-
-    const result = yield* tryOrFail('配置 WAL 模式', () => dbClient.$queryRaw`PRAGMA journal_mode = WAL`);
-    console.log(`${LOG_PREFIX} SQLite 数据库已配置为 WAL 模式:`, result);
-
-    /**
-     * WAL 下 synchronous=NORMAL：事务提交只写 WAL 不 fsync，仅在 checkpoint 时落盘。
-     * 相比默认 FULL 大幅减少同步写阻塞事件循环的时长；掉电最多丢最近若干已提交事务，
-     * 应用崩溃不丢数据、库不损坏——对可重建的业务日志/诊断数据完全可接受。
-     */
-    const syncResult = yield* tryOrFail(
-      '配置 synchronous=NORMAL',
-      () => dbClient.$queryRaw`PRAGMA synchronous = NORMAL`,
-    );
-    console.log(`${LOG_PREFIX} SQLite synchronous 已配置为 NORMAL:`, syncResult);
-  });
-
-/** 创建管理员账户及其角色 */
-const seedAdmin = () =>
-  Effect.gen(function* () {
-    const dbClient = yield* DbClientEffect;
-    const { systemAdminUser } = yield* AppConfigService;
-
-    /** 查询管理员 */
-    const findAdmin = () =>
-      tryOrFail('查询管理员', () =>
-        dbClient.user.findUnique({
-          where: { email: systemAdminUser.email },
-          include: { role: true },
-        }),
-      );
-
-    let admin = yield* findAdmin();
-
-    /** 密码哈希惰性计算：仅创建/重置密码分支才需要（bcrypt cost=10 约 100ms，
-     * 正常启动管理员已存在且密码一致时跳过，直接走 compare 校验）。
-     * 创建/重置两分支互斥，各自计算即可 */
-
-    if (!admin) {
-      const hashedPassword = yield* hashPassword(systemAdminUser.password);
-      /** 创建管理员 */
-      admin = yield* tryOrFail('创建管理员', () =>
-        dbClient.user.create({
-          data: {
-            email: systemAdminUser.email,
-            password: hashedPassword,
-            role: {
-              connectOrCreate: {
-                where: { name: ADMIN_ROLE_NAME },
-                create: { name: ADMIN_ROLE_NAME },
-              },
-            },
-          },
-          include: { role: true },
-        }),
-      );
-    } else if (admin.password && !(yield* comparePassword(systemAdminUser.password, admin.password))) {
-      const hashedPassword = yield* hashPassword(systemAdminUser.password);
-      /** 生产环境不自动重置密码，避免配置被篡改后静默接管管理员账户 */
-      if (process.env.NODE_ENV === 'production') {
-        console.warn(`${LOG_PREFIX} 生产环境检测到管理员密码与配置不一致，跳过自动重置（请手动处理）`);
-      } else {
-        console.log(`${LOG_PREFIX} 重置系统管理员帐号密码`);
-        /** 重置管理员密码（复用已计算的 hashedPassword） */
-        admin = yield* tryOrFail('重置管理员密码', () =>
-          dbClient.user.update({
-            where: { email: systemAdminUser.email },
-            data: { password: hashedPassword },
-            include: { role: true },
-          }),
-        );
-      }
-    }
-
-    // 确保 admin 不为 null（TypeScript 收窄）
-    admin = yield* requireOrFail(admin, '管理员初始化失败');
-
-    if (!admin.role?.find((el: Role) => el.name === ADMIN_ROLE_NAME)) {
-      console.log(`${LOG_PREFIX} 添加管理员角色`);
-      yield* tryOrFail('添加管理员角色', () =>
-        dbClient.user.update({
-          where: { email: systemAdminUser.email },
-          data: {
-            role: {
-              connectOrCreate: {
-                where: { name: ADMIN_ROLE_NAME },
-                create: { name: ADMIN_ROLE_NAME },
-              },
-            },
-          },
-        }),
-      );
-    }
-  });

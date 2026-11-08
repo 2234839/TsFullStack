@@ -14,6 +14,7 @@ import Database from 'better-sqlite3';
 import type { WorkerDbClient as DbClient } from './clientType';
 import type { DbWorkerRequest, DbWorkerResponse, WorkerSqlEvent } from './protocol';
 import { serializeError } from './protocol';
+import { runSeed } from '../../db/seedCore';
 import {
   createBaseClient,
   createDriverTimingEngine,
@@ -312,6 +313,17 @@ port.on('message', (msg: DbWorkerRequest) => {
       break;
     case 'clockSync':
       send(port, msg.id, () => performance.now());
+      break;
+    case 'seed':
+      /** 数据库初始化整体在 worker 内执行（SQL + bcrypt 均不占主线程），只回传完成标记 */
+      send(port, msg.id, () => {
+        if (!_baseClient) throw new Error('dbWorker 尚未 init（未收到 init 消息）');
+        return runSeed(_baseClient, {
+          adminEmail: msg.adminEmail,
+          adminPassword: msg.adminPassword,
+          production: msg.production,
+        }).then(() => ({ seeded: true }));
+      });
       break;
     case 'createAuthClient':
       send(port, msg.id, () => ({ __clientId: createAuthClient(msg.user) }));

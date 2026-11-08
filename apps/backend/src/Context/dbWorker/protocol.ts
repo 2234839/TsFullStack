@@ -32,6 +32,7 @@ export interface SerializedError {
 export type DbWorkerRequest =
   | { type: 'init'; id: number; databasePath: string }
   | { type: 'clockSync'; id: number; tMs: number }
+  | { type: 'seed'; id: number; adminEmail: string; adminPassword: string; production: boolean }
   | { type: 'call'; id: number; clientId: string; txId?: string; method: string; args: unknown[] }
   | { type: 'createAuthClient'; id: number; user: unknown }
   | { type: 'txBegin'; id: number; clientId: string; timeoutMs: number }
