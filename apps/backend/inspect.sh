@@ -23,6 +23,8 @@ fi
 : "${SSH_TARGET:?请设置 SSH_TARGET，可写入项目根目录 .deploy-env 文件}"
 SSH_OPTS="-o ConnectTimeout=10"
 LOCAL_REPO="$(cd "$(dirname "$0")/../.." && pwd)"
+# 从 BASE_URL 提取纯域名（dynapm 入口按 Host 路由，不接受带协议的值）
+BASE_HOST=$(echo "$BASE_URL" | sed -E 's|^https?://||; s|/.*$||')
 
 # 计数
 PASS=0
@@ -84,8 +86,10 @@ echo ""
 # ── 3. 后端 API ─────────────────────────────
 echo -e "${BOLD}[3/5] 后端 API${NC}"
 
+# 架构为 nginx → dynapm 守护入口（5300，按 Host 路由）→ 应用进程，不走直连应用端口
+# 此请求同时会把按需休眠的应用拉起，供第 4 项进程检查
 API_RESULT=$(ssh $SSH_OPTS "$SSH_TARGET" \
-    "curl -sf -w '|%{http_code}' --max-time 10 http://localhost:5209/api/ 2>/dev/null" 2>/dev/null || echo "||000")
+    "curl -sf -w '|%{http_code}' --max-time 20 -H 'Host: $BASE_HOST' http://127.0.0.1:5300/api/ 2>/dev/null" 2>/dev/null || echo "||000")
 
 API_BODY=$(echo "$API_RESULT" | cut -d'|' -f1)
 API_CODE=$(echo "$API_RESULT" | cut -d'|' -f2)
@@ -102,43 +106,28 @@ else
 fi
 echo ""
 
-# ── 4. PM2 进程状态 ─────────────────────────
-echo -e "${BOLD}[4/5] PM2 进程状态${NC}"
+# ── 4. 应用进程状态（dynapm 架构）──────────
+echo -e "${BOLD}[4/5] 应用进程状态${NC}"
 
-PM2_STATUS=$(ssh $SSH_OPTS "$SSH_TARGET" \
-    "pm2 jlist 2>/dev/null" 2>/dev/null | python3 -c "
-import sys, json
-try:
-    for p in json.load(sys.stdin):
-        if p.get('name') == 'TsFullStack':
-            env = p.get('pm2_env', {})
-            monit = p.get('monit', {})
-            print(env.get('status','?'), p.get('pid',0), env.get('restart_time',0), monit.get('memory',0))
-            sys.exit(0)
-    print('NOT_FOUND 0 0 0')
-except Exception as e:
-    print('ERROR 0 0 0')
-" 2>/dev/null || echo "ERROR 0 0 0")
-
-read -r PM2_STATE PM2_PID PM2_RESTARTS PM2_MEM <<< "$PM2_STATUS"
-
-if [ "$PM2_STATE" = "NOT_FOUND" ]; then
-    fail "PM2 未找到 TsFullStack 进程"
-elif [ "$PM2_STATE" = "ERROR" ]; then
-    fail "无法获取 PM2 状态"
+# dynapm 守护入口必须常驻监听 5300（nginx 的 proxy_pass 目标）
+DYNAPM_LISTEN=$(ssh $SSH_OPTS "$SSH_TARGET" \
+    "ss -tln | grep -c '127.0.0.1:5300'" 2>/dev/null || echo "0")
+if [ "$DYNAPM_LISTEN" -ge 1 ]; then
+    pass "dynapm 守护入口 → 监听中 (127.0.0.1:5300)"
 else
-    PM2_MEM_MB=$((PM2_MEM / 1048576))
-    if [ "$PM2_STATE" = "online" ]; then
-        pass "TsFullStack → online (PID: $PM2_PID, 内存: ${PM2_MEM_MB}MB)"
-    else
-        fail "TsFullStack → $PM2_STATE"
-    fi
+    fail "dynapm 守护入口未监听 5300（nginx 反代将全部失败）"
 fi
 
-if [ "${PM2_RESTARTS:-0}" -gt 10 ]; then
-    warn "重启次数偏高: $PM2_RESTARTS 次（可能存在崩溃循环）"
-elif [ "${PM2_RESTARTS:-0}" -ge 0 ]; then
-    pass "重启次数正常: $PM2_RESTARTS"
+# 应用进程在第 3 项请求后应已被 dynapm 按需拉起
+PROC_STATUS=$(ssh $SSH_OPTS "$SSH_TARGET" \
+    "pgrep -af 'node .*dist/index.mjs' | head -1" 2>/dev/null || echo "")
+if [ -z "$PROC_STATUS" ]; then
+    fail "未找到应用进程（node dist/index.mjs）"
+else
+    PROC_PID=$(echo "$PROC_STATUS" | awk '{print $1}')
+    PROC_MEM_KB=$(ps -o rss= -p "$PROC_PID" 2>/dev/null | tr -d ' ' || echo 0)
+    PROC_MEM_MB=$((PROC_MEM_KB / 1024))
+    pass "应用进程 → 运行中 (PID: $PROC_PID, 内存: ${PROC_MEM_MB}MB)"
 fi
 echo ""
 
