@@ -48,7 +48,11 @@ const main = Effect.gen(function* () {
     return yield* fail(`Upload directory ${config.uploadDir} is not a directory`);
   }
 
-  yield* seedDB;
+  /** seed 在后台 Fiber 并行执行（见底部 seedFiber），本主程序不等它：
+   * HTTP 监听立即进行，dbWorker 会话是进程级单例 Promise，
+   * 业务侧首个 DB 调用会自然等到 worker 就绪（LazyCall 语义）。
+   * seed 幂等，与早期请求并发安全（WAL 持久化在库文件，synchronous=NORMAL
+   * 在 seed 生效前短暂为默认值，仅影响性能不影响正确性） */
 
   /** 启动代币发放队列 */
   const dbClient = yield* DbClientEffect;
@@ -221,6 +225,9 @@ const program = main.pipe(
   ),
 );
 
+/** seed 与服务器启动并行：先于主程序 fork，与 main 抢占并发推进 */
+const seedFiber = Effect.runFork(seedDB.pipe(withAppServices));
+
 /** 主 Fiber（startServer 长驻），优雅关闭时中断以停止服务器 */
 const mainFiber = Effect.runFork(program);
 
@@ -234,7 +241,7 @@ loopFibers.push(Effect.runFork(reconcileLoop.pipe(withAppServices)));
 function gracefulShutdown(signal: string) {
   console.log(`${LOG_PREFIX_SHUTDOWN} 收到 ${signal}，开始优雅关闭...`);
 
-  Effect.runFork(Fiber.interruptAll(loopFibers));
+  Effect.runFork(Fiber.interruptAll([seedFiber, ...loopFibers]));
   Effect.runFork(Fiber.interrupt(mainFiber));
 
   if (shutdownQueue) {
