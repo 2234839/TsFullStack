@@ -54,10 +54,12 @@ const seedAdmin = () =>
 
     let admin = yield* findAdmin();
 
-    /** 预先计算密码哈希（Effect.tryPromise 的 try 回调中无法使用 yield*） */
-    const hashedPassword = yield* hashPassword(systemAdminUser.password);
+    /** 密码哈希惰性计算：仅创建/重置密码分支才需要（bcrypt cost=10 约 100ms，
+     * 正常启动管理员已存在且密码一致时跳过，直接走 compare 校验）。
+     * 创建/重置两分支互斥，各自计算即可 */
 
     if (!admin) {
+      const hashedPassword = yield* hashPassword(systemAdminUser.password);
       /** 创建管理员 */
       admin = yield* tryOrFail('创建管理员', () =>
         dbClient.user.create({
@@ -75,6 +77,7 @@ const seedAdmin = () =>
         }),
       );
     } else if (admin.password && !(yield* comparePassword(systemAdminUser.password, admin.password))) {
+      const hashedPassword = yield* hashPassword(systemAdminUser.password);
       /** 生产环境不自动重置密码，避免配置被篡改后静默接管管理员账户 */
       if (process.env.NODE_ENV === 'production') {
         console.warn(`${LOG_PREFIX} 生产环境检测到管理员密码与配置不一致，跳过自动重置（请手动处理）`);
