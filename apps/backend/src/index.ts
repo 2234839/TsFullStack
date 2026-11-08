@@ -54,45 +54,54 @@ const main = Effect.gen(function* () {
    * seed 幂等，与早期请求并发安全（WAL 持久化在库文件，synchronous=NORMAL
    * 在 seed 生效前短暂为默认值，仅影响性能不影响正确性） */
 
-  /** 启动代币发放队列 */
-  const dbClient = yield* DbClientEffect;
+  /** 先监听再拉队列：队列初始化要等 dbWorker 就绪（约 170ms），而队列只处理
+   * 后台代币发放，晚就绪不影响网关探活与用户请求，不该挡在 listen 前面 */
 
-  type QueueTasks = {
-    [QUEUE_NAME_GRANT_TOKENS]: {
-      payload: { subscriptionId: number; userId: string };
-      result: {
-        success: boolean;
-        skipped?: boolean;
-        reason?: string;
-        userId?: string;
-        packageName?: string;
-        amount?: number;
-        nextGrantDate?: Date;
+  // 启动服务器（阻塞至进程退出）；队列启动挪到 startServer 之前的 fork Fiber 中并行推进
+  yield* Effect.forkChild(
+    Effect.gen(function* () {
+      const dbClient = yield* DbClientEffect;
+
+      type QueueTasks = {
+        [QUEUE_NAME_GRANT_TOKENS]: {
+          payload: { subscriptionId: number; userId: string };
+          result: {
+            success: boolean;
+            skipped?: boolean;
+            reason?: string;
+            userId?: string;
+            packageName?: string;
+            amount?: number;
+            nextGrantDate?: Date;
+          };
+        };
       };
-    };
-  };
 
-  const tokenQueue = new PrismaQueue<QueueTasks>({ dbClient });
-  shutdownQueue = tokenQueue;
+      const tokenQueue = new PrismaQueue<QueueTasks>({ dbClient });
+      shutdownQueue = tokenQueue;
 
-  // 注册代币发放任务处理器（委托给 TokenGrantService）
-  tokenQueue.register(QUEUE_NAME_GRANT_TOKENS, async (payload) => {
-    const result = await TokenGrantService.processSubscriptionGrant(payload, dbClient);
+      // 注册代币发放任务处理器（委托给 TokenGrantService）
+      tokenQueue.register(QUEUE_NAME_GRANT_TOKENS, async (payload) => {
+        const result = await TokenGrantService.processSubscriptionGrant(payload, dbClient);
 
-    if (result.success) {
-      console.log(
-        `${LOG_PREFIX_TOKEN_GRANT} 用户 ${result.userId} 的订阅 ${result.packageName} 自动发放 ${result.amount} 代币，下次发放时间: ${result.nextGrantDate?.toISOString()}`,
-      );
-    } else {
-      console.log(`${LOG_PREFIX_TOKEN_GRANT} ${result.reason}，跳过发放`);
-    }
+        if (result.success) {
+          console.log(
+            `${LOG_PREFIX_TOKEN_GRANT} 用户 ${result.userId} 的订阅 ${result.packageName} 自动发放 ${result.amount} 代币，下次发放时间: ${result.nextGrantDate?.toISOString()}`,
+          );
+        } else {
+          console.log(`${LOG_PREFIX_TOKEN_GRANT} ${result.reason}，跳过发放`);
+        }
 
-    return result;
-  });
+        return result;
+      });
 
-  // 启动队列
-  tokenQueue.start();
-  console.log(`${LOG_PREFIX_TOKEN_GRANT} 代币发放队列已启动`);
+      // 启动队列
+      tokenQueue.start();
+      console.log(`${LOG_PREFIX_TOKEN_GRANT} 代币发放队列已启动`);
+      /** Fiber 长驻直到进程退出（队列无返回值，挂起以维持 Fiber 存活） */
+      yield* Effect.never;
+    }),
+  );
 
   // 启动服务器（阻塞至进程退出）
   yield* startServer;

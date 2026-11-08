@@ -16,6 +16,9 @@ export default defineConfig({
       format: ['esm'],
       sourcemap: true,
       clean: true,
+      /** 压缩产物：冷启动的模块加载耗时以磁盘读取为主（OS 缓存冷时读 2.58MB 明显慢于
+       * 1.2MB），压缩后体积减半；sourcemap 保留，线上报错堆栈仍可还原 */
+      minify: true,
       // 冷启动优化：纯 JS 依赖全部内联进单文件，只保留原生模块类依赖
       // （better-sqlite3 的 .node binding、bindings/node-gyp-build 的运行时原生解析无法内联）
       deps: {
