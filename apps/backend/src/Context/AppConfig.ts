@@ -9,6 +9,8 @@ export type AppConfig = {
   databasePath: string;
   /** 数据库是否跑在 worker 线程（透明代理转发）：true=主线程不破同步 SQLite 阻塞（默认）；false=进程内直连（单文件零线程模式，退化回原行为） */
   dbWorker?: boolean;
+  /** DNS 解析结果顺序：ipv4first（默认，适合无全局 IPv6 的服务器）| verbatim（尊重解析器返回顺序） */
+  dnsResultOrder?: 'ipv4first' | 'verbatim';
   /** 用于配置管理员帐号 */
   systemAdminUser: {
     email: string;

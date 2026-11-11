@@ -1,6 +1,7 @@
 import { Effect } from 'effect';
 import { fail, tryOrFail, MsgError, extractErrorMessage } from '../util/error';
 import { MSG } from '../util/constants';
+import dns from 'node:dns';
 import fs from 'fs/promises';
 import path from 'path';
 import { type AppConfig as AppConfigType } from '../Context/AppConfig';
@@ -59,6 +60,15 @@ function validateConfig(config: unknown): asserts config is AppConfigType {
 }
 
 /**
+ * 应用 DNS 解析结果顺序（config.json 的 dnsResultOrder，默认 ipv4first）。
+ * 默认 ipv4first 的原因：部分部署环境没有全局 IPv6 地址（仅 link-local），
+ * 而 Cloudflare 代理域名带 AAAA 记录，解析器先返回 IPv6 时出站 fetch 会失败。
+ */
+function applyDnsResultOrder(order?: 'ipv4first' | 'verbatim'): void {
+  dns.setDefaultResultOrder(order ?? 'ipv4first');
+}
+
+/**
  * 加载配置文件（仅支持 config.json）
  */
 export const loadAppConfig: Effect.Effect<AppConfigType, Error, never> = Effect.gen(function* () {
@@ -80,6 +90,7 @@ export const loadAppConfig: Effect.Effect<AppConfigType, Error, never> = Effect.
       try: () => {
         const parsed = JSON.parse(configData) as AppConfigType;
         validateConfig(parsed);
+        applyDnsResultOrder(parsed.dnsResultOrder);
         return parsed;
       },
       catch: (e) => MsgError.msg(`config.json 格式错误: ${extractErrorMessage(e)}`),

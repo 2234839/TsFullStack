@@ -322,16 +322,18 @@ const GithubAuthLiveEffect = Effect.gen(function* () {
     },
     getAuthorizationUrl: (intent: OAuthIntent = 'login', initiatorUserId?: string) => {
       /** 服务端签发随机 state 并登记（intent 标记登录/绑定/合并验证意图；bind 记录发起者），回调时验证（防 CSRF 登录劫持） */
-      const state = randomBytes(16).toString('hex');
-      registerOAuthState(state, intent, intent === 'bind' ? initiatorUserId : undefined);
-      const params = new URLSearchParams({
-        client_id: config.clientId,
-        redirect_uri: config.redirectUri,
-        scope: (config.scope ?? DEFAULT_SCOPES).join(' '),
-        state,
-      });
+      return Effect.gen(function* () {
+        const state = randomBytes(16).toString('hex');
+        yield* registerOAuthState(state, intent, intent === 'bind' ? initiatorUserId : undefined);
+        const params = new URLSearchParams({
+          client_id: config.clientId,
+          redirect_uri: config.redirectUri,
+          scope: (config.scope ?? DEFAULT_SCOPES).join(' '),
+          state,
+        });
 
-      return Effect.succeed(`${GITHUB_OAUTH_URL}/authorize?${params.toString()}`);
+        return `${GITHUB_OAUTH_URL}/authorize?${params.toString()}`;
+      });
     },
   };
 });

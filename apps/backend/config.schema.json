@@ -42,6 +42,12 @@
       "description": "数据库是否运行在独立 worker 线程（true=主线程不被同步 SQLite 阻塞；false=进程内直连，单文件零线程模式）",
       "default": true
     },
+    "dnsResultOrder": {
+      "type": "string",
+      "enum": ["ipv4first", "verbatim"],
+      "description": "DNS 解析结果顺序。默认 ipv4first：无全局 IPv6 的服务器上，Cloudflare 代理域名（带 AAAA 记录）先返回 IPv6 会导致出站 fetch 失败",
+      "default": "ipv4first"
+    },
     "ApiProxy": {
       "type": "object",
       "description": "API 代理配置，用于代理一些无法直接访问的 API 请求",
