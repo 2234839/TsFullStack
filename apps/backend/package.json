@@ -18,6 +18,7 @@
     "build:publish": "pnpm build && pnpm --filter website-frontend build && pnpm publish:server",
     "publish:server": "bash ./publish.sh",
     "tsc:b": "tsc -b",
+    "check:effect": "tsx scripts/check-floating-effect.ts",
     "dev": "node dev.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "start:w": "node --enable-source-maps --watch ./dist/index.mjs",
