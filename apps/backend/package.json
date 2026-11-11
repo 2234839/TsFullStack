@@ -11,10 +11,10 @@
   "main": "./dist-lib/index.mjs",
   "types": "./dist-lib/index.d.mts",
   "scripts": {
-    "prebuild": "zenstack generate",
+    "prebuild": "zenstack generate && tsx scripts/check-floating-effect.ts",
     "predev": "zenstack generate",
     "zenstack:generate": "zenstack generate",
-    "build": "node scripts/write-version.mjs && vp pack",
+    "build": "node scripts/write-version.mjs && tsx scripts/check-floating-effect.ts && vp pack",
     "build:publish": "pnpm build && pnpm --filter website-frontend build && pnpm publish:server",
     "publish:server": "bash ./publish.sh",
     "tsc:b": "tsc -b",
