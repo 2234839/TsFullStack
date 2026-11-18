@@ -9,6 +9,7 @@ import {
   type Scope,
 } from '@tsfullstack/note-calc-engine';
 import type { CalculationResult, CalculatorConfig, TextDiff } from './types';
+import { parseMarkdownTable, detectTables, calculateTableCells, generateCellReference } from './tableCalculator';
 
 /**
  * 计算器 Hook
