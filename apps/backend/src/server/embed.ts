@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { readFile } from 'fs/promises';
 import { Effect } from 'effect';
 import { AppConfigService, type AppConfig } from '../Context/AppConfig';
 import { DbClientEffect } from '../Context/DbService';
@@ -67,12 +68,21 @@ export function registerEmbedRoutes(fastify: FastifyInstance, appConfig: AppConf
       return reply.code(404).send({ error: 'Not Found' });
     }
 
+    /** 一次性读入内存后输出（文件上限 2MB，Buffer 直发避开流式 payload 的坑） */
+    const content = await readFile(wrapItem.path).catch((e) => {
+      console.error(`${LOG_PREFIX} 读取文件失败: id=${fileId}`, e);
+      return null;
+    });
+    if (!content) {
+      return reply.code(404).send({ error: 'Not Found' });
+    }
+
     reply
       .type('text/html; charset=utf-8')
       .header('X-Content-Type-Options', 'nosniff')
       .header('Cache-Control', 'public, max-age=3600')
       .header('Content-Security-Policy', "sandbox allow-scripts; frame-ancestors 'self'")
-      .header('Content-Length', wrapItem.model.size)
-      .send(wrapItem.getFileStream());
+      .header('Content-Length', content.length)
+      .send(content);
   });
 }
