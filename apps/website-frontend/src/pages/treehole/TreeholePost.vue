@@ -208,11 +208,11 @@ const hasMoreReplies = computed(() => {
   return totalReplies > replies.value.length;
 });
 
-/** HTML 演示文件的沙箱输出 URL（指向后端 /embed/:id 路由） */
+/** HTML 演示文件的沙箱输出 URL（指向后端 /embed/:id 路由；v 参数用于内容版本化，绕开历史坏缓存） */
 const embedUrl = computed(() => {
   if (!post.embedHtmlId) return '';
   const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
-  return new URL(`/embed/${post.embedHtmlId}`, baseUrl).toString();
+  return new URL(`/embed/${post.embedHtmlId}?v=${post.updated ?? post.embedHtmlId}`, baseUrl).toString();
 });
 
 /** 复制演示链接（直接打开也是 CSP sandbox 的 opaque origin，安全） */
