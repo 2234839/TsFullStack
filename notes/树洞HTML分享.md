@@ -32,5 +32,5 @@
 - 发布按钮文案变为「登录并发布」，点击弹出登录浮层而非跳转登录页（跳转 = 整页刷新 = 草稿丢失）
 - 登录组件可嵌入其他页面/作为浮层使用：从登录页抽取通用 `LoginForm` 组件，包含全部登录方式（账密+记住我、GitHub/LinuxDo OAuth、微信口令），登录页与浮层共用同一组件；props 提供 `redirectTo`（成功后导航）与 `stayOnSuccess`（成功只写会话不导航，emit `success`）
 - 登录成功后浮层关闭并自动继续提交，表单组件全程不卸载，草稿天然不丢
-- 已知约束：OAuth 为整页跳转，`stayOnSuccess` 对 OAuth 登录天然不生效（回调固定回登录回调页）
-- 实现见 [LoginForm.vue](apps/website-frontend/src/components/common/LoginForm.vue)、[LoginOverlay.vue](apps/website-frontend/src/components/common/LoginOverlay.vue)、[login.vue](apps/website-frontend/src/pages/login.vue)、[TreeholePostForm.vue](apps/website-frontend/src/pages/treehole/TreeholePostForm.vue)、[ComponentShowcase.vue](apps/website-frontend/src/pages/components/ComponentShowcase.vue)
+- OAuth 整页跳转问题用「新 tab + postMessage 中继」解决：stayOnSuccess 场景 OAuth 按钮改为 `window.open` 新 tab 授权；回调页登录成功后把登录态 postMessage 给同源 opener 并等 ack，ack 后自动关闭 tab；无同源 opener 或无 ack 则回退为回调页内正常跳转（普通登录流程不受影响）
+- 实现见 [relay.ts](apps/website-frontend/src/pages/oauth/relay.ts)、[LoginForm.vue](apps/website-frontend/src/components/common/LoginForm.vue)、[LoginOverlay.vue](apps/website-frontend/src/components/common/LoginOverlay.vue)、[login.vue](apps/website-frontend/src/pages/login.vue)、[TreeholePostForm.vue](apps/website-frontend/src/pages/treehole/TreeholePostForm.vue)、[ComponentShowcase.vue](apps/website-frontend/src/pages/components/ComponentShowcase.vue)

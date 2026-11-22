@@ -52,7 +52,7 @@
       />
     </form>
 
-    <!-- OAuth 登录（整页跳转到提供方，stayOnSuccess 场景请配合草稿持久化） -->
+    <!-- OAuth 登录：整页跳转；stayOnSuccess 场景新开 tab，回调后经 postMessage 中继回传登录态 -->
     <div v-if="configuredProviders.length > 0" class="flex items-center justify-between gap-2">
       <Button
         v-if="configuredProviders.includes('github')"
@@ -99,6 +99,7 @@
 <script setup lang="ts">
 import { Button, Checkbox, Input, Password } from '@/components/base';
 import WechatPasscodeDialog from '@/components/common/WechatPasscodeDialog.vue';
+import { listenOAuthLoginRelay } from '@/pages/oauth/relay';
 import { loginGoto } from '@/pages/loginUtil';
 import { routeMap, routerUtil } from '@/router';
 import { authInfo, authInfo_isLogin, localUserPwd } from '@/storage';
@@ -107,7 +108,7 @@ import { useAsyncState } from '@vueuse/core';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
 import { getErrorMessage } from '@/utils/error';
-import { computed, onMounted, ref, shallowRef } from 'vue';
+import { computed, onMounted, onUnmounted, ref, shallowRef } from 'vue';
 
 const props = withDefaults(
   defineProps<{
@@ -148,15 +149,21 @@ function settleLogin(info: Parameters<typeof loginGoto>[0]) {
   emit('success');
 }
 
-/** OAuth：整页跳转到提供方（外部站点授权无法留在浮层内），回调后经 /oauth/:provider 完成登录 */
+/** OAuth：stayOnSuccess 时新开 tab 授权（回调页 postMessage 回传登录态），否则整页跳转 */
 const oauthLogin = useAsyncState(
   async (provider: 'github' | 'linuxdo') => {
+    let url: string;
     if (provider === 'github') {
-      location.href = await AppAPI.githubApi.getAuthorizationUrl();
+      url = await AppAPI.githubApi.getAuthorizationUrl();
     } else if (provider === 'linuxdo') {
-      location.href = await AppAPI.linuxdoApi.getAuthorizationUrl();
+      url = await AppAPI.linuxdoApi.getAuthorizationUrl();
     } else {
       provider satisfies never;
+    }
+    if (props.stayOnSuccess) {
+      window.open(url, '_blank');
+    } else {
+      location.href = url;
     }
   },
   undefined,
@@ -192,7 +199,13 @@ async function handlePwdSubmit() {
   }
 }
 
+/** stayOnSuccess 场景监听 OAuth 回调 tab 的登录态中继消息 */
+let stopRelay: (() => void) | undefined;
+
 onMounted(async () => {
+  if (props.stayOnSuccess) {
+    stopRelay = listenOAuthLoginRelay((info) => settleLogin(info));
+  }
   if (localUserPwd.value.rememberMe) {
     form.value.username = localUserPwd.value.username;
   }
@@ -201,5 +214,9 @@ onMounted(async () => {
   } catch {
     configuredProviders.value = [];
   }
+});
+
+onUnmounted(() => {
+  stopRelay?.();
 });
 </script>

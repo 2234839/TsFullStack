@@ -30,6 +30,7 @@
 <script setup lang="ts">
 import { useAPI } from '@/api';
 import { loginGoto } from '@/pages/loginUtil';
+import { relayLoginToOpener } from '@/pages/oauth/relay';
 import { routeMap, routerUtil } from '@/router';
 import { useAsyncState } from '@vueuse/core';
 import { useToast } from '@/composables/useToast';
@@ -55,7 +56,14 @@ const userInfo = useAsyncState(async () => {
     routerUtil.push(routeMap.account, {});
     return undefined;
   }
-  loginGoto('token' in res && res.token ? res : undefined, { r });
+  const info = 'token' in res && res.token ? res : undefined;
+  /** 浮层登录场景：登录态 postMessage 回同源 opener（原页面），ack 后关闭本 tab */
+  if (info && (await relayLoginToOpener(info))) {
+    toast.success(t('登录成功'), t('授权完成，即将返回原页面'));
+    window.close();
+    return res;
+  }
+  loginGoto(info, { r });
   toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
   return res;
 }, undefined);
