@@ -21,8 +21,9 @@ OUT=backup/db-$TS.tar.gz
 mkdir -p backup
 
 # 在服务器上把主库 + WAL + SHM 一起打包（只读，不影响线上服务）
+# WAL/SHM 在库干净关闭/完整 checkpoint 后可能不存在，tar 按存在性打包（--ignore-failed-read 防缺文件报错）
 TARBALL=tsfullstack-db-$TS.tar.gz
-ssh "$SSH_TARGET" "cd $REMOTE_DIR && tar czf /tmp/$TARBALL dev.db dev.db-wal dev.db-shm"
+ssh "$SSH_TARGET" "cd $REMOTE_DIR && tar czf /tmp/$TARBALL --ignore-failed-read dev.db dev.db-wal dev.db-shm; true"
 
 scp -q "$SSH_TARGET:/tmp/$TARBALL" "$OUT"
 ssh "$SSH_TARGET" "rm -f /tmp/$TARBALL"
