@@ -14,6 +14,7 @@ import {
 import { useConfirm } from '@/composables/useConfirm';
 import Toast from '@/components/system/Toast.vue';
 import LoginOverlay from '@/components/common/LoginOverlay.vue';
+import SandboxEmbed from '@/components/common/SandboxEmbed.vue';
 import { useToast } from '@/composables/useToast';
 
 // ---------- base 组件演示状态 ----------
@@ -227,6 +228,15 @@ const contextMenuItems = [
       </div>
       <!-- Toast 渲染容器（全局在 BaseLayout 已挂载，此处供独立验证） -->
       <Toast />
+    </section>
+
+    <!-- ==================== 嵌入类 ==================== -->
+    <section class="bg-primary-card border-primary-default mb-6 rounded-lg border p-6">
+      <h2 class="text-primary-heading mb-4 text-lg font-semibold">嵌入类</h2>
+      <SandboxEmbed
+        src="data:text/html,%3Ch1%3ESandboxEmbed%20%E6%BC%94%E7%A4%BA%3C/h1%3E%3Cp%3E%E6%94%BE%E5%A4%A7/%E7%AA%97%E5%8F%A3%E5%85%A8%E5%B1%8F%E5%88%87%E6%8D%A2%3C/p%3E"
+        title="SandboxEmbed 演示"
+      />
     </section>
 
     <!-- ==================== 浮层类 ==================== -->

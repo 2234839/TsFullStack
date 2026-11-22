@@ -89,13 +89,9 @@
           {{ post.content }}
         </div>
 
-        <!-- HTML 演示：沙箱 iframe（服务端 /embed/:id 已强制 CSP sandbox，这里二次隔离） -->
-        <div v-if="post.embedHtmlId" class="mb-4">
-          <div class="flex items-center justify-between mb-2">
-            <span class="text-xs text-primary-subtle flex items-center gap-1">
-              <i class="pi pi-shield"></i>
-              {{ t('沙箱隔离的 HTML 演示') }}
-            </span>
+        <!-- HTML 演示：沙箱 iframe（服务端 /embed/:id 已强制 CSP sandbox，组件内二次隔离 + 放大/全屏） -->
+        <SandboxEmbed v-if="post.embedHtmlId" :src="embedUrl" :title="t('HTML 演示')">
+          <template #toolbar>
             <Button
               :label="t('复制演示链接')"
               icon="pi pi-share-alt"
@@ -103,16 +99,8 @@
               size="small"
               @click="copyEmbedLink"
             />
-          </div>
-          <iframe
-            :src="embedUrl"
-            sandbox="allow-scripts"
-            loading="lazy"
-            referrerpolicy="no-referrer"
-            class="w-full h-96 rounded-lg border border-primary-200 dark:border-primary-700 bg-white"
-            :title="t('HTML 演示')"
-          />
-        </div>
+          </template>
+        </SandboxEmbed>
       </template>
 
       <!-- 折叠状态下的摘要 -->
@@ -170,6 +158,7 @@ import { authInfo, authInfo_isLogin } from '@/storage';
 import { Dropdown } from '@tsfullstack/shared-frontend/components';
 import { useAPI } from '@/api';
 import TreeholePostForm from './TreeholePostForm.vue';
+import SandboxEmbed from '@/components/common/SandboxEmbed.vue';
 import { useToast } from '@/composables/useToast';
 import { useConfirm } from '@/composables/useConfirm';
 import type { TreeholePost } from '@tsfullstack/backend';
