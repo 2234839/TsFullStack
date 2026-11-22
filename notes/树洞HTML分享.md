@@ -21,3 +21,16 @@
 - 前端 iframe 使用 `sandbox="allow-scripts"`（不含 `allow-same-origin`），iframe 内脚本运行在与本站隔离的 opaque origin
 - serve 侧仅输出满足「public + text/html + embedHtml 标记」的文件，不信任帖子里的引用
 - 实现见 [treehole.ts](apps/backend/src/api/appApi/treehole.ts)、[file.ts](apps/backend/src/api/authApi/file.ts)、[index.ts](apps/backend/src/server/index.ts)、[TreeholePostForm.vue](apps/website-frontend/src/pages/treehole/TreeholePostForm.vue)、[TreeholePost.vue](apps/website-frontend/src/pages/treehole/TreeholePost.vue)
+
+## 未登录发帖引导与草稿保留 [[login-overlay-draft]]
+
+未登录用户打开树洞表单时：允许编辑但不能发布，发布按钮仅置灰且无任何提示，用户完全无法理解。
+
+需求：
+
+- 未登录时表单顶部展示提示：「发布需要登录，内容会保留，登录后自动发布」，并提供「去登录」入口
+- 发布按钮文案变为「登录并发布」，点击弹出登录浮层而非跳转登录页（跳转 = 整页刷新 = 草稿丢失）
+- 登录组件可嵌入其他页面/作为浮层使用：从登录页抽取通用 `LoginForm` 组件，包含全部登录方式（账密+记住我、GitHub/LinuxDo OAuth、微信口令），登录页与浮层共用同一组件；props 提供 `redirectTo`（成功后导航）与 `stayOnSuccess`（成功只写会话不导航，emit `success`）
+- 登录成功后浮层关闭并自动继续提交，表单组件全程不卸载，草稿天然不丢
+- 已知约束：OAuth 为整页跳转，`stayOnSuccess` 对 OAuth 登录天然不生效（回调固定回登录回调页）
+- 实现见 [LoginForm.vue](apps/website-frontend/src/components/common/LoginForm.vue)、[LoginOverlay.vue](apps/website-frontend/src/components/common/LoginOverlay.vue)、[login.vue](apps/website-frontend/src/pages/login.vue)、[TreeholePostForm.vue](apps/website-frontend/src/pages/treehole/TreeholePostForm.vue)、[ComponentShowcase.vue](apps/website-frontend/src/pages/components/ComponentShowcase.vue)

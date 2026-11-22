@@ -1,5 +1,13 @@
 <template>
   <div class="treehole-post-form bg-primary-card rounded-lg p-4">
+    <!-- 未登录提示：发布需要登录，但草稿可先写，登录后自动继续 -->
+    <Message v-if="!authInfo_isLogin" variant="info" :closable="false" class="mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span>{{ t('发布帖子需要先登录，您写的内容会保留，登录后自动发布') }}</span>
+        <Button :label="t('去登录')" icon="pi pi-sign-in" size="sm" @click="loginOpen = true" />
+      </div>
+    </Message>
+
     <div class="space-y-4">
       <!-- 标题输入 - 回复时默认折叠 -->
       <div v-if="isReply">
@@ -93,13 +101,16 @@
       <div class="flex justify-end gap-2">
         <Button v-if="showCancel" :label="t('取消')" variant="secondary" @click="emit('cancel')" />
         <Button
-          :label="t('发布')"
-          :icon="isSubmitting ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
+          :label="!authInfo_isLogin ? t('登录并发布') : t('发布')"
+          :icon="!authInfo_isLogin ? 'pi pi-sign-in' : isSubmitting ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
           :disabled="!isValid || isSubmitting"
-          @click="handleSubmit"
+          @click="handlePublishClick"
         />
       </div>
     </div>
+
+    <!-- 登录浮层：登录成功不导航，自动继续提交，草稿不丢 -->
+    <LoginOverlay v-model:open="loginOpen" @success="handleSubmit" />
   </div>
 </template>
 
@@ -110,7 +121,8 @@ import { useToast } from '@/composables/useToast';
 import type { ContentVisibility } from '@tsfullstack/backend';
 import { apiErrorDetail } from '@/utils/error';
 import { $Enums } from '@tsfullstack/backend';
-import { authInfo } from '@/storage';
+import { authInfo, authInfo_isLogin } from '@/storage';
+import LoginOverlay from '@/components/common/LoginOverlay.vue';
 import { useI18n } from '@/composables/useI18n';
 
 interface Props {
@@ -137,6 +149,22 @@ const showTitle = shallowRef(false);
 /** 选中的 HTML 演示文件（仅主题帖可附带） */
 const htmlFile = shallowRef<File | null>(null);
 const htmlInputRef = ref<HTMLInputElement | null>(null);
+
+/** 登录浮层开关 */
+const loginOpen = shallowRef(false);
+
+/**
+ * 发布按钮点击：未登录时先弹登录浮层（表单组件不卸载，草稿保留），
+ * 登录成功后由 LoginOverlay 的 success 回调自动调 handleSubmit 继续发布
+ */
+function handlePublishClick() {
+  if (!isValid.value || isSubmitting.value) return;
+  if (!authInfo_isLogin.value) {
+    loginOpen.value = true;
+    return;
+  }
+  handleSubmit();
+}
 
 /** 是否为回复 */
 const isReply = computed(() => parentId !== null);

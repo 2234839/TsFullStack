@@ -13,6 +13,7 @@ import {
 } from '@tsfullstack/shared-frontend/components';
 import { useConfirm } from '@/composables/useConfirm';
 import Toast from '@/components/system/Toast.vue';
+import LoginOverlay from '@/components/common/LoginOverlay.vue';
 import { useToast } from '@/composables/useToast';
 
 // ---------- base 组件演示状态 ----------
@@ -53,6 +54,8 @@ const tableData = [
 
 // ---------- 浮层组件演示状态 ----------
 const dialogOpen = ref(false);
+/** 登录浮层演示开关 */
+const loginOverlayOpen = ref(false);
 const drawerOpen = ref(false);
 const dropdownOpen = ref(false);
 const popoverOpen = ref(false);
@@ -232,6 +235,7 @@ const contextMenuItems = [
       <div class="flex flex-wrap items-center gap-3">
         <Button label="打开 Dialog" variant="primary" @click="dialogOpen = true" />
         <Button label="打开 Drawer" variant="primary" @click="drawerOpen = true" />
+        <Button label="打开登录浮层" variant="primary" @click="loginOverlayOpen = true" />
         <Button
           label="打开 Confirm"
           variant="danger"
@@ -288,6 +292,9 @@ const contextMenuItems = [
     </section>
 
     <!-- ==================== Dialog / Drawer 内容 ==================== -->
+    <!-- 登录浮层：登录成功不导航，emit success 供调用方继续被打断的操作 -->
+    <LoginOverlay v-model:open="loginOverlayOpen" />
+
     <Dialog v-model:open="dialogOpen" title="对话框标题">
       <p class="text-primary-body text-sm">这是 Dialog 的内容区域，背景应为不透明的卡片色。</p>
       <template #footer>

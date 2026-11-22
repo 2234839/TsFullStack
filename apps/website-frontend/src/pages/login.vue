@@ -56,23 +56,19 @@
           </p>
         </div>
 
-        <form class="mt-8 space-y-5" @submit.prevent="handleSubmit">
+        <!-- 登录模式：复用通用 LoginForm（账密/记住我/OAuth/微信口令，与登录浮层同源） -->
+        <LoginForm v-if="isLogin" class="mt-8" :redirect-to="r" />
+
+        <!-- 注册模式：注册表单 -->
+        <form v-else class="mt-8 space-y-5" @submit.prevent="handleSubmit">
           <div class="space-y-4">
-            <!-- 用户名/邮箱输入框 -->
+            <!-- 邮箱输入框 -->
             <div class="group">
               <label for="username" class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200">
-                <i class="pi pi-user mr-2 text-primary-500 dark:text-primary-300" />{{
-                  isLogin ? t('用户名') : t('邮箱')
-                }}
+                <i class="pi pi-user mr-2 text-primary-500 dark:text-primary-300" />{{ t('邮箱') }}
               </label>
 
-              <Input
-                id="username"
-                v-model="form.username"
-                :type="isLogin ? 'text' : 'email'"
-                required
-                :placeholder="isLogin ? t('请输入用户名') : t('请输入邮箱')"
-              />
+              <Input id="username" v-model="form.username" type="email" required :placeholder="t('请输入邮箱')" />
             </div>
 
             <!-- 密码输入框 -->
@@ -85,12 +81,12 @@
                 v-model="form.password"
                 required
                 :feedback="!isLogin"
-                :placeholder="isLogin ? t('请输入密码') : t('请设置密码')"
+                :placeholder="t('请设置密码')"
               />
             </div>
 
-            <!-- 确认密码输入框 (仅注册时显示) -->
-            <div v-if="!isLogin" class="group">
+            <!-- 确认密码输入框 -->
+            <div class="group">
               <label
                 for="confirmPassword"
                 class="block text-sm font-medium mb-1 text-primary-700 dark:text-primary-200"
@@ -113,27 +109,8 @@
             </div>
           </div>
 
-          <!-- 记住我和忘记密码 (仅登录时显示) -->
-          <div v-if="isLogin" class="flex items-center justify-between">
-            <div class="flex items-center">
-              <Checkbox v-model="localUserPwd.rememberMe" />
-              <label for="remember" class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
-                {{ t('记住我') }}
-              </label>
-            </div>
-
-            <div class="text-sm">
-              <a
-                href="#"
-                class="font-medium transition-colors text-info-600 hover:text-info-500 dark:text-info-400 dark:hover:text-info-300"
-              >
-                {{ t('忘记密码?') }}
-              </a>
-            </div>
-          </div>
-
-          <!-- 用户协议 (仅注册时显示) -->
-          <div v-if="!isLogin" class="flex items-center">
+          <!-- 用户协议 -->
+          <div class="flex items-center">
             <Checkbox v-model="agreeTerms" />
             <label for="terms" class="ml-2 block text-sm text-primary-700 dark:text-primary-200">
               {{ t('我已阅读并同意') }}
@@ -153,56 +130,14 @@
             </label>
           </div>
 
-          <!-- 登录/注册按钮 -->
-          <div class="space-y-3">
-            <Button
-              v-if="authInfo_isLogin"
-              :label="t('已处于登录状态, 点击跳转首页')"
-              icon="pi pi-home"
-              @click="routerUtil.push(routeMap.admin, {})"
-              variant="secondary"
-              class="w-full"
-            />
-            <Button
-              type="submit"
-              class="w-full"
-              :loading="loading"
-              :icon="isLogin ? 'pi pi-sign-in' : 'pi pi-user-plus'"
-              :disabled="!isFormValid || loading"
-              :label="isLogin ? t('登录') : t('注册')"
-            />
-          </div>
-          <!-- OAuth 登录按钮  -->
-          <div class="flex items-center justify-between gap-2" v-if="configuredProviders.length > 0">
-            <!-- github 登录 -->
-            <Button
-              v-if="configuredProviders.includes('github')"
-              :label="t('GitHub 登录')"
-              icon="pi pi-github"
-              :loading="oauthLogin.isLoading.value"
-              @click="oauthLogin.execute(0, 'github')"
-              variant="secondary"
-              class="flex-1"
-            />
-            <!-- LINUX DO 登录 -->
-            <Button
-              v-if="configuredProviders.includes('linuxdo')"
-              :label="t('LINUX DO 登录')"
-              icon="pi pi-globe"
-              :loading="oauthLogin.isLoading.value"
-              @click="oauthLogin.execute(0, 'linuxdo')"
-              variant="secondary"
-              class="flex-1"
-            />
-          </div>
-          <!-- 微信口令登录 -->
+          <!-- 注册按钮 -->
           <Button
-            v-if="configuredProviders.includes('wechat')"
-            :label="t('微信口令登录')"
-            icon="pi pi-comments"
-            @click="startWechatPasscode"
-            variant="secondary"
+            type="submit"
             class="w-full"
+            :loading="loading"
+            icon="pi pi-user-plus"
+            :disabled="!isFormValid || loading"
+            :label="t('注册')"
           />
         </form>
 
@@ -222,27 +157,15 @@
 
     <!-- 动态光圈效果 - 跟随鼠标 -->
     <div ref="cursorLight" class="cursor-light cursor-light-glow"></div>
-
-    <!-- 微信口令登录弹层（组件内轮询，终态回调 success） -->
-    <WechatPasscodeDialog
-      v-model:visible="passcodeVisible"
-      :title="t('微信口令登录')"
-      :waiting-text="t('验证成功后将自动登录...')"
-      :create="() => AppAPI.passcodeApi.createWechatLogin()"
-      :check="(ticket: string) => AppAPI.passcodeApi.checkWechatLogin(ticket)"
-      @success="onPasscodeResult"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useAPI } from '@/api';
 import ThemeSwitcher from '@/components/system/ThemeToggle.vue';
-import WechatPasscodeDialog from '@/components/common/WechatPasscodeDialog.vue';
-import { loginGoto } from '@/pages/loginUtil';
-import { routeMap, routerUtil } from '@/router';
-import { authInfo_isLogin, localUserPwd, theme_isDark } from '@/storage';
-import { useAsyncState, useEventListener } from '@vueuse/core';
+import LoginForm from '@/components/common/LoginForm.vue';
+import { theme_isDark } from '@/storage';
+import { useEventListener } from '@vueuse/core';
 import { useToast } from '@/composables/useToast';
 import { useI18n } from '@/composables/useI18n';
 import { getErrorMessage } from '@/utils/error';
@@ -258,8 +181,9 @@ const { AppAPI } = useAPI();
 
 const toast = useToast();
 const cursorLight = ref<HTMLElement | null>(null);
-const loading = ref(false);
-const isLogin = ref(true); // 默认为登录模式
+const loading = ref(false); // 注册提交中
+/** 登录/注册模式切换（登录能力由 LoginForm 承担，本页只保留注册表单） */
+const isLogin = ref(true);
 const agreeTerms = ref(false); // 用户协议勾选
 
 const form = ref({
@@ -268,75 +192,19 @@ const form = ref({
   confirmPassword: '',
 });
 
-const oauthLogin = useAsyncState(
-  async (provider: 'github' | 'linuxdo') => {
-    if (provider === 'github') {
-      const url = await AppAPI.githubApi.getAuthorizationUrl();
-      location.href = url;
-    } else if (provider === 'linuxdo') {
-      const url = await AppAPI.linuxdoApi.getAuthorizationUrl();
-      location.href = url;
-    } else {
-      provider satisfies never;
-    }
-  },
-  undefined,
-  { immediate: false },
-);
-
-/** 已配置的 OAuth 提供者列表 */
-const configuredProviders = ref<string[]>([]);
-
-/** 口令弹窗可见性 */
-const passcodeVisible = ref(false);
-
-/** 弹窗终态回调：LOGIN 自动登录，EXPIRED 提示 */
-function onPasscodeResult(result: Awaited<ReturnType<typeof AppAPI.passcodeApi.checkWechatLogin>>) {
-  if (result.status === 'LOGIN') {
-    loginGoto(result.login, { r });
-    toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
-  } else if (result.status === 'EXPIRED') {
-    toast.error(t('登录失败'), t('口令已过期，请重新发起'));
-  }
-}
-
-/** 发起微信口令登录（打开弹窗，组件内部轮询） */
-function startWechatPasscode() {
-  passcodeVisible.value = true;
-}
-
-onMounted(async () => {
+onMounted(() => {
   useEventListener(document, 'mousemove', handleMouseMove);
-  if (localUserPwd.value.rememberMe) {
-    form.value.username = localUserPwd.value.username;
-  }
-  // 开发环境下默认填充本地测试账号（来自 apps/backend/config.json 的 systemAdminUser），方便调试
-  if (import.meta.env.DEV && !form.value.username) {
-    form.value.username = import.meta.env.VITE_DEV_TEST_USERNAME ?? '';
-    form.value.password = import.meta.env.VITE_DEV_TEST_PASSWORD ?? '';
-  }
-  try {
-    configuredProviders.value = await AppAPI.oauthProviders();
-  } catch {
-    configuredProviders.value = [];
-  }
 });
 
-/** 表单验证 */
+/** 表单验证（仅注册模式） */
 const isFormValid = computed(() => {
-  if (isLogin.value) {
-    // 登录模式验证
-    return form.value.username && form.value.password;
-  } else {
-    // 注册模式验证
-    return (
-      form.value.username &&
-      form.value.password &&
-      form.value.confirmPassword &&
-      form.value.password === form.value.confirmPassword &&
-      agreeTerms.value
-    );
-  }
+  return (
+    form.value.username &&
+    form.value.password &&
+    form.value.confirmPassword &&
+    form.value.password === form.value.confirmPassword &&
+    agreeTerms.value
+  );
 });
 
 /** 切换登录/注册模式 */
@@ -348,7 +216,6 @@ const toggleMode = () => {
     password: '',
     confirmPassword: '',
   };
-  localUserPwd.value.rememberMe = false;
   agreeTerms.value = false;
 };
 
@@ -378,31 +245,20 @@ const handleMouseMove = (e: MouseEvent) => {
   }
 };
 
-/** 处理表单提交 */
+/** 处理注册提交 */
 const handleSubmit = async () => {
   if (!isFormValid.value) return;
 
   loading.value = true;
   try {
-    if (isLogin.value) {
-      // 登录逻辑
-      const res = await AppAPI.system.loginByEmailPwd(form.value.username, form.value.password);
-      loginGoto(res, { r });
-      if (localUserPwd.value.rememberMe) {
-        localUserPwd.value.username = form.value.username;
-      }
-      toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
-    } else {
-      // 注册逻辑
-      await AppAPI.system.register(form.value.username, form.value.password);
+    await AppAPI.system.register(form.value.username, form.value.password);
 
-      toast.success(t('注册成功'), t('账号创建成功，请登录'));
+    toast.success(t('注册成功'), t('账号创建成功，请登录'));
 
-      // 注册成功后切换到登录页
-      isLogin.value = true;
-    }
+    // 注册成功后切换到登录模式
+    isLogin.value = true;
   } catch (error: unknown) {
-    toast.error(t(isLogin.value ? '登录失败' : '注册失败'), getErrorMessage(error));
+    toast.error(t('注册失败'), getErrorMessage(error));
   } finally {
     loading.value = false;
   }

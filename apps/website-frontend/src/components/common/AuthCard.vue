@@ -77,7 +77,7 @@
 <script setup lang="ts">
 import { Button, Checkbox, Input, Password } from '@/components/base';
 import { routeMap, routerUtil } from '@/router';
-import { authInfo_isLogin, localUserPwd } from '@/storage';
+import { authInfo, authInfo_isLogin, localUserPwd } from '@/storage';
 import { loginGoto } from '@/pages/loginUtil';
 import { useI18n } from '@/composables/useI18n';
 import { useToast } from '@/composables/useToast';
@@ -107,6 +107,8 @@ const props = withDefaults(
     allowRegister?: boolean;
     /** 登录成功后的回跳地址（loginGoto 的 r 参数） */
     redirectTo?: string;
+    /** 登录成功后留在当前页面（不导航）：浮层嵌入场景用，避免整页跳转丢失用户未保存的编辑内容 */
+    stayOnSuccess?: boolean;
   }>(),
   {
     mode: 'login',
@@ -115,6 +117,7 @@ const props = withDefaults(
     submitLabel: undefined,
     allowRegister: false,
     redirectTo: undefined,
+    stayOnSuccess: false,
   },
 );
 
@@ -158,8 +161,14 @@ async function handleSubmit() {
       } else {
         localUserPwd.value.rememberMe = false;
       }
-      loginGoto(res, { r: props.redirectTo });
-      toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
+      /** stayOnSuccess：只写会话不导航，调用方（如浮层）继续当前操作，草稿不丢 */
+      if (props.stayOnSuccess) {
+        authInfo.value = res;
+        toast.success(t('登录成功'), t('欢迎回来'));
+      } else {
+        loginGoto(res, { r: props.redirectTo });
+        toast.success(t('登录成功'), t('欢迎回来，正在为您跳转...'));
+      }
       emit('success');
     }
   } catch (error: unknown) {
