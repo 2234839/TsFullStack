@@ -103,7 +103,7 @@
         <Button
           :label="!authInfo_isLogin ? t('登录并发布') : t('发布')"
           :icon="!authInfo_isLogin ? 'pi pi-sign-in' : isSubmitting ? 'pi pi-spin pi-spinner' : 'pi pi-send'"
-          :disabled="!isValid || isSubmitting"
+          :disabled="isSubmitting || (authInfo_isLogin && !isValid)"
           @click="handlePublishClick"
         />
       </div>
@@ -154,15 +154,17 @@ const htmlInputRef = ref<HTMLInputElement | null>(null);
 const loginOpen = shallowRef(false);
 
 /**
- * 发布按钮点击：未登录时先弹登录浮层（表单组件不卸载，草稿保留），
- * 登录成功后由 LoginOverlay 的 success 回调自动调 handleSubmit 继续发布
+ * 发布按钮点击：未登录时按钮可点击，先弹登录浮层（表单组件不卸载，草稿保留），
+ * 登录成功后由 LoginOverlay 的 success 回调自动调 handleSubmit 继续发布；
+ * 已登录则走表单校验后提交
  */
 function handlePublishClick() {
-  if (!isValid.value || isSubmitting.value) return;
+  if (isSubmitting.value) return;
   if (!authInfo_isLogin.value) {
     loginOpen.value = true;
     return;
   }
+  if (!isValid.value) return;
   handleSubmit();
 }
 
