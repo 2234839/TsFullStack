@@ -8,6 +8,7 @@ import { shareApi } from './appApi/share';
 import { treeholeApi } from './appApi/treehole';
 import { noteCalcApi } from './appApi/noteCalc';
 import { passcodeApi } from './appApi/passcode';
+import { openPlatformApi } from './appApi/openPlatformApi';
 
 /** 无需鉴权的 api */
 export const appApis = {
@@ -31,6 +32,8 @@ export const appApis = {
   shareApi,
   treeholeApi,
   noteCalcApi,
+  /** 开放平台：授权确认页查询/确认 + 管理员接入应用管理 */
+  openPlatformApi,
   /** 用于避免 Effect.isEffect 的判断之后得到 Effect<unknown, unknown, unknown> 导致类型系统失效*/
   __effect__() {
     return Effect.succeed('test');

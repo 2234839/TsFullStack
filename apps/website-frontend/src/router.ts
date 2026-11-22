@@ -91,6 +91,14 @@ export const routeMap = reactive({
           icon: 'pi pi-qrcode',
         },
       },
+      openPlatform: {
+        path: 'openPlatform',
+        component: () => import('@/pages/admin/OpenPlatformClients.vue'),
+        meta: {
+          title: t('开放平台'),
+          icon: 'pi pi-shield',
+        },
+      },
       channelMessages: {
         path: 'channelMessages',
         component: () => import('@/pages/admin/ChannelMessages.vue'),
@@ -232,6 +240,14 @@ export const routeMap = reactive({
         meta: {
           title: t('LINUX DO授权'),
           icon: 'pi pi-globe',
+        },
+      },
+      consent: {
+        path: 'consent',
+        component: () => import('@/pages/oauth/consent.vue'),
+        meta: {
+          title: t('授权确认'),
+          icon: 'pi pi-shield',
         },
       },
     },

@@ -90,6 +90,8 @@ model User with NotIdBase {
     spaceOperators GroupSpaceOperator[]
     channelMessages ChannelMessage[]
     word         Word[]
+    /** 开放平台接入应用（管理员以本站账号体系对外授权的客户端） */
+    oauthClients OAuthClient[]
     /** 代币记录 */
     tokens Token[]
     /** 任务记录 */
@@ -236,6 +238,34 @@ model VerificationPasscode with Base {
     /** 同通道内口令唯一（创建时惰性清理过期记录避免冲突） */
     @@unique([channel, code])
     @@index([status, expiresAt])
+}
+
+/// 开放平台接入应用：其他网站用本站账号登录的客户端注册表
+model OAuthClient with Base {
+    /** 对外发放的 client_id */
+    clientId String @unique
+
+    /** client_secret 的 bcrypt 哈希（明文只在创建响应中出现一次） */
+    clientSecretHash String
+
+    /** 应用名称（授权确认页展示） */
+    name String
+
+    /** 应用首页（确认页展示，可选） */
+    homepage String?
+
+    /** 允许的回调地址列表（精确匹配），JSON 数组 */
+    redirectUris Json
+
+    /** 禁用后 authorize/token 全部拒绝 */
+    disabled Boolean @default(false)
+
+    /** 创建者（管理员） */
+    createdBy String
+    creator User @relation(fields: [createdBy], references: [id])
+
+    @@allow('read', auth() != null)
+    @@allow('all', auth() == creator)
 }
 
 /// 第三方账号关联

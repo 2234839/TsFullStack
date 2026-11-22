@@ -1,6 +1,6 @@
 # TODO
 
-> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 41 项待办。
+> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 46 项待办。
 
 ## 新增：[账号合并只迁登录关系，不做业务数据迁移](index.md)
 
@@ -83,6 +83,43 @@
 + - 登录重定向发现见独立块 [[sec.login-open-redirect]]（第八轮主发现）。
 ```
 
+## 新增：[（匿名块）](开放平台.md)
+
+- 块 ID: `开放平台.md#开放平台`
+
+```diff
++ [[开放平台]]
+```
+
+## 新增：[目标：其他网站可以直接使用本站的账号体系做登录，登录授权与会话安全全部由本站承担。接入方只需实现标准 OAuth2 授权码流程，不重复实现注册/登录/会话管理。](开放平台.md)
+
+- 块 ID: `开放平台.md#目标：其他网站可以直接使用本站的账号体系做登录，登录授权与会话安全全部由本站承担。接入方只需实现标准 OAuth2 授权码流程，不重复实现注册/登录/会话管理。`
+
+```diff
++ 目标：其他网站可以直接使用本站的账号体系做登录，登录授权与会话安全全部由本站承担。接入方只需实现标准 OAuth2 授权码流程，不重复实现注册/登录/会话管理。
+```
+
+## 新增：[Refresh token 轮换](开放平台.md)
+
+- 块 ID: `开放平台.md#oauth-refresh-rotation`
+
+```diff
++ - 每次刷新旧 refresh_token 作废、发新对（轮换语义）；并发刷新只有一个成功
++ - refresh_token 绑定签发时的 clientId：换到别的 client 上使用视为泄露，立即作废并留安全日志
++ - 实现见 [service.ts](apps/backend/src/OpenPlatform/service.ts)
+```
+
+## 新增：[PKCE（公开客户端）](开放平台.md)
+
+- 块 ID: `开放平台.md#oauth-pkce`
+
+```diff
++ - authorize 阶段接入方可带 `code_challenge` + `code_challenge_method=S256`（确认页透传到 approve）
++ - token 兑换时必须回传合法 `code_verifier`（43~128 字符），恒定时间比较防 timing 泄露
++ - 未携带 challenge 的授权码不校验 PKCE（机密客户端已由 client_secret 保护）
++ - 实现见 [service.ts](apps/backend/src/OpenPlatform/service.ts)、[openPlatform.ts](apps/backend/src/server/openPlatform.ts)
+```
+
 ## 新增：[背景](数据库Worker线程化.md)
 
 - 块 ID: `数据库Worker线程化.md#背景`
@@ -111,7 +148,8 @@
 + - 主线程侧运行时 `$use` 动态注册插件不可用（插件统一在 Worker 装配；业务代码无此用法）
 + - 事务客户端上不支持嵌套 `$transaction` / `$setAuth` / `$use`
 + - 并发 RPC 调用的观测记录按时间窗认领，极端交错下可能错归（诊断精度问题，不影响正确性）
-+ - 主进程退出时 Worker 被强制终止（unref），关机瞬间可能有未落盘写入
++ - 主进程退出时 Worker 随进程终止（不 unref，worker 存活保持进程存活）
++ - 开发环境热重启：dev.mjs 的 watch 重建 + 整进程重启天然覆盖（worker 入口在 pack entry 里，随 dist 重建）；worker 直跑 TS 源码不可行——tsx loader 在 worker 内可用但 `.zenstack` 生成物的无扩展名 ESM import 不被回退解析（已探针验证）
 ```
 
 ## 新增：[实现链接](数据库Worker线程化.md)
@@ -126,15 +164,22 @@
 + - 实现见 [vite.config.ts](apps/backend/vite.config.ts)（worker 构建入口）
 ```
 
-## 新增：[验收](数据库Worker线程化.md)
+## 新增：[验收（2026-11-01 已验，验证脚本 [dbworker-verify.ts](apps/backend/test/dbworker-verify.ts)，跑法：`TSFS_DB_WORKER_FILE=$PWD/dist/Context/dbWorker/workerEntry.mjs pnpm tsx test/dbworker-verify.ts`）](数据库Worker线程化.md)
 
 - 块 ID: `数据库Worker线程化.md#db-worker-acceptance`
 
 ```diff
-+ - [ ] 后端构建产物含 worker 入口，启动后 `db.user.findFirst` 等 CRUD 正常
-+ - [ ] 交互式事务 commit/rollback 正常（dbQueue 抢占、accountApi/paymentApi 事务）
-+ - [ ] 权限错误（P2004）跨线程后仍被正确识别为 403 类错误
-+ - [ ] 慢请求诊断：sqlEvents / driverSql / loopLag 时间线在 Worker 化后仍自洽
++ - [x] 主线程事件循环：同步慢查询基线冻结 ~430ms → worker 化后 0ms（10 路并发）
++ - [x] 交互式事务 commit/rollback 正常；并发事务（2 提交 + 1 回滚交错）原子性正确
++ - [x] 事务看门狗 5s 超时自动回滚，不悬挂，后续客户端可用
++ - [x] 20 路并发写全部成功且计数一致
++ - [x] 错误跨线程序列化保真（与直连对照：ORMError + message 完全一致，P2004 时 code/meta 机制就位）
++ - [ ] 生产链路（鉴权 P2004 → 403 映射、诊断时间线 sqlEvents/driverSql 自洽）待线上验证
++
++ ### 重要语义（验证中发现）
++
++ - 同一客户端在交互式事务挂起期间，其他操作会被排队（单连接事务语义，与 Prisma 一致）：**事务回调内严禁 await 非 tx 的 db 操作**，否则死锁，由 5s 看门狗强制回滚救回。现有 4 处生产事务（dbQueue/accountApi/paymentApi/tokenPackageApi）均只用 tx，无风险
++ - worker 不可 `unref()`（曾导致脚本场景静默退出）
 ```
 
 ## 新增：[需求以 `## 标题` 为块单位，正文自由描述，`` 双链绑定代码，](示例需求.md)
@@ -241,6 +286,7 @@
 + - [安全审查](安全审查.md) — 持续安全审计：已发现的漏洞与待修复项（只记录，修复时逐块 done）
 + - [架构切割面审查](架构切割面审查.md) — 全仓「应有抽象层但缺失」清单：分页/配置写入/错误提示样板等，按重复度×风险排序
 + - [数据库 Worker 线程化](数据库Worker线程化.md) — ZenStack 客户端挪进 worker_threads，透明代理保持业务写法零变化（含交互式事务）
++ - [开放平台](开放平台.md) — TsFullStack 账号体系对外输出：其他网站用本站账号登录（OAuthClient 注册表 + 授权码流程 + token/userinfo 端点）
 ```
 
 ## 用户修改：[会话令牌与口令轮询票据使用 cuid2 生成，熵源是 Math.random 而非 CSPRNG](安全审查.md)
@@ -455,4 +501,17 @@
 + ### 验收
 + - 浏览器历史中不出现含密码的 URL（不自动写回 hash，或提供"不记住密码"的默认选项）
 + - 若保留链接即钥匙模式，分享 UI 明确告知密码包含在链接里
+```
+
+## 用户修改：[Token 端点与用户信息](开放平台.md)
+
+- 块 ID: `开放平台.md#oauth-token-userinfo`
+
+```diff
+- - `POST /oauth/token`：grant_type=authorization_code，client_id + client_secret + code + redirect_uri 换 `access_token`（Bearer，14 天有效）
++ - `POST /oauth/token`：`grant_type=authorization_code`（client_id + client_secret + code + redirect_uri + 可选 code_verifier）或 `grant_type=refresh_token` 换 `access_token`（Bearer，14 天）+ `refresh_token`（30 天）
+- - access_token 走 KVStore（TTL 自动过期），撤销即删 key
+- - 实现见 [openPlatform.ts](apps/backend/src/server/openPlatform.ts)
++ - `POST /oauth/revoke`（RFC 7009）：吊销 access/refresh token（接入方登出/解绑时调用）
++ - access_token/refresh_token 走 KVStore（TTL 自动过期）
 ```
