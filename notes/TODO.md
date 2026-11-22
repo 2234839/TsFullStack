@@ -1,6 +1,6 @@
 # TODO
 
-> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 46 项待办。
+> 由 `pact todo` 生成，勿手改。按 diff 组织：每块只列差异行（+ 新 / - 旧），实现后 `pact todo --done <块ID>` 标记完成。已删除的块用 `pact todo --clean <块ID>` 清理记录。共 44 项待办。
 
 ## 新增：[账号合并只迁登录关系，不做业务数据迁移](index.md)
 
@@ -99,27 +99,6 @@
 + 目标：其他网站可以直接使用本站的账号体系做登录，登录授权与会话安全全部由本站承担。接入方只需实现标准 OAuth2 授权码流程，不重复实现注册/登录/会话管理。
 ```
 
-## 新增：[Refresh token 轮换](开放平台.md)
-
-- 块 ID: `开放平台.md#oauth-refresh-rotation`
-
-```diff
-+ - 每次刷新旧 refresh_token 作废、发新对（轮换语义）；并发刷新只有一个成功
-+ - refresh_token 绑定签发时的 clientId：换到别的 client 上使用视为泄露，立即作废并留安全日志
-+ - 实现见 [service.ts](apps/backend/src/OpenPlatform/service.ts)
-```
-
-## 新增：[PKCE（公开客户端）](开放平台.md)
-
-- 块 ID: `开放平台.md#oauth-pkce`
-
-```diff
-+ - authorize 阶段接入方可带 `code_challenge` + `code_challenge_method=S256`（确认页透传到 approve）
-+ - token 兑换时必须回传合法 `code_verifier`（43~128 字符），恒定时间比较防 timing 泄露
-+ - 未携带 challenge 的授权码不校验 PKCE（机密客户端已由 client_secret 保护）
-+ - 实现见 [service.ts](apps/backend/src/OpenPlatform/service.ts)、[openPlatform.ts](apps/backend/src/server/openPlatform.ts)
-```
-
 ## 新增：[背景](数据库Worker线程化.md)
 
 - 块 ID: `数据库Worker线程化.md#背景`
@@ -180,6 +159,32 @@
 +
 + - 同一客户端在交互式事务挂起期间，其他操作会被排队（单连接事务语义，与 Prisma 一致）：**事务回调内严禁 await 非 tx 的 db 操作**，否则死锁，由 5s 看门狗强制回滚救回。现有 4 处生产事务（dbQueue/accountApi/paymentApi/tokenPackageApi）均只用 tx，无风险
 + - worker 不可 `unref()`（曾导致脚本场景静默退出）
+```
+
+## 新增：[上传 HTML 作为 iframe 嵌入树洞帖子](树洞HTML分享.md)
+
+- 块 ID: `树洞HTML分享.md#embed-html`
+
+```diff
++ 用户经常用各类小工具（单文件 HTML 演示页）做演示，希望有一个可分享的链接给别人查看效果。树洞自带评论与可见性（公开/登录可见/私密），适合承载这个分享概念。
++
++ 需求：
++
++ - 树洞发帖（主题帖）时可附带一个**纯静态单文件 HTML**（自包含，无外部依赖文件）
++ - 帖子详情中以 iframe 展示该 HTML 的运行效果
++ - 支持生成分享链接给别人查看（受帖子可见性约束）
++ - 上传的 HTML **不得能读取站点外部数据**：即使别人上传恶意 HTML，其他用户查看时也不能窃取其账号（cookie / localStorage / 同源接口）
++
++ 安全设计（多层防御）：
++
++ - HTML 上传走专用入口（通用上传仍禁止 .html），强制 `mimetype: text/html`、`status: public`、`metadata.embedHtml` 标记，大小上限独立收紧
++ - 服务端提供免鉴权 GET `/embed/:fileId` 路由输出该文件，响应头强制：
++   - `Content-Security-Policy: sandbox allow-scripts` —— 即使受害者直接打开该 URL（顶层导航），文档也是 opaque origin，无法读取本站 cookie/localStorage/发起带凭证的同源请求
++   - `X-Content-Type-Options: nosniff`
++   - 该路由从全局 CSP hook 中豁免（否则会被全站 CSP 覆盖）
++ - 前端 iframe 使用 `sandbox="allow-scripts"`（不含 `allow-same-origin`），iframe 内脚本运行在与本站隔离的 opaque origin
++ - serve 侧仅输出满足「public + text/html + embedHtml 标记」的文件，不信任帖子里的引用
++ - 实现见 [treehole.ts](apps/backend/src/api/appApi/treehole.ts)、[file.ts](apps/backend/src/api/authApi/file.ts)、[index.ts](apps/backend/src/server/index.ts)、[TreeholePostForm.vue](apps/website-frontend/src/pages/treehole/TreeholePostForm.vue)、[TreeholePost.vue](apps/website-frontend/src/pages/treehole/TreeholePost.vue)
 ```
 
 ## 新增：[需求以 `## 标题` 为块单位，正文自由描述，`` 双链绑定代码，](示例需求.md)
@@ -287,6 +292,7 @@
 + - [架构切割面审查](架构切割面审查.md) — 全仓「应有抽象层但缺失」清单：分页/配置写入/错误提示样板等，按重复度×风险排序
 + - [数据库 Worker 线程化](数据库Worker线程化.md) — ZenStack 客户端挪进 worker_threads，透明代理保持业务写法零变化（含交互式事务）
 + - [开放平台](开放平台.md) — TsFullStack 账号体系对外输出：其他网站用本站账号登录（OAuthClient 注册表 + 授权码流程 + token/userinfo 端点）
++ - [树洞HTML分享](树洞HTML分享.md) — 树洞帖子附带纯静态 HTML 文件，沙箱 iframe 嵌入演示 + 分享链接（CSP sandbox 隔离防账号窃取）
 ```
 
 ## 用户修改：[会话令牌与口令轮询票据使用 cuid2 生成，熵源是 Math.random 而非 CSPRNG](安全审查.md)
@@ -501,17 +507,4 @@
 + ### 验收
 + - 浏览器历史中不出现含密码的 URL（不自动写回 hash，或提供"不记住密码"的默认选项）
 + - 若保留链接即钥匙模式，分享 UI 明确告知密码包含在链接里
-```
-
-## 用户修改：[Token 端点与用户信息](开放平台.md)
-
-- 块 ID: `开放平台.md#oauth-token-userinfo`
-
-```diff
-- - `POST /oauth/token`：grant_type=authorization_code，client_id + client_secret + code + redirect_uri 换 `access_token`（Bearer，14 天有效）
-+ - `POST /oauth/token`：`grant_type=authorization_code`（client_id + client_secret + code + redirect_uri + 可选 code_verifier）或 `grant_type=refresh_token` 换 `access_token`（Bearer，14 天）+ `refresh_token`（30 天）
-- - access_token 走 KVStore（TTL 自动过期），撤销即删 key
-- - 实现见 [openPlatform.ts](apps/backend/src/server/openPlatform.ts)
-+ - `POST /oauth/revoke`（RFC 7009）：吊销 access/refresh token（接入方登出/解绑时调用）
-+ - access_token/refresh_token 走 KVStore（TTL 自动过期）
 ```

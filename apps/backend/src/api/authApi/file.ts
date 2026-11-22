@@ -1,4 +1,5 @@
 import { File as FileModel, StorageType, FileStatusEnum } from '../../../.zenstack/models';
+import type { FileUncheckedCreateInput } from '../../../.zenstack/input';
 import { Effect } from 'effect';
 import { fail, MsgError, requireOrFail, tryOrFail, extractErrorMessage } from '../../util/error';
 import { createWriteStream } from 'fs';
@@ -41,6 +42,9 @@ const fetchFileById = (id: FileModel['id']) =>
     dbTryOrDefault(LOG_PREFIX, '查询文件', () => auth.db.file.findUnique({ where: { id } }), null),
   );
 
+/** 树洞 HTML 演示文件单文件上限（自包含静态页，独立收紧防滥用） */
+const EMBED_HTML_MAX_BYTES = 2 * 1024 * 1024;
+
 /**
  * 通用文件保存函数（Buffer 一次性写入 / ReadableStream 流式写入）
  * 统一处理：生成 fileId → 确保目录 → 写入文件 → 创建 DB 记录
@@ -50,6 +54,8 @@ const fetchFileById = (id: FileModel['id']) =>
 const saveFile = (options: {
   filename: string;
   mimetype: string;
+  /** 创建 DB 记录时的附加字段（如树洞 HTML 的 public 状态与 embedHtml 标记） */
+  recordData?: { status?: FileStatusEnum; metadata?: FileUncheckedCreateInput['metadata'] };
   /** Buffer 模式：直接传入完整数据 */
   buffer?: Buffer;
   /** 流式模式：传入可读流和已知大小（用于大文件上传场景）；destroy 可选（部分流实现支持中止） */
@@ -110,6 +116,7 @@ const saveFile = (options: {
     return yield* dbTry(LOG_PREFIX, '创建文件记录', () =>
       auth.db.file.create({
         data: {
+          ...options.recordData,
           filename: FilePathService.sanitizeFilename(options.filename),
           mimetype: options.mimetype,
           path: fileId,
@@ -172,6 +179,66 @@ export const fileApi = {
         filename: reqFile.filename,
         mimetype: reqFile.mimetype,
         stream: reqFile.file,
+      });
+    });
+  },
+
+  /**
+   * 树洞 HTML 演示文件专用上传入口：
+   * 通用 upload 禁止 .html（防存储型 XSS），这里是全站唯一允许上传 HTML 的地方。
+   * 安全保障不在上传侧做内容净化，而在输出侧：/embed/:id 路由强制 CSP sandbox，
+   * 文档永远以 opaque origin 运行，读不到本站 cookie/localStorage。
+   */
+  uploadHtmlEmbed(_file: File) {
+    return Effect.gen(function* () {
+      const reqCtx = yield* ReqCtxService;
+
+      /** 获取上传文件（独立限制 2MB，超限 fastify 直接截断报错） */
+      const reqFile = yield* requireOrFail(
+        yield* tryOrFail(
+          '获取上传文件',
+          () =>
+            reqCtx.req.file({
+              limits: { fileSize: EMBED_HTML_MAX_BYTES },
+            }) as Promise<{
+              filename: string;
+              mimetype: string;
+              toBuffer: () => Promise<Buffer>;
+            } | null>,
+        ),
+        'No file uploaded',
+      );
+
+      reqCtx.log(`${LOG_PREFIX} 树洞 HTML 上传: ${reqFile.filename}`);
+
+      /** 仅接受 .html/.htm，其余一律拒绝 */
+      const ext = getFileExtension(reqFile.filename);
+      if (ext !== 'html' && ext !== 'htm') {
+        return yield* fail('仅支持上传 .html 文件');
+      }
+
+      /** 上限 2MB，直接读入内存后一次性写入 */
+      const buffer = yield* tryOrFail('读取文件内容', () => reqFile.toBuffer());
+
+      const auth = yield* AuthContext;
+      const uploaded = yield* tryOrFail('统计用户已用容量', () =>
+        auth.db.file.aggregate({ _sum: { size: true }, where: { authorId: auth.user.id } }),
+      );
+      if ((uploaded._sum.size ?? 0) + buffer.length > USER_UPLOAD_QUOTA_BYTES) {
+        return yield* fail(
+          `存储空间已满（配额 ${Math.floor(USER_UPLOAD_QUOTA_BYTES / 1024 / 1024 / 1024)}GB），请先删除旧文件`,
+        );
+      }
+
+      /** mimetype 强制 text/html（不信任客户端报告值），状态强制 public，metadata 打上 embedHtml 标记 */
+      return yield* saveFile({
+        filename: reqFile.filename,
+        mimetype: 'text/html',
+        buffer,
+        recordData: {
+          status: FileStatusEnum.public,
+          metadata: { embedHtml: true },
+        },
       });
     });
   },

@@ -462,6 +462,9 @@ model Post extends Content {
 
     /** 回复列表（一对多） */
     replies Post[] @relation("PostReplies")
+
+    /** 附带的静态 HTML 演示文件 ID（File 表，经 /embed/:id 沙箱路由输出） */
+    embedHtmlId Int?
 }
 
 /// AI 英语学习数据模型

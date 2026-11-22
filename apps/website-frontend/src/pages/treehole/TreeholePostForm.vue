@@ -38,6 +38,34 @@
         />
       </div>
 
+      <!-- 附件：静态 HTML 演示文件（仅主题帖） -->
+      <div v-if="!isReply">
+        <label class="block text-sm font-medium text-primary-label mb-1">
+          {{ t('HTML 演示文件（可选）') }}
+        </label>
+        <div class="flex items-center gap-2">
+          <input ref="htmlInputRef" type="file" accept=".html,.htm" class="hidden" @change="handleHtmlSelect" />
+          <Button
+            :label="htmlFile ? htmlFile.name : t('选择 HTML 文件')"
+            :icon="htmlFile ? 'pi pi-file-code' : 'pi pi-upload'"
+            variant="secondary"
+            size="sm"
+            @click="htmlInputRef?.click()"
+          />
+          <Button
+            v-if="htmlFile"
+            :label="t('移除')"
+            icon="pi pi-times"
+            variant="text"
+            size="sm"
+            @click="removeHtmlFile"
+          />
+        </div>
+        <p class="mt-1 text-xs text-primary-subtle">
+          {{ t('上传自包含的纯静态 HTML（≤2MB），帖子内将以沙箱 iframe 展示运行效果，并生成可分享链接') }}
+        </p>
+      </div>
+
       <!-- 可见性选择 -->
       <div>
         <label class="block text-sm font-medium text-primary-label mb-2">
@@ -106,6 +134,10 @@ const { t } = useI18n();
 const isSubmitting = shallowRef(false);
 const showTitle = shallowRef(false);
 
+/** 选中的 HTML 演示文件（仅主题帖可附带） */
+const htmlFile = shallowRef<File | null>(null);
+const htmlInputRef = ref<HTMLInputElement | null>(null);
+
 /** 是否为回复 */
 const isReply = computed(() => parentId !== null);
 
@@ -169,6 +201,24 @@ function getVisibilityDescription(): string {
   return option?.description ?? '';
 }
 
+/** 选择/移除 HTML 演示文件 */
+function handleHtmlSelect(event: Event) {
+  const input = event.target as HTMLInputElement;
+  htmlFile.value = input.files?.[0] ?? null;
+}
+
+function removeHtmlFile() {
+  htmlFile.value = null;
+  if (htmlInputRef.value) htmlInputRef.value.value = '';
+}
+
+/** 上传 HTML 演示文件，返回文件 ID */
+async function uploadHtmlFile(): Promise<number | undefined> {
+  if (!htmlFile.value) return undefined;
+  const uploaded = await API.fileApi.uploadHtmlEmbed(htmlFile.value);
+  return uploaded.id;
+}
+
 /**
  * 提交表单
  */
@@ -178,10 +228,14 @@ async function handleSubmit() {
   isSubmitting.value = true;
 
   try {
+    /** 先上传 HTML 演示文件拿到文件 ID，再创建帖子 */
+    const embedHtmlId = await uploadHtmlFile();
+
     const createData = {
       content: formData.value.content,
       visibility: formData.value.visibility,
       authorId: authInfo.value.userId,
+      ...(embedHtmlId !== undefined ? { embedHtmlId } : {}),
       ...(formData.value.title.trim() ? { title: formData.value.title } : {}),
       ...(parentId ? { parentId } : {}),
     } as Parameters<typeof API.db.post.create>[0]['data'];
@@ -198,6 +252,7 @@ async function handleSubmit() {
       content: '',
       visibility: $Enums.ContentVisibility.PUBLIC,
     };
+    removeHtmlFile();
     // 回复时收起标题字段
     if (isReply.value) {
       showTitle.value = false;

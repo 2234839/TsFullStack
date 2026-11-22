@@ -38,6 +38,7 @@ import { registerWebhookRoutes } from './webhook';
 import { registerGroupEntryRoutes } from './groupEntry';
 import { registerWechatRoutes } from './wechat';
 import { registerOpenPlatformRoutes } from './openPlatform';
+import { registerEmbedRoutes } from './embed';
 import { CORS_MAX_AGE_SECONDS, MAX_UPLOAD_BYTES, SERVER_PORT, SERVER_HOST, MAX_WAIT_MS, MSG } from '../util/constants';
 
 /** 通用 RPC 调用辅助（消除 app-api/api 两分支的重复 tryPromise+isEffect 模式） */
@@ -874,29 +875,34 @@ export const startServer = Effect.gen(function* () {
     if (ph) ph.tSendStart = performance.now();
     const pathname = new URL(request.url, 'http://localhost').pathname.replace(/\/+$/, '');
     const allowCrossOriginFrame = pathname === '/noteCalc' || pathname === '/noteCalc/embed';
+    /** /embed/ 树洞 HTML 输出：路由自身已设置 CSP sandbox（opaque origin 隔离），
+     * 此处若再覆盖全站 CSP 会把 sandbox 指令冲掉，故仅保留 nosniff/Referrer-Policy */
+    const isEmbedSandbox = pathname.startsWith('/embed/');
 
     reply.header('X-Content-Type-Options', 'nosniff');
     if (!allowCrossOriginFrame) {
       reply.header('X-Frame-Options', 'SAMEORIGIN');
     }
     reply.header('Referrer-Policy', 'no-referrer');
-    reply.header(
-      'Content-Security-Policy',
-      [
-        "default-src 'self'",
-        "script-src 'self'",
-        "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob: https:",
-        "media-src 'self' blob: https:",
-        "font-src 'self' data:",
-        "connect-src 'self' https: http://localhost:* http://127.0.0.1:*",
-        "frame-src 'self'",
-        `frame-ancestors ${allowCrossOriginFrame ? '*' : "'self'"}`,
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-      ].join('; '),
-    );
+    if (!isEmbedSandbox) {
+      reply.header(
+        'Content-Security-Policy',
+        [
+          "default-src 'self'",
+          "script-src 'self'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob: https:",
+          "media-src 'self' blob: https:",
+          "font-src 'self' data:",
+          "connect-src 'self' https: http://localhost:* http://127.0.0.1:*",
+          "frame-src 'self'",
+          `frame-ancestors ${allowCrossOriginFrame ? '*' : "'self'"}`,
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+        ].join('; '),
+      );
+    }
   });
   /** 响应发完才落盘诊断：拿到响应完毕时刻与出站字节，避免响应未完成就归档 */
   fastify.addHook('onResponse', async (request) => {
@@ -951,6 +957,9 @@ export const startServer = Effect.gen(function* () {
     commit: GIT_COMMIT,
     buildTime: BUILD_TIME,
   }));
+
+  /** 树洞 HTML 演示文件沙箱输出路由（免鉴权 GET，响应头自带 CSP sandbox，见 embed.ts） */
+  registerEmbedRoutes(fastify, appConfig);
 
   /** 注册支付 Webhook 回调路由（不走 RPC 系统，由第三方平台直接调用） */
   registerWebhookRoutes(fastify, appConfig);

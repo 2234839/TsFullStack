@@ -88,6 +88,31 @@
         <div class="text-primary-label whitespace-pre-wrap mb-4">
           {{ post.content }}
         </div>
+
+        <!-- HTML 演示：沙箱 iframe（服务端 /embed/:id 已强制 CSP sandbox，这里二次隔离） -->
+        <div v-if="post.embedHtmlId" class="mb-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-primary-subtle flex items-center gap-1">
+              <i class="pi pi-shield"></i>
+              {{ t('沙箱隔离的 HTML 演示') }}
+            </span>
+            <Button
+              :label="t('复制演示链接')"
+              icon="pi pi-share-alt"
+              variant="text"
+              size="small"
+              @click="copyEmbedLink"
+            />
+          </div>
+          <iframe
+            :src="embedUrl"
+            sandbox="allow-scripts"
+            loading="lazy"
+            referrerpolicy="no-referrer"
+            class="w-full h-96 rounded-lg border border-primary-200 dark:border-primary-700 bg-white"
+            :title="t('HTML 演示')"
+          />
+        </div>
       </template>
 
       <!-- 折叠状态下的摘要 -->
@@ -193,6 +218,23 @@ const hasMoreReplies = computed(() => {
   // 如果已加载,检查是否有未显示的回复
   return totalReplies > replies.value.length;
 });
+
+/** HTML 演示文件的沙箱输出 URL（指向后端 /embed/:id 路由） */
+const embedUrl = computed(() => {
+  if (!post.embedHtmlId) return '';
+  const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+  return new URL(`/embed/${post.embedHtmlId}`, baseUrl).toString();
+});
+
+/** 复制演示链接（直接打开也是 CSP sandbox 的 opaque origin，安全） */
+async function copyEmbedLink() {
+  try {
+    await navigator.clipboard.writeText(embedUrl.value);
+    toast.success(t('成功'), t('演示链接已复制'));
+  } catch {
+    toast.error(t('错误'), t('复制失败，请手动复制'));
+  }
+}
 
 /** 展开按钮的文本 */
 const expandButtonText = computed(() => {

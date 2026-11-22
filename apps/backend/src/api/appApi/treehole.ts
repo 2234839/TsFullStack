@@ -55,6 +55,8 @@ export interface TreeholePost {
   authorId: string;
   author: TreeholeAuthor;
   parentId: number | null;
+  /** 附带的静态 HTML 演示文件 ID（经 /embed/:id 沙箱路由输出） */
+  embedHtmlId: number | null;
   /** 直属子回复数量 */
   _count: {
     replies: number;
@@ -158,6 +160,7 @@ export const treeholeApi = {
               updated: true,
               authorId: true,
               parentId: true,
+              embedHtmlId: true,
               author: {
                 select: { id: true, nickname: true, avatar: true },
               },
@@ -233,6 +236,7 @@ export const treeholeApi = {
                 updated: true,
                 authorId: true,
                 parentId: true,
+                embedHtmlId: true,
                 author: {
                   select: { id: true, nickname: true, avatar: true },
                 },
