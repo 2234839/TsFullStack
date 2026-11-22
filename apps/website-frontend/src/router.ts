@@ -197,6 +197,14 @@ export const routeMap = reactive({
       icon: 'pi pi-comments',
     },
   },
+  treeholeDetail: {
+    path: '/treehole/:id',
+    component: () => import('@/pages/treehole/TreeholeDetail.vue'),
+    meta: {
+      title: t('帖子详情'),
+      icon: 'pi pi-comments',
+    },
+  },
   pricing: {
     path: '/pricing',
     component: () => import('@/pages/pricing/PricingPage.vue'),

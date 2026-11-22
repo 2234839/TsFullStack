@@ -79,8 +79,14 @@
 
       <!-- 帖子标题和内容(可折叠) -->
       <template v-if="!isPostCollapsed">
-        <!-- 帖子标题 -->
-        <h3 class="text-xl font-bold text-primary-900 dark:text-primary-50 mb-2">
+        <!-- 帖子标题：主题帖可点击进入详情页 -->
+        <h3
+          class="text-xl font-bold text-primary-900 dark:text-primary-50 mb-2"
+          :class="
+            depth === 0 ? 'cursor-pointer hover:text-primary-600 dark:hover:text-primary-300 transition-colors' : ''
+          "
+          @click="depth === 0 && routerUtil.push(routeMap.treeholeDetail, { id: String(post.id) })"
+        >
           {{ post.title }}
         </h3>
 
@@ -157,6 +163,7 @@ import { shallowRef, computed } from 'vue';
 import { authInfo, authInfo_isLogin } from '@/storage';
 import { Dropdown } from '@tsfullstack/shared-frontend/components';
 import { useAPI } from '@/api';
+import { routeMap, routerUtil } from '@/router';
 import TreeholePostForm from './TreeholePostForm.vue';
 import SandboxEmbed from '@/components/common/SandboxEmbed.vue';
 import { useToast } from '@/composables/useToast';
