@@ -152,7 +152,7 @@ function settleLogin(info: Parameters<typeof loginGoto>[0]) {
 /** OAuth：stayOnSuccess 时新开 tab 授权（回调页 postMessage 回传登录态），否则整页跳转 */
 const oauthLogin = useAsyncState(
   async (provider: 'github' | 'linuxdo') => {
-    let url: string;
+    let url = '';
     if (provider === 'github') {
       url = await AppAPI.githubApi.getAuthorizationUrl();
     } else if (provider === 'linuxdo') {

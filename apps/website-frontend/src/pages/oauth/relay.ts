@@ -17,7 +17,7 @@ export function relayLoginToOpener(info: loginByEmailPwd_res): Promise<boolean> 
   try {
     if (opener.location.origin !== location.origin) return Promise.resolve(false);
   } catch {
-    return false;
+    return Promise.resolve(false);
   }
   return new Promise((resolve) => {
     const cleanup = () => {
